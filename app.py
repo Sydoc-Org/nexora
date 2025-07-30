@@ -93,7 +93,10 @@ def post_login():
     #Check if user is logged in
     if 'username' not in session:
         return redirect(url_for("login"))
+<<<<<<< HEAD
  
+=======
+>>>>>>> 3d15ce06cf399b603672cf40df2a0d2be091dedf
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
