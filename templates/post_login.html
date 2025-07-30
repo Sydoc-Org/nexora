@@ -64,6 +64,9 @@
                             {% if scope == 'Privera' %}
                                 <img src="{{ url_for('static',filename='images/Privera-Icon.png') }}" alt="User Avatar" class="h-10 w-10 rounded-full">
                             {% endif %}
+                            {% if scope == 'StadtBiel' %}
+                                <img src="{{ url_for('static',filename='images/StadtBiel-Icon.svg') }}" alt="User Avatar" class="h-10 w-10 rounded-full">
+                            {% endif %}
                            <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
                         </button>
                         </div>
@@ -85,22 +88,22 @@
                     <p class="text-3xl font-bold">{{ InProgress }}</p>
                 </div>
                 <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fas fa-spinner"></i>
+                    <i class="fa-solid fa-arrow-progress"></i>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Imported Today</p>
-                    <p class="text-3xl font-bold">{{ Import }}</p>
+                    <p class="text-sm font-medium text-gray-500">Exported</p>
+                    <p class="text-3xl font-bold">{{ Exported }}</p>
                 </div>
                 <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fas fa-barcode"></i>
+                    <i class="fa-solid fa-file-export"></i>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Exported Today</p>
-                    <p class="text-3xl font-bold">{{ Export }}</p>
+                    <p class="text-sm font-medium text-gray-500">Done</p>
+                    <p class="text-3xl font-bold">{{ Done }}</p>
                 </div>
                 <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
                     <i class="fas fa-check-circle"></i>
@@ -108,11 +111,11 @@
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Exported This Month</p>
-                    <p class="text-3xl font-bold">{{ ExportThisMonth }}</p>
+                    <p class="text-sm font-medium text-gray-500">Pending</p>
+                    <p class="text-3xl font-bold">{{ Pending }}</p>
                 </div>
                 <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fa-solid fa-spinner"></i>
                 </div>
             </div>
         </div>
