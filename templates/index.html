@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-gradient-primary {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .error-message {
+            padding: 12px;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            background-color: rgba(238, 12, 12, 0.1);
+            border: 1px solid #ee0c0c;
+            color: #eb1c0d;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
+                </div>
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Home</a>
+                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">About Us</a>
+                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Services</a>
+                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Contact</a>
+                </nav>
+                <button class="md:hidden">
+                    <i class="fas fa-bars text-2xl text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="bg-white">
+            <div class="container mx-auto px-6 py-20">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="md:w-1/2 mb-10 md:mb-0">
+                        <h2 class="text-4xl md:text-5xl font-bold text-gray-800 leading-tight mb-4">
+                            Welcome to the Sydoc Portal
+                        </h2>
+                        <p class="text-lg text-gray-600 mb-8">
+                            Securely track the status of your scanned, email/sftp imported and validated documents in real-time. Please log in to access your dashboard.
+                        </p>
+                        <a href="#login-form" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                            Login to Your Account
+                        </a>
+                    </div>
+
+                    <div id="login-form" class="md:w-1/2 lg:w-2/5">
+                        <div class="bg-white rounded-xl shadow-2xl p-8">
+                            <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Sydoc Portal Login</h3>
+                                    {% if error %}
+                                        <div class="error-message">{{ error }}</div>
+                                    {% endif %}
+                            <form method="POST" action="{{ url_for('login') }}">
+                                <div class="mb-4">
+                                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <i class="fas fa-user text-gray-400"></i>
+                                        </span>
+                                        <input type="username" id="username" name="username" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Your Username">
+                                    </div>
+                                </div>
+                                <div class="mb-6">
+                                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                    <div class="relative">
+                                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <i class="fas fa-lock text-gray-400"></i>
+                                        </span>
+                                        <input type="password" id="password" name="password" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="••••••••••">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mb-6">
+                                    <label class="flex items-center text-sm text-gray-600">
+                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600">
+                                        <span class="ml-2">Remember me</span>
+                                    </label>
+                                    <a href="#" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                                </div>
+                                <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
+                                    Sign In
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="bg-gray-50 py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800">Why Use Sydoc Portal?</h2>
+                    <p class="text-gray-600 mt-2">Everything you need in one secure and convenient place.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
+                             <i class="fas fa-search-location text-3xl text-indigo-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Real-Time Tracking</h3>
+                        <p class="text-gray-600">Monitor your document's journey from scanning to validation and final delivery, every step of the way.</p>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
+                            <i class="fas fa-history text-3xl text-indigo-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Document History</h3>
+                        <p class="text-gray-600">Access a complete, auditable history of all your processed documents, available 24/7.</p>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
+                            <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Secure Access</h3>
+                        <p class="text-gray-600">Your data is protected with industry-leading security protocols, ensuring complete confidentiality.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
