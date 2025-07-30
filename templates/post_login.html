@@ -88,7 +88,16 @@
                     <p class="text-3xl font-bold">{{ InProgress }}</p>
                 </div>
                 <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-arrow-progress"></i>
+                   <i class="fa-solid fa-spinner"></i>
+                </div>
+            </div>
+             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Done</p>
+                    <p class="text-3xl font-bold">{{ Done }}</p>
+                </div>
+                <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
+                    <i class="fas fa-check-circle"></i>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
@@ -102,20 +111,11 @@
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Done</p>
-                    <p class="text-3xl font-bold">{{ Done }}</p>
-                </div>
-                <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
                     <p class="text-sm font-medium text-gray-500">Pending</p>
                     <p class="text-3xl font-bold">{{ Pending }}</p>
                 </div>
-                <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-spinner"></i>
+                <div class="bg-orange-100 text-orange-600 h-12 w-12 flex items-center justify-center rounded-full">
+                    <i class="fa-solid fa-hourglass-start"></i>
                 </div>
             </div>
         </div>
