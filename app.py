@@ -90,6 +90,10 @@ def index():
 
 @app.route("/post_login")
 def post_login():
+    #Check if user is logged in
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
 
