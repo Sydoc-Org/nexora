@@ -42,7 +42,7 @@ def login():
         
         try:
             conn_str = (
-                f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+                f'DRIVER={{SQL Server}};'
                 f'SERVER={DB_SERVER},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
@@ -97,7 +97,7 @@ def post_login():
     scope = session.get('scope', 'Unknown')
 
     conn_str = (
-        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+        f'DRIVER={{SQL Server}};'
         f'SERVER={DB_SERVER},1433;'
         f'DATABASE={DB_SERVER_DB_STAT};'
         f'UID={DB_UID};'
