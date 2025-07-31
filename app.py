@@ -53,20 +53,27 @@ def login():
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT password, Scope FROM Users WHERE username = ?
+                SELECT password, Scope, username, fullname, email, company FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
             if user_record:
                 stored_hash = user_record[0]
                 scope = user_record[1]
+                stored_username = user_record[2]
+                stored_fullname = user_record[3]
+                stored_email = user_record[4]
+                stored_company = user_record[5]
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
             
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
                     session.clear()  
-                    session['username'] = UID_REQUEST
+                    session['username'] = stored_username
+                    session['fullname'] = stored_fullname
+                    session['email'] = stored_email
                     session['scope'] = scope
+                    session['company'] = stored_company
                     session.permanent = True
                     return redirect(url_for("post_login"))
                 
@@ -182,5 +189,60 @@ def post_login():
     FileID=FileID, Pending=Pending, InProgress=InProgress, Done=Done, Exported=Exported,
     FileID_=FileID_, Pending_=Pending_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
     )
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.route("/profile")
+def profile():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    logged_in_user = session.get('username', 'Unknown')
+    scope = session.get('scope', 'Unknown')
+    fullname = session.get('fullname', 'Unknown')
+    email = session.get('email', 'Unknown')
+    company = session.get('company', 'Unknown')
+    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+
+@app.route("/update_profile", methods=["POST", "GET"])
+def update_profile():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        username = session['username']
+        fullname = request.form['fullName']
+        email = request.form['email']
+        company = request.form['company']
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE Users
+            SET fullname = ?, email = ?, company = ?
+            WHERE username = ?
+        """, (fullname, email, company, username))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        session['fullname'] = fullname
+        session['email'] = email
+        session['company'] = company
+
+        return redirect(url_for("profile"))                                   
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
