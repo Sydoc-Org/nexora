@@ -58,6 +58,9 @@
                     </button>
                     <div class="relative">
                         <button class="flex items-center space-x-2">
+                            {% if scope == 'admin' %}
+                                <img src="{{ url_for('static',filename='images/admin-Icon.png') }}" alt="User Avatar" class="h-10 w-10 rounded-full">
+                            {% endif %}
                             {% if scope == 'ElektroMaterial' %}
                                 <img src="{{ url_for('static',filename='images/ElektroMaterial-Icon.png') }}" alt="User Avatar" class="h-10 w-10 rounded-full">
                             {% endif %}
@@ -76,294 +79,198 @@
     </header>
 
 <main class="container mx-auto p-6">
-        <div class="mb-10">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome back, {{ logged_in_user }}! 👋</h2>
-            <p class="text-gray-600">Here's a summary of your document activity.</p>
-        </div>
+    <div class="mb-10">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome back, {{ logged_in_user }}! 👋</h2>
+        <p class="text-gray-600">Here's a summary of your document activity.</p>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">In Progress</p>
-                    <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
-                </div>
-                <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
-                   <i class="fa-solid fa-spinner"></i>
-                </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">In Progress</p>
+                <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
             </div>
-             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Done</p>
-                    <p class="text-3xl font-bold">{{ DoneTotal }}</p>
-                </div>
-                <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Exported</p>
-                    <p class="text-3xl font-bold">{{ ExportedTotal }}</p>
-                </div>
-                <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-file-export"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Pending</p>
-                    <p class="text-3xl font-bold">{{ PendingTotal }}</p>
-                </div>
-                <div class="bg-orange-100 text-orange-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-hourglass-start"></i>
-                </div>
+            <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
+                <i class="fa-solid fa-spinner"></i>
             </div>
         </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Done</p>
+                <p class="text-3xl font-bold">{{ DoneTotal }}</p>
+            </div>
+            <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Exported</p>
+                <p class="text-3xl font-bold">{{ ExportedTotal }}</p>
+            </div>
+            <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
+                <i class="fa-solid fa-file-export"></i>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Pending</p>
+                <p class="text-3xl font-bold">{{ PendingTotal }}</p>
+            </div>
+            <div class="bg-orange-100 text-orange-600 h-12 w-12 flex items-center justify-center rounded-full">
+                <i class="fa-solid fa-hourglass-start"></i>
+            </div>
+        </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            <div class="lg:col-span-2 space-y-6">
-                <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
+        <div class="lg:col-span-2 space-y-6">
+            <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
 
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                           <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
-                        </div>
-                        {% if InProgress == 'False' %}
-                        <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
-                        {% endif %}
-                        {% if InProgress == 'True' and Done == 'False' %}
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Progress</span>
-                        {% endif %}
-                        {% if Done == 'True' and Exported == 'False' %}
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
+                    </div>
+                    {% if Exported == 'True' %}
+                        <span class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Exported</span>
+                    {% elif Done == 'True' %}
                         <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
-                        {% endif %}
-                         {% if Exported == 'True' %}
-                        <span class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Export</span>
-                        {% endif %}
-                    </div>
-                    <div class="flex text-center text-sm mt-6">
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-hourglass-start"></i>
-                                </div>
-                                <p class="mt-2 font-semibold">Pending</p>
-                            </div>
-                        </div>
-                        {% if InProgress == 'True' and Done == 'False' %}
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white animate-pulse">
-                                    <i class="fa-solid fa-spinner"></i>
-                                </div>
-                                <p class="mt-2 font-semibold text-indigo-600">In Progress</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if InProgress == 'True' and Done == 'True' %}
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-spinner"></i>
-                                </div>
-                                <p class="mt-2 font-semibold">In Progress</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if InProgress == 'False' %}
-                        <div class="progress-step">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400">
-                                   <i class="fa-solid fa-spinner"></i>
-                                </div>
-                                <p class="mt-2 text-gray-500">In Progress</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if Done == 'False' %}
-                         <div class="progress-step">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400"><i class="fas fa-user-check"></i></div>
-                                <p class="mt-2 text-gray-500">Done</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if Done == 'True' and Exported == 'True' %}
-                         <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <p class="mt-2 font-semibold">Done</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if Done == 'True' and Exported == 'False' %}
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400 animate-pulse">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <p class="mt-2 text-gray-500">Done</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if Exported == 'False' %}
-                        <div class="progress-step">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400">
-                                    <i class="fa-solid fa-file-export"></i>
-                                </div>
-                                <p class="mt-2 text-gray-500">Exported</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if Exported == 'True' %}
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-file-export"></i>
-                                </div>
-                                <p class="mt-2 font-semibold text-indigo-600">Exported</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+                    {% elif InProgress == 'True' %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Progress</span>
+                    {% else %}
+                        <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
+                    {% endif %}
                 </div>
-
-
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
-                </div>
-                {% if InProgress_ == 'False' %}
-                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
-                {% endif %}
-                {% if InProgress_ == 'True' and Done_ == 'False' %}
-                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Progress</span>
-                {% endif %}
-                {% if Done_ == 'True' and Exported_ == 'False' %}
-                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
-                {% endif %}
-                {% if Exported_ == 'True' %}
-                <span class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Export</span>
-                {% endif %}
-            </div>
-            <div class="flex text-center text-sm mt-6">
-                <div class="progress-step completed">
-                    <div class="flex flex-col items-center">
-                        <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                            <i class="fa-solid fa-hourglass-start"></i>
-                        </div>
-                        <p class="mt-2 font-semibold">Pending</p>
-                    </div>
-                </div>
-
-                {% if InProgress_ == 'True' %}
-                    <div class="progress-step {% if Done_ == 'True' %}completed{% endif %}">
-                        <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'False' %}bg-indigo-600 text-white animate-pulse{% else %}bg-indigo-600 text-white{% endif %}">
-                                <i class="fa-solid fa-spinner"></i>
-                            </div>
-                            <p class="mt-2 font-semibold {% if Done_ == 'False' %}text-indigo-600{% endif %}">In Progress</p>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="progress-step">
-                        <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400">
-                            <i class="fa-solid fa-spinner"></i>
-                            </div>
-                            <p class="mt-2 text-gray-500">In Progress</p>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if Done_ == 'True' %}
-                    <div class="progress-step {% if Exported_ == 'True' %}completed{% endif %}">
-                        <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Exported_ == 'False' %}bg-indigo-600 text-white animate-pulse{% else %}bg-indigo-600 text-white{% endif %}">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <p class="mt-2 font-semibold {% if Exported_ == 'False' %}text-indigo-600{% endif %}">Done</p>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="progress-step">
-                        <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400"><i class="fas fa-check-circle"></i></div>
-                            <p class="mt-2 text-gray-500">Done</p>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if Exported_ == 'True' %}
+                <div class="flex text-center text-sm mt-6">
                     <div class="progress-step completed">
                         <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                <i class="fa-solid fa-file-export"></i>
-                            </div>
-                            <p class="mt-2 font-semibold text-indigo-600">Exported</p>
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"><i class="fa-solid fa-hourglass-start"></i></div>
+                            <p class="mt-2 font-semibold">Pending</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="progress-step">
+                    <div class="progress-step {% if InProgress == 'True' %}completed{% endif %}">
                         <div class="flex flex-col items-center">
-                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-gray-200 text-gray-400">
-                                <i class="fa-solid fa-file-export"></i>
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-indigo-600 text-white {% if Done == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fa-solid fa-spinner"></i>
                             </div>
-                            <p class="mt-2 text-gray-500">Exported</p>
+                            <p class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-indigo-600{% elif InProgress == 'False' %}text-gray-500{% endif %}">In Progress</p>
                         </div>
                     </div>
-                {% endif %}
-            </div>
-        </div>
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                           <div class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-cogs text-xs"></i>
-                           </div>
-                           <div>
-                               <p class="text-sm font-medium">Validation started for <span class="font-bold">Workitem 123123</span>.</p>
-                               <p class="text-xs text-gray-500">Today at 10:42 AM</p>
-                           </div>
-                        </li>
-                        <li class="flex items-start">
-                            <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-check text-xs"></i>
+                    <div class="progress-step {% if Done == 'True' %}completed{% endif %}">
+                        <div class="flex flex-col items-center">
+                             <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Exported == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fas fa-check-circle"></i>
                             </div>
-                            <div>
-                               <p class="text-sm font-medium"><span class="font-bold">Workitem 123124</span> was Exported</p>
-                               <p class="text-xs text-gray-500">Today at 08:56 PM</p>
+                            <p class="mt-2 font-semibold {% if Done == 'True' and Exported == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}">Done</p>
+                        </div>
+                    </div>
+                    <div class="progress-step {% if Exported == 'True' %}completed{% endif %}">
+                        <div class="flex flex-col items-center">
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Exported == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fa-solid fa-file-export"></i>
                             </div>
-                        </li>
-                         <li class="flex items-start">
-                           <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-file-upload text-xs"></i>
-                           </div>
-                           <div>
-                               <p class="text-sm font-medium">Imported new Document: <span class="font-bold">Workitem 123126</span>.</p>
-                               <p class="text-xs text-gray-500">July 30, 2025</p>
-                           </div>
-                        </li>
-                    </ul>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-4">Need Help?</h3>
-                    <ul class="space-y-3">
-                       <li><a href="#" class="flex items-center text-indigo-600 hover:underline"><i class="fas fa-question-circle w-6 mr-2"></i>Visit Help Center</a></li>
-                       <li><a href="#" class="flex items-center text-indigo-600 hover:underline"><i class="fas fa-headset w-6 mr-2"></i>Contact Support</a></li>
-                    </ul>
+                            <p class="mt-2 {% if Exported == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">Exported</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
+                    </div>
+                    {% if Exported_ == 'True' %}
+                        <span class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Exported</span>
+                    {% elif Done_ == 'True' %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
+                    {% elif InProgress_ == 'True' %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In Progress</span>
+                    {% else %}
+                        <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
+                    {% endif %}
+                </div>
+                <div class="flex text-center text-sm mt-6">
+                    <div class="progress-step completed">
+                        <div class="flex flex-col items-center">
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"><i class="fa-solid fa-hourglass-start"></i></div>
+                            <p class="mt-2 font-semibold">Pending</p>
+                        </div>
+                    </div>
+                    <div class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}">
+                        <div class="flex flex-col items-center">
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-indigo-600 text-white {% if Done_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fa-solid fa-spinner"></i>
+                            </div>
+                            <p class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-indigo-600{% elif InProgress_ == 'False' %}text-gray-500{% endif %}">In Progress</p>
+                        </div>
+                    </div>
+                    <div class="progress-step {% if Done_ == 'True' %}completed{% endif %}">
+                        <div class="flex flex-col items-center">
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Exported_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <p class="mt-2 font-semibold {% if Done_ == 'True' and Exported_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}">Done</p>
+                        </div>
+                    </div>
+                    <div class="progress-step {% if Exported_ == 'True' %}completed{% endif %}">
+                        <div class="flex flex-col items-center">
+                            <div class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Exported_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                <i class="fa-solid fa-file-export"></i>
+                            </div>
+                            <p class="mt-2 {% if Exported_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">Exported</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </main>
+
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
+                <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <div class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-cogs text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Validation started for <span class="font-bold">Workitem 123123</span>.</p>
+                            <p class="text-xs text-gray-500">Today at 10:42 AM</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium"><span class="font-bold">Workitem 123124</span> was Exported</p>
+                            <p class="text-xs text-gray-500">Today at 08:56 PM</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-file-upload text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Imported new Document: <span class="font-bold">Workitem 123126</span>.</p>
+                            <p class="text-xs text-gray-500">July 30, 2025</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-bold mb-4">Need Help?</h3>
+                <ul class="space-y-3">
+                    <li><a href="#" class="flex items-center text-indigo-600 hover:underline"><i class="fas fa-question-circle w-6 mr-2"></i>Visit Help Center</a></li>
+                    <li><a href="#" class="flex items-center text-indigo-600 hover:underline"><i class="fas fa-headset w-6 mr-2"></i>Contact Support</a></li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</main>
 </body>
 </html>
