@@ -46,6 +46,15 @@
                 </div>
 
                 <div class="flex items-center space-x-5">
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="{{ url_for('post_login') }}" class="text-indigo-600 font-semibold">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('workitems_overview') }}" class="text-gray-600 hover:text-indigo-600 transition">
+                            <i class="fas fa-list mr-2"></i>Workitems
+                        </a>
+                    </nav>
+                    
                     <div class="hidden md:block relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                             <i class="fas fa-search text-gray-400"></i>
@@ -69,7 +78,11 @@
                             {% endif %}
                            <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
                         </button>
-                        </div>
+                    </div>
+                    
+                    <a href="{{ url_for('logout') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
                 </div>
             </div>
         </div>
@@ -86,6 +99,7 @@
                 <div>
                     <p class="text-sm font-medium text-gray-500">In Progress</p>
                     <p class="text-3xl font-bold">{{ InProgress }}</p>
+                    <a href="{{ url_for('workitems_overview') }}" class="text-xs text-indigo-600 hover:text-indigo-800 mt-1 inline-block">View All →</a>
                 </div>
                 <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
                    <i class="fa-solid fa-spinner"></i>
