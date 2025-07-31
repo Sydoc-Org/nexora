@@ -357,10 +357,7 @@
         for (let i = 1; i < rows.length; i++) {
           const row = Array.from(rows[i].cells)
           .slice(0, -1)
-          .map((cell) => {
-            let text = cell.textContent.trim();
-            return text
-          });
+          .map((cell) => cell.textContent.trim());
           csv.push(row.join(";"));
         }
 
