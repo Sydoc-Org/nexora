@@ -171,17 +171,47 @@
                 data-status="{{ workitem.status_text }}"
               >
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="font-medium text-gray-900">
-                    #{{ workitem.id }}
-                  </div>
+                  <div class="font-medium text-gray-900">{{ workitem.id }}</div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  {% if workitem.status_text == "Ready" %}
                   <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full status-{{ workitem.status_text.lower().replace(' ', '-') }}"
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
                   >
                     {{ workitem.status_text }}
                   </span>
+                  {% elif workitem.status_text == "In Progress" %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% elif workitem.status_text == "Error" %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% elif workitem.status_text == "Reserved" %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% elif workitem.status_text == "Done" %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% else %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% endif %}
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap">
