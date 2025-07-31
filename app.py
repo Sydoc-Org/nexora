@@ -122,7 +122,7 @@ def post_login():
     conn.close()
 
     conn_str = (
-        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+        f'DRIVER={{SQL Server}};'
         f'SERVER={DB_SERVER},1433;'
         f'DATABASE={DB_SERVER_DB_STAT};'
         f'UID={DB_UID};'
