@@ -87,6 +87,83 @@ def logout():
 def index():
     return render_template("index.html")
 
+@app.route("/workitems")
+def workitems_overview():
+    # Check if user is logged in
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    logged_in_user = session.get('username', 'Unknown')
+    scope = session.get('scope', 'Unknown')
+    
+    # Connect to runtime database to get workitems
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    
+    # Get all workitems
+    try:
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                ID as WorkitemID,
+                DateCreated,
+                Priority,
+                CASE
+                    WHEN Priority = 50 THEN 'Normal'
+                    WHEN Priority > 100 THEN 'High'
+                    WHEN Priority < 50 THEN 'Low'
+                    ELSE 'Unknown'
+                END as PriorityText,
+                Status,
+                CASE 
+                    WHEN Status = 0 THEN 'Ready'
+                    WHEN Status = 1 THEN 'In Progress'
+                    WHEN Status = 2 THEN '???'
+                    WHEN Status = 3 THEN 'Error'
+                    WHEN Status = 4 THEN 'Reserved'
+                    WHEN Status = 5 THEN 'Done'
+                    ELSE 'Unknown'
+                END as StatusText
+            FROM t_WorkItems
+            ORDER BY DateCreated DESC
+        """)
+        
+        workitems = cursor.fetchall()
+        
+        # Convert to list of dictionaries for easier template handling
+        workitems_list = []
+        for row in workitems:
+            workitems_list.append({
+                'id': row[0],                    # ID
+                'created_on': row[1],            # DateCreated
+                'priority': row[2],              # Priority
+                'priority_text': row[3],         # PriorityText
+                'status': row[4],                # Status
+                'status_text': row[5]            # StatusText
+            })
+            
+    except Exception as e:
+        app.logger.error(f"Database error in workitems overview: {e}")
+        workitems_list = []
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+    
+    return render_template("workitems_overview.html", 
+                         logged_in_user=logged_in_user,
+                         scope=scope,
+                         workitems=workitems_list)
+
 
 @app.route("/post_login")
 def post_login():
