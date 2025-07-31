@@ -160,6 +160,8 @@
                 >
                   Priority <i class="fas fa-sort ml-1"></i>
                 </th>
+                <!-- Last Column empty for Actions -->
+                <th class="px-6 py-4 text-right text-xs"></th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -173,6 +175,7 @@
                     #{{ workitem.id }}
                   </div>
                 </td>
+
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
                     class="px-2 py-1 text-xs font-semibold rounded-full status-{{ workitem.status_text.lower().replace(' ', '-') }}"
@@ -180,9 +183,10 @@
                     {{ workitem.status_text }}
                   </span>
                 </td>
+
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {{ workitem.created_on }}
+                    {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -190,12 +194,16 @@
                     {{ workitem.priority_text }}
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
+                >
                   <button
                     class="text-indigo-600 hover:text-indigo-900 mr-3"
                     onclick="viewDetails({{ workitem.id }})"
                   >
-                    <i class="fas fa-eye mr-1"></i>View
+                    View
+                    <i class="fas fa-chevron-down mr-1"></i>
                   </button>
                 </td>
               </tr>
