@@ -1,3 +1,4 @@
+from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session
 import pyodbc
 from dotenv import load_dotenv
@@ -318,6 +319,10 @@ def update_profile():
         session['email'] = email
         session['company'] = company
 
+        if request.files['file']:
+            f = request.files['file']
+            f.save(f.filename)  
+
         return redirect(url_for("profile"))                                   
 
 @app.route('/change_password',  methods=["POST", "GET"]) 
@@ -379,7 +384,6 @@ def change_password():
             return render_template("profile.html", message="Password changed")
         else:
             return render_template("profile.html", error="Invalid Password")
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)

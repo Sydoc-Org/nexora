@@ -125,20 +125,16 @@
 
                 <section id="profile" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">Profile Information</h2>
-                    <form class="space-y-6">
+                    <form class="space-y-6" action="{{ url_for('update_profile') }}" method="post" enctype="multipart/form-data">
                         <div class="flex items-center space-x-5">
                             <img src="{{ url_for('static',filename='images/'+ scope +'-Icon.png') }}" alt="User Avatar"
                                 class="h-10 w-10 rounded-full">
                             <div>
-                                <button type="button"
-                                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                    Change photo
-                                </button>
-                                <p class="text-xs text-gray-500 mt-2">JPG, or PNG. 1MB max.</p>
+                                    <input type="file" name="file"
+                                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                    </input>
                             </div>
                         </div>
-                    </form>
-                    <form method="POST" action="{{ url_for('update_profile') }}">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="username"
