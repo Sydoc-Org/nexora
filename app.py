@@ -17,7 +17,7 @@ limiter = Limiter(
 )
 
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
@@ -114,108 +114,73 @@ def post_login():
         """
     )
     rows = cursor.fetchall()
-    Done = rows[0][0]
-    Exported = rows[1][0]
-    InProgress = rows[2][0]
-    Pending = rows[3][0]
+    DoneTotal = rows[0][0]
+    ExportedTotal = rows[1][0]
+    InProgressTotal = rows[2][0]
+    PendingTotal = rows[3][0]
     cursor.close()
     conn.close()
 
-    # conn_str = (
-    #     f'DRIVER={{ODBC Driver 17 for SQL Server}};'
-    #     f'SERVER={DB_SERVER},1433;'
-    #     f'DATABASE={DB_SERVER_DB_STAT};'
-    #     f'UID={DB_UID};'
-    #     f'PWD={DB_PWD};'
-    #     f'TrustServerCertificate=yes;'
-    # )
-    # conn = pyodbc.connect(conn_str)
-    # cursor = conn.cursor()
-    # cursor.execute("""
-    #     SET NOCOUNT ON;
-    #     DECLARE @table table (Scope NVARCHAR(50), Import int, Export int, ExportThisMonth int);
+    conn_str = (
+        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_STAT};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    cursor.execute("""
+        WITH TopFieldIds AS (
+            SELECT TOP 2
+                FileID
+            FROM StadtBiel
+            GROUP BY FileID
+            ORDER BY MAX([DateTime]) DESC
+        ),
+        AuditStates AS (
+            SELECT
+                FileID,
+                State DisplayState
+            FROM StadtBiel
+            WHERE FileID IN (SELECT FileID FROM TopFieldIds)
+        )
+        SELECT
+            FileID,
+            MAX(CASE WHEN DisplayState = 'Pending' THEN 'True' ELSE 'False' END) AS Pending,
+            MAX(CASE WHEN DisplayState = 'In Progress' THEN 'True' ELSE 'False' END) AS [InProgress],
+            MAX(CASE WHEN DisplayState = 'Done' THEN 'True' ELSE 'False' END) AS [Done],
+            MAX(CASE WHEN DisplayState = 'Exported' THEN 'True' ELSE 'False' END) AS [Exported]
+        FROM AuditStates
+        GROUP BY FileID
+        ORDER BY FileID
+        """
+    )
+    rows = cursor.fetchall()
+    FileID = rows[0][0]
+    Pending = rows[0][1]
+    InProgress = rows[0][2]
+    Done = rows[0][3]
+    Exported = rows[0][4]
 
-    #     INSERT INTO @table
-    #     SELECT 'ElektroMaterial' Scope, (
-    #     select COUNT(*) from EM_Invoice
-    #     where CAST(ImportDatetime AS DATE) = CAST(GETDATE() AS DATE)
-    #     ),
-    #     (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         EM_Invoice
-    #     WHERE 
-    #         TRY_CONVERT(DATE, ExportEM, 104) = cast(getdate() as date)
-    #     ),
-    #     (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         EM_Invoice
-    #     WHERE 
-    #         MONTH(TRY_CONVERT(DATE, ExportEM, 104)) = MONTH(GETDATE())
-    #         and YEAR(TRY_CONVERT(DATE, ExportEM, 104)) = YEAR(GETDATE())
-    #     )
-
-    #     UNION ALL
-
-    #     SELECT 'Privera', (
-    #     select COUNT(*) from PriveraInvoice
-    #     where CAST(ImportTime AS DATE) = CAST(GETDATE() AS DATE)
-    #     ) + (
-    #     select COUNT(*) from PriveraPosteingang
-    #     where CONVERT(DATE, ImportDatetime, 104) = CAST(GETDATE() AS DATE)
-    #     ),
-    #     (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         PriveraInvoice
-    #     WHERE 
-    #         CAST(ExportDate AS DATE) = cast(getdate() as date)
-    #     ) + (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         PriveraPosteingang
-    #     WHERE 
-    #         CONVERT(DATE, ExportDatetime, 104) = cast(getdate() as date)
-    #     ),
-    #     (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         PriveraInvoice
-    #     WHERE 
-    #         MONTH(ExportDate) = MONTH(GETDATE()) AND YEAR(ExportDate) = YEAR(GETDATE())
-    #     ) + (SELECT 
-    #         COUNT(*)
-    #     FROM 
-    #         PriveraPosteingang
-    #     WHERE 
-    #         MONTH(CONVERT(DATE, ExportDatetime, 104)) = MONTH(GETDATE()) AND YEAR(CONVERT(DATE, ExportDatetime, 104)) = YEAR(GETDATE())
-    #     )
-    #     SELECT * FROM @table
-    #     WHERE Scope = ?
-    #     """, scope
-    # )
-    # rows = cursor.fetchone()
-    # Import = rows[1]
-    # Export = rows[2]
-    # ExportThisMonth = rows[3]
-    # cursor.close()
-    # conn.close()
-
-    workitem = 487396
-    InOCR = 'True'
-    InCA = 'False'
-    InExport = 'False'
-    DateTime = '2025-07-30 08:30'
+    FileID_ = rows[1][0]
+    Pending_ = rows[1][1]
+    InProgress_ = rows[1][2]
+    Done_ = rows[1][3]
+    Exported_ = rows[1][4]
+    cursor.close()
+    conn.close()
 
     return render_template("post_login.html", 
     logged_in_user=logged_in_user,
-    InProgress=InProgress,
-    Pending=Pending,
-    Done=Done,
-    Exported=Exported,
+    InProgressTotal=InProgressTotal,
+    PendingTotal=PendingTotal,
+    DoneTotal=DoneTotal,
+    ExportedTotal=ExportedTotal,
     scope=scope,
-    workitem=workitem, InOCR=InOCR, InCA=InCA, InExport=InExport, DateTime=DateTime
+    FileID=FileID, Pending=Pending, InProgress=InProgress, Done=Done, Exported=Exported,
+    FileID_=FileID_, Pending_=Pending_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
     )
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
