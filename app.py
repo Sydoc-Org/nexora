@@ -126,7 +126,7 @@ def workitems_overview():
                 CASE 
                     WHEN Status = 0 THEN 'Ready'
                     WHEN Status = 1 THEN 'In Progress'
-                    WHEN Status = 2 THEN '???'
+                    WHEN Status = 2 THEN 'Undefined'
                     WHEN Status = 3 THEN 'Error'
                     WHEN Status = 4 THEN 'Reserved'
                     WHEN Status = 5 THEN 'Done'
