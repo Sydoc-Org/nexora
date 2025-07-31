@@ -343,7 +343,38 @@
 
       // Export to CSV functionality
       function exportToCSV() {
-        //placeholder: export table data to CSV
+        let csv = [];
+        const table = document.getElementById("workitemsTable");
+        const rows = table.querySelectorAll('tr:not([style*="display: none"])');
+
+        // Add headers
+        const headers = Array.from(rows[0].cells)
+          .slice(0, -1)
+          .map((cell) => cell.textContent.trim());
+        csv.push(headers.join(";"));
+
+        // Add rows
+        for (let i = 1; i < rows.length; i++) {
+          const row = Array.from(rows[i].cells)
+          .slice(0, -1)
+          .map((cell) => {
+            let text = cell.textContent.trim();
+            return text
+          });
+          csv.push(row.join(";"));
+        }
+
+        // Download CSV
+        const csvString = csv.join("\n");
+        const blob = new Blob([csvString], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `workitems_${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
       }
     </script>
   </body>
