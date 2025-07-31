@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sydoc Portal - Profile Settings</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #4f46e5;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #4f46e5;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
+                </div>
+
+                <div class="flex items-center space-x-5">
+                    <div class="hidden md:block relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </span>
+                        <input type="text"
+                            class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Search documents...">
+                    </div>
+                    <button class="relative">
+                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
+                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div class="relative">
+                        <el-dropdown>
+                            <button class="flex items-center space-x-2">
+                                <img src="{{ url_for('static',filename='images/admin-Icon.png') }}" alt="User Avatar"
+                                    class="h-10 w-10 rounded-full">
+                                <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
+                            </button>
+                            <el-menu anchor="bottom end" popover class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Your Profile</a>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Sign out</a>
+                            </el-menu>
+                        </el-dropdown>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Account Settings</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+
+            <aside class="md:col-span-1">
+                <nav class="space-y-1">
+                    <a href="#profile" class="flex items-center px-4 py-2 text-indigo-700 bg-indigo-50 rounded-lg font-semibold">
+                        <i class="fas fa-user-circle w-5 h-5 mr-3"></i>
+                        Profile
+                    </a>
+                    <a href="#password" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg font-medium">
+                        <i class="fas fa-lock w-5 h-5 mr-3"></i>
+                        Password
+                    </a>
+                    <a href="#notifications" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg font-medium">
+                        <i class="fas fa-bell w-5 h-5 mr-3"></i>
+                        Notifications
+                    </a>
+                </nav>
+            </aside>
+
+            <div class="md:col-span-3 space-y-8">
+
+                <section id="profile" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Profile Information</h2>
+                    <form class="space-y-6">
+                        <div class="flex items-center space-x-5">
+                            <img src="{{ url_for('static',filename='images/admin-Icon.png') }}" alt="User Avatar"
+                                class="h-10 w-10 rounded-full">
+                            <div>
+                                <button type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                    Change photo
+                                </button>
+                                <p class="text-xs text-gray-500 mt-2">JPG, or PNG. 1MB max.</p>
+                            </div>
+                        </div>
+                    </form>
+                        <form method="POST" action="{{ url_for('update_profile') }}">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div>
+                                <label for="username" class="block text-sm font-medium leading-6 text-gray-900">Username</label>
+                                <div class="mt-2">
+                                    <input type="text" id="username" name="username" value="{{ logged_in_user }}" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" disabled>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium leading-6 text-gray-900">Full Name</label>
+                                <div class="mt-2">
+                                    <input type="text" id="fullName" name="fullName" value="{{ fullname }}" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email Address</label>
+                                <div class="mt-2">
+                                    <input type="email" id="email" name="email" value="{{ email }}" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="company" class="block text-sm font-medium leading-6 text-gray-900">Company</label>
+                                <div class="mt-2">
+                                    <input type="text" id="company" name="company" value="{{ company }}" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-x-4 pt-4">
+                                <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save Changes</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section id="password" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Change Password</h2>
+                    <form class="space-y-6 max-w-lg">
+                        <div>
+                            <label for="currentPassword" class="block text-sm font-medium leading-6 text-gray-900">Current Password</label>
+                            <div class="mt-2">
+                                <input type="password" id="currentPassword" name="currentPassword" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="newPassword" class="block text-sm font-medium leading-6 text-gray-900">New Password</label>
+                            <div class="mt-2">
+                                <input type="password" id="newPassword" name="newPassword" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="confirmPassword" class="block text-sm font-medium leading-6 text-gray-900">Confirm New Password</label>
+                            <div class="mt-2">
+                                <input type="password" id="confirmPassword" name="confirmPassword" class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            </div>
+                        </div>
+                         <div class="flex items-center justify-end gap-x-4 pt-4">
+                            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Update Password</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section id="notifications" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Notifications</h2>
+                    <p class="text-sm text-gray-600 mb-6">Choose how you want to be notified about activity.</p>
+                    <form class="space-y-6">
+                        <fieldset>
+                            <legend class="text-base font-semibold leading-6 text-gray-900">By Email</legend>
+                            <div class="mt-4 space-y-4">
+                                <div class="flex items-start">
+                                    <div class="flex h-6 items-center">
+                                        <input id="newDocs" name="newDocs" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" checked>
+                                    </div>
+                                    <div class="ml-3 text-sm leading-6">
+                                        <label for="newDocs" class="font-medium text-gray-900">New Documents</label>
+                                        <p class="text-gray-500">Get notified when new documents are uploaded to your projects.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="flex h-6 items-center">
+                                        <input id="mentions" name="mentions" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                    </div>
+                                    <div class="ml-3 text-sm leading-6">
+                                        <label for="mentions" class="font-medium text-gray-900">Mentions</label>
+                                        <p class="text-gray-500">Get notified when another user mentions you in a comment.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="flex h-6 items-center">
+                                        <input id="updates" name="updates" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" checked>
+                                    </div>
+                                    <div class="ml-3 text-sm leading-6">
+                                        <label for="updates" class="font-medium text-gray-900">Product Updates</label>
+                                        <p class="text-gray-500">Get notified about new features and product updates.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-gray-200 mt-6">
+                            <button type="button" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>
+                            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save Changes</button>
+                        </div>
+                    </form>
+                </section>
+
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>
