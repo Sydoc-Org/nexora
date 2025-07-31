@@ -354,10 +354,16 @@
         csv.push(headers.join(";"));
 
         // Add rows
-        for (let i = 1; i < rows.length; i++) {
+         for (let i = 1; i < rows.length; i++) {
           const row = Array.from(rows[i].cells)
           .slice(0, -1)
-          .map((cell) => cell.textContent.trim());
+          .map((cell) => {
+            let text = cell.textContent.trim();
+            if (/[;\n"]/.test(text)) {
+              text = `"${text.replace(/"/g, '""')}"`;
+            }
+            return text
+          });
           csv.push(row.join(";"));
         }
 
