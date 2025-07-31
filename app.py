@@ -320,6 +320,66 @@ def update_profile():
 
         return redirect(url_for("profile"))                                   
 
+@app.route('/change_password',  methods=["POST", "GET"]) 
+def change_password():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        username = session['username']
+
+        currentPassword = request.form['currentPassword']
+        newPassword = request.form['newPassword']
+        confirmPassword = request.form['confirmPassword']
+
+        if newPassword != confirmPassword:
+            return render_template("profile.html", error="Passwords do not match")
+        if not newPassword or not confirmPassword or not currentPassword:
+            return render_template("profile.html", error="All Fields must be filled")
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+                SELECT password FROM Users WHERE username = ?
+            """, username
+        )
+        row = cursor.fetchone()
+        stored_hash = row[0]
+
+
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode('utf-8')    
+
+        if bcrypt.checkpw(currentPassword.encode('utf-8'), stored_hash):
+            bytes = newPassword.encode('utf-8')
+            salt = bcrypt.gensalt()
+            hash = bcrypt.hashpw(bytes, salt)
+            hash_str = hash.decode('utf-8')
+
+            cursor.execute("""
+                UPDATE Users
+                SET password = ?
+                WHERE username = ?
+            """, (hash_str, username))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            return render_template("profile.html", message="Password changed")
+        else:
+            return render_template("profile.html", error="Invalid Password")
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
