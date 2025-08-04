@@ -8,6 +8,8 @@ from datetime import timedelta
 import bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from pathlib import Path
+import re
 
 app = Flask(__name__)
 load_dotenv()
@@ -286,6 +288,7 @@ def update_profile():
     if 'username' not in session:
         return redirect(url_for("login"))
     if request.method == "POST":
+        scope = session['scope']
         username = session['username']
         fullname = request.form['fullName']
         email = request.form['email']
@@ -318,7 +321,12 @@ def update_profile():
 
         if request.files['file']:
             f = request.files['file']
-            f.save(f.filename)  
+            filename = f"{scope}-icon.png"
+            rel_path = os.path.join('static', 'images', filename)
+            abs_path = os.path.join(app.root_path, rel_path)
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
+            f.save(abs_path)
 
         return redirect(url_for("profile"))                                   
 
