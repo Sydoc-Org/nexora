@@ -1,11 +1,15 @@
+from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session
 import pyodbc
+from pyodbc import DatabaseError
 from dotenv import load_dotenv
 import os
 from datetime import timedelta
 import bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from pathlib import Path
+import re
 
 app = Flask(__name__)
 load_dotenv()
@@ -267,10 +271,6 @@ def post_login():
     FileID_=FileID_, Pending_=Pending_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
     )
 
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template("404.html"), 404
-
 @app.route("/profile")
 def profile():
     if 'username' not in session:
@@ -288,6 +288,7 @@ def update_profile():
     if 'username' not in session:
         return redirect(url_for("login"))
     if request.method == "POST":
+        scope = session['scope']
         username = session['username']
         fullname = request.form['fullName']
         email = request.form['email']
@@ -318,8 +319,84 @@ def update_profile():
         session['email'] = email
         session['company'] = company
 
+        if request.files['file']:
+            f = request.files['file']
+            filename = f"{scope}-icon.png"
+            rel_path = os.path.join('static', 'images', filename)
+            abs_path = os.path.join(app.root_path, rel_path)
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
+            f.save(abs_path)
+
         return redirect(url_for("profile"))                                   
 
+@app.route('/change_password',  methods=["POST", "GET"]) 
+def change_password():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        username = session['username']
+
+        currentPassword = request.form['currentPassword']
+        newPassword = request.form['newPassword']
+        confirmPassword = request.form['confirmPassword']
+
+        if newPassword != confirmPassword:
+            return render_template("profile.html", error="Passwords do not match")
+        if not newPassword or not confirmPassword or not currentPassword:
+            return render_template("profile.html", error="All Fields must be filled")
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+                SELECT password FROM Users WHERE username = ?
+            """, username
+        )
+        row = cursor.fetchone()
+        stored_hash = row[0]
+
+
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode('utf-8')    
+
+        if bcrypt.checkpw(currentPassword.encode('utf-8'), stored_hash):
+            bytes = newPassword.encode('utf-8')
+            salt = bcrypt.gensalt()
+            hash = bcrypt.hashpw(bytes, salt)
+            hash_str = hash.decode('utf-8')
+
+            cursor.execute("""
+                UPDATE Users
+                SET password = ?
+                WHERE username = ?
+            """, (hash_str, username))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            return render_template("profile.html", message="Password changed")
+        else:
+            return render_template("profile.html", error="Invalid Password")
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.errorhandler(DatabaseError)
+def special_exception_handler():
+    return 'Database connection failed', 500
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)

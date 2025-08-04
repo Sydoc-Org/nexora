@@ -80,22 +80,8 @@
 
                         <el-dropdown>
                             <button class="flex items-center space-x-2">
-                                {% if scope == 'admin' %}
-                                <img src="{{ url_for('static',filename='images/admin-Icon.png') }}" alt="User Avatar"
+                                <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}" alt="User Avatar"
                                     class="h-10 w-10 rounded-full">
-                                {% endif %}
-                                {% if scope == 'ElektroMaterial' %}
-                                <img src="{{ url_for('static',filename='images/ElektroMaterial-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full">
-                                {% endif %}
-                                {% if scope == 'Privera' %}
-                                <img src="{{ url_for('static',filename='images/Privera-Icon.png') }}" alt="User Avatar"
-                                    class="h-10 w-10 rounded-full">
-                                {% endif %}
-                                {% if scope == 'StadtBiel' %}
-                                <img src="{{ url_for('static',filename='images/StadtBiel-Icon.svg') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full">
-                                {% endif %}
                                 <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
                             </button>
                             <el-menu anchor="bottom end" popover
