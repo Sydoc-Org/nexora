@@ -389,6 +389,17 @@ def change_password():
         else:
             return render_template("profile.html", error="Invalid Password")
 
+@app.route('/change_language',  methods=["POST", "GET"]) 
+def change_language():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        username = session['username']
+        currentLanguage = request.form['currentLanguage']
+        print(currentLanguage)
+        return redirect(url_for("profile"))
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
