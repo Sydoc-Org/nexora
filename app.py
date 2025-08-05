@@ -175,7 +175,6 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
 
-
 @app.route("/post_login")
 def post_login():
     #Check if user is logged in

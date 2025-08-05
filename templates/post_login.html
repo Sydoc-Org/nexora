@@ -56,20 +56,16 @@
 
 
                     <nav class="hidden md:flex space-x-6">
-                        <a
-                            href="{{ url_for('post_login') }}"
-                            class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md"
-                        >
+                        <a href="{{ url_for('post_login') }}"
+                            class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
                             <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                         </a>
-                        <a
-                            href="{{ url_for('workitems_overview') }}"
-                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full"
-                        >
+                        <a href="{{ url_for('workitems_overview') }}"
+                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
                             <i class="fas fa-list mr-2"></i>Workitems
                         </a>
-                    </nav>   
-                 </div>
+                    </nav>
+                </div>
 
                 <div class="flex items-center space-x-5">
                     <button class="bell relative mr-4">
@@ -77,11 +73,10 @@
                         <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
                     </button>
                     <div class="relative">
-
                         <el-dropdown>
                             <button class="flex items-center space-x-2">
-                                <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}" alt="User Avatar"
-                                    class="h-10 w-10 rounded-full">
+                                <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}"
+                                    alt="User Avatar" class="h-10 w-10 rounded-full">
                                 <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
                             </button>
                             <el-menu anchor="bottom end" popover
@@ -95,10 +90,10 @@
                             </el-menu>
                         </el-dropdown>
 
-                        
+
                     </div>
                 </div>
-        </div>
+            </div>
     </header>
 
     <main class="container mx-auto p-6">
@@ -175,7 +170,8 @@
                             <div class="flex flex-col items-center">
                                 <div
                                     class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-hourglass-start"></i></div>
+                                    <i class="fa-solid fa-hourglass-start"></i>
+                                </div>
                                 <p class="mt-2 font-semibold">Pending</p>
                             </div>
                         </div>
@@ -239,7 +235,8 @@
                             <div class="flex flex-col items-center">
                                 <div
                                     class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-hourglass-start"></i></div>
+                                    <i class="fa-solid fa-hourglass-start"></i>
+                                </div>
                                 <p class="mt-2 font-semibold">Pending</p>
                             </div>
                         </div>
