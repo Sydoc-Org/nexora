@@ -409,6 +409,11 @@ def set_language(lang=None):
     session['locale'] = lang
     return redirect(request.referrer or url_for('index'))
 
+@app.context_processor
+def inject_current_lang():
+    current_lang = session.get('locale', 'en')
+    return {'current_lang': current_lang}
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404

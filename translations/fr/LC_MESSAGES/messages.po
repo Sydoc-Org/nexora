@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-06 10:21+0200\n"
-"PO-Revision-Date: 2025-08-06 10:21+0200\n"
+"POT-Creation-Date: 2025-08-06 10:46+0200\n"
+"PO-Revision-Date: 2025-08-06 10:47+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
@@ -18,17 +18,80 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/post_login.html:57
+#: templates/post_login.html:57 templates/profile.html:117
+#: templates/profile.html:228
 msgid "Language"
 msgstr "Langue"
 
-#: templates/post_login.html:66
+#: templates/post_login.html:66 templates/profile.html:62
 msgid "Dashboard"
+msgstr ""
+
+#: templates/post_login.html:70 templates/profile.html:66
+msgid "Workitems"
 msgstr "Tableau de bord"
 
-#: templates/post_login.html:70
-msgid "Workitems"
-msgstr ""
+#: templates/profile.html:86
+msgid "Your Profile"
+msgstr "Votre profil"
+
+#: templates/profile.html:88
+msgid "Sign out"
+msgstr "Se déconnecter"
+
+#: templates/profile.html:98
+msgid "Account Settings"
+msgstr "Paramètres du compte"
+
+#: templates/profile.html:107
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/profile.html:112
+msgid "Password"
+msgstr "Mot de passe"
+
+#: templates/profile.html:122
+msgid "Sign Out"
+msgstr "Se déconnecter"
+
+#: templates/profile.html:187
+msgid "Change Password"
+msgstr "Modifier le mot de passe"
+
+#: templates/profile.html:199
+msgid "Current Password"
+msgstr "Mot de passe actuel"
+
+#: templates/profile.html:206
+msgid "New Password"
+msgstr "Nouveau mot de passe"
+
+#: templates/profile.html:214
+msgid "Confirm New Password"
+msgstr "Confirmer le nouveau mot de passe"
+
+#: templates/profile.html:222
+msgid "Save Changes"
+msgstr "Enregistrer les modifications"
+
+msgid "Profile Information"
+msgstr "Informations sur le profil"
+
+msgid "Username"
+msgstr "Nom d'utilisateur"
+
+msgid "Full Name"
+msgstr "Nom complet"
+
+msgid "Change Language"
+msgstr "Changer de langue"
+
+msgid "Company"
+msgstr "Entreprise"
+
+msgid "Email Address"
+msgstr "Adresse électronique"
 
 #: venv/Lib/site-packages/click/_termui_impl.py:600
 #, python-brace-format
