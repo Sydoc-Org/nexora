@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# static stuff
+static/images/admin-icon.png
+static/images/confused-john-travolta.gif
+static/images/Privera-Icon.png
+static/images/StadtBiel-Icon.svg
+static/images/ElektroMaterial-Icon.png
