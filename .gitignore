@@ -207,8 +207,8 @@ marimo/_lsp/
 __marimo__/
 
 # static stuff
-static/images/ElektroMaterial-icon.png 
 static/images/admin-icon.png
 static/images/confused-john-travolta.gif
 static/images/Privera-Icon.png
 static/images/StadtBiel-Icon.svg
+static/images/ElektroMaterial-Icon.png
