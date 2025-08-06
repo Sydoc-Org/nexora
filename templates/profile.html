@@ -229,6 +229,25 @@
                     </form>
                 </section>
 
+
+                <!-- <nav>
+                        <span>{{ _('Language') }}:</span>
+                        <a href="{{ url_for('set_language', lang='en') }}">English</a> |
+                        <a href="{{ url_for('set_language', lang='de') }}">Deutsch</a> |
+                        <a href="{{ url_for('set_language', lang='fr') }}">Français</a>
+                    </nav>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="{{ url_for('post_login') }}"
+                            class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
+                            <i class="fas fa-tachometer-alt mr-2"></i>
+                            {{ _('Dashboard') }}
+                        </a>
+                        <a href="{{ url_for('workitems_overview') }}"
+                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
+                            <i class="fas fa-list mr-2"></i>{{ _('Workitems') }}
+                        </a>
+                    </nav> -->
+
                 <section id="language" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">Change Language</h2>
                     <form action="{{ url_for('change_language') }}" method="POST" class="space-y-6 max-w-lg">

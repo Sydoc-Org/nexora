@@ -1,5 +1,6 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, g
+from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
 from dotenv import load_dotenv
@@ -11,7 +12,21 @@ from flask_limiter.util import get_remote_address
 from pathlib import Path
 import re
 
+def get_locale():
+    if 'locale' in session:
+        return session['locale']
+    user = getattr(g, 'user', None)
+    if user is not None and user.locale in ['en', 'de', 'fr']:
+        return user.locale
+    return request.accept_languages.best_match(['de', 'fr', 'en'])
+
+def get_timezone():
+    user = getattr(g, 'user', None)
+    if user is not None:
+        return user.timezone
+
 app = Flask(__name__)
+babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
 load_dotenv()
 
 limiter = Limiter(
@@ -389,16 +404,10 @@ def change_password():
         else:
             return render_template("profile.html", error="Invalid Password")
 
-@app.route('/change_language',  methods=["POST", "GET"]) 
-def change_language():
-    if 'username' not in session:
-        return redirect(url_for("login"))
-    
-    if request.method == "POST":
-        username = session['username']
-        currentLanguage = request.form['currentLanguage']
-        print(currentLanguage)
-        return redirect(url_for("profile"))
+@app.route('/language/<lang>')
+def set_language(lang=None):
+    session['locale'] = lang
+    return redirect(request.referrer or url_for('index'))
 
 @app.errorhandler(404)
 def page_not_found(e):
