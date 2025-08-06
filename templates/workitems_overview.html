@@ -150,6 +150,12 @@
                 >
                   Created <i class="fas fa-sort ml-1"></i>
                 </th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onclick="sortTable(3)"
+                >
+                  Demanded <i class="fas fa-sort ml-1"></i>
+                </th>
                 <!-- Last Column empty for Actions -->
                 <th class="px-6 py-4 text-right text-xs"></th>
               </tr>
@@ -205,6 +211,23 @@
                     {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}  <!-- Format date -->
                   </div>
                 </td>
+
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900 flex items-center">
+                  {% if workitem.demanded is true or workitem.demanded == 'True' %}
+                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2"></i>
+                    {% else %}
+                    <button
+                      class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                      onclick="demandWorkitem({{ workitem.id }})"
+                    >
+                      <i class="fa-solid fa-clipboard-user"></i>
+                      Demand
+                    </button>
+                  {% endif %}
+                  </div>
+                </td>
+
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
                 >
@@ -362,6 +385,12 @@
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       }
+
+      // Demand workitem functionality
+      function demandWorkitem(workitemId) {
+        // Placeholder: Implement the demand workitem logic here
+      }
+
     </script>
   </body>
 </html>

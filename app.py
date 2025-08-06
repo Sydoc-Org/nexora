@@ -226,10 +226,20 @@ def workitems_overview():
                     WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
                     ORDER BY DateTime DESC
                 ) as DateCreated,
+                (  
+                    SELECT TOP 1 
+                        CASE 
+                            WHEN DemandedBy IS NULL THEN 'False'
+                            ELSE 'True'
+                        END
+                    FROM StadtBiel sb 
+                    WHERE sb.FileID = wi.FileID
+                    ORDER BY DateTime DESC
+                ) as Demanded,
                 wi.State as StatusText
             FROM v_StadtBiel_LatestState wi
             GROUP BY wi.FileID, wi.State
-            ORDER BY wi.FileID DESC
+            ORDER BY wi.FileID ASC
         """)
         
         workitems = cursor.fetchall()
@@ -238,9 +248,10 @@ def workitems_overview():
         workitems_list = []
         for row in workitems:
             workitems_list.append({
-                'id': row[0],                    # ID
+                'id': row[0],                    # FileID
                 'created_on': row[1],            # DateCreated
-                'status_text': row[2],           # StatusText
+                'demanded': row[2],              # Demanded
+                'status_text': row[3],           # StatusText
             })
             
     except Exception as e:
