@@ -206,7 +206,7 @@ def workitems_overview():
     conn_str = (
         f'DRIVER={{SQL Server}};'
         f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_RUNTIME};'
+        f'DATABASE={DB_SERVER_DB_STAT};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
         f'TrustServerCertificate=yes;'
@@ -218,27 +218,16 @@ def workitems_overview():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT 
-                ID as WorkitemID,
-                DateCreated,
-                Priority,
-                CASE
-                    WHEN Priority = 50 THEN 'Normal'
-                    WHEN Priority > 100 THEN 'High'
-                    WHEN Priority < 50 THEN 'Low'
-                    ELSE 'Unknown'
-                END as PriorityText,
-                Status,
-                CASE 
-                    WHEN Status = 0 THEN 'Ready'
-                    WHEN Status = 1 THEN 'In Progress'
-                    WHEN Status = 2 THEN 'Undefined'
-                    WHEN Status = 3 THEN 'Error'
-                    WHEN Status = 4 THEN 'Reserved'
-                    WHEN Status = 5 THEN 'Done'
-                    ELSE 'Unknown'
-                END as StatusText
-            FROM t_WorkItems
+            SELECT
+            FileID as WorkitemID,
+            ( 
+                SELECT TOP 1 DateCreated 
+                FROM StadtBiel sb 
+                WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
+                ORDER BY DateCreated DESC
+            ) as DateCreated,
+            Status as StatusText,
+            FROM StadtBiel
             ORDER BY DateCreated DESC
         """)
         
@@ -250,10 +239,7 @@ def workitems_overview():
             workitems_list.append({
                 'id': row[0],                    # ID
                 'created_on': row[1],            # DateCreated
-                'priority': row[2],              # Priority
-                'priority_text': row[3],         # PriorityText
-                'status': row[4],                # Status
-                'status_text': row[5]            # StatusText
+                'status': row[2],                # StatusText
             })
             
     except Exception as e:
