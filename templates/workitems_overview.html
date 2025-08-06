@@ -113,9 +113,8 @@
               <option value="">All Statuses</option>
               <option value="Ready">Ready</option>
               <option value="In Progress">In Progress</option>
-              <option value="Error">Error</option>
-              <option value="Reserved">Reserved</option>
               <option value="Done">Done</option>
+              <option value="Collected">Collected</option>
             </select>
             <button
               onclick="exportToCSV()"
@@ -151,16 +150,12 @@
                 >
                   Created <i class="fas fa-sort ml-1"></i>
                 </th>
-                <th
-                  class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(3)"
-                >
-                  Priority <i class="fas fa-sort ml-1"></i>
-                </th>
                 <!-- Last Column empty for Actions -->
                 <th class="px-6 py-4 text-right text-xs"></th>
               </tr>
             </thead>
+            
+            <!-- Dynamic Content -->
             <tbody class="bg-white divide-y divide-gray-200">
               {% for workitem in workitems %}
               <tr
@@ -184,21 +179,15 @@
                   >
                     {{ workitem.status_text }}
                   </span>
-                  {% elif workitem.status_text == "Error" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
-                  >
-                    {{ workitem.status_text }}
-                  </span>
-                  {% elif workitem.status_text == "Reserved" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
-                  >
-                    {{ workitem.status_text }}
-                  </span>
                   {% elif workitem.status_text == "Done" %}
                   <span
                     class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                  >
+                    {{ workitem.status_text }}
+                  </span>
+                  {% elif workitem.status_text == "Collected" %}
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
                   >
                     {{ workitem.status_text }}
                   </span>
@@ -213,15 +202,9 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}
+                    {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}  <!-- Format date -->
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">
-                    {{ workitem.priority_text }}
-                  </div>
-                </td>
-
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
                 >

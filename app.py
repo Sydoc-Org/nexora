@@ -219,16 +219,17 @@ def workitems_overview():
         
         cursor.execute("""
             SELECT
-            FileID as WorkitemID,
-            ( 
-                SELECT TOP 1 DateCreated 
-                FROM StadtBiel sb 
-                WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
-                ORDER BY DateCreated DESC
-            ) as DateCreated,
-            Status as StatusText,
-            FROM StadtBiel
-            ORDER BY DateCreated DESC
+                wi.FileID as WorkitemID,
+                ( 
+                    SELECT TOP 1 DateTime 
+                    FROM StadtBiel sb 
+                    WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
+                    ORDER BY DateTime DESC
+                ) as DateCreated,
+                wi.State as StatusText
+            FROM v_StadtBiel_LatestState wi
+            GROUP BY wi.FileID, wi.State
+            ORDER BY wi.FileID DESC
         """)
         
         workitems = cursor.fetchall()
@@ -239,7 +240,7 @@ def workitems_overview():
             workitems_list.append({
                 'id': row[0],                    # ID
                 'created_on': row[1],            # DateCreated
-                'status': row[2],                # StatusText
+                'status_text': row[2],           # StatusText
             })
             
     except Exception as e:
