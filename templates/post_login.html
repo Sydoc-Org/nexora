@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="{{ get_locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,15 +53,16 @@
 
                 <div class="flex items-center space-x-5">
 
-
+            
                     <nav class="hidden md:flex space-x-6">
                         <a href="{{ url_for('post_login') }}"
                             class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
-                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                            <i class="fas fa-tachometer-alt mr-2"></i>
+                            {{ _('Dashboard') }}
                         </a>
                         <a href="{{ url_for('workitems_overview') }}"
                             class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
-                            <i class="fas fa-list mr-2"></i>Workitems
+                            <i class="fas fa-list mr-2"></i>{{ _('Workitems') }}
                         </a>
                     </nav>
                 </div>
