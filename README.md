@@ -1,8 +1,8 @@
 # Kundenportal-Sydoc
 
---WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-----
+--🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-----
 ------------------The Application and Documentation is a WORK IN PROGRESS
---WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-------WIP-----
+--🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-----
 
 A modern Flask-based customer portal for document workflow management, providing secure authentication and comprehensive workitem tracking for multiple client organizations.
 
