@@ -123,8 +123,8 @@
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Exported</p>
-                    <p class="text-3xl font-bold">{{ ExportedTotal }}</p>
+                    <p class="text-sm font-medium text-gray-500">Collected</p>
+                    <p class="text-3xl font-bold">{{ CollectedTotal }}</p>
                 </div>
                 <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
                     <i class="fa-solid fa-file-export"></i>
@@ -151,9 +151,9 @@
                         <div>
                             <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
                         </div>
-                        {% if Exported == 'True' %}
+                        {% if Collected == 'True' %}
                         <span
-                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Exported</span>
+                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Collected</span>
                         {% elif Done == 'True' %}
                         <span
                             class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
@@ -189,23 +189,23 @@
                         <div class="progress-step {% if Done == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Exported == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Collected == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
                                 <p
-                                    class="mt-2 font-semibold {% if Done == 'True' and Exported == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}">
+                                    class="mt-2 font-semibold {% if Done == 'True' and Collected == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}">
                                     Done</p>
                             </div>
                         </div>
-                        <div class="progress-step {% if Exported == 'True' %}completed{% endif %}">
+                        <div class="progress-step {% if Collected == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Exported == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
                                     <i class="fa-solid fa-file-export"></i>
                                 </div>
                                 <p
-                                    class="mt-2 {% if Exported == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
-                                    Exported</p>
+                                    class="mt-2 {% if Collected == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
+                                    Collected</p>
                             </div>
                         </div>
                     </div>
@@ -216,9 +216,9 @@
                         <div>
                             <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
                         </div>
-                        {% if Exported_ == 'True' %}
+                        {% if Collected_ == 'True' %}
                         <span
-                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Exported</span>
+                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Collected</span>
                         {% elif Done_ == 'True' %}
                         <span
                             class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
@@ -254,23 +254,23 @@
                         <div class="progress-step {% if Done_ == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Exported_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Collected_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
                                 <p
-                                    class="mt-2 font-semibold {% if Done_ == 'True' and Exported_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}">
+                                    class="mt-2 font-semibold {% if Done_ == 'True' and Collected_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}">
                                     Done</p>
                             </div>
                         </div>
-                        <div class="progress-step {% if Exported_ == 'True' %}completed{% endif %}">
+                        <div class="progress-step {% if Collected_ == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Exported_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
                                     <i class="fa-solid fa-file-export"></i>
                                 </div>
                                 <p
-                                    class="mt-2 {% if Exported_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
-                                    Exported</p>
+                                    class="mt-2 {% if Collected_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
+                                    Collected</p>
                             </div>
                         </div>
                     </div>
@@ -299,7 +299,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium"><span class="font-bold">Workitem 123124</span> was
-                                    Exported</p>
+                                    Collected</p>
                                 <p class="text-xs text-gray-500">Today at 08:56 PM</p>
                             </div>
                         </li>

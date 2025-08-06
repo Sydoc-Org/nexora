@@ -202,7 +202,7 @@ def post_login():
     )
     rows = cursor.fetchall()
     DoneTotal = rows[0][0]
-    ExportedTotal = rows[1][0]
+    CollectedTotal = rows[1][0]
     InProgressTotal = rows[2][0]
     ReadyTotal = rows[3][0]
     cursor.close()
@@ -238,7 +238,7 @@ def post_login():
             MAX(CASE WHEN DisplayState = 'Ready' THEN 'True' ELSE 'False' END) AS Ready,
             MAX(CASE WHEN DisplayState = 'In Progress' THEN 'True' ELSE 'False' END) AS [InProgress],
             MAX(CASE WHEN DisplayState = 'Done' THEN 'True' ELSE 'False' END) AS [Done],
-            MAX(CASE WHEN DisplayState = 'Exported' THEN 'True' ELSE 'False' END) AS [Exported]
+            MAX(CASE WHEN DisplayState = 'Collected' THEN 'True' ELSE 'False' END) AS [Collected]
         FROM AuditStates
         GROUP BY FileID
         ORDER BY FileID
@@ -249,13 +249,13 @@ def post_login():
     Ready = rows[0][1]
     InProgress = rows[0][2]
     Done = rows[0][3]
-    Exported = rows[0][4]
+    Collected = rows[0][4]
 
     FileID_ = rows[1][0]
     Ready_ = rows[1][1]
     InProgress_ = rows[1][2]
     Done_ = rows[1][3]
-    Exported_ = rows[1][4]
+    Collected_ = rows[1][4]
     cursor.close()
     conn.close()
 
@@ -264,10 +264,10 @@ def post_login():
     InProgressTotal=InProgressTotal,
     ReadyTotal=ReadyTotal,
     DoneTotal=DoneTotal,
-    ExportedTotal=ExportedTotal,
+    CollectedTotal=CollectedTotal,
     scope=scope,
-    FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Exported=Exported,
-    FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
+    FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Collected=Collected,
+    FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Collected_=Collected_
     )
 
 @app.route("/profile")
