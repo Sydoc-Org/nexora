@@ -132,8 +132,8 @@
             </div>
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Pending</p>
-                    <p class="text-3xl font-bold">{{ PendingTotal }}</p>
+                    <p class="text-sm font-medium text-gray-500">Ready</p>
+                    <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
                 </div>
                 <div class="bg-orange-100 text-orange-600 h-12 w-12 flex items-center justify-center rounded-full">
                     <i class="fa-solid fa-hourglass-start"></i>
@@ -162,7 +162,7 @@
                             Progress</span>
                         {% else %}
                         <span
-                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
+                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ready</span>
                         {% endif %}
                     </div>
                     <div class="flex text-center text-sm mt-6">
@@ -172,7 +172,7 @@
                                     class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
                                     <i class="fa-solid fa-hourglass-start"></i>
                                 </div>
-                                <p class="mt-2 font-semibold">Pending</p>
+                                <p class="mt-2 font-semibold">Ready</p>
                             </div>
                         </div>
                         <div class="progress-step {% if InProgress == 'True' %}completed{% endif %}">
@@ -227,7 +227,7 @@
                             Progress</span>
                         {% else %}
                         <span
-                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pending</span>
+                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ready</span>
                         {% endif %}
                     </div>
                     <div class="flex text-center text-sm mt-6">
@@ -237,7 +237,7 @@
                                     class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
                                     <i class="fa-solid fa-hourglass-start"></i>
                                 </div>
-                                <p class="mt-2 font-semibold">Pending</p>
+                                <p class="mt-2 font-semibold">Ready</p>
                             </div>
                         </div>
                         <div class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}">

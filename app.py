@@ -204,7 +204,7 @@ def post_login():
     DoneTotal = rows[0][0]
     ExportedTotal = rows[1][0]
     InProgressTotal = rows[2][0]
-    PendingTotal = rows[3][0]
+    ReadyTotal = rows[3][0]
     cursor.close()
     conn.close()
 
@@ -235,7 +235,7 @@ def post_login():
         )
         SELECT
             FileID,
-            MAX(CASE WHEN DisplayState = 'Pending' THEN 'True' ELSE 'False' END) AS Pending,
+            MAX(CASE WHEN DisplayState = 'Ready' THEN 'True' ELSE 'False' END) AS Ready,
             MAX(CASE WHEN DisplayState = 'In Progress' THEN 'True' ELSE 'False' END) AS [InProgress],
             MAX(CASE WHEN DisplayState = 'Done' THEN 'True' ELSE 'False' END) AS [Done],
             MAX(CASE WHEN DisplayState = 'Exported' THEN 'True' ELSE 'False' END) AS [Exported]
@@ -246,13 +246,13 @@ def post_login():
     )
     rows = cursor.fetchall()
     FileID = rows[0][0]
-    Pending = rows[0][1]
+    Ready = rows[0][1]
     InProgress = rows[0][2]
     Done = rows[0][3]
     Exported = rows[0][4]
 
     FileID_ = rows[1][0]
-    Pending_ = rows[1][1]
+    Ready_ = rows[1][1]
     InProgress_ = rows[1][2]
     Done_ = rows[1][3]
     Exported_ = rows[1][4]
@@ -262,12 +262,12 @@ def post_login():
     return render_template("post_login.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
-    PendingTotal=PendingTotal,
+    ReadyTotal=ReadyTotal,
     DoneTotal=DoneTotal,
     ExportedTotal=ExportedTotal,
     scope=scope,
-    FileID=FileID, Pending=Pending, InProgress=InProgress, Done=Done, Exported=Exported,
-    FileID_=FileID_, Pending_=Pending_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
+    FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Exported=Exported,
+    FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Exported_=Exported_
     )
 
 @app.route("/profile")
