@@ -1,69 +1,32 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sydoc Portal - Workitems Overview</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
+      type="module"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb;
-        }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f9fafb;
+      }
     </style>
   </head>
   <body class="text-gray-800">
     <!----------------------------------- Header -------------------------------------->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
-                </div>
-
-                <div class="flex items-center space-x-5">
-                    <nav class="hidden md:flex space-x-6">
-                        <a href="{{ url_for('post_login') }}"
-                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
-                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                        </a>
-                        <a href="{{ url_for('workitems_overview') }}"
-                            class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
-                            <i class="fas fa-list mr-2"></i>Workitems
-                        </a>
-                    </nav>
-                 </div>
-
-                <div class="flex items-center space-x-5">
-                    <button class="bell relative mr-4 cursor-pointer">
-                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition cursor-pointer"></i>
-                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </button>
-                    <div class="relative">
-                        <el-dropdown>
-                            <button class="flex items-center space-x-2 cursor-pointer">
-                                <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full cursor-pointer">
-                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">{{ logged_in_user }}</span>
-                            </button>
-                            <el-menu anchor="bottom end" popover
-                                class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="/profile"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Your
-                                    Profile</a>
-                                <a href="/logout"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Sign
-                                    out</a>
-                            </el-menu>
-                        </el-dropdown>
-                    </div>
-                </div>
-        </div>
-    </header>
+    {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
 
     <!----------------------------------- Main Content -------------------------------------->
     <main class="container mx-auto p-6">
@@ -155,7 +118,7 @@
                 <th class="px-6 py-4 text-right text-xs"></th>
               </tr>
             </thead>
-            
+
             <!-- Dynamic Content -->
             <tbody class="bg-white divide-y divide-gray-200">
               {% for workitem in workitems %}
@@ -203,26 +166,31 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}  <!-- Format date -->
+                    {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}
+                    <!-- Format date -->
                   </div>
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 flex items-center">
-                  {% if workitem.demanded is true or workitem.demanded == 'True' %}
-                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2"> D e m a n d e d</i>
-                    
-                    {% elif workitem.demanded == 'False' and workitem.status_text == 'Ready' %}
+                    {% if workitem.demanded is true or workitem.demanded ==
+                    'True' %}
+                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2">
+                      D e m a n d e d</i
+                    >
+
+                    {% elif workitem.demanded == 'False' and
+                    workitem.status_text == 'Ready' %}
                     <button
                       class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
                       onclick="demandWorkitem({{ workitem.id }})"
                     >
                       <i class="fa-solid fa-clipboard-user mr-2"></i>
-                       Demand 
+                      Demand
                     </button>
                     {% else %}
                     <p>demand not possible</p>
-                  {% endif %}
+                    {% endif %}
                   </div>
                 </td>
 
@@ -358,16 +326,16 @@
         csv.push(headers.join(";"));
 
         // Add rows
-         for (let i = 1; i < rows.length; i++) {
+        for (let i = 1; i < rows.length; i++) {
           const row = Array.from(rows[i].cells)
-          .slice(0, -1)
-          .map((cell) => {
-            let text = cell.textContent.trim();
-            if (/[;\n"]/.test(text)) {
-              text = `"${text.replace(/"/g, '""')}"`;
-            }
-            return text
-          });
+            .slice(0, -1)
+            .map((cell) => {
+              let text = cell.textContent.trim();
+              if (/[;\n"]/.test(text)) {
+                text = `"${text.replace(/"/g, '""')}"`;
+              }
+              return text;
+            });
           csv.push(row.join(";"));
         }
 
@@ -388,7 +356,6 @@
       function demandWorkitem(workitemId) {
         // Placeholder: Implement the demand workitem logic here
       }
-
     </script>
   </body>
 </html>
