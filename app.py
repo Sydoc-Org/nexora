@@ -283,6 +283,39 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
     
+
+@app.route("/demand_workitem", methods=['POST', 'GET'])
+def demand_workitem():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        workitemid = request.form['workitemid']
+        username = session['username']
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        print(workitemid)
+        cursor.execute("""
+            UPDATE StadtBiel
+            SET DemandedBy = ?, [DateTime] = GETDATE()
+            WHERE FileID = ?
+        """, (username, workitemid))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return redirect(url_for("workitems_overview"))       
+
 @app.route("/profile")
 def profile():
     if 'username' not in session:

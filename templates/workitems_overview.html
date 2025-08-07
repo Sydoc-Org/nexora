@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -46,45 +47,56 @@
           </div>
         </div>
       </div>
+  </header>
 
-      <!----------------------------------- Search & Filter -------------------------------------->
-      <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-        <div class="flex flex-col md:flex-row gap-4 items-center">
-          <div class="flex-1">
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                <i class="fas fa-search text-gray-400"></i>
-              </span>
-              <input
-                type="text"
-                id="searchInput"
-                class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Search for specific workitem..."
-              />
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <select
-              id="statusFilter"
-              class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="Ready">Ready</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-              <option value="Collected">Collected</option>
-            </select>
-            <button
-              onclick="exportToCSV()"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              <i class="fas fa-download mr-2"></i>Export CSV
-            </button>
+  <!----------------------------------- Main Content -------------------------------------->
+  <main class="container mx-auto p-6">
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
+          <p class="text-gray-600">List of all workitems for {{ scope }}</p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="bg-white px-4 py-2 rounded-lg shadow">
+            <span class="text-sm text-gray-500">Total Items:</span>
+            <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!----------------------------------- Workitems Table -------------------------------------->
+    <!----------------------------------- Search & Filter -------------------------------------->
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <div class="flex flex-col md:flex-row gap-4 items-center">
+        <div class="flex-1">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+              <i class="fas fa-search text-gray-400"></i>
+            </span>
+            <input type="text" id="searchInput"
+              class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search for specific workitem..." />
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <select id="statusFilter"
+            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">All Statuses</option>
+            <option value="Ready">Ready</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+            <option value="Collected">Collected</option>
+          </select>
+          <button onclick="exportToCSV()"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+            <i class="fas fa-download mr-2"></i>Export CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!----------------------------------- Workitems Table -------------------------------------->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full" id="workitemsTable">
@@ -92,26 +104,22 @@
               <tr>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(0)"
-                >
+                  onclick="sortTable(0)">
                   Workitem ID <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(1)"
-                >
+                  onclick="sortTable(1)">
                   Status <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(2)"
-                >
+                  onclick="sortTable(2)">
                   Created <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(3)"
-                >
+                  onclick="sortTable(3)">
                   Demanded <i class="fas fa-sort ml-1"></i>
                 </th>
                 <!-- Last Column empty for Actions -->
@@ -122,43 +130,30 @@
             <!-- Dynamic Content -->
             <tbody class="bg-white divide-y divide-gray-200">
               {% for workitem in workitems %}
-              <tr
-                class="hover:bg-gray-50 transition-colors workitem-row"
-                data-status="{{ workitem.status_text }}"
-              >
+              <tr class="hover:bg-gray-50 transition-colors workitem-row" data-status="{{ workitem.status_text }}">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="font-medium text-gray-900">{{ workitem.id }}</div>
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap text-left">
                   {% if workitem.status_text == "Ready" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
-                  >
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "In Progress" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
-                  >
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Done" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
-                  >
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Collected" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
-                  >
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                     {{ workitem.status_text }}
                   </span>
                   {% else %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
-                  >
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                     {{ workitem.status_text }}
                   </span>
                   {% endif %}
@@ -166,6 +161,7 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
+
                     {{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}
                     <!-- Format date -->
                   </div>
@@ -173,34 +169,27 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 flex items-center">
-                    {% if workitem.demanded is true or workitem.demanded ==
-                    'True' %}
-                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2">
-                      D e m a n d e d</i
-                    >
+                    {% if workitem.demanded is true or workitem.demanded == 'True' %}
+                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2"> D e m a n d e d</i>
 
-                    {% elif workitem.demanded == 'False' and
-                    workitem.status_text == 'Ready' %}
-                    <button
-                      class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                      onclick="demandWorkitem({{ workitem.id }})"
-                    >
+                    {% elif workitem.demanded == 'False' and workitem.status_text == 'Ready' %}
+                  <form action="{{ url_for('demand_workitem') }}" method="POST">
+                    <input type="hidden" name="workitemid" value="{{ workitem.id }}">
+                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                      type="submit">
                       <i class="fa-solid fa-clipboard-user mr-2"></i>
                       Demand
                     </button>
+                  </form>
                     {% else %}
-                    <p>demand not possible</p>
+                    <p>Demand not possible</p>
+
                     {% endif %}
                   </div>
                 </td>
 
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
-                >
-                  <button
-                    class="text-indigo-600 hover:text-indigo-900 mr-3"
-                    onclick="viewDetails({{ workitem.id }})"
-                  >
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                  <button class="text-indigo-600 hover:text-indigo-900 mr-3" > <!-- onclick="viewDetails({{ workitem.id }})" -->
                     View
                     <i class="fas fa-chevron-down mr-1"></i>
                   </button>
@@ -221,109 +210,107 @@
           </table>
         </div>
       </div>
-
-      <!----------------------------------- Pagination -------------------------------------->
-      <div class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          Showing
-          <span class="font-medium" id="showingCount"
-            >{{ workitems|length }}</span
-          >
-          of <span class="font-medium">{{ workitems|length }}</span> results
-        </div>
+    <!----------------------------------- Pagination -------------------------------------->
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Showing
+        <span class="font-medium" id="showingCount">{{ workitems|length }}</span>
+        of <span class="font-medium">{{ workitems|length }}</span> results
       </div>
-    </main>
+    </div>
+  </main>
 
-    <!-- JavaScript -->
-    <script>
-      // Search functionality
-      document
-        .getElementById("searchInput")
-        .addEventListener("keyup", function () {
-          const searchTerm = this.value.toLowerCase();
-          const rows = document.querySelectorAll(".workitem-row");
-          let visibleCount = 0;
+  <!-- JavaScript -->
+  <script>
+    // Search functionality
+    document
+      .getElementById("searchInput")
+      .addEventListener("keyup", function () {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll(".workitem-row");
+        let visibleCount = 0;
 
-          rows.forEach((row) => {
-            const text = row.textContent.toLowerCase();
-            if (text.includes(searchTerm)) {
-              row.style.display = "";
-              visibleCount++;
-            } else {
-              row.style.display = "none";
-            }
-          });
-
-          document.getElementById("showingCount").textContent = visibleCount;
-        });
-
-      // Status filter functionality
-      document
-        .getElementById("statusFilter")
-        .addEventListener("change", function () {
-          const selectedStatus = this.value;
-          const rows = document.querySelectorAll(".workitem-row");
-          let visibleCount = 0;
-
-          rows.forEach((row) => {
-            const status = row.getAttribute("data-status");
-            if (selectedStatus === "" || status === selectedStatus) {
-              row.style.display = "";
-              visibleCount++;
-            } else {
-              row.style.display = "none";
-            }
-          });
-
-          document.getElementById("showingCount").textContent = visibleCount;
-        });
-
-      // Table sorting functionality
-      function sortTable(columnIndex) {
-        const table = document.getElementById("workitemsTable");
-        const tbody = table.tBodies[0];
-        const rows = Array.from(tbody.rows);
-
-        rows.sort((a, b) => {
-          const aValue = a.cells[columnIndex].textContent.trim();
-          const bValue = b.cells[columnIndex].textContent.trim();
-
-          // Handle numeric values (like ID)
-          if (columnIndex === 0) {
-            return (
-              parseInt(aValue.replace("#", "")) -
-              parseInt(bValue.replace("#", ""))
-            );
+        rows.forEach((row) => {
+          const text = row.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            row.style.display = "";
+            visibleCount++;
+          } else {
+            row.style.display = "none";
           }
-
-          // Handle dates
-          if (columnIndex === 2) {
-            return new Date(aValue) - new Date(bValue);
-          }
-
-          // Handle text
-          return aValue.localeCompare(bValue);
         });
 
-        rows.forEach((row) => tbody.appendChild(row));
-      }
+        document.getElementById("showingCount").textContent = visibleCount;
+      });
 
-      // View details functionality
-      function viewDetails(workitemId) {
-        //placeholder: open card with details in this function
-      }
+    // Status filter functionality
+    document
+      .getElementById("statusFilter")
+      .addEventListener("change", function () {
+        const selectedStatus = this.value;
+        const rows = document.querySelectorAll(".workitem-row");
+        let visibleCount = 0;
 
-      // Export to CSV functionality
-      function exportToCSV() {
-        let csv = [];
-        const table = document.getElementById("workitemsTable");
-        const rows = table.querySelectorAll('tr:not([style*="display: none"])');
+        rows.forEach((row) => {
+          const status = row.getAttribute("data-status");
+          if (selectedStatus === "" || status === selectedStatus) {
+            row.style.display = "";
+            visibleCount++;
+          } else {
+            row.style.display = "none";
+          }
+        });
 
-        // Add headers
-        const headers = Array.from(rows[0].cells)
-          .slice(0, -1)
-          .map((cell) => cell.textContent.trim());
-        csv.push(headers.join(";"));
+        document.getElementById("showingCount").textContent = visibleCount;
+      });
+
+    // Table sorting functionality
+    function sortTable(columnIndex) {
+      const table = document.getElementById("workitemsTable");
+      const tbody = table.tBodies[0];
+      const rows = Array.from(tbody.rows);
+
+      rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+
+        // Handle numeric values (like ID)
+        if (columnIndex === 0) {
+          return (
+            parseInt(aValue.replace("#", "")) -
+            parseInt(bValue.replace("#", ""))
+          );
+        }
+
+        // Handle dates
+        if (columnIndex === 2) {
+          return new Date(aValue) - new Date(bValue);
+        }
+
+        // Handle text
+        return aValue.localeCompare(bValue);
+      });
+
+      rows.forEach((row) => tbody.appendChild(row));
+    }
+
+    // View details functionality
+    function viewDetails(workitemId) {
+      //placeholder: open card with details in this function
+    }
+
+    // Export to CSV functionality
+    function exportToCSV() {
+      let csv = [];
+      const table = document.getElementById("workitemsTable");
+      const rows = table.querySelectorAll('tr:not([style*="display: none"])');
+
+      // Add headers
+      const headers = Array.from(rows[0].cells)
+        .slice(0, -1)
+        .map((cell) => cell.textContent.trim());
+      csv.push(headers.join(";"));
+
 
         // Add rows
         for (let i = 1; i < rows.length; i++) {
