@@ -1,339 +1,379 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sydoc Portal - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
+      type="module"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
     <style>
-        html {
-            overflow-y: scroll;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb;
-        }
+      html {
+        overflow-y: scroll;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f9fafb;
+      }
 
-        .progress-step {
-            display: flex;
-            align-items: center;
-            flex-grow: 1;
-            position: relative;
-        }
+      .progress-step {
+        display: flex;
+        align-items: center;
+        flex-grow: 1;
+        position: relative;
+      }
 
-        .progress-step:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            left: 18px;
-            top: 40px;
-            height: 2px;
-            width: calc(100% - 36px);
-            background-color: #e5e7eb;
-        }
+      .progress-step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        left: 18px;
+        top: 40px;
+        height: 2px;
+        width: calc(100% - 36px);
+        background-color: #e5e7eb;
+      }
 
-        .progress-step.completed:not(:last-child)::after {
-            background-color: #03020bff;
-        }
+      .progress-step.completed:not(:last-child)::after {
+        background-color: #03020bff;
+      }
 
-        .progress-icon {
-            z-index: 10;
-        }
+      .progress-icon {
+        z-index: 10;
+      }
 
-        @keyframes rotate {
-            100% { transform: rotate(360deg); }
+      @keyframes rotate {
+        100% {
+          transform: rotate(360deg);
         }
-        .animate-rotate {
-            animation: rotate 3s linear infinite;
-        }
+      }
+      .animate-rotate {
+        animation: rotate 3s linear infinite;
+      }
     </style>
-</head>
+  </head>
 
-<body class="text-gray-800">
+  <body class="text-gray-800">
     <!----------------------------------- Header -------------------------------------->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
-                </div>
-
-                <div class="flex items-center space-x-5">
-                    <nav class="hidden md:flex space-x-6">
-                        <a href="{{ url_for('post_login') }}"
-                            class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
-                            <i class="fas fa-tachometer-alt mr-2"></i>
-                            {{ _('Dashboard') }}
-                        </a>
-                        <a href="{{ url_for('workitems_overview') }}"
-                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
-                            <i class="fas fa-list mr-2"></i>{{ _('Workitems') }}
-                        </a>
-                    </nav>
-                </div>
-
-                <div class="flex items-center space-x-5">
-                    <button class="bell relative mr-4 cursor-pointer">
-                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition cursor-pointer"></i>
-                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </button>
-                    <div class="relative">
-                        <el-dropdown>
-                            <button class="flex items-center space-x-2 cursor-pointer">
-                                <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full cursor-pointer">
-                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">{{ logged_in_user }}</span>
-                            </button>
-                            <el-menu anchor="bottom end" popover
-                                class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="/profile"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Your
-                                    Profile</a>
-                                <a href="/logout"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Sign
-                                    out</a>
-                            </el-menu>
-                        </el-dropdown>
-                    </div>
-                </div>
-            </div>
-    </header>
+    {% set active_page = 'dashboard' %} {% include '_header.html' %}
 
     <main class="container mx-auto p-6">
-        <div class="mb-10">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome back, {{ logged_in_user }}! 👋</h2>
-            <p class="text-gray-600">Here's a summary of your document activity.</p>
-        </div>
+      <div class="mb-10">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">
+          Welcome back, {{ logged_in_user }}! 👋
+        </h2>
+        <p class="text-gray-600">Here's a summary of your document activity.</p>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Ready</p>
-                    <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
-                </div>
-                <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div
+          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-500">Ready</p>
+            <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
+          </div>
+          <div
+            class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full"
+          >
+            <i class="fa-solid fa-hourglass-start"></i>
+          </div>
+        </div>
+        <div
+          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-500">In Progress</p>
+            <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
+          </div>
+          <div
+            class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full"
+          >
+            <i class="fa-solid fa-spinner"></i>
+          </div>
+        </div>
+        <div
+          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-500">Done</p>
+            <p class="text-3xl font-bold">{{ DoneTotal }}</p>
+          </div>
+          <div
+            class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full"
+          >
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+        <div
+          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-500">Collected</p>
+            <p class="text-3xl font-bold">{{ CollectedTotal }}</p>
+          </div>
+          <div
+            class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full"
+          >
+            <i class="fa-solid fa-file-export"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+          <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
+
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
+              </div>
+              {% if Collected == 'True' %}
+              <span
+                class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Collected</span
+              >
+              {% elif Done == 'True' %}
+              <span
+                class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Done</span
+              >
+              {% elif InProgress == 'True' %}
+              <span
+                class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >In Progress</span
+              >
+              {% else %}
+              <span
+                class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Ready</span
+              >
+              {% endif %}
+            </div>
+            <div class="flex text-center text-sm mt-6">
+              <div class="progress-step completed">
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"
+                  >
                     <i class="fa-solid fa-hourglass-start"></i>
+                  </div>
+                  <p class="mt-2 font-semibold">Ready</p>
                 </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">In Progress</p>
-                    <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
+              </div>
+              <div
+                class="progress-step {% if InProgress == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-yellow-500 text-white {% if Done == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
+                    <i class="fa-solid fa-slash"></i>
+                  </div>
+                  <p
+                    class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-yellow-800{% elif InProgress == 'False' %}text-gray-500{% endif %}"
+                  >
+                    In Progress
+                  </p>
                 </div>
-                <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-spinner"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Done</p>
-                    <p class="text-3xl font-bold">{{ DoneTotal }}</p>
-                </div>
-                <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
+              </div>
+              <div
+                class="progress-step {% if Done == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Collected == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
                     <i class="fas fa-check-circle"></i>
+                  </div>
+                  <p
+                    class="mt-2 font-semibold {% if Done == 'True' and Collected == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}"
+                  >
+                    Done
+                  </p>
                 </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Collected</p>
-                    <p class="text-3xl font-bold">{{ CollectedTotal }}</p>
-                </div>
-                <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
+              </div>
+              <div
+                class="progress-step {% if Collected == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
                     <i class="fa-solid fa-file-export"></i>
+                  </div>
+                  <p
+                    class="mt-2 {% if Collected == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}"
+                  >
+                    Collected
+                  </p>
                 </div>
+              </div>
             </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
+              </div>
+              {% if Collected_ == 'True' %}
+              <span
+                class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Collected</span
+              >
+              {% elif Done_ == 'True' %}
+              <span
+                class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Done</span
+              >
+              {% elif InProgress_ == 'True' %}
+              <span
+                class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >In Progress</span
+              >
+              {% else %}
+              <span
+                class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                >Ready</span
+              >
+              {% endif %}
+            </div>
+            <div class="flex text-center text-sm mt-6">
+              <div class="progress-step completed">
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"
+                  >
+                    <i class="fa-solid fa-hourglass-start"></i>
+                  </div>
+                  <p class="mt-2 font-semibold">Ready</p>
+                </div>
+              </div>
+              <div
+                class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-yellow-500 text-white {% if Done_ == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
+                    <i class="fa-solid fa-slash"></i>
+                  </div>
+                  <p
+                    class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-yellow-800{% elif InProgress_ == 'False' %}text-gray-500{% endif %}"
+                  >
+                    In Progress
+                  </p>
+                </div>
+              </div>
+              <div
+                class="progress-step {% if Done_ == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Collected_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                  <p
+                    class="mt-2 font-semibold {% if Done_ == 'True' and Collected_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}"
+                  >
+                    Done
+                  </p>
+                </div>
+              </div>
+              <div
+                class="progress-step {% if Collected_ == 'True' %}completed{% endif %}"
+              >
+                <div class="flex flex-col items-center">
+                  <div
+                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}"
+                  >
+                    <i class="fa-solid fa-file-export"></i>
+                  </div>
+                  <p
+                    class="mt-2 {% if Collected_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}"
+                  >
+                    Collected
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            <div class="lg:col-span-2 space-y-6">
-                <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
-
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
-                        </div>
-                        {% if Collected == 'True' %}
-                        <span
-                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Collected</span>
-                        {% elif Done == 'True' %}
-                        <span
-                            class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
-                        {% elif InProgress == 'True' %}
-                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
-                            Progress</span>
-                        {% else %}
-                        <span
-                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ready</span>
-                        {% endif %}
-                    </div>
-                    <div class="flex text-center text-sm mt-6">
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-hourglass-start"></i>
-                                </div>
-                                <p class="mt-2 font-semibold">Ready</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if InProgress == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-yellow-500 text-white {% if Done == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-slash"></i>
-                                </div>
-                                <p
-                                    class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-yellow-800{% elif InProgress == 'False' %}text-gray-500{% endif %}">
-                                    In Progress</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if Done == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Collected == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <p
-                                    class="mt-2 font-semibold {% if Done == 'True' and Collected == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}">
-                                    Done</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if Collected == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-file-export"></i>
-                                </div>
-                                <p
-                                    class="mt-2 {% if Collected == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
-                                    Collected</p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="space-y-6">
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
+            <ul class="space-y-4">
+              <li class="flex items-start">
+                <div
+                  class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1"
+                >
+                  <i class="fas fa-cogs text-xs"></i>
                 </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
-                        </div>
-                        {% if Collected_ == 'True' %}
-                        <span
-                            class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Collected</span>
-                        {% elif Done_ == 'True' %}
-                        <span
-                            class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
-                        {% elif InProgress_ == 'True' %}
-                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
-                            Progress</span>
-                        {% else %}
-                        <span
-                            class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ready</span>
-                        {% endif %}
-                    </div>
-                    <div class="flex text-center text-sm mt-6">
-                        <div class="progress-step completed">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white">
-                                    <i class="fa-solid fa-hourglass-start"></i>
-                                </div>
-                                <p class="mt-2 font-semibold">Ready</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-yellow-500 text-white {% if Done_ == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-slash"></i>
-                                </div>
-                                <p
-                                    class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-yellow-800{% elif InProgress_ == 'False' %}text-gray-500{% endif %}">
-                                    In Progress</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if Done_ == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Collected_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <p
-                                    class="mt-2 font-semibold {% if Done_ == 'True' and Collected_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}">
-                                    Done</p>
-                            </div>
-                        </div>
-                        <div class="progress-step {% if Collected_ == 'True' %}completed{% endif %}">
-                            <div class="flex flex-col items-center">
-                                <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-file-export"></i>
-                                </div>
-                                <p
-                                    class="mt-2 {% if Collected_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}">
-                                    Collected</p>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                  <p class="text-sm font-medium">
+                    Validation started for
+                    <span class="font-bold">Workitem 123123</span>.
+                  </p>
+                  <p class="text-xs text-gray-500">Today at 10:42 AM</p>
                 </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-cogs text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium">Validation started for <span class="font-bold">Workitem
-                                        123123</span>.</p>
-                                <p class="text-xs text-gray-500">Today at 10:42 AM</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-check text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium"><span class="font-bold">Workitem 123124</span> was
-                                    Collected</p>
-                                <p class="text-xs text-gray-500">Today at 08:56 PM</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-file-upload text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium">Imported new Document: <span class="font-bold">Workitem
-                                        123126</span>.</p>
-                                <p class="text-xs text-gray-500">July 30, 2025</p>
-                            </div>
-                        </li>
-                    </ul>
+              </li>
+              <li class="flex items-start">
+                <div
+                  class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1"
+                >
+                  <i class="fas fa-check text-xs"></i>
                 </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-xl font-bold mb-4">Need Help?</h3>
-                    <ul class="space-y-3">
-                        <li><a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:" class="flex items-center text-indigo-600 hover:underline"><i
-                                    class="fas fa-headset w-6 mr-2"></i>Contact Support</a></li>
-                    </ul>
+                <div>
+                  <p class="text-sm font-medium">
+                    <span class="font-bold">Workitem 123124</span> was Collected
+                  </p>
+                  <p class="text-xs text-gray-500">Today at 08:56 PM</p>
                 </div>
-            </div>
+              </li>
+              <li class="flex items-start">
+                <div
+                  class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1"
+                >
+                  <i class="fas fa-file-upload text-xs"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-medium">
+                    Imported new Document:
+                    <span class="font-bold">Workitem 123126</span>.
+                  </p>
+                  <p class="text-xs text-gray-500">July 30, 2025</p>
+                </div>
+              </li>
+            </ul>
+          </div>
 
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold mb-4">Need Help?</h3>
+            <ul class="space-y-3">
+              <li>
+                <a
+                  href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
+                  class="flex items-center text-indigo-600 hover:underline"
+                  ><i class="fas fa-headset w-6 mr-2"></i>Contact Support</a
+                >
+              </li>
+            </ul>
+          </div>
         </div>
+      </div>
     </main>
-</body>
-
+  </body>
 </html>
