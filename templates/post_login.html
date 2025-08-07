@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
+        html {
+            overflow-y: scroll;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb;
@@ -32,17 +35,24 @@
         }
 
         .progress-step.completed:not(:last-child)::after {
-            background-color: #4f46e5;
+            background-color: #03020bff;
         }
 
         .progress-icon {
             z-index: 10;
         }
+
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        .animate-rotate {
+            animation: rotate 3s linear infinite;
+        }
     </style>
 </head>
 
 <body class="text-gray-800">
-
+    <!----------------------------------- Header -------------------------------------->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
@@ -52,8 +62,6 @@
                 </div>
 
                 <div class="flex items-center space-x-5">
-
-            
                     <nav class="hidden md:flex space-x-6">
                         <a href="{{ url_for('post_login') }}"
                             class="text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md">
@@ -68,16 +76,16 @@
                 </div>
 
                 <div class="flex items-center space-x-5">
-                    <button class="bell relative mr-4">
-                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
+                    <button class="bell relative mr-4 cursor-pointer">
+                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition cursor-pointer"></i>
                         <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
                     </button>
                     <div class="relative">
                         <el-dropdown>
-                            <button class="flex items-center space-x-2">
+                            <button class="flex items-center space-x-2 cursor-pointer">
                                 <img src="{{ url_for('static',filename='images/' + scope + '-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full">
-                                <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
+                                    alt="User Avatar" class="h-10 w-10 rounded-full cursor-pointer">
+                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">{{ logged_in_user }}</span>
                             </button>
                             <el-menu anchor="bottom end" popover
                                 class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
@@ -89,8 +97,6 @@
                                     out</a>
                             </el-menu>
                         </el-dropdown>
-
-
                     </div>
                 </div>
             </div>
@@ -105,10 +111,19 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
                 <div>
+                    <p class="text-sm font-medium text-gray-500">Ready</p>
+                    <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
+                </div>
+                <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
+                    <i class="fa-solid fa-hourglass-start"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+                <div>
                     <p class="text-sm font-medium text-gray-500">In Progress</p>
                     <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
                 </div>
-                <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
+                <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
                     <i class="fa-solid fa-spinner"></i>
                 </div>
             </div>
@@ -130,15 +145,6 @@
                     <i class="fa-solid fa-file-export"></i>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Ready</p>
-                    <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
-                </div>
-                <div class="bg-orange-100 text-orange-600 h-12 w-12 flex items-center justify-center rounded-full">
-                    <i class="fa-solid fa-hourglass-start"></i>
-                </div>
-            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -158,7 +164,7 @@
                         <span
                             class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
                         {% elif InProgress == 'True' %}
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
                             Progress</span>
                         {% else %}
                         <span
@@ -178,11 +184,11 @@
                         <div class="progress-step {% if InProgress == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-indigo-600 text-white {% if Done == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-spinner"></i>
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-yellow-500 text-white {% if Done == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    <i class="fa-solid fa-slash"></i>
                                 </div>
                                 <p
-                                    class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-indigo-600{% elif InProgress == 'False' %}text-gray-500{% endif %}">
+                                    class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-yellow-800{% elif InProgress == 'False' %}text-gray-500{% endif %}">
                                     In Progress</p>
                             </div>
                         </div>
@@ -223,7 +229,7 @@
                         <span
                             class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Done</span>
                         {% elif InProgress_ == 'True' %}
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">In
                             Progress</span>
                         {% else %}
                         <span
@@ -243,11 +249,11 @@
                         <div class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-indigo-600 text-white {% if Done_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
-                                    <i class="fa-solid fa-spinner"></i>
+                                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-yellow-500 text-white {% if Done_ == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}">
+                                    <i class="fa-solid fa-slash"></i>
                                 </div>
                                 <p
-                                    class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-indigo-600{% elif InProgress_ == 'False' %}text-gray-500{% endif %}">
+                                    class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-yellow-800{% elif InProgress_ == 'False' %}text-gray-500{% endif %}">
                                     In Progress</p>
                             </div>
                         </div>
