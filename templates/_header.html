@@ -19,8 +19,12 @@
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
+                    <a href="{{ url_for('post_login') }}">
+                        <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
+                    </a>
+                    <a href="{{ url_for('post_login') }}" class="text-2xl font-bold text-gray-800 hover:text-indigo-600 transition">
+                        Sydoc Portal
+                    </a>
                 </div>
 
                 <div class="flex items-center space-x-5">
