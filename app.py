@@ -11,7 +11,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from pathlib import Path
 import re
-
+from flask import jsonify
 def get_locale():
     if 'locale' in session:
         return session['locale']
@@ -283,6 +283,39 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
     
+
+@app.route("/demand_workitem", methods=['POST', 'GET'])
+def demand_workitem():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        workitemid = request.form['workitemid']
+        username = session['username']
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        print(workitemid)
+        cursor.execute("""
+            UPDATE StadtBiel
+            SET DemandedBy = ?, [DateTime] = GETDATE()
+            WHERE FileID = ?
+        """, (username, workitemid))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return redirect(url_for("workitems_overview"))       
+
 @app.route("/profile")
 def profile():
     if 'username' not in session:
@@ -402,6 +435,42 @@ def change_password():
         else:
             return render_template("profile.html", error="Invalid Password")
 
+@app.route('/recent_activity')
+def recent_activity():
+    if 'username' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 4 State, DateTime, FileID
+            FROM StadtBiel
+            ORDER BY DateTime DESC
+        """)
+        activities = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return jsonify([
+            {
+                "state": row[0],
+                "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
+                "fileid": row[2]
+            }
+            for row in activities
+        ])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 @app.route('/language/<lang>')
 def set_language(lang=None):
     session['locale'] = lang

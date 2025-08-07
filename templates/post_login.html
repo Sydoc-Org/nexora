@@ -278,56 +278,113 @@
             </div>
 
             <div class="space-y-6">
+                <!-- Recent Activity -->
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-cogs text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium">Validation started for <span class="font-bold">Workitem
-                                        123123</span>.</p>
-                                <p class="text-xs text-gray-500">Today at 10:42 AM</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-check text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium"><span class="font-bold">Workitem 123124</span> was
-                                    Collected</p>
-                                <p class="text-xs text-gray-500">Today at 08:56 PM</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start">
-                            <div
-                                class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                <i class="fas fa-file-upload text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium">Imported new Document: <span class="font-bold">Workitem
-                                        123126</span>.</p>
-                                <p class="text-xs text-gray-500">July 30, 2025</p>
-                            </div>
-                        </li>
+                    <ul id="recent-activity-list" class="space-y-4">
+                        <li class="text-gray-500">Loading...</li>
                     </ul>
                 </div>
 
+                <!-- Support Section -->
                 <div class="bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-xl font-bold mb-4">Need Help?</h3>
                     <ul class="space-y-3">
-                        <li><a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:" class="flex items-center text-indigo-600 hover:underline"><i
-                                    class="fas fa-headset w-6 mr-2"></i>Contact Support</a></li>
+                        <li>
+                            <a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
+                                class="flex items-center text-indigo-600 hover:underline">
+                                <i class="fas fa-headset w-6 mr-2"></i>Contact Support
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
 
         </div>
     </main>
+            <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const list = document.getElementById('recent-activity-list');
+    list.innerHTML = '<li class="text-gray-500">Loading...</li>';
+
+    fetch('/recent_activity')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Nicht eingeloggt oder Fehler beim Abrufen");
+            }
+            return response.json();
+        })
+        .then(data => {
+            list.innerHTML = ''; // Liste leeren
+
+            if (!Array.isArray(data) || data.length === 0) {
+                list.innerHTML = '<li class="text-gray-500">No recent activity found.</li>';
+                return;
+            }
+
+            data.forEach(activity => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start space-x-3';
+
+                let iconHTML = '';
+                let textMessage = '';
+                const status = activity.state;
+
+                if (status === 'Ready') {
+                    iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fa-solid fa-hourglass-start text-xs"></i>
+                        </div>
+                    `;
+                    textMessage = `Document is ready to demand: Workitem <span class="font-bold">${activity.fileid}</span>.`;
+                } else if (status === 'In Progress') {
+                    iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fa-solid fa-spinner text-xs"></i>
+                        </div>
+                    `;
+                    textMessage = `Validation started for Workitem <span class="font-bold">${activity.fileid}</span>.`;
+                } else if (status === 'Done') {
+                    iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-file-upload text-xs"></i>
+                        </div>
+                    `;
+                    textMessage = `Imported new Document: Workitem <span class="font-bold">${activity.fileid}</span>.`;
+                } else if (status === 'Collected') {
+                    iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-check text-xs"></i>
+                        </div>
+                    `;
+                    textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> was collected.`;
+                } else {
+                    iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-question text-xs"></i>
+                        </div>
+                    `;
+                    textMessage = `Unknown status for Workitem <span class="font-bold">${activity.fileid}</span>.`;
+                }
+
+                li.innerHTML = `
+                    ${iconHTML}
+                    <div>
+                        <p class="text-sm font-medium">${textMessage}</p>
+                        <p class="text-xs text-gray-500">${activity.datetime}</p>
+                    </div>
+                `;
+
+                list.appendChild(li);
+            });
+        })
+        .catch(error => {
+            console.error("Fehler beim Laden der Aktivitäten:", error);
+            list.innerHTML = '<li class="text-red-500">Fehler beim Laden der Aktivitäten.</li>';
+        });
+});
+
+</script>
 </body>
 
 </html>
