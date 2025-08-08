@@ -42,7 +42,10 @@ function sortTable(columnIndex) {
   const tbody = table.tBodies[0];
   const rows = Array.from(tbody.rows);
 
-  rows.sort((a, b) => {
+  // Only select workitem rows for sorting
+  const workitemRows = Array.from(tbody.querySelectorAll(".workitem-row"));
+
+  workitemRows.sort((a, b) => {
     const aValue = a.cells[columnIndex].textContent.trim();
     const bValue = b.cells[columnIndex].textContent.trim();
 
