@@ -72,7 +72,7 @@ def login():
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT password, Scope, username, fullname, email, company FROM Users WHERE username = ?
+                SELECT password, Scope, username, fullname, email, company, UserID FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -83,6 +83,7 @@ def login():
                 stored_fullname = user_record[3]
                 stored_email = user_record[4]
                 stored_company = user_record[5]
+                stored_userid = user_record[6]
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
             
@@ -93,6 +94,7 @@ def login():
                     session['email'] = stored_email
                     session['scope'] = scope
                     session['company'] = stored_company
+                    session['userid'] = str(stored_userid)
                     session.permanent = True
                     return redirect(url_for("post_login"))
                 
@@ -107,6 +109,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.pop('username', None)
+    session.pop('userid', None)
     return redirect(url_for("login"))
 
 @app.route("/")
@@ -120,6 +123,7 @@ def post_login():
         return redirect(url_for("login"))
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
+    userid = session.get('userid', 'Unknown')
 
     conn_str = (
         f'DRIVER={{SQL Server}};'
@@ -203,7 +207,7 @@ def post_login():
     ReadyTotal=ReadyTotal,
     DoneTotal=DoneTotal,
     CollectedTotal=CollectedTotal,
-    scope=scope,
+    scope=scope, userid=userid,
     FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Collected=Collected,
     FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Collected_=Collected_
     )
@@ -215,6 +219,7 @@ def workitems_overview():
         return redirect(url_for('login'))
 
     logged_in_user = session.get('username')
+    userid = session.get('userid')
     scope = session.get('scope')
     
     # Connect to runtime database to get workitems
@@ -280,6 +285,7 @@ def workitems_overview():
     
     return render_template("workitems_overview.html", 
                          logged_in_user=logged_in_user,
+                         userid=userid,
                          scope=scope,
                          workitems=workitems_list)
     
@@ -323,17 +329,18 @@ def profile():
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
+    userid = session.get('userid', 'Unknown')
     fullname = session.get('fullname', 'Unknown')
     email = session.get('email', 'Unknown')
     company = session.get('company', 'Unknown')
-    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, userid=userid, fullname=fullname, email=email, company=company)
 
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
     if 'username' not in session:
         return redirect(url_for("login"))
     if request.method == "POST":
-        scope = session['scope']
+        userid = session['userid']
         username = session['username']
         fullname = request.form['fullName']
         email = request.form['email']
@@ -366,7 +373,7 @@ def update_profile():
 
         if request.files['file']:
             f = request.files['file']
-            filename = f"{scope}-icon.png"
+            filename = f"{userid}-icon.png"
             rel_path = os.path.join('static', 'images', filename)
             abs_path = os.path.join(app.root_path, rel_path)
             if os.path.exists(abs_path):
