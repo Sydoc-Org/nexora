@@ -213,9 +213,9 @@ def workitems_overview():
     # Check if user is logged in
     if 'username' not in session:
         return redirect(url_for('login'))
-    
-    logged_in_user = session.get('username', 'Unknown')
-    scope = session.get('scope', 'Unknown')
+
+    logged_in_user = session.get('username')
+    scope = session.get('scope')
     
     # Connect to runtime database to get workitems
     conn_str = (
