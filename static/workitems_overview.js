@@ -67,7 +67,20 @@ function sortTable(columnIndex) {
 
 // View details functionality
 function viewDetails(workitemId) {
-  //placeholder: open card with details in this function
+  console.log(`View details button clicked for workitem ${workitemId}`);
+  // Find the row for the workitem
+  const row = document.querySelector(
+    `.workitem-row td .font-medium:contains('${workitemId}')`
+  );
+
+  document.getElementById("cardTitle").textContent = "Workitem " + workitemId;
+  document.getElementById("cardContent").innerHTML =
+    "Details for workitem " + workitemId;
+  document.getElementById("workitemCard").classList.remove("hidden");
+}
+
+function closeWorkitemCard() {
+  document.getElementById("workitemCard").classList.add("hidden");
 }
 
 // Export to CSV functionality
