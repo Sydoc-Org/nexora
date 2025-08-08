@@ -85,7 +85,7 @@ function toggleDetails(workitemId) {
 function exportToCSV() {
   let csv = [];
   const table = document.getElementById("workitemsTable");
-  const rows = table.querySelectorAll('tr:not([style*="display: none"])');
+  const rows = table.querySelectorAll('tr:not([style*="display: none"]):not(.details-row)');
 
   // Add headers
   const headers = Array.from(rows[0].cells)
