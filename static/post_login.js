@@ -32,28 +32,28 @@ document.addEventListener("DOMContentLoaded", function () {
                             <i class="fa-solid fa-hourglass-start text-xs"></i>
                         </div>
                     `;
-          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> is ready to demanded:`;
+          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> is ready`;
         } else if (status === "In Progress") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fa-solid fa-spinner text-xs"></i>
                         </div>
                     `;
-          textMessage = `Validation started for Workitem <span class="font-bold">${activity.fileid}</span>.`;
+          textMessage = `Processing for Workitem <span class="font-bold">${activity.fileid}</span> has started.`;
         } else if (status === "Done") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fas fa-file-upload text-xs"></i>
                         </div>
                     `;
-          textMessage = `Imported new Document: Workitem <span class="font-bold">${activity.fileid}</span>.`;
+          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> has finished processing.`;
         } else if (status === "Collected") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fas fa-check text-xs"></i>
                         </div>
                     `;
-          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> was collected.`;
+          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> was just collected.`;
         } else {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mr-3 mt-1">
