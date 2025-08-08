@@ -23,6 +23,34 @@
         font-family: "Inter", sans-serif;
         background-color: #f9fafb;
       }
+      .glyphicon-chevron-down-custom span,
+      .glyphicon-chevron-up-custom span {
+        width: 10px;
+        height: 5px;
+        background-color: rgb(99, 99, 99);
+        display: inline-block;
+        transition: all .1s linear;
+        margin: 0;
+      }
+      .glyphicon-chevron-down-custom .sp-1 {
+        transform: skewY(-40deg);
+        margin-right: -1.9px;
+      }
+      .glyphicon-chevron-down-custom .sp-2 {
+        transform: skewY(40deg);
+        margin-left: -1.9px;
+      }
+      .glyphicon-chevron-up-custom .sp-1 {
+        transform: skewY(40deg);
+        margin-right: -1.9px;
+      }
+      .glyphicon-chevron-up-custom .sp-2 {
+        transform: skewY(-40deg);
+        margin-left: -1.9px;
+      }
+      .glyphicon {
+        top: -1px;
+      }
     </style>
   </head>
   <body class="text-gray-800">
@@ -186,11 +214,16 @@
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <button class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer" onclick="toggleDetails('{{ workitem.id }}')">
-                    View
-                    <i class="fas fa-chevron-down mr-1" id="chevron-{{ workitem.id }}"></i>
+                  <button class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer" 
+                          onclick="toggleDetails('{{ workitem.id }}')">
+                    <i class="indicator glyphicon glyphicon-chevron-down-custom pull-right" 
+                      id="chevron-{{ workitem.id }}">
+                      <span class="sp-1"></span>
+                      <span class="sp-2"></span>
+                    </i>
                   </button>
                 </td>
+
               </tr>
               <!-- Details dropdown row -->
               <tr id="details-{{ workitem.id }}" class="details-row hidden">

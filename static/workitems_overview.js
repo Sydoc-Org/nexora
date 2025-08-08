@@ -71,18 +71,23 @@ function sortTable(columnIndex) {
 // View details functionality
 function toggleDetails(workitemId) {
   console.log(`Toggling details for workitem ID: ${workitemId}`);
-  const detailsRow = document.getElementById(`details-${workitemId}`);
 
-  // check if the details row is currently displayed
-  const isOpen =
-    detailsRow.style.display === "" || detailsRow.style.display === "table-row";
+  const detailsRow = document.getElementById(`details-${workitemId}`);
+  const chevron = document.getElementById(`chevron-${workitemId}`);
+
+  const isOpen = detailsRow.style.display === "table-row";
 
   if (!isOpen) {
     detailsRow.style.display = "table-row";
+    chevron.classList.remove("glyphicon-chevron-down-custom");
+    chevron.classList.add("glyphicon-chevron-up-custom");
   } else {
     detailsRow.style.display = "none";
+    chevron.classList.remove("glyphicon-chevron-up-custom");
+    chevron.classList.add("glyphicon-chevron-down-custom");
   }
 }
+
 
 // Export to CSV functionality
 function exportToCSV() {
