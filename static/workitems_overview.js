@@ -66,21 +66,19 @@ function sortTable(columnIndex) {
 }
 
 // View details functionality
-function viewDetails(workitemId) {
-  console.log(`View details button clicked for workitem ${workitemId}`);
-  // Find the row for the workitem
-  const row = document.querySelector(
-    `.workitem-row td .font-medium:contains('${workitemId}')`
-  );
+function toggleDetails(workitemId) {
+  console.log(`Toggling details for workitem ID: ${workitemId}`);
+  const detailsRow = document.getElementById(`details-${workitemId}`);
 
-  document.getElementById("cardTitle").textContent = "Workitem " + workitemId;
-  document.getElementById("cardContent").innerHTML =
-    "Details for workitem " + workitemId;
-  document.getElementById("workitemCard").classList.remove("hidden");
-}
+  // check if the details row is currently displayed
+  const isOpen =
+    detailsRow.style.display === "" || detailsRow.style.display === "table-row";
 
-function closeWorkitemCard() {
-  document.getElementById("workitemCard").classList.add("hidden");
+  if (!isOpen) {
+    detailsRow.style.display = "table-row";
+  } else {
+    detailsRow.style.display = "none";
+  }
 }
 
 // Export to CSV functionality
