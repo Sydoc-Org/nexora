@@ -20,62 +20,240 @@
     />
     <style>
       body {
-        font-family: "Inter", sans-serif;
+        /*font-family: "Inter", sans-serif; */
         background-color: #f9fafb;
       }
+
       .glyphicon-chevron-down-custom span,
       .glyphicon-chevron-up-custom span {
         width: 10px;
         height: 5px;
         background-color: rgb(99, 99, 99);
         display: inline-block;
-        transition: all .1s linear;
+        transition: all 0.1s linear;
         margin: 0;
       }
+
       .glyphicon-chevron-down-custom .sp-1 {
         transform: skewY(-40deg);
         margin-right: -1.9px;
       }
+
       .glyphicon-chevron-down-custom .sp-2 {
         transform: skewY(40deg);
         margin-left: -1.9px;
       }
+
       .glyphicon-chevron-up-custom .sp-1 {
         transform: skewY(40deg);
         margin-right: -1.9px;
       }
+
       .glyphicon-chevron-up-custom .sp-2 {
         transform: skewY(-40deg);
         margin-left: -1.9px;
       }
+
       .glyphicon {
         top: -1px;
       }
+
+      .input-flex-container {
+        position: relative;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 90%;
+        max-width: 1000px;
+        z-index: 0;
+        margin: 40px 0 60px; /* Platz für Beschriftungen */
+      }
+
+      /* Durchgehende graue Linie hinter den Punkten */
+      .input-flex-container::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px; /* halbe Punktbreite */
+        right: 12.5px;
+        height: 5px;
+        width: calc(var(--active-line-width, 0) + var(--point-diameter, 20px) / 2);
+        background-color: var(--active-line-color, #ccc);
+        z-index: -1;
+        transform: translateY(-50%);
+        transition: width 1s ease, background-color 0.3s ease;
+        border-radius: 2.5px;
+        margin-top: 15px;
+      }
+
+      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
+      .input-flex-container::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        height: 5px;
+        background-color: #2C3E50;
+        z-index: -1;
+        transform: translateY(-50%);
+        width: 0;
+        border-radius: 2.5px;
+        transition: width 0.3s ease;
+      }
+
+      /* Punkt Styles */
+      .input {
+        width: 30px;
+        height: 30px;
+        background-color: #AEB6BF; /* Standard grau */
+        border-radius: 50%;
+        position: relative;
+        cursor: pointer;
+        z-index: 2;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      /* Aktive Punkte: dunkel */
+      .input.active {
+        background-color: #2C3E50;
+        margin-bottom: 20px;
+      }
+
+      /* Hover-Effekt für Punkte */
+      .input:hover {
+        background-color: #34495e;
+      }
+
+      /* Noch dunkler beim Hover aktiver Punkte */
+      .input.active:hover {
+        background-color: #1f2a38;
+      }
+
+      /* Status-Beschriftung über den Punkten (data-info) */
+      .input span::before {
+        content: attr(data-info);
+        position: absolute;
+        bottom: 100%; /* direkt oberhalb des Punktes */
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: #2C3E50;
+        white-space: nowrap;
+        margin-bottom: 8px;
+        pointer-events: none;
+        user-select: none;
+        content: none;
+      }
+
+      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
+      .input span::after {
+        content: none;
+      }
+
+      /* Container für Datum und Uhrzeit unter dem Punkt */
+      .input span {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 12px;
+        color: #333;
+        margin-top: 0px; /* Abstand vom Punkt nach unten */
+      }
+
+      /* Datum fett und etwas größer */
+      .input span .date {
+        font-weight: bold;
+        font-size: 13px;
+        color: #555555;
+        margin-top: 35px;
+      }
+
+      /* Uhrzeit kleiner und darunter */
+      .input span .time {
+        font-size: 12px;
+        color: #777777;
+        text-align: center;
+        user-select: none;
+        pointer-events: none;
+        margin-top: 0px;
+      }
+      .flex-parent {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: -30px;
+        margin-bottom: -35px;
+      }
+      .input.state-collected {
+        background-color: var(--color-purple-800);
+      }
+
+      .input.state-done {
+        background-color: var(--color-green-800);
+      }
+
+      .input.state-in-progress {
+        background-color: var(--color-yellow-800);
+      }
+
+      .input.state-ready {
+        background-color: var(--color-blue-800);
+      }
+
+      .input.state-demanded {
+        background-color: #FF7F50; 
+      }
+      .label {
+        display: inline-block;
+        padding: 2px 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 12px;
+        user-select: none;
+        margin-bottom: 50px;
+        text-align: center;
+        min-width: 70px;
+      }
+
+      .ready-label {
+        background-color: #cce4ff;
+        color: #1a4db7;
+      }
+
+      .demanded-label {
+        background-color: #ffcdd2;
+        color: #b71c1c;
+      }
+
+      .inprogress-label {
+        background-color: #fff9c4;
+        color: #fbc02d;
+      }
+
+      .done-label {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+      }
+
+      .collected-label {
+        background-color: #e1bee7;
+        color: #6a1b9a;
+      }
+
+      .timeline-label {
+        text-align: center;
+      }
+      
     </style>
   </head>
   <body class="text-gray-800">
     <!----------------------------------- Header -------------------------------------->
     {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
-
-    <!----------------------------------- Main Content -------------------------------------->
-    <main class="container mx-auto p-6">
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
-            <p class="text-gray-600">List of all workitems for {{ scope }}</p>
-          </div>
-          <div class="flex items-center space-x-4">
-            <div class="bg-white px-4 py-2 rounded-lg shadow">
-              <span class="text-sm text-gray-500">Total Items:</span>
-              <span class="font-bold text-lg text-indigo-600"
-                >{{ workitems|length }}</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-  </header>
 
   <!----------------------------------- Main Content -------------------------------------->
   <main class="container mx-auto p-6">
@@ -228,14 +406,20 @@
               <!-- Details dropdown row -->
               <tr id="details-{{ workitem.id }}" class="details-row hidden">
                 <td colspan="5" class="bg-gray-50 px-6 py-6">
-                  <div class="text-lg font-semibold mb-2">{{ workitem.id }} - Details</div>
-                  <div class="text-sm text-gray-700" id="details-content-{{ workitem.id }}">
-                    Status: <span class="font-bold">{{ workitem.status_text }}</span><br>
-                    Created: <span class="font-bold">{{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}</span><br>
-                    Demanded: <span class="font-bold">{{ workitem.demanded }}</span><br>
+                  <div class="text-lg font-semibold mb-4">{{ workitem.id }} - Status Timeline</div>
+
+                  <!-- Timeline Platzhalter -->
+                  <div class="flex-parent" id="timeline-wrapper-{{ workitem.id }}">
+                    <div class="input-flex-container" id="timeline-inputs-{{ workitem.id }}">
+                      <!-- Punkte werden per JS generiert -->
+                    </div>
+                    <div class="description-flex-container" id="timeline-descriptions-{{ workitem.id }}">
+                      <!-- Beschreibungen werden per JS generiert -->
+                    </div>
                   </div>
                 </td>
               </tr>
+
               {% else %}
               <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-gray-500">
