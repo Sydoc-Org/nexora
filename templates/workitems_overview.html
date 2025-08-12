@@ -61,12 +61,14 @@
       .input-flex-container {
         position: relative;
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
         align-items: center;
         width: 90%;
         max-width: 1000px;
         z-index: 0;
         margin: 40px 0 60px; /* Platz für Beschriftungen */
+        padding: 0 12.5px; /* Abstand links/rechts */
+        box-sizing: border-box;
       }
 
       /* Durchgehende graue Linie hinter den Punkten */
@@ -75,9 +77,8 @@
         position: absolute;
         top: 50%;
         left: 12.5px; /* halbe Punktbreite */
-        right: 12.5px;
-        height: 5px;
-        width: calc(var(--active-line-width, 0) + var(--point-diameter, 20px) / 2);
+        height: 7.5px;
+        width: var(--active-line-width, 0);
         background-color: var(--active-line-color, #ccc);
         z-index: -1;
         transform: translateY(-50%);
@@ -103,8 +104,8 @@
 
       /* Punkt Styles */
       .input {
-        width: 30px;
-        height: 30px;
+        width: 35px;
+        height: 35px;
         background-color: #AEB6BF; /* Standard grau */
         border-radius: 50%;
         position: relative;
@@ -168,7 +169,7 @@
         font-weight: bold;
         font-size: 13px;
         color: #555555;
-        margin-top: 35px;
+        margin-top: 40px;
       }
 
       /* Uhrzeit kleiner und darunter */

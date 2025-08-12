@@ -79,7 +79,7 @@ async function toggleDetails(workitemId) {
     chevron.classList.remove("glyphicon-chevron-down-custom");
     chevron.classList.add("glyphicon-chevron-up-custom");
 
-    // API abrufen
+    // fetch API 
     try {
       const res = await fetch(`/allstatesfromoneworkitem/${workitemId}`);
       const data = await res.json();
@@ -105,24 +105,6 @@ function renderTimeline(workitemId, states) {
   const baseStates = ["Ready", "In Progress", "Done", "Collected"];
   const allStates = states.map(s => s.state);
 
-  // "Demanded" immer nach "Ready" einfügen (oder am Anfang, falls Ready nicht vorhanden)
-  if (!allStates.includes("Demanded")) {
-    const readyIndex = allStates.indexOf("Ready");
-    if (readyIndex !== -1) {
-      allStates.splice(readyIndex + 1, 0, "Demanded");
-    } else {
-      allStates.unshift("Demanded");
-    }
-  }
-
-  // Fehlende Basistates ergänzen
-  baseStates.forEach(s => {
-    if (!allStates.includes(s)) allStates.push(s);
-  });
-
-  // Duplikate entfernen
-  const uniqueStates = [...new Set(allStates)];
-
   // Map für schnellen Zugriff auf State-Objekte
   const stateMap = {};
   states.forEach(s => {
@@ -131,31 +113,64 @@ function renderTimeline(workitemId, states) {
 
   // Letzten State bestimmen
   const currentState = states.length ? states[states.length - 1].state : "Ready";
-
-  // Referenz auf Ready State Objekt
   const readyStateObj = stateMap["Ready"] || null;
-  const demandedIdx = uniqueStates.indexOf("Demanded");
 
-  // Aktiven Index berechnen
-  let activeIndex = uniqueStates.indexOf(currentState);
+  // Logik für "Demanded" einfügen oder nicht
+  let showDemanded = false;
+  let infoText = "";
 
-  if (readyStateObj) {
-    if (readyStateObj.DemandedBy) {
-      // Wenn Demand gesetzt ist, Demand als aktiv markieren
-      if (demandedIdx !== -1) activeIndex = demandedIdx;
-    } else {
-      if (currentState === "Ready") {
-        activeIndex = uniqueStates.indexOf("Ready");
-      } else if (["In Progress", "Done", "Collected"].includes(currentState)) {
-        // Auch wenn DemandedBy nicht gesetzt, aber State höher als Ready, Demand aktiv
-        if (demandedIdx !== -1) activeIndex = demandedIdx;
-      }
+  if (readyStateObj && readyStateObj.DemandedBy) {
+    // Bereits demanded
+    showDemanded = true;
+  } else {
+    if (currentState === "Ready") {
+      infoText = "Ready to Demand";
+    } else if (["In Progress", "Done", "Collected"].includes(currentState)) {
+      infoText = "Demand not possible";
     }
   }
 
-  // Für höhere States In Progress, Done, Collected aktive Punkte bis dahin farbig machen
-  if (["In Progress", "Done", "Collected"].includes(currentState)) {
-    activeIndex = uniqueStates.indexOf(currentState);
+  // Falls erlaubt, "Demanded" einfügen
+  if (showDemanded) {
+    const readyIndex = allStates.indexOf("Ready");
+    if (readyIndex !== -1) {
+      allStates.splice(readyIndex + 1, 0, "Demanded");
+    } else {
+      allStates.unshift("Demanded");
+    }
+  }
+
+  // Fehlende Basisstates ergänzen
+  baseStates.forEach(s => {
+    if (!allStates.includes(s)) allStates.push(s);
+  });
+
+  // Duplikate entfernen und Reihenfolge nach baseStates (plus Demanded) festlegen
+  const orderedStates = [];
+  baseStates.forEach(state => {
+    if (allStates.includes(state)) {
+      orderedStates.push(state);
+    }
+  });
+  if (allStates.includes("Demanded")) {
+    const readyIndex = orderedStates.indexOf("Ready");
+    if (readyIndex !== -1) {
+      orderedStates.splice(readyIndex + 1, 0, "Demanded");
+    } else {
+      orderedStates.unshift("Demanded");
+    }
+  }
+
+  // Aktiven Index berechnen
+  let activeIndex = orderedStates.indexOf(currentState);
+
+  if (currentState === "Collected") {
+    // Alle Punkte aktivieren, wenn "Collected"
+    activeIndex = orderedStates.length - 1;
+  }
+
+  if (showDemanded && orderedStates.includes("Demanded") && readyStateObj && readyStateObj.DemandedBy) {
+    activeIndex = orderedStates.indexOf("Demanded");
   }
 
   // Container leeren
@@ -164,120 +179,112 @@ function renderTimeline(workitemId, states) {
   inputsContainer.innerHTML = "";
   descContainer.innerHTML = "";
 
-  uniqueStates.forEach((state, index) => {
-  
-  let found = state === "Demanded" ? (readyStateObj || states[0] || null) : stateMap[state] || null;
-  // Container für Label + Punkt
-  const containerDiv = document.createElement("div");
-  containerDiv.style.display = "flex";
-  containerDiv.style.flexDirection = "column";
-  containerDiv.style.alignItems = "center";
-  containerDiv.style.margin = "0 6px"; // optional: Abstand der Punkte
+  // Timeline Punkte rendern
+  orderedStates.forEach((state, index) => {
+    let found = state === "Demanded" ? (readyStateObj || states[0] || null) : stateMap[state] || null;
 
-  // Label Span erzeugen
-  const labelSpan = document.createElement("span");
-  labelSpan.classList.add("px-2", "py-1", "text-xs", "font-semibold", "rounded-full");
-  labelSpan.style.marginBottom = "15px";
-  labelSpan.style.fontSize = "14px"; // größere Schrift
-  labelSpan.style.padding = "8px 12px"; // mehr Innenabstand
+    const containerDiv = document.createElement("div");
+    containerDiv.style.display = "flex";
+    containerDiv.style.flexDirection = "column";
+    containerDiv.style.alignItems = "center";
+    containerDiv.style.margin = "0 6px";
 
-  // Label Text und Farben (nur Label, NICHT Punktfarben!)
-  switch(state) {
-    case "Collected":
-      labelSpan.classList.add("bg-purple-100", "text-purple-800");
-      labelSpan.textContent = "Collected";
-      break;
-    case "Done":
-      labelSpan.classList.add("bg-green-100", "text-green-800");
-      labelSpan.textContent = "Done";
-      break;
-    case "In Progress":
-      labelSpan.classList.add("bg-yellow-100", "text-yellow-800");
-      labelSpan.textContent = "In Progress";
-      break;
-    case "Ready":
-      if (readyStateObj && readyStateObj.DemandedBy) {
-        labelSpan.classList.add("bg-red-100", "text-red-800");
-        labelSpan.textContent = "Ready";
-      } else {
+    // Label erstellen
+    const labelSpan = document.createElement("span");
+    labelSpan.classList.add("px-2", "py-1", "text-xs", "font-semibold", "rounded-full");
+    labelSpan.style.marginBottom = "15px";
+    labelSpan.style.fontSize = "14px";
+    labelSpan.style.padding = "8px 12px";
+
+    switch(state) {
+      case "Collected":
+        labelSpan.classList.add("bg-purple-100", "text-purple-800");
+        labelSpan.textContent = "Collected";
+        break;
+      case "Done":
+        labelSpan.classList.add("bg-green-100", "text-green-800");
+        labelSpan.textContent = "Done";
+        break;
+      case "In Progress":
+        labelSpan.classList.add("bg-yellow-100", "text-yellow-800");
+        labelSpan.textContent = "In Progress";
+        break;
+      case "Ready":
         labelSpan.classList.add("bg-blue-100", "text-blue-800");
         labelSpan.textContent = "Ready";
-      }
-      break;
-    case "Demanded":
-      labelSpan.classList.add("bg-orange-100", "text-orange-800");
-      labelSpan.textContent = "Demanded";
-      break;
-    default:
-      labelSpan.textContent = state;
-  }
+        break;
+      case "Demanded":
+        labelSpan.classList.add("bg-red-100", "text-red-800");
+        labelSpan.textContent = "Demanded";
+        break;
+      default:
+        labelSpan.textContent = state;
+    }
 
-  containerDiv.appendChild(labelSpan);
+    containerDiv.appendChild(labelSpan);
 
-  // Punkt DIV wie vorher, mit den bisherigen Farben!
-  const inputDiv = document.createElement("div");
-  inputDiv.classList.add("input");
+    // Punkt
+    const inputDiv = document.createElement("div");
+    inputDiv.classList.add("input");
 
-  // Punkt färben wie bisher (active, state-Klasse etc.)
-  if (index <= activeIndex) {
-    if (state === "Demanded") {
-      if ((readyStateObj && readyStateObj.DemandedBy) || ["In Progress", "Done", "Collected"].includes(currentState)) {
+    if (index <= activeIndex) {
+      if (state === "Demanded") {
+        if (readyStateObj && readyStateObj.DemandedBy) {
+          inputDiv.classList.add("active");
+        }
+      } else {
         inputDiv.classList.add("active");
       }
-    } else {
-      inputDiv.classList.add("active");
     }
+
+    if (index < orderedStates.length - 1) {
+      const lineDiv = document.createElement("div");
+      lineDiv.classList.add("timeline-line");
+      containerDiv.appendChild(lineDiv);
+    }
+
+    // Datum/Zeit
+    const span = document.createElement("span");
+    span.setAttribute("data-info", state);
+    if (found && found.datetime) {
+      const d = new Date(found.datetime);
+      const dateStr = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const timeStr = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+      span.innerHTML = `<div class="date">${dateStr}</div><div class="time">${timeStr}</div>`;
+    } else {
+      span.innerHTML = `<div class="date"></div><div class="time"></div>`;
+    }
+
+    inputDiv.appendChild(span);
+    containerDiv.appendChild(inputDiv);
+
+    inputsContainer.appendChild(containerDiv);
+
+    // Beschreibungsplatzhalter
+    const p = document.createElement("p");
+    if (index === activeIndex) p.classList.add("active");
+    descContainer.appendChild(p);
+  });
+
+  // Info-Text einfügen falls nötig
+  if (infoText) {
+    const infoP = document.createElement("p");
+    infoP.classList.add("text-sm", "text-gray-500", "mt-2");
+    infoP.style.marginTop = "-20px";
+    infoP.style.marginBottom = "40px";
+    infoP.textContent = infoText;
+    infoP.classList.remove("text-gray-500");
+    infoP.classList.add("text-red-500");
+    descContainer.appendChild(infoP);
   }
-  if (index < uniqueStates.length - 1) {
-  const lineDiv = document.createElement("div");
-  lineDiv.classList.add("timeline-line"); // Klasse für die Linie
-  containerDiv.appendChild(lineDiv);      // Linie direkt nach Punkt einfügen
+
+  animateColoredLine(workitemId, currentState, readyStateObj ? readyStateObj.DemandedBy : null);
 }
 
-  // Rest wie gehabt: Datum & Uhrzeit im inneren span
-  const span = document.createElement("span");
-  span.setAttribute("data-info", state);
 
-  if (found) {
-    if (state === "Demanded") {
-      if (readyStateObj && readyStateObj.DemandedBy === null && currentState === "Ready") {
-        span.innerHTML = `<div class="date"></div><div class="time"></div>`;
-        inputDiv.title = "Demanded (noch nicht gesetzt)";
-      } else {
-        const d = new Date(found.datetime);
-        const dateStr = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const timeStr = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-        span.innerHTML = `<div class="date">${dateStr}</div><div class="time">${timeStr}</div>`;
-        inputDiv.title = readyStateObj && readyStateObj.DemandedBy ? `Demanded by: ${readyStateObj.DemandedBy}` : "Demanded (kein Info)";
-      }
-    } else {
-      if (found.datetime) {
-        const d = new Date(found.datetime);
-        const dateStr = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const timeStr = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-        span.innerHTML = `<div class="date">${dateStr}</div><div class="time">${timeStr}</div>`;
-      } else {
-        span.innerHTML = `<div class="date"></div><div class="time"></div>`;
-      }
-    }
-  } else {
-    span.innerHTML = `<div class="date"></div><div class="time"></div>`;
-  }
 
-  inputDiv.appendChild(span);
-  containerDiv.appendChild(inputDiv);
 
-  inputsContainer.appendChild(containerDiv);
-
-  // Beschreibungspunkte bleiben unverändert
-  const p = document.createElement("p");
-  if (index === activeIndex) p.classList.add("active");
-  descContainer.appendChild(p);
-});
-  animateColoredLine(workitemId, currentState);
-}
-
-function animateColoredLine(workitemId, currentStatus) {
+function animateColoredLine(workitemId, currentStatus, demandedBy) {
   const inputsContainer = document.getElementById(`timeline-inputs-${workitemId}`);
 
   // Erst auf 0 setzen (unsichtbar)
@@ -285,25 +292,22 @@ function animateColoredLine(workitemId, currentStatus) {
 
   // Kurz warten, dann auf Zielwert setzen
   setTimeout(() => {
-    updateColoredLine(workitemId, currentStatus);
+    updateColoredLine(workitemId, currentStatus, demandedBy);
   }, 50);
 }
 
-// Funktion zum Anpassen der farbigen Linie
-function updateColoredLine(workitemId, currentStatus) {
+function updateColoredLine(workitemId, currentStatus, demandedBy) {
   const inputsContainer = document.getElementById(`timeline-inputs-${workitemId}`);
   const inputs = inputsContainer.querySelectorAll(".input");
 
   const statusColors = {
-  "Collected": "#D8B4FE",       
-  "Done": "#86EFAC",            
-  "In Progress": "#FDE68A",     
-  "Ready not demanded": "#93C5FD", 
-  "Ready and Demanded": "#FCA5A5" 
-};
+    "Collected": "#D8B4FE",
+    "Done": "#86EFAC",
+    "In Progress": "#FDE68A",
+    "Ready not demanded": "#93C5FD",
+    "Ready and Demanded": "#FCA5A5"
+  };
 
-
-  const activeColor = statusColors[currentStatus] || "#999";
   const inactiveColor = "#ccc";
 
   let lastActiveIndex = -1;
@@ -317,24 +321,36 @@ function updateColoredLine(workitemId, currentStatus) {
     return;
   }
 
+  let activeColor;
+  if (currentStatus === "Ready") {
+    if (demandedBy) {
+      activeColor = statusColors["Ready and Demanded"];
+    } else {
+      activeColor = statusColors["Ready not demanded"];
+    }
+  } else {
+    activeColor = statusColors[currentStatus] || "#999";
+  }
+
   const containerWidth = inputsContainer.offsetWidth;
+  const padding = 12.5; // wie im CSS-Padding
   const numberOfPoints = inputs.length;
+  const innerWidth = containerWidth - 2 * padding;
+  const step = innerWidth / (numberOfPoints - 1);
 
-  // Abstand zwischen Punkten (Punktanzahl - 1 Lücken)
-  const step = containerWidth / (numberOfPoints - 1);
+  let finalWidth;
 
-  // Breite bis zum linken Rand des aktiven Punktes
-  const widthUntilPoint = step * lastActiveIndex;
-
-  // Breite + halbe Punktbreite (angenommen Punkt 20px breit)
-  const pointDiameter = 20; // Falls deine Punkte andere Größe haben, passe hier an
-
-  const finalWidth = widthUntilPoint + pointDiameter / 2;
+  if (currentStatus === "Collected") {
+    finalWidth = containerWidth - padding;
+  } else if (lastActiveIndex < numberOfPoints - 1) {
+    finalWidth = padding + (step * lastActiveIndex) + (step / 2);
+  } else {
+    finalWidth = padding + (step * lastActiveIndex);
+  }
 
   inputsContainer.style.setProperty("--active-line-width", `${finalWidth}px`);
   inputsContainer.style.setProperty("--active-line-color", activeColor);
 }
-
 
 // Export to CSV functionality
 function exportToCSV() {
