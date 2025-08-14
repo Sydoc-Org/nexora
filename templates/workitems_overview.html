@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
-
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -20,8 +19,234 @@
     />
     <style>
       body {
-        font-family: "Inter", sans-serif;
+        /*font-family: "Inter", sans-serif; */
         background-color: #f9fafb;
+      }
+
+      .glyphicon-chevron-down-custom span,
+      .glyphicon-chevron-up-custom span {
+        width: 10px;
+        height: 5px;
+        background-color: rgb(99, 99, 99);
+        display: inline-block;
+        transition: all 0.1s linear;
+        margin: 0;
+      }
+
+      .glyphicon-chevron-down-custom .sp-1 {
+        transform: skewY(-40deg);
+        margin-right: -1.9px;
+      }
+
+      .glyphicon-chevron-down-custom .sp-2 {
+        transform: skewY(40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-1 {
+        transform: skewY(40deg);
+        margin-right: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-2 {
+        transform: skewY(-40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon {
+        top: -1px;
+      }
+
+      .input-flex-container {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 90%;
+        max-width: 1000px;
+        z-index: 0;
+        margin: 40px 0 60px; /* Platz für Beschriftungen */
+        padding: 0 12.5px; /* Abstand links/rechts */
+        box-sizing: border-box;
+      }
+
+      /* Durchgehende graue Linie hinter den Punkten */
+      .input-flex-container::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px; /* halbe Punktbreite */
+        height: 7.5px;
+        width: var(--active-line-width, 0);
+        background-color: var(--active-line-color, #ccc);
+        z-index: -1;
+        transform: translateY(-50%);
+        transition: width 1s ease, background-color 0.3s ease;
+        border-radius: 2.5px;
+        margin-top: 15px;
+      }
+
+      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
+      .input-flex-container::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        height: 5px;
+        background-color: #2c3e50;
+        z-index: -1;
+        transform: translateY(-50%);
+        width: 0;
+        border-radius: 2.5px;
+        transition: width 0.3s ease;
+      }
+
+      /* Punkt Styles */
+      .input {
+        width: 35px;
+        height: 35px;
+        background-color: #aeb6bf; /* Standard grau */
+        border-radius: 50%;
+        position: relative;
+        cursor: pointer;
+        z-index: 2;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      /* Aktive Punkte: dunkel */
+      .input.active {
+        background-color: #2c3e50;
+        margin-bottom: 20px;
+      }
+
+      /* Hover-Effekt für Punkte */
+      .input:hover {
+        background-color: #34495e;
+      }
+
+      /* Noch dunkler beim Hover aktiver Punkte */
+      .input.active:hover {
+        background-color: #1f2a38;
+      }
+
+      /* Status-Beschriftung über den Punkten (data-info) */
+      .input span::before {
+        content: attr(data-info);
+        position: absolute;
+        bottom: 100%; /* direkt oberhalb des Punktes */
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: #2c3e50;
+        white-space: nowrap;
+        margin-bottom: 8px;
+        pointer-events: none;
+        user-select: none;
+        content: none;
+      }
+
+      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
+      .input span::after {
+        content: none;
+      }
+
+      /* Container für Datum und Uhrzeit unter dem Punkt */
+      .input span {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 12px;
+        color: #333;
+        margin-top: 0px; /* Abstand vom Punkt nach unten */
+      }
+
+      /* Datum fett und etwas größer */
+      .input span .date {
+        font-weight: bold;
+        font-size: 13px;
+        color: #555555;
+        margin-top: 40px;
+      }
+
+      /* Uhrzeit kleiner und darunter */
+      .input span .time {
+        font-size: 12px;
+        color: #777777;
+        text-align: center;
+        user-select: none;
+        pointer-events: none;
+        margin-top: 0px;
+      }
+      .flex-parent {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: -30px;
+        margin-bottom: -35px;
+      }
+      .input.state-collected {
+        background-color: var(--color-purple-800);
+      }
+
+      .input.state-done {
+        background-color: var(--color-green-800);
+      }
+
+      .input.state-in-progress {
+        background-color: var(--color-yellow-800);
+      }
+
+      .input.state-ready {
+        background-color: var(--color-blue-800);
+      }
+
+      .input.state-demanded {
+        background-color: #ff7f50;
+      }
+      .label {
+        display: inline-block;
+        padding: 2px 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 12px;
+        user-select: none;
+        margin-bottom: 50px;
+        text-align: center;
+        min-width: 70px;
+      }
+
+      .ready-label {
+        background-color: #cce4ff;
+        color: #1a4db7;
+      }
+
+      .demanded-label {
+        background-color: #ffcdd2;
+        color: #b71c1c;
+      }
+
+      .inprogress-label {
+        background-color: #fff9c4;
+        color: #fbc02d;
+      }
+
+      .done-label {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+      }
+
+      .collected-label {
+        background-color: #e1bee7;
+        color: #6a1b9a;
+      }
+
+      .timeline-label {
+        text-align: center;
       }
     </style>
   </head>
@@ -47,56 +272,45 @@
           </div>
         </div>
       </div>
-  </header>
 
-  <!----------------------------------- Main Content -------------------------------------->
-  <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
-          <p class="text-gray-600">List of all workitems for {{ scope }}</p>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div class="bg-white px-4 py-2 rounded-lg shadow">
-            <span class="text-sm text-gray-500">Total Items:</span>
-            <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
+      <!----------------------------------- Search & Filter -------------------------------------->
+      <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+        <div class="flex flex-col md:flex-row gap-4 items-center">
+          <div class="flex-1">
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                <i class="fas fa-search text-gray-400"></i>
+              </span>
+              <input
+                type="text"
+                id="searchInput"
+                class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Search for specific workitem..."
+              />
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <select
+              id="statusFilter"
+              class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Statuses</option>
+              <option value="Ready">Ready</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+              <option value="Collected">Collected</option>
+            </select>
+            <button
+              onclick="exportToCSV()"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+            >
+              <i class="fas fa-download mr-2"></i>Export CSV
+            </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!----------------------------------- Search & Filter -------------------------------------->
-    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-      <div class="flex flex-col md:flex-row gap-4 items-center">
-        <div class="flex-1">
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-              <i class="fas fa-search text-gray-400"></i>
-            </span>
-            <input type="text" id="searchInput"
-              class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Search for specific workitem..." />
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <select id="statusFilter"
-            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Statuses</option>
-            <option value="Ready">Ready</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Done">Done</option>
-            <option value="Collected">Collected</option>
-          </select>
-          <button onclick="exportToCSV()"
-            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-            <i class="fas fa-download mr-2"></i>Export CSV
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!----------------------------------- Workitems Table -------------------------------------->
+      <!----------------------------------- Workitems Table -------------------------------------->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full" id="workitemsTable">
@@ -104,22 +318,26 @@
               <tr>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(0)">
+                  onclick="sortTable(0)"
+                >
                   Workitem ID <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(1)">
+                  onclick="sortTable(1)"
+                >
                   Status <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(2)">
+                  onclick="sortTable(2)"
+                >
                   Created <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(3)">
+                  onclick="sortTable(3)"
+                >
                   Demanded <i class="fas fa-sort ml-1"></i>
                 </th>
                 <!-- Last Column empty for Actions -->
@@ -130,30 +348,44 @@
             <!-- Dynamic Content -->
             <tbody class="bg-white divide-y divide-gray-200">
               {% for workitem in workitems %}
-              <tr class="hover:bg-gray-50 transition-colors workitem-row" data-status="{{ workitem.status_text }}" id="row-{{ workitem.id }}">
+              <tr
+                class="hover:bg-gray-50 transition-colors workitem-row"
+                data-status="{{ workitem.status_text }}"
+                id="row-{{ workitem.id }}"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="font-medium text-gray-900">{{ workitem.id }}</div>
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap text-left">
                   {% if workitem.status_text == "Ready" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "In Progress" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Done" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Collected" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% else %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% endif %}
@@ -168,41 +400,81 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 flex items-center">
-                    {% if workitem.demanded is true or workitem.demanded == 'True' %}
-                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2"> D e m a n d e d</i>
-                    {% elif workitem.demanded == 'False' and workitem.status_text == 'Ready' %}
-                  <form action="{{ url_for('demand_workitem') }}" method="POST">
-                    <input type="hidden" name="workitemid" value="{{ workitem.id }}">
-                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                      type="submit">
-                      <i class="fa-solid fa-clipboard-user mr-2"></i>
-                      Demand
-                    </button>
-                  </form>
+                    {% if workitem.demanded is true or workitem.demanded ==
+                    'True' %}
+                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2">
+                      D e m a n d e d</i
+                    >
+                    {% elif workitem.demanded == 'False' and
+                    workitem.status_text == 'Ready' %}
+                    <form
+                      action="{{ url_for('demand_workitem') }}"
+                      method="POST"
+                    >
+                      <input
+                        type="hidden"
+                        name="workitemid"
+                        value="{{ workitem.id }}"
+                      />
+                      <button
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                        type="submit"
+                      >
+                        <i class="fa-solid fa-clipboard-user mr-2"></i>
+                        Demand
+                      </button>
+                    </form>
                     {% else %}
                     <p>Demand not possible</p>
                     {% endif %}
                   </div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <button class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer" onclick="toggleDetails('{{ workitem.id }}')">
-                    View
-                    <i class="fas fa-chevron-down mr-1" id="chevron-{{ workitem.id }}"></i>
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
+                >
+                  <button
+                    class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
+                    onclick="toggleDetails('{{ workitem.id }}')"
+                  >
+                    <i
+                      class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
+                      id="chevron-{{ workitem.id }}"
+                    >
+                      <span class="sp-1"></span>
+                      <span class="sp-2"></span>
+                    </i>
                   </button>
                 </td>
               </tr>
               <!-- Details dropdown row -->
               <tr id="details-{{ workitem.id }}" class="details-row hidden">
                 <td colspan="5" class="bg-gray-50 px-6 py-6">
-                  <div class="text-lg font-semibold mb-2">{{ workitem.id }} - Details</div>
-                  <div class="text-sm text-gray-700" id="details-content-{{ workitem.id }}">
-                    Status: <span class="font-bold">{{ workitem.status_text }}</span><br>
-                    Created: <span class="font-bold">{{ workitem.created_on.strftime('%d. %m. %Y - %H:%M') }}</span><br>
-                    Demanded: <span class="font-bold">{{ workitem.demanded }}</span><br>
+                  <div class="text-lg font-semibold mb-4">
+                    {{ workitem.id }} - Status Timeline
+                  </div>
+
+                  <!-- Timeline Platzhalter -->
+                  <div
+                    class="flex-parent"
+                    id="timeline-wrapper-{{ workitem.id }}"
+                  >
+                    <div
+                      class="input-flex-container"
+                      id="timeline-inputs-{{ workitem.id }}"
+                    >
+                      <!-- Punkte werden per JS generiert -->
+                    </div>
+                    <div
+                      class="description-flex-container"
+                      id="timeline-descriptions-{{ workitem.id }}"
+                    >
+                      <!-- Beschreibungen werden per JS generiert -->
+                    </div>
                   </div>
                 </td>
               </tr>
+
               {% else %}
               <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-gray-500">
@@ -218,16 +490,18 @@
           </table>
         </div>
       </div>
-      
-    <!----------------------------------- Pagination -------------------------------------->
-    <div class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-gray-700">
-        Showing
-        <span class="font-medium" id="showingCount">{{ workitems|length }}</span>
-        of <span class="font-medium">{{ workitems|length }}</span> results
+
+      <!----------------------------------- Pagination -------------------------------------->
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Showing
+          <span class="font-medium" id="showingCount"
+            >{{ workitems|length }}</span
+          >
+          of <span class="font-medium">{{ workitems|length }}</span> results
+        </div>
       </div>
-    </div>
-  </main>
-  <script src="/static/workitems_overview.js"></script>
+    </main>
+    <script src="/static/workitems_overview.js"></script>
   </body>
 </html>
