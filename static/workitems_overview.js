@@ -1,5 +1,6 @@
 // Search functionality
 document.getElementById("searchInput").addEventListener("keyup", function () {
+  closeAllDetails();
   const searchTerm = this.value.toLowerCase();
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
@@ -19,23 +20,44 @@ document.getElementById("searchInput").addEventListener("keyup", function () {
 
 // Status filter functionality
 document.getElementById("statusFilter").addEventListener("change", function () {
+  closeAllDetails();
   const selectedStatus = this.value;
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
 
   rows.forEach((row) => {
     const status = row.getAttribute("data-status");
+    const workitemId = row.getAttribute("data-id"); // assuming you have this
+    const detailsRow = document.getElementById(`details-${workitemId}`);
+    const chevron = document.getElementById(`chevron-${workitemId}`);
+
     if (selectedStatus === "" || status === selectedStatus) {
       row.style.display = "";
       visibleCount++;
     } else {
       row.style.display = "none";
+
+      // Hide details if open
+      if (detailsRow) detailsRow.style.display = "none";
+      if (chevron) {
+        chevron.classList.remove("glyphicon-chevron-down-custom");
+        chevron.classList.add("glyphicon-chevron-up-custom");
+      }
     }
   });
 
   document.getElementById("showingCount").textContent = visibleCount;
 });
 
+function closeAllDetails() {
+  document.querySelectorAll("[id^='details-']").forEach(detailsRow => {
+    detailsRow.style.display = "none";
+  });
+  document.querySelectorAll("[id^='chevron-']").forEach(chevron => {
+    chevron.classList.remove("glyphicon-chevron-down-custom");
+    chevron.classList.add("glyphicon-chevron-up-custom");
+  });
+}
 // Table sorting functionality
 function sortTable(columnIndex) {
   const table = document.getElementById("workitemsTable");
@@ -165,23 +187,16 @@ function renderTimeline(workitemId, states) {
     }
   }
 
-  // Aktiven Index berechnen
+   // Aktiven Index berechnen mit korrigierter Logik
   let activeIndex = orderedStates.indexOf(currentState);
 
   if (currentState === "Collected") {
-    // Alle Punkte aktivieren, wenn "Collected"
+    // Bei "Collected" alle Punkte aktivieren
     activeIndex = orderedStates.length - 1;
-  }
-
-  if (
-    showDemanded &&
-    orderedStates.includes("Demanded") &&
-    readyStateObj &&
-    readyStateObj.DemandedBy
-  ) {
+  } else if (showDemanded && orderedStates.includes("Demanded") && readyStateObj && readyStateObj.DemandedBy) {
+    // Wenn demanded, aktiver Punkt ist "Demanded"
     activeIndex = orderedStates.indexOf("Demanded");
   }
-
   // Container leeren
   const inputsContainer = document.getElementById(
     `timeline-inputs-${workitemId}`
