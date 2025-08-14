@@ -27,7 +27,7 @@ document.getElementById("statusFilter").addEventListener("change", function () {
 
   rows.forEach((row) => {
     const status = row.getAttribute("data-status");
-    const workitemId = row.getAttribute("data-id"); // assuming you have this
+    const workitemId = row.getAttribute("data-id");
     const detailsRow = document.getElementById(`details-${workitemId}`);
     const chevron = document.getElementById(`chevron-${workitemId}`);
 
@@ -50,14 +50,15 @@ document.getElementById("statusFilter").addEventListener("change", function () {
 });
 
 function closeAllDetails() {
-  document.querySelectorAll("[id^='details-']").forEach(detailsRow => {
+  document.querySelectorAll("[id^='details-']").forEach((detailsRow) => {
     detailsRow.style.display = "none";
   });
-  document.querySelectorAll("[id^='chevron-']").forEach(chevron => {
+  document.querySelectorAll("[id^='chevron-']").forEach((chevron) => {
     chevron.classList.remove("glyphicon-chevron-down-custom");
     chevron.classList.add("glyphicon-chevron-up-custom");
   });
 }
+
 // Table sorting functionality
 function sortTable(columnIndex) {
   const table = document.getElementById("workitemsTable");
@@ -187,16 +188,22 @@ function renderTimeline(workitemId, states) {
     }
   }
 
-   // Aktiven Index berechnen mit korrigierter Logik
+  // Aktiven Index berechnen
   let activeIndex = orderedStates.indexOf(currentState);
 
   if (currentState === "Collected") {
     // Bei "Collected" alle Punkte aktivieren
     activeIndex = orderedStates.length - 1;
-  } else if (showDemanded && orderedStates.includes("Demanded") && readyStateObj && readyStateObj.DemandedBy) {
+  } else if (
+    showDemanded &&
+    orderedStates.includes("Demanded") &&
+    readyStateObj &&
+    readyStateObj.DemandedBy
+  ) {
     // Wenn demanded, aktiver Punkt ist "Demanded"
     activeIndex = orderedStates.indexOf("Demanded");
   }
+
   // Container leeren
   const inputsContainer = document.getElementById(
     `timeline-inputs-${workitemId}`
