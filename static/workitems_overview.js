@@ -76,43 +76,47 @@ async function toggleDetails(workitemId) {
 
   if (!isOpen) {
     detailsRow.style.display = "table-row";
-    chevron.classList.remove("glyphicon-chevron-down-custom");
-    chevron.classList.add("glyphicon-chevron-up-custom");
+    chevron.classList.remove("glyphicon-chevron-up-custom");
+    chevron.classList.add("glyphicon-chevron-down-custom");
 
-    // fetch API 
+    // fetch API
     try {
       const res = await fetch(`/allstatesfromoneworkitem/${workitemId}`);
       const data = await res.json();
       if (res.ok) {
         renderTimeline(workitemId, data);
       } else {
-        document.getElementById(`timeline-wrapper-${workitemId}`).innerHTML =
-          `<p class="text-red-500">Fehler: ${data.error}</p>`;
+        document.getElementById(
+          `timeline-wrapper-${workitemId}`
+        ).innerHTML = `<p class="text-red-500">Fehler: ${data.error}</p>`;
       }
     } catch (err) {
-      document.getElementById(`timeline-wrapper-${workitemId}`).innerHTML =
-        `<p class="text-red-500">API Fehler</p>`;
+      document.getElementById(
+        `timeline-wrapper-${workitemId}`
+      ).innerHTML = `<p class="text-red-500">API Fehler</p>`;
       console.error(err);
     }
   } else {
     detailsRow.style.display = "none";
-    chevron.classList.remove("glyphicon-chevron-up-custom");
-    chevron.classList.add("glyphicon-chevron-down-custom");
+    chevron.classList.remove("glyphicon-chevron-down-custom");
+    chevron.classList.add("glyphicon-chevron-up-custom");
   }
 }
 
 function renderTimeline(workitemId, states) {
   const baseStates = ["Ready", "In Progress", "Done", "Collected"];
-  const allStates = states.map(s => s.state);
+  const allStates = states.map((s) => s.state);
 
   // Map für schnellen Zugriff auf State-Objekte
   const stateMap = {};
-  states.forEach(s => {
+  states.forEach((s) => {
     stateMap[s.state] = s;
   });
 
   // Letzten State bestimmen
-  const currentState = states.length ? states[states.length - 1].state : "Ready";
+  const currentState = states.length
+    ? states[states.length - 1].state
+    : "Ready";
   const readyStateObj = stateMap["Ready"] || null;
 
   // Logik für "Demanded" einfügen oder nicht
@@ -141,13 +145,13 @@ function renderTimeline(workitemId, states) {
   }
 
   // Fehlende Basisstates ergänzen
-  baseStates.forEach(s => {
+  baseStates.forEach((s) => {
     if (!allStates.includes(s)) allStates.push(s);
   });
 
   // Duplikate entfernen und Reihenfolge nach baseStates (plus Demanded) festlegen
   const orderedStates = [];
-  baseStates.forEach(state => {
+  baseStates.forEach((state) => {
     if (allStates.includes(state)) {
       orderedStates.push(state);
     }
@@ -169,19 +173,31 @@ function renderTimeline(workitemId, states) {
     activeIndex = orderedStates.length - 1;
   }
 
-  if (showDemanded && orderedStates.includes("Demanded") && readyStateObj && readyStateObj.DemandedBy) {
+  if (
+    showDemanded &&
+    orderedStates.includes("Demanded") &&
+    readyStateObj &&
+    readyStateObj.DemandedBy
+  ) {
     activeIndex = orderedStates.indexOf("Demanded");
   }
 
   // Container leeren
-  const inputsContainer = document.getElementById(`timeline-inputs-${workitemId}`);
-  const descContainer = document.getElementById(`timeline-descriptions-${workitemId}`);
+  const inputsContainer = document.getElementById(
+    `timeline-inputs-${workitemId}`
+  );
+  const descContainer = document.getElementById(
+    `timeline-descriptions-${workitemId}`
+  );
   inputsContainer.innerHTML = "";
   descContainer.innerHTML = "";
 
   // Timeline Punkte rendern
   orderedStates.forEach((state, index) => {
-    let found = state === "Demanded" ? (readyStateObj || states[0] || null) : stateMap[state] || null;
+    let found =
+      state === "Demanded"
+        ? readyStateObj || states[0] || null
+        : stateMap[state] || null;
 
     const containerDiv = document.createElement("div");
     containerDiv.style.display = "flex";
@@ -191,12 +207,18 @@ function renderTimeline(workitemId, states) {
 
     // Label erstellen
     const labelSpan = document.createElement("span");
-    labelSpan.classList.add("px-2", "py-1", "text-xs", "font-semibold", "rounded-full");
+    labelSpan.classList.add(
+      "px-2",
+      "py-1",
+      "text-xs",
+      "font-semibold",
+      "rounded-full"
+    );
     labelSpan.style.marginBottom = "15px";
     labelSpan.style.fontSize = "14px";
     labelSpan.style.padding = "8px 12px";
 
-    switch(state) {
+    switch (state) {
       case "Collected":
         labelSpan.classList.add("bg-purple-100", "text-purple-800");
         labelSpan.textContent = "Collected";
@@ -248,8 +270,15 @@ function renderTimeline(workitemId, states) {
     span.setAttribute("data-info", state);
     if (found && found.datetime) {
       const d = new Date(found.datetime);
-      const dateStr = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-      const timeStr = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+      const dateStr = d.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const timeStr = d.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       span.innerHTML = `<div class="date">${dateStr}</div><div class="time">${timeStr}</div>`;
     } else {
       span.innerHTML = `<div class="date"></div><div class="time"></div>`;
@@ -278,14 +307,17 @@ function renderTimeline(workitemId, states) {
     descContainer.appendChild(infoP);
   }
 
-  animateColoredLine(workitemId, currentState, readyStateObj ? readyStateObj.DemandedBy : null);
+  animateColoredLine(
+    workitemId,
+    currentState,
+    readyStateObj ? readyStateObj.DemandedBy : null
+  );
 }
 
-
-
-
 function animateColoredLine(workitemId, currentStatus, demandedBy) {
-  const inputsContainer = document.getElementById(`timeline-inputs-${workitemId}`);
+  const inputsContainer = document.getElementById(
+    `timeline-inputs-${workitemId}`
+  );
 
   // Erst auf 0 setzen (unsichtbar)
   inputsContainer.style.setProperty("--active-line-width", "0px");
@@ -297,15 +329,17 @@ function animateColoredLine(workitemId, currentStatus, demandedBy) {
 }
 
 function updateColoredLine(workitemId, currentStatus, demandedBy) {
-  const inputsContainer = document.getElementById(`timeline-inputs-${workitemId}`);
+  const inputsContainer = document.getElementById(
+    `timeline-inputs-${workitemId}`
+  );
   const inputs = inputsContainer.querySelectorAll(".input");
 
   const statusColors = {
-    "Collected": "#D8B4FE",
-    "Done": "#86EFAC",
+    Collected: "#D8B4FE",
+    Done: "#86EFAC",
     "In Progress": "#FDE68A",
     "Ready not demanded": "#93C5FD",
-    "Ready and Demanded": "#FCA5A5"
+    "Ready and Demanded": "#FCA5A5",
   };
 
   const inactiveColor = "#ccc";
@@ -343,9 +377,9 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
   if (currentStatus === "Collected") {
     finalWidth = containerWidth - padding;
   } else if (lastActiveIndex < numberOfPoints - 1) {
-    finalWidth = padding + (step * lastActiveIndex) + (step / 2);
+    finalWidth = padding + step * lastActiveIndex + step / 2;
   } else {
-    finalWidth = padding + (step * lastActiveIndex);
+    finalWidth = padding + step * lastActiveIndex;
   }
 
   inputsContainer.style.setProperty("--active-line-width", `${finalWidth}px`);
@@ -356,7 +390,9 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
 function exportToCSV() {
   let csv = [];
   const table = document.getElementById("workitemsTable");
-  const rows = table.querySelectorAll('tr:not([style*="display: none"]):not(.details-row)');
+  const rows = table.querySelectorAll(
+    'tr:not([style*="display: none"]):not(.details-row)'
+  );
 
   // Add headers
   const headers = Array.from(rows[0].cells)

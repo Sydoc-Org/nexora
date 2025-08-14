@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
-
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -94,7 +93,7 @@
         top: 50%;
         left: 12.5px;
         height: 5px;
-        background-color: #2C3E50;
+        background-color: #2c3e50;
         z-index: -1;
         transform: translateY(-50%);
         width: 0;
@@ -106,7 +105,7 @@
       .input {
         width: 35px;
         height: 35px;
-        background-color: #AEB6BF; /* Standard grau */
+        background-color: #aeb6bf; /* Standard grau */
         border-radius: 50%;
         position: relative;
         cursor: pointer;
@@ -118,7 +117,7 @@
 
       /* Aktive Punkte: dunkel */
       .input.active {
-        background-color: #2C3E50;
+        background-color: #2c3e50;
         margin-bottom: 20px;
       }
 
@@ -140,7 +139,7 @@
         left: 50%;
         transform: translateX(-50%);
         font-size: 12px;
-        color: #2C3E50;
+        color: #2c3e50;
         white-space: nowrap;
         margin-bottom: 8px;
         pointer-events: none;
@@ -207,7 +206,7 @@
       }
 
       .input.state-demanded {
-        background-color: #FF7F50; 
+        background-color: #ff7f50;
       }
       .label {
         display: inline-block;
@@ -249,61 +248,69 @@
       .timeline-label {
         text-align: center;
       }
-      
     </style>
   </head>
   <body class="text-gray-800">
     <!----------------------------------- Header -------------------------------------->
     {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
 
-  <!----------------------------------- Main Content -------------------------------------->
-  <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
-          <p class="text-gray-600">List of all workitems for {{ scope }}</p>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div class="bg-white px-4 py-2 rounded-lg shadow">
-            <span class="text-sm text-gray-500">Total Items:</span>
-            <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
+    <!----------------------------------- Main Content -------------------------------------->
+    <main class="container mx-auto p-6">
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
+            <p class="text-gray-600">List of all workitems for {{ scope }}</p>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="bg-white px-4 py-2 rounded-lg shadow">
+              <span class="text-sm text-gray-500">Total Items:</span>
+              <span class="font-bold text-lg text-indigo-600"
+                >{{ workitems|length }}</span
+              >
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!----------------------------------- Search & Filter -------------------------------------->
-    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-      <div class="flex flex-col md:flex-row gap-4 items-center">
-        <div class="flex-1">
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-              <i class="fas fa-search text-gray-400"></i>
-            </span>
-            <input type="text" id="searchInput"
-              class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Search for specific workitem..." />
+      <!----------------------------------- Search & Filter -------------------------------------->
+      <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+        <div class="flex flex-col md:flex-row gap-4 items-center">
+          <div class="flex-1">
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                <i class="fas fa-search text-gray-400"></i>
+              </span>
+              <input
+                type="text"
+                id="searchInput"
+                class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Search for specific workitem..."
+              />
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <select
+              id="statusFilter"
+              class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Statuses</option>
+              <option value="Ready">Ready</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+              <option value="Collected">Collected</option>
+            </select>
+            <button
+              onclick="exportToCSV()"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+            >
+              <i class="fas fa-download mr-2"></i>Export CSV
+            </button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <select id="statusFilter"
-            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="">All Statuses</option>
-            <option value="Ready">Ready</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Done">Done</option>
-            <option value="Collected">Collected</option>
-          </select>
-          <button onclick="exportToCSV()"
-            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-            <i class="fas fa-download mr-2"></i>Export CSV
-          </button>
-        </div>
       </div>
-    </div>
 
-    <!----------------------------------- Workitems Table -------------------------------------->
+      <!----------------------------------- Workitems Table -------------------------------------->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full" id="workitemsTable">
@@ -311,22 +318,26 @@
               <tr>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(0)">
+                  onclick="sortTable(0)"
+                >
                   Workitem ID <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(1)">
+                  onclick="sortTable(1)"
+                >
                   Status <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(2)">
+                  onclick="sortTable(2)"
+                >
                   Created <i class="fas fa-sort ml-1"></i>
                 </th>
                 <th
                   class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(3)">
+                  onclick="sortTable(3)"
+                >
                   Demanded <i class="fas fa-sort ml-1"></i>
                 </th>
                 <!-- Last Column empty for Actions -->
@@ -337,30 +348,44 @@
             <!-- Dynamic Content -->
             <tbody class="bg-white divide-y divide-gray-200">
               {% for workitem in workitems %}
-              <tr class="hover:bg-gray-50 transition-colors workitem-row" data-status="{{ workitem.status_text }}" id="row-{{ workitem.id }}">
+              <tr
+                class="hover:bg-gray-50 transition-colors workitem-row"
+                data-status="{{ workitem.status_text }}"
+                id="row-{{ workitem.id }}"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="font-medium text-gray-900">{{ workitem.id }}</div>
                 </td>
 
                 <td class="px-6 py-4 whitespace-nowrap text-left">
                   {% if workitem.status_text == "Ready" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "In Progress" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Done" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% elif workitem.status_text == "Collected" %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% else %}
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
+                  >
                     {{ workitem.status_text }}
                   </span>
                   {% endif %}
@@ -375,46 +400,75 @@
 
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 flex items-center">
-                    {% if workitem.demanded is true or workitem.demanded == 'True' %}
-                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2"> D e m a n d e d</i>
-                    {% elif workitem.demanded == 'False' and workitem.status_text == 'Ready' %}
-                  <form action="{{ url_for('demand_workitem') }}" method="POST">
-                    <input type="hidden" name="workitemid" value="{{ workitem.id }}">
-                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                      type="submit">
-                      <i class="fa-solid fa-clipboard-user mr-2"></i>
-                      Demand
-                    </button>
-                  </form>
+                    {% if workitem.demanded is true or workitem.demanded ==
+                    'True' %}
+                    <i class="fa-solid fa-clipboard-check text-yellow-500 mr-2">
+                      D e m a n d e d</i
+                    >
+                    {% elif workitem.demanded == 'False' and
+                    workitem.status_text == 'Ready' %}
+                    <form
+                      action="{{ url_for('demand_workitem') }}"
+                      method="POST"
+                    >
+                      <input
+                        type="hidden"
+                        name="workitemid"
+                        value="{{ workitem.id }}"
+                      />
+                      <button
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                        type="submit"
+                      >
+                        <i class="fa-solid fa-clipboard-user mr-2"></i>
+                        Demand
+                      </button>
+                    </form>
                     {% else %}
                     <p>Demand not possible</p>
                     {% endif %}
                   </div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <button class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer" 
-                          onclick="toggleDetails('{{ workitem.id }}')">
-                    <i class="indicator glyphicon glyphicon-chevron-down-custom pull-right" 
-                      id="chevron-{{ workitem.id }}">
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
+                >
+                  <button
+                    class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
+                    onclick="toggleDetails('{{ workitem.id }}')"
+                  >
+                    <i
+                      class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
+                      id="chevron-{{ workitem.id }}"
+                    >
                       <span class="sp-1"></span>
                       <span class="sp-2"></span>
                     </i>
                   </button>
                 </td>
-
               </tr>
               <!-- Details dropdown row -->
               <tr id="details-{{ workitem.id }}" class="details-row hidden">
                 <td colspan="5" class="bg-gray-50 px-6 py-6">
-                  <div class="text-lg font-semibold mb-4">{{ workitem.id }} - Status Timeline</div>
+                  <div class="text-lg font-semibold mb-4">
+                    {{ workitem.id }} - Status Timeline
+                  </div>
 
                   <!-- Timeline Platzhalter -->
-                  <div class="flex-parent" id="timeline-wrapper-{{ workitem.id }}">
-                    <div class="input-flex-container" id="timeline-inputs-{{ workitem.id }}">
+                  <div
+                    class="flex-parent"
+                    id="timeline-wrapper-{{ workitem.id }}"
+                  >
+                    <div
+                      class="input-flex-container"
+                      id="timeline-inputs-{{ workitem.id }}"
+                    >
                       <!-- Punkte werden per JS generiert -->
                     </div>
-                    <div class="description-flex-container" id="timeline-descriptions-{{ workitem.id }}">
+                    <div
+                      class="description-flex-container"
+                      id="timeline-descriptions-{{ workitem.id }}"
+                    >
                       <!-- Beschreibungen werden per JS generiert -->
                     </div>
                   </div>
@@ -436,16 +490,18 @@
           </table>
         </div>
       </div>
-      
-    <!----------------------------------- Pagination -------------------------------------->
-    <div class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-gray-700">
-        Showing
-        <span class="font-medium" id="showingCount">{{ workitems|length }}</span>
-        of <span class="font-medium">{{ workitems|length }}</span> results
+
+      <!----------------------------------- Pagination -------------------------------------->
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Showing
+          <span class="font-medium" id="showingCount"
+            >{{ workitems|length }}</span
+          >
+          of <span class="font-medium">{{ workitems|length }}</span> results
+        </div>
       </div>
-    </div>
-  </main>
-  <script src="/static/workitems_overview.js"></script>
+    </main>
+    <script src="/static/workitems_overview.js"></script>
   </body>
 </html>
