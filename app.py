@@ -80,7 +80,6 @@ limiter = Limiter(
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
 app.config['SESSION_COOKIE_SECURE'] = False
-#app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
 
@@ -314,10 +313,10 @@ def workitems_overview():
         workitems_list = []
         for row in workitems:
             workitems_list.append({
-                'id': row[0],                    # FileID
-                'created_on': row[1],            # DateCreated
-                'demanded': row[2],              # Demanded
-                'status_text': row[3],           # StatusText
+                'id': row[0],                    
+                'created_on': row[1],            
+                'demanded': row[2],              
+                'status_text': row[3],           
             })
             
     except Exception as e:
