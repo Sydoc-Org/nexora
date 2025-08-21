@@ -37,8 +37,8 @@ def log_user_action(action_type, resource_id=None, details=None):
             (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            session.get('user_id'),        # Changed from 'username'
-            session.get('username'),       # Added username
+            session.get('user_id'),
+            session.get('username'),
             action_type,
             resource_id,
             json.dumps(details) if details else None,

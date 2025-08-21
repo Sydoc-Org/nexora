@@ -427,7 +427,10 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
 
 // Export to CSV functionality
 function exportToCSV() {
-  logAction("CSVexport_workitemList", null, null);
+  logAction("CSVexport_workitemList", null, {
+    searchInput: getCurrentFilterOrSearch().search || "none",
+    filteredFor: getCurrentFilterOrSearch().status || "All",
+  });
   let csv = [];
   const table = document.getElementById("workitemsTable");
   const rows = table.querySelectorAll(
@@ -470,4 +473,13 @@ function exportToCSV() {
 // Demand workitem functionality
 function demandWorkitem(workitemId) {
   // Placeholder: Implement the demand workitem logic here
+}
+
+function getCurrentFilterOrSearch() {
+  const statusFilter = document.getElementById("statusFilter");
+  const searchInput = document.getElementById("searchInput");
+  return {
+    status: statusFilter.value,
+    search: searchInput.value,
+  };
 }
