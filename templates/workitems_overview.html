@@ -21,23 +21,6 @@
   <!----------------------------------- Header -------------------------------------->
   {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
 
-  <!----------------------------------- Main Content -------------------------------------->
-  <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-3xl font-bold text-gray-800">Workitems Overview</h2>
-          <p class="text-gray-600">List of all workitems for {{ scope }}</p>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div class="bg-white px-4 py-2 rounded-lg shadow">
-            <span class="text-sm text-gray-500">Total Items:</span>
-            <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    </header>
 
     <!----------------------------------- Main Content -------------------------------------->
     <main class="container mx-auto p-6">
