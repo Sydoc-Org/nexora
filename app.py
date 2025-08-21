@@ -115,7 +115,7 @@ def login():
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT password, Scope, username, fullname, email, company FROM Users WHERE username = ?
+                SELECT userID, password, Scope, username, fullname, email, company FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
