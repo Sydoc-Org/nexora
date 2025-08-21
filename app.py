@@ -379,6 +379,7 @@ def profile():
     fullname = session.get('fullname', 'Unknown')
     email = session.get('email', 'Unknown')
     company = session.get('company', 'Unknown')
+    log_user_action('visit_profile')
     return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
 
 @app.route("/update_profile", methods=["POST", "GET"])
@@ -426,7 +427,12 @@ def update_profile():
                 os.remove(abs_path)
             f.save(abs_path)
 
-        return redirect(url_for("profile"))                                   
+        log_user_action('update_profile_info', details={
+            "fullname": fullname,
+            "email": email,
+            "company": company
+        })
+        return redirect(url_for("profile"))
 
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
@@ -484,6 +490,7 @@ def change_password():
             cursor.close()
             conn.close()
 
+            log_user_action('change_password')
             return render_template("profile.html", message="Password changed")
         else:
             return render_template("profile.html", error="Invalid Password")
@@ -564,6 +571,7 @@ def all_states_from_one_workitem(workitem_id):
 @app.route('/language/<lang>')
 def set_language(lang=None):
     session['locale'] = lang
+    log_user_action('change_language', details={"new_language": lang})
     return redirect(request.referrer or url_for('index'))
 
 @app.context_processor
