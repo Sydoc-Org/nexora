@@ -14,6 +14,45 @@ import re
 from flask import jsonify
 import json
 
+
+"""-----------------------Logging-------------------------"""
+def log_user_action(action_type, resource_id=None, details=None):
+    if 'username' not in session:
+        return
+    
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO user_actions 
+            (user_id, action_type, resource_id, details, ip_address, user_agent, session_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            session.get('username'),
+            action_type,
+            resource_id,
+            json.dumps(details) if details else None,
+            request.remote_addr,
+            request.headers.get('User-Agent', ''),
+            session.get('session_id', '')
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        app.logger.error(f"Failed to log user action: {e}")
+
 def get_locale():
     if 'locale' in session:
         return session['locale']
@@ -200,6 +239,7 @@ def post_login():
     cursor.close()
     conn.close()
 
+    log_user_action('views_dashboard')
     return render_template("post_login.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
@@ -280,7 +320,8 @@ def workitems_overview():
             cursor.close()
         if 'conn' in locals():
             conn.close()
-    
+
+    log_user_action('views_workitemList', details={'filter': request.args.get('filter')})
     return render_template("workitems_overview.html", 
                          logged_in_user=logged_in_user,
                          scope=scope,
@@ -316,6 +357,9 @@ def demand_workitem():
         conn.commit()
         cursor.close()
         conn.close()
+        
+        workitemid = request.form['workitemid']
+        log_user_action('demands_workitem', resource_id=workitemid, details={'previous_status': 'Ready'})
 
         return redirect(url_for("workitems_overview"))       
 
@@ -531,41 +575,3 @@ def special_exception_handler():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
-
-"""-----------------------Logging-------------------------"""
-def log_user_action(action_type, resource_id=None, details=None):
-    if 'username' not in session:
-        return
-    
-    try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO user_actions 
-            (user_id, action_type, resource_id, details, ip_address, user_agent, session_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            session.get('username'),
-            action_type,
-            resource_id,
-            json.dumps(details) if details else None,
-            request.remote_addr,
-            request.headers.get('User-Agent', ''),
-            session.get('session_id', '')
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        app.logger.error(f"Failed to log user action: {e}")
