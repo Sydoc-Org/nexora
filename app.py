@@ -34,9 +34,10 @@ def log_user_action(action_type, resource_id=None, details=None):
         
         cursor.execute("""
             INSERT INTO user_actions 
-            (user_id, action_type, resource_id, details, ip_address, user_agent, session_id)
+            (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
+            session.get('user_id'),
             session.get('username'),
             action_type,
             resource_id,
@@ -119,17 +120,19 @@ def login():
             user_record = cursor.fetchone()
 
             if user_record:
-                stored_hash = user_record[0]
-                scope = user_record[1]
-                stored_username = user_record[2]
-                stored_fullname = user_record[3]
-                stored_email = user_record[4]
-                stored_company = user_record[5]
+                user_id = user_record[0]
+                stored_hash = user_record[1]
+                scope = user_record[2]
+                stored_username = user_record[3]
+                stored_fullname = user_record[4]
+                stored_email = user_record[5]
+                stored_company = user_record[6]
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
             
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
-                    session.clear()  
+                    session.clear()
+                    session['user_id'] = user_id  
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
