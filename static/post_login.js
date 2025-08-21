@@ -12,6 +12,12 @@ function logAction(actionType, resourceId = null, details = null) {
   }).catch((err) => console.error("Logging failed:", err));
 }
 
+const supportLink = document.querySelector(".support-link");
+
+supportLink.addEventListener("click", function () {
+  logAction("click_support_link");
+});
+
 document.addEventListener("DOMContentLoaded", function () {
   const list = document.getElementById("recent-activity-list");
   list.innerHTML = '<li class="text-gray-500">Loading...</li>';
