@@ -334,6 +334,7 @@ def demand_workitem():
         return redirect(url_for("login"))
     if request.method == "POST":
         workitemid = request.form['workitemid']
+        log_user_action('demands_workitem', resource_id=workitemid, details={'previous_status': 'Ready'})
         username = session['username']
 
         conn_str = (
@@ -358,9 +359,6 @@ def demand_workitem():
         cursor.close()
         conn.close()
         
-        workitemid = request.form['workitemid']
-        log_user_action('demands_workitem', resource_id=workitemid, details={'previous_status': 'Ready'})
-
         return redirect(url_for("workitems_overview"))       
 
 @app.route("/profile")
