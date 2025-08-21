@@ -24,7 +24,7 @@ def log_user_action(action_type, resource_id=None, details=None):
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
             f'TrustServerCertificate=yes;'
@@ -33,12 +33,12 @@ def log_user_action(action_type, resource_id=None, details=None):
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO user_actions 
+            INSERT INTO User_Logs
             (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            session.get('user_id'),
-            session.get('username'),
+            session.get('user_id'),        # Changed from 'username'
+            session.get('username'),       # Added username
             action_type,
             resource_id,
             json.dumps(details) if details else None,
