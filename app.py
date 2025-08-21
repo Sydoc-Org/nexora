@@ -247,7 +247,7 @@ def post_login():
     cursor.close()
     conn.close()
 
-    log_user_action('views_dashboard')
+    log_user_action('visit_dashboard')
     return render_template("post_login.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
@@ -329,7 +329,7 @@ def workitems_overview():
         if 'conn' in locals():
             conn.close()
 
-    log_user_action('views_workitemList', details={'filter': request.args.get('filter')})
+    log_user_action('visit_workitemList')
     return render_template("workitems_overview.html", 
                          logged_in_user=logged_in_user,
                          scope=scope,
@@ -342,7 +342,7 @@ def demand_workitem():
         return redirect(url_for("login"))
     if request.method == "POST":
         workitemid = request.form['workitemid']
-        log_user_action('demands_workitem', resource_id=workitemid, details={'previous_status': 'Ready'})
+        log_user_action('demand_workitem', resource_id=workitemid)
         username = session['username']
 
         conn_str = (

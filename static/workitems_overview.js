@@ -39,6 +39,8 @@ document.getElementById("statusFilter").addEventListener("change", function () {
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
 
+  logAction("filter_workitemList", null, { by_status: selectedStatus });
+
   rows.forEach((row) => {
     const status = row.getAttribute("data-status");
     const workitemId = row.getAttribute("data-id");
@@ -425,7 +427,7 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
 
 // Export to CSV functionality
 function exportToCSV() {
-  logAction("CSVexport_workitems", null, { export_type: "workitems" });
+  logAction("CSVexport_workitemList", null, null);
   let csv = [];
   const table = document.getElementById("workitemsTable");
   const rows = table.querySelectorAll(
