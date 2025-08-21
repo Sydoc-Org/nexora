@@ -136,11 +136,15 @@ def login():
                     session['scope'] = scope
                     session['company'] = stored_company
                     session.permanent = True
+
+                    log_user_action('login_success')
+
                     return redirect(url_for("post_login"))
                 
             return render_template("index.html", error="Invalid credentials")
                 
         except Exception as e:
+            log_user_action('login_failed')
             app.logger.error(f"Database error during login: {e}")
             return render_template("index.html", error="Login temporarily unavailable")
         
@@ -148,6 +152,7 @@ def login():
 
 @app.route("/logout")
 def logout():
+    log_user_action('logout')
     session.pop('username', None)
     return redirect(url_for("login"))
 
@@ -562,6 +567,18 @@ def set_language(lang=None):
 def inject_current_lang():
     current_lang = session.get('locale', 'en')
     return {'current_lang': current_lang}
+
+@app.route("/log_action", methods=['POST'])
+def log_action():
+    if 'username' not in session:
+        return jsonify({'error': 'not authenticated'}), 401
+    
+    data = request.get_json()
+    log_user_action(data.get('action_type'),
+                    data.get('resource_id'),
+                    data.get('details'))
+    
+    return jsonify({'success': True})
 
 @app.errorhandler(404)
 def page_not_found(e):
