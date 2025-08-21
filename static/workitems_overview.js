@@ -1,3 +1,17 @@
+function logAction(actionType, resourceId = null, details = null) {
+  fetch("/log_action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action_type: actionType,
+      resource_id: resourceId,
+      details: details,
+    }),
+  }).catch((err) => console.error("Logging failed:", err));
+}
+
 // Search functionality
 document.getElementById("searchInput").addEventListener("keyup", function () {
   closeAllDetails();
@@ -98,6 +112,7 @@ async function toggleDetails(workitemId) {
   const isOpen = detailsRow.style.display === "table-row";
 
   if (!isOpen) {
+    logAction("views_workitem_details", workitemId);
     detailsRow.style.display = "table-row";
     chevron.classList.remove("glyphicon-chevron-up-custom");
     chevron.classList.add("glyphicon-chevron-down-custom");
@@ -410,6 +425,7 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
 
 // Export to CSV functionality
 function exportToCSV() {
+  logAction("CSVexport_workitems", null, { export_type: "workitems" });
   let csv = [];
   const table = document.getElementById("workitemsTable");
   const rows = table.querySelectorAll(
