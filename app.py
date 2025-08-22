@@ -37,7 +37,7 @@ def log_user_action(action_type, resource_id=None, details=None):
             (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            session.get('user_id'),
+            session.get('userid'),
             session.get('username'),
             action_type,
             resource_id,
@@ -52,7 +52,7 @@ def log_user_action(action_type, resource_id=None, details=None):
         conn.close()
         
     except Exception as e:
-        app.logger.error(f"Failed to log user action: {e}")
+        app.logger.error(f"Failed to log user action '{action_type}': {e}")
 
 def get_locale():
     if 'locale' in session:
@@ -119,7 +119,7 @@ def login():
             user_record = cursor.fetchone()
 
             if user_record:
-                user_id = user_record[0]
+                stored_userid = user_record[0]
                 stored_hash = user_record[1]
                 scope = user_record[2]
                 stored_username = user_record[3]
@@ -132,7 +132,7 @@ def login():
             
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
                     session.clear()
-                    session['user_id'] = user_id  
+                    session['userid'] = str(stored_userid)  
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
@@ -385,7 +385,13 @@ def profile():
     email = session.get('email', 'Unknown')
     company = session.get('company', 'Unknown')
     log_user_action('visit_profile')
-    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+    return render_template("profile.html", 
+                           logged_in_user=logged_in_user, 
+                           scope=scope, 
+                           userid=userid, 
+                           fullname=fullname, 
+                           email=email, 
+                           company=company)
   
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
