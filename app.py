@@ -138,7 +138,6 @@ def login():
                     session['email'] = stored_email
                     session['scope'] = scope
                     session['company'] = stored_company
-                    session['userid'] = str(stored_userid)
                     session.permanent = True
 
                     log_user_action('login_success')
