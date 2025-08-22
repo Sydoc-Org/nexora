@@ -52,7 +52,7 @@ def log_user_action(action_type, resource_id=None, details=None):
         conn.close()
         
     except Exception as e:
-        app.logger.error(f"Failed to log user action: {e}")
+        app.logger.error(f"Failed to log user action '{action_type}': {e}")
 
 def get_locale():
     if 'locale' in session:
