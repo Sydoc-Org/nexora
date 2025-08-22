@@ -12,6 +12,48 @@ from flask_limiter.util import get_remote_address
 from pathlib import Path
 import re
 from flask import jsonify
+import json
+
+
+"""-----------------------Logging-------------------------"""
+def log_user_action(action_type, resource_id=None, details=None):
+    if 'username' not in session:
+        return
+    
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO User_Logs
+            (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            session.get('user_id'),
+            session.get('username'),
+            action_type,
+            resource_id,
+            json.dumps(details) if details else None,
+            request.remote_addr,
+            request.headers.get('User-Agent', ''),
+            session.get('session_id', '')
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        app.logger.error(f"Failed to log user action: {e}")
+
 def get_locale():
     if 'locale' in session:
         return session['locale']
@@ -38,7 +80,6 @@ limiter = Limiter(
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
 app.config['SESSION_COOKIE_SECURE'] = False
-#app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
 
@@ -73,23 +114,25 @@ def login():
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT password, Scope, username, fullname, email, company, UserID FROM Users WHERE username = ?
+                SELECT userID, password, Scope, username, fullname, email, company FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
             if user_record:
-                stored_hash = user_record[0]
-                scope = user_record[1]
-                stored_username = user_record[2]
-                stored_fullname = user_record[3]
-                stored_email = user_record[4]
-                stored_company = user_record[5]
-                stored_userid = user_record[6]
+                user_id = user_record[0]
+                stored_hash = user_record[1]
+                scope = user_record[2]
+                stored_username = user_record[3]
+                stored_fullname = user_record[4]
+                stored_email = user_record[5]
+                stored_company = user_record[6]
+                
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
             
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
-                    session.clear()  
+                    session.clear()
+                    session['user_id'] = user_id  
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
@@ -97,11 +140,15 @@ def login():
                     session['company'] = stored_company
                     session['userid'] = str(stored_userid)
                     session.permanent = True
+
+                    log_user_action('login_success')
+
                     return redirect(url_for("post_login"))
                 
             return render_template("index.html", error="Invalid credentials")
                 
         except Exception as e:
+            log_user_action('login_failed')
             app.logger.error(f"Database error during login: {e}")
             return render_template("index.html", error="Login temporarily unavailable")
         
@@ -109,6 +156,7 @@ def login():
 
 @app.route("/logout")
 def logout():
+    log_user_action('logout')
     session.pop('username', None)
     session.pop('userid', None)
     return redirect(url_for("login"))
@@ -202,6 +250,7 @@ def post_login():
     cursor.close()
     conn.close()
 
+    log_user_action('visit_dashboard')
     return render_template("post_login.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
@@ -269,10 +318,10 @@ def workitems_overview():
         workitems_list = []
         for row in workitems:
             workitems_list.append({
-                'id': row[0],                    # FileID
-                'created_on': row[1],            # DateCreated
-                'demanded': row[2],              # Demanded
-                'status_text': row[3],           # StatusText
+                'id': row[0],                    
+                'created_on': row[1],            
+                'demanded': row[2],              
+                'status_text': row[3],           
             })
             
     except Exception as e:
@@ -283,7 +332,8 @@ def workitems_overview():
             cursor.close()
         if 'conn' in locals():
             conn.close()
-    
+
+    log_user_action('visit_workitemList')
     return render_template("workitems_overview.html", 
                          logged_in_user=logged_in_user,
                          userid=userid,
@@ -297,6 +347,7 @@ def demand_workitem():
         return redirect(url_for("login"))
     if request.method == "POST":
         workitemid = request.form['workitemid']
+        log_user_action('demand_workitem', resource_id=workitemid)
         username = session['username']
 
         conn_str = (
@@ -320,7 +371,7 @@ def demand_workitem():
         conn.commit()
         cursor.close()
         conn.close()
-
+        
         return redirect(url_for("workitems_overview"))       
 
 @app.route("/profile")
@@ -334,8 +385,9 @@ def profile():
     fullname = session.get('fullname', 'Unknown')
     email = session.get('email', 'Unknown')
     company = session.get('company', 'Unknown')
-    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, userid=userid, fullname=fullname, email=email, company=company)
-
+    log_user_action('visit_profile')
+    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+  
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
     if 'username' not in session:
@@ -381,7 +433,12 @@ def update_profile():
                 os.remove(abs_path)
             f.save(abs_path)
 
-        return redirect(url_for("profile"))                                   
+        log_user_action('update_profile_info', details={
+            "fullname": fullname,
+            "email": email,
+            "company": company
+        })
+        return redirect(url_for("profile"))
 
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
@@ -439,6 +496,7 @@ def change_password():
             cursor.close()
             conn.close()
 
+            log_user_action('change_password')
             return render_template("profile.html", message="Password changed")
         else:
             return render_template("profile.html", error="Invalid Password")
@@ -519,12 +577,25 @@ def all_states_from_one_workitem(workitem_id):
 @app.route('/language/<lang>')
 def set_language(lang=None):
     session['locale'] = lang
+    log_user_action('change_language', details={"new_language": lang})
     return redirect(request.referrer or url_for('index'))
 
 @app.context_processor
 def inject_current_lang():
     current_lang = session.get('locale', 'en')
     return {'current_lang': current_lang}
+
+@app.route("/log_action", methods=['POST'])
+def log_action():
+    if 'username' not in session:
+        return jsonify({'error': 'not authenticated'}), 401
+    
+    data = request.get_json()
+    log_user_action(data.get('action_type'),
+                    data.get('resource_id'),
+                    data.get('details'))
+    
+    return jsonify({'success': True})
 
 @app.errorhandler(404)
 def page_not_found(e):
