@@ -1,3 +1,17 @@
+function logAction(actionType, resourceId = null, details = null) {
+  fetch("/log_action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action_type: actionType,
+      resource_id: resourceId,
+      details: details,
+    }),
+  }).catch((err) => console.error("Logging failed:", err));
+}
+
 // Search functionality
 document.getElementById("searchInput").addEventListener("keyup", function () {
   closeAllDetails();
@@ -24,6 +38,8 @@ document.getElementById("statusFilter").addEventListener("change", function () {
   const selectedStatus = this.value;
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
+
+  logAction("filter_workitemList", null, { by_status: selectedStatus });
 
   rows.forEach((row) => {
     const status = row.getAttribute("data-status");
@@ -98,6 +114,7 @@ async function toggleDetails(workitemId) {
   const isOpen = detailsRow.style.display === "table-row";
 
   if (!isOpen) {
+    logAction("views_workitem_details", workitemId);
     detailsRow.style.display = "table-row";
     chevron.classList.remove("glyphicon-chevron-up-custom");
     chevron.classList.add("glyphicon-chevron-down-custom");
@@ -410,6 +427,10 @@ function updateColoredLine(workitemId, currentStatus, demandedBy) {
 
 // Export to CSV functionality
 function exportToCSV() {
+  logAction("CSVexport_workitemList", null, {
+    searchInput: getCurrentFilterOrSearch().search || "none",
+    filteredFor: getCurrentFilterOrSearch().status || "All",
+  });
   let csv = [];
   const table = document.getElementById("workitemsTable");
   const rows = table.querySelectorAll(
@@ -452,4 +473,13 @@ function exportToCSV() {
 // Demand workitem functionality
 function demandWorkitem(workitemId) {
   // Placeholder: Implement the demand workitem logic here
+}
+
+function getCurrentFilterOrSearch() {
+  const statusFilter = document.getElementById("statusFilter");
+  const searchInput = document.getElementById("searchInput");
+  return {
+    status: statusFilter.value,
+    search: searchInput.value,
+  };
 }
