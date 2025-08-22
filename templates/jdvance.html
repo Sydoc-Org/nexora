@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>JD Vance Screensaver</title>
+  <style>
+    :root {
+      --width:250px;
+      --height:calc(var(--width) / 2);
+    }
+
+    body {
+      background-color: black;
+    }
+
+    .jd {
+      width: var(--width);
+      height: var(--height);
+      background-size: contain;
+      background-repeat: no-repeat;
+      position:absolute;
+      animation: toRight linear 6.8s infinite alternate, bounce linear 17s infinite alternate;
+    }
+
+    @keyframes bounce {
+      0% { top:0; }
+      50% { top: calc(100% - var(--height)); }
+      100% { top: 0; }
+    }
+
+    @keyframes toRight {
+      0% { left: 0; }
+      100% { left: calc(100% - var(--width)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="jd"></div>
+  <script>
+    const images = [
+      '../static/images/jdvance/jdvance.png',
+      '../static/images/jdvance/jdvance2.png',
+      '../static/images/jdvance/jdvance3.png',
+      '../static/images/jdvance/jdvance4.png',
+      '../static/images/jdvance/jdvance5.png',
+      '../static/images/jdvance/jdvance6.png',
+      '../static/images/jdvance/jdvance7.gif',
+      '../static/images/jdvance/jdvance8.gif'
+    ];
+    const randomImage = images[Math.floor(Math.random() * images.length)];
+    document.querySelector('.jd').style.backgroundImage = `url('${randomImage}')`;
+  </script>
+</body>
+</html>

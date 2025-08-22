@@ -515,7 +515,11 @@ def all_states_from_one_workitem(workitem_id):
         ])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
+
+@app.route('/jdvance')
+def jd():
+    return render_template("jdvance.html")
+
 @app.route('/language/<lang>')
 def set_language(lang=None):
     session['locale'] = lang
