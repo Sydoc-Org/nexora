@@ -1,5 +1,5 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session, g
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash
 from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
@@ -174,11 +174,76 @@ def logout():
 def forgot_password():
     return render_template("forgot_password.html")
 
-def send_reset_email(email):
+@app.route('/set_new_password', methods=['POST', 'GET'])
+def set_new_password():
+    email_for_password_reset = session['email_for_password_reset']
+    new_password = request.form['new-password']
+    confirm_password = request.form['confirm-password']
+
+    if new_password != confirm_password:
+        return render_template("reset_password.html", error="Passwords do not match")
+    if not new_password or not confirm_password:
+        return render_template("reset_password.html", error="All Fields must be filled")
     
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+            SELECT password FROM Users WHERE Email = ?
+        """, email_for_password_reset
+    )
+    row = cursor.fetchone()
+    stored_hash = row[0]
+
+    if isinstance(stored_hash, str):
+        stored_hash = stored_hash.encode('utf-8')    
+
+    if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
+        return render_template("reset_password.html", error="New Password musn't be previously used password")
+
+    bytes = new_password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hash = bcrypt.hashpw(bytes, salt)
+    hash_str = hash.decode('utf-8')
+
+    cursor.execute("""
+        UPDATE Users
+        SET password = ?
+        WHERE email = ?
+    """, (hash_str, email_for_password_reset))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    log_user_action('reset_password')
+    return render_template("reset_password.html", message="Password changed")
+
+@app.route('/reset_password/<token>')
+def reset_password(token):
+    try:
+        session['email_for_password_reset'] = s.loads(token, salt='password-reset-salt', max_age=1800)
+        return render_template('reset_password.html')
+    except SignatureExpired:
+        flash('The password reset link has expired.', 'danger')
+        return redirect(url_for('index'))
+    except Exception:
+        flash('The password reset link is invalid.', 'danger')
+        return redirect(url_for('reset_request'))
+    
+def send_reset_email(email):
     def get_link():
         token = s.dumps(email, salt='password-reset-salt')
-        link = url_for('jdvance', token=token, _external=True)
+        link = url_for('reset_password', token=token, _external=True)
         return link
 
     def get_access_token():
@@ -212,7 +277,7 @@ def send_reset_email(email):
                 "subject": "Sydoc Portal Password Reset Request",
                 "body": {
                     "contentType": "HTML",
-                    "content": f"Hello <br> {link}"
+                    "content": f"Hello <br> <a> {link} </a>"
                 },
                 "toRecipients": [
                     {
@@ -259,7 +324,6 @@ def request_password_reset():
         else:
             return render_template('forgot_password.html', error="Unexpected Error occurred")
     return render_template('forgot_password.html', error="Invalid Email Address")
-
 
 @app.route("/")
 def index():
