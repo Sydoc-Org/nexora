@@ -14,6 +14,7 @@ import re
 from flask import jsonify
 import json
 import requests
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -77,7 +78,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
@@ -94,6 +95,7 @@ GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
 GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
 GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 @app.route("/signin")
 def signin():
@@ -174,6 +176,11 @@ def forgot_password():
 
 def send_reset_email(email):
     
+    def get_link():
+        token = s.dumps(email, salt='password-reset-salt')
+        link = url_for('jdvance', token=token, _external=True)
+        return link
+
     def get_access_token():
         uri = f'https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token'
         headers = {
@@ -198,13 +205,14 @@ def send_reset_email(email):
     headers = {
         'Authorization': f'Bearer {access_token}',
     }
+    link = get_link()
     try:
         body = {
             "message": {
                 "subject": "Sydoc Portal Password Reset Request",
                 "body": {
                     "contentType": "HTML",
-                    "content": "Hello <br> hello"
+                    "content": f"Hello <br> {link}"
                 },
                 "toRecipients": [
                     {
@@ -219,7 +227,6 @@ def send_reset_email(email):
 
         response = requests.post(uri, headers=headers, json=body)
         response.raise_for_status()  
-        print(f"Email sent successfully! Status Code: {response.status_code}")
         return True
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -668,7 +675,7 @@ def all_states_from_one_workitem(workitem_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/jdvance')
-def jd():
+def jdvance():
     return render_template("jdvance.html")
 
 @app.route('/language/<lang>')
