@@ -1,5 +1,5 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session, g
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash
 from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
@@ -13,7 +13,8 @@ from pathlib import Path
 import re
 from flask import jsonify
 import json
-
+import requests
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -77,7 +78,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
@@ -89,18 +90,27 @@ DB_SERVER = os.environ.get("DB_SERVER")
 DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
 DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
+GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
+GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
+GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
+GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
+GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
+@app.route("/signin")
+def signin():
+    return render_template("seperate_page_login.html")
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
-def login():
+def login(page=None):
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         
         if not UID_REQUEST or not PWD_REQUEST:
-            return render_template("index.html", error="Invalid credentials")
-        
+            return render_template(page, error="Invalid credentials")
+
         try:
             conn_str = (
                 f'DRIVER={{SQL Server}};'
@@ -142,30 +152,274 @@ def login():
 
                     log_user_action('login_success')
 
-                    return redirect(url_for("post_login"))
+                    return redirect(url_for("dashboard"))
                 
-            return render_template("index.html", error="Invalid credentials")
-                
+            return render_template(page, error="Invalid credentials")
+
         except Exception as e:
             log_user_action('login_failed')
             app.logger.error(f"Database error during login: {e}")
-            return render_template("index.html", error="Login temporarily unavailable")
+            return render_template(page, error="Login temporarily unavailable")
         
-    return render_template("index.html")
+    return render_template(page)
 
 @app.route("/logout")
 def logout():
     log_user_action('logout')
     session.pop('username', None)
     session.pop('userid', None)
-    return redirect(url_for("login"))
+    return redirect(url_for("login", page="index.html"))
+
+@app.route('/forgot_password')
+def forgot_password():
+    return render_template("forgot_password.html")
+
+@app.route('/set_new_password', methods=['POST', 'GET'])
+def set_new_password():
+    email_for_password_reset = session['email_for_password_reset']
+    new_password = request.form['new-password']
+    confirm_password = request.form['confirm-password']
+
+    if new_password != confirm_password:
+        return render_template("reset_password.html", error="Passwords do not match")
+    if not new_password or not confirm_password:
+        return render_template("reset_password.html", error="All Fields must be filled")
+    
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+            SELECT password FROM Users WHERE Email = ?
+        """, email_for_password_reset
+    )
+    row = cursor.fetchone()
+    stored_hash = row[0]
+
+    if isinstance(stored_hash, str):
+        stored_hash = stored_hash.encode('utf-8')    
+
+    if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
+        return render_template("reset_password.html", error="New Password musn't be previously used password")
+
+    bytes = new_password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hash = bcrypt.hashpw(bytes, salt)
+    hash_str = hash.decode('utf-8')
+
+    cursor.execute("""
+        UPDATE Users
+        SET password = ?
+        WHERE email = ?
+    """, (hash_str, email_for_password_reset))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    log_user_action('reset_password')
+    return render_template("reset_password.html", message="Password changed")
+
+@app.route('/reset_password/<token>')
+def reset_password(token):
+    try:
+        session['email_for_password_reset'] = s.loads(token, salt='password-reset-salt', max_age=900)
+        return render_template('reset_password.html')
+    except SignatureExpired:
+        flash('The password reset link has expired.', 'danger')
+        return redirect(url_for('index'))
+    except Exception:
+        flash('The password reset link is invalid.', 'danger')
+        return redirect(url_for('reset_request'))
+    
+def send_reset_email(email):
+    def get_link():
+        token = s.dumps(email, salt='password-reset-salt')
+        link = url_for('reset_password', token=token, _external=True)
+        return link
+
+    def get_access_token():
+        uri = f'https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token'
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        body = {
+            "client_id": GRAPH_CLIENT_ID,
+            "username": GRAPH_USERNAME,
+            "password": GRAPH_PASSWORD,
+            "grant_type": "password",
+            "scope": "Mail.Send",
+            "client_secret": GRAPH_CLIENT_SECRET
+        }
+        try:
+            response  = requests.post(uri, headers=headers, data=body)
+            return response.json()['access_token']
+        except Exception as e:
+            print(e)
+
+    uri = 'https://graph.microsoft.com/v1.0/me/sendMail'
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+    link = get_link()
+    try:
+        body = {
+            "message": {
+                "subject": "Sydoc Portal Password Reset Request",
+                "body": {
+                    "contentType": "HTML",
+                    "content": f"""
+                            <!DOCTYPE html>
+                            <html lang="en">
+                            <head>
+                                <meta charset="UTF-8">
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                <meta http-equiv="X-UA-Compatible" content="ie=edge">
+                                <title>Password Reset Request</title>
+                                <style>
+                                    body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+                                    table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
+                                    img {{ -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }}
+                                    table {{ border-collapse: collapse !important; }}
+                                    body {{ height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; font-family: Arial, sans-serif; }}
+
+                                    @media screen and (max-width: 600px) {{
+                                        .email-container {{
+                                            width: 100% !important;
+                                            max-width: 100% !important;
+                                            margin: auto !important;
+                                        }}
+                                    }}
+                                </style>
+                            </head>
+                            <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td align="center" style="background-color: #f4f4f4;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;" class="email-container">
+                                                <tr>
+                                                    <td align="center" style="padding: 10px 0 10px 0; background-color: #ffffff;">
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="background-color: #ffffff;">
+                                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                            <tr>
+                                                                <td style="padding: 20px 30px 40px 30px; text-align: left;">
+                                                                    <h1 style="margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #333333;">
+                                                                        Password Reset Request
+                                                                    </h1>
+                                                                    <p style="margin: 20px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
+                                                                        Hello,
+                                                                    </p>
+                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
+                                                                        We received a request to reset the password for your account. You can reset your password by clicking the button below.
+                                                                    </p>
+                                                                    
+                                                                    <table border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 30px; margin-bottom: 30px;">
+                                                                        <tr>
+                                                                            <td align="center">
+                                                                                <table border="0" cellspacing="0" cellpadding="0">
+                                                                                    <tr>
+                                                                                        <td align="center" style="border-radius: 5px; background-color: #3b82f6;">
+                                                                                            <a href="{link}" target="_blank" style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 5px; padding: 15px 25px; border: 1px solid #4338ca; display: inline-block;">
+                                                                                                Reset Your Password
+                                                                                            </a>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+
+                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
+                                                                        If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.
+                                                                    </p>
+                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
+                                                                        Thanks,<br>The Sydoc Team
+                                                                    </p>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding: 20px 30px; background-color: #eeeeee; text-align: center;">
+                                                        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 12px; color: #888888;">
+                                                            &copy; 2025 Sydoc AG. All rights reserved.<br>
+                                                            Mühlegasse 18, 6340 Baar
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </body>
+                            </html>
+                    """
+                },
+                "toRecipients": [
+                    {
+                        "emailAddress": {
+                            "address": email
+                        }
+                    }
+                ]
+            },
+            "saveToSentItems": True 
+        }
+
+        response = requests.post(uri, headers=headers, json=body)
+        response.raise_for_status()  
+        return True
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        print(f"Response body: {response.text}") 
+        return False
+    except Exception as e:
+        print(f"An other error occurred: {e}")
+        return False
+
+@app.route('/request-password-reset', methods=['GET', 'POST'])
+def request_password_reset():
+    request_email = request.form['email']
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email))
+    rows = cursor.fetchone()
+
+    if rows:
+        sendreset = send_reset_email(request_email)
+        if sendreset:
+            return render_template("forgot_password.html", message="A password reset link has been sent to your email")
+        else:
+            return render_template('forgot_password.html', error="Unexpected Error occurred")
+    return render_template('forgot_password.html', error="Invalid Email Address")
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/post_login")
-def post_login():
+@app.route("/dashboard")
+def dashboard():
     #Check if user is logged in
     if 'username' not in session:
         return redirect(url_for("login"))
@@ -250,7 +504,7 @@ def post_login():
     conn.close()
 
     log_user_action('visit_dashboard')
-    return render_template("post_login.html", 
+    return render_template("dashboard.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
     ReadyTotal=ReadyTotal,
@@ -574,7 +828,7 @@ def all_states_from_one_workitem(workitem_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/jdvance')
-def jd():
+def jdvance():
     return render_template("jdvance.html")
 
 @app.route('/language/<lang>')

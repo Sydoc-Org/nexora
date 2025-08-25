@@ -36,10 +36,9 @@
                     <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
                 </div>
                 <nav class="hidden md:flex items-center space-x-6">
-                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Home</a>
-                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">About Us</a>
-                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Services</a>
-                    <a href="#" class="text-gray-600 hover:text-indigo-600 transition duration-300">Contact</a>
+                    <a href="https://sydoc.ch/" class="text-gray-600 hover:text-indigo-600 transition duration-300">Homepage</a>
+                    <a href="#services" class="text-gray-600 hover:text-indigo-600 transition duration-300">Services</a>
+                    <a href="mailto:support.helpdesk@sydoc.ch" class="text-gray-600 hover:text-indigo-600 transition duration-300">Contact</a>
                 </nav>
                 <button class="md:hidden">
                     <i class="fas fa-bars text-2xl text-gray-600"></i>
@@ -59,7 +58,7 @@
                         <p class="text-lg text-gray-600 mb-8">
                             Securely track the status of your scanned, email/sftp imported and validated documents in real-time. Please log in to access your dashboard.
                         </p>
-                        <a href="#login-form" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <a href="/signin" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                             Login to Your Account
                         </a>
                     </div>
@@ -70,7 +69,7 @@
                                     {% if error %}
                                         <div class="error-message">{{ error }}</div>
                                     {% endif %}
-                            <form method="POST" action="{{ url_for('login') }}">
+                            <form method="POST" action="{{ url_for('login', page='index.html') }}">
                                 <div class="mb-4">
                                     <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
                                     <div class="relative">
@@ -94,7 +93,7 @@
                                         <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600">
                                         <span class="ml-2">Remember me</span>
                                     </label>
-                                    <a href="#" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                                    <a href="/forgot_password" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
                                 </div>
                                 <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
                                     Sign In
@@ -107,7 +106,7 @@
         </section>
 
         <!-- Features Section -->
-        <section class="bg-gray-50 py-20">
+        <section id="services" class="bg-gray-50 py-20">
             <div class="container mx-auto px-6">
                 <div class="text-center mb-12">
                     <h2 class="text-3xl font-bold text-gray-800">Why Use Sydoc Portal?</h2>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-gradient-primary {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .error-message {
+            padding: 12px;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            background-color: rgba(238, 12, 12, 0.1);
+            border: 1px solid #ee0c0c;
+            color: #eb1c0d;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+
+    <main>
+        <section class="bg-white min-h-screen flex items-center justify-center">
+            <div id="login-form" class="md:w-1/2 lg:w-2/5">
+                <div class="bg-white rounded-xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Sydoc Portal Login</h3>
+                    {% if error %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('login', page='seperate_page_login.html') }}">
+                        <div class="mb-4">
+                            <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                </span>
+                                <input type="username" id="username" name="username" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Your Username">
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                            <div class="relative">
+                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <i class="fas fa-lock text-gray-400"></i>
+                                </span>
+                                <input type="password" id="password" name="password" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="••••••••••">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mb-6">
+                            <label class="flex items-center text-sm text-gray-600">
+                                <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600">
+                                <span class="ml-2">Remember me</span>
+                            </label>
+                            <a href="/forgot_password" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
+                            Sign In
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
