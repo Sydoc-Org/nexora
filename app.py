@@ -132,7 +132,7 @@ def login():
             
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
                     session.clear()
-                    session['user_id'] = user_id  
+                    session['userid'] = str(user_id)
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
@@ -385,7 +385,7 @@ def profile():
     email = session.get('email', 'Unknown')
     company = session.get('company', 'Unknown')
     log_user_action('visit_profile')
-    return render_template("profile.html", logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+    return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
   
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
@@ -447,7 +447,7 @@ def change_password():
     if request.method == "POST":
         username = session['username']
 
-        currentPassword = request.form['currentPassword']
+        currentPassword = request.form['currentPassword'] 
         newPassword = request.form['newPassword']
         confirmPassword = request.form['confirmPassword']
 
