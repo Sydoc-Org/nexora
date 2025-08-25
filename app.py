@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 from flask import jsonify
 import json
-
+import requests
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -89,6 +89,11 @@ DB_SERVER = os.environ.get("DB_SERVER")
 DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
 DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
+GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
+GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
+GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
+GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
+GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
 
 @app.route("/signin")
 def signin():
@@ -162,6 +167,92 @@ def logout():
     session.pop('username', None)
     session.pop('userid', None)
     return redirect(url_for("login", page="index.html"))
+
+@app.route('/forgot_password')
+def forgot_password():
+    return render_template("forgot_password.html")
+
+def send_reset_email(email):
+    
+    def get_access_token():
+        uri = f'https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token'
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        body = {
+            "client_id": GRAPH_CLIENT_ID,
+            "username": GRAPH_USERNAME,
+            "password": GRAPH_PASSWORD,
+            "grant_type": "password",
+            "scope": "Mail.Send",
+            "client_secret": GRAPH_CLIENT_SECRET
+        }
+        try:
+            response  = requests.post(uri, headers=headers, data=body)
+            return response.json()['access_token']
+        except Exception as e:
+            print(e)
+
+    uri = 'https://graph.microsoft.com/v1.0/me/sendMail'
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+    try:
+        body = {
+            "message": {
+                "subject": "Sydoc Portal Password Reset Request",
+                "body": {
+                    "contentType": "HTML",
+                    "content": "Hello <br> hello"
+                },
+                "toRecipients": [
+                    {
+                        "emailAddress": {
+                            "address": email
+                        }
+                    }
+                ]
+            },
+            "saveToSentItems": True 
+        }
+
+        response = requests.post(uri, headers=headers, json=body)
+        response.raise_for_status()  
+        print(f"Email sent successfully! Status Code: {response.status_code}")
+        return True
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        print(f"Response body: {response.text}") 
+        return False
+    except Exception as e:
+        print(f"An other error occurred: {e}")
+        return False
+
+@app.route('/request-password-reset', methods=['GET', 'POST'])
+def request_password_reset():
+    request_email = request.form['email']
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email))
+    rows = cursor.fetchone()
+
+    if rows:
+        sendreset = send_reset_email(request_email)
+        if sendreset:
+            return render_template("forgot_password.html", message="A password reset link has been sent to your email")
+        else:
+            return render_template('forgot_password.html', error="Unexpected Error occurred")
+    return render_template('forgot_password.html', error="Invalid Email Address")
+
 
 @app.route("/")
 def index():
