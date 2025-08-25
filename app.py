@@ -145,7 +145,7 @@ def login(page=None):
 
                     log_user_action('login_success')
 
-                    return redirect(url_for("post_login"))
+                    return redirect(url_for("dashboard"))
                 
             return render_template(page, error="Invalid credentials")
 
@@ -161,14 +161,14 @@ def logout():
     log_user_action('logout')
     session.pop('username', None)
     session.pop('userid', None)
-    return redirect(url_for("login"))
+    return redirect(url_for("login", page="index.html"))
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/post_login")
-def post_login():
+@app.route("/dashboard")
+def dashboard():
     #Check if user is logged in
     if 'username' not in session:
         return redirect(url_for("login"))
@@ -253,7 +253,7 @@ def post_login():
     conn.close()
 
     log_user_action('visit_dashboard')
-    return render_template("post_login.html", 
+    return render_template("dashboard.html", 
     logged_in_user=logged_in_user,
     InProgressTotal=InProgressTotal,
     ReadyTotal=ReadyTotal,
