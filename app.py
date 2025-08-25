@@ -90,17 +90,20 @@ DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
 DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
 
+@app.route("/signin")
+def signin():
+    return render_template("seperate_page_login.html")
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
-def login():
+def login(page=None):
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         
         if not UID_REQUEST or not PWD_REQUEST:
-            return render_template("index.html", error="Invalid credentials")
-        
+            return render_template(page, error="Invalid credentials")
+
         try:
             conn_str = (
                 f'DRIVER={{SQL Server}};'
@@ -144,14 +147,14 @@ def login():
 
                     return redirect(url_for("post_login"))
                 
-            return render_template("index.html", error="Invalid credentials")
-                
+            return render_template(page, error="Invalid credentials")
+
         except Exception as e:
             log_user_action('login_failed')
             app.logger.error(f"Database error during login: {e}")
-            return render_template("index.html", error="Login temporarily unavailable")
+            return render_template(page, error="Login temporarily unavailable")
         
-    return render_template("index.html")
+    return render_template(page)
 
 @app.route("/logout")
 def logout():

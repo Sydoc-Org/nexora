@@ -58,7 +58,7 @@
                         <p class="text-lg text-gray-600 mb-8">
                             Securely track the status of your scanned, email/sftp imported and validated documents in real-time. Please log in to access your dashboard.
                         </p>
-                        <a href="#login-form" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <a href="/signin" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
                             Login to Your Account
                         </a>
                     </div>
@@ -69,7 +69,7 @@
                                     {% if error %}
                                         <div class="error-message">{{ error }}</div>
                                     {% endif %}
-                            <form method="POST" action="{{ url_for('login') }}">
+                            <form method="POST" action="{{ url_for('login', page='index.html') }}">
                                 <div class="mb-4">
                                     <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
                                     <div class="relative">
