@@ -52,35 +52,35 @@ document.addEventListener("DOMContentLoaded", function () {
                             <i class="fa-solid fa-hourglass-start text-xs"></i>
                         </div>
                     `;
-          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> is ready`;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> is ready`;
         } else if (status === "In Progress") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fa-solid fa-spinner text-xs"></i>
                         </div>
                     `;
-          textMessage = `Processing for Workitem <span class="font-bold">${activity.fileid}</span> has started.`;
+          textMessage = `Processing for Barcode <span class="font-bold">${activity.Barcode}</span> has started.`;
         } else if (status === "Done") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fas fa-file-upload text-xs"></i>
                         </div>
                     `;
-          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> has finished processing.`;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> has finished processing.`;
         } else if (status === "Collected") {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fas fa-check text-xs"></i>
                         </div>
                     `;
-          textMessage = `Workitem <span class="font-bold">${activity.fileid}</span> was just collected.`;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> was just collected.`;
         } else {
           iconHTML = `
                         <div class="h-6 w-6 flex-shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mr-3 mt-1">
                             <i class="fas fa-question text-xs"></i>
                         </div>
                     `;
-          textMessage = `Unknown status for Workitem <span class="font-bold">${activity.fileid}</span>.`;
+          textMessage = `Unknown status for Barcode <span class="font-bold">${activity.Barcode}</span>.`;
         }
 
         li.innerHTML = `
@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch((error) => {
       console.error("Fehler beim Laden der Aktivitäten:", error);
+      console.log(error);
       list.innerHTML =
         '<li class="text-red-500">Fehler beim Laden der Aktivitäten.</li>';
     });

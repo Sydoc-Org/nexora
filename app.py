@@ -95,7 +95,6 @@ GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
 GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
 GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
-DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 @app.route("/signin")
@@ -430,7 +429,7 @@ def dashboard():
 
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
+        f'SERVER={DB_SERVER},1433;'
         f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
@@ -440,39 +439,44 @@ def dashboard():
     cursor = conn.cursor()
     cursor.execute(
         """
-        WITH AllStatuses AS (
-            SELECT 0 AS StatusCode, 'Ready' AS StatusName
+        WITH AllStatuses
+        AS (SELECT 0 AS StatusCode,
+                'Ready' AS StatusName
             UNION ALL
-            SELECT 1, 'In Progress'
+            SELECT 1,
+                'In Progress'
             UNION ALL
-            SELECT 5, 'Done'
+            SELECT 5,
+                'Done'
         ),
-        ActualCounts AS (
-            SELECT 
-                COUNT(w.id) as WorkitemCount, 
+            ActualCounts
+        AS (SELECT COUNT(w.id) as WorkitemCount,
                 w.[Status]
             FROM t_WorkItems w
-            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
+                LEFT JOIN t_ActivityInstances a
+                    on a.id = w.ActivityInstanceID
+                LEFT JOIN t_Processes p
+                    on p.id = a.ProcessID
+            WHERE p.Name = '02_Posteingang'
+                AND p.ClientName = 'Privera'
             GROUP BY w.[Status]
         )
-        SELECT 
-            ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
+        SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
             s.StatusName AS Status
         FROM AllStatuses s
-        LEFT JOIN ActualCounts ac ON s.StatusCode = ac.Status
-
+            LEFT JOIN ActualCounts ac
+                ON s.StatusCode = ac.Status
         UNION ALL
-
-        SELECT 
-            COUNT(*), 
+        SELECT COUNT(*),
             'Backlog'
         FROM t_WorkItems w
-        LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-        LEFT JOIN t_Processes p on p.id = a.ProcessID
-        WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
-        AND a.ActivityInstanceName = 'C+A';   
+            LEFT JOIN t_ActivityInstances a
+                on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p
+                on p.id = a.ProcessID
+        WHERE p.Name = '02_Posteingang'
+            AND p.ClientName = 'Privera'
+            AND a.ActivityInstanceName = 'C+A';
         """
     )
     rows = cursor.fetchall()
@@ -485,7 +489,7 @@ def dashboard():
 
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
+        f'SERVER={DB_SERVER},1433;'
         f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
@@ -496,24 +500,39 @@ def dashboard():
     cursor.execute("""
         SELECT top 3
             d.Stringvalue Barcode,
-            CASE 
-            WHEN a.ActivityInstanceName like '%C+A%' THEN 'InValidation'
-            WHEN a.ActivityInstanceName like '%Export%' OR a.ActivityInstanceName like '%Exp%' THEN 'InExport'
-            WHEN a.ActivityInstanceName like '%Import%' OR a.ActivityInstanceName like '%Imp%' THEN 'InImport'
-            WHEN a.ActivityInstanceName like '%Extract%' THEN 'InExtraction'
-            WHEN a.ActivityInstanceName like '%OCR%' THEN 'InOCR'
-            WHEN a.ActivityInstanceName like '%Statistik%' THEN 'InDBSaving'
-            WHEN a.ActivityInstanceName like '%Collect%' THEN 'InDBSaving'
-            ELSE 'InValidation' END AS Activity
+            CASE
+                WHEN a.ActivityInstanceName like '%C+A%' THEN
+                    'InValidation'
+                WHEN a.ActivityInstanceName like '%Export%'
+                    OR a.ActivityInstanceName like '%Exp%' THEN
+                    'InExport'
+                WHEN a.ActivityInstanceName like '%Import%'
+                    OR a.ActivityInstanceName like '%Imp%' THEN
+                    'InImport'
+                WHEN a.ActivityInstanceName like '%Extract%' THEN
+                    'InExtraction'
+                WHEN a.ActivityInstanceName like '%OCR%' THEN
+                    'InOCR'
+                WHEN a.ActivityInstanceName like '%Statistik%' THEN
+                    'InDBSaving'
+                WHEN a.ActivityInstanceName like '%Collect%' THEN
+                    'InDBSaving'
+                ELSE
+                    'InValidation'
+            END AS Activity
         FROM t_WorkItems w
-            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.id = a.ProcessID
-            LEFT JOIN t_DocumentIndexes d on w.ID = d.WorkItemID 
+            LEFT JOIN t_ActivityInstances a
+                on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p
+                on p.id = a.ProcessID
+            LEFT JOIN t_DocumentIndexes d
+                on w.ID = d.WorkItemID
         WHERE CAST(w.DateCreated AS DATE) = CAST(GETDATE() AS DATE)
-        and d.Name = 'Barcode'
-            AND p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
+            and d.Name = 'Barcode'
+            AND p.Name = '02_Posteingang'
+            AND p.ClientName = 'Privera'
         ORDER by newid()
-                           """
+        """
     )
     rows = cursor.fetchall()
     cursor.close()
@@ -776,19 +795,43 @@ def recent_activity():
 
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+                f'DRIVER={{SQL Server}};'
+                f'SERVER={DB_SERVER},1433;'
+                f'DATABASE={DB_SERVER_DB_RUNTIME};'
+                f'UID={DB_UID};'
+                f'PWD={DB_PWD};'
+                f'TrustServerCertificate=yes;'
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT TOP 4 State, DateTime, FileID
-            FROM StadtBiel
-            ORDER BY DateTime DESC
+            SELECT DISTINCT TOP 4
+                CASE
+                    WHEN w.[Status] = 0 THEN
+                        'Ready'
+                    WHEN w.[Status] = 1 THEN
+                        'In Progress'
+                    WHEN w.[Status] = 5 THEN
+                        'Done'
+                    ELSE
+                        'Ready'
+                end as state,
+                DATEADD(HOUR, 2, wa.[TimeStamp]) datetime,
+                d.StringValue fileid
+            FROM t_WorkItems w
+                LEFT JOIN t_WorkItemAudits wa
+                    ON w.ID = wa.WorkItemID
+                LEFT JOIN t_ActivityInstances a
+                    ON a.id = w.ActivityInstanceID
+                LEFT JOIN t_DocumentIndexes d
+                    ON d.WorkItemID = w.id
+                LEFT JOIN t_Processes p
+                    ON p.id = a.ProcessID
+            WHERE p.ClientName = 'Privera'
+                AND p.Name = '02_Posteingang'
+                AND w.LastAuditNumber = wa.AuditNumber
+                AND d.Name = 'Barcode'
+            ORDER BY DATEADD(HOUR, 2, wa.[TimeStamp]) desc
         """)
         activities = cursor.fetchall()
         cursor.close()
@@ -798,11 +841,12 @@ def recent_activity():
             {
                 "state": row[0],
                 "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
-                "fileid": row[2]
+                "Barcode": row[2]
             }
             for row in activities
         ])
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 
