@@ -95,6 +95,7 @@ GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
 GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
 GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
+DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 @app.route("/signin")
@@ -429,8 +430,8 @@ def dashboard():
 
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
+        f'SERVER={DB_SERVER_PRD},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
         f'TrustServerCertificate=yes;'
@@ -439,23 +440,53 @@ def dashboard():
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT COUNT(*) Count FROM v_StadtBiel_LatestState
-        GROUP BY STATE
-        ORDER BY State        
+        WITH AllStatuses AS (
+            SELECT 0 AS StatusCode, 'Ready' AS StatusName
+            UNION ALL
+            SELECT 1, 'In Progress'
+            UNION ALL
+            SELECT 5, 'Done'
+        ),
+        ActualCounts AS (
+            SELECT 
+                COUNT(w.id) as WorkitemCount, 
+                w.[Status]
+            FROM t_WorkItems w
+            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.id = a.ProcessID
+            WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
+            GROUP BY w.[Status]
+        )
+        SELECT 
+            ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
+            s.StatusName AS Status
+        FROM AllStatuses s
+        LEFT JOIN ActualCounts ac ON s.StatusCode = ac.Status
+
+        UNION ALL
+
+        SELECT 
+            COUNT(*), 
+            'Backlog'
+        FROM t_WorkItems w
+        LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+        LEFT JOIN t_Processes p on p.id = a.ProcessID
+        WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
+        AND a.ActivityInstanceName = 'C+A';   
         """
     )
     rows = cursor.fetchall()
-    DoneTotal = rows[0][0]
-    CollectedTotal = rows[1][0]
-    InProgressTotal = rows[2][0]
-    ReadyTotal = rows[3][0]
+    ReadyTotal = rows[0][0]
+    InProgressTotal = rows[1][0]
+    DoneTotal = rows[2][0]
+    BacklogTotal = rows[3][0]
     cursor.close()
     conn.close()
 
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
+        f'SERVER={DB_SERVER_PRD},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
         f'TrustServerCertificate=yes;'
@@ -463,43 +494,28 @@ def dashboard():
     conn = pyodbc.connect(conn_str)
     cursor = conn.cursor()
     cursor.execute("""
-        WITH TopFieldIds AS (
-            SELECT TOP 2
-                FileID
-            FROM StadtBiel
-            GROUP BY FileID
-            ORDER BY MAX([DateTime]) DESC
-        ),
-        AuditStates AS (
-            SELECT
-                FileID,
-                State DisplayState
-            FROM StadtBiel
-            WHERE FileID IN (SELECT FileID FROM TopFieldIds)
-        )
-        SELECT
-            FileID,
-            MAX(CASE WHEN DisplayState = 'Ready' THEN 'True' ELSE 'False' END) AS Ready,
-            MAX(CASE WHEN DisplayState = 'In Progress' THEN 'True' ELSE 'False' END) AS [InProgress],
-            MAX(CASE WHEN DisplayState = 'Done' THEN 'True' ELSE 'False' END) AS [Done],
-            MAX(CASE WHEN DisplayState = 'Collected' THEN 'True' ELSE 'False' END) AS [Collected]
-        FROM AuditStates
-        GROUP BY FileID
-        ORDER BY FileID
-        """
+        SELECT top 3
+            d.Stringvalue Barcode,
+            CASE 
+            WHEN a.ActivityInstanceName like '%C+A%' THEN 'InValidation'
+            WHEN a.ActivityInstanceName like '%Export%' OR a.ActivityInstanceName like '%Exp%' THEN 'InExport'
+            WHEN a.ActivityInstanceName like '%Import%' OR a.ActivityInstanceName like '%Imp%' THEN 'InImport'
+            WHEN a.ActivityInstanceName like '%Extract%' THEN 'InExtraction'
+            WHEN a.ActivityInstanceName like '%OCR%' THEN 'InOCR'
+            WHEN a.ActivityInstanceName like '%Statistik%' THEN 'InDBSaving'
+            WHEN a.ActivityInstanceName like '%Collect%' THEN 'InDBSaving'
+            ELSE 'InValidation' END AS Activity
+        FROM t_WorkItems w
+            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.id = a.ProcessID
+            LEFT JOIN t_DocumentIndexes d on w.ID = d.WorkItemID 
+        WHERE CAST(w.DateCreated AS DATE) = CAST(GETDATE() AS DATE)
+        and d.Name = 'Barcode'
+            AND p.Name = '02_Posteingang' AND p.ClientName = 'Privera'
+        ORDER by newid()
+                           """
     )
     rows = cursor.fetchall()
-    FileID = rows[0][0]
-    Ready = rows[0][1]
-    InProgress = rows[0][2]
-    Done = rows[0][3]
-    Collected = rows[0][4]
-
-    FileID_ = rows[1][0]
-    Ready_ = rows[1][1]
-    InProgress_ = rows[1][2]
-    Done_ = rows[1][3]
-    Collected_ = rows[1][4]
     cursor.close()
     conn.close()
 
@@ -509,10 +525,9 @@ def dashboard():
     InProgressTotal=InProgressTotal,
     ReadyTotal=ReadyTotal,
     DoneTotal=DoneTotal,
-    CollectedTotal=CollectedTotal,
+    BacklogTotal=BacklogTotal,
     scope=scope, userid=userid,
-    FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Collected=Collected,
-    FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Collected_=Collected_
+    rows=rows
     )
 
 @app.route("/workitems")
