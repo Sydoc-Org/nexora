@@ -101,29 +101,103 @@ async function updateRecentActivity() {
     });
 };
 
-async function updateAbsoluteStats() {
-        try {
-            const response = await fetch('/api/dashboard_stats');
-            if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
-            }
-            const stats = await response.json();
+const activityDetails = {
+    'InValidation': {
+        icon: 'fa-solid fa-laptop-file',
+        color: 'violet',
+        text: 'In Validation'
+    },
+    'InExport': {
+        icon: 'fa-solid fa-file-export',
+        color: 'green',
+        text: 'In Export'
+    },
+    'InImport': {
+        icon: 'fa-solid fa-file-import',
+        color: 'yellow',
+        text: 'In Import'
+    },
+    'InExtraction': {
+        icon: 'fa-solid fa-file-waveform',
+        color: 'yellow', 
+        text: 'In Extraction'
+    },
+    'InOCR': {
+        icon: 'fa-solid fa-file-lines',
+        color: 'sky',
+        text: 'In OCR'
+    },
+    'InDBSaving': {
+        icon: 'fa-solid fa-database',
+        color: 'orange',
+        text: 'In DB Saving'
+    },
+    'default': {
+        icon: 'fa-solid fa-question-circle',
+        color: 'gray',
+        text: 'Unknown'
+    }
+};
 
-            document.getElementById('ready-total').textContent = stats.ReadyTotal;
-            document.getElementById('in-progress-total').textContent = stats.InProgressTotal;
-            document.getElementById('done-total').textContent = stats.DoneTotal;
-            document.getElementById('backlog-total').textContent = stats.BacklogTotal;
-
-        } catch (error) {
-            console.error("Failed to update stats:", error);
-            document.getElementById('ready-total').textContent = 'Error';
-        }
+async function updateDocumentPreviewStats() {
+    const container = document.getElementById('document-preview-container');
+    if (!container) {
+        console.error('Error: The container with ID "document-preview-container" was not found.');
+        return;
     }
 
+    try {
+        const response = await fetch('/api/dashboard_stats_document_preview');
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        const rows = await response.json();
+        container.innerHTML = '';
+
+        if (rows.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">No active documents to display.</p>';
+            return;
+        }
+        rows.forEach(row => {
+            const details = activityDetails[row.Activity] || activityDetails.default;
+            const color = details.color;
+
+            const cardHtml = `
+                <div class="group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4
+                             transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                    
+                    <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
+                                rounded-full text-2xl animate-pulse-icon transition-colors duration-300 group-hover:bg-${color}-500 group-hover:text-white">
+                        <i class="${details.icon}"></i>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">Barcode ${row.Barcode}</h4>
+                        <p class="text-sm text-gray-500">Current Status:</p>
+                        
+                        <span class="bg-${color}-100 text-${color}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            ${details.text}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+
+    } catch (error) {
+        console.error("Failed to update document preview stats:", error);
+        container.innerHTML = `<div class="text-center text-red-500 p-4">Error loading data.</div>`;
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     updateRecentActivity();
+    updateAbsoluteStats();
+    updateDocumentPreviewStats();
 });
 
+
 setInterval(updateRecentActivity, 15000);
+setInterval(updateDocumentPreviewStats, 15000);
 setInterval(updateAbsoluteStats, 15000);

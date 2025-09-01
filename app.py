@@ -553,12 +553,10 @@ def get_dashbord_preview_documents_stats():
                 "Activity": row[1]
             }
             for row in rows
-        ])  
-
+        ])
 
 @app.route("/dashboard")
 def dashboard():
-    #Check if user is logged in
     if 'username' not in session:
         return redirect(url_for("login"))
     
@@ -567,8 +565,6 @@ def dashboard():
     userid = session.get('userid', 'Unknown')
 
     absolute_stats = get_absolute_dashboard_stats()
-    preview_document_stats = get_dashbord_preview_documents_stats()
-    # ,rows=preview_document_stats
 
     log_user_action('visit_dashboard')
     return render_template("dashboard.html", 
@@ -581,13 +577,19 @@ def dashboard():
     BacklogTotal=absolute_stats['BacklogTotal']
     )
 
-@app.route("/api/dashboard_stats")
-async def dashboard_stats():
+@app.route("/api/dashboard_stats_absolute")
+async def dashboard_stats_absolute():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
-    absolute_stats = get_absolute_dashboard_stats()
-    return jsonify(absolute_stats)
+    stats = get_absolute_dashboard_stats()
+    return jsonify(stats) 
 
+@app.route("/api/dashboard_stats_document_preview")
+async def dashboard_stats_document_preview():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    stats = get_dashbord_preview_documents_stats()
+    return stats
 
 @app.route("/workitems")
 def workitems_overview():
