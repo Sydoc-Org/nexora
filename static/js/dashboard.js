@@ -18,14 +18,14 @@ supportLink.addEventListener("click", function () {
   logAction("click_support_link");
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+async function updateRecentActivity() {
   const list = document.getElementById("recent-activity-list");
-  list.innerHTML = '<li class="text-gray-500">Loading...</li>';
+  //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
 
   fetch("/recent_activity")
     .then((response) => {
       if (!response.ok) {
-        throw new Error("Nicht eingeloggt oder Fehler beim Abrufen");
+        throw new Error("Error fetching recent activity");
       }
       return response.json();
     })
@@ -95,9 +95,35 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     })
     .catch((error) => {
-      console.error("Fehler beim Laden der Aktivitäten:", error);
-      console.log(error);
+      console.error("Error fetching recent activity:", error);
       list.innerHTML =
-        '<li class="text-red-500">Fehler beim Laden der Aktivitäten.</li>';
+        '<li class="text-red-500">Error fetching recent activity.</li>';
     });
+};
+
+async function updateAbsoluteStats() {
+        try {
+            const response = await fetch('/api/dashboard_stats');
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+            const stats = await response.json();
+
+            document.getElementById('ready-total').textContent = stats.ReadyTotal;
+            document.getElementById('in-progress-total').textContent = stats.InProgressTotal;
+            document.getElementById('done-total').textContent = stats.DoneTotal;
+            document.getElementById('backlog-total').textContent = stats.BacklogTotal;
+
+        } catch (error) {
+            console.error("Failed to update stats:", error);
+            document.getElementById('ready-total').textContent = 'Error';
+        }
+    }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateRecentActivity();
 });
+
+setInterval(updateRecentActivity, 15000);
+setInterval(updateAbsoluteStats, 15000);

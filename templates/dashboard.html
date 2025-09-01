@@ -90,7 +90,7 @@
       <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Ready</p>
-          <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
+          <p class="text-3xl font-bold" id="ready-total">{{ ReadyTotal }}</p>
         </div>
         <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
           <i class="fa-solid fa-hourglass-start"></i>
@@ -99,7 +99,7 @@
       <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">In Progress</p>
-          <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
+          <p class="text-3xl font-bold" id="in-progress-total">{{ InProgressTotal }}</p>
         </div>
         <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
           <i class="fa-solid fa-spinner"></i>
@@ -108,7 +108,7 @@
       <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Done</p>
-          <p class="text-3xl font-bold">{{ DoneTotal }}</p>
+          <p class="text-3xl font-bold" id="done-total">{{ DoneTotal }}</p>
         </div>
         <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
           <i class="fas fa-check-circle"></i>
@@ -117,7 +117,7 @@
       <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-gray-500">Backlog</p>
-          <p class="text-3xl font-bold">{{ BacklogTotal }}</p>
+          <p class="text-3xl font-bold" id="backlog-total">{{ BacklogTotal }}</p>
         </div>
         <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
           <i class="fa-solid fa-laptop-file"></i>
@@ -226,7 +226,7 @@
       </div>
     </div>
   </main>
-  <script src="/static/post_login.js"></script>
+  <script src="../static/js/dashboard.js"></script>
 </body>
 
 </html>
