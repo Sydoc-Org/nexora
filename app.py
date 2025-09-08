@@ -604,8 +604,8 @@ def workitems_overview():
     # Connect to runtime database to get workitems
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
+        f'SERVER={DB_SERVER_PRD},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
         f'TrustServerCertificate=yes;'
@@ -617,28 +617,26 @@ def workitems_overview():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT
-                wi.FileID as WorkitemID,
-                ( 
-                    SELECT TOP 1 DateTime 
-                    FROM StadtBiel sb 
-                    WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
-                    ORDER BY DateTime DESC
-                ) as DateCreated,
-                (  
-                    SELECT TOP 1 
-                        CASE 
-                            WHEN DemandedBy IS NULL THEN 'False'
-                            ELSE 'True'
-                        END
-                    FROM StadtBiel sb 
-                    WHERE sb.FileID = wi.FileID
-                    ORDER BY DateTime DESC
-                ) as Demanded,
-                wi.State as StatusText
-            FROM v_StadtBiel_LatestState wi
-            GROUP BY wi.FileID, wi.State
-            ORDER BY wi.FileID ASC
+            WITH CTE AS (
+            SELECT TOP 100 d.StringValue Barcode, DATEADD(HOUR, 2, w.ModifiedAt) ModifiedAt, w.id WorkitemID,
+            CASE 
+            WHEN w.Status = 0 THEN 'Ready'
+            WHEN w.Status = 1 THEN 'In Progress'
+            WHEN w.Status  = 5 THEN 'Done'
+            ELSE 'In Progress'
+            END AS Status,
+            ROW_NUMBER() over (partition by d.StringValue order by w.modifiedat desc) rn
+            FROM t_DocumentIndexes d
+            RIGHT JOIN t_WorkItems w on w.ID = d.WorkItemID
+            RIGHT JOIN t_ActivityInstances a on a.ID = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.ID = a.ProcessID
+            WHERE d.Name = 'Barcode' and p.Name = '02_Posteingang'
+            AND CAST(w.ModifiedAt AS date) = CAST(GETDATE() AS date)
+            ORDER BY ModifiedAt DESC 
+            )
+            SELECT Barcode, ModifiedAt, WorkitemID, Status FROM CTE
+            WHERE RN = 1
+            ORDER BY ModifiedAt desc
         """)
         
         workitems = cursor.fetchall()
@@ -647,10 +645,10 @@ def workitems_overview():
         workitems_list = []
         for row in workitems:
             workitems_list.append({
-                'id': row[0],                    
-                'created_on': row[1],            
-                'demanded': row[2],              
-                'status_text': row[3],           
+                'barcode': row[0],                    
+                'modifiedat': row[1],           
+                'workitemid' : row[2],
+                'status': row[3]        
             })
             
     except Exception as e:
