@@ -1,0 +1,221 @@
+function logAction(actionType, resourceId = null, details = null) {
+  fetch("/log_action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action_type: actionType,
+      resource_id: resourceId,
+      details: details,
+    }),
+  }).catch((err) => console.error("Logging failed:", err));
+}
+
+const supportLink = document.querySelector(".support-link");
+
+supportLink.addEventListener("click", function () {
+  logAction("click_support_link");
+});
+
+async function updateRecentActivity() {
+  const list = document.getElementById("recent-activity-list");
+  //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
+
+  fetch("/api/recent_activity")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Error fetching recent activity");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      list.innerHTML = ""; // Liste leeren
+
+      if (!Array.isArray(data) || data.length === 0) {
+        list.innerHTML =
+          '<li class="text-gray-500">No recent activity found.</li>';
+        return;
+      }
+
+      data.forEach((activity) => {
+        const li = document.createElement("li");
+        li.className = "flex items-start space-x-3";
+
+        let iconHTML = "";
+        let textMessage = "";
+        const status = activity.state;
+
+        if (status === "Ready") {
+          iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fa-solid fa-hourglass-start text-xs"></i>
+                        </div>
+                    `;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> is ready`;
+        } else if (status === "In Progress") {
+          iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fa-solid fa-spinner text-xs"></i>
+                        </div>
+                    `;
+          textMessage = `Processing for Barcode <span class="font-bold">${activity.Barcode}</span> has started.`;
+        } else if (status === "Done") {
+          iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-file-upload text-xs"></i>
+                        </div>
+                    `;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> has finished processing.`;
+        } else if (status === "Collected") {
+          iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-green-100 text-green-600 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-check text-xs"></i>
+                        </div>
+                    `;
+          textMessage = `Barcode <span class="font-bold">${activity.Barcode}</span> was just collected.`;
+        } else {
+          iconHTML = `
+                        <div class="h-6 w-6 flex-shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mr-3 mt-1">
+                            <i class="fas fa-question text-xs"></i>
+                        </div>
+                    `;
+          textMessage = `Unknown status for Barcode <span class="font-bold">${activity.Barcode}</span>.`;
+        }
+
+        li.innerHTML = `
+                    ${iconHTML}
+                    <div>
+                        <p class="text-sm font-medium">${textMessage}</p>
+                        <p class="text-xs text-gray-500">${activity.datetime}</p>
+                    </div>
+                `;
+
+        list.appendChild(li);
+      });
+    })
+    .catch((error) => {
+      console.error("Error fetching recent activity:", error);
+      list.innerHTML =
+        '<li class="text-red-500">Error fetching recent activity.</li>';
+    });
+};
+
+const activityDetails = {
+    'InValidation': {
+        icon: 'fa-solid fa-laptop-file',
+        color: 'violet',
+        text: 'In Validation'
+    },
+    'InExport': {
+        icon: 'fa-solid fa-file-export',
+        color: 'green',
+        text: 'In Export'
+    },
+    'InImport': {
+        icon: 'fa-solid fa-file-import',
+        color: 'yellow',
+        text: 'In Import'
+    },
+    'InExtraction': {
+        icon: 'fa-solid fa-file-waveform',
+        color: 'yellow', 
+        text: 'In Extraction'
+    },
+    'InOCR': {
+        icon: 'fa-solid fa-file-lines',
+        color: 'sky',
+        text: 'In OCR'
+    },
+    'InDBSaving': {
+        icon: 'fa-solid fa-database',
+        color: 'orange',
+        text: 'In DB Saving'
+    },
+    'default': {
+        icon: 'fa-solid fa-question-circle',
+        color: 'gray',
+        text: 'Unknown'
+    }
+};
+
+async function updateDocumentPreviewStats() {
+    const container = document.getElementById('document-preview-container');
+    if (!container) {
+        console.error('Error: The container with ID "document-preview-container" was not found.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/dashboard_stats_document_preview');
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        const rows = await response.json();
+        container.innerHTML = '';
+
+        if (rows.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">No active documents to display.</p>';
+            return;
+        }
+        rows.forEach(row => {
+            const details = activityDetails[row.Activity] || activityDetails.default;
+            const color = details.color;
+
+            const cardHtml = `
+                <div class="group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4
+                             transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                    
+                    <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
+                                rounded-full text-2xl animate-pulse-icon transition-colors duration-300 group-hover:bg-${color}-500 group-hover:text-white">
+                        <i class="${details.icon}"></i>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">Barcode ${row.Barcode}</h4>
+                        <p class="text-sm text-gray-500">Current Status:</p>
+                        
+                        <span class="bg-${color}-100 text-${color}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            ${details.text}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+
+    } catch (error) {
+        console.error("Failed to update document preview stats:", error);
+        container.innerHTML = `<div class="text-center text-red-500 p-4">Error loading data.</div>`;
+    }
+};
+
+async function updateAbsoluteStats() {
+      try {
+          const response = await fetch('/api/dashboard_stats_absolute');
+          if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+          }
+          const stats = await response.json();
+          document.getElementById('ready-total').textContent = stats.ReadyTotal;
+          document.getElementById('in-progress-total').textContent = stats.InProgressTotal;
+          document.getElementById('done-total').textContent = stats.DoneTotal;
+          document.getElementById('backlog-total').textContent = stats.BacklogTotal;
+
+      } catch (error) {
+          console.error("Failed to update stats:", error);
+          document.getElementById('ready-total').textContent = 'Error';
+      }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateRecentActivity();
+    updateAbsoluteStats();
+    updateDocumentPreviewStats();
+});
+
+
+setInterval(updateRecentActivity, 15000);
+setInterval(updateDocumentPreviewStats, 15000);
+setInterval(updateAbsoluteStats, 15000);

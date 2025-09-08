@@ -1,343 +1,159 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sydoc Portal - Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
-      type="module"
-    ></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    />
-    <style>
-      html {
-        overflow-y: scroll;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sydoc Portal - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <style>
+    html {
+      overflow-y: scroll;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: #f9fafb;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      flex-grow: 1;
+      position: relative;
+    }
+
+    .progress-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 18px;
+      top: 40px;
+      height: 2px;
+      width: calc(100% - 36px);
+      background-color: #e5e7eb;
+    }
+
+    .progress-step.completed:not(:last-child)::after {
+      background-color: #03020bff;
+    }
+
+    .progress-icon {
+      z-index: 10;
+    }
+
+    @keyframes rotate {
+      100% {
+        transform: rotate(360deg);
       }
-      body {
-        font-family: "Inter", sans-serif;
-        background-color: #f9fafb;
+    }
+
+    .animate-rotate {
+      animation: rotate 3s linear infinite;
+    }
+
+    @keyframes pulse-icon {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
       }
 
-      .progress-step {
-        display: flex;
-        align-items: center;
-        flex-grow: 1;
-        position: relative;
+      50% {
+        transform: scale(1.1);
+        opacity: 0.9;
       }
+    }
 
-      .progress-step:not(:last-child)::after {
-        content: "";
-        position: absolute;
-        left: 18px;
-        top: 40px;
-        height: 2px;
-        width: calc(100% - 36px);
-        background-color: #e5e7eb;
-      }
+    .animate-pulse-icon {
+      animation: pulse-icon 2s ease-in-out infinite;
+    }
+  </style>
+</head>
 
-      .progress-step.completed:not(:last-child)::after {
-        background-color: #03020bff;
-      }
+<body class="text-gray-800">
+  {% set active_page = 'dashboard' %} {% include '_header.html' %}
 
-      .progress-icon {
-        z-index: 10;
-      }
+  <main class="container mx-auto p-6">
+    <div class="mb-10">
+      <h2 class="text-3xl font-bold text-gray-800 mb-2">
+        Welcome back, {{ logged_in_user }}! 👋
+      </h2>
+      <p class="text-gray-600">Here's a summary of your document activity.</p>
+    </div>
 
-      @keyframes rotate {
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      .animate-rotate {
-        animation: rotate 3s linear infinite;
-      }
-    </style>
-  </head>
-
-  <body class="text-gray-800">
-    <!----------------------------------- Header -------------------------------------->
-    {% set active_page = 'dashboard' %} {% include '_header.html' %}
-
-    <main class="container mx-auto p-6">
-      <div class="mb-10">
-        <h2 class="text-3xl font-bold text-gray-800 mb-2">
-          Welcome back, {{ logged_in_user }}! 👋
-        </h2>
-        <p class="text-gray-600">Here's a summary of your document activity.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
-        >
-          <div>
-            <p class="text-sm font-medium text-gray-500">Ready</p>
-            <p class="text-3xl font-bold">{{ ReadyTotal }}</p>
-          </div>
-          <div
-            class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full"
-          >
-            <i class="fa-solid fa-hourglass-start"></i>
-          </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Ready</p>
+          <p class="text-3xl font-bold" id="ready-total">{{ ReadyTotal }}</p>
         </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
-        >
-          <div>
-            <p class="text-sm font-medium text-gray-500">In Progress</p>
-            <p class="text-3xl font-bold">{{ InProgressTotal }}</p>
-          </div>
-          <div
-            class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full"
-          >
-            <i class="fa-solid fa-spinner"></i>
-          </div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
-        >
-          <div>
-            <p class="text-sm font-medium text-gray-500">Done</p>
-            <p class="text-3xl font-bold">{{ DoneTotal }}</p>
-          </div>
-          <div
-            class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full"
-          >
-            <i class="fas fa-check-circle"></i>
-          </div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between"
-        >
-          <div>
-            <p class="text-sm font-medium text-gray-500">Collected</p>
-            <p class="text-3xl font-bold">{{ CollectedTotal }}</p>
-          </div>
-          <div
-            class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full"
-          >
-            <i class="fa-solid fa-file-export"></i>
-          </div>
+        <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
+          <i class="fa-solid fa-hourglass-start"></i>
         </div>
       </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6">
-          <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
-
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h4 class="font-bold text-lg">FileID {{ FileID }}</h4>
-              </div>
-              {% if Collected == 'True' %}
-              <span
-                class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Collected</span
-              >
-              {% elif Done == 'True' %}
-              <span
-                class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Done</span
-              >
-              {% elif InProgress == 'True' %}
-              <span
-                class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >In Progress</span
-              >
-              {% else %}
-              <span
-                class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Ready</span
-              >
-              {% endif %}
-            </div>
-            <div class="flex text-center text-sm mt-6">
-              <div class="progress-step completed">
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"
-                  >
-                    <i class="fa-solid fa-hourglass-start"></i>
-                  </div>
-                  <p class="mt-2 font-semibold">Ready</p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if InProgress == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress == 'True' %}bg-yellow-500 text-white {% if Done == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fa-solid fa-slash"></i>
-                  </div>
-                  <p
-                    class="mt-2 font-semibold {% if InProgress == 'True' and Done == 'False' %}text-yellow-800{% elif InProgress == 'False' %}text-gray-500{% endif %}"
-                  >
-                    In Progress
-                  </p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if Done == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done == 'True' %}bg-indigo-600 text-white {% if Collected == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fas fa-check-circle"></i>
-                  </div>
-                  <p
-                    class="mt-2 font-semibold {% if Done == 'True' and Collected == 'False' %}text-indigo-600{% elif Done == 'False' %}text-gray-500{% endif %}"
-                  >
-                    Done
-                  </p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if Collected == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fa-solid fa-file-export"></i>
-                  </div>
-                  <p
-                    class="mt-2 {% if Collected == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}"
-                  >
-                    Collected
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h4 class="font-bold text-lg">FileID {{ FileID_ }}</h4>
-              </div>
-              {% if Collected_ == 'True' %}
-              <span
-                class="bg-violet-100 text-violet-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Collected</span
-              >
-              {% elif Done_ == 'True' %}
-              <span
-                class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Done</span
-              >
-              {% elif InProgress_ == 'True' %}
-              <span
-                class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >In Progress</span
-              >
-              {% else %}
-              <span
-                class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                >Ready</span
-              >
-              {% endif %}
-            </div>
-            <div class="flex text-center text-sm mt-6">
-              <div class="progress-step completed">
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white"
-                  >
-                    <i class="fa-solid fa-hourglass-start"></i>
-                  </div>
-                  <p class="mt-2 font-semibold">Ready</p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if InProgress_ == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if InProgress_ == 'True' %}bg-yellow-500 text-white {% if Done_ == 'False' %}animate-pulse animate-rotate{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fa-solid fa-slash"></i>
-                  </div>
-                  <p
-                    class="mt-2 font-semibold {% if InProgress_ == 'True' and Done_ == 'False' %}text-yellow-800{% elif InProgress_ == 'False' %}text-gray-500{% endif %}"
-                  >
-                    In Progress
-                  </p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if Done_ == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Done_ == 'True' %}bg-indigo-600 text-white {% if Collected_ == 'False' %}animate-pulse{% endif %}{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fas fa-check-circle"></i>
-                  </div>
-                  <p
-                    class="mt-2 font-semibold {% if Done_ == 'True' and Collected_ == 'False' %}text-indigo-600{% elif Done_ == 'False' %}text-gray-500{% endif %}"
-                  >
-                    Done
-                  </p>
-                </div>
-              </div>
-              <div
-                class="progress-step {% if Collected_ == 'True' %}completed{% endif %}"
-              >
-                <div class="flex flex-col items-center">
-                  <div
-                    class="progress-icon h-9 w-9 flex items-center justify-center rounded-full {% if Collected_ == 'True' %}bg-indigo-600 text-white{% else %}bg-gray-200 text-gray-400{% endif %}"
-                  >
-                    <i class="fa-solid fa-file-export"></i>
-                  </div>
-                  <p
-                    class="mt-2 {% if Collected_ == 'True' %}font-semibold text-indigo-600{% else %}text-gray-500{% endif %}"
-                  >
-                    Collected
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">In Progress</p>
+          <p class="text-3xl font-bold" id="in-progress-total">{{ InProgressTotal }}</p>
         </div>
-
-        <div class="space-y-6">
-          <!-- Recent Activity -->
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
-            <ul id="recent-activity-list" class="space-y-4">
-              <li class="text-gray-500">Loading...</li>
-            </ul>
-          </div>
-
-          <!-- Support Section -->
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">Need Help?</h3>
-            <ul class="space-y-3">
-              <li>
-                <a
-                  href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
-                  class="flex items-center text-indigo-600 hover:underline support-link"
-                >
-                  <i class="fas fa-headset w-6 mr-2"></i>Contact Support
-                </a>
-              </li>
-            </ul>
-          </div>
+        <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
+          <i class="fa-solid fa-spinner"></i>
         </div>
       </div>
-    </main>
-    <script src="/static/post_login.js"></script>
-  </body>
+      <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Done</p>
+          <p class="text-3xl font-bold" id="done-total">{{ DoneTotal }}</p>
+        </div>
+        <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
+          <i class="fas fa-check-circle"></i>
+        </div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Backlog</p>
+          <p class="text-3xl font-bold" id="backlog-total">{{ BacklogTotal }}</p>
+        </div>
+        <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
+          <i class="fa-solid fa-laptop-file"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-6">
+        <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
+
+        <div class="space-y-6" id="document-preview-container">
+          </div>
+      </div>
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+          <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
+          <ul id="recent-activity-list" class="space-y-4">
+            <li class="text-gray-500">Loading...</li>
+          </ul>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+          <h3 class="text-xl font-bold mb-4">Need Help?</h3>
+          <ul class="space-y-3">
+            <li>
+              <a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
+                class="flex items-center text-indigo-600 hover:underline support-link">
+                <i class="fas fa-headset w-6 mr-2"></i>Contact Support
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+  </main>
+  <script src="../static/js/dashboard.js"></script>
+</body>
+
 </html>

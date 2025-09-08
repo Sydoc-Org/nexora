@@ -1,5 +1,5 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
 from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
@@ -15,6 +15,7 @@ from flask import jsonify
 import json
 import requests
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+import asyncio
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -87,6 +88,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
 DB_SERVER = os.environ.get("DB_SERVER")
+DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
 DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
@@ -418,102 +420,176 @@ def request_password_reset():
 def index():
     return render_template("index.html")
 
+def get_absolute_dashboard_stats():
+    stats = {}
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            WITH AllStatuses
+            AS (SELECT 0 AS StatusCode,
+                    'Ready' AS StatusName
+                UNION ALL
+                SELECT 1,
+                    'In Progress'
+                UNION ALL
+                SELECT 5,
+                    'Done'
+            ),
+                ActualCounts
+            AS (SELECT COUNT(w.id) as WorkitemCount,
+                    w.[Status]
+                FROM t_WorkItems w
+                    LEFT JOIN t_ActivityInstances a
+                        on a.id = w.ActivityInstanceID
+                    LEFT JOIN t_Processes p
+                        on p.id = a.ProcessID
+                WHERE p.Name = '02_Posteingang'
+                    AND p.ClientName = 'Privera'
+                GROUP BY w.[Status]
+            )
+            SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
+                s.StatusName AS Status
+            FROM AllStatuses s
+                LEFT JOIN ActualCounts ac
+                    ON s.StatusCode = ac.Status
+            UNION ALL
+            SELECT COUNT(*),
+                'Backlog'
+            FROM t_WorkItems w
+                LEFT JOIN t_ActivityInstances a
+                    on a.id = w.ActivityInstanceID
+                LEFT JOIN t_Processes p
+                    on p.id = a.ProcessID
+            WHERE p.Name = '02_Posteingang'
+                AND p.ClientName = 'Privera'
+                AND a.ActivityInstanceName = 'C+A';
+            """
+        )
+        rows = cursor.fetchall()
+        stats['ReadyTotal'] = rows[0][0]
+        stats['InProgressTotal'] = rows[1][0]
+        stats['DoneTotal'] = rows[2][0]
+        stats['BacklogTotal'] = rows[3][0]
+
+    except Exception as e:
+        print(e)
+    finally:
+        cursor.close()
+        conn.close()
+    return stats
+
+def get_dashbord_preview_documents_stats():
+    stats = {}
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT top 10
+                d.Stringvalue Barcode,
+                CASE
+                    WHEN a.ActivityInstanceName like '%C+A%' THEN
+                        'InValidation'
+                    WHEN a.ActivityInstanceName like '%Export%'
+                        OR a.ActivityInstanceName like '%Exp%' THEN
+                        'InExport'
+                    WHEN a.ActivityInstanceName like '%Import%'
+                        OR a.ActivityInstanceName like '%Imp%' THEN
+                        'InImport'
+                    WHEN a.ActivityInstanceName like '%Extract%' THEN
+                        'InExtraction'
+                    WHEN a.ActivityInstanceName like '%OCR%' THEN
+                        'InOCR'
+                    WHEN a.ActivityInstanceName like '%Statistik%' THEN
+                        'InDBSaving'
+                    WHEN a.ActivityInstanceName like '%Collect%' THEN
+                        'InDBSaving'
+                    ELSE
+                        'InValidation'
+                END AS Activity
+            FROM t_WorkItems w
+                LEFT JOIN t_ActivityInstances a
+                    on a.id = w.ActivityInstanceID
+                LEFT JOIN t_Processes p
+                    on p.id = a.ProcessID
+                LEFT JOIN t_DocumentIndexes d
+                    on w.ID = d.WorkItemID
+            WHERE CAST(w.DateCreated AS DATE) = CAST(GETDATE() AS DATE)
+                and d.Name = 'Barcode'
+                AND p.Name = '02_Posteingang'
+                AND p.ClientName = 'Privera'
+            ORDER by newid()
+            """
+        )
+        rows = cursor.fetchall()
+    except Exception as e:
+        print(e)
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify([
+            {
+                "Barcode": row[0],
+                "Activity": row[1]
+            }
+            for row in rows
+        ])
+
 @app.route("/dashboard")
 def dashboard():
-    #Check if user is logged in
     if 'username' not in session:
         return redirect(url_for("login"))
+    
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
     userid = session.get('userid', 'Unknown')
 
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    conn = pyodbc.connect(conn_str)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT COUNT(*) Count FROM v_StadtBiel_LatestState
-        GROUP BY STATE
-        ORDER BY State        
-        """
-    )
-    rows = cursor.fetchall()
-    DoneTotal = rows[0][0]
-    CollectedTotal = rows[1][0]
-    InProgressTotal = rows[2][0]
-    ReadyTotal = rows[3][0]
-    cursor.close()
-    conn.close()
-
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    conn = pyodbc.connect(conn_str)
-    cursor = conn.cursor()
-    cursor.execute("""
-        WITH TopFieldIds AS (
-            SELECT TOP 2
-                FileID
-            FROM StadtBiel
-            GROUP BY FileID
-            ORDER BY MAX([DateTime]) DESC
-        ),
-        AuditStates AS (
-            SELECT
-                FileID,
-                State DisplayState
-            FROM StadtBiel
-            WHERE FileID IN (SELECT FileID FROM TopFieldIds)
-        )
-        SELECT
-            FileID,
-            MAX(CASE WHEN DisplayState = 'Ready' THEN 'True' ELSE 'False' END) AS Ready,
-            MAX(CASE WHEN DisplayState = 'In Progress' THEN 'True' ELSE 'False' END) AS [InProgress],
-            MAX(CASE WHEN DisplayState = 'Done' THEN 'True' ELSE 'False' END) AS [Done],
-            MAX(CASE WHEN DisplayState = 'Collected' THEN 'True' ELSE 'False' END) AS [Collected]
-        FROM AuditStates
-        GROUP BY FileID
-        ORDER BY FileID
-        """
-    )
-    rows = cursor.fetchall()
-    FileID = rows[0][0]
-    Ready = rows[0][1]
-    InProgress = rows[0][2]
-    Done = rows[0][3]
-    Collected = rows[0][4]
-
-    FileID_ = rows[1][0]
-    Ready_ = rows[1][1]
-    InProgress_ = rows[1][2]
-    Done_ = rows[1][3]
-    Collected_ = rows[1][4]
-    cursor.close()
-    conn.close()
+    absolute_stats = get_absolute_dashboard_stats()
 
     log_user_action('visit_dashboard')
     return render_template("dashboard.html", 
     logged_in_user=logged_in_user,
-    InProgressTotal=InProgressTotal,
-    ReadyTotal=ReadyTotal,
-    DoneTotal=DoneTotal,
-    CollectedTotal=CollectedTotal,
-    scope=scope, userid=userid,
-    FileID=FileID, Ready=Ready, InProgress=InProgress, Done=Done, Collected=Collected,
-    FileID_=FileID_, Ready_=Ready_, InProgress_=InProgress_, Done_=Done_, Collected_=Collected_
+    scope=scope,
+    userid=userid,
+    ReadyTotal=absolute_stats['ReadyTotal'],
+    InProgressTotal=absolute_stats['InProgressTotal'],
+    DoneTotal=absolute_stats['DoneTotal'],
+    BacklogTotal=absolute_stats['BacklogTotal']
     )
+
+@app.route("/api/dashboard_stats_absolute")
+async def dashboard_stats_absolute():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    stats = get_absolute_dashboard_stats()
+    return jsonify(stats) 
+
+@app.route("/api/dashboard_stats_document_preview")
+async def dashboard_stats_document_preview():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    stats = get_dashbord_preview_documents_stats()
+    return stats
 
 @app.route("/workitems")
 def workitems_overview():
@@ -754,26 +830,50 @@ def change_password():
         else:
             return render_template("profile.html", error="Invalid Password")
 
-@app.route('/recent_activity')
+@app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
         return jsonify({"error": "Not logged in"}), 401
 
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+                f'DRIVER={{SQL Server}};'
+                f'SERVER={DB_SERVER_PRD},1433;'
+                f'DATABASE={DB_SERVER_DB_RUNTIME};'
+                f'UID={DB_UID};'
+                f'PWD={DB_PWD};'
+                f'TrustServerCertificate=yes;'
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT TOP 4 State, DateTime, FileID
-            FROM StadtBiel
-            ORDER BY DateTime DESC
+            SELECT DISTINCT TOP 4
+                CASE
+                    WHEN w.[Status] = 0 THEN
+                        'Ready'
+                    WHEN w.[Status] = 1 THEN
+                        'In Progress'
+                    WHEN w.[Status] = 5 THEN
+                        'Done'
+                    ELSE
+                        'Ready'
+                end as state,
+                DATEADD(HOUR, 2, wa.[TimeStamp]) datetime,
+                d.StringValue barcode
+            FROM t_WorkItems w
+                LEFT JOIN t_WorkItemAudits wa
+                    ON w.ID = wa.WorkItemID
+                LEFT JOIN t_ActivityInstances a
+                    ON a.id = w.ActivityInstanceID
+                LEFT JOIN t_DocumentIndexes d
+                    ON d.WorkItemID = w.id
+                LEFT JOIN t_Processes p
+                    ON p.id = a.ProcessID
+            WHERE p.ClientName = 'Privera'
+                AND p.Name = '02_Posteingang'
+                AND w.LastAuditNumber = wa.AuditNumber
+                AND d.Name = 'Barcode'
+            ORDER BY DATEADD(HOUR, 2, wa.[TimeStamp]) desc
         """)
         activities = cursor.fetchall()
         cursor.close()
@@ -783,13 +883,13 @@ def recent_activity():
             {
                 "state": row[0],
                 "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
-                "fileid": row[2]
+                "Barcode": row[2]
             }
             for row in activities
         ])
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/allstatesfromoneworkitem/<string:workitem_id>')
 def all_states_from_one_workitem(workitem_id):
