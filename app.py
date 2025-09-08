@@ -504,7 +504,7 @@ def get_dashbord_preview_documents_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT top 3
+            SELECT top 10
                 d.Stringvalue Barcode,
                 CASE
                     WHEN a.ActivityInstanceName like '%C+A%' THEN
@@ -830,7 +830,7 @@ def change_password():
         else:
             return render_template("profile.html", error="Invalid Password")
 
-@app.route('/recent_activity')
+@app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
         return jsonify({"error": "Not logged in"}), 401
@@ -838,7 +838,7 @@ def recent_activity():
     try:
         conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_RUNTIME};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};'
@@ -859,7 +859,7 @@ def recent_activity():
                         'Ready'
                 end as state,
                 DATEADD(HOUR, 2, wa.[TimeStamp]) datetime,
-                d.StringValue fileid
+                d.StringValue barcode
             FROM t_WorkItems w
                 LEFT JOIN t_WorkItemAudits wa
                     ON w.ID = wa.WorkItemID
@@ -890,7 +890,6 @@ def recent_activity():
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/allstatesfromoneworkitem/<string:workitem_id>')
 def all_states_from_one_workitem(workitem_id):

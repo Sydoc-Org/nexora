@@ -75,7 +75,6 @@
 </head>
 
 <body class="text-gray-800">
-  <!----------------------------------- Header -------------------------------------->
   {% set active_page = 'dashboard' %} {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
@@ -130,29 +129,28 @@
         <h3 class="text-2xl font-bold text-gray-800">Document Status</h3>
 
         <div class="space-y-6" id="document-preview-container">
+          </div>
+      </div>
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+          <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
+          <ul id="recent-activity-list" class="space-y-4">
+            <li class="text-gray-500">Loading...</li>
+          </ul>
         </div>
 
-
-        <div class="space-y-6">
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
-            <ul id="recent-activity-list" class="space-y-4">
-              <li class="text-gray-500">Loading...</li>
-            </ul>
-          </div>
-
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">Need Help?</h3>
-            <ul class="space-y-3">
-              <li>
-                <a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
-                  class="flex items-center text-indigo-600 hover:underline support-link">
-                  <i class="fas fa-headset w-6 mr-2"></i>Contact Support
-                </a>
-              </li>
-            </ul>
-          </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+          <h3 class="text-xl font-bold mb-4">Need Help?</h3>
+          <ul class="space-y-3">
+            <li>
+              <a href="mailto:support.helpdesk@sydoc.ch?subject=Sydoc%20Portal:"
+                class="flex items-center text-indigo-600 hover:underline support-link">
+                <i class="fas fa-headset w-6 mr-2"></i>Contact Support
+              </a>
+            </li>
+          </ul>
         </div>
+      </div>
       </div>
   </main>
   <script src="../static/js/dashboard.js"></script>
