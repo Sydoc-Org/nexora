@@ -1,4 +1,5 @@
 function logAction(actionType, resourceId = null, details = null) {
+  // fetch("/sydocportal/log_action", {
   fetch("/log_action", {
     method: "POST",
     headers: {
@@ -21,7 +22,8 @@ supportLink.addEventListener("click", function () {
 async function updateRecentActivity() {
   const list = document.getElementById("recent-activity-list");
   //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
-
+  
+  // fetch("/sydocportal/api/recent_activity")
   fetch("/api/recent_activity")
     .then((response) => {
       if (!response.ok) {
@@ -147,6 +149,7 @@ async function updateDocumentPreviewStats() {
     }
 
     try {
+        //  fetch("/sydocportal/api/dashboard_stats_document_preview")
         const response = await fetch('/api/dashboard_stats_document_preview');
         if (!response.ok) {
             throw new Error(`API request failed with status ${response.status}`);
@@ -193,6 +196,7 @@ async function updateDocumentPreviewStats() {
 
 async function updateAbsoluteStats() {
       try {
+          // fetch("/sydocportal/api/dashboard_stats_absolute")
           const response = await fetch('/api/dashboard_stats_absolute');
           if (!response.ok) {
               throw new Error(`API request failed with status ${response.status}`);

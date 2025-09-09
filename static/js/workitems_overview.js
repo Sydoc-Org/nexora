@@ -1,4 +1,5 @@
 function logAction(actionType, resourceId = null, details = null) {
+  // fetch("/sydocportal/log_action", {
   fetch("/log_action", {
     method: "POST",
     headers: {
@@ -200,6 +201,7 @@ async function toggleDetailsAndLoadImages(event) {
   imageContainer.innerHTML = '<p class="text-gray-500 animate-pulse">Checking for media...</p>';
 
   try {
+    // const infoResponse = await fetch(`/sydocportal/api/get_media_info/${workitemid}`);
     const infoResponse = await fetch(`/api/get_media_info/${workitemid}`);
     if (!infoResponse.ok) {
       throw new Error('Could not fetch media information.');
@@ -237,6 +239,7 @@ async function loadImage(container, workitemid, index) {
   container.appendChild(placeholder);
 
   try {
+    //const apiUrl = 'sydocportal/api/get_media_raw/${workitemid}/${index}';
     const apiUrl = `/api/get_media_raw/${workitemid}/${index}`;
     const response = await fetch(apiUrl);
 

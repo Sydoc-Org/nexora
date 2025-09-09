@@ -15,7 +15,6 @@ from flask import jsonify
 import json
 import requests
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
-import asyncio
 import base64
 from PIL import Image
 import io
@@ -596,14 +595,14 @@ def dashboard():
     )
 
 @app.route("/api/dashboard_stats_absolute")
-async def dashboard_stats_absolute():
+def dashboard_stats_absolute():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
     stats = get_absolute_dashboard_stats()
     return jsonify(stats) 
 
 @app.route("/api/dashboard_stats_document_preview")
-async def dashboard_stats_document_preview():
+def dashboard_stats_document_preview():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
     stats = get_dashbord_preview_documents_stats()
