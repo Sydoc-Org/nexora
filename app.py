@@ -107,19 +107,21 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 def signin():
     return render_template("seperate_page_login.html")
 
-class PrefixMiddleware(object):
-    def __init__(self, app, prefix=''):
-        self.app = app
-        self.prefix = prefix
+# ------------------------------- ONLY FOR IIS ------------------------------- #
+# class PrefixMiddleware(object):
+#     def __init__(self, app, prefix=''):
+#         self.app = app
+#         self.prefix = prefix
 
-    def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-            environ['SCRIPT_NAME'] = self.prefix
-            return self.app(environ, start_response)
-        else:
-            start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
-            return [b'This URL does not belong to the application.']
+#     def __call__(self, environ, start_response):
+#         if environ['PATH_INFO'].startswith(self.prefix):
+#             environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+#             environ['SCRIPT_NAME'] = self.prefix
+#             return self.app(environ, start_response)
+#         else:
+#             start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
+#             return [b'This URL does not belong to the application.']
+# ------------------------------------- - ------------------------------------ #
 
 @app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -1084,7 +1086,9 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response("Internal Server Error", status=500)
 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/KundenPortal-Sydoc')
+# ------------------------------- ONLY FOR IIS ------------------------------- #
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
+# ------------------------------------- - ------------------------------------ #
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
