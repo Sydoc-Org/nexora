@@ -107,21 +107,19 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 def signin():
     return render_template("seperate_page_login.html")
 
-# ------------------------------- ONLY FOR IIS ------------------------------- #
-# class PrefixMiddleware(object):
-#     def __init__(self, app, prefix=''):
-#         self.app = app
-#         self.prefix = prefix
+class PrefixMiddleware(object):
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix
 
-#     def __call__(self, environ, start_response):
-#         if environ['PATH_INFO'].startswith(self.prefix):
-#             environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-#             environ['SCRIPT_NAME'] = self.prefix
-#             return self.app(environ, start_response)
-#         else:
-#             start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
-#             return [b'This URL does not belong to the application.']
-# ------------------------------------- - ------------------------------------ #
+    def __call__(self, environ, start_response):
+        if environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+            return self.app(environ, start_response)
+        else:
+            start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
+            return [b'This URL does not belong to the application.']
 
 @app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
