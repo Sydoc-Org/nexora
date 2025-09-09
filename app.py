@@ -1,5 +1,5 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
 from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
@@ -16,6 +16,10 @@ import json
 import requests
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import asyncio
+import base64
+from PIL import Image
+import io
+from flask_caching import Cache
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -618,7 +622,7 @@ def workitems_overview():
         
         cursor.execute("""
         WITH CTE AS (
-        SELECT tdi.WorkItemID, twi.ModifiedAt, 
+        SELECT TOP 1000 tdi.WorkItemID, twi.ModifiedAt, 
         CASE 
             WHEN twi.Status = 0 THEN 'Ready'
             WHEN twi.Status = 5 THEN 'Done'
@@ -632,9 +636,10 @@ def workitems_overview():
         tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
         AND twi.Status <> 2
         )
-        SELECT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
+        SELECT tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name = 'Barcode'
+        ORDER BY ModifiedAt DESC
         """)
         
         workitems = cursor.fetchall()
@@ -843,33 +848,25 @@ def recent_activity():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT DISTINCT TOP 4
-                CASE
-                    WHEN w.[Status] = 0 THEN
-                        'Ready'
-                    WHEN w.[Status] = 1 THEN
-                        'In Progress'
-                    WHEN w.[Status] = 5 THEN
-                        'Done'
-                    ELSE
-                        'Ready'
-                end as state,
-                DATEADD(HOUR, 2, wa.[TimeStamp]) datetime,
-                d.StringValue barcode
-            FROM t_WorkItems w
-                LEFT JOIN t_WorkItemAudits wa
-                    ON w.ID = wa.WorkItemID
-                LEFT JOIN t_ActivityInstances a
-                    ON a.id = w.ActivityInstanceID
-                LEFT JOIN t_DocumentIndexes d
-                    ON d.WorkItemID = w.id
-                LEFT JOIN t_Processes p
-                    ON p.id = a.ProcessID
-            WHERE p.ClientName = 'Privera'
-                AND p.Name = '02_Posteingang'
-                AND w.LastAuditNumber = wa.AuditNumber
-                AND d.Name = 'Barcode'
-            ORDER BY DATEADD(HOUR, 2, wa.[TimeStamp]) desc
+            WITH CTE AS (
+            SELECT TOP 4 tdi.WorkItemID, twi.ModifiedAt, 
+            CASE 
+                WHEN twi.Status = 0 THEN 'Ready'
+                WHEN twi.Status = 5 THEN 'Done'
+                ELSE 'In Progress'
+            END AS Status
+            FROM t_WorkItems twi 
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            AND twi.Status <> 2
+            )
+            SELECT tdi.StringValue Barcode, CTE.ModifiedAt, CTE.Status FROM CTE
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            WHERE tdi.Name = 'Barcode'
+            ORDER BY ModifiedAt DESC
         """)
         activities = cursor.fetchall()
         cursor.close()
@@ -877,9 +874,9 @@ def recent_activity():
 
         return jsonify([
             {
-                "state": row[0],
+                "state": row[2],
                 "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
-                "Barcode": row[2]
+                "Barcode": row[0]
             }
             for row in activities
         ])
@@ -957,6 +954,121 @@ def page_not_found(e):
 @app.errorhandler(DatabaseError)
 def special_exception_handler():
     return 'Database connection failed', 500
+
+def get_access_token():
+    url = 'https://prd-dps.sydoc.ch/auth/connect/token'
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    body = {
+        "grant_type": "client_credentials",
+        "client_id": "jfDCOBt9kbEMdc1e6WQIpWyeTlqIeE",
+        "client_secret": "zr2htn3erliQY87bkc2DVxGXWFDFbF"
+    }
+
+    response = requests.post(url=url, headers=headers, data=body)
+    return response.json()['access_token']
+
+def get_workitemdata_param(workitem_id):
+    url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load'
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url=url, headers=headers)
+    str_content = json.dumps(response.json())
+    base64_bytes = base64.b64encode(str_content.encode('utf-8'))
+    base64_string = base64_bytes.decode('utf-8')
+
+    return base64_string, response.json()['DocumentID']
+
+def get_extension_and_urls(workitemdata, document_id):
+    url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "workitemdata": workitemdata
+    }
+    response = requests.get(url=url, headers=headers)
+    urls = []
+    extension = []
+    for element in response.json()['Media']:
+        if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+            urls.append(element['Url'])
+            extension.append(element['Extension'])
+    return extension, urls
+
+def get_media(url):
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url=url, headers=headers)
+    return response.content
+
+cache = Cache(app, config={'CACHE_TYPE': 'simple'}) 
+
+@app.route('/api/get_media_info/<int:workitem_id>')
+@cache.memoize(timeout=600)
+def api_get_media_info(workitem_id):
+    try:
+        returndata = get_workitemdata_param(workitem_id)
+        if not returndata:
+            return jsonify({"error": "Workitem not found"}), 404
+
+        workitemdata = returndata[0]
+        document_id = returndata[1]
+        extensions_urls = get_extension_and_urls(workitemdata, document_id)
+        media_count = len(extensions_urls[1]) if extensions_urls and extensions_urls[1] else 0
+        response_data = {
+            "workitem_id": workitem_id,
+            "media_count": media_count
+        }
+        return jsonify(response_data)
+    except Exception as e:
+        print(f"An error occurred in get_media_info: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
+def api_get_media_raw(workitem_id, media_index):
+    try:
+        returndata = get_workitemdata_param(workitem_id)
+        if not returndata:
+            return Response("Workitem not found", status=404)
+
+        workitemdata = returndata[0]
+        document_id = returndata[1]
+        extensions_urls = get_extension_and_urls(workitemdata, document_id)
+        
+        extensions = extensions_urls[0]
+        urls = extensions_urls[1]
+
+        if media_index >= len(urls):
+            return Response("Media index out of bounds", status=404)
+
+        target_url = urls[media_index]
+        target_extension = extensions[media_index].lower()
+        
+        raw_media_bytes = get_media(target_url) 
+
+        mimetype = f'image/{target_extension}'
+        if target_extension == 'jpg':
+            mimetype = 'image/jpeg'
+
+        response = make_response(raw_media_bytes)
+        response.headers.set('Content-Type', mimetype)
+        
+        response.headers.set(
+            'Cache-Control', 'public, max-age=3600'
+        )
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return Response("Internal Server Error", status=500)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)

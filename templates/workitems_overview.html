@@ -361,7 +361,6 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="font-medium text-gray-900">{{ workitem.barcode }}</div>
                 </td>
-
                 <td class="px-6 py-4 whitespace-nowrap text-left">
                   {% if workitem.status == "Ready" %}
                   <span
@@ -389,24 +388,19 @@
                   </span>
                   {% endif %}
                 </td>
-
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
                     {{ workitem.modifiedat.strftime('%d. %m. %Y - %H:%M') }}
-                    <!-- Format date -->
                   </div>
                 </td>
-
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right"
-                >
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                   <button
-                    class="text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
-                    onclick="toggleDetails('{{ workitem.barcode }}')"
+                    class="details-toggle-button text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
+                    data-workitemid="{{ workitem.workitemid }}"
                   >
                     <i
                       class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
-                      id="chevron-{{ workitem.barcode }}"
+                      id="chevron-{{ workitem.workitemid }}"
                     >
                       <span class="sp-1"></span>
                       <span class="sp-2"></span>
@@ -415,16 +409,19 @@
                 </td>
               </tr>
 
-              {% else %}
-              <tr>
-                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                  <i class="fas fa-inbox text-4xl mb-4"></i>
-                  <p class="text-lg">No workitems found</p>
-                  <p class="text-sm">
-                    There are currently no workitems for your scope.
-                  </p>
+              <tr
+                id="details-row-{{ workitem.workitemid }}"
+                class="bg-gray-50"
+                hidden
+              >
+                <td colspan="4" class="p-4">
+                  <div id="image-container-{{ workitem.workitemid }}" class="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
+                    <p class="text-gray-500">Click to load media...</p>
+                  </div>
                 </td>
               </tr>
+
+              {% else %}
               {% endfor %}
             </tbody>
           </table>
