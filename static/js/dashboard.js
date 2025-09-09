@@ -22,8 +22,8 @@ supportLink.addEventListener("click", function () {
 async function updateRecentActivity() {
   const list = document.getElementById("recent-activity-list");
   //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
-  
-  // fetch("/sydocportal/api/recent_activity")
+
+  // fetch(`/sydocportal/api/recent_activity`)
   fetch("/api/recent_activity")
     .then((response) => {
       if (!response.ok) {

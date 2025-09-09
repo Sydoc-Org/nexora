@@ -239,7 +239,7 @@ async function loadImage(container, workitemid, index) {
   container.appendChild(placeholder);
 
   try {
-    //const apiUrl = 'sydocportal/api/get_media_raw/${workitemid}/${index}';
+    //const apiUrl = `/sydocportal/api/get_media_raw/${workitemid}/${index}`;
     const apiUrl = `/api/get_media_raw/${workitemid}/${index}`;
     const response = await fetch(apiUrl);
 
