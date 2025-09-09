@@ -562,7 +562,7 @@ def get_dashbord_preview_documents_stats():
 @app.route("/dashboard")
 def dashboard():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
@@ -599,7 +599,7 @@ async def dashboard_stats_document_preview():
 def workitems_overview():
     # Check if user is logged in
     if 'username' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('login', page='index.html'))
 
     logged_in_user = session.get('username')
     userid = session.get('userid')
@@ -674,7 +674,7 @@ def workitems_overview():
 @app.route("/demand_workitem", methods=['POST', 'GET'])
 def demand_workitem():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     if request.method == "POST":
         workitemid = request.form['workitemid']
         log_user_action('demand_workitem', resource_id=workitemid)
@@ -707,7 +707,7 @@ def demand_workitem():
 @app.route("/profile")
 def profile():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
@@ -721,7 +721,7 @@ def profile():
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     if request.method == "POST":
         userid = session['userid']
         username = session['username']
@@ -773,7 +773,7 @@ def update_profile():
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     if request.method == "POST":
         username = session['username']
