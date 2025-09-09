@@ -617,26 +617,24 @@ def workitems_overview():
         cursor = conn.cursor()
         
         cursor.execute("""
-            WITH CTE AS (
-            SELECT TOP 100 d.StringValue Barcode, DATEADD(HOUR, 2, w.ModifiedAt) ModifiedAt, w.id WorkitemID,
-            CASE 
-            WHEN w.Status = 0 THEN 'Ready'
-            WHEN w.Status = 1 THEN 'In Progress'
-            WHEN w.Status  = 5 THEN 'Done'
+        WITH CTE AS (
+        SELECT tdi.WorkItemID, twi.ModifiedAt, 
+        CASE 
+            WHEN twi.Status = 0 THEN 'Ready'
+            WHEN twi.Status = 5 THEN 'Done'
             ELSE 'In Progress'
-            END AS Status,
-            ROW_NUMBER() over (partition by d.StringValue order by w.modifiedat desc) rn
-            FROM t_DocumentIndexes d
-            RIGHT JOIN t_WorkItems w on w.ID = d.WorkItemID
-            RIGHT JOIN t_ActivityInstances a on a.ID = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.ID = a.ProcessID
-            WHERE d.Name = 'Barcode' and p.Name = '02_Posteingang'
-            AND CAST(w.ModifiedAt AS date) = CAST(GETDATE() AS date)
-            ORDER BY ModifiedAt DESC 
-            )
-            SELECT Barcode, ModifiedAt, WorkitemID, Status FROM CTE
-            WHERE RN = 1
-            ORDER BY ModifiedAt desc
+        END AS Status
+        FROM t_WorkItems twi 
+        LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+        LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+        WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+        tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+        AND twi.Status <> 2
+        )
+        SELECT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+        WHERE tdi.Name = 'Barcode'
         """)
         
         workitems = cursor.fetchall()
