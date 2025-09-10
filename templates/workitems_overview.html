@@ -18,8 +18,63 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
     />
     <style>
+      .workitem-image {
+          cursor: pointer;
+          transition: transform 0.2s ease-in-out;
+      }
+
+      .workitem-image:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      }
+
+
+      .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; 
+        background-color: rgba(0, 0, 0, 0.85); 
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        margin: auto;
+        display: block;
+        max-width: 90%;
+        max-height: 85vh; 
+        object-fit: contain; 
+        animation-name: zoom;
+        animation-duration: 0.4s;
+      }
+
+      @keyframes zoom {
+        from {transform: scale(0.5)}
+        to {transform: scale(1)}
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        cursor: pointer;
+      }
+
+      .modal-close:hover,
+      .modal-close:focus {
+        color: #bbb;
+        text-decoration: none;
+      }
       body {
-        /*font-family: "Inter", sans-serif; */
         background-color: #f9fafb;
       }
 
@@ -439,7 +494,10 @@
         </div>
       </div>
     </main>
-    
+    <div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImage">
+  </div>
     <script src="{{ url_for('static',filename='js/workitems_overview.js') }}"></script>
   </body>
 </html>

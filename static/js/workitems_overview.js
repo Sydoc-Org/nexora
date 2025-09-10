@@ -253,7 +253,7 @@ async function loadImage(container, workitemid, index) {
     const imgElement = document.createElement('img');
     imgElement.src = imageUrl;
     imgElement.alt = `Media ${index + 1} for workitem ${workitemid}`;
-    imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg';
+    imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image';
     
     imgElement.onload = () => {
       URL.revokeObjectURL(imageUrl);
@@ -270,3 +270,34 @@ async function loadImage(container, workitemid, index) {
     placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById("imageModal");
+    const modalImg = document.getElementById("modalImage");
+    const closeBtn = document.querySelector(".modal-close");
+
+    document.addEventListener('click', function(event) {
+        if (event.target && event.target.classList.contains('workitem-image')) {
+            modal.style.display = "flex";
+            modalImg.src = event.target.src;
+        }
+    });
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal.style.display === "flex") {
+            closeModal();
+        }
+    });
+});
