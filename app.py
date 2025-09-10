@@ -636,24 +636,25 @@ def workitems_overview():
         
         cursor.execute("""
         WITH CTE AS (
-        SELECT tdi.WorkItemID, twi.ModifiedAt, 
-        CASE 
-            WHEN twi.Status = 0 THEN 'Ready'
-            WHEN twi.Status = 5 THEN 'Done'
-            ELSE 'In Progress'
-        END AS Status
-        FROM t_WorkItems twi 
-        LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-        LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-        WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-        tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
-        AND twi.Status <> 2 
+            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
+            CASE 
+                WHEN twi.Status = 0 THEN 'Ready'
+                WHEN twi.Status = 5 THEN 'Done'
+                ELSE 'In Progress'
+            END AS Status
+            FROM t_WorkItems twi 
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            AND twi.Status <> 2 
         )
-        SELECT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
+        SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
+        FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
-        ORDER BY tdi.StringValue DESC
+        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
         """)
         
         workitems = cursor.fetchall()
