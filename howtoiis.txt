@@ -1,0 +1,4 @@
+Download: https://www.iis.net/downloads/microsoft/url-rewrite
+Install CGI in Server Manager
+Add to IIS 
+Edit Middleware Prefix if nessasarry

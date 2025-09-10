@@ -1,5 +1,5 @@
 from fileinput import filename
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
 from flask_babel import Babel, gettext, ngettext
 import pyodbc
 from pyodbc import DatabaseError
@@ -15,7 +15,11 @@ from flask import jsonify
 import json
 import requests
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
-import asyncio
+import base64
+from PIL import Image
+import io
+from flask_caching import Cache
+
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -102,6 +106,20 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 @app.route("/signin")
 def signin():
     return render_template("seperate_page_login.html")
+
+class PrefixMiddleware(object):
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+            return self.app(environ, start_response)
+        else:
+            start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
+            return [b'This URL does not belong to the application.']
 
 @app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -558,7 +576,7 @@ def get_dashbord_preview_documents_stats():
 @app.route("/dashboard")
 def dashboard():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
@@ -578,14 +596,14 @@ def dashboard():
     )
 
 @app.route("/api/dashboard_stats_absolute")
-async def dashboard_stats_absolute():
+def dashboard_stats_absolute():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
     stats = get_absolute_dashboard_stats()
     return jsonify(stats) 
 
 @app.route("/api/dashboard_stats_document_preview")
-async def dashboard_stats_document_preview():
+def dashboard_stats_document_preview():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
     stats = get_dashbord_preview_documents_stats()
@@ -595,7 +613,7 @@ async def dashboard_stats_document_preview():
 def workitems_overview():
     # Check if user is logged in
     if 'username' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('login', page='index.html'))
 
     logged_in_user = session.get('username')
     userid = session.get('userid')
@@ -604,8 +622,8 @@ def workitems_overview():
     # Connect to runtime database to get workitems
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_STAT};'
+        f'SERVER={DB_SERVER_PRD},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
         f'TrustServerCertificate=yes;'
@@ -617,28 +635,25 @@ def workitems_overview():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT
-                wi.FileID as WorkitemID,
-                ( 
-                    SELECT TOP 1 DateTime 
-                    FROM StadtBiel sb 
-                    WHERE sb.FileID = wi.FileID AND sb.State = 'Ready'
-                    ORDER BY DateTime DESC
-                ) as DateCreated,
-                (  
-                    SELECT TOP 1 
-                        CASE 
-                            WHEN DemandedBy IS NULL THEN 'False'
-                            ELSE 'True'
-                        END
-                    FROM StadtBiel sb 
-                    WHERE sb.FileID = wi.FileID
-                    ORDER BY DateTime DESC
-                ) as Demanded,
-                wi.State as StatusText
-            FROM v_StadtBiel_LatestState wi
-            GROUP BY wi.FileID, wi.State
-            ORDER BY wi.FileID ASC
+        WITH CTE AS (
+        SELECT tdi.WorkItemID, twi.ModifiedAt, 
+        CASE 
+            WHEN twi.Status = 0 THEN 'Ready'
+            WHEN twi.Status = 5 THEN 'Done'
+            ELSE 'In Progress'
+        END AS Status
+        FROM t_WorkItems twi 
+        LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+        LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+        WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+        tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+        AND twi.Status <> 2 
+        )
+        SELECT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        ORDER BY tdi.StringValue DESC
         """)
         
         workitems = cursor.fetchall()
@@ -647,10 +662,10 @@ def workitems_overview():
         workitems_list = []
         for row in workitems:
             workitems_list.append({
-                'id': row[0],                    
-                'created_on': row[1],            
-                'demanded': row[2],              
-                'status_text': row[3],           
+                'barcode': row[0],                    
+                'modifiedat': row[1],           
+                'workitemid' : row[2],
+                'status': row[3]        
             })
             
     except Exception as e:
@@ -673,7 +688,7 @@ def workitems_overview():
 @app.route("/demand_workitem", methods=['POST', 'GET'])
 def demand_workitem():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     if request.method == "POST":
         workitemid = request.form['workitemid']
         log_user_action('demand_workitem', resource_id=workitemid)
@@ -706,7 +721,7 @@ def demand_workitem():
 @app.route("/profile")
 def profile():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
@@ -720,7 +735,7 @@ def profile():
 @app.route("/update_profile", methods=["POST", "GET"])
 def update_profile():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     if request.method == "POST":
         userid = session['userid']
         username = session['username']
@@ -772,7 +787,7 @@ def update_profile():
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
     if 'username' not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login", page='index.html'))
     
     if request.method == "POST":
         username = session['username']
@@ -847,33 +862,25 @@ def recent_activity():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT DISTINCT TOP 4
-                CASE
-                    WHEN w.[Status] = 0 THEN
-                        'Ready'
-                    WHEN w.[Status] = 1 THEN
-                        'In Progress'
-                    WHEN w.[Status] = 5 THEN
-                        'Done'
-                    ELSE
-                        'Ready'
-                end as state,
-                DATEADD(HOUR, 2, wa.[TimeStamp]) datetime,
-                d.StringValue barcode
-            FROM t_WorkItems w
-                LEFT JOIN t_WorkItemAudits wa
-                    ON w.ID = wa.WorkItemID
-                LEFT JOIN t_ActivityInstances a
-                    ON a.id = w.ActivityInstanceID
-                LEFT JOIN t_DocumentIndexes d
-                    ON d.WorkItemID = w.id
-                LEFT JOIN t_Processes p
-                    ON p.id = a.ProcessID
-            WHERE p.ClientName = 'Privera'
-                AND p.Name = '02_Posteingang'
-                AND w.LastAuditNumber = wa.AuditNumber
-                AND d.Name = 'Barcode'
-            ORDER BY DATEADD(HOUR, 2, wa.[TimeStamp]) desc
+            WITH CTE AS (
+            SELECT TOP 4 tdi.WorkItemID, twi.ModifiedAt, 
+            CASE 
+                WHEN twi.Status = 0 THEN 'Ready'
+                WHEN twi.Status = 5 THEN 'Done'
+                ELSE 'In Progress'
+            END AS Status
+            FROM t_WorkItems twi 
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            AND twi.Status <> 2
+            )
+            SELECT tdi.StringValue Barcode, CTE.ModifiedAt, CTE.Status FROM CTE
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            WHERE tdi.Name = 'Barcode'
+            ORDER BY ModifiedAt DESC
         """)
         activities = cursor.fetchall()
         cursor.close()
@@ -881,9 +888,9 @@ def recent_activity():
 
         return jsonify([
             {
-                "state": row[0],
+                "state": row[2],
                 "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
-                "Barcode": row[2]
+                "Barcode": row[0]
             }
             for row in activities
         ])
@@ -961,6 +968,144 @@ def page_not_found(e):
 @app.errorhandler(DatabaseError)
 def special_exception_handler():
     return 'Database connection failed', 500
+
+def get_access_token():
+    url = 'https://prd-dps.sydoc.ch/auth/connect/token'
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    body = {
+        "grant_type": "client_credentials",
+        "client_id": "jfDCOBt9kbEMdc1e6WQIpWyeTlqIeE",
+        "client_secret": "zr2htn3erliQY87bkc2DVxGXWFDFbF"
+    }
+
+    response = requests.post(url=url, headers=headers, data=body)
+    return response.json()['access_token']
+
+def get_workitemdata_param(workitem_id):
+    url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load'
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url=url, headers=headers)
+    str_content = json.dumps(response.json())
+    base64_bytes = base64.b64encode(str_content.encode('utf-8'))
+    base64_string = base64_bytes.decode('utf-8')
+
+    return base64_string, response.json()['DocumentID']
+
+def get_extension_and_urls(workitemdata, document_id):
+    url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "workitemdata": workitemdata
+    }
+    response = requests.get(url=url, headers=headers)
+    urls = []
+    extension = []
+    for element in response.json()['Media']:
+        if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+            urls.append(element['Url'])
+            extension.append(element['Extension'])
+    return extension, urls
+
+def get_media(url):
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url=url, headers=headers)
+    return response.content
+
+cache = Cache(app, config={'CACHE_TYPE': 'simple'}) 
+
+@app.route('/api/get_media_info/<int:workitem_id>')
+def api_get_media_info(workitem_id):
+    try:
+        returndata = get_workitemdata_param(workitem_id)
+        if not returndata:
+            return jsonify({"error": "Workitem not found"}), 404
+
+        workitemdata = returndata[0]
+        document_id = returndata[1]
+        extensions_urls = get_extension_and_urls(workitemdata, document_id)
+        media_count = len(extensions_urls[1]) if extensions_urls and extensions_urls[1] else 0
+        response_data = {
+            "workitem_id": workitem_id,
+            "media_count": media_count
+        }
+        return jsonify(response_data)
+    except Exception as e:
+        print(f"An error occurred in get_media_info: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+@app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
+def api_get_media_raw(workitem_id, media_index):
+    try:
+        returndata = get_workitemdata_param(workitem_id)
+        if not returndata:
+            return Response("Workitem not found", status=404)
+
+        workitemdata = returndata[0]
+        document_id = returndata[1]
+        extensions_urls = get_extension_and_urls(workitemdata, document_id)
+        
+        extensions = extensions_urls[0]
+        urls = extensions_urls[1]
+
+        if media_index >= len(urls):
+            return Response("Media index out of bounds", status=404)
+
+        target_url = urls[media_index]
+        target_extension = extensions[media_index].lower()
+        
+        raw_media_bytes = get_media(target_url) 
+
+        if target_extension == '.jpg':
+            mimetype = 'image/jpeg'
+        elif target_extension == '.png':
+            mimetype = 'image/png'
+        elif target_extension == '.tif':
+            try:
+                image_stream = io.BytesIO(raw_media_bytes)
+                with Image.open(image_stream) as img:
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    buffer = io.BytesIO()
+                    img.save(buffer, format='JPEG', quality=85) 
+                    buffer.seek(0)
+                    
+                    return send_file(
+                        buffer,
+                        mimetype='image/jpeg',
+                        as_attachment=False 
+                    )
+            except Exception as e:
+                print(f"An error occurred during TIFF conversion: {e}")
+                return "Failed to process TIFF image", 500
+            
+        response = make_response(raw_media_bytes)
+        response.headers.set('Content-Type', mimetype)
+        
+        response.headers.set(
+            'Cache-Control', 'public, max-age=3600'
+        )
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return Response("Internal Server Error", status=500)
+
+# ------------------------------- ONLY FOR IIS ------------------------------- #
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
+# ------------------------------------- - ------------------------------------ #
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
