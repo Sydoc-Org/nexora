@@ -20,6 +20,7 @@ from PIL import Image
 import io
 from flask_caching import Cache
 
+
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
     if 'username' not in session:
@@ -635,7 +636,7 @@ def workitems_overview():
         
         cursor.execute("""
         WITH CTE AS (
-        SELECT TOP 1000 tdi.WorkItemID, twi.ModifiedAt, 
+        SELECT tdi.WorkItemID, twi.ModifiedAt, 
         CASE 
             WHEN twi.Status = 0 THEN 'Ready'
             WHEN twi.Status = 5 THEN 'Done'
@@ -647,12 +648,12 @@ def workitems_overview():
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
         WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
         tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
-        AND twi.Status <> 2
+        AND twi.Status <> 2 
         )
-        SELECT tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
+        SELECT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode'
-        ORDER BY ModifiedAt DESC
+        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        ORDER BY tdi.StringValue DESC
         """)
         
         workitems = cursor.fetchall()
@@ -1026,7 +1027,6 @@ def get_media(url):
 cache = Cache(app, config={'CACHE_TYPE': 'simple'}) 
 
 @app.route('/api/get_media_info/<int:workitem_id>')
-@cache.memoize(timeout=600)
 def api_get_media_info(workitem_id):
     try:
         returndata = get_workitemdata_param(workitem_id)
@@ -1068,10 +1068,30 @@ def api_get_media_raw(workitem_id, media_index):
         
         raw_media_bytes = get_media(target_url) 
 
-        mimetype = f'image/{target_extension}'
-        if target_extension == 'jpg':
+        if target_extension == '.jpg':
             mimetype = 'image/jpeg'
-
+        elif target_extension == '.png':
+            mimetype = 'image/png'
+        elif target_extension == '.tif':
+            try:
+                image_stream = io.BytesIO(raw_media_bytes)
+                with Image.open(image_stream) as img:
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    buffer = io.BytesIO()
+                    img.save(buffer, format='JPEG', quality=85) 
+                    buffer.seek(0)
+                    
+                    return send_file(
+                        buffer,
+                        mimetype='image/jpeg',
+                        as_attachment=False 
+                    )
+            except Exception as e:
+                print(f"An error occurred during TIFF conversion: {e}")
+                return "Failed to process TIFF image", 500
+            
         response = make_response(raw_media_bytes)
         response.headers.set('Content-Type', mimetype)
         

@@ -222,7 +222,7 @@ async function toggleDetailsAndLoadImages(event) {
     imageContainer.style.gap = '1rem'; 
 
     for (let i = 0; i < imageCount; i++) {
-        loadImage(imageContainer, workitemid, i);
+        await loadImage(imageContainer, workitemid, i);
     }
 
   } catch (error) {
