@@ -694,7 +694,6 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
     
-
 @app.route("/demand_workitem", methods=['POST', 'GET'])
 def demand_workitem():
     if 'username' not in session:
@@ -946,7 +945,10 @@ def all_states_from_one_workitem(workitem_id):
 
 @app.route('/jdvance')
 def jdvance():
-    return render_template("jdvance.html")
+    if 'username' in session:
+        return render_template("jdvance.html")
+    else:
+        return render_template("404.html"), 404
 
 @app.route('/language/<lang>')
 def set_language(lang=None):
