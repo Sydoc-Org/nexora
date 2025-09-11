@@ -1,6 +1,13 @@
+if (URL.toString().includes("sydocportal")) {
+      var API_PREFIX = "/sydocportal/";
+  }
+  else {
+      var API_PREFIX = "/";
+  }
+
 function logAction(actionType, resourceId = null, details = null) {
   // fetch("/sydocportal/log_action", {
-  fetch("/log_action", {
+  fetch(`${API_PREFIX}log_action`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -23,8 +30,7 @@ async function updateRecentActivity() {
   const list = document.getElementById("recent-activity-list");
   //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
 
-  // fetch(`/sydocportal/api/recent_activity`)
-  fetch("/api/recent_activity")
+  fetch(`${API_PREFIX}api/recent_activity`)
     .then((response) => {
       if (!response.ok) {
         throw new Error("Error fetching recent activity");
@@ -149,8 +155,7 @@ async function updateDocumentPreviewStats() {
     }
 
     try {
-        //  fetch("/sydocportal/api/dashboard_stats_document_preview")
-        const response = await fetch('/api/dashboard_stats_document_preview');
+        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
         if (!response.ok) {
             throw new Error(`API request failed with status ${response.status}`);
         }
@@ -196,8 +201,7 @@ async function updateDocumentPreviewStats() {
 
 async function updateAbsoluteStats() {
       try {
-          // fetch("/sydocportal/api/dashboard_stats_absolute")
-          const response = await fetch('/api/dashboard_stats_absolute');
+          const response = await fetch(`${API_PREFIX}api/dashboard_stats_absolute`);
           if (!response.ok) {
               throw new Error(`API request failed with status ${response.status}`);
           }

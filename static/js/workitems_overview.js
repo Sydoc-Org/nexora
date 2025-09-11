@@ -1,6 +1,12 @@
+if (URL.toString().includes("sydocportal")) {
+      var API_PREFIX = "/sydocportal/";
+  }
+  else {
+      var API_PREFIX = "/";
+  }
+
 function logAction(actionType, resourceId = null, details = null) {
-  // fetch("/sydocportal/log_action", {
-  fetch("/log_action", {
+  fetch(`${API_PREFIX}log_action`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -201,8 +207,7 @@ async function toggleDetailsAndLoadImages(event) {
   imageContainer.innerHTML = '<p class="text-gray-500 animate-pulse">Checking for media...</p>';
 
   try {
-    // const infoResponse = await fetch(`/sydocportal/api/get_media_info/${workitemid}`);
-    const infoResponse = await fetch(`/api/get_media_info/${workitemid}`);
+    const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
     if (!infoResponse.ok) {
       throw new Error('Could not fetch media information.');
     }
@@ -239,8 +244,7 @@ async function loadImage(container, workitemid, index) {
   container.appendChild(placeholder);
 
   try {
-    //const apiUrl = `/sydocportal/api/get_media_raw/${workitemid}/${index}`;
-    const apiUrl = `/api/get_media_raw/${workitemid}/${index}`;
+    const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
