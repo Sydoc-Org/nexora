@@ -945,7 +945,7 @@ def all_states_from_one_workitem(workitem_id):
 
 @app.route('/jdvance')
 def jdvance():
-    if 'username' in session:
+    if 'username' in session and session['scope'] == 'Admin':
         return render_template("jdvance.html")
     else:
         return render_template("404.html"), 404
