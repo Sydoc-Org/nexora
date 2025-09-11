@@ -1,9 +1,4 @@
-if (URL.toString().includes("sydocportal")) {
-      var API_PREFIX = "/sydocportal/";
-  }
-  else {
-      var API_PREFIX = "/";
-  }
+const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
 
 function logAction(actionType, resourceId = null, details = null) {
   // fetch("/sydocportal/log_action", {
