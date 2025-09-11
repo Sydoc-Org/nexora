@@ -1116,7 +1116,7 @@ def api_get_media_raw(workitem_id, media_index):
         return Response("Internal Server Error", status=500)
 
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
+#  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #
 
 if __name__ == "__main__":
