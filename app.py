@@ -522,40 +522,46 @@ def get_dashbord_preview_documents_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT top 10
-                d.Stringvalue Barcode,
-                CASE
-                    WHEN a.ActivityInstanceName like '%C+A%' THEN
+            WITH CTE AS (
+            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
+            CASE 
+                WHEN twi.Status = 0 THEN 'Ready'
+                WHEN twi.Status = 5 THEN 'Done'
+                ELSE 'In Progress'
+            END AS Status,
+            CASE
+                    WHEN tai.ActivityInstanceName like '%C+A%' THEN
                         'InValidation'
-                    WHEN a.ActivityInstanceName like '%Export%'
-                        OR a.ActivityInstanceName like '%Exp%' THEN
+                    WHEN tai.ActivityInstanceName like '%Export%'
+                        OR tai.ActivityInstanceName like '%Exp%' THEN
                         'InExport'
-                    WHEN a.ActivityInstanceName like '%Import%'
-                        OR a.ActivityInstanceName like '%Imp%' THEN
+                    WHEN tai.ActivityInstanceName like '%Import%'
+                        OR tai.ActivityInstanceName like '%Imp%' THEN
                         'InImport'
-                    WHEN a.ActivityInstanceName like '%Extract%' THEN
+                    WHEN tai.ActivityInstanceName like '%Extract%' THEN
                         'InExtraction'
-                    WHEN a.ActivityInstanceName like '%OCR%' THEN
+                    WHEN tai.ActivityInstanceName like '%OCR%' THEN
                         'InOCR'
-                    WHEN a.ActivityInstanceName like '%Statistik%' THEN
+                    WHEN tai.ActivityInstanceName like '%Statistik%' THEN
                         'InDBSaving'
-                    WHEN a.ActivityInstanceName like '%Collect%' THEN
+                    WHEN tai.ActivityInstanceName like '%Collect%' THEN
                         'InDBSaving'
                     ELSE
-                        'InValidation'
+                        'Processing'
                 END AS Activity
-            FROM t_WorkItems w
-                LEFT JOIN t_ActivityInstances a
-                    on a.id = w.ActivityInstanceID
-                LEFT JOIN t_Processes p
-                    on p.id = a.ProcessID
-                LEFT JOIN t_DocumentIndexes d
-                    on w.ID = d.WorkItemID
-            WHERE CAST(w.DateCreated AS DATE) = CAST(GETDATE() AS DATE)
-                and d.Name = 'Barcode'
-                AND p.Name = '02_Posteingang'
-                AND p.ClientName = 'Privera'
-            ORDER by newid()
+            FROM t_WorkItems twi 
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            AND twi.Status <> 2 
+        )
+        SELECT DISTINCT TOP 10 tdi.StringValue Barcode
+        ,Activity FROM CTE
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
             """
         )
         rows = cursor.fetchall()
@@ -864,7 +870,7 @@ def recent_activity():
         cursor = conn.cursor()
         cursor.execute("""
             WITH CTE AS (
-            SELECT TOP 4 tdi.WorkItemID, twi.ModifiedAt, 
+            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
                 WHEN twi.Status = 0 THEN 'Ready'
                 WHEN twi.Status = 5 THEN 'Done'
@@ -876,12 +882,12 @@ def recent_activity():
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
             WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
             tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
-            AND twi.Status <> 2
-            )
-            SELECT tdi.StringValue Barcode, CTE.ModifiedAt, CTE.Status FROM CTE
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            WHERE tdi.Name = 'Barcode'
-            ORDER BY ModifiedAt DESC
+            AND twi.Status <> 2 
+        )
+        SELECT DISTINCT TOP 4 tdi.StringValue Barcode, CTE.Status, CTE.ModifiedAt FROM CTE
+        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
         """)
         activities = cursor.fetchall()
         cursor.close()
@@ -889,8 +895,8 @@ def recent_activity():
 
         return jsonify([
             {
-                "state": row[2],
-                "datetime": row[1].strftime('%Y-%m-%d %H:%M:%S'),  
+                "state": row[1],
+                "datetime": row[2].strftime('%Y-%m-%d %H:%M:%S'),  
                 "Barcode": row[0]
             }
             for row in activities

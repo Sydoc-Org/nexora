@@ -116,12 +116,12 @@ const activityDetails = {
     },
     'InImport': {
         icon: 'fa-solid fa-file-import',
-        color: 'yellow',
+        color: 'red',
         text: 'In Import'
     },
     'InExtraction': {
         icon: 'fa-solid fa-file-waveform',
-        color: 'yellow', 
+        color: 'blue', 
         text: 'In Extraction'
     },
     'InOCR': {
@@ -134,10 +134,10 @@ const activityDetails = {
         color: 'orange',
         text: 'In DB Saving'
     },
-    'default': {
-        icon: 'fa-solid fa-question-circle',
-        color: 'gray',
-        text: 'Unknown'
+    'Processing': {
+        icon: 'fa-solid fa-list-check',
+        color: 'yellow',
+        text: 'Processing'
     }
 };
 
