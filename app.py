@@ -11,7 +11,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from pathlib import Path
 import re
-from flask import jsonify
 import json
 import requests
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
@@ -84,7 +83,7 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True  
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
@@ -127,7 +126,8 @@ def login(page=None):
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
-        
+        REMEMBER = request.form.getlist('remember')
+        print(REMEMBER)
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template(page, error="Invalid credentials")
 
@@ -168,7 +168,8 @@ def login(page=None):
                     session['email'] = stored_email
                     session['scope'] = scope
                     session['company'] = stored_company
-                    session.permanent = True
+                    if len(REMEMBER) > 0:
+                        session.permanent = True
 
                     log_user_action('login_success')
 
@@ -436,6 +437,8 @@ def request_password_reset():
 
 @app.route("/")
 def index():
+    if 'username' in session:
+        return redirect(url_for("dashboard"))
     return render_template("index.html")
 
 def get_absolute_dashboard_stats():
