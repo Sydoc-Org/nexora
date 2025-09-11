@@ -4,73 +4,87 @@
 ------------------The Application and Documentation is a WORK IN PROGRESS
 --🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-------WIP-------🔨-------WIP-------🚧-----
 
-A modern Flask-based customer portal for document workflow management, providing secure authentication and comprehensive workitem tracking for multiple client organizations.
+A modern Flask-based customer portal for document workflow management, providing secure authentication, comprehensive workitem tracking, and multi-client support.
 
 ## 🚀 Features
 
 ### 🔐 Authentication & Security
 
-- **Secure Login System** with bcrypt password hashing
-- **Rate Limiting** (5 login attempts per minute, 200 requests per day)
-- **Session Management** with secure cookies and automatic expiration
-- **Scope-based Access Control** for multi-tenant architecture
+- Secure login with bcrypt password hashing
+- Rate limiting (5 login attempts/minute, 200 requests/day)
+- Session management with secure cookies and expiration
+- Scope-based access control for multi-tenant architecture
 
 ### 📊 Dashboard
 
-- **Real-time Statistics** showing document processing status
-- **Interactive Progress Tracking** with visual workflow indicators
-- **Client-specific Data** filtered by user scope
+- Real-time statistics and document processing status
+- Interactive progress tracking with workflow indicators
+- Client-specific data filtered by user scope
 
 ### 📋 Workitems Management
 
-- **Comprehensive Overview** of all workitems with detailed information
-- **Advanced Filtering** by status, priority, and custom search
-- **Sortable Columns** for better data organization
-- **Export Functionality** to CSV
-- **Real-time Status Updates** with color-coded indicators
-- **Request for Processing** by client for prioritized processing
+- Overview of all workitems with detailed info
+- Advanced filtering by status, priority, and search
+- Sortable columns for data organization
+- Export to CSV
+- Real-time status updates with color indicators
+- Request for prioritized processing
+
+### 🌗 Dark Mode
+
+- Toggleable dark mode using Tailwind CSS
+- Remembers user preference across sessions
+
+### 📝 Logging & Auditing
+
+- Logs all user actions for auditing and troubleshooting
+- Tracks login, workitem views, exports, and more
 
 ## 🛠️ Technology Stack
 
-- **Backend**: Flask (Python)
-- **Database**: Microsoft SQL Server with pyodbc
-- **Frontend**: HTML5, Tailwind CSS, JavaScript
-- **Authentication**: bcrypt for password hashing
-- **Rate Limiting**: Flask-Limiter
-- **Environment**: python-dotenv for configuration
+- **Backend:** Flask (Python)
+- **Database:** Microsoft SQL Server (pyodbc)
+- **Frontend:** HTML5, Tailwind CSS, JavaScript
+- **Authentication:** bcrypt
+- **Rate Limiting:** Flask-Limiter
+- **Environment:** python-dotenv
 
 ## 📁 Project Structure
 
 ```
 Kundenportal-Sydoc/
-├── app.py                          # Main Flask application
-├── README.md                       # Project documentation
-├── .env                           # Environment variables (not in repo)
+├── app.py                      # Main Flask application
+├── README.md                   # Project documentation
+├── .env                        # Environment variables (excluded from repo)
 ├── static/
-│   └── images/                    # Client logos and icons
-│       ├── ElektroMaterial-Icon.png
-│       ├── Privera-Icon.png
-│       └── StadtBiel-Icon.svg
+│   ├── images/                 # Client logos and icons
+│   ├── utils.js                # Shared JS utilities (logging, etc.)
+│   ├── workitems_overview.js   # Workitems page logic
+│   └── post_login.js           # Dashboard page logic
 ├── templates/
-│   ├── index.html                 # Login page
-│   ├── post_login.html           # Dashboard
-│   └── workitems_overview.html   # Workitems management
+│   ├── index.html              # Login page
+│   ├── post_login.html         # Dashboard
+│   ├── workitems_overview.html # Workitems management
+│   ├── profile.html            # User profile/settings
+│   ├── _header.html            # Shared header/navigation
+│   └── _base.html              # Shared base template
 └── sql/
-    └── dps-activities.sql         # Database schema/queries
+    └── dps-activities.sql      # Database schema and queries
 ```
 
 ## 🗄️ Database Schema
 
 ### Core Tables
 
-- **`Users`** - User authentication and scope assignment
-- **`t_WorkItems`** - Main workitem tracking table
-- **`t_ActivityInstances`** - Workflow activity instances
-- **`t_Processes`** - Process definitions and client mapping
+- **Users**: User authentication and scope assignment
+- **t_WorkItems**: Main workitem tracking
+- **t_ActivityInstances**: Workflow activity instances
+- **t_Processes**: Process definitions and client mapping
+- **User_Logs**: User action logging
 
 ### Key Views
 
-- **`v_StadtBiel_LatestState`** - Latest state aggregation for StadtBiel client
+- **v_StadtBiel_LatestState**: Latest state aggregation for StadtBiel client
 
 ## 🔗 API Endpoints
 
@@ -81,27 +95,40 @@ Kundenportal-Sydoc/
 | `/logout`     | GET       | User logout                        |
 | `/post_login` | GET       | Dashboard (requires auth)          |
 | `/workitems`  | GET       | Workitems overview (requires auth) |
+| `/profile`    | GET       | User profile/settings              |
+| `/log_action` | POST      | Log user actions (internal)        |
 
 ## 👥 Multi-Client Support
 
-The portal supports multiple client organizations. At the moment the following:
+Supports multiple client organizations:
 
-- **ElektroMaterial** - Electrical materials processing
-- **Privera** - Private document management
-- **StadtBiel** - Municipal document processing
+- **ElektroMaterial**: Electrical materials processing
+- **Privera**: Private document management
+- **StadtBiel**: Municipal document processing
 
 Each client has:
 
-- Dedicated data isolation
+- Data isolation
 - Custom branding (logos/icons)
 - Specific workflow configurations
 - Independent statistics tracking
+
+## 🌗 Dark Mode
+
+- Toggle dark mode via header button
+- Uses Tailwind CSS `dark:` classes
+- Persists user preference with localStorage
+
+## 📝 Logging
+
+- All user actions (login, view, export, demand, etc.) are logged to `User_Logs`
+- Logs include user, action type, resource, details, IP, and timestamp
 
 ## 🚀 Deployment
 
 ### Production Considerations
 
-- Use a proper WSGI server (Gunicorn, uWSGI)
+- Use a WSGI server (Gunicorn, uWSGI)
 - Configure SSL/TLS certificates
 - Set up database connection pooling
 - Implement proper logging
@@ -120,7 +147,7 @@ gunicorn -w 4 -b 0.0.0.0:8000 app:app
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature / style / chore / ... branch (`git checkout -b feature/xy`)
+2. Create a feature/style/chore branch (`git checkout -b feature/xy`)
 3. Commit your changes (`git commit -m 'Add this and that'`)
 4. Push to the branch (`git push origin feature/xy`)
 5. Open a Pull Request
