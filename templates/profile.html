@@ -82,10 +82,10 @@
                             </button>
                             <el-menu anchor="bottom end" popover
                                 class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="/profile"
+                                <a href="{{ url_for('profile') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">{{
                                     _('Your Profile') }}</a>
-                                <a href="/logout"
+                                <a href="{{ url_for('logout') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">{{
                                     _('Sign out') }}</a>
                             </el-menu>
@@ -118,7 +118,7 @@
                         <i class="fas fa-language w-5 h-5 mr-3"></i>
                         {{ _('Language') }}
                     </a>
-                    <a href="/logout"
+                    <a href="{{ url_for('logout') }}"
                         class="flex items-center px-4 py-2 text-red-600 hover:bg-red-100 hover:text-red-900 rounded-lg font-medium">
                         <i class="fas fa-arrow-right-from-bracket w-5 h-5 mr-3"></i>
                         {{ _('Sign Out') }}

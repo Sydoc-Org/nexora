@@ -61,7 +61,7 @@
                                 <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600" id="remember" name="remember">
                                 <span class="ml-2">Remember me</span>
                             </label>
-                            <a href="/forgot_password" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                            <a href="{{ url_for('forgot_password') }}" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
                         </div>
                         <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
                             Sign In
