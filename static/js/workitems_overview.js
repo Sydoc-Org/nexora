@@ -1,4 +1,16 @@
 const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
+let animationTimeouts = [];
+
+function cancelAllAnimations() {
+  animationTimeouts.forEach(clearTimeout);
+  animationTimeouts = []; 
+
+  const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+  allRows.forEach(row => {
+    row.classList.remove('opacity-0');
+    row.style.transform = ''; 
+  });
+}
 
 function logAction(actionType, resourceId = null, details = null) {
   fetch(`${API_PREFIX}log_action`, {
@@ -17,6 +29,7 @@ function logAction(actionType, resourceId = null, details = null) {
 // Search functionality
 document.getElementById("searchInput").addEventListener("keyup", function () {
   closeAllDetails();
+  cancelAllAnimations();
   const searchTerm = this.value.toLowerCase();
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
@@ -34,28 +47,25 @@ document.getElementById("searchInput").addEventListener("keyup", function () {
   document.getElementById("showingCount").textContent = visibleCount;
 });
 
-// Status filter functionality
 document.getElementById("statusFilter").addEventListener("change", function () {
   closeAllDetails();
+  cancelAllAnimations();
   const selectedStatus = this.value;
-  const tbody = document.getElementById("workitemsTbody"); // Get the tbody
-  
+  const allRows = document.querySelectorAll(".workitem-row");
+  let visibleCount = 0;
+
   logAction("filter_workitemList", null, { by_status: selectedStatus });
 
-  if (selectedStatus) {
-    tbody.dataset.statusFilter = selectedStatus;
-  } else {
-    tbody.removeAttribute("data-status-filter");
-  }
-
-  let visibleCount = 0;
-  const allRows = document.querySelectorAll(".workitem-row");
-
-  if (selectedStatus) {
-    visibleCount = document.querySelectorAll(`.workitem-row[data-status="${selectedStatus}"]`).length;
-  } else {
-    visibleCount = allRows.length;
-  }
+  allRows.forEach(row => {
+    const rowStatus = row.dataset.status;
+    
+    if (!selectedStatus || rowStatus === selectedStatus) {
+      row.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      row.classList.add('hidden');
+    }
+  });
   
   document.getElementById("showingCount").textContent = visibleCount;
 });
@@ -309,12 +319,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
   tableRows.forEach(row => {
     const delay = row.style.getPropertyValue('--delay') || '0ms';
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       row.style.transform = 'translateX(-15px)';
       row.classList.remove('opacity-0');
       setTimeout(() => {
         row.style.transform = 'translateX(0)';
       }, 10);
     }, 200 + parseInt(delay));
+    animationTimeouts.push(timeoutId); 
   });
 });

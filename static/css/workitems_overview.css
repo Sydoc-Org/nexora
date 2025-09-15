@@ -325,13 +325,6 @@
   transform: scale(0.95);
 }
 
-#workitemsTbody[data-status-filter] > .workitem-row {
+.workitem-row.hidden {
   display: none;
-}
-
-#workitemsTbody[data-status-filter="Ready"] > .workitem-row[data-status="Ready"],
-#workitemsTbody[data-status-filter="In Progress"] > .workitem-row[data-status="In Progress"],
-#workitemsTbody[data-status-filter="Done"] > .workitem-row[data-status="Done"]
- {
-  display: table-row; 
 }
