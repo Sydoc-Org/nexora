@@ -5,73 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sydoc Portal - Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-  <style>
-    html {
-      overflow-y: scroll;
-    }
-
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: #f9fafb;
-    }
-
-    .progress-step {
-      display: flex;
-      align-items: center;
-      flex-grow: 1;
-      position: relative;
-    }
-
-    .progress-step:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      left: 18px;
-      top: 40px;
-      height: 2px;
-      width: calc(100% - 36px);
-      background-color: #e5e7eb;
-    }
-
-    .progress-step.completed:not(:last-child)::after {
-      background-color: #03020bff;
-    }
-
-    .progress-icon {
-      z-index: 10;
-    }
-
-    @keyframes rotate {
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    .animate-rotate {
-      animation: rotate 3s linear infinite;
-    }
-
-    @keyframes pulse-icon {
-
-      0%,
-      100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-
-      50% {
-        transform: scale(1.1);
-        opacity: 0.9;
-      }
-    }
-
-    .animate-pulse-icon {
-      animation: pulse-icon 2s ease-in-out infinite;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/dashboard.css') }}">
 </head>
 
 <body class="text-gray-800">
