@@ -55,7 +55,6 @@ document.getElementById("statusFilter").addEventListener("change", function () {
     } else {
       row.style.display = "none";
 
-      // Hide details if open
       if (detailsRow) detailsRow.style.display = "none";
       if (chevron) {
         chevron.classList.remove("glyphicon-chevron-down-custom");
@@ -185,13 +184,15 @@ async function toggleDetailsAndLoadImages(event) {
   const isHidden = detailsRow.hasAttribute('hidden');
   if (isHidden) {
     detailsRow.removeAttribute('hidden');
-    chevron.classList.remove('glyphicon-chevron-up-custom');
-    chevron.classList.add('glyphicon-chevron-down-custom');
   } else {
     detailsRow.setAttribute('hidden', true);
-    chevron.classList.remove('glyphicon-chevron-down-custom');
-    chevron.classList.add('glyphicon-chevron-up-custom');
-    return;
+  }
+  
+  chevron.classList.toggle('glyphicon-chevron-up-custom');
+  chevron.classList.toggle('glyphicon-chevron-down-custom');
+
+  if (!isHidden) { 
+      return;
   }
 
   const isLoaded = imageContainer.dataset.loaded === 'true';
@@ -221,8 +222,9 @@ async function toggleDetailsAndLoadImages(event) {
     imageContainer.style.flexWrap = 'wrap';
     imageContainer.style.gap = '1rem'; 
 
+    const imagePromises = [];
     for (let i = 0; i < imageCount; i++) {
-        await loadImage(imageContainer, workitemid, i);
+        imagePromises.push(loadImage(imageContainer, workitemid, i));
     }
 
   } catch (error) {
