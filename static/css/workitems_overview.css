@@ -292,3 +292,46 @@
       .timeline-label {
         text-align: center;
       }
+
+
+
+.indicator {
+  display: inline-block;
+  transition: transform 0.3s ease-in-out;
+}
+
+.indicator.open {
+  transform: rotate(-180deg);
+}
+
+.details-content-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+  padding: 0 1rem; 
+}
+
+.details-row.open .details-content-wrapper {
+  max-height: 500px; 
+  padding: 1rem;
+}
+
+.workitem-row {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.workitem-row.hiding {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+#workitemsTbody[data-status-filter] > .workitem-row {
+  display: none;
+}
+
+#workitemsTbody[data-status-filter="Ready"] > .workitem-row[data-status="Ready"],
+#workitemsTbody[data-status-filter="In Progress"] > .workitem-row[data-status="In Progress"],
+#workitemsTbody[data-status-filter="Done"] > .workitem-row[data-status="Done"]
+ {
+  display: table-row; 
+}
