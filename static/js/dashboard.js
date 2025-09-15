@@ -105,117 +105,150 @@ async function updateRecentActivity() {
 };
 
 const activityDetails = {
-    'InValidation': {
-        icon: 'fa-solid fa-laptop-file',
-        color: 'violet',
-        text: 'In Validation'
-    },
-    'InExport': {
-        icon: 'fa-solid fa-file-export',
-        color: 'green',
-        text: 'In Export'
-    },
-    'InImport': {
-        icon: 'fa-solid fa-file-import',
-        color: 'red',
-        text: 'In Import'
-    },
-    'InExtraction': {
-        icon: 'fa-solid fa-file-waveform',
-        color: 'blue', 
-        text: 'In Extraction'
-    },
-    'InOCR': {
-        icon: 'fa-solid fa-file-lines',
-        color: 'sky',
-        text: 'In OCR'
-    },
-    'InDBSaving': {
-        icon: 'fa-solid fa-database',
-        color: 'orange',
-        text: 'In DB Saving'
-    },
-    'Processing': {
-        icon: 'fa-solid fa-list-check',
-        color: 'yellow',
-        text: 'Processing'
-    }
+  'InValidation': {
+    icon: 'fa-solid fa-laptop-file',
+    color: 'violet',
+    text: 'In Validation'
+  },
+  'InExport': {
+    icon: 'fa-solid fa-file-export',
+    color: 'green',
+    text: 'In Export'
+  },
+  'InImport': {
+    icon: 'fa-solid fa-file-import',
+    color: 'red',
+    text: 'In Import'
+  },
+  'InExtraction': {
+    icon: 'fa-solid fa-file-waveform',
+    color: 'blue',
+    text: 'In Extraction'
+  },
+  'InOCR': {
+    icon: 'fa-solid fa-file-lines',
+    color: 'sky',
+    text: 'In OCR'
+  },
+  'InDBSaving': {
+    icon: 'fa-solid fa-database',
+    color: 'orange',
+    text: 'In DB Saving'
+  },
+  'Processing': {
+    icon: 'fa-solid fa-list-check',
+    color: 'yellow',
+    text: 'Processing'
+  }
 };
 
 async function updateDocumentPreviewStats() {
-    const container = document.getElementById('document-preview-container');
-    if (!container) {
-        console.error('Error: The container with ID "document-preview-container" was not found.');
-        return;
+  const container = document.getElementById('document-preview-container');
+  if (!container) {
+    console.error('Error: The container with ID "document-preview-container" was not found.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
     }
+    const rows = await response.json();
+    container.innerHTML = '';
 
-    try {
-        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        const rows = await response.json();
-        container.innerHTML = '';
-
-        if (rows.length === 0) {
-            container.innerHTML = '<p class="text-gray-500">No active documents to display.</p>';
-            return;
-        }
-        rows.forEach(row => {
-            const details = activityDetails[row.Activity] || activityDetails.default;
-            const color = details.color;
-
-            const cardHtml = `
-                <div class="group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4
-                             transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                    
-                    <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
-                                rounded-full text-2xl animate-pulse-icon transition-colors duration-300 group-hover:bg-${color}-500 group-hover:text-white">
-                        <i class="${details.icon}"></i>
-                    </div>
-
-                    <div>
-                        <h4 class="font-bold text-lg text-gray-800">Barcode ${row.Barcode}</h4>
-                        <p class="text-sm text-gray-500">Current Status:</p>
-                        
-                        <span class="bg-${color}-100 text-${color}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            ${details.text}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', cardHtml);
-        });
-
-    } catch (error) {
-        console.error("Failed to update document preview stats:", error);
-        container.innerHTML = `<div class="text-center text-red-500 p-4">Error loading data.</div>`;
+    if (rows.length === 0) {
+      container.innerHTML = '<p class="text-gray-500">No active documents to display.</p>';
+      return;
     }
+    rows.forEach((row, index) => {
+      const details = activityDetails[row.Activity] || activityDetails.default;
+      const color = details.color;
+
+      const cardElement = document.createElement('div');
+
+      cardElement.className = `group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4 
+                             transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-1`;
+
+      cardElement.innerHTML = `
+        <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
+                     rounded-full text-2xl transition-colors duration-300 group-hover:bg-${color}-500 group-hover:text-white">
+            <i class="${details.icon}"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-lg text-gray-800">Barcode ${row.Barcode}</h4>
+            <p class="text-sm text-gray-500">Current Status:</p>
+            <span class="bg-${color}-100 text-${color}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                ${details.text}
+            </span>
+        </div>
+    `;
+
+
+      cardElement.classList.add('opacity-0', 'translate-y-4');
+
+      container.appendChild(cardElement);
+
+      const delay = index * 100;
+      setTimeout(() => {
+        cardElement.classList.remove('opacity-0', 'translate-y-4');
+      }, delay);
+    });
+
+  } catch (error) {
+    console.error("Failed to update document preview stats:", error);
+    container.innerHTML = `<div class="text-center text-red-500 p-4">Error loading data.</div>`;
+  }
 };
 
-async function updateAbsoluteStats() {
-      try {
-          const response = await fetch(`${API_PREFIX}api/dashboard_stats_absolute`);
-          if (!response.ok) {
-              throw new Error(`API request failed with status ${response.status}`);
-          }
-          const stats = await response.json();
-          document.getElementById('ready-total').textContent = stats.ReadyTotal;
-          document.getElementById('in-progress-total').textContent = stats.InProgressTotal;
-          document.getElementById('done-total').textContent = stats.DoneTotal;
-          document.getElementById('backlog-total').textContent = stats.BacklogTotal;
+function animateValue(element, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    element.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    }
+  };
+  window.requestAnimationFrame(step);
+}
 
-      } catch (error) {
-          console.error("Failed to update stats:", error);
-          document.getElementById('ready-total').textContent = 'Error';
-      }
+async function updateAbsoluteStats() {
+  try {
+    const response = await fetch(`${API_PREFIX}api/dashboard_stats_absolute`);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    const stats = await response.json();
+    const readyTotalEl = document.getElementById("ready-total");
+    const inProgressTotalEl = document.getElementById("in-progress-total");
+    const doneTotalEl = document.getElementById("done-total");
+    const backlogTotalEl = document.getElementById("backlog-total");
+
+    animateValue(readyTotalEl, 0, stats.ReadyTotal, 1500);
+    animateValue(inProgressTotalEl, 0, stats.InProgressTotal, 1500);
+    animateValue(doneTotalEl, 0, stats.DoneTotal, 1500);
+    animateValue(backlogTotalEl, 0, stats.BacklogTotal, 1500);
+
+  } catch (error) {
+    console.error("Failed to update stats:", error);
+    document.getElementById('ready-total').textContent = 'Error';
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateRecentActivity();
-    updateAbsoluteStats();
-    updateDocumentPreviewStats();
+  updateRecentActivity();
+  updateAbsoluteStats();
+  updateDocumentPreviewStats();
+
+  const animatedElements = document.querySelectorAll(".animate-on-load");
+  animatedElements.forEach(el => {
+    const delay = el.style.getPropertyValue("--delay") || "0ms";
+    setTimeout(() => {
+      el.classList.remove("opacity-0", "translate-y-4");
+    }, parseInt(delay));
+  });
 });
 
 
