@@ -1,0 +1,330 @@
+.workitem-image {
+          cursor: pointer;
+          transition: transform 0.2s ease-in-out;
+      }
+
+      .workitem-image:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      }
+
+
+      .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; 
+        background-color: rgba(0, 0, 0, 0.85); 
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        margin: auto;
+        display: block;
+        max-width: 90%;
+        max-height: 85vh; 
+        object-fit: contain; 
+        animation-name: zoom;
+        animation-duration: 0.4s;
+      }
+
+      @keyframes zoom {
+        from {transform: scale(0.5)}
+        to {transform: scale(1)}
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        cursor: pointer;
+      }
+
+      .modal-close:hover,
+      .modal-close:focus {
+        color: #bbb;
+        text-decoration: none;
+      }
+      body {
+        background-color: #f9fafb;
+      }
+
+      .glyphicon-chevron-down-custom span,
+      .glyphicon-chevron-up-custom span {
+        width: 10px;
+        height: 5px;
+        background-color: rgb(99, 99, 99);
+        display: inline-block;
+        transition: all 0.1s linear;
+        margin: 0;
+      }
+
+      .glyphicon-chevron-down-custom .sp-1 {
+        transform: skewY(-40deg);
+        margin-right: -1.9px;
+      }
+
+      .glyphicon-chevron-down-custom .sp-2 {
+        transform: skewY(40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-1 {
+        transform: skewY(40deg);
+        margin-right: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-2 {
+        transform: skewY(-40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon {
+        top: -1px;
+      }
+
+      .input-flex-container {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 90%;
+        max-width: 1000px;
+        z-index: 0;
+        margin: 40px 0 60px;
+        /* Platz für Beschriftungen */
+        padding: 0 12.5px;
+        /* Abstand links/rechts */
+        box-sizing: border-box;
+      }
+
+      /* Durchgehende graue Linie hinter den Punkten */
+      .input-flex-container::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        /* halbe Punktbreite */
+        height: 7.5px;
+        width: var(--active-line-width, 0);
+        background-color: var(--active-line-color, #ccc);
+        z-index: -1;
+        transform: translateY(-50%);
+        transition: width 1s ease, background-color 0.3s ease;
+        border-radius: 2.5px;
+        margin-top: 15px;
+      }
+
+      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
+      .input-flex-container::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        height: 5px;
+        background-color: #2c3e50;
+        z-index: -1;
+        transform: translateY(-50%);
+        width: 0;
+        border-radius: 2.5px;
+        transition: width 0.3s ease;
+      }
+
+      /* Punkt Styles */
+      .input {
+        width: 35px;
+        height: 35px;
+        background-color: #aeb6bf;
+        /* Standard grau */
+        border-radius: 50%;
+        position: relative;
+        cursor: pointer;
+        z-index: 2;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      /* Aktive Punkte: dunkel */
+      .input.active {
+        background-color: #2c3e50;
+        margin-bottom: 20px;
+      }
+
+      /* Hover-Effekt für Punkte */
+      .input:hover {
+        background-color: #34495e;
+      }
+
+      /* Noch dunkler beim Hover aktiver Punkte */
+      .input.active:hover {
+        background-color: #1f2a38;
+      }
+
+      /* Status-Beschriftung über den Punkten (data-info) */
+      .input span::before {
+        content: attr(data-info);
+        position: absolute;
+        bottom: 100%;
+        /* direkt oberhalb des Punktes */
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: #2c3e50;
+        white-space: nowrap;
+        margin-bottom: 8px;
+        pointer-events: none;
+        user-select: none;
+        content: none;
+      }
+
+      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
+      .input span::after {
+        content: none;
+      }
+
+      /* Container für Datum und Uhrzeit unter dem Punkt */
+      .input span {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 12px;
+        color: #333;
+        margin-top: 0px;
+        /* Abstand vom Punkt nach unten */
+      }
+
+      /* Datum fett und etwas größer */
+      .input span .date {
+        font-weight: bold;
+        font-size: 13px;
+        color: #555555;
+        margin-top: 40px;
+      }
+
+      /* Uhrzeit kleiner und darunter */
+      .input span .time {
+        font-size: 12px;
+        color: #777777;
+        text-align: center;
+        user-select: none;
+        pointer-events: none;
+        margin-top: 0px;
+      }
+
+      .flex-parent {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: -30px;
+        margin-bottom: -35px;
+      }
+
+      .input.state-collected {
+        background-color: var(--color-purple-800);
+      }
+
+      .input.state-done {
+        background-color: var(--color-green-800);
+      }
+
+      .input.state-in-progress {
+        background-color: var(--color-yellow-800);
+      }
+
+      .input.state-ready {
+        background-color: var(--color-blue-800);
+      }
+
+      .input.state-demanded {
+        background-color: #ff7f50;
+      }
+
+      .label {
+        display: inline-block;
+        padding: 2px 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 12px;
+        user-select: none;
+        margin-bottom: 50px;
+        text-align: center;
+        min-width: 70px;
+      }
+
+      .ready-label {
+        background-color: #cce4ff;
+        color: #1a4db7;
+      }
+
+      .demanded-label {
+        background-color: #ffcdd2;
+        color: #b71c1c;
+      }
+
+      .inprogress-label {
+        background-color: #fff9c4;
+        color: #fbc02d;
+      }
+
+      .done-label {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+      }
+
+      .collected-label {
+        background-color: #e1bee7;
+        color: #6a1b9a;
+      }
+
+      .timeline-label {
+        text-align: center;
+      }
+
+
+
+.indicator {
+  display: inline-block;
+  transition: transform 0.3s ease-in-out;
+}
+
+.indicator.open {
+  transform: rotate(-180deg);
+}
+
+.details-content-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+  padding: 0 1rem; 
+}
+
+.details-row.open .details-content-wrapper {
+  max-height: 500px; 
+  padding: 1rem;
+}
+
+.workitem-row {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.workitem-row.hiding {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.workitem-row.hidden {
+  display: none;
+}

@@ -7,12 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
   </head>
   <body>
     <header class="bg-white shadow-sm sticky top-0 z-50">
@@ -56,10 +51,10 @@
                             </button>
                             <el-menu anchor="bottom end" popover
                                 class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="/profile"
+                                <a href="{{ url_for('profile') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Your
                                     Profile</a>
-                                <a href="/logout"
+                                <a href="{{ url_for('logout') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">Sign
                                     out</a>
                             </el-menu>

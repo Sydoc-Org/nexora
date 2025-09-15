@@ -1,0 +1,30 @@
+.toggle-checkbox:checked {
+            right: 0;
+            border-color: #4f46e5;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #4f46e5;
+        }
+
+        .error-message {
+            padding: 12px;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            background-color: rgba(238, 12, 12, 0.1);
+            border: 1px solid #ee0c0c;
+            color: #eb1c0d;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .message {
+            padding: 12px;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            background-color: rgba(12, 238, 34, 0.1);
+            border: 1px solid #01b207;
+            color: #04a043;
+            text-align: center;
+            font-size: 0.9rem;
+        }

@@ -1,504 +1,176 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sydoc Portal - Workitems Overview</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
-      type="module"
-    ></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    />
-    <style>
-      .workitem-image {
-          cursor: pointer;
-          transition: transform 0.2s ease-in-out;
-      }
 
-      .workitem-image:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sydoc Portal - Workitems Overview</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
+</head>
 
+<body class="text-gray-800">
+  <!----------------------------------- Header -------------------------------------->
+  {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
 
-      .modal {
-        display: none; 
-        position: fixed; 
-        z-index: 1000; 
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto; 
-        background-color: rgba(0, 0, 0, 0.85); 
-        align-items: center;
-        justify-content: center;
-      }
-
-      .modal-content {
-        margin: auto;
-        display: block;
-        max-width: 90%;
-        max-height: 85vh; 
-        object-fit: contain; 
-        animation-name: zoom;
-        animation-duration: 0.4s;
-      }
-
-      @keyframes zoom {
-        from {transform: scale(0.5)}
-        to {transform: scale(1)}
-      }
-
-      .modal-close {
-        position: absolute;
-        top: 20px;
-        right: 35px;
-        color: #f1f1f1;
-        font-size: 40px;
-        font-weight: bold;
-        transition: 0.3s;
-        cursor: pointer;
-      }
-
-      .modal-close:hover,
-      .modal-close:focus {
-        color: #bbb;
-        text-decoration: none;
-      }
-      body {
-        background-color: #f9fafb;
-      }
-
-      .glyphicon-chevron-down-custom span,
-      .glyphicon-chevron-up-custom span {
-        width: 10px;
-        height: 5px;
-        background-color: rgb(99, 99, 99);
-        display: inline-block;
-        transition: all 0.1s linear;
-        margin: 0;
-      }
-
-      .glyphicon-chevron-down-custom .sp-1 {
-        transform: skewY(-40deg);
-        margin-right: -1.9px;
-      }
-
-      .glyphicon-chevron-down-custom .sp-2 {
-        transform: skewY(40deg);
-        margin-left: -1.9px;
-      }
-
-      .glyphicon-chevron-up-custom .sp-1 {
-        transform: skewY(40deg);
-        margin-right: -1.9px;
-      }
-
-      .glyphicon-chevron-up-custom .sp-2 {
-        transform: skewY(-40deg);
-        margin-left: -1.9px;
-      }
-
-      .glyphicon {
-        top: -1px;
-      }
-
-      .input-flex-container {
-        position: relative;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 90%;
-        max-width: 1000px;
-        z-index: 0;
-        margin: 40px 0 60px;
-        /* Platz für Beschriftungen */
-        padding: 0 12.5px;
-        /* Abstand links/rechts */
-        box-sizing: border-box;
-      }
-
-      /* Durchgehende graue Linie hinter den Punkten */
-      .input-flex-container::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 12.5px;
-        /* halbe Punktbreite */
-        height: 7.5px;
-        width: var(--active-line-width, 0);
-        background-color: var(--active-line-color, #ccc);
-        z-index: -1;
-        transform: translateY(-50%);
-        transition: width 1s ease, background-color 0.3s ease;
-        border-radius: 2.5px;
-        margin-top: 15px;
-      }
-
-      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
-      .input-flex-container::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 12.5px;
-        height: 5px;
-        background-color: #2c3e50;
-        z-index: -1;
-        transform: translateY(-50%);
-        width: 0;
-        border-radius: 2.5px;
-        transition: width 0.3s ease;
-      }
-
-      /* Punkt Styles */
-      .input {
-        width: 35px;
-        height: 35px;
-        background-color: #aeb6bf;
-        /* Standard grau */
-        border-radius: 50%;
-        position: relative;
-        cursor: pointer;
-        z-index: 2;
-        flex-shrink: 0;
-        transition: background-color 0.3s ease;
-        margin-bottom: 20px;
-      }
-
-      /* Aktive Punkte: dunkel */
-      .input.active {
-        background-color: #2c3e50;
-        margin-bottom: 20px;
-      }
-
-      /* Hover-Effekt für Punkte */
-      .input:hover {
-        background-color: #34495e;
-      }
-
-      /* Noch dunkler beim Hover aktiver Punkte */
-      .input.active:hover {
-        background-color: #1f2a38;
-      }
-
-      /* Status-Beschriftung über den Punkten (data-info) */
-      .input span::before {
-        content: attr(data-info);
-        position: absolute;
-        bottom: 100%;
-        /* direkt oberhalb des Punktes */
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 12px;
-        color: #2c3e50;
-        white-space: nowrap;
-        margin-bottom: 8px;
-        pointer-events: none;
-        user-select: none;
-        content: none;
-      }
-
-      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
-      .input span::after {
-        content: none;
-      }
-
-      /* Container für Datum und Uhrzeit unter dem Punkt */
-      .input span {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        font-size: 12px;
-        color: #333;
-        margin-top: 0px;
-        /* Abstand vom Punkt nach unten */
-      }
-
-      /* Datum fett und etwas größer */
-      .input span .date {
-        font-weight: bold;
-        font-size: 13px;
-        color: #555555;
-        margin-top: 40px;
-      }
-
-      /* Uhrzeit kleiner und darunter */
-      .input span .time {
-        font-size: 12px;
-        color: #777777;
-        text-align: center;
-        user-select: none;
-        pointer-events: none;
-        margin-top: 0px;
-      }
-
-      .flex-parent {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        margin-top: -30px;
-        margin-bottom: -35px;
-      }
-
-      .input.state-collected {
-        background-color: var(--color-purple-800);
-      }
-
-      .input.state-done {
-        background-color: var(--color-green-800);
-      }
-
-      .input.state-in-progress {
-        background-color: var(--color-yellow-800);
-      }
-
-      .input.state-ready {
-        background-color: var(--color-blue-800);
-      }
-
-      .input.state-demanded {
-        background-color: #ff7f50;
-      }
-
-      .label {
-        display: inline-block;
-        padding: 2px 6px;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 12px;
-        user-select: none;
-        margin-bottom: 50px;
-        text-align: center;
-        min-width: 70px;
-      }
-
-      .ready-label {
-        background-color: #cce4ff;
-        color: #1a4db7;
-      }
-
-      .demanded-label {
-        background-color: #ffcdd2;
-        color: #b71c1c;
-      }
-
-      .inprogress-label {
-        background-color: #fff9c4;
-        color: #fbc02d;
-      }
-
-      .done-label {
-        background-color: #c8e6c9;
-        color: #2e7d32;
-      }
-
-      .collected-label {
-        background-color: #e1bee7;
-        color: #6a1b9a;
-      }
-
-      .timeline-label {
-        text-align: center;
-      }
-    </style>
-  </head>
-
-  <body class="text-gray-800">
-    <!----------------------------------- Header -------------------------------------->
-    {% set active_page = 'workitems_overview' %} {% include '_header.html' %}
-
-    <!----------------------------------- Main Content -------------------------------------->
-    <main class="container mx-auto p-6">
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">
-              Workitems Overview
-            </h2>
-            <p class="text-gray-600">List of all workitems for {{ scope }}</p>
-          </div>
-          <div class="flex items-center space-x-4">
-            <div class="bg-white px-4 py-2 rounded-lg shadow">
-              <span class="text-sm text-gray-500">Total Items:</span>
-              <span class="font-bold text-lg text-indigo-600"
-                >{{ workitems|length }}</span
-              >
-            </div>
+  <!----------------------------------- Main Content -------------------------------------->
+  <main class="container mx-auto p-6">
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            Workitems Overview
+          </h2>
+          <p class="text-gray-600">List of all workitems for {{ scope }}</p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="bg-white px-4 py-2 rounded-lg shadow">
+            <span class="text-sm text-gray-500">Total Items:</span>
+            <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!----------------------------------- Search & Filter -------------------------------------->
-      <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
-        <div class="flex flex-col md:flex-row gap-4 items-center">
-          <div class="flex-1">
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                <i class="fas fa-search text-gray-400"></i>
-              </span>
-              <input
-                type="text"
-                id="searchInput"
-                class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Search for specific workitem..."
-              />
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <select
-              id="statusFilter"
-              class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="Ready">Ready</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-            </select>
-            <button
-              onclick="exportToCSV()"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              <i class="fas fa-download mr-2"></i>Export CSV
-            </button>
+    <!----------------------------------- Search & Filter -------------------------------------->
+    <div
+      class="bg-white p-6 rounded-xl shadow-lg mb-6 transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load">
+      <div class="flex flex-col md:flex-row gap-4 items-center">
+        <div class="flex-1">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+              <i class="fas fa-search text-gray-400"></i>
+            </span>
+            <input type="text" id="searchInput"
+              class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search for specific Barcode..." />
           </div>
         </div>
+        <div class="flex gap-2">
+          <select id="statusFilter"
+            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">All Statuses</option>
+            <option value="Ready">Ready</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+          <button onclick="exportToCSV()"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+            <i class="fas fa-download mr-2"></i>Export CSV
+          </button>
+        </div>
       </div>
+    </div>
 
-      <!----------------------------------- Workitems Table -------------------------------------->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full" id="workitemsTable">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(0)"
-                >
-                  Barcode <i class="fas fa-sort ml-1"></i>
-                </th>
-                <th
-                  class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(1)"
-                >
-                  Status <i class="fas fa-sort ml-1"></i>
-                </th>
-                <th
-                  class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onclick="sortTable(2)"
-                >
-                  Last Movement At <i class="fas fa-sort ml-1"></i>
-                </th>
-                <!-- Last Column empty for Actions -->
-                <th class="px-6 py-4 text-right text-xs"></th>
-              </tr>
-            </thead>
+    <!----------------------------------- Workitems Table -------------------------------------->
+    <div
+      class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load"
+      style="--delay: 150ms;">
+      <div class="overflow-x-auto">
+        <table class="w-full" id="workitemsTable">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onclick="sortTable(0)">
+                Barcode <i class="fas fa-sort ml-1"></i>
+              </th>
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onclick="sortTable(1)">
+                Status <i class="fas fa-sort ml-1"></i>
+              </th>
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onclick="sortTable(2)">
+                Last Movement At <i class="fas fa-sort ml-1"></i>
+              </th>
+              <!-- Last Column empty for Actions -->
+              <th class="px-6 py-4 text-right text-xs"></th>
+            </tr>
+          </thead>
 
-            <!-- Dynamic Content -->
-            <tbody class="bg-white divide-y divide-gray-200">
-              {% for workitem in workitems %}
-              <tr
-                class="hover:bg-gray-50 transition-colors workitem-row"
-                data-status="{{ workitem.status }}"
-                id="row-{{ workitem.barcode }}"
-              >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="font-medium text-gray-900">{{ workitem.barcode }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-left">
-                  {% if workitem.status == "Ready" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
-                  >
-                    {{ workitem.status }}
-                  </span>
-                  {% elif workitem.status == "In Progress" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800"
-                  >
-                    {{ workitem.status }}
-                  </span>
-                  {% elif workitem.status == "Done" %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
-                  >
-                    {{ workitem.status }}
-                  </span>
-                  {% else %}
-                  <span
-                    class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
-                  >
-                    {{ workitem.status }}
-                  </span>
-                  {% endif %}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">
-                    {{ workitem.modifiedat.strftime('%d. %m. %Y - %H:%M') }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <button
-                    class="details-toggle-button text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
-                    data-workitemid="{{ workitem.workitemid }}"
-                  >
-                    <i
-                      class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
-                      id="chevron-{{ workitem.workitemid }}"
-                    >
-                      <span class="sp-1"></span>
-                      <span class="sp-2"></span>
-                    </i>
-                  </button>
-                </td>
-              </tr>
+          <!-- Dynamic Content -->
+          <tbody class="bg-white divide-y divide-gray-200" id="workitemsTbody">
+            {% for workitem in workitems %}
+            <tr class="hover:bg-gray-50 transition-all duration-300 workitem-row opacity-0"
+              style="--delay: {{ loop.index0 * 50 }}ms;" data-status="{{ workitem.status }}"
+              id="row-{{ workitem.barcode }}">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="font-medium text-gray-900">{{ workitem.barcode }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-left">
+                {% if workitem.status == "Ready" %}
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ workitem.status }}
+                </span>
+                {% elif workitem.status == "In Progress" %}
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                  {{ workitem.status }}
+                </span>
+                {% elif workitem.status == "Done" %}
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  {{ workitem.status }}
+                </span>
+                {% else %}
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  {{ workitem.status }}
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ workitem.modifiedat.strftime('%d. %m. %Y - %H:%M') }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                <button class="details-toggle-button text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
+                  data-workitemid="{{ workitem.workitemid }}">
+                  <i class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
+                    id="chevron-{{ workitem.workitemid }}">
+                    <span class="sp-1"></span>
+                    <span class="sp-2"></span>
+                  </i>
+                </button>
+              </td>
+            </tr>
 
-              <tr
-                id="details-row-{{ workitem.workitemid }}"
-                class="bg-gray-50"
-                hidden
-              >
-                <td colspan="4" class="p-4">
-                  <div id="image-container-{{ workitem.workitemid }}" class="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
+            <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
+              <td colspan="4">
+                <div class="details-content-wrapper">
+                  <div id="image-container-{{ workitem.workitemid }}"
+                    class="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
                     <p class="text-gray-500">Click to load media...</p>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </td>
+            </tr>
 
-              {% else %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+            {% else %}
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
+    </div>
 
-      <!----------------------------------- Pagination -------------------------------------->
-      <div class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          Showing
-          <span class="font-medium" id="showingCount"
-            >{{ workitems|length }}</span
-          >
-          of <span class="font-medium">{{ workitems|length }}</span> results
-        </div>
+    <!----------------------------------- Pagination -------------------------------------->
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Showing
+        <span class="font-medium" id="showingCount">{{ workitems|length }}</span>
+        of <span class="font-medium">{{ workitems|length }}</span> results
       </div>
-    </main>
-    <div id="imageModal" class="modal">
+    </div>
+  </main>
+  <div id="imageModal" class="modal">
     <span class="modal-close">&times;</span>
     <img class="modal-content" id="modalImage">
   </div>
-    <script src="{{ url_for('static',filename='js/workitems_overview.js') }}">
-    </script>
-  </body>
+  <script src="{{ url_for('static',filename='js/workitems_overview.js') }}">
+  </script>
+</body>
+
 </html>

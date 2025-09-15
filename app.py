@@ -101,6 +101,10 @@ GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
 GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
 GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
+OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
+OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
+
 
 @app.route("/signin")
 def signin():
@@ -982,19 +986,33 @@ def special_exception_handler():
     return 'Database connection failed', 500
 
 def get_access_token():
+    token = cache.get('octo_access_token')
+    if token:
+        return token
+
     url = 'https://prd-dps.sydoc.ch/auth/connect/token'
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded"
     }
     body = {
-        "grant_type": "client_credentials",
-        "client_id": "jfDCOBt9kbEMdc1e6WQIpWyeTlqIeE",
-        "client_secret": "zr2htn3erliQY87bkc2DVxGXWFDFbF"
+        "grant_type": OCTO_GRANT_TYPE,
+        "client_id": OCTO_CLIENT_ID,
+        "client_secret": OCTO_CLIENT_SECRET
     }
 
-    response = requests.post(url=url, headers=headers, data=body)
-    return response.json()['access_token']
+    try:
+        response = requests.post(url=url, headers=headers, data=body)
+        response.raise_for_status() 
+        data = response.json()
+        
+        timeout = data.get('expires_in', 3000) - 60 
+        token = data['access_token']
+        cache.set('octo_access_token', token, timeout=timeout)
+        return token
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching access token: {e}")
+        return None
 
 def get_workitemdata_param(workitem_id):
     url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load'
@@ -1036,41 +1054,55 @@ def get_media(url):
     response = requests.get(url=url, headers=headers)
     return response.content
 
-cache = Cache(app, config={'CACHE_TYPE': 'simple'}) 
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300}) 
 
 @app.route('/api/get_media_info/<int:workitem_id>')
 def api_get_media_info(workitem_id):
     try:
+        cached_info = cache.get(f"media_info_{workitem_id}")
+        if cached_info:
+            return jsonify(cached_info)
+
         returndata = get_workitemdata_param(workitem_id)
         if not returndata:
             return jsonify({"error": "Workitem not found"}), 404
 
-        workitemdata = returndata[0]
-        document_id = returndata[1]
-        extensions_urls = get_extension_and_urls(workitemdata, document_id)
-        media_count = len(extensions_urls[1]) if extensions_urls and extensions_urls[1] else 0
+        workitemdata, document_id = returndata
+        extensions, urls = get_extension_and_urls(workitemdata, document_id)
+        
+        media_count = len(urls) if urls else 0
+        
+        if media_count > 0:
+            cache.set(f"media_data_{workitem_id}", {'extensions': extensions, 'urls': urls})
+
         response_data = {
             "workitem_id": workitem_id,
             "media_count": media_count
         }
+        
+        cache.set(f"media_info_{workitem_id}", response_data)
+
         return jsonify(response_data)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
-
+    
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
 def api_get_media_raw(workitem_id, media_index):
     try:
-        returndata = get_workitemdata_param(workitem_id)
-        if not returndata:
-            return Response("Workitem not found", status=404)
+        media_data = cache.get(f"media_data_{workitem_id}")
+        if not media_data:
+            returndata = get_workitemdata_param(workitem_id)
+            if not returndata:
+                return Response("Workitem not found", status=404)
 
-        workitemdata = returndata[0]
-        document_id = returndata[1]
-        extensions_urls = get_extension_and_urls(workitemdata, document_id)
+            workitemdata, document_id = returndata
+            extensions, urls = get_extension_and_urls(workitemdata, document_id)
+            media_data = {'extensions': extensions, 'urls': urls}
+            cache.set(f"media_data_{workitem_id}", media_data)
         
-        extensions = extensions_urls[0]
-        urls = extensions_urls[1]
+        extensions = media_data.get('extensions', [])
+        urls = media_data.get('urls', [])
 
         if media_index >= len(urls):
             return Response("Media index out of bounds", status=404)
@@ -1115,8 +1147,8 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response("Internal Server Error", status=500)
 
-# ------------------------------- ONLY FOR IIS ------------------------------- #
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
+# ------------------------------- ONLY FOR IIS ------------------------------- #c   
+#  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #
 
 if __name__ == "__main__":

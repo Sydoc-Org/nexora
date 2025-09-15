@@ -1,4 +1,16 @@
 const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
+let animationTimeouts = [];
+
+function cancelAllAnimations() {
+  animationTimeouts.forEach(clearTimeout);
+  animationTimeouts = []; 
+
+  const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+  allRows.forEach(row => {
+    row.classList.remove('opacity-0');
+    row.style.transform = ''; 
+  });
+}
 
 function logAction(actionType, resourceId = null, details = null) {
   fetch(`${API_PREFIX}log_action`, {
@@ -17,6 +29,7 @@ function logAction(actionType, resourceId = null, details = null) {
 // Search functionality
 document.getElementById("searchInput").addEventListener("keyup", function () {
   closeAllDetails();
+  cancelAllAnimations();
   const searchTerm = this.value.toLowerCase();
   const rows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
@@ -34,36 +47,26 @@ document.getElementById("searchInput").addEventListener("keyup", function () {
   document.getElementById("showingCount").textContent = visibleCount;
 });
 
-// Status filter functionality
 document.getElementById("statusFilter").addEventListener("change", function () {
   closeAllDetails();
+  cancelAllAnimations();
   const selectedStatus = this.value;
-  const rows = document.querySelectorAll(".workitem-row");
+  const allRows = document.querySelectorAll(".workitem-row");
   let visibleCount = 0;
 
   logAction("filter_workitemList", null, { by_status: selectedStatus });
 
-  rows.forEach((row) => {
-    const status = row.getAttribute("data-status");
-    const workitemId = row.getAttribute("data-id");
-    const detailsRow = document.getElementById(`details-${workitemId}`);
-    const chevron = document.getElementById(`chevron-${workitemId}`);
-
-    if (selectedStatus === "" || status === selectedStatus) {
-      row.style.display = "";
+  allRows.forEach(row => {
+    const rowStatus = row.dataset.status;
+    
+    if (!selectedStatus || rowStatus === selectedStatus) {
+      row.classList.remove('hidden');
       visibleCount++;
     } else {
-      row.style.display = "none";
-
-      // Hide details if open
-      if (detailsRow) detailsRow.style.display = "none";
-      if (chevron) {
-        chevron.classList.remove("glyphicon-chevron-down-custom");
-        chevron.classList.add("glyphicon-chevron-up-custom");
-      }
+      row.classList.add('hidden');
     }
   });
-
+  
   document.getElementById("showingCount").textContent = visibleCount;
 });
 
@@ -77,20 +80,17 @@ function closeAllDetails() {
   });
 }
 
-// Table sorting functionality
 function sortTable(columnIndex) {
   const table = document.getElementById("workitemsTable");
   const tbody = table.tBodies[0];
   const rows = Array.from(tbody.rows);
 
-  // Only select workitem rows for sorting
   const workitemRows = Array.from(tbody.querySelectorAll(".workitem-row"));
 
   workitemRows.sort((a, b) => {
     const aValue = a.cells[columnIndex].textContent.trim();
     const bValue = b.cells[columnIndex].textContent.trim();
 
-    // Handle numeric values (like ID)
     if (columnIndex === 0) {
       return (
         parseInt(aValue.replace("#", "")) - parseInt(bValue.replace("#", ""))
@@ -163,13 +163,6 @@ function getCurrentFilterOrSearch() {
   };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const detailButtons = document.querySelectorAll('.details-toggle-button');
-  detailButtons.forEach(button => {
-    button.addEventListener('click', toggleDetailsAndLoadImages); 
-  });
-});
-
 async function toggleDetailsAndLoadImages(event) {
   const button = event.currentTarget;
   const workitemid = button.dataset.workitemid;
@@ -185,20 +178,30 @@ async function toggleDetailsAndLoadImages(event) {
   const isHidden = detailsRow.hasAttribute('hidden');
   if (isHidden) {
     detailsRow.removeAttribute('hidden');
-    chevron.classList.remove('glyphicon-chevron-up-custom');
-    chevron.classList.add('glyphicon-chevron-down-custom');
+    setTimeout(() => {
+      detailsRow.classList.add('open');
+      chevron.classList.add('open');
+    }, 10);
   } else {
-    detailsRow.setAttribute('hidden', true);
-    chevron.classList.remove('glyphicon-chevron-down-custom');
-    chevron.classList.add('glyphicon-chevron-up-custom');
+    detailsRow.classList.remove('open');
+    chevron.classList.remove('open');
+    detailsRow.addEventListener('transitionend', () => {
+      detailsRow.hidden = true;
+    }, { once: true });
+  }
+
+  chevron.classList.toggle('glyphicon-chevron-up-custom');
+  chevron.classList.toggle('glyphicon-chevron-down-custom');
+
+  if (!isHidden) {
     return;
   }
 
   const isLoaded = imageContainer.dataset.loaded === 'true';
   if (isLoaded) {
-    return; 
+    return;
   }
-  
+
   imageContainer.innerHTML = '<p class="text-gray-500 animate-pulse">Checking for media...</p>';
 
   try {
@@ -209,20 +212,21 @@ async function toggleDetailsAndLoadImages(event) {
     const mediaInfo = await infoResponse.json();
     const imageCount = mediaInfo.media_count;
 
-    imageContainer.dataset.loaded = 'true'; 
+    imageContainer.dataset.loaded = 'true';
 
     if (imageCount === 0) {
       imageContainer.innerHTML = '<p class="text-gray-500">No media found for this workitem.</p>';
       return;
     }
 
-    imageContainer.innerHTML = ''; 
+    imageContainer.innerHTML = '';
     imageContainer.style.display = 'flex';
     imageContainer.style.flexWrap = 'wrap';
-    imageContainer.style.gap = '1rem'; 
+    imageContainer.style.gap = '1rem';
 
+    const imagePromises = [];
     for (let i = 0; i < imageCount; i++) {
-        await loadImage(imageContainer, workitemid, i);
+      imagePromises.push(loadImage(imageContainer, workitemid, i));
     }
 
   } catch (error) {
@@ -253,13 +257,13 @@ async function loadImage(container, workitemid, index) {
     imgElement.src = imageUrl;
     imgElement.alt = `Media ${index + 1} for workitem ${workitemid}`;
     imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image';
-    
+
     imgElement.onload = () => {
       URL.revokeObjectURL(imageUrl);
-      placeholder.replaceWith(imgElement); 
+      placeholder.replaceWith(imgElement);
     };
     imgElement.onerror = () => {
-        throw new Error('Image could not be loaded into element.');
+      throw new Error('Image could not be loaded into element.');
     }
 
   } catch (error) {
@@ -271,32 +275,57 @@ async function loadImage(container, workitemid, index) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById("imageModal");
-    const modalImg = document.getElementById("modalImage");
-    const closeBtn = document.querySelector(".modal-close");
+  const modal = document.getElementById("imageModal");
+  const modalImg = document.getElementById("modalImage");
+  const closeBtn = document.querySelector(".modal-close");
 
-    document.addEventListener('click', function(event) {
-        if (event.target && event.target.classList.contains('workitem-image')) {
-            modal.style.display = "flex";
-            modalImg.src = event.target.src;
-        }
-    });
-
-    function closeModal() {
-        modal.style.display = "none";
+  document.addEventListener('click', function (event) {
+    if (event.target && event.target.classList.contains('workitem-image')) {
+      modal.style.display = "flex";
+      modalImg.src = event.target.src;
     }
+  });
 
-    closeBtn.addEventListener('click', closeModal);
+  function closeModal() {
+    modal.style.display = "none";
+  }
 
-    modal.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
+  closeBtn.addEventListener('click', closeModal);
 
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && modal.style.display === "flex") {
-            closeModal();
-        }
-    });
+  modal.addEventListener('click', function (event) {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && modal.style.display === "flex") {
+      closeModal();
+    }
+  });
+  const detailButtons = document.querySelectorAll('.details-toggle-button');
+  detailButtons.forEach(button => {
+    button.addEventListener('click', toggleDetailsAndLoadImages);
+  });
+
+  const animatedElements = document.querySelectorAll('.animate-on-load');
+  animatedElements.forEach(el => {
+    const delay = el.style.getPropertyValue('--delay') || '0ms';
+    setTimeout(() => {
+      el.classList.remove('opacity-0', 'translate-y-4');
+    }, parseInt(delay));
+  });
+
+  const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+  tableRows.forEach(row => {
+    const delay = row.style.getPropertyValue('--delay') || '0ms';
+    const timeoutId = setTimeout(() => {
+      row.style.transform = 'translateX(-15px)';
+      row.classList.remove('opacity-0');
+      setTimeout(() => {
+        row.style.transform = 'translateX(0)';
+      }, 10);
+    }, 200 + parseInt(delay));
+    animationTimeouts.push(timeoutId); 
+  });
 });
