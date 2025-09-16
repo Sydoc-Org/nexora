@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2025-09-16 10:41+0200\n"
-"PO-Revision-Date: 2025-09-16 10:44+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2025-09-16 15:43+0200\n"
+"Last-Translator: Gemini AI\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
@@ -20,298 +20,297 @@ msgstr ""
 
 #: templates/_header.html:30 templates/profile.html:31
 msgid "Dashboard"
-msgstr ""
+msgstr "Tableau de bord"
 
 #: templates/_header.html:35 templates/profile.html:35
 msgid "Workitems"
-msgstr ""
+msgstr "Éléments de travail"
 
 #: templates/_header.html:55 templates/profile.html:55
 msgid "Your profile"
-msgstr ""
+msgstr "Votre profil"
 
 #: templates/_header.html:57 templates/profile.html:57
 #: templates/profile.html:91
 msgid "Sign out"
-msgstr ""
+msgstr "Se déconnecter"
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
-msgstr ""
+msgstr "Portail Sydoc - Tableau de bord"
 
 #: templates/dashboard.html:21
 msgid "Welcome back"
-msgstr ""
+msgstr "Bon retour parmi nous"
 
 #: templates/dashboard.html:24
 msgid "Here's a summary of your document activity"
-msgstr ""
+msgstr "Voici un résumé de l'activité de vos documents"
 
 #: templates/dashboard.html:78
 msgid "Document Status"
-msgstr ""
+msgstr "Statut du document"
 
 #: templates/dashboard.html:84
 msgid "Recent Activity"
-msgstr ""
+msgstr "Activité récente"
 
 #: templates/dashboard.html:86
 msgid "Loading"
-msgstr ""
+msgstr "Chargement en cours"
 
 #: templates/dashboard.html:91
 msgid "Need help"
-msgstr ""
+msgstr "Besoin d'aide ?"
 
 #: templates/dashboard.html:97
 msgid "Contact support"
-msgstr ""
+msgstr "Contacter le support"
 
 #: templates/dashboard.html:100
 msgid "or email us at"
-msgstr ""
+msgstr "ou envoyez-nous un e-mail à"
 
 #: templates/forgot_password.html:6
 msgid "Forgot password - Sydoc Portal"
-msgstr ""
+msgstr "Mot de passe oublié - Portail Sydoc"
 
 #: templates/forgot_password.html:22 templates/index.html:22
 #: templates/reset_password.html:25
 msgid "Homepage"
-msgstr ""
+msgstr "Page d'accueil"
 
 #: templates/forgot_password.html:23 templates/index.html:23
 #: templates/reset_password.html:26
 msgid "Services"
-msgstr ""
+msgstr "Services"
 
 #: templates/forgot_password.html:24 templates/index.html:24
 #: templates/reset_password.html:28
 msgid "Contact"
-msgstr ""
+msgstr "Contact"
 
 #: templates/forgot_password.html:39
 msgid "Forgot your password"
-msgstr ""
+msgstr "Vous avez oublié votre mot de passe ?"
 
 #: templates/forgot_password.html:40
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
-msgstr ""
+msgstr "Aucun problème. Saisissez l'adresse e-mail associée à votre compte et nous vous enverrons un lien pour réinitialiser votre mot de passe."
 
 #: templates/forgot_password.html:50 templates/profile.html:129
 msgid "Email address"
-msgstr ""
+msgstr "Adresse e-mail"
 
 #: templates/forgot_password.html:60
 msgid "Send reset link"
-msgstr ""
+msgstr "Envoyer le lien de réinitialisation"
 
 #: templates/forgot_password.html:66 templates/reset_password.html:84
 msgid "Back to login"
-msgstr ""
+msgstr "Retour à la connexion"
 
 #: templates/forgot_password.html:77
 msgid "All rights reserved"
-msgstr ""
+msgstr "Tous droits réservés"
 
 #: templates/index.html:6 templates/seperate_page_login.html:6
 #: templates/seperate_page_login.html:18
 msgid "Login - Sydoc Portal"
-msgstr ""
+msgstr "Connexion - Portail Sydoc"
 
 #: templates/index.html:39
 msgid "Welcome to the Sydoc Portal"
-msgstr ""
+msgstr "Bienvenue sur le Portail Sydoc"
 
 #: templates/index.html:42
 msgid ""
 "Securely track the status of your scanned email/sftp imported and "
 "validated documents in real-time. Please log in to access your dashboard"
-msgstr ""
+msgstr "Suivez en toute sécurité et en temps réel l'état de vos documents numérisés, importés par e-mail/sftp et validés. Veuillez vous connecter pour accéder à votre tableau de bord."
 
 #: templates/index.html:45
 msgid "Login to your account"
-msgstr ""
+msgstr "Connectez-vous à votre compte"
 
 #: templates/index.html:57 templates/profile.html:113
 #: templates/seperate_page_login.html:24
 msgid "Username"
-msgstr ""
+msgstr "Nom d'utilisateur"
 
 #: templates/index.html:66 templates/profile.html:81
 #: templates/seperate_page_login.html:33
 msgid "Password"
-msgstr ""
+msgstr "Mot de passe"
 
 #: templates/index.html:77 templates/seperate_page_login.html:44
 msgid "Remember me"
-msgstr ""
+msgstr "Se souvenir de moi"
 
 #: templates/index.html:79
 msgid "Forgot password"
-msgstr ""
+msgstr "Mot de passe oublié ?"
 
 #: templates/index.html:82
 msgid "Sign in"
-msgstr ""
+msgstr "Se connecter"
 
 #: templates/index.html:95
 msgid "Why use Sydoc Portal"
-msgstr ""
+msgstr "Pourquoi utiliser le Portail Sydoc ?"
 
 #: templates/index.html:96
 msgid "Everything you need in one secure and convenient place"
-msgstr ""
+msgstr "Tout ce dont vous avez besoin en un seul endroit, sécurisé et pratique"
 
 #: templates/index.html:104
 msgid "Real-time tracking"
-msgstr ""
+msgstr "Suivi en temps réel"
 
 #: templates/index.html:105
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
-msgstr ""
+msgstr "Suivez le parcours de votre document de l'importation à la validation et à la livraison finale, à chaque étape."
 
 #: templates/index.html:112
 msgid "Document history"
-msgstr ""
+msgstr "Historique des documents"
 
 #: templates/index.html:113
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
-msgstr ""
+msgstr "Accédez à un historique complet et vérifiable de tous vos documents traités, disponible 24h/24 et 7j/7."
 
 #: templates/index.html:120
 msgid "Secure access"
-msgstr ""
+msgstr "Accès sécurisé"
 
 #: templates/index.html:121
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
-msgstr ""
+msgstr "Vos données sont protégées par des protocoles de sécurité de pointe, garantissant une confidentialité totale."
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
-msgstr ""
+msgstr "Paramètres du profil - Portail Sydoc"
 
 #: templates/profile.html:67
 msgid "Account settings"
-msgstr ""
+msgstr "Paramètres du compte"
 
 #: templates/profile.html:76
 msgid "Profile"
-msgstr ""
+msgstr "Profil"
 
 #: templates/profile.html:86 templates/profile.html:191
 msgid "Language"
-msgstr ""
+msgstr "Langue"
 
 #: templates/profile.html:99
 msgid "Profile information"
-msgstr ""
+msgstr "Informations du profil"
 
 #: templates/profile.html:121
 msgid "Full name"
-msgstr ""
+msgstr "Nom complet"
 
 #: templates/profile.html:136
 msgid "Company"
-msgstr ""
+msgstr "Entreprise"
 
 #: templates/profile.html:146 templates/profile.html:185
 msgid "Save changes"
-msgstr ""
+msgstr "Enregistrer les modifications"
 
 #: templates/profile.html:152
 msgid "Change password"
-msgstr ""
+msgstr "Changer le mot de passe"
 
 #: templates/profile.html:163
 msgid "Current password"
-msgstr ""
+msgstr "Mot de passe actuel"
 
 #: templates/profile.html:170 templates/reset_password.html:54
 msgid "New password"
-msgstr ""
+msgstr "Nouveau mot de passe"
 
 #: templates/profile.html:177 templates/reset_password.html:66
 msgid "Confirm new password"
-msgstr ""
+msgstr "Confirmer le nouveau mot de passe"
 
 #: templates/profile.html:206
 msgid "Change language"
-msgstr ""
+msgstr "Changer de langue"
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
-msgstr ""
+msgstr "Réinitialiser le mot de passe - Portail Sydoc"
 
 #: templates/reset_password.html:43
 msgid "Set a new password"
-msgstr ""
+msgstr "Définir un nouveau mot de passe"
 
 #: templates/reset_password.html:44
 msgid "Your new password must be different from your previously used password."
-msgstr ""
+msgstr "Votre nouveau mot de passe doit être différent de votre mot de passe précédent."
 
 #: templates/reset_password.html:79
 msgid "Reset password"
-msgstr ""
+msgstr "Réinitialiser le mot de passe"
 
 #: templates/reset_password.html:95
 msgid "All rights reserved."
-msgstr ""
+msgstr "Tous droits réservés."
 
 #: templates/seperate_page_login.html:46
 msgid "Forgot password?"
-msgstr ""
+msgstr "Mot de passe oublié ?"
 
 #: templates/seperate_page_login.html:49
 msgid " Sign in"
-msgstr ""
+msgstr " Se connecter"
 
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - Sydoc Portal"
-msgstr ""
+msgstr "Aperçu des éléments de travail - Portail Sydoc"
 
 #: templates/workitems_overview.html:25
 msgid "Workitems overview"
-msgstr ""
+msgstr "Aperçu des éléments de travail"
 
 #: templates/workitems_overview.html:27
 msgid "List of all workitems for"
-msgstr ""
+msgstr "Liste de tous les éléments de travail pour"
 
 #: templates/workitems_overview.html:31
 msgid "Total items:"
-msgstr ""
+msgstr "Nombre total d'éléments :"
 
 #: templates/workitems_overview.html:55
 msgid "All statuses"
-msgstr ""
+msgstr "Tous les statuts"
 
 #: templates/workitems_overview.html:62
 msgid "Export CSV"
-msgstr ""
+msgstr "Exporter en CSV"
 
 #: templates/workitems_overview.html:79
 msgid "Barcode"
-msgstr ""
+msgstr "Code-barres"
 
 #: templates/workitems_overview.html:84
 msgid "Status"
-msgstr ""
+msgstr "Statut"
 
 #: templates/workitems_overview.html:89
 msgid "Last movement at"
-msgstr ""
+msgstr "Dernier mouvement le"
 
 #: templates/workitems_overview.html:146
 msgid "Click to load media"
-msgstr ""
-
+msgstr "Cliquer pour charger le média"

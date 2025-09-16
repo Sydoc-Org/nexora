@@ -159,7 +159,7 @@ msgstr "Anmelden"
 
 #: templates/index.html:95
 msgid "Why use Sydoc Portal"
-msgstr "Warum das Sydoc Portal nutzen?"
+msgstr "Warum das Sydoc Portal nutzen"
 
 #: templates/index.html:96
 msgid "Everything you need in one secure and convenient place"

@@ -735,7 +735,6 @@ def demand_workitem():
 def profile():
     if 'username' not in session:
         return redirect(url_for("login", page='index.html'))
-    
     logged_in_user = session.get('username', 'Unknown')
     scope = session.get('scope', 'Unknown')
     userid = session.get('userid', 'Unknown')
@@ -962,8 +961,7 @@ def set_language(lang=None):
 
 @app.context_processor
 def inject_current_lang():
-    current_lang = session.get('locale', 'en')
-    return {'current_lang': current_lang}
+    return {'current_lang': str(get_locale())}
 
 @app.route("/log_action", methods=['POST'])
 def log_action():
