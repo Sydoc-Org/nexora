@@ -5,7 +5,7 @@ pip install Flask-Babel #install babel
 create file babel.cfg with:
 [python: **.py]
 [jinja2: **/templates/**.html]
-encoding = utf-8
+encoding=utf-8
 
 highlight strings in HTML: {{_('string1')}}, {{_('string2')}}
 
@@ -15,7 +15,7 @@ if init:
     pybabel init -i messages.pot -d translations -l de #make folder for german
     pybabel init -i messages.pot -d translations -l fr #make folder for French
 else:
-    update
+    pybabel update -i messages.pot -d translations
 
 translate string at messages.po in respective language: 
 msgid "string1"

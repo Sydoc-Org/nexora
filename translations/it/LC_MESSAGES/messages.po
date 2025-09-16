@@ -1,335 +1,355 @@
+# Italian translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-09-16 10:02+0200\n"
+"PO-Revision-Date: 2025-09-16 10:02+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
 #: templates/_header.html:30 templates/profile.html:31
 msgid "Dashboard"
-msgstr "Übersicht"
+msgstr ""
 
 #: templates/_header.html:35 templates/profile.html:35
 msgid "Workitems"
-msgstr "Workitems"
+msgstr ""
 
 #: templates/_header.html:55 templates/profile.html:55
 msgid "Your profile"
-msgstr "Ihr Profil"
+msgstr ""
 
 #: templates/_header.html:57 templates/profile.html:57
 #: templates/profile.html:91
 msgid "Sign out"
-msgstr "Ausloggen"
+msgstr ""
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
-msgstr "Sydoc Portal - Übersicht"
+msgstr ""
 
 #: templates/dashboard.html:21
 msgid "Welcome back"
-msgstr "Willkommen zurück"
+msgstr ""
 
 #: templates/dashboard.html:24
 msgid "Here"
-msgstr "Hier"
+msgstr ""
 
 #: templates/dashboard.html:24
 msgid "s a summary of your document activity"
-msgstr "ist eine Zusammenfassung ihrer Dokument Aktivität"
+msgstr ""
 
 #: templates/dashboard.html:78
 msgid "Document Status"
-msgstr "Dokument Status"
+msgstr ""
 
 #: templates/dashboard.html:84
 msgid "Recent Activity"
-msgstr "Neuste Aktivitäten"
+msgstr ""
 
 #: templates/dashboard.html:86
 msgid "Loading"
-msgstr "Laden"
+msgstr ""
 
 #: templates/dashboard.html:91
 msgid "Need help"
-msgstr "Brauchen sie Hilfe"
+msgstr ""
 
 #: templates/dashboard.html:97
 msgid "Contact support"
-msgstr "Support kontaktieren"
+msgstr ""
 
 #: templates/dashboard.html:100
 msgid "or email us at"
-msgstr "oder schreiben sie ein email an uns"
+msgstr ""
 
 #: templates/forgot_password.html:6
 msgid "Forgot password - Sydoc Portal"
-msgstr "Passwort vergessen - Sydoc Portal"
+msgstr ""
 
 #: templates/forgot_password.html:22 templates/index.html:22
 #: templates/reset_password.html:25
 msgid "Homepage"
-msgstr "Homepage"
+msgstr ""
 
 #: templates/forgot_password.html:23 templates/index.html:23
 #: templates/reset_password.html:26
 msgid "Services"
-msgstr "Service"
+msgstr ""
 
 #: templates/forgot_password.html:24 templates/index.html:24
 #: templates/reset_password.html:28
 msgid "Contact"
-msgstr "Kontakt"
+msgstr ""
 
 #: templates/forgot_password.html:39
 msgid "Forgot your password"
-msgstr "Passwort vergessen"
+msgstr ""
 
 #: templates/forgot_password.html:40
 msgid "No problem"
-msgstr "Kein Problem"
+msgstr ""
 
 #: templates/forgot_password.html:40
 msgid "Enter the email address associated with your account"
-msgstr "Geben sie die zu ihrem Account zugehörige Email Adresse ein"
+msgstr ""
 
 #: templates/forgot_password.html:40
 msgid "and we"
-msgstr "und wir"
+msgstr ""
 
 #: templates/forgot_password.html:40
 msgid "ll send you a link to reset your password"
-msgstr "senden ihnen einen Link um ihr Passwort zurückzusetzen"
+msgstr ""
 
 #: templates/forgot_password.html:50 templates/profile.html:129
 msgid "Email address"
-msgstr "Email Adresse"
+msgstr ""
 
 #: templates/forgot_password.html:60
 msgid "Send reset link"
-msgstr "Zurücksetz Link schicken"
+msgstr ""
 
 #: templates/forgot_password.html:66 templates/reset_password.html:84
 msgid "Back to login"
-msgstr "Zurück zum Login"
+msgstr ""
 
 #: templates/forgot_password.html:77
 msgid "All rights reserved"
-msgstr "Alle Rechte vorbehalten"
+msgstr ""
 
 #: templates/index.html:6 templates/seperate_page_login.html:6
 #: templates/seperate_page_login.html:18
 msgid "Login - Sydoc Portal"
-msgstr "Login - Sydoc Portal"
+msgstr ""
 
 #: templates/index.html:39
 msgid "Welcome to the Sydoc Portal"
-msgstr "Willkommen beim Sydoc Portal"
+msgstr ""
 
 #: templates/index.html:42
 msgid "Securely track the status of your scanned"
-msgstr "Verfolgen sicher sie den Status ihrer gescannten"
+msgstr ""
 
 #: templates/index.html:42
 msgid "email"
-msgstr "Email"
+msgstr ""
 
 #: templates/index.html:42
 msgid "sftp imported and validated documents in real-time"
-msgstr "sftp importierten und validierten Dokumente in Echtzeit"
+msgstr ""
 
 #: templates/index.html:42
 msgid "Please log in to access your dashboard"
-msgstr "Bitte melden sie sich an um auf die Übersicht zu kommen"
+msgstr ""
 
 #: templates/index.html:45
 msgid "Login to your account"
-msgstr "Anmelden"
+msgstr ""
 
 #: templates/index.html:57 templates/profile.html:113
 #: templates/seperate_page_login.html:24
 msgid "Username"
-msgstr "Benutzername"
+msgstr ""
 
 #: templates/index.html:66 templates/profile.html:81
 #: templates/seperate_page_login.html:33
 msgid "Password"
-msgstr "Passwort"
+msgstr ""
 
 #: templates/index.html:77 templates/seperate_page_login.html:44
 msgid "Remember me"
-msgstr "Angemeldet bleiben"
+msgstr ""
 
 #: templates/index.html:79
 msgid "Forgot password"
-msgstr "Passwort vergessen"
+msgstr ""
 
 #: templates/index.html:82
 msgid "Sign in"
-msgstr "Anmelden"
+msgstr ""
 
 #: templates/index.html:95
 msgid "Why use Sydoc Portal"
-msgstr "Warum sollten sie das Sydoc Portal nutzen"
+msgstr ""
 
 #: templates/index.html:96
 msgid "Everything you need in one secure and convenient place"
-msgstr "Alles was sie brauchen in einem sicheren und praktischen Ort"
+msgstr ""
 
 #: templates/index.html:104
 msgid "Real-time tracking"
-msgstr "Echtzeit Verfolgung"
+msgstr ""
 
 #: templates/index.html:105
 msgid "Monitor your document"
-msgstr "Überwachen sie die Reise ihrer Dokumente"
+msgstr ""
 
 #: templates/index.html:105
 msgid "s journey from import to validation and final delivery"
-msgstr "vom Import bis zur Validation und finaler Übergabe"
+msgstr ""
 
 #: templates/index.html:105
 msgid "every step of the way"
-msgstr "jeden Schritt des Weges"
+msgstr ""
 
 #: templates/index.html:112
 msgid "Document history"
-msgstr "Dokument Historie"
+msgstr ""
 
 #: templates/index.html:113
 msgid "Access a complete"
-msgstr "Haben sie Zugang zu einer Kompletten"
+msgstr ""
 
 #: templates/index.html:113
 msgid "auditable history of all your processed documents"
-msgstr "überprüfbaren Historie all ihrer prozessierten Dokumente"
+msgstr ""
 
 #: templates/index.html:113
 msgid "available 24/7."
-msgstr "zugänglich 24/7"
+msgstr ""
 
 #: templates/index.html:120
 msgid "Secure access"
-msgstr "Sicherer Zugang"
+msgstr ""
 
 #: templates/index.html:121
 msgid "Your data is protected with industry-leading security protocols"
-msgstr "Ihre Daten werden mit branchenführenden Sicherheitsprotokollen geschützt"
+msgstr ""
 
 #: templates/index.html:121
 msgid "ensuring complete confidentiality"
-msgstr "Gewährleistung vollständiger Vertraulichkeit"
+msgstr ""
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
-msgstr "Profil Einstellungen - Sydoc Portal"
+msgstr ""
 
 #: templates/profile.html:67
 msgid "Account settings"
-msgstr "Profil Einstellungen"
+msgstr ""
 
 #: templates/profile.html:76
 msgid "Profile"
-msgstr "Profil"
+msgstr ""
 
 #: templates/profile.html:86 templates/profile.html:191
 msgid "Language"
-msgstr "Sprache"
+msgstr ""
 
 #: templates/profile.html:99
 msgid "Profile information"
-msgstr "Profil Informationen"
+msgstr ""
 
 #: templates/profile.html:121
 msgid "Full name"
-msgstr "Ganzer Name"
+msgstr ""
 
 #: templates/profile.html:136
 msgid "Company"
-msgstr "Firma"
+msgstr ""
 
 #: templates/profile.html:146 templates/profile.html:185
 msgid "Save changes"
-msgstr "Änderungen speichern"
+msgstr ""
 
 #: templates/profile.html:152
 msgid "Change password"
-msgstr "Passwort ändern"
+msgstr ""
 
 #: templates/profile.html:163
 msgid "Current password"
-msgstr "Derzeitiges Passowrt"
+msgstr ""
 
 #: templates/profile.html:170 templates/reset_password.html:54
 msgid "New password"
-msgstr "Neues Passwort"
+msgstr ""
 
 #: templates/profile.html:177 templates/reset_password.html:66
 msgid "Confirm new password"
-msgstr "Neues Passwort bestätigen"
+msgstr ""
 
 #: templates/profile.html:206
 msgid "Change language"
-msgstr "Sprache ändern"
+msgstr ""
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
-msgstr "Passwort zurücksetzen - Sydoc Portal"
+msgstr ""
 
 #: templates/reset_password.html:43
 msgid "Set a new password"
-msgstr "Setzten sie ein neues Passwort"
+msgstr ""
 
 #: templates/reset_password.html:44
 msgid "Your new password must be different from your previously used password."
-msgstr "Ihr neues Passwort muss sich von Ihrem zuvor verwendeten Passwort unterscheiden."
+msgstr ""
 
 #: templates/reset_password.html:79
 msgid "Reset password"
-msgstr "Passwort zurücksetzen"
+msgstr ""
 
 #: templates/reset_password.html:95
 msgid "All rights reserved."
-msgstr "Alle Rechte vorbehalten"
+msgstr ""
 
 #: templates/seperate_page_login.html:46
 msgid "Forgot password?"
-msgstr "Passwort vergessen?"
+msgstr ""
 
 #: templates/seperate_page_login.html:49
 msgid " Sign in"
-msgstr " Anmelden"
+msgstr ""
 
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - Sydoc Portal"
-msgstr "Workitems Übersicht - Sydoc Portal"
+msgstr ""
 
 #: templates/workitems_overview.html:25
 msgid "Workitems overview"
-msgstr "Workitems Übersicht"
+msgstr ""
 
 #: templates/workitems_overview.html:27
 msgid "List of all workitems for"
-msgstr "Liste aller Workitems für"
+msgstr ""
 
 #: templates/workitems_overview.html:31
 msgid "Total items:"
-msgstr "Totale Elemente:"
+msgstr ""
 
 #: templates/workitems_overview.html:55
 msgid "All statuses"
-msgstr "Alle Status"
+msgstr ""
 
 #: templates/workitems_overview.html:62
 msgid "Export CSV"
-msgstr "Export CSV"
+msgstr ""
 
 #: templates/workitems_overview.html:79
 msgid "Barcode"
-msgstr "Barcode"
+msgstr ""
 
 #: templates/workitems_overview.html:84
 msgid "Status"
-msgstr "Status"
+msgstr ""
 
 #: templates/workitems_overview.html:89
 msgid "Last movement at"
-msgstr "Letzte Bewegung um"
+msgstr ""
 
 #: templates/workitems_overview.html:146
 msgid "Click to load media"
-msgstr "Klicken um Medien zu laden"
+msgstr ""
 
