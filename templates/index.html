@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ get_locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Portal - Login</title>
+    <title>{{ _('Login - Sydoc Portal') }} </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -19,9 +19,9 @@
                     <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
                 </div>
                 <nav class="hidden md:flex items-center space-x-6">
-                    <a href="https://sydoc.ch/" class="text-gray-600 hover:text-indigo-600 transition duration-300">Homepage</a>
-                    <a href="#services" class="text-gray-600 hover:text-indigo-600 transition duration-300">Services</a>
-                    <a href="mailto:support.helpdesk@sydoc.ch" class="text-gray-600 hover:text-indigo-600 transition duration-300">Contact</a>
+                    <a href="https://sydoc.ch/" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _('Homepage') }} </a>
+                    <a href="#services" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _('Services') }}</a>
+                    <a href="mailto:support.helpdesk@sydoc.ch" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _('Contact') }}</a>
                 </nav>
                 <button class="md:hidden">
                     <i class="fas fa-bars text-2xl text-gray-600"></i>
@@ -39,10 +39,10 @@
                             Welcome to the Sydoc Portal
                         </h2>
                         <p class="text-lg text-gray-600 mb-8">
-                            Securely track the status of your scanned, email/sftp imported and validated documents in real-time. Please log in to access your dashboard.
+                            {{ _('Securely track the status of your scanned, email/sftp imported and validated documents in real-time. Please log in to access your dashboard.') }} 
                         </p>
                         <a href="{{ url_for('signin') }}" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1">
-                            Login to Your Account
+                            {{ _('Login to your account') }}
                         </a>
                     </div>
 
@@ -54,7 +54,7 @@
                                     {% endif %}
                             <form method="POST" action="{{ url_for('login', page='index.html') }}">
                                 <div class="mb-4">
-                                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">{{ _('Username') }} </label>
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                                             <i class="fas fa-user text-gray-400"></i>
@@ -63,7 +63,7 @@
                                     </div>
                                 </div>
                                 <div class="mb-6">
-                                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">{{ _('Password') }} </label>
                                     <div class="relative">
                                          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                                             <i class="fas fa-lock text-gray-400"></i>
@@ -74,12 +74,12 @@
                                 <div class="flex items-center justify-between mb-6">
                                     <label class="flex items-center text-sm text-gray-600">
                                         <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600" id="remember" name="remember">
-                                        <span class="ml-2">Remember me</span>
+                                        <span class="ml-2">{{ _('Remember me') }} </span>
                                     </label>
-                                    <a href="{{ url_for('forgot_password') }}" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
+                                    <a href="{{ url_for('forgot_password') }}" class="text-sm text-indigo-600 hover:underline">{{ _('Forgot password?') }} </a>
                                 </div>
                                 <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
-                                    Sign In
+                                    {{ _('Sign in') }} 
                                 </button>
                             </form>
                         </div>
@@ -92,8 +92,8 @@
         <section id="services" class="bg-gray-50 py-20">
             <div class="container mx-auto px-6">
                 <div class="text-center mb-12">
-                    <h2 class="text-3xl font-bold text-gray-800">Why Use Sydoc Portal?</h2>
-                    <p class="text-gray-600 mt-2">Everything you need in one secure and convenient place.</p>
+                    <h2 class="text-3xl font-bold text-gray-800">{{ _('Why use Sydoc Portal?') }} </h2>
+                    <p class="text-gray-600 mt-2">{{ _('Everything you need in one secure and convenient place.') }} </p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- Feature 1 -->
@@ -101,24 +101,24 @@
                         <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
                              <i class="fas fa-search-location text-3xl text-indigo-600"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Real-Time Tracking</h3>
-                        <p class="text-gray-600">Monitor your document's journey from scanning to validation and final delivery, every step of the way.</p>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _('Real-time tracking') }} </h3>
+                        <p class="text-gray-600">{{ _('Monitor your document's journey from import to validation and final delivery, every step of the way.') }} </p>
                     </div>
                     <!-- Feature 2 -->
                     <div class="bg-white p-8 rounded-lg shadow-md text-center">
                         <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
                             <i class="fas fa-history text-3xl text-indigo-600"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Document History</h3>
-                        <p class="text-gray-600">Access a complete, auditable history of all your processed documents, available 24/7.</p>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _('Document history') }} </h3>
+                        <p class="text-gray-600">{{ _('Access a complete, auditable history of all your processed documents, available 24/7.') }} </p>
                     </div>
                     <!-- Feature 3 -->
                     <div class="bg-white p-8 rounded-lg shadow-md text-center">
                         <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
                             <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Secure Access</h3>
-                        <p class="text-gray-600">Your data is protected with industry-leading security protocols, ensuring complete confidentiality.</p>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _('Secure access') }} </h3>
+                        <p class="text-gray-600">{{ _('Your data is protected with industry-leading security protocols, ensuring complete confidentiality') }} .</p>
                     </div>
                 </div>
             </div>

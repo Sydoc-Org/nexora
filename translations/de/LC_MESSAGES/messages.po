@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-06 10:46+0200\n"
-"PO-Revision-Date: 2025-08-06 10:46+0200\n"
+"POT-Creation-Date: 2025-09-15 14:27+0200\n"
+"PO-Revision-Date: 2025-09-15 14:29+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
 "Language-Team: de <LL@li.org>\n"
@@ -18,80 +18,207 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/post_login.html:57 templates/profile.html:117
-#: templates/profile.html:228
-msgid "Language"
-msgstr "Sprache"
-
-#: templates/post_login.html:66 templates/profile.html:62
+#: templates/_header.html:30 templates/profile.html:31
 msgid "Dashboard"
 msgstr "Übersicht"
 
-#: templates/post_login.html:70 templates/profile.html:66
+#: templates/_header.html:35 templates/profile.html:35
 msgid "Workitems"
-msgstr ""
+msgstr "Workitems"
 
-#: templates/profile.html:86
+#: templates/_header.html:55
+msgid ""
+"Your\n"
+"                                    Profile"
+msgstr "Dein Profil"
+
+#: templates/profile.html:7
+msgid "Sydoc Portal - Profile Settings"
+msgstr "Sydoc Portal - Profil Einstellungen"
+
+#: templates/profile.html:56
 msgid "Your Profile"
 msgstr "Dein Profil"
 
-#: templates/profile.html:88
+#: templates/profile.html:59
 msgid "Sign out"
 msgstr "Ausloggen"
 
-#: templates/profile.html:98
+#: templates/profile.html:69
 msgid "Account Settings"
-msgstr "Profil Einstellungen"
+msgstr "Konto Einstellungen"
 
-#: templates/profile.html:107
+#: templates/profile.html:78
 msgid "Profile"
 msgstr "Profil"
 
-#: templates/profile.html:112
+#: templates/profile.html:83 templates/seperate_page_login.html:34
 msgid "Password"
-msgstr ""
+msgstr "Passwort"
 
-#: templates/profile.html:122
+#: templates/profile.html:88 templates/profile.html:201
+msgid "Language"
+msgstr "Sprache"
+
+#: templates/profile.html:93
 msgid "Sign Out"
 msgstr "Ausloggen"
 
-#: templates/profile.html:187
-msgid "Change Password"
-msgstr "Passwort ändern"
-
-#: templates/profile.html:199
-msgid "Current Password"
-msgstr "Aktuelles Passwort"
-
-#: templates/profile.html:206
-msgid "New Password"
-msgstr "Neues Passwort"
-
-#: templates/profile.html:214
-msgid "Confirm New Password"
-msgstr "Neues Passwort bestätigen"
-
-#: templates/profile.html:222
-msgid "Save Changes"
-msgstr "Änderungen Speichern"
-
+#: templates/profile.html:101
 msgid "Profile Information"
-msgstr "Profil Informationen"
+msgstr "Konto Informationen"
 
+#: templates/profile.html:116 templates/seperate_page_login.html:25
 msgid "Username"
 msgstr "Benutzername"
 
-msgid "Change Language"
-msgstr "Sprache Ändern"
-
+#: templates/profile.html:125
 msgid "Full Name"
-msgstr "Voller Name"
+msgstr "Ganzer Name"
 
+#: templates/profile.html:133
+msgid "Email Address"
+msgstr "Email Adresse"
+
+#: templates/profile.html:141
 msgid "Company"
 msgstr "Firma"
 
-msgid "Email Address"
-msgstr "Email Adresse"
+#: templates/profile.html:152 templates/profile.html:195
+msgid "Save Changes"
+msgstr "Änderungen speichern"
+
+#: templates/profile.html:158
+msgid "Change Password"
+msgstr "Passwort ändern"
+
+#: templates/profile.html:170
+msgid "Current Password"
+msgstr "Aktuelles Passwort"
+
+#: templates/profile.html:177
+msgid ""
+"New\n"
+"                                Password"
+msgstr "Neues Passwort"
+
+#: templates/profile.html:186
+msgid "Confirm New Password"
+msgstr "Neues Passwort bestätigen"
+
+#: templates/profile.html:217
+msgid "Change Language"
+msgstr "Sprache Ändern"
+
+#: templates/reset_password.html:7
+msgid "Reset Password - Sydoc Portal"
+msgstr "Passwort zurücksetzen - Sydoc Portal"
+
+#: templates/reset_password.html:25
+msgid "Homepage"
+msgstr "Homepage"
+
+#: templates/reset_password.html:26
+msgid "Services"
+msgstr "Dienstleistungen"
+
+#: templates/reset_password.html:28
+msgid "Contact"
+msgstr "Kontakt"
+
+#: templates/reset_password.html:43
+msgid "Set a New Password"
+msgstr "Neues Passwort setzen"
+
+#: templates/reset_password.html:44
+msgid ""
+"Your new password must be different from your previously used\n"
+"                                password."
+msgstr "Ihr neues Passwort muss sich von ihrem bisher verwendeten Passwort unterscheiden"
+
+#: templates/reset_password.html:55
+msgid ""
+"New\n"
+"                                    Password"
+msgstr "Neues Passwort"
+
+#: templates/reset_password.html:68
+msgid ""
+"Confirm\n"
+"                                    New Password"
+msgstr "Passwort bestätigen"
+
+#: templates/reset_password.html:82
+msgid "Reset Password"
+msgstr "Passwort zurücksetzen"
+
+#: templates/reset_password.html:87
+msgid "Back to Login"
+msgstr "Zurück zum Login"
+
+#: templates/reset_password.html:98
+msgid "All Rights Reserved."
+msgstr "Alle Rechte vorbehalten"
+
+#: templates/seperate_page_login.html:6
+msgid "Login"
+msgstr "Login"
+
+#: templates/seperate_page_login.html:19
+msgid "Sydoc Portal Login"
+msgstr "Sydoc Portal Login"
+
+#: templates/seperate_page_login.html:45
+msgid "Remember me"
+msgstr "Eingeloggt bleiben"
+
+#: templates/seperate_page_login.html:47
+msgid "Forgot Password?"
+msgstr "Passwort vergessen?"
+
+#: templates/seperate_page_login.html:50
+msgid " Sign In"
+msgstr " Einloggen"
+
+#: templates/workitems_overview.html:7
+msgid "Sydoc Portal - Workitems Overview"
+msgstr "Sydoc Portal - Workitems Übersicht"
+
+#: templates/workitems_overview.html:25
+msgid "Workitems Overview"
+msgstr "Workitems Übersicht"
+
+#: templates/workitems_overview.html:27
+msgid "List of all workitems for"
+msgstr "Liste aller Workitems für"
+
+#: templates/workitems_overview.html:31
+msgid "Total Items:"
+msgstr "Total Elemente:"
+
+#: templates/workitems_overview.html:55
+msgid "All Statuses"
+msgstr "Alle Status"
+
+#: templates/workitems_overview.html:62
+msgid "Export CSV"
+msgstr "Export CSV"
+
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Barcode"
+
+#: templates/workitems_overview.html:84
+msgid "Status"
+msgstr "Status"
+
+#: templates/workitems_overview.html:89
+msgid "Last Movement At"
+msgstr "Letzte Bewegung"
+
+#: templates/workitems_overview.html:146
+msgid "Click to load media"
+msgstr "Klicken um Medien zu laden"
 
 #: venv/Lib/site-packages/click/_termui_impl.py:600
 #, python-brace-format
@@ -398,4 +525,181 @@ msgid "{len_type} values are required, but {len_value} was given."
 msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] ""
 msgstr[1] ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:55
+#: venv/Lib/site-packages/wtforms/validators.py:293
+#: venv/Lib/site-packages/wtforms/validators.py:323
+msgid "This field is required."
+msgstr ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:94
+#, python-brace-format
+msgid "File does not have an approved extension: {extensions}"
+msgstr ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:101
+msgid "File does not have an approved extension."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:86
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:99
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:146
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:152
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:164
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:216
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:219
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:222
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:358
+msgid "Invalid input."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:422
+msgid "Invalid email address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:460
+msgid "Invalid IP address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:503
+msgid "Invalid Mac address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:540
+msgid "Invalid URL."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:561
+msgid "Invalid UUID."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:595
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:631
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:700
+msgid "This field cannot be edited."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:716
+msgid "This field is disabled and cannot have a value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/core.py:96
+msgid "Invalid CSRF Token."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:64
+msgid "CSRF token missing."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:72
+msgid "CSRF failed."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:77
+msgid "CSRF token expired."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:142
+msgid "Invalid Choice: could not coerce."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:149
+#: venv/Lib/site-packages/wtforms/fields/choices.py:203
+msgid "Choices cannot be None."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:155
+msgid "Not a valid choice."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:194
+msgid "Invalid choice(s): one or more data inputs could not be coerced."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:212
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field."
+msgid_plural "'%(value)s' are not valid choices for this field."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:52
+msgid "Not a valid datetime value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:78
+msgid "Not a valid date value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:104
+msgid "Not a valid time value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:149
+msgid "Not a valid week value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:82
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:92
+msgid "Not a valid integer value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:168
+msgid "Not a valid decimal value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:197
+msgid "Not a valid float value."
+msgstr ""
 

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sydoc Portal - Dashboard</title>
+  <title>{{ _('Sydoc Portal - Dashboard') }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -18,10 +18,10 @@
   <main class="container mx-auto p-6">
     <div class="mb-10">
       <h2 class="text-3xl font-bold text-gray-800 mb-2 opacity-0 translate-y-4 animate-on-load">
-        Welcome back, {{ logged_in_user }}! 👋
+        {{ _('Welcome back, ') }} {{ logged_in_user }}! 👋
       </h2>
-      <p class="text-gray-600 opacity-0 translate-y-4 animate-on-load" style="--delay: 100ms;">Here's a summary of your
-        document activity.</p>
+      <p class="text-gray-600 opacity-0 translate-y-4 animate-on-load" style="--delay: 100ms;">{{ _('Here's a summary of your document activity.') }}
+</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -38,7 +38,7 @@
       <div
         class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]" style="--delay: 300ms;">
         <div>
-          <p class="text-sm font-medium text-gray-500">In Progress</p>
+          <p class="text-sm font-medium text-gray-500">In progress</p>
           <p class="text-3xl font-bold" id="in-progress-total">{{ InProgressTotal }}</p>
         </div>
         <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
@@ -69,29 +69,29 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 space-y-6 " >
-        <h3 class="text-2xl font-bold text-gray-800 opacity-0 translate-y-4 animate-on-load">Document Status</h3>
+        <h3 class="text-2xl font-bold text-gray-800 opacity-0 translate-y-4 animate-on-load">{{ _('Document Status') }} </h3>
         <div class="space-y-6" id="document-preview-container">
         </div>
       </div>
       <div class="space-y-6">
         <div class="bg-white p-6 rounded-xl shadow-lg">
-          <h3 class="text-xl font-bold mb-4">Recent Activity</h3>
+          <h3 class="text-xl font-bold mb-4">{{ _('Recent Activity') }} </h3>
           <ul id="recent-activity-list" class="space-y-4">
-            <li class="text-gray-500">Loading...</li>
+            <li class="text-gray-500"> {{ _('Loading') }} ...</li>
           </ul>
         </div>
 
         <div class="bg-white p-6 rounded-xl shadow-lg">
-          <h3 class="text-xl font-bold mb-4">Need Help?</h3>
+          <h3 class="text-xl font-bold mb-4">{{ _('Need help?') }} </h3>
           <ul class="space-y-3">
             <li>
 
               <a href="mailto:support.helpdesk@sydoc.ch" class="flex items-center text-indigo-600 support-link group">
                 <i class="fas fa-headset w-6 mr-2 transition-transform duration-300 group-hover:rotate-[-15deg]"></i>
-                Contact Support
+                {{ _('Contact support') }} 
               </a>
               <p class="text-sm text-gray-500 mt-1 pl-8">
-                or email us at support.helpdesk@sydoc.ch
+                {{ _('or email us at support.helpdesk@sydoc.ch') }} 
               </p>
             </li>
           </ul>
