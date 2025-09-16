@@ -3,11 +3,17 @@ py -m venv venv #Creating a venv
 pip install Flask-Babel #install babel
 
 create file babel.cfg with:
-[python: **.py]
-[jinja2: **/templates/**.html]
-encoding=utf-8
+    [python: **.py]
+    [jinja2: **/templates/**.html]
+    encoding=utf-8
+
+    [javascript: **/static/js/**.js]
+    encoding = utf-8
+    keywords = _ gettext ngettext:1,2
 
 highlight strings in HTML: {{_('string1')}}, {{_('string2')}}
+highlight strings in JS: ???
+
 
 pybabel extract -F babel.cfg -o messages.pot . #get all highlighted strings
 

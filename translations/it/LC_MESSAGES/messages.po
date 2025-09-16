@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-16 10:02+0200\n"
-"PO-Revision-Date: 2025-09-16 10:02+0200\n"
+"POT-Creation-Date: 2025-09-16 10:41+0200\n"
+"PO-Revision-Date: 2025-09-16 10:44+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
@@ -44,11 +44,7 @@ msgid "Welcome back"
 msgstr ""
 
 #: templates/dashboard.html:24
-msgid "Here"
-msgstr ""
-
-#: templates/dashboard.html:24
-msgid "s a summary of your document activity"
+msgid "Here's a summary of your document activity"
 msgstr ""
 
 #: templates/dashboard.html:78
@@ -99,19 +95,9 @@ msgid "Forgot your password"
 msgstr ""
 
 #: templates/forgot_password.html:40
-msgid "No problem"
-msgstr ""
-
-#: templates/forgot_password.html:40
-msgid "Enter the email address associated with your account"
-msgstr ""
-
-#: templates/forgot_password.html:40
-msgid "and we"
-msgstr ""
-
-#: templates/forgot_password.html:40
-msgid "ll send you a link to reset your password"
+msgid ""
+"No problem. Enter the email address associated with your account and "
+"we'll send you a link to reset your password"
 msgstr ""
 
 #: templates/forgot_password.html:50 templates/profile.html:129
@@ -140,19 +126,9 @@ msgid "Welcome to the Sydoc Portal"
 msgstr ""
 
 #: templates/index.html:42
-msgid "Securely track the status of your scanned"
-msgstr ""
-
-#: templates/index.html:42
-msgid "email"
-msgstr ""
-
-#: templates/index.html:42
-msgid "sftp imported and validated documents in real-time"
-msgstr ""
-
-#: templates/index.html:42
-msgid "Please log in to access your dashboard"
+msgid ""
+"Securely track the status of your scanned email/sftp imported and "
+"validated documents in real-time. Please log in to access your dashboard"
 msgstr ""
 
 #: templates/index.html:45
@@ -194,15 +170,9 @@ msgid "Real-time tracking"
 msgstr ""
 
 #: templates/index.html:105
-msgid "Monitor your document"
-msgstr ""
-
-#: templates/index.html:105
-msgid "s journey from import to validation and final delivery"
-msgstr ""
-
-#: templates/index.html:105
-msgid "every step of the way"
+msgid ""
+"Monitor your document's journey from import to validation and final "
+"delivery, every step of the way"
 msgstr ""
 
 #: templates/index.html:112
@@ -210,15 +180,9 @@ msgid "Document history"
 msgstr ""
 
 #: templates/index.html:113
-msgid "Access a complete"
-msgstr ""
-
-#: templates/index.html:113
-msgid "auditable history of all your processed documents"
-msgstr ""
-
-#: templates/index.html:113
-msgid "available 24/7."
+msgid ""
+"Access a complete, auditable history of all your processed documents "
+"available 24/7."
 msgstr ""
 
 #: templates/index.html:120
@@ -226,11 +190,9 @@ msgid "Secure access"
 msgstr ""
 
 #: templates/index.html:121
-msgid "Your data is protected with industry-leading security protocols"
-msgstr ""
-
-#: templates/index.html:121
-msgid "ensuring complete confidentiality"
+msgid ""
+"Your data is protected with industry-leading security protocols, ensuring"
+" complete confidentiality"
 msgstr ""
 
 #: templates/profile.html:7

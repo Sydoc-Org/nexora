@@ -63,9 +63,9 @@ def get_locale():
     if 'locale' in session:
         return session['locale']
     user = getattr(g, 'user', None)
-    if user is not None and user.locale in ['en', 'de', 'fr']:
+    if user is not None and user.locale in ['en', 'de', 'fr', 'it']:
         return user.locale
-    return request.accept_languages.best_match(['de', 'fr', 'en'])
+    return request.accept_languages.best_match(['de', 'fr', 'en', 'it'])
 
 def get_timezone():
     user = getattr(g, 'user', None)
