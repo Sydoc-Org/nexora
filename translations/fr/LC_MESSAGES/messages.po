@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-06 10:46+0200\n"
-"PO-Revision-Date: 2025-08-06 10:47+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2025-09-16 10:41+0200\n"
+"PO-Revision-Date: 2025-09-16 15:43+0200\n"
+"Last-Translator: Gemini AI\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
@@ -18,384 +18,299 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/post_login.html:57 templates/profile.html:117
-#: templates/profile.html:228
-msgid "Language"
-msgstr "Langue"
-
-#: templates/post_login.html:66 templates/profile.html:62
+#: templates/_header.html:30 templates/profile.html:31
 msgid "Dashboard"
-msgstr ""
-
-#: templates/post_login.html:70 templates/profile.html:66
-msgid "Workitems"
 msgstr "Tableau de bord"
 
-#: templates/profile.html:86
-msgid "Your Profile"
+#: templates/_header.html:35 templates/profile.html:35
+msgid "Workitems"
+msgstr "Éléments de travail"
+
+#: templates/_header.html:55 templates/profile.html:55
+msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/profile.html:88
+#: templates/_header.html:57 templates/profile.html:57
+#: templates/profile.html:91
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/profile.html:98
-msgid "Account Settings"
-msgstr "Paramètres du compte"
+#: templates/dashboard.html:7
+msgid "Sydoc Portal - Dashboard"
+msgstr "Portail Sydoc - Tableau de bord"
 
-#: templates/profile.html:107
-msgid "Profile"
-msgstr "Profil"
+#: templates/dashboard.html:21
+msgid "Welcome back"
+msgstr "Bon retour parmi nous"
 
-#: templates/profile.html:112
-msgid "Password"
-msgstr "Mot de passe"
+#: templates/dashboard.html:24
+msgid "Here's a summary of your document activity"
+msgstr "Voici un résumé de l'activité de vos documents"
 
-#: templates/profile.html:122
-msgid "Sign Out"
-msgstr "Se déconnecter"
+#: templates/dashboard.html:78
+msgid "Document Status"
+msgstr "Statut du document"
 
-#: templates/profile.html:187
-msgid "Change Password"
-msgstr "Modifier le mot de passe"
+#: templates/dashboard.html:84
+msgid "Recent Activity"
+msgstr "Activité récente"
 
-#: templates/profile.html:199
-msgid "Current Password"
-msgstr "Mot de passe actuel"
+#: templates/dashboard.html:86
+msgid "Loading"
+msgstr "Chargement en cours"
 
-#: templates/profile.html:206
-msgid "New Password"
-msgstr "Nouveau mot de passe"
+#: templates/dashboard.html:91
+msgid "Need help"
+msgstr "Besoin d'aide ?"
 
-#: templates/profile.html:214
-msgid "Confirm New Password"
-msgstr "Confirmer le nouveau mot de passe"
+#: templates/dashboard.html:97
+msgid "Contact support"
+msgstr "Contacter le support"
 
-#: templates/profile.html:222
-msgid "Save Changes"
-msgstr "Enregistrer les modifications"
+#: templates/dashboard.html:100
+msgid "or email us at"
+msgstr "ou envoyez-nous un e-mail à"
 
-msgid "Profile Information"
-msgstr "Informations sur le profil"
+#: templates/forgot_password.html:6
+msgid "Forgot password - Sydoc Portal"
+msgstr "Mot de passe oublié - Portail Sydoc"
 
+#: templates/forgot_password.html:22 templates/index.html:22
+#: templates/reset_password.html:25
+msgid "Homepage"
+msgstr "Page d'accueil"
+
+#: templates/forgot_password.html:23 templates/index.html:23
+#: templates/reset_password.html:26
+msgid "Services"
+msgstr "Services"
+
+#: templates/forgot_password.html:24 templates/index.html:24
+#: templates/reset_password.html:28
+msgid "Contact"
+msgstr "Contact"
+
+#: templates/forgot_password.html:39
+msgid "Forgot your password"
+msgstr "Vous avez oublié votre mot de passe ?"
+
+#: templates/forgot_password.html:40
+msgid ""
+"No problem. Enter the email address associated with your account and "
+"we'll send you a link to reset your password"
+msgstr "Aucun problème. Saisissez l'adresse e-mail associée à votre compte et nous vous enverrons un lien pour réinitialiser votre mot de passe."
+
+#: templates/forgot_password.html:50 templates/profile.html:129
+msgid "Email address"
+msgstr "Adresse e-mail"
+
+#: templates/forgot_password.html:60
+msgid "Send reset link"
+msgstr "Envoyer le lien de réinitialisation"
+
+#: templates/forgot_password.html:66 templates/reset_password.html:84
+msgid "Back to login"
+msgstr "Retour à la connexion"
+
+#: templates/forgot_password.html:77
+msgid "All rights reserved"
+msgstr "Tous droits réservés"
+
+#: templates/index.html:6 templates/seperate_page_login.html:6
+#: templates/seperate_page_login.html:18
+msgid "Login - Sydoc Portal"
+msgstr "Connexion - Portail Sydoc"
+
+#: templates/index.html:39
+msgid "Welcome to the Sydoc Portal"
+msgstr "Bienvenue sur le Portail Sydoc"
+
+#: templates/index.html:42
+msgid ""
+"Securely track the status of your scanned email/sftp imported and "
+"validated documents in real-time. Please log in to access your dashboard"
+msgstr "Suivez en toute sécurité et en temps réel l'état de vos documents numérisés, importés par e-mail/sftp et validés. Veuillez vous connecter pour accéder à votre tableau de bord."
+
+#: templates/index.html:45
+msgid "Login to your account"
+msgstr "Connectez-vous à votre compte"
+
+#: templates/index.html:57 templates/profile.html:113
+#: templates/seperate_page_login.html:24
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
-msgid "Full Name"
+#: templates/index.html:66 templates/profile.html:81
+#: templates/seperate_page_login.html:33
+msgid "Password"
+msgstr "Mot de passe"
+
+#: templates/index.html:77 templates/seperate_page_login.html:44
+msgid "Remember me"
+msgstr "Se souvenir de moi"
+
+#: templates/index.html:79
+msgid "Forgot password"
+msgstr "Mot de passe oublié ?"
+
+#: templates/index.html:82
+msgid "Sign in"
+msgstr "Se connecter"
+
+#: templates/index.html:95
+msgid "Why use Sydoc Portal"
+msgstr "Pourquoi utiliser le Portail Sydoc ?"
+
+#: templates/index.html:96
+msgid "Everything you need in one secure and convenient place"
+msgstr "Tout ce dont vous avez besoin en un seul endroit, sécurisé et pratique"
+
+#: templates/index.html:104
+msgid "Real-time tracking"
+msgstr "Suivi en temps réel"
+
+#: templates/index.html:105
+msgid ""
+"Monitor your document's journey from import to validation and final "
+"delivery, every step of the way"
+msgstr "Suivez le parcours de votre document de l'importation à la validation et à la livraison finale, à chaque étape."
+
+#: templates/index.html:112
+msgid "Document history"
+msgstr "Historique des documents"
+
+#: templates/index.html:113
+msgid ""
+"Access a complete, auditable history of all your processed documents "
+"available 24/7."
+msgstr "Accédez à un historique complet et vérifiable de tous vos documents traités, disponible 24h/24 et 7j/7."
+
+#: templates/index.html:120
+msgid "Secure access"
+msgstr "Accès sécurisé"
+
+#: templates/index.html:121
+msgid ""
+"Your data is protected with industry-leading security protocols, ensuring"
+" complete confidentiality"
+msgstr "Vos données sont protégées par des protocoles de sécurité de pointe, garantissant une confidentialité totale."
+
+#: templates/profile.html:7
+msgid "Profile settings - Sydoc Portal"
+msgstr "Paramètres du profil - Portail Sydoc"
+
+#: templates/profile.html:67
+msgid "Account settings"
+msgstr "Paramètres du compte"
+
+#: templates/profile.html:76
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/profile.html:86 templates/profile.html:191
+msgid "Language"
+msgstr "Langue"
+
+#: templates/profile.html:99
+msgid "Profile information"
+msgstr "Informations du profil"
+
+#: templates/profile.html:121
+msgid "Full name"
 msgstr "Nom complet"
 
-msgid "Change Language"
-msgstr "Changer de langue"
-
+#: templates/profile.html:136
 msgid "Company"
 msgstr "Entreprise"
 
-msgid "Email Address"
-msgstr "Adresse électronique"
+#: templates/profile.html:146 templates/profile.html:185
+msgid "Save changes"
+msgstr "Enregistrer les modifications"
 
-#: venv/Lib/site-packages/click/_termui_impl.py:600
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr ""
+#: templates/profile.html:152
+msgid "Change password"
+msgstr "Changer le mot de passe"
 
-#: venv/Lib/site-packages/click/_termui_impl.py:604
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr ""
+#: templates/profile.html:163
+msgid "Current password"
+msgstr "Mot de passe actuel"
 
-#: venv/Lib/site-packages/click/core.py:1084
-#: venv/Lib/site-packages/click/core.py:1121
-#, python-brace-format
-msgid "{text} {deprecated_message}"
-msgstr ""
+#: templates/profile.html:170 templates/reset_password.html:54
+msgid "New password"
+msgstr "Nouveau mot de passe"
 
-#: venv/Lib/site-packages/click/core.py:1140
-msgid "Options"
-msgstr ""
+#: templates/profile.html:177 templates/reset_password.html:66
+msgid "Confirm new password"
+msgstr "Confirmer le nouveau mot de passe"
 
-#: venv/Lib/site-packages/click/core.py:1202
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-msgstr[1] ""
+#: templates/profile.html:206
+msgid "Change language"
+msgstr "Changer de langue"
 
-#: venv/Lib/site-packages/click/core.py:1221
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
-msgstr ""
+#: templates/reset_password.html:7
+msgid "Reset password - Sydoc Portal"
+msgstr "Réinitialiser le mot de passe - Portail Sydoc"
 
-#: venv/Lib/site-packages/click/core.py:1405
-msgid "Aborted!"
-msgstr ""
+#: templates/reset_password.html:43
+msgid "Set a new password"
+msgstr "Définir un nouveau mot de passe"
 
-#: venv/Lib/site-packages/click/core.py:1779
-msgid "Commands"
-msgstr ""
+#: templates/reset_password.html:44
+msgid "Your new password must be different from your previously used password."
+msgstr "Votre nouveau mot de passe doit être différent de votre mot de passe précédent."
 
-#: venv/Lib/site-packages/click/core.py:1810
-msgid "Missing command."
-msgstr ""
+#: templates/reset_password.html:79
+msgid "Reset password"
+msgstr "Réinitialiser le mot de passe"
 
-#: venv/Lib/site-packages/click/core.py:1888
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr ""
+#: templates/reset_password.html:95
+msgid "All rights reserved."
+msgstr "Tous droits réservés."
 
-#: venv/Lib/site-packages/click/core.py:2303
-msgid "Value must be an iterable."
-msgstr ""
+#: templates/seperate_page_login.html:46
+msgid "Forgot password?"
+msgstr "Mot de passe oublié ?"
 
-#: venv/Lib/site-packages/click/core.py:2324
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-msgstr[1] ""
+#: templates/seperate_page_login.html:49
+msgid " Sign in"
+msgstr " Se connecter"
 
-#: venv/Lib/site-packages/click/core.py:2404
-#, python-brace-format
-msgid ""
-"DeprecationWarning: The {param_type} {name!r} is "
-"deprecated.{extra_message}"
-msgstr ""
+#: templates/workitems_overview.html:7
+msgid "Workitems overview - Sydoc Portal"
+msgstr "Aperçu des éléments de travail - Portail Sydoc"
 
-#: venv/Lib/site-packages/click/core.py:2807
-#, python-brace-format
-msgid "env var: {var}"
-msgstr ""
+#: templates/workitems_overview.html:25
+msgid "Workitems overview"
+msgstr "Aperçu des éléments de travail"
 
-#: venv/Lib/site-packages/click/core.py:2810
-#, python-brace-format
-msgid "default: {default}"
-msgstr ""
+#: templates/workitems_overview.html:27
+msgid "List of all workitems for"
+msgstr "Liste de tous les éléments de travail pour"
 
-#: venv/Lib/site-packages/click/core.py:2814
-msgid "required"
-msgstr ""
+#: templates/workitems_overview.html:31
+msgid "Total items:"
+msgstr "Nombre total d'éléments :"
 
-#: venv/Lib/site-packages/click/core.py:2870
-msgid "(dynamic)"
-msgstr ""
+#: templates/workitems_overview.html:55
+msgid "All statuses"
+msgstr "Tous les statuts"
 
-#: venv/Lib/site-packages/click/decorators.py:465
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr ""
+#: templates/workitems_overview.html:62
+msgid "Export CSV"
+msgstr "Exporter en CSV"
 
-#: venv/Lib/site-packages/click/decorators.py:522
-msgid "Show the version and exit."
-msgstr ""
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Code-barres"
 
-#: venv/Lib/site-packages/click/decorators.py:548
-msgid "Show this message and exit."
-msgstr ""
+#: templates/workitems_overview.html:84
+msgid "Status"
+msgstr "Statut"
 
-#: venv/Lib/site-packages/click/exceptions.py:50
-#: venv/Lib/site-packages/click/exceptions.py:89
-#, python-brace-format
-msgid "Error: {message}"
-msgstr ""
+#: templates/workitems_overview.html:89
+msgid "Last movement at"
+msgstr "Dernier mouvement le"
 
-#: venv/Lib/site-packages/click/exceptions.py:81
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:130
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:132
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:190
-msgid "Missing argument"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:192
-msgid "Missing option"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:194
-msgid "Missing parameter"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:196
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:203
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:223
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:235
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/Lib/site-packages/click/exceptions.py:282
-msgid "unknown error"
-msgstr ""
-
-#: venv/Lib/site-packages/click/exceptions.py:289
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/formatting.py:156
-msgid "Usage:"
-msgstr ""
-
-#: venv/Lib/site-packages/click/parser.py:200
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr ""
-
-#: venv/Lib/site-packages/click/parser.py:383
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr ""
-
-#: venv/Lib/site-packages/click/parser.py:444
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/Lib/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr ""
-
-#: venv/Lib/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:162
-msgid "Repeat for confirmation"
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:178
-msgid "Error: The value you entered was invalid."
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:180
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:191
-msgid "Error: The two entered values do not match."
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:247
-msgid "Error: invalid input"
-msgstr ""
-
-#: venv/Lib/site-packages/click/termui.py:866
-msgid "Press any key to continue..."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:332
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:369
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/Lib/site-packages/click/types.py:460
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/Lib/site-packages/click/types.py:482
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:538
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:679
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:703
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:893
-msgid "file"
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:895
-msgid "directory"
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:897
-msgid "path"
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:944
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:953
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:961
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:970
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:979
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:988
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr ""
-
-#: venv/Lib/site-packages/click/types.py:1055
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-msgstr[1] ""
-
+#: templates/workitems_overview.html:146
+msgid "Click to load media"
+msgstr "Cliquer pour charger le média"

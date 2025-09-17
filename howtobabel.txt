@@ -1,19 +1,31 @@
 py -m venv venv #Creating a venv
 .\venv\Scripts\activate #activate venv
 pip install Flask-Babel #install babel
-#create file babel.cfg
-#add: 
-#[python: **.py]
-#[jinja2: **/templates/**.html]
-#highlight strings: {{_('string1')}}, {{_('string2')}}
-#translate string in messages.po in respective language: 
-#msgid "string1"
-#msgstr "string1 in a new language"
-#msgid "string2"
-#msgstr "string2 in a new language"
-#next three only for first time
-    pybabel extract -F babel.cfg -o messages.pot . #get all highlighted strings
+
+create file babel.cfg with:
+    [python: **.py]
+    [jinja2: **/templates/**.html]
+    encoding=utf-8
+
+    [javascript: **/static/js/**.js]
+    encoding = utf-8
+    keywords = _ gettext ngettext:1,2
+
+highlight strings in HTML: {{_('string1')}}, {{ _('string2') }}
+
+pybabel extract -F babel.cfg -o messages.pot . #get all highlighted strings
+
+if init:
     pybabel init -i messages.pot -d translations -l de #make folder for german
     pybabel init -i messages.pot -d translations -l fr #make folder for French
+else:
+    pybabel update -i messages.pot -d translations
+
+translate string at messages.po in respective language: 
+msgid "string1"
+msgstr "string1 in a new language"
+msgid "string2"
+msgstr "string2 in a new language"
+
 pybabel compile -d translations #complie
 deactivate
