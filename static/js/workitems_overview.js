@@ -163,6 +163,70 @@ function getCurrentFilterOrSearch() {
   };
 }
 
+async function loadHistory(workitemId) {
+  const historyContainer = document.getElementById(`history-container-${workitemId}`);
+  if (!historyContainer) {
+    console.error(`History container not found for workitem ID: ${workitemId}`);
+    return;
+  }
+
+  if (historyContainer.dataset.loaded === 'true') {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/get_audithistory/${workitemId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const historyData = await response.json();
+
+    historyContainer.innerHTML = '';
+
+    if (historyData.length === 0) {
+      historyContainer.innerHTML = `<p class="text-gray-500">No history available for this item</p>`;
+    } else {
+      const timeline = document.createElement('div');
+      timeline.className = 'border-l-2 border-indigo-200 ml-2';
+
+      historyData.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
+
+      historyData.forEach(item => {
+        const eventElement = document.createElement('div');
+        eventElement.className = 'relative mb-4 pl-6';
+
+        const dot = document.createElement('div');
+        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
+        eventElement.appendChild(dot);
+
+        const eventText = document.createElement('p');
+        eventText.className = 'text-sm text-gray-800';
+        eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+        eventElement.appendChild(eventText);
+
+        const detailsText = document.createElement('p');
+        detailsText.className = 'text-xs text-gray-500 mt-1';
+        const eventDate = new Date(item.DateTime);
+        const formattedDate = eventDate.toLocaleString(undefined, {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+        detailsText.textContent = formattedDate;
+        eventElement.appendChild(detailsText);
+
+        timeline.appendChild(eventElement);
+      });
+      historyContainer.appendChild(timeline);
+    }
+
+    historyContainer.dataset.loaded = 'true';
+
+  } catch (error) {
+    console.error('Failed to load history:', error);
+    historyContainer.innerHTML = `<p class="text-red-500">Could not load history</p>`;
+  }
+}
+
 async function toggleDetailsAndLoadImages(event) {
   const button = event.currentTarget;
   const workitemid = button.dataset.workitemid;
@@ -203,8 +267,8 @@ async function toggleDetailsAndLoadImages(event) {
   }
 
   imageContainer.innerHTML = '<p class="text-gray-500 animate-pulse">Checking for media...</p>';
-
   try {
+    loadHistory(workitemid); 
     const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
     if (!infoResponse.ok) {
       throw new Error('Could not fetch media information.');
@@ -235,7 +299,6 @@ async function toggleDetailsAndLoadImages(event) {
     imageContainer.dataset.loaded = 'true';
   }
 }
-
 
 async function loadImage(container, workitemid, index) {
   const placeholder = document.createElement('div');

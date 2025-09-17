@@ -698,39 +698,6 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
     
-@app.route("/demand_workitem", methods=['POST', 'GET'])
-def demand_workitem():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    if request.method == "POST":
-        workitemid = request.form['workitemid']
-        log_user_action('demand_workitem', resource_id=workitemid)
-        username = session['username']
-
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        print(workitemid)
-        cursor.execute("""
-            UPDATE StadtBiel
-            SET DemandedBy = ?, [DateTime] = GETDATE()
-            WHERE FileID = ?
-        """, (username, workitemid))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return redirect(url_for("workitems_overview"))       
-
 @app.route("/profile")
 def profile():
     if 'username' not in session:
@@ -908,42 +875,6 @@ def recent_activity():
         ])
     except Exception as e:
         print(e)
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/allstatesfromoneworkitem/<string:workitem_id>')
-def all_states_from_one_workitem(workitem_id):
-    #if 'username' not in session:
-    #    return jsonify({"error": "Not logged in"}), 401
-
-    try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM 
-            dbo.StadtBiel 
-            WHERE FileID = ?;
-        """, (workitem_id,))
-        all_states_from_one_workitem = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return jsonify([
-            {
-                "state": row[4],
-                "DemandedBy": row[5],
-                "datetime": row[6] if isinstance(row[6], str) else row[6].strftime('%Y-%m-%d %H:%M:%S')
-            }
-            for row in all_states_from_one_workitem
-        ])
-    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/jdvance')
@@ -1149,7 +1080,7 @@ def api_get_media_raw(workitem_id, media_index):
 def get_audithistory(workitem_id):
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
+        f'SERVER={DB_SERVER_PRD},1433;'
         f'DATABASE={DB_SERVER_DB_RUNTIME};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
@@ -1157,7 +1088,7 @@ def get_audithistory(workitem_id):
     )
     conn = pyodbc.connect(conn_str)
     cursor = conn.cursor()
-    cursor.execute(""""
+    cursor.execute("""
         SELECT tat.Name Activity, 
         CONVERT(VARCHAR(20), twia.[TimeStamp], 120) DateTime, ROW_NUMBER() OVER (ORDER BY AuditNumber) Step FROM t_WorkItemAudits twia 
         RIGHT JOIN t_ActivityInstances tai ON twia.ActivityInstanceID = tai.ID  
@@ -1168,6 +1099,7 @@ def get_audithistory(workitem_id):
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
+    print()
     return jsonify([
         {
             "Activity": row[0],
