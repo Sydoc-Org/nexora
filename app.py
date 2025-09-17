@@ -1145,6 +1145,38 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response("Internal Server Error", status=500)
 
+@app.route('/api/get_audithistory/<int:workitem_id>')
+def get_audithistory(workitem_id):
+    conn_str = (
+        f'DRIVER={{SQL Server}};'
+        f'SERVER={DB_SERVER},1433;'
+        f'DATABASE={DB_SERVER_DB_RUNTIME};'
+        f'UID={DB_UID};'
+        f'PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    cursor.execute(""""
+        SELECT tat.Name Activity, 
+        CONVERT(VARCHAR(20), twia.[TimeStamp], 120) DateTime, ROW_NUMBER() OVER (ORDER BY AuditNumber) Step FROM t_WorkItemAudits twia 
+        RIGHT JOIN t_ActivityInstances tai ON twia.ActivityInstanceID = tai.ID  
+        RIGHT JOIN t_ActivityTypes tat ON tat.ID = tai.ActivityTypeID 
+        WHERE twia.WorkItemID = ? AND Action = 'Released'
+        order by twia.AuditNumber 
+    """, (workitem_id))
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify([
+        {
+            "Activity": row[0],
+            "DateTime": row[1],
+            "Step": row[2]
+        }
+        for row in rows
+    ])
+    
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #
