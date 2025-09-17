@@ -662,12 +662,16 @@ def workitems_overview():
             WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
             tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
             AND twi.Status <> 2 
-        )
+        ),
+        CTE2 AS (
         SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
         FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+        )
+        SELECT * FROM CTE2
+        ORDER BY CTE2.ModifiedAt DESC
         """)
         
         workitems = cursor.fetchall()
@@ -968,10 +972,17 @@ def get_extension_and_urls(workitemdata, document_id):
     response = requests.get(url=url, headers=headers)
     urls = []
     extension = []
-    for element in response.json()['Media']:
-        if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-            urls.append(element['Url'])
-            extension.append(element['Extension'])
+    if response.json()['DocumentType'] == 'Batch':
+        for element in response.json()['ChildDocuments']:
+            for media in element['Media']:
+                if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                    urls.append(media['Url'])
+                    extension.append(media['Extension'])
+    else:
+        for element in response.json()['Media']:
+            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                urls.append(element['Url'])
+                extension.append(element['Extension'])
     return extension, urls
 
 def get_media(url):
