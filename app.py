@@ -18,7 +18,7 @@ import base64
 from PIL import Image
 import io
 from flask_caching import Cache
-
+from datetime import datetime
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -1089,35 +1089,41 @@ def api_get_media_raw(workitem_id, media_index):
 
 @app.route('/api/get_audithistory/<int:workitem_id>')
 def get_audithistory(workitem_id):
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
-        f'DATABASE={DB_SERVER_DB_RUNTIME};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    conn = pyodbc.connect(conn_str)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT tat.Name Activity, 
-        CONVERT(VARCHAR(20), twia.[TimeStamp], 120) DateTime, ROW_NUMBER() OVER (ORDER BY AuditNumber) Step FROM t_WorkItemAudits twia 
-        RIGHT JOIN t_ActivityInstances tai ON twia.ActivityInstanceID = tai.ID  
-        RIGHT JOIN t_ActivityTypes tat ON tat.ID = tai.ActivityTypeID 
-        WHERE twia.WorkItemID = ? AND Action = 'Released'
-        order by twia.AuditNumber 
-    """, (workitem_id))
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    print()
+    audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    response = requests.get(url=audit_url, headers=headers)
+    audits = response.json()
+
+    activity_instance_ids = []
+    time_stamps = []
+    complete_aray = []
+
+    for audit in audits['Audits']:
+        if audit['ActivityInstanceID'] not in activity_instance_ids:
+            activity_instance_ids.append(audit['ActivityInstanceID'])
+            time_stamps.append(datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S"))
+
+    len_activity_instance_ids = len(activity_instance_ids)
+
+    for i, Activity_Instance_id in enumerate(activity_instance_ids):
+        activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{Activity_Instance_id}'
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        response = requests.get(url=activity_instances_url, headers=headers)
+        activity_instance_config = response.json()
+        complete_aray.append((activity_instance_config['ActivityTypeName'], time_stamps[i], len_activity_instance_ids))
+        len_activity_instance_ids = len_activity_instance_ids - 1
     return jsonify([
         {
-            "Activity": row[0],
-            "DateTime": row[1],
-            "Step": row[2]
+            "Activity": element[0],
+            "DateTime": element[1],
+            "Step": element[2]
         }
-        for row in rows
+        for element in complete_aray
     ])
     
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   

@@ -175,7 +175,7 @@ async function loadHistory(workitemId) {
   }
 
   try {
-    const response = await fetch(`/api/get_audithistory/${workitemId}`);
+    const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
@@ -189,7 +189,7 @@ async function loadHistory(workitemId) {
       const timeline = document.createElement('div');
       timeline.className = 'border-l-2 border-indigo-200 ml-2';
 
-      historyData.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
+      //historyData.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
 
       historyData.forEach(item => {
         const eventElement = document.createElement('div');
