@@ -1087,45 +1087,60 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response("Internal Server Error", status=500)
 
-@app.route('/api/get_audithistory/<int:workitem_id>')
-def get_audithistory(workitem_id):
-    audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
-    access_token = get_access_token()
+@cache.memoize() 
+def get_activity_type_name(activity_instance_id: str) -> str:
+    activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{activity_instance_id}'
+    access_token = get_access_token() 
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
-    response = requests.get(url=audit_url, headers=headers)
-    audits = response.json()
-
-    activity_instance_ids = []
-    time_stamps = []
-    complete_aray = []
-
-    for audit in audits['Audits']:
-        if audit['ActivityInstanceID'] not in activity_instance_ids:
-            activity_instance_ids.append(audit['ActivityInstanceID'])
-            time_stamps.append(datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S"))
-
-    len_activity_instance_ids = len(activity_instance_ids)
-
-    for i, Activity_Instance_id in enumerate(activity_instance_ids):
-        activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{Activity_Instance_id}'
-        headers = {
-            "Authorization": f"Bearer {access_token}"
-        }
-        response = requests.get(url=activity_instances_url, headers=headers)
-        activity_instance_config = response.json()
-        complete_aray.append((activity_instance_config['ActivityTypeName'], time_stamps[i], len_activity_instance_ids))
-        len_activity_instance_ids = len_activity_instance_ids - 1
-    return jsonify([
-        {
-            "Activity": element[0],
-            "DateTime": element[1],
-            "Step": element[2]
-        }
-        for element in complete_aray
-    ])
     
+    try:
+        response = requests.get(url=activity_instances_url, headers=headers)
+        response.raise_for_status() 
+        activity_instance_config = response.json()
+        return activity_instance_config.get('ActivityTypeName', 'Unknown Activity')
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching activity instance {activity_instance_id}: {e}")
+        return "Error - See Logs"
+
+@app.route('/api/get_audithistory/<int:workitem_id>')
+def get_audithistory(workitem_id):
+    try:
+        audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
+        access_token = get_access_token()
+        headers = {"Authorization": f"Bearer {access_token}"}
+        
+        response = requests.get(url=audit_url, headers=headers)
+        response.raise_for_status()
+        audits = response.json()
+
+        unique_activities = {}
+        for audit in audits.get('Audits', []):
+            activity_id = audit.get('ActivityInstanceID')
+            if activity_id and activity_id not in unique_activities:
+                unique_activities[activity_id] = datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S")
+
+        complete_array = []
+        total_steps = len(unique_activities)
+        
+        for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
+            activity_name = get_activity_type_name(activity_id) 
+            
+            step_info = {
+                "Activity": activity_name,
+                "DateTime": time_stamp,
+                "Step": total_steps - i 
+            }
+            complete_array.append(step_info)
+        
+        return jsonify(complete_array)
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to fetch audit history: {e}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+        
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #
