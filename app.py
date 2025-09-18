@@ -18,7 +18,7 @@ import base64
 from PIL import Image
 import io
 from flask_caching import Cache
-
+from datetime import datetime
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -662,12 +662,16 @@ def workitems_overview():
             WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
             tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
             AND twi.Status <> 2 
-        )
+        ),
+        CTE2 AS (
         SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
         FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+        )
+        SELECT * FROM CTE2
+        ORDER BY CTE2.ModifiedAt DESC
         """)
         
         workitems = cursor.fetchall()
@@ -698,39 +702,6 @@ def workitems_overview():
                          scope=scope,
                          workitems=workitems_list)
     
-@app.route("/demand_workitem", methods=['POST', 'GET'])
-def demand_workitem():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    if request.method == "POST":
-        workitemid = request.form['workitemid']
-        log_user_action('demand_workitem', resource_id=workitemid)
-        username = session['username']
-
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        print(workitemid)
-        cursor.execute("""
-            UPDATE StadtBiel
-            SET DemandedBy = ?, [DateTime] = GETDATE()
-            WHERE FileID = ?
-        """, (username, workitemid))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return redirect(url_for("workitems_overview"))       
-
 @app.route("/profile")
 def profile():
     if 'username' not in session:
@@ -910,42 +881,6 @@ def recent_activity():
         print(e)
         return jsonify({"error": str(e)}), 500
 
-@app.route('/allstatesfromoneworkitem/<string:workitem_id>')
-def all_states_from_one_workitem(workitem_id):
-    #if 'username' not in session:
-    #    return jsonify({"error": "Not logged in"}), 401
-
-    try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_STAT};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM 
-            dbo.StadtBiel 
-            WHERE FileID = ?;
-        """, (workitem_id,))
-        all_states_from_one_workitem = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return jsonify([
-            {
-                "state": row[4],
-                "DemandedBy": row[5],
-                "datetime": row[6] if isinstance(row[6], str) else row[6].strftime('%Y-%m-%d %H:%M:%S')
-            }
-            for row in all_states_from_one_workitem
-        ])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/jdvance')
 def jdvance():
     if 'username' in session and session['scope'] == 'Admin':
@@ -1037,10 +972,17 @@ def get_extension_and_urls(workitemdata, document_id):
     response = requests.get(url=url, headers=headers)
     urls = []
     extension = []
-    for element in response.json()['Media']:
-        if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-            urls.append(element['Url'])
-            extension.append(element['Extension'])
+    if response.json()['DocumentType'] == 'Batch':
+        for element in response.json()['ChildDocuments']:
+            for media in element['Media']:
+                if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                    urls.append(media['Url'])
+                    extension.append(media['Extension'])
+    else:
+        for element in response.json()['Media']:
+            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                urls.append(element['Url'])
+                extension.append(element['Extension'])
     return extension, urls
 
 def get_media(url):
@@ -1145,6 +1087,60 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response("Internal Server Error", status=500)
 
+@cache.memoize() 
+def get_activity_type_name(activity_instance_id: str) -> str:
+    activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{activity_instance_id}'
+    access_token = get_access_token() 
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    try:
+        response = requests.get(url=activity_instances_url, headers=headers)
+        response.raise_for_status() 
+        activity_instance_config = response.json()
+        return activity_instance_config.get('ActivityTypeName', 'Unknown Activity')
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching activity instance {activity_instance_id}: {e}")
+        return "Error - See Logs"
+
+@app.route('/api/get_audithistory/<int:workitem_id>')
+def get_audithistory(workitem_id):
+    try:
+        audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
+        access_token = get_access_token()
+        headers = {"Authorization": f"Bearer {access_token}"}
+        
+        response = requests.get(url=audit_url, headers=headers)
+        response.raise_for_status()
+        audits = response.json()
+
+        unique_activities = {}
+        for audit in audits.get('Audits', []):
+            activity_id = audit.get('ActivityInstanceID')
+            if activity_id and activity_id not in unique_activities:
+                unique_activities[activity_id] = datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S")
+
+        complete_array = []
+        total_steps = len(unique_activities)
+        
+        for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
+            activity_name = get_activity_type_name(activity_id) 
+            
+            step_info = {
+                "Activity": activity_name,
+                "DateTime": time_stamp,
+                "Step": total_steps - i 
+            }
+            complete_array.append(step_info)
+        
+        return jsonify(complete_array)
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to fetch audit history: {e}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+        
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #
