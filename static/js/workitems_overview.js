@@ -71,12 +71,19 @@ document.getElementById("statusFilter").addEventListener("change", function () {
 });
 
 function closeAllDetails() {
-  document.querySelectorAll("[id^='details-']").forEach((detailsRow) => {
-    detailsRow.style.display = "none";
+  // Find all detail rows
+  document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
+    // Use the same logic as the toggle function to close them
+    detailsRow.classList.remove('open');
+    detailsRow.setAttribute('hidden', true); // Use the hidden attribute instead of inline style
   });
-  document.querySelectorAll("[id^='chevron-']").forEach((chevron) => {
-    chevron.classList.remove("glyphicon-chevron-down-custom");
-    chevron.classList.add("glyphicon-chevron-up-custom");
+
+  // Reset all chevrons
+  document.querySelectorAll(".indicator").forEach((chevron) => {
+    chevron.classList.remove('open');
+    // Also reset the up/down classes to a default state
+    chevron.classList.remove('glyphicon-chevron-down-custom');
+    chevron.classList.add('glyphicon-chevron-up-custom');
   });
 }
 
@@ -188,8 +195,6 @@ async function loadHistory(workitemId) {
     } else {
       const timeline = document.createElement('div');
       timeline.className = 'border-l-2 border-indigo-200 ml-2';
-
-      //historyData.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
 
       historyData.forEach(item => {
         const eventElement = document.createElement('div');
