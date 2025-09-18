@@ -71,17 +71,13 @@ document.getElementById("statusFilter").addEventListener("change", function () {
 });
 
 function closeAllDetails() {
-  // Find all detail rows
   document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
-    // Use the same logic as the toggle function to close them
     detailsRow.classList.remove('open');
-    detailsRow.setAttribute('hidden', true); // Use the hidden attribute instead of inline style
+    detailsRow.setAttribute('hidden', true); 
   });
 
-  // Reset all chevrons
   document.querySelectorAll(".indicator").forEach((chevron) => {
     chevron.classList.remove('open');
-    // Also reset the up/down classes to a default state
     chevron.classList.remove('glyphicon-chevron-down-custom');
     chevron.classList.add('glyphicon-chevron-up-custom');
   });
@@ -289,9 +285,8 @@ async function toggleDetailsAndLoadImages(event) {
     }
 
     imageContainer.innerHTML = '';
-    imageContainer.style.display = 'flex';
-    imageContainer.style.flexWrap = 'wrap';
-    imageContainer.style.gap = '1rem';
+    imageContainer.classList.remove('justify-center', 'items-center');
+    imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start'); 
 
     const imagePromises = [];
     for (let i = 0; i < imageCount; i++) {
