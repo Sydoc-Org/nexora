@@ -780,9 +780,9 @@ def change_password():
         confirmPassword = request.form['confirmPassword']
 
         if newPassword != confirmPassword:
-            return render_template("profile.html", error="Passwords do not match")
+            return redirect("profile")
         if not newPassword or not confirmPassword or not currentPassword:
-            return render_template("profile.html", error="All Fields must be filled")
+            return redirect("profile")
 
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -824,9 +824,9 @@ def change_password():
             conn.close()
 
             log_user_action('change_password')
-            return render_template("profile.html", message="Password changed")
+            return redirect("profile")
         else:
-            return render_template("profile.html", error="Invalid Password")
+            return redirect("profile")
 
 @app.route('/api/recent_activity')
 def recent_activity():
