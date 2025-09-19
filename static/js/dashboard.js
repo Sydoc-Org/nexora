@@ -142,7 +142,9 @@ const activityDetails = {
   }
 };
 
-async function updateDocumentPreviewStats() {
+async function updateDocumentPreviewStats(caller) {
+  let css_animation = (caller === undefined) ? "transition-all duration-500 ease-out" : "";
+
   const container = document.getElementById('document-preview-container');
   if (!container) {
     console.error('Error: The container with ID "document-preview-container" was not found.');
@@ -168,11 +170,11 @@ async function updateDocumentPreviewStats() {
       const cardElement = document.createElement('div');
 
       cardElement.className = `group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4 
-                             transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-1`;
+                             ${css_animation} hover:shadow-2xl hover:-translate-y-1`;
 
       cardElement.innerHTML = `
         <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
-                     rounded-full text-2xl transition-colors duration-300 group-hover:bg-${color}-500 group-hover:text-white">
+                     rounded-full text-2xl ${css_animation} group-hover:bg-${color}-500 group-hover:text-white">
             <i class="${details.icon}"></i>
         </div>
         <div>
@@ -183,7 +185,6 @@ async function updateDocumentPreviewStats() {
             </span>
         </div>
     `;
-
 
       cardElement.classList.add('opacity-0', 'translate-y-4');
 
@@ -214,6 +215,11 @@ function animateValue(element, start, end, duration) {
   window.requestAnimationFrame(step);
 }
 
+let lastAbsoluteReadyTotal = 0
+let lastAbsoluteInProgressTotal = 0
+let lastAbsoluteDoneTotal = 0
+let lastAbsoluteBacklogTotal = 0
+
 async function updateAbsoluteStats() {
   try {
     const response = await fetch(`${API_PREFIX}api/dashboard_stats_absolute`);
@@ -226,10 +232,17 @@ async function updateAbsoluteStats() {
     const doneTotalEl = document.getElementById("done-total");
     const backlogTotalEl = document.getElementById("backlog-total");
 
-    animateValue(readyTotalEl, 0, stats.ReadyTotal, 1500);
-    animateValue(inProgressTotalEl, 0, stats.InProgressTotal, 1500);
-    animateValue(doneTotalEl, 0, stats.DoneTotal, 1500);
-    animateValue(backlogTotalEl, 0, stats.BacklogTotal, 1500);
+    animateValue(readyTotalEl, lastAbsoluteReadyTotal, stats.ReadyTotal, 1500);
+    animateValue(inProgressTotalEl, lastAbsoluteInProgressTotal, stats.InProgressTotal, 1500);
+    animateValue(doneTotalEl, lastAbsoluteDoneTotal, stats.DoneTotal, 1500);
+    animateValue(backlogTotalEl, lastAbsoluteBacklogTotal, stats.BacklogTotal, 1500);
+
+    lastAbsoluteReadyTotal = stats.ReadyTotal
+    lastAbsoluteInProgressTotal = stats.InProgressTotal
+    lastAbsoluteDoneTotal = stats.DoneTotal
+    lastAbsoluteBacklogTotal = stats.BacklogTotal
+
+    console.log(lastAbsoluteReadyTotal, lastAbsoluteInProgressTotal, lastAbsoluteDoneTotal, lastAbsoluteBacklogTotal)
 
   } catch (error) {
     console.error("Failed to update stats:", error);
@@ -251,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-
 setInterval(updateRecentActivity, 15000);
-setInterval(updateDocumentPreviewStats, 15000);
+setInterval(updateDocumentPreviewStats(''), 15000);
 setInterval(updateAbsoluteStats, 15000);
