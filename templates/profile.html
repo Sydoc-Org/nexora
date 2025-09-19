@@ -53,11 +53,11 @@
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                {% if category == 'success' %}
+                                {% if category == 'success_updateProfile' %}
                                     <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
                                         {{ message }}
                                     </div>
-                                {% else %}
+                                {% elif category == 'failure_updateProfile' %}
                                     <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
                                         {{ message }}
                                     </div>
@@ -120,13 +120,22 @@
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _('Change password') }}</h2>
                     <form action="{{ url_for('change_password') }}" method="POST" class="space-y-6 max-w-lg">
 
-                        {% if error %}
-                        <div class="error-message">{{ error }}</div>
-                        {% endif %}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    {% if category == 'success_changePW' %}
+                                        <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% elif category == 'failure_changePW' %}
+                                        <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
 
-                        {% if message %}
-                        <div class="message">{{ message }}</div>
-                        {% endif %}
                         <div>
                             <label for="currentPassword" class="block text-sm font-medium leading-6 text-gray-900">{{ _('Current password') }}</label>
                             <div class="mt-2">
@@ -157,18 +166,22 @@
 
                 <section id="language" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _('Language') }}</h2>
-
-                    {% if error %}
-                    <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                        {{ error }}
-                    </div>
-                    {% endif %}
-
-                    {% if message %}
-                    <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
-                        {{ message }}
-                    </div>
-                    {% endif %}
+                    
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    {% if category == 'success_setLanguage' %}
+                                        <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% elif category == 'failure_setLanguage' %}
+                                        <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
 
                     <div>
                         <label for="language-select" class="block text-sm font-medium leading-6 text-gray-900">{{ _('Change language') }}</label>
