@@ -339,6 +339,7 @@ async function loadImage(container, workitemid, index) {
     placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
   }
 }
+
 document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById("imageModal");
   const modalImg = document.getElementById("modalImage");

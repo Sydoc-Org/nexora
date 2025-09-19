@@ -726,6 +726,16 @@ def update_profile():
         email = request.form['email']
         company = request.form['company']
 
+        if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
+            flash('Full name is not valid', 'failure') 
+            return redirect(url_for("profile"))
+        if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
+            flash('Email Adress is not valid', 'failure') 
+            return redirect(url_for("profile"))
+        if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
+            flash('Company name is not valid', 'failure') 
+            return redirect(url_for("profile"))
+
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER},1433;'
@@ -765,7 +775,9 @@ def update_profile():
             "email": email,
             "company": company
         })
+        flash('Profile updated successfully!', 'success') 
         return redirect(url_for("profile"))
+    return redirect(url_for("profile"))
 
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
