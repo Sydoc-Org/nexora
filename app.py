@@ -799,7 +799,9 @@ def change_password():
         if not newPassword or not confirmPassword or not currentPassword:
             flash('All fields must be filled', 'failure_changePW') 
             return redirect("profile")
-
+        if not re.search('^\S{8,200}$', newPassword):
+            flash('New password has to be atleast 8 characters long, with no whitespaces', 'failure_changePW') 
+            return redirect("profile")
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER},1433;'
