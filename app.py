@@ -726,6 +726,16 @@ def update_profile():
         email = request.form['email']
         company = request.form['company']
 
+        if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
+            flash('Full name is not valid', 'failure_updateProfile') 
+            return redirect(url_for("profile"))
+        if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
+            flash('Email Adress is not valid', 'failure_updateProfile') 
+            return redirect(url_for("profile"))
+        if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
+            flash('Company name is not valid', 'failure_updateProfile') 
+            return redirect(url_for("profile"))
+
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER},1433;'
@@ -765,7 +775,11 @@ def update_profile():
             "email": email,
             "company": company
         })
+        flash('Profile updated successfully!', 'success_updateProfile') 
         return redirect(url_for("profile"))
+    
+    flash('Unexpected Error', 'failure_updateProfile') 
+    return redirect(url_for("profile"))
 
 @app.route('/change_password',  methods=["POST", "GET"]) 
 def change_password():
@@ -780,9 +794,11 @@ def change_password():
         confirmPassword = request.form['confirmPassword']
 
         if newPassword != confirmPassword:
-            return render_template("profile.html", error="Passwords do not match")
+            flash('New passwords do not match', 'failure_changePW') 
+            return redirect(url_for("profile"))        
         if not newPassword or not confirmPassword or not currentPassword:
-            return render_template("profile.html", error="All Fields must be filled")
+            flash('All fields must be filled', 'failure_changePW') 
+            return redirect("profile")
 
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -824,10 +840,14 @@ def change_password():
             conn.close()
 
             log_user_action('change_password')
-            return render_template("profile.html", message="Password changed")
+            flash('Password updated successfully!', 'success_changePW') 
+            return redirect("profile")
         else:
-            return render_template("profile.html", error="Invalid Password")
-
+            flash('Current password is incorrect', 'failure_changePW') 
+            return redirect("profile")
+    flash('Unexpected Error', 'failure_changePW') 
+    return redirect("profile")
+    
 @app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
@@ -890,9 +910,14 @@ def jdvance():
 
 @app.route('/language/<lang>')
 def set_language(lang=None):
-    session['locale'] = lang
-    log_user_action('change_language', details={"new_language": lang})
-    return redirect(request.referrer or url_for('index'))
+    try:
+        session['locale'] = lang
+        log_user_action('change_language', details={"new_language": lang})
+        flash('Language changed successfully!', 'success_setLanguage')
+        return redirect(request.referrer or url_for('index'))
+    except:
+        flash('Unexpected Error', 'failure_setLanguage')
+        return redirect(request.referrer or url_for('index'))
 
 @app.context_processor
 def inject_current_lang():

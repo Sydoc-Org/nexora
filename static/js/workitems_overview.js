@@ -300,6 +300,7 @@ async function toggleDetailsAndLoadImages(event) {
   }
 }
 
+
 async function loadImage(container, workitemid, index) {
   const placeholder = document.createElement('div');
   placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
@@ -319,15 +320,17 @@ async function loadImage(container, workitemid, index) {
     const imgElement = document.createElement('img');
     imgElement.src = imageUrl;
     imgElement.alt = `Media ${index + 1} for workitem ${workitemid}`;
-    imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image';
+    imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image cursor-pointer';
 
     imgElement.onload = () => {
-      URL.revokeObjectURL(imageUrl);
       placeholder.replaceWith(imgElement);
     };
+
     imgElement.onerror = () => {
+      URL.revokeObjectURL(imageUrl); 
       throw new Error('Image could not be loaded into element.');
     }
+
 
   } catch (error) {
     console.error(`Error loading image index ${index}:`, error);

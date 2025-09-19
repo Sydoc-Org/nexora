@@ -14,54 +14,7 @@
 
 <body class="bg-gray-50 text-gray-800 font-sans">
 
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1>
-                </div>
-
-                <div class="flex items-center space-x-5">
-
-
-                    <nav class="hidden md:flex space-x-6">
-                        <a href="{{ url_for('dashboard') }}"
-                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
-                            <i class="fas fa-tachometer-alt mr-2"></i>{{ _('Dashboard') }}
-                        </a>
-                        <a href="{{ url_for('workitems_overview') }}"
-                            class="text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full">
-                            <i class="fas fa-list mr-2"></i>{{ _('Workitems') }}
-                        </a>
-                    </nav>
-                </div>
-
-                <div class="flex items-center space-x-5">
-                    <button class="bell relative mr-4">
-                        <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
-                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </button>
-                    <div class="relative">
-                        <el-dropdown>
-                            <button class="flex items-center space-x-2">
-                                <img src="{{ url_for('static',filename='images/' + userid + '-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full">
-                                <span class="hidden lg:inline font-semibold text-gray-700">{{ logged_in_user }}</span>
-                            </button>
-                            <el-menu anchor="bottom end" popover
-                                class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="{{ url_for('profile') }}"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">{{_('Your profile') }}</a>
-                                <a href="{{ url_for('logout') }}"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">{{ _('Sign out') }}</a>
-                            </el-menu>
-                        </el-dropdown>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'profile' %} {% include '_header.html' %}
 
     <main class="container mx-auto px-6 py-12">
         <h1 class="text-3xl font-bold text-gray-900 mb-8 sticky top-30">{{ _('Account settings') }}</h1>
@@ -97,6 +50,21 @@
 
                 <section id="profile" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _('Profile information') }}</h2>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                {% if category == 'success_updateProfile' %}
+                                    <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                                        {{ message }}
+                                    </div>
+                                {% elif category == 'failure_updateProfile' %}
+                                    <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                                        {{ message }}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
                     <form class="space-y-6" action="{{ url_for('update_profile') }}" method="post"
                         enctype="multipart/form-data">
                         <div class="flex items-center space-x-5">
@@ -152,13 +120,22 @@
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _('Change password') }}</h2>
                     <form action="{{ url_for('change_password') }}" method="POST" class="space-y-6 max-w-lg">
 
-                        {% if error %}
-                        <div class="error-message">{{ error }}</div>
-                        {% endif %}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    {% if category == 'success_changePW' %}
+                                        <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% elif category == 'failure_changePW' %}
+                                        <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
 
-                        {% if message %}
-                        <div class="message">{{ message }}</div>
-                        {% endif %}
                         <div>
                             <label for="currentPassword" class="block text-sm font-medium leading-6 text-gray-900">{{ _('Current password') }}</label>
                             <div class="mt-2">
@@ -189,18 +166,22 @@
 
                 <section id="language" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _('Language') }}</h2>
-
-                    {% if error %}
-                    <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                        {{ error }}
-                    </div>
-                    {% endif %}
-
-                    {% if message %}
-                    <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
-                        {{ message }}
-                    </div>
-                    {% endif %}
+                    
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    {% if category == 'success_setLanguage' %}
+                                        <div class="message p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% elif category == 'failure_setLanguage' %}
+                                        <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                                            {{ message }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
 
                     <div>
                         <label for="language-select" class="block text-sm font-medium leading-6 text-gray-900">{{ _('Change language') }}</label>
