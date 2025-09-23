@@ -209,7 +209,9 @@ def set_new_password():
         return render_template("reset_password.html", error="Passwords do not match")
     if not new_password or not confirm_password:
         return render_template("reset_password.html", error="All Fields must be filled")
-    
+    if not re.search('^\S{8,200}$', new_password):
+        return render_template("reset_password.html", error="New password has to be atleast 8 characters long, with no whitespaces")
+
     conn_str = (
         f'DRIVER={{SQL Server}};'
         f'SERVER={DB_SERVER},1433;'
@@ -799,7 +801,9 @@ def change_password():
         if not newPassword or not confirmPassword or not currentPassword:
             flash('All fields must be filled', 'failure_changePW') 
             return redirect("profile")
-
+        if not re.search('^\S{8,200}$', newPassword):
+            flash('New password has to be atleast 8 characters long, with no whitespaces', 'failure_changePW') 
+            return redirect("profile")
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER},1433;'

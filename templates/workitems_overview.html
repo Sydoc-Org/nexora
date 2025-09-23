@@ -127,13 +127,14 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                <button class="details-toggle-button text-indigo-600 hover:text-indigo-900 mr-3 cursor-pointer"
-                  data-workitemid="{{ workitem.workitemid }}">
-                  <i class="indicator glyphicon glyphicon-chevron-up-custom pull-right"
-                    id="chevron-{{ workitem.workitemid }}">
-                    <span class="sp-1"></span>
-                    <span class="sp-2"></span>
-                  </i>
+              <button
+                  class="details-toggle-button text-indigo-600 hover:text-indigo-900 cursor-pointer"
+                  data-workitemid="{{ workitem.workitemid }}"
+                  aria-expanded="false"
+                  aria-controls="details-row-{{ workitem.workitemid }}"
+                  aria-label="Toggle details for barcode {{ workitem.barcode }}" 
+                  id="chevron-{{ workitem.workitemid }}">
+                  <i class="indicator fas fa-chevron-down"></i>
                 </button>
               </td>
             </tr>
