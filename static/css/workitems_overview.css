@@ -296,24 +296,26 @@
 
 
 .indicator {
-  display: inline-block;
   transition: transform 0.3s ease-in-out;
 }
 
 .indicator.open {
-  transform: rotate(-180deg);
+  transform: rotate(180deg);
 }
 
-.details-content-wrapper {
+.details-row .details-content-wrapper {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
-  padding: 0 1rem; 
+  transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+  padding: 0 1rem; /* Start with no vertical padding */
+  visibility: hidden;
 }
 
 .details-row.open .details-content-wrapper {
   max-height: 500px; 
-  padding: 1rem;
+  padding: 1.5rem 1rem; 
+  visibility: visible;
+  transition: max-height 0.4s ease-in, padding 0.4s ease-in, visibility 0s;
 }
 
 .workitem-row {
@@ -322,9 +324,5 @@
 
 .workitem-row.hiding {
   opacity: 0;
-  transform: scale(0.95);
-}
-
-.workitem-row.hidden {
-  display: none;
+  transform: scale(0.98);
 }

@@ -242,8 +242,6 @@ async function updateAbsoluteStats() {
     lastAbsoluteDoneTotal = stats.DoneTotal
     lastAbsoluteBacklogTotal = stats.BacklogTotal
 
-    console.log(lastAbsoluteReadyTotal, lastAbsoluteInProgressTotal, lastAbsoluteDoneTotal, lastAbsoluteBacklogTotal)
-
   } catch (error) {
     console.error("Failed to update stats:", error);
     document.getElementById('ready-total').textContent = 'Error';
