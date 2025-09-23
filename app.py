@@ -5,7 +5,6 @@ import pyodbc
 from pyodbc import DatabaseError
 from dotenv import load_dotenv
 import os
-from datetime import timedelta
 import bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -18,7 +17,7 @@ import base64
 from PIL import Image
 import io
 from flask_caching import Cache
-from datetime import datetime
+from datetime import datetime, timedelta
 
 """-----------------------Logging-------------------------"""
 def log_user_action(action_type, resource_id=None, details=None):
@@ -1170,6 +1169,200 @@ def get_audithistory(workitem_id):
     except Exception as e:
         return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
         
+@app.route("/reports")
+def reports():
+    if 'username' not in session:
+        return redirect(url_for("login", page='index.html'))
+    userid = session['userid']
+    log_user_action('visit_reports_page')
+    return render_template("reports.html", userid=userid)
+
+@app.route("/api/reports/processed_over_time")
+def report_processed_over_time():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
+                COUNT(twi.ID) as ItemCount
+            FROM t_WorkItems twi
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE tp.Name = '02_Posteingang' 
+              AND tp.ClientName = 'Privera'
+              AND twi.Status = 5 -- Status for 'Done'
+              AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
+            GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
+            ORDER BY DoneDate;
+        """)
+        
+        rows = cursor.fetchall()
+        
+        labels = [row.DoneDate for row in rows]
+        data = [row.ItemCount for row in rows]
+        
+        return jsonify({'labels': labels, 'data': data})
+        
+    except Exception as e:
+        app.logger.error(f"Failed to fetch processed_over_time report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/reports/status_distribution")
+def report_status_distribution():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    stats = get_absolute_dashboard_stats() 
+    
+    labels = ['Ready', 'In Progress', 'Done', 'Backlog']
+    data = [
+        stats.get('ReadyTotal', 0),
+        stats.get('InProgressTotal', 0),
+        stats.get('DoneTotal', 0),
+        stats.get('BacklogTotal', 0)
+    ]
+    
+    return jsonify({'labels': labels, 'data': data})
+
+@app.route("/api/reports/kpi_stats")
+def report_kpi_stats():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT COUNT(twi.ID) FROM t_WorkItems twi
+            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
+        """)
+        processed_today = cursor.fetchone()[0]
+
+        cursor.execute("""
+            SELECT COUNT(twi.ID) FROM t_WorkItems twi
+            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
+            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
+        """)
+        processed_week = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM t_WorkItems w
+            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.id = a.ProcessID
+            WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera' AND a.ActivityInstanceName = 'C+A';
+        """)
+        current_backlog = cursor.fetchone()[0]
+        
+        return jsonify({
+            'processed_today': processed_today,
+            'processed_week': processed_week,
+            'current_backlog': current_backlog
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Failed to fetch kpi_stats report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/reports/stage_breakdown")
+def report_stage_breakdown():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+           SELECT 
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END AS Activity,
+                COUNT(twi.ID) as ItemCount
+            FROM t_WorkItems twi 
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE tp.Name = '02_Posteingang' 
+              AND tp.ClientName = 'Privera' 
+              and twi.Status not in (5,2)
+              and tai.ActivityInstanceName NOT LIKE '%Pause%'
+            GROUP BY 
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END
+            ORDER BY ItemCount DESC;
+        """)
+        
+        rows = cursor.fetchall()
+        
+        labels = [row.Activity for row in rows]
+        data = [row.ItemCount for row in rows]
+        
+        return jsonify({'labels': labels, 'data': data})
+        
+    except Exception as e:
+        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # ------------------------------- ONLY FOR IIS ------------------------------- #c   
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ------------------------------------- - ------------------------------------ #

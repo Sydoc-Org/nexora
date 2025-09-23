@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _('Reports - Sydoc Portal') }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <style>
+    body { background-color: #f9fafb; }
+  </style>
+</head>
+
+<body class="text-gray-800">
+  {% set active_page = 'reports' %} {% include '_header.html' %}
+
+  <main class="container mx-auto p-6">
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">
+          {{ _('Analytics & Reports') }}
+        </h2>
+        <p class="text-gray-600">{{ _('Visualization of your document processing activity and trends.') }}</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-green-100 text-green-600 h-16 w-16 flex items-center justify-center rounded-full text-2xl">
+            <i class="fa-solid fa-sun"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">{{ _('Processed Today') }}</p>
+            <p class="text-3xl font-bold" id="kpi-processed-today">...</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-blue-100 text-blue-600 h-16 w-16 flex items-center justify-center rounded-full text-2xl">
+            <i class="fa-solid fa-calendar-week"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">{{ _('Processed Last 7 Days') }}</p>
+            <p class="text-3xl font-bold" id="kpi-processed-week">...</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-purple-100 text-purple-600 h-16 w-16 flex items-center justify-center rounded-full text-2xl">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">{{ _('Current Backlog') }}</p>
+            <p class="text-3xl font-bold" id="kpi-current-backlog">...</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+          <h3 class="text-xl font-bold mb-4">{{ _('Workitems Processed (Last 30 Days)') }}</h3>
+          <div>
+            <canvas id="processedOverTimeChart"></canvas>
+          </div>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3 class="text-xl font-bold mb-4">{{ _('Current Status Distribution') }}</h3>
+              <div class="max-w-sm mx-auto">
+                  <canvas id="statusDistributionChart"></canvas>
+              </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3 class="text-xl font-bold mb-4">{{ _('In-Progress Stage Breakdown') }}</h3>
+              <div>
+                  <canvas id="stageBreakdownChart"></canvas>
+              </div>
+          </div>
+      </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script src="{{ url_for('static',filename='js/reports.js') }}"></script>
+</body>
+</html>
