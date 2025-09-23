@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-16 10:41+0200\n"
+"POT-Creation-Date: 2025-09-23 12:48+0200\n"
 "PO-Revision-Date: 2025-09-16 15:43+0200\n"
 "Last-Translator: Gemini AI\n"
 "Language: fr\n"
@@ -18,20 +18,42 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/_header.html:30 templates/profile.html:31
+#: templates/_dashboardJS.html:48
+#, fuzzy
+msgid "No recent activity found."
+msgstr "Activité récente"
+
+#: templates/_dashboardJS.html:105
+#, fuzzy
+msgid "Error fetching recent activity."
+msgstr "Activité récente"
+
+#: templates/_dashboardJS.html:165
+msgid "No active documents to display."
+msgstr ""
+
+#: templates/_dashboardJS.html:203
+msgid "Error loading data."
+msgstr ""
+
+#: templates/_header.html:30
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:35 templates/profile.html:35
+#: templates/_header.html:35
 msgid "Workitems"
 msgstr "Éléments de travail"
 
-#: templates/_header.html:55 templates/profile.html:55
+#: templates/_header.html:40
+#, fuzzy
+msgid "Reports"
+msgstr "Exporter en CSV"
+
+#: templates/_header.html:60
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:57 templates/profile.html:57
-#: templates/profile.html:91
+#: templates/_header.html:62 templates/profile.html:44
 msgid "Sign out"
 msgstr "Se déconnecter"
 
@@ -98,9 +120,11 @@ msgstr "Vous avez oublié votre mot de passe ?"
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
-msgstr "Aucun problème. Saisissez l'adresse e-mail associée à votre compte et nous vous enverrons un lien pour réinitialiser votre mot de passe."
+msgstr ""
+"Aucun problème. Saisissez l'adresse e-mail associée à votre compte et "
+"nous vous enverrons un lien pour réinitialiser votre mot de passe."
 
-#: templates/forgot_password.html:50 templates/profile.html:129
+#: templates/forgot_password.html:50 templates/profile.html:97
 msgid "Email address"
 msgstr "Adresse e-mail"
 
@@ -129,18 +153,21 @@ msgstr "Bienvenue sur le Portail Sydoc"
 msgid ""
 "Securely track the status of your scanned email/sftp imported and "
 "validated documents in real-time. Please log in to access your dashboard"
-msgstr "Suivez en toute sécurité et en temps réel l'état de vos documents numérisés, importés par e-mail/sftp et validés. Veuillez vous connecter pour accéder à votre tableau de bord."
+msgstr ""
+"Suivez en toute sécurité et en temps réel l'état de vos documents "
+"numérisés, importés par e-mail/sftp et validés. Veuillez vous connecter "
+"pour accéder à votre tableau de bord."
 
 #: templates/index.html:45
 msgid "Login to your account"
 msgstr "Connectez-vous à votre compte"
 
-#: templates/index.html:57 templates/profile.html:113
+#: templates/index.html:57 templates/profile.html:81
 #: templates/seperate_page_login.html:24
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
-#: templates/index.html:66 templates/profile.html:81
+#: templates/index.html:66 templates/profile.html:34
 #: templates/seperate_page_login.html:33
 msgid "Password"
 msgstr "Mot de passe"
@@ -173,7 +200,9 @@ msgstr "Suivi en temps réel"
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
-msgstr "Suivez le parcours de votre document de l'importation à la validation et à la livraison finale, à chaque étape."
+msgstr ""
+"Suivez le parcours de votre document de l'importation à la validation et "
+"à la livraison finale, à chaque étape."
 
 #: templates/index.html:112
 msgid "Document history"
@@ -183,7 +212,9 @@ msgstr "Historique des documents"
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
-msgstr "Accédez à un historique complet et vérifiable de tous vos documents traités, disponible 24h/24 et 7j/7."
+msgstr ""
+"Accédez à un historique complet et vérifiable de tous vos documents "
+"traités, disponible 24h/24 et 7j/7."
 
 #: templates/index.html:120
 msgid "Secure access"
@@ -193,59 +224,99 @@ msgstr "Accès sécurisé"
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
-msgstr "Vos données sont protégées par des protocoles de sécurité de pointe, garantissant une confidentialité totale."
+msgstr ""
+"Vos données sont protégées par des protocoles de sécurité de pointe, "
+"garantissant une confidentialité totale."
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
 msgstr "Paramètres du profil - Portail Sydoc"
 
-#: templates/profile.html:67
+#: templates/profile.html:20
 msgid "Account settings"
 msgstr "Paramètres du compte"
 
-#: templates/profile.html:76
+#: templates/profile.html:29
 msgid "Profile"
 msgstr "Profil"
 
-#: templates/profile.html:86 templates/profile.html:191
+#: templates/profile.html:39 templates/profile.html:168
 msgid "Language"
 msgstr "Langue"
 
-#: templates/profile.html:99
+#: templates/profile.html:52
 msgid "Profile information"
 msgstr "Informations du profil"
 
-#: templates/profile.html:121
+#: templates/profile.html:89
 msgid "Full name"
 msgstr "Nom complet"
 
-#: templates/profile.html:136
+#: templates/profile.html:104
 msgid "Company"
 msgstr "Entreprise"
 
-#: templates/profile.html:146 templates/profile.html:185
+#: templates/profile.html:114 templates/profile.html:162
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
-#: templates/profile.html:152
+#: templates/profile.html:120
 msgid "Change password"
 msgstr "Changer le mot de passe"
 
-#: templates/profile.html:163
+#: templates/profile.html:140
 msgid "Current password"
 msgstr "Mot de passe actuel"
 
-#: templates/profile.html:170 templates/reset_password.html:54
+#: templates/profile.html:147 templates/reset_password.html:54
 msgid "New password"
 msgstr "Nouveau mot de passe"
 
-#: templates/profile.html:177 templates/reset_password.html:66
+#: templates/profile.html:154 templates/reset_password.html:66
 msgid "Confirm new password"
 msgstr "Confirmer le nouveau mot de passe"
 
-#: templates/profile.html:206
+#: templates/profile.html:187
 msgid "Change language"
 msgstr "Changer de langue"
+
+#: templates/reports.html:7
+#, fuzzy
+msgid "Reports - Sydoc Portal"
+msgstr "Réinitialiser le mot de passe - Portail Sydoc"
+
+#: templates/reports.html:23
+msgid "Analytics & Reports"
+msgstr ""
+
+#: templates/reports.html:25
+msgid "Visualization of your document processing activity and trends."
+msgstr ""
+
+#: templates/reports.html:34
+msgid "Processed Today"
+msgstr ""
+
+#: templates/reports.html:43
+msgid "Processed Last 7 Days"
+msgstr ""
+
+#: templates/reports.html:52
+#, fuzzy
+msgid "Current Backlog"
+msgstr "Mot de passe actuel"
+
+#: templates/reports.html:58
+msgid "Workitems Processed (Last 30 Days)"
+msgstr ""
+
+#: templates/reports.html:66
+msgid "Current Status Distribution"
+msgstr ""
+
+#: templates/reports.html:72
+msgid "In-Progress Stage Breakdown"
+msgstr ""
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
@@ -257,7 +328,9 @@ msgstr "Définir un nouveau mot de passe"
 
 #: templates/reset_password.html:44
 msgid "Your new password must be different from your previously used password."
-msgstr "Votre nouveau mot de passe doit être différent de votre mot de passe précédent."
+msgstr ""
+"Votre nouveau mot de passe doit être différent de votre mot de passe "
+"précédent."
 
 #: templates/reset_password.html:79
 msgid "Reset password"
@@ -311,6 +384,15 @@ msgstr "Statut"
 msgid "Last movement at"
 msgstr "Dernier mouvement le"
 
-#: templates/workitems_overview.html:146
+#: templates/workitems_overview.html:147
 msgid "Click to load media"
 msgstr "Cliquer pour charger le média"
+
+#: templates/workitems_overview.html:151
+#, fuzzy
+msgid "History"
+msgstr "Historique des documents"
+
+#: templates/workitems_overview.html:153
+msgid "Loading history..."
+msgstr ""

@@ -7,10 +7,6 @@ create file babel.cfg with:
     [jinja2: **/templates/**.html]
     encoding=utf-8
 
-    [javascript: **/static/js/**.js]
-    encoding = utf-8
-    keywords = _ gettext ngettext:1,2
-
 highlight strings in HTML: {{_('string1')}}, {{ _('string2') }}
 
 pybabel extract -F babel.cfg -o messages.pot . #get all highlighted strings
