@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-23 12:48+0200\n"
-"PO-Revision-Date: 2025-09-16 10:45+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2025-09-25 10:14+0200\n"
+"PO-Revision-Date: 2025-09-25 09:47+0200\n"
+"Last-Translator: Gemini AI Assistant\n"
 "Language: de\n"
 "Language-Team: de <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -18,23 +18,71 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/_dashboardJS.html:48
-#, fuzzy
+#: templates/_dashboardJS.html:47
 msgid "No recent activity found."
-msgstr "Letzte Aktivitäten"
+msgstr "Keine letzten Aktivitäten gefunden."
 
-#: templates/_dashboardJS.html:105
-#, fuzzy
+#: templates/_dashboardJS.html:65 templates/_dashboardJS.html:79
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Barcode"
+
+#: templates/_dashboardJS.html:65
+msgid "is ready"
+msgstr "ist bereit"
+
+#: templates/_dashboardJS.html:72
+msgid "Processing for Barcode"
+msgstr "Bearbeitung für den Barcode"
+
+#: templates/_dashboardJS.html:72
+msgid "has started."
+msgstr "hat gestartet"
+
+#: templates/_dashboardJS.html:79
+msgid "has finished processing."
+msgstr "ist fertig prozessiert"
+
+#: templates/_dashboardJS.html:87
+msgid "Unknown status for Barcode"
+msgstr "Unbekannter Status für Barcode"
+
+#: templates/_dashboardJS.html:104
 msgid "Error fetching recent activity."
-msgstr "Letzte Aktivitäten"
+msgstr "Fehler beim Laden der letzten Aktivitäten."
 
-#: templates/_dashboardJS.html:165
+#: templates/_dashboardJS.html:112
+msgid "In Validation"
+msgstr "In Validierung"
+
+#: templates/_dashboardJS.html:117
+msgid "In Export"
+msgstr "Im Export"
+
+#: templates/_dashboardJS.html:132
+msgid "In OCR"
+msgstr "Im OCR"
+
+#: templates/_dashboardJS.html:137
+msgid "In DB Saving"
+msgstr "Im Datenbank Export"
+
+#: templates/_dashboardJS.html:142
+msgid "Processing"
+msgstr "Prozessiert"
+
+#: templates/_dashboardJS.html:164
 msgid "No active documents to display."
-msgstr ""
+msgstr "Keine aktiven Dokumente."
 
-#: templates/_dashboardJS.html:203
+#: templates/_dashboardJS.html:183
+#, fuzzy
+msgid "Current Status:"
+msgstr "Dokumentenstatus"
+
+#: templates/_dashboardJS.html:202
 msgid "Error loading data."
-msgstr ""
+msgstr "Fehler beim Laden der Daten."
 
 #: templates/_header.html:30
 msgid "Dashboard"
@@ -45,9 +93,8 @@ msgid "Workitems"
 msgstr "Arbeitselemente"
 
 #: templates/_header.html:40
-#, fuzzy
 msgid "Reports"
-msgstr "CSV exportieren"
+msgstr "Berichte"
 
 #: templates/_header.html:60
 msgid "Your profile"
@@ -56,6 +103,56 @@ msgstr "Ihr Profil"
 #: templates/_header.html:62 templates/profile.html:44
 msgid "Sign out"
 msgstr "Abmelden"
+
+#: templates/_reportsJS.html:23 templates/_reportsJS.html:24
+#: templates/_reportsJS.html:25
+msgid "Error"
+msgstr "Fehler"
+
+#: templates/_reportsJS.html:41
+msgid "Workitems Processed"
+msgstr "Verarbeitete Arbeitselemente"
+
+#: templates/_reportsJS.html:59 templates/_reportsJS.html:89
+#: templates/_reportsJS.html:124
+msgid "Could not load chart data."
+msgstr "Diagrammdaten konnten nicht geladen werden."
+
+#: templates/_reportsJS.html:106
+msgid "Number of Items"
+msgstr "Anzahl der Elemente"
+
+#: templates/_workitems_overviewJS.html:198
+msgid "No history available for this item"
+msgstr "Kein Verlauf für dieses Element verfügbar"
+
+#: templates/_workitems_overviewJS.html:235
+msgid "Could not load history"
+msgstr "Verlauf konnte nicht geladen werden"
+
+#: templates/_workitems_overviewJS.html:278
+msgid "Checking for media..."
+msgstr "Suche nach Medien..."
+
+#: templates/_workitems_overviewJS.html:291
+msgid "No media found for this workitem."
+msgstr "Keine Medien für dieses Arbeitselement gefunden."
+
+#: templates/_workitems_overviewJS.html:306
+msgid "Could not load media."
+msgstr "Medien konnten nicht geladen werden."
+
+#: templates/_workitems_overviewJS.html:330
+msgid "Media"
+msgstr "Medien"
+
+#: templates/_workitems_overviewJS.html:330
+msgid "for workitem "
+msgstr "für Arbeitselement "
+
+#: templates/_workitems_overviewJS.html:345
+msgid "Failed to load image "
+msgstr "Bild konnte nicht geladen werden "
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
@@ -281,42 +378,40 @@ msgid "Change language"
 msgstr "Sprache ändern"
 
 #: templates/reports.html:7
-#, fuzzy
 msgid "Reports - Sydoc Portal"
-msgstr "Passwort zurücksetzen - Sydoc Portal"
+msgstr "Berichte - Sydoc Portal"
 
 #: templates/reports.html:23
 msgid "Analytics & Reports"
-msgstr ""
+msgstr "Analysen & Berichte"
 
 #: templates/reports.html:25
 msgid "Visualization of your document processing activity and trends."
-msgstr ""
+msgstr "Visualisierung Ihrer Dokumentenverarbeitungsaktivitäten und -trends."
 
 #: templates/reports.html:34
 msgid "Processed Today"
-msgstr ""
+msgstr "Heute verarbeitet"
 
 #: templates/reports.html:43
 msgid "Processed Last 7 Days"
-msgstr ""
+msgstr "In den letzten 7 Tagen verarbeitet"
 
 #: templates/reports.html:52
-#, fuzzy
 msgid "Current Backlog"
-msgstr "Aktuelles Passwort"
+msgstr "Aktueller Rückstand"
 
 #: templates/reports.html:58
 msgid "Workitems Processed (Last 30 Days)"
-msgstr ""
+msgstr "Verarbeitete Arbeitselemente (Letzte 30 Tage)"
 
 #: templates/reports.html:66
 msgid "Current Status Distribution"
-msgstr ""
+msgstr "Aktuelle Statusverteilung"
 
 #: templates/reports.html:72
 msgid "In-Progress Stage Breakdown"
-msgstr ""
+msgstr "Aufschlüsselung der Bearbeitungsstufen"
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
@@ -372,10 +467,6 @@ msgstr "Alle Status"
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
-#: templates/workitems_overview.html:79
-msgid "Barcode"
-msgstr "Barcode"
-
 #: templates/workitems_overview.html:84
 msgid "Status"
 msgstr "Status"
@@ -389,10 +480,10 @@ msgid "Click to load media"
 msgstr "Klicken, um Medien zu laden"
 
 #: templates/workitems_overview.html:151
-#, fuzzy
 msgid "History"
-msgstr "Dokumentenverlauf"
+msgstr "Verlauf"
 
 #: templates/workitems_overview.html:153
 msgid "Loading history..."
-msgstr ""
+msgstr "Lade Verlauf..."
+

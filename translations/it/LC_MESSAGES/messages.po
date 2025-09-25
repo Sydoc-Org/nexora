@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-23 12:48+0200\n"
-"PO-Revision-Date: 2025-09-16 15:41+0200\n"
+"POT-Creation-Date: 2025-09-25 10:14+0200\n"
+"PO-Revision-Date: 2025-09-25 09:50+0200\n"
 "Last-Translator: Gemini AI\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
@@ -18,23 +18,71 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/_dashboardJS.html:48
-#, fuzzy
+#: templates/_dashboardJS.html:47
 msgid "No recent activity found."
-msgstr "Attività Recente"
+msgstr "Nessuna attività recente trovata."
 
-#: templates/_dashboardJS.html:105
-#, fuzzy
+#: templates/_dashboardJS.html:65 templates/_dashboardJS.html:79
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Codice a barre"
+
+#: templates/_dashboardJS.html:65
+msgid "is ready"
+msgstr "è pronto"
+
+#: templates/_dashboardJS.html:72
+msgid "Processing for Barcode"
+msgstr "Elaborazione per il codice a barre"
+
+#: templates/_dashboardJS.html:72
+msgid "has started."
+msgstr "è iniziata."
+
+#: templates/_dashboardJS.html:79
+msgid "has finished processing."
+msgstr "ha terminato l'elaborazione."
+
+#: templates/_dashboardJS.html:87
+msgid "Unknown status for Barcode"
+msgstr "Stato sconosciuto per il codice a barre"
+
+#: templates/_dashboardJS.html:104
 msgid "Error fetching recent activity."
-msgstr "Attività Recente"
+msgstr "Errore nel recupero dell'attività recente."
 
-#: templates/_dashboardJS.html:165
+#: templates/_dashboardJS.html:112
+msgid "In Validation"
+msgstr "In validazione"
+
+#: templates/_dashboardJS.html:117
+msgid "In Export"
+msgstr "In esportazione"
+
+#: templates/_dashboardJS.html:132
+msgid "In OCR"
+msgstr "In OCR"
+
+#: templates/_dashboardJS.html:137
+msgid "In DB Saving"
+msgstr "In salvataggio DB"
+
+#: templates/_dashboardJS.html:142
+msgid "Processing"
+msgstr "In elaborazione"
+
+#: templates/_dashboardJS.html:164
 msgid "No active documents to display."
-msgstr ""
+msgstr "Nessun documento attivo da visualizzare."
 
-#: templates/_dashboardJS.html:203
+#: templates/_dashboardJS.html:183
+#, fuzzy
+msgid "Current Status:"
+msgstr "Stato del Documento"
+
+#: templates/_dashboardJS.html:202
 msgid "Error loading data."
-msgstr ""
+msgstr "Errore durante il caricamento dei dati."
 
 #: templates/_header.html:30
 msgid "Dashboard"
@@ -45,9 +93,8 @@ msgid "Workitems"
 msgstr "Elementi di lavoro"
 
 #: templates/_header.html:40
-#, fuzzy
 msgid "Reports"
-msgstr "Esporta CSV"
+msgstr "Report"
 
 #: templates/_header.html:60
 msgid "Your profile"
@@ -56,6 +103,56 @@ msgstr "Il tuo profilo"
 #: templates/_header.html:62 templates/profile.html:44
 msgid "Sign out"
 msgstr "Esci"
+
+#: templates/_reportsJS.html:23 templates/_reportsJS.html:24
+#: templates/_reportsJS.html:25
+msgid "Error"
+msgstr "Errore"
+
+#: templates/_reportsJS.html:41
+msgid "Workitems Processed"
+msgstr "Elementi di lavoro elaborati"
+
+#: templates/_reportsJS.html:59 templates/_reportsJS.html:89
+#: templates/_reportsJS.html:124
+msgid "Could not load chart data."
+msgstr "Impossibile caricare i dati del grafico."
+
+#: templates/_reportsJS.html:106
+msgid "Number of Items"
+msgstr "Numero di elementi"
+
+#: templates/_workitems_overviewJS.html:198
+msgid "No history available for this item"
+msgstr "Nessuna cronologia disponibile per questo elemento"
+
+#: templates/_workitems_overviewJS.html:235
+msgid "Could not load history"
+msgstr "Impossibile caricare la cronologia"
+
+#: templates/_workitems_overviewJS.html:278
+msgid "Checking for media..."
+msgstr "Verifica dei media in corso..."
+
+#: templates/_workitems_overviewJS.html:291
+msgid "No media found for this workitem."
+msgstr "Nessun media trovato per questo elemento di lavoro."
+
+#: templates/_workitems_overviewJS.html:306
+msgid "Could not load media."
+msgstr "Impossibile caricare i media."
+
+#: templates/_workitems_overviewJS.html:330
+msgid "Media"
+msgstr "Media"
+
+#: templates/_workitems_overviewJS.html:330
+msgid "for workitem "
+msgstr "per l'elemento di lavoro "
+
+#: templates/_workitems_overviewJS.html:345
+msgid "Failed to load image "
+msgstr "Caricamento dell'immagine non riuscito "
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
@@ -281,42 +378,42 @@ msgid "Change language"
 msgstr "Cambia lingua"
 
 #: templates/reports.html:7
-#, fuzzy
 msgid "Reports - Sydoc Portal"
-msgstr "Reimposta password - Portale Sydoc"
+msgstr "Report - Portale Sydoc"
 
 #: templates/reports.html:23
 msgid "Analytics & Reports"
-msgstr ""
+msgstr "Analisi e Report"
 
 #: templates/reports.html:25
 msgid "Visualization of your document processing activity and trends."
 msgstr ""
+"Visualizzazione delle attività e delle tendenze di elaborazione dei "
+"documenti."
 
 #: templates/reports.html:34
 msgid "Processed Today"
-msgstr ""
+msgstr "Elaborati oggi"
 
 #: templates/reports.html:43
 msgid "Processed Last 7 Days"
-msgstr ""
+msgstr "Elaborati negli ultimi 7 giorni"
 
 #: templates/reports.html:52
-#, fuzzy
 msgid "Current Backlog"
-msgstr "Password attuale"
+msgstr "Arretrato attuale"
 
 #: templates/reports.html:58
 msgid "Workitems Processed (Last 30 Days)"
-msgstr ""
+msgstr "Elementi elaborati (Ultimi 30 giorni)"
 
 #: templates/reports.html:66
 msgid "Current Status Distribution"
-msgstr ""
+msgstr "Distribuzione stato attuale"
 
 #: templates/reports.html:72
 msgid "In-Progress Stage Breakdown"
-msgstr ""
+msgstr "Dettaglio fasi in corso"
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
@@ -370,10 +467,6 @@ msgstr "Tutti gli stati"
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
-#: templates/workitems_overview.html:79
-msgid "Barcode"
-msgstr "Codice a barre"
-
 #: templates/workitems_overview.html:84
 msgid "Status"
 msgstr "Stato"
@@ -387,10 +480,10 @@ msgid "Click to load media"
 msgstr "Clicca per caricare il media"
 
 #: templates/workitems_overview.html:151
-#, fuzzy
 msgid "History"
-msgstr "Cronologia documenti"
+msgstr "Cronologia"
 
 #: templates/workitems_overview.html:153
 msgid "Loading history..."
-msgstr ""
+msgstr "Caricamento cronologia..."
+
