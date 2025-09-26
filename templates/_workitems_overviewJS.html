@@ -320,7 +320,7 @@
                     for (let i = 0; i < imageCount; i++) {
                         imagePromises.push(loadImage(imageContainer, workitemid, i));
                     }
-                    logAction('toggleDetails', 'workitemOverview', null, 'SUCESSFUL', 0)
+                    logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0)
                 } catch (error) {
                     console.error('Error loading media info:', error);
                     logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)

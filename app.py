@@ -21,6 +21,77 @@ from flask_caching import Cache
 from datetime import datetime, timedelta
 from functools import wraps
 
+# -------------------------------- app config -------------------------------- #
+app = Flask(__name__)
+# ---------------------------------- locale ---------------------------------- #
+def get_locale():
+    if 'locale' in session:
+        return session['locale']
+    user = getattr(g, 'user', None)
+    if user is not None and user.locale in ['en', 'de', 'fr', 'it']:
+        return user.locale
+    return request.accept_languages.best_match(['de', 'fr', 'en', 'it'])
+
+def get_timezone():
+    user = getattr(g, 'user', None)
+    if user is not None:
+        return user.timezone
+babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
+# -------------------------------- locale end -------------------------------- #
+load_dotenv()
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True  
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
+
+DB_UID = os.environ.get("DB_UID")
+DB_PWD = os.environ.get("DB_PWD")
+DB_SERVER = os.environ.get("DB_SERVER")
+DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
+DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
+DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
+DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
+GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
+GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
+GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
+GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
+GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
+OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
+OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
+
+class PrefixMiddleware(object):
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+            return self.app(environ, start_response)
+        else:
+            start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
+            return [b'This URL does not belong to the application.']
+# --------------------------------- app start -------------------------------- #
+@app.route("/")
+def index():
+    if 'username' in session:
+        return redirect(url_for("dashboard"))
+    return render_template("index.html")
+# ------------------------------- app start end ------------------------------ #
+
+# ------------------------------ app config end ------------------------------ #
+
 # ---------------------------------- logging --------------------------------- #
 def log_user_action(action_type, status, target_user_id=None, resource_id=None, details=None, IsInternalError=0):
     if 'username' not in session:
@@ -80,78 +151,6 @@ def log_action():
     
     return jsonify({'success': True})
 # -------------------------------- logging end ------------------------------- #
-
-# ---------------------------------- locale ---------------------------------- #
-def get_locale():
-    if 'locale' in session:
-        return session['locale']
-    user = getattr(g, 'user', None)
-    if user is not None and user.locale in ['en', 'de', 'fr', 'it']:
-        return user.locale
-    return request.accept_languages.best_match(['de', 'fr', 'en', 'it'])
-
-def get_timezone():
-    user = getattr(g, 'user', None)
-    if user is not None:
-        return user.timezone
-# -------------------------------- locale end -------------------------------- #
-
-# -------------------------------- app config -------------------------------- #
-app = Flask(__name__)
-babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
-load_dotenv()
-
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"]
-)
-
-app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True  
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
-
-DB_UID = os.environ.get("DB_UID")
-DB_PWD = os.environ.get("DB_PWD")
-DB_SERVER = os.environ.get("DB_SERVER")
-DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
-DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
-DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
-DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
-GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
-GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
-GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
-GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
-GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
-s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
-OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
-OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
-
-class PrefixMiddleware(object):
-    def __init__(self, app, prefix=''):
-        self.app = app
-        self.prefix = prefix
-
-    def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-            environ['SCRIPT_NAME'] = self.prefix
-            return self.app(environ, start_response)
-        else:
-            start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
-            return [b'This URL does not belong to the application.']
-# ------------------------------ app config end ------------------------------ #
-
-# --------------------------------- app start -------------------------------- #
-@app.route("/")
-def index():
-    if 'username' in session:
-        return redirect(url_for("dashboard"))
-    return render_template("index.html")
-# ------------------------------- app start end ------------------------------ #
 
 # ------------------------------- session login ------------------------------ #
 @app.route("/signin")
@@ -357,6 +356,57 @@ def admin_delete_user(user_id):
         app.logger.error(f"Error deleting user {user_id}: {e}")
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, resource_id='visitUserManagement', details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': 'An error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/admin/recent_logs")
+@admin_required
+def admin_recent_logs():
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 20 Timestamp, Username, ActionType, ActionStatus
+            FROM User_Logs
+            ORDER BY Timestamp DESC
+        """)
+        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(logs)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
+        return jsonify({"error": "Could not fetch logs"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/admin/active_sessions")
+@admin_required
+def admin_active_sessions():
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+				SessionID,                
+				Username,
+				Userid,
+                IPAddress,
+                MAX(Timestamp) as LastActivity
+            FROM User_Logs
+            WHERE Timestamp >= DATEADD(minute, -30, GETUTCDATE())
+            GROUP BY SessionID, Username, IPAddress, Userid
+            ORDER BY LastActivity DESC
+        """)
+        sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(sessions)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
+        return jsonify({"error": "Could not fetch sessions"}), 500
     finally:
         if conn:
             conn.close()
@@ -1573,6 +1623,11 @@ def special_exception_handler():
 # ------------------------------- ONLY FOR IIS ------------------------------- #
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ----------------------------- ONLY FOR IIS end ----------------------------- #
+
+# --- Add these two new routes in app.py within the Admin section ---
+
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
