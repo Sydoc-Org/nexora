@@ -24,6 +24,14 @@
 
                 <div class="flex items-center space-x-5">
                     <nav class="hidden md:flex space-x-6">
+
+                        {% if scope == 'Admin' %}
+                            <a href="{{ url_for('admin_users') }}"
+                            class="{% if active_page == 'admin_users' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md 
+                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">                                
+                            <i class="fas fa-user-tie mr-2"></i>{{ _('Admin') }}
+                            </a>
+                        {% endif %}
                         <a href="{{ url_for('dashboard') }}"
                             class="{% if active_page == 'dashboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md 
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">

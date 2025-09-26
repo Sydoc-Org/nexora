@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <script>
+        const userModal = document.getElementById('userModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const userForm = document.getElementById('userForm');
+        const userIdInput = document.getElementById('userId');
+        const usernameInput = document.getElementById('username');
+        const passwordHelp = document.getElementById('password-help');
+
+        const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
+
+        function openModal() {
+            userModal.classList.remove('hidden');
+            setTimeout(() => {
+                userModal.classList.remove('opacity-0');
+                userModal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== userModal) return;
+            
+            userModal.classList.add('opacity-0');
+            userModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => {
+                userModal.classList.add('hidden');
+            }, 300);
+        }
+
+        function openAddUserModal() {
+            userForm.reset();
+            userIdInput.value = '';
+            modalTitle.textContent = 'Add New User';
+            passwordHelp.classList.add('hidden');
+            usernameInput.disabled = false;
+            document.getElementById('password').required = true;
+            openModal();
+        }
+
+        function openEditUserModal(user) {
+            userForm.reset();
+            modalTitle.textContent = 'Edit User';
+            userIdInput.value = user.userID;
+            document.getElementById('username').value = user.username;
+            document.getElementById('fullname').value = user.fullname;
+            document.getElementById('email').value = user.email;
+            document.getElementById('company').value = user.company;
+            document.getElementById('scope').value = user.scope;
+            passwordHelp.classList.remove('hidden');
+            document.getElementById('password').required = false;
+            openModal();
+        }
+
+        userForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(userForm);
+            const data = Object.fromEntries(formData.entries());
+            const userId = userIdInput.value;
+            
+            const url = userId ? `${API_PREFIX}admin/users/edit/${userId}` : `${API_PREFIX}admin/users/add`;
+            const method = 'POST';
+            
+            if (userId && !data.password) {
+                delete data.password;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    window.location.reload();
+                } else {
+                    alert(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                alert('An unexpected error occurred.');
+            }
+        });
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_PREFIX}admin/users/delete/${userId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    window.location.reload();
+                } else {
+                    alert(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('An unexpected error occurred.');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.edit-user-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const userDataString = button.dataset.user;
+                    const userObject = JSON.parse(userDataString);
+                    openEditUserModal(userObject);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
