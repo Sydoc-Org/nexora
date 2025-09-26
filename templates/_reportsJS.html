@@ -7,7 +7,7 @@
 <body>
     <script>
         const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
-
+        
     async function populateKpiCards() {
     try {
         const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`);

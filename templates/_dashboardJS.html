@@ -8,7 +8,7 @@
     <script>
         const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
 
-        function logAction(actionType, resourceId = null, details = null) {
+        function logAction(actionType, resourceId, details, status, IsInternalError) {
         fetch(`${API_PREFIX}log_action`, {
             method: "POST",
             headers: {
@@ -18,15 +18,22 @@
             action_type: actionType,
             resource_id: resourceId,
             details: details,
+            status: status,
             }),
         }).catch((err) => console.error("Logging failed:", err));
         }
 
+        try{
         const supportLink = document.querySelector(".support-link");
 
         supportLink.addEventListener("click", function () {
-        logAction("click_support_link");
+          logAction("clickSupportLink", "dashboard", null, "SUCCESS", 0);
         });
+        }
+        catch(e){
+          logAction("clickSupportLink", "dashboard", e, "FAILURE", 1);
+        }
+
 
         async function updateRecentActivity() {
         const list = document.getElementById("recent-activity-list");
