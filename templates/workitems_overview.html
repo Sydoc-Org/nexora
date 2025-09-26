@@ -145,7 +145,7 @@
                   <div id="image-container-{{ workitem.workitemid }}"
                       class="flex-1 flex justify-center items-center max-h-80 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white cursor-pointer">
                       <p class="text-gray-500">{{ _('Click to load media') }} ...</p>
-                  </div>
+                  </div> 
 
                   <div class="flex-1">
                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
@@ -178,7 +178,7 @@
     <span class="modal-close">&times;</span>
     <img class="modal-content" id="modalImage">
   </div>
-  <script src="{{ url_for('static',filename='js/workitems_overview.js') }}">
+    {% include '_workitems_overviewJS.html' %}
   </script>
 </body>
 

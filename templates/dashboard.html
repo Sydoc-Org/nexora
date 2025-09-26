@@ -105,8 +105,9 @@
       </div>
     </div>
   </main>
-  <script src="{{ url_for('static',filename='js/dashboard.js') }}">
-  </script>
+  {% include '_dashboardJS.html' %}
+  <!-- <script src="{{ url_for('static',filename='js/dashboard.js') }}">
+  </script> -->
 </body>
 
 </html>

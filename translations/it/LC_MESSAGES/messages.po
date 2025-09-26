@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-16 10:41+0200\n"
-"PO-Revision-Date: 2025-09-16 15:41+0200\n"
+"POT-Creation-Date: 2025-09-25 10:14+0200\n"
+"PO-Revision-Date: 2025-09-25 09:50+0200\n"
 "Last-Translator: Gemini AI\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
@@ -18,22 +18,141 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/_header.html:30 templates/profile.html:31
+#: templates/_dashboardJS.html:47
+msgid "No recent activity found."
+msgstr "Nessuna attività recente trovata."
+
+#: templates/_dashboardJS.html:65 templates/_dashboardJS.html:79
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Codice a barre"
+
+#: templates/_dashboardJS.html:65
+msgid "is ready"
+msgstr "è pronto"
+
+#: templates/_dashboardJS.html:72
+msgid "Processing for Barcode"
+msgstr "Elaborazione per il codice a barre"
+
+#: templates/_dashboardJS.html:72
+msgid "has started."
+msgstr "è iniziata."
+
+#: templates/_dashboardJS.html:79
+msgid "has finished processing."
+msgstr "ha terminato l'elaborazione."
+
+#: templates/_dashboardJS.html:87
+msgid "Unknown status for Barcode"
+msgstr "Stato sconosciuto per il codice a barre"
+
+#: templates/_dashboardJS.html:104
+msgid "Error fetching recent activity."
+msgstr "Errore nel recupero dell'attività recente."
+
+#: templates/_dashboardJS.html:112
+msgid "In Validation"
+msgstr "In validazione"
+
+#: templates/_dashboardJS.html:117
+msgid "In Export"
+msgstr "In esportazione"
+
+#: templates/_dashboardJS.html:132
+msgid "In OCR"
+msgstr "In OCR"
+
+#: templates/_dashboardJS.html:137
+msgid "In DB Saving"
+msgstr "In salvataggio DB"
+
+#: templates/_dashboardJS.html:142
+msgid "Processing"
+msgstr "In elaborazione"
+
+#: templates/_dashboardJS.html:164
+msgid "No active documents to display."
+msgstr "Nessun documento attivo da visualizzare."
+
+#: templates/_dashboardJS.html:183
+#, fuzzy
+msgid "Current Status:"
+msgstr "Stato del Documento"
+
+#: templates/_dashboardJS.html:202
+msgid "Error loading data."
+msgstr "Errore durante il caricamento dei dati."
+
+#: templates/_header.html:30
 msgid "Dashboard"
 msgstr "Cruscotto"
 
-#: templates/_header.html:35 templates/profile.html:35
+#: templates/_header.html:35
 msgid "Workitems"
 msgstr "Elementi di lavoro"
 
-#: templates/_header.html:55 templates/profile.html:55
+#: templates/_header.html:40
+msgid "Reports"
+msgstr "Report"
+
+#: templates/_header.html:60
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:57 templates/profile.html:57
-#: templates/profile.html:91
+#: templates/_header.html:62 templates/profile.html:44
 msgid "Sign out"
 msgstr "Esci"
+
+#: templates/_reportsJS.html:23 templates/_reportsJS.html:24
+#: templates/_reportsJS.html:25
+msgid "Error"
+msgstr "Errore"
+
+#: templates/_reportsJS.html:41
+msgid "Workitems Processed"
+msgstr "Elementi di lavoro elaborati"
+
+#: templates/_reportsJS.html:59 templates/_reportsJS.html:89
+#: templates/_reportsJS.html:124
+msgid "Could not load chart data."
+msgstr "Impossibile caricare i dati del grafico."
+
+#: templates/_reportsJS.html:106
+msgid "Number of Items"
+msgstr "Numero di elementi"
+
+#: templates/_workitems_overviewJS.html:198
+msgid "No history available for this item"
+msgstr "Nessuna cronologia disponibile per questo elemento"
+
+#: templates/_workitems_overviewJS.html:235
+msgid "Could not load history"
+msgstr "Impossibile caricare la cronologia"
+
+#: templates/_workitems_overviewJS.html:278
+msgid "Checking for media..."
+msgstr "Verifica dei media in corso..."
+
+#: templates/_workitems_overviewJS.html:291
+msgid "No media found for this workitem."
+msgstr "Nessun media trovato per questo elemento di lavoro."
+
+#: templates/_workitems_overviewJS.html:306
+msgid "Could not load media."
+msgstr "Impossibile caricare i media."
+
+#: templates/_workitems_overviewJS.html:330
+msgid "Media"
+msgstr "Media"
+
+#: templates/_workitems_overviewJS.html:330
+msgid "for workitem "
+msgstr "per l'elemento di lavoro "
+
+#: templates/_workitems_overviewJS.html:345
+msgid "Failed to load image "
+msgstr "Caricamento dell'immagine non riuscito "
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
@@ -98,9 +217,11 @@ msgstr "Hai dimenticato la password"
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
-msgstr "Nessun problema. Inserisci l'indirizzo email associato al tuo account e ti invieremo un link per reimpostare la password"
+msgstr ""
+"Nessun problema. Inserisci l'indirizzo email associato al tuo account e "
+"ti invieremo un link per reimpostare la password"
 
-#: templates/forgot_password.html:50 templates/profile.html:129
+#: templates/forgot_password.html:50 templates/profile.html:97
 msgid "Email address"
 msgstr "Indirizzo email"
 
@@ -129,18 +250,21 @@ msgstr "Benvenuto nel Portale Sydoc"
 msgid ""
 "Securely track the status of your scanned email/sftp imported and "
 "validated documents in real-time. Please log in to access your dashboard"
-msgstr "Traccia in modo sicuro e in tempo reale lo stato dei tuoi documenti scansionati, importati via email/sftp e validati. Accedi per visualizzare il tuo cruscotto."
+msgstr ""
+"Traccia in modo sicuro e in tempo reale lo stato dei tuoi documenti "
+"scansionati, importati via email/sftp e validati. Accedi per visualizzare"
+" il tuo cruscotto."
 
 #: templates/index.html:45
 msgid "Login to your account"
 msgstr "Accedi al tuo account"
 
-#: templates/index.html:57 templates/profile.html:113
+#: templates/index.html:57 templates/profile.html:81
 #: templates/seperate_page_login.html:24
 msgid "Username"
 msgstr "Nome utente"
 
-#: templates/index.html:66 templates/profile.html:81
+#: templates/index.html:66 templates/profile.html:34
 #: templates/seperate_page_login.html:33
 msgid "Password"
 msgstr "Password"
@@ -173,7 +297,9 @@ msgstr "Tracciamento in tempo reale"
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
-msgstr "Monitora il percorso del tuo documento dall'importazione alla validazione e alla consegna finale, in ogni fase del processo"
+msgstr ""
+"Monitora il percorso del tuo documento dall'importazione alla validazione"
+" e alla consegna finale, in ogni fase del processo"
 
 #: templates/index.html:112
 msgid "Document history"
@@ -183,7 +309,9 @@ msgstr "Cronologia documenti"
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
-msgstr "Accedi a una cronologia completa e verificabile di tutti i tuoi documenti elaborati, disponibile 24/7."
+msgstr ""
+"Accedi a una cronologia completa e verificabile di tutti i tuoi documenti"
+" elaborati, disponibile 24/7."
 
 #: templates/index.html:120
 msgid "Secure access"
@@ -193,59 +321,99 @@ msgstr "Accesso sicuro"
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
-msgstr "I tuoi dati sono protetti con protocolli di sicurezza leader del settore, garantendo la massima riservatezza"
+msgstr ""
+"I tuoi dati sono protetti con protocolli di sicurezza leader del settore,"
+" garantendo la massima riservatezza"
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
 msgstr "Impostazioni profilo - Portale Sydoc"
 
-#: templates/profile.html:67
+#: templates/profile.html:20
 msgid "Account settings"
 msgstr "Impostazioni account"
 
-#: templates/profile.html:76
+#: templates/profile.html:29
 msgid "Profile"
 msgstr "Profilo"
 
-#: templates/profile.html:86 templates/profile.html:191
+#: templates/profile.html:39 templates/profile.html:168
 msgid "Language"
 msgstr "Lingua"
 
-#: templates/profile.html:99
+#: templates/profile.html:52
 msgid "Profile information"
 msgstr "Informazioni del profilo"
 
-#: templates/profile.html:121
+#: templates/profile.html:89
 msgid "Full name"
 msgstr "Nome completo"
 
-#: templates/profile.html:136
+#: templates/profile.html:104
 msgid "Company"
 msgstr "Azienda"
 
-#: templates/profile.html:146 templates/profile.html:185
+#: templates/profile.html:114 templates/profile.html:162
 msgid "Save changes"
 msgstr "Salva modifiche"
 
-#: templates/profile.html:152
+#: templates/profile.html:120
 msgid "Change password"
 msgstr "Cambia password"
 
-#: templates/profile.html:163
+#: templates/profile.html:140
 msgid "Current password"
 msgstr "Password attuale"
 
-#: templates/profile.html:170 templates/reset_password.html:54
+#: templates/profile.html:147 templates/reset_password.html:54
 msgid "New password"
 msgstr "Nuova password"
 
-#: templates/profile.html:177 templates/reset_password.html:66
+#: templates/profile.html:154 templates/reset_password.html:66
 msgid "Confirm new password"
 msgstr "Conferma nuova password"
 
-#: templates/profile.html:206
+#: templates/profile.html:187
 msgid "Change language"
 msgstr "Cambia lingua"
+
+#: templates/reports.html:7
+msgid "Reports - Sydoc Portal"
+msgstr "Report - Portale Sydoc"
+
+#: templates/reports.html:23
+msgid "Analytics & Reports"
+msgstr "Analisi e Report"
+
+#: templates/reports.html:25
+msgid "Visualization of your document processing activity and trends."
+msgstr ""
+"Visualizzazione delle attività e delle tendenze di elaborazione dei "
+"documenti."
+
+#: templates/reports.html:34
+msgid "Processed Today"
+msgstr "Elaborati oggi"
+
+#: templates/reports.html:43
+msgid "Processed Last 7 Days"
+msgstr "Elaborati negli ultimi 7 giorni"
+
+#: templates/reports.html:52
+msgid "Current Backlog"
+msgstr "Arretrato attuale"
+
+#: templates/reports.html:58
+msgid "Workitems Processed (Last 30 Days)"
+msgstr "Elementi elaborati (Ultimi 30 giorni)"
+
+#: templates/reports.html:66
+msgid "Current Status Distribution"
+msgstr "Distribuzione stato attuale"
+
+#: templates/reports.html:72
+msgid "In-Progress Stage Breakdown"
+msgstr "Dettaglio fasi in corso"
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
@@ -299,10 +467,6 @@ msgstr "Tutti gli stati"
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
-#: templates/workitems_overview.html:79
-msgid "Barcode"
-msgstr "Codice a barre"
-
 #: templates/workitems_overview.html:84
 msgid "Status"
 msgstr "Stato"
@@ -311,6 +475,15 @@ msgstr "Stato"
 msgid "Last movement at"
 msgstr "Ultimo movimento il"
 
-#: templates/workitems_overview.html:146
+#: templates/workitems_overview.html:147
 msgid "Click to load media"
 msgstr "Clicca per caricare il media"
+
+#: templates/workitems_overview.html:151
+msgid "History"
+msgstr "Cronologia"
+
+#: templates/workitems_overview.html:153
+msgid "Loading history..."
+msgstr "Caricamento cronologia..."
+
