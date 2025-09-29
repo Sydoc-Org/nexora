@@ -392,7 +392,6 @@ def admin_active_sessions():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT 
-				SessionID,                
 				Username,
 				Userid,
                 IPAddress,

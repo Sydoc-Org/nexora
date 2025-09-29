@@ -81,7 +81,7 @@
             modalTitle.textContent = `{{ _("Edit User") }}`;
             userIdInput.value = user.userID;
             usernameInput.value = user.username;
-            usernameInput.disabled = true;
+            usernameInput.disabled = false;
             document.getElementById('fullname').value = user.fullname;
             document.getElementById('email').value = user.email;
             document.getElementById('company').value = user.company;
@@ -227,9 +227,9 @@
                 sessions.forEach(session => {
                     const row = document.createElement('tr');
                     row.className = 'bg-white border-b hover:bg-gray-50';
-
+                    
+                    // <td class="px-6 py-4 font-medium">${session.SessionID}</td>
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-medium">${session.SessionID}</td>
                         <td class="px-6 py-4 font-medium">${session.Username}</td>
                         <td class="px-6 py-4 font-medium">${session.Userid}</td>
                         <td class="px-6 py-4 text-gray-600">${session.IPAddress}</td>
