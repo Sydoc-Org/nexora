@@ -76,18 +76,16 @@ msgid "No active documents to display."
 msgstr "Keine aktiven Dokumente."
 
 #: templates/_dashboardJS.html:190
-#, fuzzy
 msgid "Current Status:"
-msgstr "Dokumentenstatus"
+msgstr "Aktueller Status:"
 
 #: templates/_dashboardJS.html:209
 msgid "Error loading data."
 msgstr "Fehler beim Laden der Daten."
 
 #: templates/_header.html:32 templates/admin/userManagement.html:146
-#, fuzzy
 msgid "Admin"
-msgstr "Laden"
+msgstr "Admin"
 
 #: templates/_header.html:38
 msgid "Dashboard"
@@ -499,128 +497,116 @@ msgstr "Lade Verlauf..."
 
 #: templates/admin/_userManagementJS.html:48
 msgid "Edit User"
-msgstr ""
+msgstr "Benutzer bearbeiten"
 
 #: templates/admin/_userManagementJS.html:94
 msgid "Are you sure you want to delete this user? This action cannot be undone."
-msgstr ""
+msgstr "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
 
 #: templates/admin/_userManagementJS.html:139
-#, fuzzy
 msgid "No recent logs found."
-msgstr "Keine letzten Aktivitäten gefunden."
+msgstr "Keine aktuellen Protokolle gefunden."
 
 #: templates/admin/_userManagementJS.html:159
-#, fuzzy
 msgid "Could not load logs."
-msgstr "Medien konnten nicht geladen werden."
+msgstr "Protokolle konnten nicht geladen werden."
 
 #: templates/admin/_userManagementJS.html:172
-#, fuzzy
 msgid "No active sessions found."
-msgstr "Keine letzten Aktivitäten gefunden."
+msgstr "Keine aktiven Sitzungen gefunden."
 
 #: templates/admin/_userManagementJS.html:191
-#, fuzzy
 msgid "Could not load sessions."
-msgstr "Medien konnten nicht geladen werden."
+msgstr "Sitzungen konnten nicht geladen werden."
 
 #: templates/admin/userManagement.html:7
-#, fuzzy
 msgid "User Management - Sydoc Portal"
-msgstr "Berichte - Sydoc Portal"
+msgstr "Benutzerverwaltung - Sydoc Portal"
 
 #: templates/admin/userManagement.html:20
 msgid "Admin User Management"
-msgstr ""
+msgstr "Admin-Benutzerverwaltung"
 
 #: templates/admin/userManagement.html:21
 msgid "Create, edit, and manage user accounts."
-msgstr ""
+msgstr "Benutzerkonten erstellen, bearbeiten und verwalten."
 
 #: templates/admin/userManagement.html:25
 #: templates/admin/userManagement.html:129
 msgid "Add New User"
-msgstr ""
+msgstr "Neuen Benutzer hinzufügen"
 
 #: templates/admin/userManagement.html:36
 #: templates/admin/userManagement.html:157
 msgid "Email"
-msgstr ""
+msgstr "E-Mail"
 
 #: templates/admin/userManagement.html:38
 #: templates/admin/userManagement.html:141
 msgid "Scope"
-msgstr ""
+msgstr "Bereich"
 
 #: templates/admin/userManagement.html:39
 msgid "Actions"
-msgstr ""
+msgstr "Aktionen"
 
 #: templates/admin/userManagement.html:57
-#, fuzzy
 msgid "Edit"
-msgstr "Medien"
+msgstr "Bearbeiten"
 
 #: templates/admin/userManagement.html:59
 msgid "Delete"
-msgstr ""
+msgstr "Löschen"
 
 #: templates/admin/userManagement.html:73
 msgid "Active Sessions (Last 30 mins)"
-msgstr ""
+msgstr "Aktive Sitzungen (Letzte 30 Min.)"
 
 #: templates/admin/userManagement.html:80
 msgid "SessionID"
-msgstr ""
+msgstr "Sitzungs-ID"
 
 #: templates/admin/userManagement.html:82
 msgid "UserID"
-msgstr ""
+msgstr "Benutzer-ID"
 
 #: templates/admin/userManagement.html:83
-#, fuzzy
 msgid "IP Address"
-msgstr "E-Mail-Adresse"
+msgstr "IP-Adresse"
 
 #: templates/admin/userManagement.html:84
-#, fuzzy
 msgid "Last Activity"
-msgstr "Letzte Aktivitäten"
+msgstr "Letzte Aktivität"
 
 #: templates/admin/userManagement.html:99
-#, fuzzy
 msgid "Recent Activity Logs"
-msgstr "Letzte Aktivitäten"
+msgstr "Aktuelle Aktivitätsprotokolle"
 
 #: templates/admin/userManagement.html:106
 msgid "Timestamp"
-msgstr ""
+msgstr "Zeitstempel"
 
 #: templates/admin/userManagement.html:107
 #: templates/admin/userManagement.html:145
-#, fuzzy
 msgid "User"
-msgstr "Benutzername"
+msgstr "Benutzer"
 
 #: templates/admin/userManagement.html:108
 msgid "Action"
-msgstr ""
+msgstr "Aktion"
 
 #: templates/admin/userManagement.html:144
 msgid "Client"
-msgstr ""
+msgstr "Kunde"
 
 #: templates/admin/userManagement.html:172
-#, fuzzy
 msgid "Leave blank to keep current password."
-msgstr "Aktuelles Passwort"
+msgstr "Leer lassen, um das aktuelle Passwort beizubehalten."
 
 #: templates/admin/userManagement.html:178
 msgid "Cancel"
-msgstr ""
+msgstr "Abbrechen"
 
 #: templates/admin/userManagement.html:180
 msgid "Save user"
-msgstr ""
-
+msgstr "Benutzer speichern"

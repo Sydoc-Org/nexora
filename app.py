@@ -1414,8 +1414,9 @@ def reports():
         if 'username' not in session:
             return redirect(url_for("login", page='index.html'))
         userid = session['userid']
+        scope = session['scope']
         log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
-        return render_template("reports.html", userid=userid)
+        return render_template("reports.html", userid=userid, scope=scope)
     except Exception as e:
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')

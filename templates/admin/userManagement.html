@@ -4,13 +4,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ _('User Management - Sydoc Portal') }}</title>
+    <title>{{ _("User Management - Sydoc Portal") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 </head>
 
 <body class="bg-gray-50 text-gray-800">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3">
+        </div>
+        
     {% set active_page = 'admin_users' %}
     {% include '_header.html' %}
 
@@ -120,6 +123,27 @@
         </div>
 
     </main>
+
+    <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center transform scale-95 transition-transform duration-300 ease-in-out">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-exclamation-triangle fa-lg text-red-600"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4" id="confirmTitle">{{ _("Delete User") }}</h3>
+            <div class="mt-2">
+                <p class="text-sm text-gray-500" id="confirmMessage">
+                </p>
+            </div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="cancelBtn" type="button" class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md">
+                    {{ _("Cancel") }}
+                </button>
+                <button id="confirmBtn" type="button" class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+                    {{ _("Confirm") }}
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="userModal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 **transition-opacity duration-300 ease-in-out**"
