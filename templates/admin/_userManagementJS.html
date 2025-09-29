@@ -95,19 +95,7 @@
             event.preventDefault();
             const data = Object.fromEntries(new FormData(userForm).entries());
             const userId = userIdInput.value;
-            let notificationMessage = "";
-            let url = "";
-            
-            if(userId)
-            {
-                notificationMessage = `{{ _("User updated successfully") }}`
-                url = `${API_PREFIX}admin/users/edit/${userId}/${notificationMessage}`
-            }
-            else
-            {
-                notificationMessage = `{{ _("User added successfully") }}`
-                url = `${API_PREFIX}admin/users/add/${notificationMessage}`
-            }
+            const url =  userId ? `${API_PREFIX}admin/users/edit/${userId}` : `${API_PREFIX}admin/users/add`
 
             if (userId && !data.password) delete data.password;
 
@@ -159,8 +147,7 @@
         async function deleteUser(userId) {
             const deletionTask = async () => {
                 try {
-                    const notificationMessage = `{{ _("User deleted successfully") }}`
-                    const response = await fetch(`${API_PREFIX}admin/users/delete/${userId}/${notificationMessage}`, { method: 'DELETE' });
+                    const response = await fetch(`${API_PREFIX}admin/users/delete/${userId}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (response.ok) {
                         showNotification('{{ _("Success") }}');

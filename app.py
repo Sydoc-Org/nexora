@@ -1,7 +1,7 @@
 import uuid
 from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
-from flask_babel import Babel, gettext, ngettext
+from flask_babel import Babel, gettext, ngettext, _
 import pyodbc
 from pyodbc import DatabaseError
 from dotenv import load_dotenv
@@ -341,9 +341,9 @@ def admin_users():
         if conn:
             conn.close()
 
-@app.route("/admin/users/add/<notificationMessage>", methods=['POST'])
+@app.route("/admin/users/add", methods=['POST'])
 @admin_required
-def admin_add_user(notificationMessage):
+def admin_add_user():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -365,7 +365,7 @@ def admin_add_user(notificationMessage):
         cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, company, scope))
         conn.commit()
-        create_notification(userid, notificationMessage, link=url_for('admin_users'), icon='fa-user-plus')
+        create_notification(userid, 'User created successfully.' , link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
         return jsonify({'success': True, 'message': 'User created successfully.'})
     except pyodbc.IntegrityError:
@@ -379,9 +379,9 @@ def admin_add_user(notificationMessage):
         if conn:
             conn.close()
 
-@app.route("/admin/users/edit/<int:user_id>/<notificationMessage>", methods=['POST'])
+@app.route("/admin/users/edit/<int:user_id>", methods=['POST'])
 @admin_required
-def admin_edit_user(user_id, notificationMessage):
+def admin_edit_user(user_id):
     data = request.get_json()
     username = data.get('username')
     fullname = data.get('fullname')
@@ -406,7 +406,7 @@ def admin_edit_user(user_id, notificationMessage):
                            (username, fullname, email, company, scope, user_id))
         conn.commit()
 
-        create_notification(currentUserId, notificationMessage, link=url_for('admin_users'), icon='fa-user-pen')
+        create_notification(currentUserId, 'User updated successfully', link=url_for('admin_users'), icon='fa-user-pen')
         log_user_action('editUserAdmin', status='SUCCESS', resource_id='visitUserManagement', target_user_id=user_id)
         return jsonify({'success': True, 'message': 'User updated successfully.'})
     except Exception as e:
@@ -417,9 +417,9 @@ def admin_edit_user(user_id, notificationMessage):
         if conn:
             conn.close()
 
-@app.route("/admin/users/delete/<int:user_id>/<notificationMessage>", methods=['DELETE'])
+@app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
 @admin_required
-def admin_delete_user(user_id, notificationMessage):
+def admin_delete_user(user_id):
     current_user = session.get('userid')
     if str(user_id) == current_user:
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'Self-delete attempt'}, resource_id='visitUserManagement')
@@ -437,7 +437,7 @@ def admin_delete_user(user_id, notificationMessage):
             log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
             return jsonify({'success': False, 'message': 'User not found.'}), 404
         
-        create_notification(current_user, notificationMessage, link=url_for('admin_users'), icon='fa-user-slash')
+        create_notification(current_user, 'User deleted successfully', link=url_for('admin_users'), icon='fa-user-slash')
         log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
         return jsonify({'success': True, 'message': 'User deleted successfully.'})
     except Exception as e:
@@ -524,7 +524,6 @@ def set_new_password():
         email_for_password_reset = session['email_for_password_reset']
         new_password = request.form['new-password']
         confirm_password = request.form['confirm-password']
-        notificationMessage = request.form['notificationMessage']
         if new_password != confirm_password:
             return render_template("reset_password.html", error="Passwords do not match")
         if not new_password or not confirm_password:
@@ -573,7 +572,7 @@ def set_new_password():
         cursor.close()
         conn.close()
 
-        create_notification(userid, notificationMessage, link=url_for('profile'), icon='fa-unlock')
+        create_notification(userid, 'Password changed successfully', link=url_for('profile'), icon='fa-unlock')
         log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
         return render_template("reset_password.html", message="Password changed")
     except Exception as e:
@@ -1392,7 +1391,7 @@ def update_profile():
                 "company": company
             })
             create_notification(userid, "Your profile was updated successfully.", link=url_for('profile'), icon='fa-user-pen')
-            flash('Profile updated successfully!', 'success_updateProfile') 
+            flash(_('Profile updated successfully!'), 'success_updateProfile') 
             return redirect(url_for("profile"))
     except Exception as e:
         flash('Unexpected Error', 'failure_updateProfile') 
