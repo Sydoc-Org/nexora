@@ -524,7 +524,7 @@ def set_new_password():
         email_for_password_reset = session['email_for_password_reset']
         new_password = request.form['new-password']
         confirm_password = request.form['confirm-password']
-
+        notificationMessage = request.form['notificationMessage']
         if new_password != confirm_password:
             return render_template("reset_password.html", error="Passwords do not match")
         if not new_password or not confirm_password:
@@ -573,7 +573,7 @@ def set_new_password():
         cursor.close()
         conn.close()
 
-        create_notification(userid, f"Password reset successful", link=url_for('profile'), icon='fa-unlock')
+        create_notification(userid, notificationMessage, link=url_for('profile'), icon='fa-unlock')
         log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
         return render_template("reset_password.html", message="Password changed")
     except Exception as e:

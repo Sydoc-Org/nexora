@@ -321,7 +321,7 @@
                         imagePromises.push(loadImage(imageContainer, workitemid, i));
                     }
                     logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0)
-                } catch (error) {
+                } catch (error) { 
                     console.error('Error loading media info:', error);
                     logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
                     imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
