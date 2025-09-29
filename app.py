@@ -1,3 +1,4 @@
+import uuid
 from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
 from flask_babel import Babel, gettext, ngettext
@@ -18,46 +19,11 @@ from PIL import Image
 import io
 from flask_caching import Cache
 from datetime import datetime, timedelta
+from functools import wraps
 
-"""-----------------------Logging-------------------------"""
-def log_user_action(action_type, resource_id=None, details=None):
-    if 'username' not in session:
-        return
-    
-    try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO User_Logs
-            (userID, username, action_type, resource_id, details, ip_address, user_agent, session_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            session.get('userid'),
-            session.get('username'),
-            action_type,
-            resource_id,
-            json.dumps(details) if details else None,
-            request.remote_addr,
-            request.headers.get('User-Agent', ''),
-            session.get('session_id', '')
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        app.logger.error(f"Failed to log user action '{action_type}': {e}")
-
+# -------------------------------- app config -------------------------------- #
+app = Flask(__name__)
+# ---------------------------------- locale ---------------------------------- #
 def get_locale():
     if 'locale' in session:
         return session['locale']
@@ -70,9 +36,8 @@ def get_timezone():
     user = getattr(g, 'user', None)
     if user is not None:
         return user.timezone
-
-app = Flask(__name__)
 babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
+# -------------------------------- locale end -------------------------------- #
 load_dotenv()
 
 limiter = Limiter(
@@ -104,11 +69,6 @@ OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
 
-
-@app.route("/signin")
-def signin():
-    return render_template("seperate_page_login.html")
-
 class PrefixMiddleware(object):
     def __init__(self, app, prefix=''):
         self.app = app
@@ -122,6 +82,80 @@ class PrefixMiddleware(object):
         else:
             start_response('404 NOT FOUND', [('Content-Type', 'text/plain')])
             return [b'This URL does not belong to the application.']
+# --------------------------------- app start -------------------------------- #
+@app.route("/")
+def index():
+    if 'username' in session:
+        return redirect(url_for("dashboard"))
+    return render_template("index.html")
+# ------------------------------- app start end ------------------------------ #
+
+# ------------------------------ app config end ------------------------------ #
+
+# ---------------------------------- logging --------------------------------- #
+def log_user_action(action_type, status, target_user_id=None, resource_id=None, details=None, IsInternalError=0):
+    if 'username' not in session:
+        return
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO User_Logs 
+            (SessionID, UserID, Username, PerformerScope, ActionType, ActionStatus, TargetUserID, TargetResourceID, Details, IPAddress, UserAgent, IsInternalError)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            session.get('uuid'),
+            session.get('userid'),
+            session.get('username'),
+            session.get('scope'),
+            action_type,
+            str(status),
+            target_user_id,
+            resource_id,
+            json.dumps(details) if details else None,
+            request.remote_addr,
+            request.headers.get('User-Agent', ''),
+            IsInternalError
+        ))
+        
+        conn.commit()
+    except Exception as e:
+        app.logger.error(f"Failed to log user action '{action_type}': {e}")
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route("/log_action", methods=['POST'])
+def log_action():
+    if 'username' not in session:
+        return jsonify({'error': 'not authenticated'}), 401
+    
+    data = request.get_json()
+    log_user_action(action_type=(data.get('action_type')),
+                    resource_id=(data.get('resource_id')),
+                    status=(data.get('status')),
+                    details=(data.get('details')),
+                    IsInternalError=(data.get('IsInternalError'))
+                    )
+    
+    return jsonify({'success': True})
+# -------------------------------- logging end ------------------------------- #
+
+# ------------------------------- session login ------------------------------ #
+@app.route("/signin")
+def signin():
+    return render_template("seperate_page_login.html")
 
 @app.route("/login/<page>", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -130,8 +164,8 @@ def login(page=None):
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         REMEMBER = request.form.getlist('remember')
-        print(REMEMBER)
         if not UID_REQUEST or not PWD_REQUEST:
+            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template(page, error="Invalid credentials")
 
         try:
@@ -171,89 +205,292 @@ def login(page=None):
                     session['email'] = stored_email
                     session['scope'] = scope
                     session['company'] = stored_company
+                    session['uuid'] = uuid.uuid4()
                     if len(REMEMBER) > 0:
                         session.permanent = True
 
-                    log_user_action('login_success')
-
+                    log_user_action(action_type='logUserIn', status='SUCCESS', resource_id='login')
                     return redirect(url_for("dashboard"))
                 
+            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template(page, error="Invalid credentials")
 
         except Exception as e:
-            log_user_action('login_failed')
+            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
             return render_template(page, error="Login temporarily unavailable")
         
     return render_template(page)
+# ----------------------------- session login end ---------------------------- #
 
+# ----------------------------------- admin ---------------------------------- #
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'scope' not in session or session['scope'] != 'Admin':
+            flash('You do not have permission to access this page.', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    conn = None
+    try:
+        logged_in_user = session.get('username', 'Unknown')
+        scope = session.get('scope', 'Unknown')
+        userid = session.get('userid', 'Unknown')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("SELECT userID, username, fullname, email, company, scope FROM Users ORDER BY username")
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
+        return render_template("admin/userManagement.html", users=users, logged_in_user=logged_in_user, scope=scope, userid=userid)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users for admin panel: {e}")
+        log_user_action('visitUserManagement', status='FAILURE', resource_id='userManagement', details={"serverError": str(e)}, IsInternalError=1)
+        flash('Could not load user data.', 'danger')
+        return redirect(url_for('dashboard'))
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/admin/users/add", methods=['POST'])
+@admin_required
+def admin_add_user():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    fullname = data.get('fullname')
+    email = data.get('email')
+    company = data.get('company')
+    scope = data.get('scope')
+
+    if not all([username, password, fullname, email, company, scope]):
+        return jsonify({'success': False, 'message': 'All fields are required.'}), 400
+
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, company, scope))
+        conn.commit()
+        
+        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
+        return jsonify({'success': True, 'message': 'User created successfully.'})
+    except pyodbc.IntegrityError:
+        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username, 'scope': scope})
+        return jsonify({'success': False, 'message': 'Username or email already exists.'}), 409
+    except Exception as e:
+        app.logger.error(f"Error adding user: {e}")
+        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/admin/users/edit/<int:user_id>", methods=['POST'])
+@admin_required
+def admin_edit_user(user_id):
+    data = request.get_json()
+    username = data.get('username')
+    fullname = data.get('fullname')
+    email = data.get('email')
+    company = data.get('company')
+    scope = data.get('scope')
+    password = data.get('password') 
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        if password:
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=? WHERE userID=?",
+                           (username, fullname, email, company, scope, hashed_password, user_id))
+        else:
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=? WHERE userID=?",
+                           (username, fullname, email, company, scope, user_id))
+        conn.commit()
+
+        log_user_action('editUserAdmin', status='SUCCESS', resource_id='visitUserManagement', target_user_id=user_id)
+        return jsonify({'success': True, 'message': 'User updated successfully.'})
+    except Exception as e:
+        app.logger.error(f"Error editing user {user_id}: {e}")
+        log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': 'An error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
+@admin_required
+def admin_delete_user(user_id):
+    if str(user_id) == session.get('userid'):
+        log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'Self-delete attempt'}, resource_id='visitUserManagement')
+        return jsonify({'success': False, 'message': 'You cannot delete your own account.'}), 403
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM Users WHERE userID=?", (user_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
+            return jsonify({'success': False, 'message': 'User not found.'}), 404
+            
+        log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
+        return jsonify({'success': True, 'message': 'User deleted successfully.'})
+    except Exception as e:
+        app.logger.error(f"Error deleting user {user_id}: {e}")
+        log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, resource_id='visitUserManagement', details={'serverError': str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': 'An error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/admin/recent_logs")
+@admin_required
+def admin_recent_logs():
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 20 Timestamp, Username, ActionType, ActionStatus
+            FROM User_Logs
+            ORDER BY Timestamp DESC
+        """)
+        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(logs)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
+        return jsonify({"error": "Could not fetch logs"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/admin/active_sessions")
+@admin_required
+def admin_active_sessions():
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+				SessionID,                
+				Username,
+				Userid,
+                IPAddress,
+                MAX(Timestamp) as LastActivity
+            FROM User_Logs
+            WHERE Timestamp >= DATEADD(minute, -30, GETUTCDATE())
+            GROUP BY SessionID, Username, IPAddress, Userid
+            ORDER BY LastActivity DESC
+        """)
+        sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(sessions)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
+        return jsonify({"error": "Could not fetch sessions"}), 500
+    finally:
+        if conn:
+            conn.close()
+# --------------------------------- admin end -------------------------------- #
+
+# ---------------------------------- logout ---------------------------------- #
 @app.route("/logout")
 def logout():
-    log_user_action('logout')
-    session.pop('username', None)
-    session.pop('userid', None)
-    return redirect(url_for("login", page="index.html"))
+    try:
+        session.pop('username', None)
+        session.pop('uuid', None)
+        session.pop('userid', None)
+        log_user_action('logUserOut', status='SUCCESS', resource_id='logout')
+        return redirect(url_for("login", page="index.html"))
+    except Exception as e:
+        log_user_action('logUserOut', status='FAILURE', resource_id='logout', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+# -------------------------------- logout end -------------------------------- #
 
+# ------------------------------ forgot password ----------------------------- #
 @app.route('/forgot_password')
 def forgot_password():
     return render_template("forgot_password.html")
 
 @app.route('/set_new_password', methods=['POST', 'GET'])
 def set_new_password():
-    email_for_password_reset = session['email_for_password_reset']
-    new_password = request.form['new-password']
-    confirm_password = request.form['confirm-password']
+    try:
+        email_for_password_reset = session['email_for_password_reset']
+        new_password = request.form['new-password']
+        confirm_password = request.form['confirm-password']
 
-    if new_password != confirm_password:
-        return render_template("reset_password.html", error="Passwords do not match")
-    if not new_password or not confirm_password:
-        return render_template("reset_password.html", error="All Fields must be filled")
-    if not re.search('^\S{8,200}$', new_password):
-        return render_template("reset_password.html", error="New password has to be atleast 8 characters long, with no whitespaces")
+        if new_password != confirm_password:
+            return render_template("reset_password.html", error="Passwords do not match")
+        if not new_password or not confirm_password:
+            return render_template("reset_password.html", error="All Fields must be filled")
+        if not re.search('^\S{8,200}$', new_password):
+            return render_template("reset_password.html", error="New password has to be atleast 8 characters long, with no whitespaces")
 
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
-        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    conn = pyodbc.connect(conn_str)
-    cursor = conn.cursor()
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+                SELECT password FROM Users WHERE Email = ?
+            """, email_for_password_reset
+        )
+        row = cursor.fetchone()
+        stored_hash = row[0]
+
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode('utf-8')    
+
+        if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
+            return render_template("reset_password.html", error="New Password musn't be previously used password")
+
+        bytes = new_password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hash = bcrypt.hashpw(bytes, salt)
+        hash_str = hash.decode('utf-8')
+
+        cursor.execute("""
+            UPDATE Users
+            SET password = ?
+            WHERE email = ?
+        """, (hash_str, email_for_password_reset))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
+        return render_template("reset_password.html", message="Password changed")
+    except Exception as e:
+        log_user_action(action_type='resetUserPassword', status='FAILURE', resource_id='resetPassword', details={"serverError": str(e)}, IsInternalError=1)
+        return 
     
-    cursor.execute(
-        """
-            SELECT password FROM Users WHERE Email = ?
-        """, email_for_password_reset
-    )
-    row = cursor.fetchone()
-    stored_hash = row[0]
-
-    if isinstance(stored_hash, str):
-        stored_hash = stored_hash.encode('utf-8')    
-
-    if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
-        return render_template("reset_password.html", error="New Password musn't be previously used password")
-
-    bytes = new_password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hash = bcrypt.hashpw(bytes, salt)
-    hash_str = hash.decode('utf-8')
-
-    cursor.execute("""
-        UPDATE Users
-        SET password = ?
-        WHERE email = ?
-    """, (hash_str, email_for_password_reset))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    log_user_action('reset_password')
-    return render_template("reset_password.html", message="Password changed")
-
 @app.route('/reset_password/<token>')
 def reset_password(token):
     try:
@@ -439,13 +676,9 @@ def request_password_reset():
         else:
             return render_template('forgot_password.html', error="Unexpected Error occurred")
     return render_template('forgot_password.html', error="Invalid Email Address")
+# ---------------------------- forgot password end --------------------------- #
 
-@app.route("/")
-def index():
-    if 'username' in session:
-        return redirect(url_for("dashboard"))
-    return render_template("index.html")
-
+# --------------------------------- dashboard -------------------------------- #
 def get_absolute_dashboard_stats():
     stats = {}
     conn = None
@@ -589,25 +822,29 @@ def get_dashbord_preview_documents_stats():
 
 @app.route("/dashboard")
 def dashboard():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    
-    logged_in_user = session.get('username', 'Unknown')
-    scope = session.get('scope', 'Unknown')
-    userid = session.get('userid', 'Unknown')
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login", page='index.html'))
+        
+        logged_in_user = session.get('username', 'Unknown')
+        scope = session.get('scope', 'Unknown')
+        userid = session.get('userid', 'Unknown')
 
-    absolute_stats = get_absolute_dashboard_stats()
+        absolute_stats = get_absolute_dashboard_stats()
 
-    log_user_action('visit_dashboard')
-    return render_template("dashboard.html", 
-    logged_in_user=logged_in_user,
-    scope=scope,
-    userid=userid,
-    ReadyTotal=absolute_stats['ReadyTotal'],
-    InProgressTotal=absolute_stats['InProgressTotal'],
-    DoneTotal=absolute_stats['DoneTotal'],
-    BacklogTotal=absolute_stats['BacklogTotal']
-    )
+        log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
+        return render_template("dashboard.html", 
+        logged_in_user=logged_in_user,
+        scope=scope,
+        userid=userid,
+        ReadyTotal=absolute_stats['ReadyTotal'],
+        InProgressTotal=absolute_stats['InProgressTotal'],
+        DoneTotal=absolute_stats['DoneTotal'],
+        BacklogTotal=absolute_stats['BacklogTotal']
+        )
+    except Exception as e:
+        log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
 
 @app.route("/api/dashboard_stats_absolute")
 def dashboard_stats_absolute():
@@ -623,234 +860,6 @@ def dashboard_stats_document_preview():
     stats = get_dashbord_preview_documents_stats()
     return stats
 
-@app.route("/workitems")
-def workitems_overview():
-    # Check if user is logged in
-    if 'username' not in session:
-        return redirect(url_for('login', page='index.html'))
-
-    logged_in_user = session.get('username')
-    userid = session.get('userid')
-    scope = session.get('scope')
-    
-    # Connect to runtime database to get workitems
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
-        f'DATABASE={DB_SERVER_DB_RUNTIME};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    
-    # Get all workitems
-    try:
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-        WITH CTE AS (
-            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-            CASE 
-                WHEN twi.Status = 0 THEN 'Ready'
-                WHEN twi.Status = 5 THEN 'Done'
-                ELSE 'In Progress'
-            END AS Status
-            FROM t_WorkItems twi 
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
-            AND twi.Status <> 2 
-        ),
-        CTE2 AS (
-        SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
-        FROM CTE
-        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
-        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-        )
-        SELECT * FROM CTE2
-        ORDER BY CTE2.ModifiedAt DESC
-        """)
-        
-        workitems = cursor.fetchall()
-        
-        # Convert to list of dictionaries for easier template handling
-        workitems_list = []
-        for row in workitems:
-            workitems_list.append({
-                'barcode': row[0],                    
-                'modifiedat': row[1],           
-                'workitemid' : row[2],
-                'status': row[3]        
-            })
-            
-    except Exception as e:
-        app.logger.error(f"Database error in workitems overview: {e}")
-        workitems_list = []
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
-
-    log_user_action('visit_workitemList')
-    return render_template("workitems_overview.html", 
-                         logged_in_user=logged_in_user,
-                         userid=userid,
-                         scope=scope,
-                         workitems=workitems_list)
-    
-@app.route("/profile")
-def profile():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    logged_in_user = session.get('username', 'Unknown')
-    scope = session.get('scope', 'Unknown')
-    userid = session.get('userid', 'Unknown')
-    fullname = session.get('fullname', 'Unknown')
-    email = session.get('email', 'Unknown')
-    company = session.get('company', 'Unknown')
-    log_user_action('visit_profile')
-    return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
-  
-@app.route("/update_profile", methods=["POST", "GET"])
-def update_profile():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    if request.method == "POST":
-        userid = session['userid']
-        username = session['username']
-        fullname = request.form['fullName']
-        email = request.form['email']
-        company = request.form['company']
-
-        if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
-            flash('Full name is not valid', 'failure_updateProfile') 
-            return redirect(url_for("profile"))
-        if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
-            flash('Email Adress is not valid', 'failure_updateProfile') 
-            return redirect(url_for("profile"))
-        if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
-            flash('Company name is not valid', 'failure_updateProfile') 
-            return redirect(url_for("profile"))
-
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE Users
-            SET fullname = ?, email = ?, company = ?
-            WHERE username = ?
-        """, (fullname, email, company, username))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        session['fullname'] = fullname
-        session['email'] = email
-        session['company'] = company
-
-        if request.files['file']:
-            f = request.files['file']
-            filename = f"{userid}-icon.png"
-            rel_path = os.path.join('static', 'images', filename)
-            abs_path = os.path.join(app.root_path, rel_path)
-            if os.path.exists(abs_path):
-                os.remove(abs_path)
-            f.save(abs_path)
-
-        log_user_action('update_profile_info', details={
-            "fullname": fullname,
-            "email": email,
-            "company": company
-        })
-        flash('Profile updated successfully!', 'success_updateProfile') 
-        return redirect(url_for("profile"))
-    
-    flash('Unexpected Error', 'failure_updateProfile') 
-    return redirect(url_for("profile"))
-
-@app.route('/change_password',  methods=["POST", "GET"]) 
-def change_password():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    
-    if request.method == "POST":
-        username = session['username']
-
-        currentPassword = request.form['currentPassword'] 
-        newPassword = request.form['newPassword']
-        confirmPassword = request.form['confirmPassword']
-
-        if newPassword != confirmPassword:
-            flash('New passwords do not match', 'failure_changePW') 
-            return redirect(url_for("profile"))        
-        if not newPassword or not confirmPassword or not currentPassword:
-            flash('All fields must be filled', 'failure_changePW') 
-            return redirect("profile")
-        if not re.search('^\S{8,200}$', newPassword):
-            flash('New password has to be atleast 8 characters long, with no whitespaces', 'failure_changePW') 
-            return redirect("profile")
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        
-        cursor.execute(
-            """
-                SELECT password FROM Users WHERE username = ?
-            """, username
-        )
-        row = cursor.fetchone()
-        stored_hash = row[0]
-
-
-        if isinstance(stored_hash, str):
-            stored_hash = stored_hash.encode('utf-8')    
-
-        if bcrypt.checkpw(currentPassword.encode('utf-8'), stored_hash):
-            bytes = newPassword.encode('utf-8')
-            salt = bcrypt.gensalt()
-            hash = bcrypt.hashpw(bytes, salt)
-            hash_str = hash.decode('utf-8')
-
-            cursor.execute("""
-                UPDATE Users
-                SET password = ?
-                WHERE username = ?
-            """, (hash_str, username))
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            log_user_action('change_password')
-            flash('Password updated successfully!', 'success_changePW') 
-            return redirect("profile")
-        else:
-            flash('Current password is incorrect', 'failure_changePW') 
-            return redirect("profile")
-    flash('Unexpected Error', 'failure_changePW') 
-    return redirect("profile")
-    
 @app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
@@ -903,48 +912,92 @@ def recent_activity():
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
+# ------------------------------- dashboard end ------------------------------ #
 
-@app.route('/jdvance')
-def jdvance():
-    if 'username' in session and session['scope'] == 'Admin':
-        return render_template("jdvance.html")
-    else:
-        return render_template("404.html"), 404
-
-@app.route('/language/<lang>')
-def set_language(lang=None):
+# ----------------------------- workitem overview ---------------------------- #
+@app.route("/workitems")
+def workitems_overview():
     try:
-        session['locale'] = lang
-        log_user_action('change_language', details={"new_language": lang})
-        flash('Language changed successfully!', 'success_setLanguage')
-        return redirect(request.referrer or url_for('index'))
-    except:
-        flash('Unexpected Error', 'failure_setLanguage')
-        return redirect(request.referrer or url_for('index'))
+        # Check if user is logged in
+        if 'username' not in session:
+            return redirect(url_for('login', page='index.html'))
 
-@app.context_processor
-def inject_current_lang():
-    return {'current_lang': str(get_locale())}
+        logged_in_user = session.get('username')
+        userid = session.get('userid')
+        scope = session.get('scope')
+        
+        # Connect to runtime database to get workitems
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        
+        # Get all workitems
+        try:
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+            WITH CTE AS (
+                SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
+                CASE 
+                    WHEN twi.Status = 0 THEN 'Ready'
+                    WHEN twi.Status = 5 THEN 'Done'
+                    ELSE 'In Progress'
+                END AS Status
+                FROM t_WorkItems twi 
+                LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+                LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+                WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+                AND twi.Status <> 2 
+            ),
+            CTE2 AS (
+            SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
+            FROM CTE
+            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+            AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+            )
+            SELECT * FROM CTE2
+            ORDER BY CTE2.ModifiedAt DESC
+            """)
+            
+            workitems = cursor.fetchall()
+            
+            # Convert to list of dictionaries for easier template handling
+            workitems_list = []
+            for row in workitems:
+                workitems_list.append({
+                    'barcode': row[0],                    
+                    'modifiedat': row[1],           
+                    'workitemid' : row[2],
+                    'status': row[3]        
+                })
+                
+        except Exception as e:
+            app.logger.error(f"Database error in workitems overview: {e}")
+            workitems_list = []
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
 
-@app.route("/log_action", methods=['POST'])
-def log_action():
-    if 'username' not in session:
-        return jsonify({'error': 'not authenticated'}), 401
-    
-    data = request.get_json()
-    log_user_action(data.get('action_type'),
-                    data.get('resource_id'),
-                    data.get('details'))
-    
-    return jsonify({'success': True})
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template("404.html"), 404
-
-@app.errorhandler(DatabaseError)
-def special_exception_handler():
-    return 'Database connection failed', 500
+        log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+        return render_template("workitems_overview.html", 
+                            logged_in_user=logged_in_user,
+                            userid=userid,
+                            scope=scope,
+                            workitems=workitems_list)
+    except Exception as e:
+        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
 
 def get_access_token():
     token = cache.get('octo_access_token')
@@ -1168,14 +1221,205 @@ def get_audithistory(workitem_id):
         return jsonify({"error": f"Failed to fetch audit history: {e}"}), 500
     except Exception as e:
         return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+# --------------------------- workitem overview end -------------------------- #
+
+# ---------------------------------- profile --------------------------------- #
+@app.route("/profile")
+def profile():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login", page='index.html'))
+        logged_in_user = session.get('username', 'Unknown')
+        scope = session.get('scope', 'Unknown')
+        userid = session.get('userid', 'Unknown')
+        fullname = session.get('fullname', 'Unknown')
+        email = session.get('email', 'Unknown')
+        company = session.get('company', 'Unknown')
+        log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+    except Exception as e:
+        log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+
+@app.route("/update_profile", methods=["POST", "GET"])
+def update_profile():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login", page='index.html'))
+        if request.method == "POST":
+            userid = session['userid']
+            username = session['username']
+            fullname = request.form['fullName']
+            email = request.form['email']
+            company = request.form['company']
+
+            if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
+                flash('Full name is not valid', 'failure_updateProfile') 
+                return redirect(url_for("profile"))
+            if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
+                flash('Email Adress is not valid', 'failure_updateProfile') 
+                return redirect(url_for("profile"))
+            if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
+                flash('Company name is not valid', 'failure_updateProfile') 
+                return redirect(url_for("profile"))
+
+            conn_str = (
+                f'DRIVER={{SQL Server}};'
+                f'SERVER={DB_SERVER},1433;'
+                f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+                f'UID={DB_UID};'
+                f'PWD={DB_PWD};'
+                f'TrustServerCertificate=yes;'
+            )
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE Users
+                SET fullname = ?, email = ?, company = ?
+                WHERE username = ?
+            """, (fullname, email, company, username))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            session['fullname'] = fullname
+            session['email'] = email
+            session['company'] = company
+
+            if request.files['file']:
+                f = request.files['file']
+                filename = f"{userid}-icon.png"
+                rel_path = os.path.join('static', 'images', filename)
+                abs_path = os.path.join(app.root_path, rel_path)
+                if os.path.exists(abs_path):
+                    os.remove(abs_path)
+                f.save(abs_path)
+
+            log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
+                "fullname": fullname,
+                "email": email,
+                "company": company
+            })
+            flash('Profile updated successfully!', 'success_updateProfile') 
+            return redirect(url_for("profile"))
+    except Exception as e:
+        flash('Unexpected Error', 'failure_updateProfile') 
+        log_user_action(action_type='updateUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
+        return redirect(url_for("profile"))
+
+@app.route('/change_password',  methods=["POST", "GET"]) 
+def change_password():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login", page='index.html'))
         
+        if request.method == "POST":
+            username = session['username']
+
+            currentPassword = request.form['currentPassword'] 
+            newPassword = request.form['newPassword']
+            confirmPassword = request.form['confirmPassword']
+
+            if newPassword != confirmPassword:
+                flash('New passwords do not match', 'failure_changePW') 
+                return redirect(url_for("profile"))        
+            if not newPassword or not confirmPassword or not currentPassword:
+                flash('All fields must be filled', 'failure_changePW') 
+                return redirect("profile")
+            if not re.search('^\S{8,200}$', newPassword):
+                flash('New password has to be atleast 8 characters long, with no whitespaces', 'failure_changePW') 
+                return redirect("profile")
+            conn_str = (
+                f'DRIVER={{SQL Server}};'
+                f'SERVER={DB_SERVER},1433;'
+                f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+                f'UID={DB_UID};'
+                f'PWD={DB_PWD};'
+                f'TrustServerCertificate=yes;'
+            )
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                    SELECT password FROM Users WHERE username = ?
+                """, username
+            )
+            row = cursor.fetchone()
+            stored_hash = row[0]
+
+
+            if isinstance(stored_hash, str):
+                stored_hash = stored_hash.encode('utf-8')    
+
+            if bcrypt.checkpw(currentPassword.encode('utf-8'), stored_hash):
+                bytes = newPassword.encode('utf-8')
+                salt = bcrypt.gensalt()
+                hash = bcrypt.hashpw(bytes, salt)
+                hash_str = hash.decode('utf-8')
+
+                cursor.execute("""
+                    UPDATE Users
+                    SET password = ?
+                    WHERE username = ?
+                """, (hash_str, username))
+                
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
+                flash('Password updated successfully!', 'success_changePW') 
+                return redirect("profile")
+            else:
+                flash('Current password is incorrect', 'failure_changePW') 
+                return redirect("profile")
+    except Exception as e:
+        flash('Unexpected Error', 'failure_changePW') 
+        log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
+        return redirect("profile")
+
+@app.route('/language/<lang>')
+def set_language(lang=None):
+    try:
+        session['locale'] = lang
+        log_user_action(action_type='changeUserLanguage', status='SUCCESS', resource_id='profile', details={"new_language": lang})
+        flash('Language changed successfully!', 'success_setLanguage')
+        return redirect(request.referrer or url_for('index'))
+    except Exception as e:
+        flash('Unexpected Error', 'failure_setLanguage')
+        log_user_action(action_type='changeUserLanguage', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
+        return redirect(request.referrer or url_for('index'))
+
+@app.context_processor
+def inject_current_lang():
+    return {'current_lang': str(get_locale())}
+# -------------------------------- profile end ------------------------------- #
+
+# ---------------------------------- jdvance --------------------------------- #
+@app.route('/jdvance')
+def jdvance():
+    if 'username' in session and session['scope'] == 'Admin':
+        return render_template("jdvance.html")
+    else:
+        return render_template("404.html"), 404
+# -------------------------------- jdvance end ------------------------------- #
+
+# ---------------------------------- reports --------------------------------- #
 @app.route("/reports")
 def reports():
-    if 'username' not in session:
-        return redirect(url_for("login", page='index.html'))
-    userid = session['userid']
-    log_user_action('visit_reports_page')
-    return render_template("reports.html", userid=userid)
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login", page='index.html'))
+        userid = session['userid']
+        scope = session['scope']
+        log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
+        return render_template("reports.html", userid=userid, scope=scope)
+    except Exception as e:
+        log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
 
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
@@ -1296,7 +1540,6 @@ def report_kpi_stats():
         if conn:
             conn.close()
 
-
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
@@ -1362,10 +1605,30 @@ def report_stage_breakdown():
     finally:
         if conn:
             conn.close()
+# -------------------------------- reports end ------------------------------- #
 
-# ------------------------------- ONLY FOR IIS ------------------------------- #c   
+# ------------------------------- error handler ------------------------------ #
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def page_not_found(e):
+    return render_template("500.html"), 500
+
+@app.errorhandler(DatabaseError)
+def special_exception_handler():
+    return 'Database connection failed', 500
+# ----------------------------- error handler end ---------------------------- #
+
+# ------------------------------- ONLY FOR IIS ------------------------------- #
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
-# ------------------------------------- - ------------------------------------ #
+# ----------------------------- ONLY FOR IIS end ----------------------------- #
+
+# --- Add these two new routes in app.py within the Admin section ---
+
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8000)
