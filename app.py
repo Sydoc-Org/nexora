@@ -223,6 +223,90 @@ def login(page=None):
     return render_template(page)
 # ----------------------------- session login end ---------------------------- #
 
+# ------------------------------- notifications ------------------------------ #
+def create_notification(user_id, message, link=None, icon='fa-info-circle'):
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO Notifications (UserID, Message, Link, Icon)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, message, link, icon))
+        conn.commit()
+    except Exception as e:
+        app.logger.error(f"Failed to create notification for UserID {user_id}: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/notifications")
+def get_notifications():
+    if 'userid' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT TOP 10 NotificationID, Message, Link, Icon, Timestamp
+            FROM Notifications
+            WHERE UserID = ? AND IsRead = 0
+            ORDER BY Timestamp DESC
+        """, (session['userid'],))
+        
+        notifications = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        
+        return jsonify(notifications)
+    except Exception as e:
+        app.logger.error(f"API Error fetching notifications: {e}")
+        return jsonify({"error": "Could not fetch notifications"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/notifications/mark_as_read", methods=['POST'])
+def mark_notifications_as_read():
+    if 'userid' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    notification_ids = data.get('ids')
+
+    if not notification_ids or not isinstance(notification_ids, list):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        placeholders = ','.join(['?' for _ in notification_ids])
+        
+        query = f"""
+            UPDATE Notifications
+            SET IsRead = 1
+            WHERE UserID = ? AND NotificationID IN ({placeholders})
+        """
+        
+        params = [session['userid']] + notification_ids
+        cursor.execute(query, params)
+        conn.commit()
+        
+        return jsonify({"success": True, "message": "Notifications marked as read."})
+    except Exception as e:
+        app.logger.error(f"API Error marking notifications as read: {e}")
+        return jsonify({"error": "Could not update notifications"}), 500
+    finally:
+        if conn:
+            conn.close()
+# ----------------------------- notifications end ---------------------------- #
+
 # ----------------------------------- admin ---------------------------------- #
 def admin_required(f):
     @wraps(f)
@@ -257,9 +341,9 @@ def admin_users():
         if conn:
             conn.close()
 
-@app.route("/admin/users/add", methods=['POST'])
+@app.route("/admin/users/add/<notificationMessage>", methods=['POST'])
 @admin_required
-def admin_add_user():
+def admin_add_user(notificationMessage):
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -267,7 +351,7 @@ def admin_add_user():
     email = data.get('email')
     company = data.get('company')
     scope = data.get('scope')
-
+    userid = session['userid']
     if not all([username, password, fullname, email, company, scope]):
         return jsonify({'success': False, 'message': 'All fields are required.'}), 400
 
@@ -281,7 +365,7 @@ def admin_add_user():
         cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, company, scope))
         conn.commit()
-        
+        create_notification(userid, notificationMessage, link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
         return jsonify({'success': True, 'message': 'User created successfully.'})
     except pyodbc.IntegrityError:
@@ -295,9 +379,9 @@ def admin_add_user():
         if conn:
             conn.close()
 
-@app.route("/admin/users/edit/<int:user_id>", methods=['POST'])
+@app.route("/admin/users/edit/<int:user_id>/<notificationMessage>", methods=['POST'])
 @admin_required
-def admin_edit_user(user_id):
+def admin_edit_user(user_id, notificationMessage):
     data = request.get_json()
     username = data.get('username')
     fullname = data.get('fullname')
@@ -305,6 +389,7 @@ def admin_edit_user(user_id):
     company = data.get('company')
     scope = data.get('scope')
     password = data.get('password') 
+    currentUserId = session['userid']
 
     conn = None
     try:
@@ -321,6 +406,7 @@ def admin_edit_user(user_id):
                            (username, fullname, email, company, scope, user_id))
         conn.commit()
 
+        create_notification(currentUserId, notificationMessage, link=url_for('admin_users'), icon='fa-user-pen')
         log_user_action('editUserAdmin', status='SUCCESS', resource_id='visitUserManagement', target_user_id=user_id)
         return jsonify({'success': True, 'message': 'User updated successfully.'})
     except Exception as e:
@@ -331,10 +417,11 @@ def admin_edit_user(user_id):
         if conn:
             conn.close()
 
-@app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
+@app.route("/admin/users/delete/<int:user_id>/<notificationMessage>", methods=['DELETE'])
 @admin_required
-def admin_delete_user(user_id):
-    if str(user_id) == session.get('userid'):
+def admin_delete_user(user_id, notificationMessage):
+    current_user = session.get('userid')
+    if str(user_id) == current_user:
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'Self-delete attempt'}, resource_id='visitUserManagement')
         return jsonify({'success': False, 'message': 'You cannot delete your own account.'}), 403
 
@@ -349,7 +436,8 @@ def admin_delete_user(user_id):
         if cursor.rowcount == 0:
             log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
             return jsonify({'success': False, 'message': 'User not found.'}), 404
-            
+        
+        create_notification(current_user, notificationMessage, link=url_for('admin_users'), icon='fa-user-slash')
         log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
         return jsonify({'success': True, 'message': 'User deleted successfully.'})
     except Exception as e:
@@ -457,11 +545,12 @@ def set_new_password():
         
         cursor.execute(
             """
-                SELECT password FROM Users WHERE Email = ?
+                SELECT password, userid FROM Users WHERE Email = ?
             """, email_for_password_reset
         )
         row = cursor.fetchone()
         stored_hash = row[0]
+        userid = row[1]
 
         if isinstance(stored_hash, str):
             stored_hash = stored_hash.encode('utf-8')    
@@ -484,6 +573,7 @@ def set_new_password():
         cursor.close()
         conn.close()
 
+        create_notification(userid, f"Password reset successful", link=url_for('profile'), icon='fa-unlock')
         log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
         return render_template("reset_password.html", message="Password changed")
     except Exception as e:
@@ -1301,6 +1391,7 @@ def update_profile():
                 "email": email,
                 "company": company
             })
+            create_notification(userid, "Your profile was updated successfully.", link=url_for('profile'), icon='fa-user-pen')
             flash('Profile updated successfully!', 'success_updateProfile') 
             return redirect(url_for("profile"))
     except Exception as e:
@@ -1316,6 +1407,7 @@ def change_password():
         
         if request.method == "POST":
             username = session['username']
+            userid = session['userid']
 
             currentPassword = request.form['currentPassword'] 
             newPassword = request.form['newPassword']
@@ -1369,6 +1461,7 @@ def change_password():
                 cursor.close()
                 conn.close()
 
+                create_notification(userid, "Password updated successfully!", link=url_for('profile'), icon='fa-user-shield')
                 log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
                 flash('Password updated successfully!', 'success_changePW') 
                 return redirect("profile")
@@ -1383,7 +1476,9 @@ def change_password():
 @app.route('/language/<lang>')
 def set_language(lang=None):
     try:
+        userid = session['userid']
         session['locale'] = lang
+        create_notification(userid, "Language changed successfully!", link=url_for('profile'), icon='fa-language')
         log_user_action(action_type='changeUserLanguage', status='SUCCESS', resource_id='profile', details={"new_language": lang})
         flash('Language changed successfully!', 'success_setLanguage')
         return redirect(request.referrer or url_for('index'))
@@ -1623,10 +1718,6 @@ def special_exception_handler():
 # ------------------------------- ONLY FOR IIS ------------------------------- #
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
 # ----------------------------- ONLY FOR IIS end ----------------------------- #
-
-# --- Add these two new routes in app.py within the Admin section ---
-
-
 
 
 if __name__ == "__main__":
