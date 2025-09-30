@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-26 16:09+0200\n"
-"PO-Revision-Date: 2025-09-25 09:50+0200\n"
-"Last-Translator: Gemini AI\n"
+"POT-Creation-Date: 2025-09-30 11:50+0200\n"
+"PO-Revision-Date: 2025-09-30 12:34+0200\n"
+"Last-Translator: Gemini Assistant <EMAIL@ADDRESS>\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -18,148 +18,269 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: templates/_dashboardJS.html:54
-msgid "No recent activity found."
-msgstr "Nessuna attività recente trovata."
+#: app.py:170 app.py:217
+msgid "Invalid credentials"
+msgstr "Credenziali non valide"
 
-#: templates/_dashboardJS.html:72 templates/_dashboardJS.html:86
-#: templates/workitems_overview.html:79
-msgid "Barcode"
-msgstr "Codice a barre"
+#: app.py:222
+msgid "Login temporarily unavailable"
+msgstr "Accesso temporaneamente non disponibile"
 
-#: templates/_dashboardJS.html:72
-msgid "is ready"
-msgstr "è pronto"
+#: app.py:248 app.py:276
+msgid "Not authenticated"
+msgstr "Non autenticato"
 
-#: templates/_dashboardJS.html:79
-msgid "Processing for Barcode"
-msgstr "Elaborazione per il codice a barre"
+#: app.py:268
+msgid "Could not fetch notifications"
+msgstr "Impossibile recuperare le notifiche"
 
-#: templates/_dashboardJS.html:79
-msgid "has started."
-msgstr "è iniziata."
+#: app.py:282
+msgid "Invalid payload"
+msgstr "Dati non validi"
 
-#: templates/_dashboardJS.html:86
-msgid "has finished processing."
-msgstr "ha terminato l'elaborazione."
+#: app.py:302
+msgid "Notifications marked as read."
+msgstr "Notifiche contrassegnate come lette."
 
-#: templates/_dashboardJS.html:94
-msgid "Unknown status for Barcode"
-msgstr "Stato sconosciuto per il codice a barre"
+#: app.py:305
+msgid "Could not update notifications"
+msgstr "Impossibile aggiornare le notifiche"
 
-#: templates/_dashboardJS.html:111
-msgid "Error fetching recent activity."
-msgstr "Errore nel recupero dell'attività recente."
+#: app.py:356
+msgid "All fields are required."
+msgstr "Tutti i campi sono obbligatori."
 
-#: templates/_dashboardJS.html:119
-msgid "In Validation"
-msgstr "In validazione"
+#: app.py:368 app.py:370
+msgid "User created successfully."
+msgstr "Utente creato con successo."
 
-#: templates/_dashboardJS.html:124
-msgid "In Export"
-msgstr "In esportazione"
+#: app.py:373
+msgid "Username or email already exists."
+msgstr "Nome utente o email già esistente."
 
-#: templates/_dashboardJS.html:139
-msgid "In OCR"
-msgstr "In OCR"
+#: app.py:377
+msgid "An unexpected error occurred."
+msgstr "Si è verificato un errore imprevisto."
 
-#: templates/_dashboardJS.html:144
-msgid "In DB Saving"
-msgstr "In salvataggio DB"
+#: app.py:409
+msgid "User updated successfully"
+msgstr "Utente aggiornato con successo"
 
-#: templates/_dashboardJS.html:149
-msgid "Processing"
-msgstr "In elaborazione"
+#: app.py:411
+msgid "User updated successfully."
+msgstr "Utente aggiornato con successo."
 
-#: templates/_dashboardJS.html:171
-msgid "No active documents to display."
-msgstr "Nessun documento attivo da visualizzare."
+#: app.py:415 app.py:446
+msgid "An error occurred."
+msgstr "Si è verificato un errore."
 
-#: templates/_dashboardJS.html:190
-msgid "Current Status:"
-msgstr "Stato attuale:"
+#: app.py:426
+msgid "You cannot delete your own account."
+msgstr "Non puoi eliminare il tuo account."
 
-#: templates/_dashboardJS.html:209
-msgid "Error loading data."
-msgstr "Errore durante il caricamento dei dati."
+#: app.py:438
+msgid "User not found."
+msgstr "Utente non trovato."
 
-#: templates/_header.html:32 templates/admin/userManagement.html:146
+#: app.py:440
+msgid "User deleted successfully"
+msgstr "Utente eliminato con successo"
+
+#: app.py:442
+msgid "User deleted successfully."
+msgstr "Utente eliminato con successo."
+
+#: app.py:468
+msgid "Could not fetch logs"
+msgstr "Impossibile recuperare i log"
+
+#: app.py:496
+msgid "Could not fetch sessions"
+msgstr "Impossibile recuperare le sessioni"
+
+#: app.py:528
+msgid "Passwords do not match"
+msgstr "Le password non corrispondono"
+
+#: app.py:530
+msgid "All Fields must be filled"
+msgstr "Tutti i campi devono essere compilati"
+
+#: app.py:532 app.py:1418
+msgid "New password has to be atleast 8 characters long, with no whitespaces"
+msgstr "La nuova password deve essere lunga almeno 8 caratteri e non contenere spazi."
+
+#: app.py:558
+msgid "New Password musn't be previously used password"
+msgstr "La nuova password non deve essere una password usata in precedenza"
+
+#: app.py:575
+msgid "Password changed successfully"
+msgstr "Password modificata con successo"
+
+#: app.py:577
+msgid "Password changed"
+msgstr "Password modificata"
+
+#: app.py:624
+msgid "Sydoc Portal Password Reset Request"
+msgstr "Richiesta di reset password del Portale Sydoc"
+
+#: app.py:666
+msgid "Password Reset Request"
+msgstr "Richiesta di Reset Password"
+
+#: app.py:669
+msgid "Hello,"
+msgstr "Ciao,"
+
+#: app.py:672
+msgid ""
+"We received a request to reset the password for your account. You can "
+"reset your password by clicking the button below."
+msgstr "Abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account. Puoi reimpostare la password cliccando sul pulsante qui sotto."
+
+#: app.py:682
+msgid "Reset Your Password"
+msgstr "Reimposta la tua Password"
+
+#: app.py:692
+msgid ""
+"If you did not request a password reset, please ignore this email. This "
+"link is valid for 15 minutes."
+msgstr "Se non hai richiesto la reimpostazione della password, ignora questa email. Questo link è valido per 15 minuti."
+
+#: app.py:695
+msgid "Thanks,<br>The Sydoc Team"
+msgstr "Grazie,<br>Il Team Sydoc"
+
+#: app.py:759
+msgid "A password reset link has been sent to your email"
+msgstr "Un link per il reset della password è stato inviato alla tua email"
+
+#: app.py:761
+msgid "Unexpected error occurred"
+msgstr "Si è verificato un errore imprevisto"
+
+#: app.py:762
+msgid "Invalid Email Address"
+msgstr "Indirizzo email non valido"
+
+#: app.py:1173 app.py:1202
+msgid "Workitem not found"
+msgstr "Elemento di lavoro non trovato"
+
+#: app.py:1193 app.py:1253
+msgid "Internal Server Error"
+msgstr "Errore interno del server"
+
+#: app.py:1213
+msgid "Media index out of bounds"
+msgstr "Indice media fuori dai limiti"
+
+#: app.py:1242
+msgid "Failed to process TIFF image"
+msgstr "Elaborazione immagine TIFF non riuscita"
+
+#: app.py:1270
+msgid "Error fetching activity instance"
+msgstr "Errore nel recupero dell'istanza di attività"
+
+#: app.py:1305
+msgid "Failed to fetch audit history"
+msgstr "Recupero della cronologia di audit non riuscito"
+
+#: app.py:1307
+msgid "An unexpected error occurred"
+msgstr "Si è verificato un errore imprevisto"
+
+#: app.py:1341
+msgid "Full name is not valid"
+msgstr "Il nome completo non è valido"
+
+#: app.py:1344
+msgid "Email Adress is not valid"
+msgstr "L'indirizzo email non è valido"
+
+#: app.py:1347
+msgid "Company name is not valid"
+msgstr "Il nome dell'azienda non è valido"
+
+#: app.py:1389
+msgid "Your profile was updated successfully."
+msgstr "Il tuo profilo è stato aggiornato con successo."
+
+#: app.py:1390
+msgid "Profile updated successfully!"
+msgstr "Profilo aggiornato con successo!"
+
+#: app.py:1393
+msgid "Unexpected error"
+msgstr "Errore imprevisto"
+
+#: app.py:1415
+msgid "All fields must be filled"
+msgstr "Tutti i campi devono essere compilati"
+
+#: app.py:1459 app.py:1461
+msgid "Password updated successfully!"
+msgstr "Password aggiornata con successo!"
+
+#: app.py:1464
+msgid "Current password is incorrect"
+msgstr "La password attuale non è corretta"
+
+#: app.py:1467 app.py:1481
+msgid "Unexpected Error"
+msgstr "Errore Imprevisto"
+
+#: app.py:1476 app.py:1478
+msgid "Language changed successfully!"
+msgstr "Lingua modificata con successo!"
+
+#: app.py:1514 app.py:1561 app.py:1578
+msgid "Not authorized"
+msgstr "Non autorizzato"
+
+#: app.py:1708
+msgid "Database connection failed"
+msgstr "Connessione al database non riuscita"
+
+#: templates/_header.html:35 templates/admin/userManagement.html:170
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:38
+#: templates/_header.html:41
 msgid "Dashboard"
-msgstr "Cruscotto"
+msgstr "Dashboard"
 
-#: templates/_header.html:43
+#: templates/_header.html:46
 msgid "Workitems"
 msgstr "Elementi di lavoro"
 
-#: templates/_header.html:48
+#: templates/_header.html:51
 msgid "Reports"
-msgstr "Report"
+msgstr "Rapporti"
 
-#: templates/_header.html:68
+#: templates/_header.html:69
+msgid "Notifications"
+msgstr "Notifiche"
+
+#: templates/_header.html:72
+msgid "Loading..."
+msgstr "Caricamento in corso..."
+
+#: templates/_header.html:89
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:70 templates/profile.html:44
+#: templates/_header.html:92 templates/profile.html:44
 msgid "Sign out"
 msgstr "Esci"
 
-#: templates/_reportsJS.html:23 templates/_reportsJS.html:24
-#: templates/_reportsJS.html:25
-msgid "Error"
-msgstr "Errore"
-
-#: templates/_reportsJS.html:41
-msgid "Workitems Processed"
-msgstr "Elementi di lavoro elaborati"
-
-#: templates/_reportsJS.html:59 templates/_reportsJS.html:89
-#: templates/_reportsJS.html:124
-msgid "Could not load chart data."
-msgstr "Impossibile caricare i dati del grafico."
-
-#: templates/_reportsJS.html:106
-msgid "Number of Items"
-msgstr "Numero di elementi"
-
-#: templates/_workitems_overviewJS.html:217
-msgid "No history available for this item"
-msgstr "Nessuna cronologia disponibile per questo elemento"
-
-#: templates/_workitems_overviewJS.html:254
-msgid "Could not load history"
-msgstr "Impossibile caricare la cronologia"
-
-#: templates/_workitems_overviewJS.html:298
-msgid "Checking for media..."
-msgstr "Verifica dei media in corso..."
-
-#: templates/_workitems_overviewJS.html:311
-msgid "No media found for this workitem."
-msgstr "Nessun media trovato per questo elemento di lavoro."
-
-#: templates/_workitems_overviewJS.html:327
-msgid "Could not load media."
-msgstr "Impossibile caricare i media."
-
-#: templates/_workitems_overviewJS.html:355
-msgid "Media"
-msgstr "Media"
-
-#: templates/_workitems_overviewJS.html:355
-msgid "for workitem "
-msgstr "per l'elemento di lavoro "
-
-#: templates/_workitems_overviewJS.html:370
-msgid "Failed to load image "
-msgstr "Caricamento dell'immagine non riuscito "
-
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
-msgstr "Portale Sydoc - Cruscotto"
+msgstr "Portale Sydoc - Dashboard"
 
 #: templates/dashboard.html:21
 msgid "Welcome back"
@@ -171,16 +292,16 @@ msgstr "Ecco un riepilogo dell'attività dei tuoi documenti"
 
 #: templates/dashboard.html:78
 msgid "Document Status"
-msgstr "Stato del Documento"
+msgstr "Stato Documenti"
 
 #: templates/dashboard.html:84
 msgid "Recent Activity"
 msgstr "Attività Recente"
 
-#: templates/admin/userManagement.html:89
-#: templates/admin/userManagement.html:114 templates/dashboard.html:86
+#: templates/admin/userManagement.html:92
+#: templates/admin/userManagement.html:117 templates/dashboard.html:86
 msgid "Loading"
-msgstr "Caricamento in corso"
+msgstr "Caricamento"
 
 #: templates/dashboard.html:91
 msgid "Need help"
@@ -198,46 +319,29 @@ msgstr "o inviaci un'email a"
 msgid "Forgot password - Sydoc Portal"
 msgstr "Password dimenticata - Portale Sydoc"
 
-#: templates/forgot_password.html:22 templates/index.html:22
-#: templates/reset_password.html:25
-msgid "Homepage"
-msgstr "Pagina iniziale"
-
-#: templates/forgot_password.html:23 templates/index.html:23
-#: templates/reset_password.html:26
-msgid "Services"
-msgstr "Servizi"
-
-#: templates/forgot_password.html:24 templates/index.html:24
-#: templates/reset_password.html:28
-msgid "Contact"
-msgstr "Contatti"
-
-#: templates/forgot_password.html:39
+#: templates/forgot_password.html:34
 msgid "Forgot your password"
 msgstr "Hai dimenticato la password"
 
-#: templates/forgot_password.html:40
+#: templates/forgot_password.html:35
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
-msgstr ""
-"Nessun problema. Inserisci l'indirizzo email associato al tuo account e "
-"ti invieremo un link per reimpostare la password"
+msgstr "Nessun problema. Inserisci l'indirizzo email associato al tuo account e ti invieremo un link per reimpostare la password"
 
-#: templates/forgot_password.html:50 templates/profile.html:97
+#: templates/forgot_password.html:45 templates/profile.html:97
 msgid "Email address"
 msgstr "Indirizzo email"
 
-#: templates/forgot_password.html:60
+#: templates/forgot_password.html:55
 msgid "Send reset link"
 msgstr "Invia link di reset"
 
-#: templates/forgot_password.html:66 templates/reset_password.html:84
+#: templates/forgot_password.html:61 templates/reset_password.html:76
 msgid "Back to login"
 msgstr "Torna al login"
 
-#: templates/forgot_password.html:77
+#: templates/forgot_password.html:72
 msgid "All rights reserved"
 msgstr "Tutti i diritti riservati"
 
@@ -245,6 +349,18 @@ msgstr "Tutti i diritti riservati"
 #: templates/seperate_page_login.html:18
 msgid "Login - Sydoc Portal"
 msgstr "Login - Portale Sydoc"
+
+#: templates/index.html:22
+msgid "sydoc Homepage"
+msgstr "Homepage Sydoc"
+
+#: templates/index.html:23
+msgid "Services"
+msgstr "Servizi"
+
+#: templates/index.html:24
+msgid "Contact"
+msgstr "Contatti"
 
 #: templates/index.html:39
 msgid "Welcome to the Sydoc Portal"
@@ -254,23 +370,20 @@ msgstr "Benvenuto nel Portale Sydoc"
 msgid ""
 "Securely track the status of your scanned email/sftp imported and "
 "validated documents in real-time. Please log in to access your dashboard"
-msgstr ""
-"Traccia in modo sicuro e in tempo reale lo stato dei tuoi documenti "
-"scansionati, importati via email/sftp e validati. Accedi per visualizzare"
-" il tuo cruscotto."
+msgstr "Traccia in modo sicuro e in tempo reale lo stato dei tuoi documenti scansionati, importati via email/SFTP e validati. Accedi per visualizzare la tua dashboard"
 
 #: templates/index.html:45
 msgid "Login to your account"
 msgstr "Accedi al tuo account"
 
-#: templates/admin/userManagement.html:34
-#: templates/admin/userManagement.html:81
-#: templates/admin/userManagement.html:135 templates/index.html:57
+#: templates/admin/userManagement.html:37
+#: templates/admin/userManagement.html:84
+#: templates/admin/userManagement.html:159 templates/index.html:57
 #: templates/profile.html:81 templates/seperate_page_login.html:24
 msgid "Username"
 msgstr "Nome utente"
 
-#: templates/admin/userManagement.html:169 templates/index.html:66
+#: templates/admin/userManagement.html:193 templates/index.html:66
 #: templates/profile.html:34 templates/seperate_page_login.html:33
 msgid "Password"
 msgstr "Password"
@@ -283,7 +396,7 @@ msgstr "Ricordami"
 msgid "Forgot password"
 msgstr "Password dimenticata"
 
-#: templates/index.html:82
+#: templates/index.html:82 templates/seperate_page_login.html:49
 msgid "Sign in"
 msgstr "Accedi"
 
@@ -293,7 +406,7 @@ msgstr "Perché usare il Portale Sydoc"
 
 #: templates/index.html:96
 msgid "Everything you need in one secure and convenient place"
-msgstr "Tutto ciò di cui hai bisogno in un unico posto, sicuro e comodo"
+msgstr "Tutto ciò di cui hai bisogno in un unico posto, sicuro e conveniente"
 
 #: templates/index.html:104
 msgid "Real-time tracking"
@@ -303,9 +416,7 @@ msgstr "Tracciamento in tempo reale"
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
-msgstr ""
-"Monitora il percorso del tuo documento dall'importazione alla validazione"
-" e alla consegna finale, in ogni fase del processo"
+msgstr "Monitora il percorso del tuo documento dall'importazione alla validazione e alla consegna finale, in ogni sua fase"
 
 #: templates/index.html:112
 msgid "Document history"
@@ -315,9 +426,7 @@ msgstr "Cronologia documenti"
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
-msgstr ""
-"Accedi a una cronologia completa e verificabile di tutti i tuoi documenti"
-" elaborati, disponibile 24/7."
+msgstr "Accedi a una cronologia completa e verificabile di tutti i tuoi documenti elaborati, disponibile 24/7."
 
 #: templates/index.html:120
 msgid "Secure access"
@@ -327,9 +436,7 @@ msgstr "Accesso sicuro"
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
-msgstr ""
-"I tuoi dati sono protetti con protocolli di sicurezza leader del settore,"
-" garantendo la massima riservatezza"
+msgstr "I tuoi dati sono protetti con i migliori protocolli di sicurezza del settore, garantendo la massima riservatezza"
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
@@ -343,7 +450,7 @@ msgstr "Impostazioni account"
 msgid "Profile"
 msgstr "Profilo"
 
-#: templates/profile.html:39 templates/profile.html:168
+#: templates/profile.html:39 templates/profile.html:167
 msgid "Language"
 msgstr "Lingua"
 
@@ -351,53 +458,51 @@ msgstr "Lingua"
 msgid "Profile information"
 msgstr "Informazioni del profilo"
 
-#: templates/admin/userManagement.html:35
-#: templates/admin/userManagement.html:151 templates/profile.html:89
+#: templates/admin/userManagement.html:38
+#: templates/admin/userManagement.html:175 templates/profile.html:89
 msgid "Full name"
 msgstr "Nome completo"
 
-#: templates/admin/userManagement.html:37
-#: templates/admin/userManagement.html:163 templates/profile.html:104
+#: templates/admin/userManagement.html:40
+#: templates/admin/userManagement.html:187 templates/profile.html:104
 msgid "Company"
 msgstr "Azienda"
 
-#: templates/profile.html:114 templates/profile.html:162
+#: templates/profile.html:113 templates/profile.html:161
 msgid "Save changes"
 msgstr "Salva modifiche"
 
-#: templates/profile.html:120
+#: templates/profile.html:119
 msgid "Change password"
 msgstr "Cambia password"
 
-#: templates/profile.html:140
+#: templates/profile.html:139
 msgid "Current password"
 msgstr "Password attuale"
 
-#: templates/profile.html:147 templates/reset_password.html:54
+#: templates/profile.html:146 templates/reset_password.html:47
 msgid "New password"
 msgstr "Nuova password"
 
-#: templates/profile.html:154 templates/reset_password.html:66
+#: templates/profile.html:153 templates/reset_password.html:58
 msgid "Confirm new password"
 msgstr "Conferma nuova password"
 
-#: templates/profile.html:187
+#: templates/profile.html:186
 msgid "Change language"
 msgstr "Cambia lingua"
 
 #: templates/reports.html:7
 msgid "Reports - Sydoc Portal"
-msgstr "Report - Portale Sydoc"
+msgstr "Rapporti - Portale Sydoc"
 
 #: templates/reports.html:23
 msgid "Analytics & Reports"
-msgstr "Analisi e Report"
+msgstr "Analisi e Rapporti"
 
 #: templates/reports.html:25
 msgid "Visualization of your document processing activity and trends."
-msgstr ""
-"Visualizzazione delle attività e delle tendenze di elaborazione dei "
-"documenti."
+msgstr "Visualizzazione dell'attività e delle tendenze di elaborazione dei tuoi documenti."
 
 #: templates/reports.html:34
 msgid "Processed Today"
@@ -413,43 +518,39 @@ msgstr "Arretrato attuale"
 
 #: templates/reports.html:58
 msgid "Workitems Processed (Last 30 Days)"
-msgstr "Elementi elaborati (Ultimi 30 giorni)"
+msgstr "Elementi elaborati (ultimi 30 giorni)"
 
 #: templates/reports.html:66
 msgid "Current Status Distribution"
-msgstr "Distribuzione stato attuale"
+msgstr "Distribuzione Stato Attuale"
 
 #: templates/reports.html:72
 msgid "In-Progress Stage Breakdown"
-msgstr "Dettaglio fasi in corso"
+msgstr "Dettaglio Fasi in Corso"
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
 msgstr "Reimposta password - Portale Sydoc"
 
-#: templates/reset_password.html:43
+#: templates/reset_password.html:36
 msgid "Set a new password"
 msgstr "Imposta una nuova password"
 
-#: templates/reset_password.html:44
+#: templates/reset_password.html:37
 msgid "Your new password must be different from your previously used password."
 msgstr "La tua nuova password deve essere diversa da quella usata in precedenza."
 
-#: templates/reset_password.html:79
+#: templates/reset_password.html:71
 msgid "Reset password"
 msgstr "Reimposta password"
 
-#: templates/reset_password.html:95
+#: templates/reset_password.html:87
 msgid "All rights reserved."
 msgstr "Tutti i diritti riservati."
 
 #: templates/seperate_page_login.html:46
 msgid "Forgot password?"
 msgstr "Password dimenticata?"
-
-#: templates/seperate_page_login.html:49
-msgid " Sign in"
-msgstr " Accedi"
 
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - Sydoc Portal"
@@ -475,7 +576,12 @@ msgstr "Tutti gli stati"
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
-#: templates/admin/userManagement.html:109 templates/workitems_overview.html:84
+#: templates/js/_dashboardJS.html:72 templates/js/_dashboardJS.html:86
+#: templates/workitems_overview.html:79
+msgid "Barcode"
+msgstr "Codice a barre"
+
+#: templates/admin/userManagement.html:112 templates/workitems_overview.html:84
 msgid "Status"
 msgstr "Stato"
 
@@ -485,7 +591,7 @@ msgstr "Ultimo movimento il"
 
 #: templates/workitems_overview.html:147
 msgid "Click to load media"
-msgstr "Clicca per caricare il media"
+msgstr "Clicca per caricare i media"
 
 #: templates/workitems_overview.html:151
 msgid "History"
@@ -495,118 +601,293 @@ msgstr "Cronologia"
 msgid "Loading history..."
 msgstr "Caricamento cronologia..."
 
-#: templates/admin/_userManagementJS.html:48
-msgid "Edit User"
-msgstr "Modifica utente"
-
-#: templates/admin/_userManagementJS.html:94
-msgid "Are you sure you want to delete this user? This action cannot be undone."
-msgstr "Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata."
-
-#: templates/admin/_userManagementJS.html:139
-msgid "No recent logs found."
-msgstr "Nessun log recente trovato."
-
-#: templates/admin/_userManagementJS.html:159
-msgid "Could not load logs."
-msgstr "Impossibile caricare i log."
-
-#: templates/admin/_userManagementJS.html:172
-msgid "No active sessions found."
-msgstr "Nessuna sessione attiva trovata."
-
-#: templates/admin/_userManagementJS.html:191
-msgid "Could not load sessions."
-msgstr "Impossibile caricare le sessioni."
-
 #: templates/admin/userManagement.html:7
 msgid "User Management - Sydoc Portal"
 msgstr "Gestione Utenti - Portale Sydoc"
 
-#: templates/admin/userManagement.html:20
+#: templates/admin/userManagement.html:23
 msgid "Admin User Management"
 msgstr "Gestione Utenti Admin"
 
-#: templates/admin/userManagement.html:21
+#: templates/admin/userManagement.html:24
 msgid "Create, edit, and manage user accounts."
 msgstr "Crea, modifica e gestisci gli account utente."
 
-#: templates/admin/userManagement.html:25
-#: templates/admin/userManagement.html:129
-msgid "Add New User"
+#: templates/admin/userManagement.html:28
+#: templates/admin/userManagement.html:153
+#: templates/js/admin/_userManagementJS.html:72
+msgid "Add new user"
 msgstr "Aggiungi nuovo utente"
 
-#: templates/admin/userManagement.html:36
-#: templates/admin/userManagement.html:157
+#: templates/admin/userManagement.html:39
+#: templates/admin/userManagement.html:181
 msgid "Email"
 msgstr "Email"
 
-#: templates/admin/userManagement.html:38
-#: templates/admin/userManagement.html:141
+#: templates/admin/userManagement.html:41
+#: templates/admin/userManagement.html:165
 msgid "Scope"
 msgstr "Ambito"
 
-#: templates/admin/userManagement.html:39
+#: templates/admin/userManagement.html:42
 msgid "Actions"
 msgstr "Azioni"
 
-#: templates/admin/userManagement.html:57
+#: templates/admin/userManagement.html:60
 msgid "Edit"
 msgstr "Modifica"
 
-#: templates/admin/userManagement.html:59
+#: templates/admin/userManagement.html:62
 msgid "Delete"
 msgstr "Elimina"
 
-#: templates/admin/userManagement.html:73
-msgid "Active Sessions (Last 30 mins)"
-msgstr "Sessioni attive (Ultimi 30 min)"
+#: templates/admin/userManagement.html:76
+msgid "Active Sessions (last 30 mins)"
+msgstr "Sessioni attive (ultimi 30 min)"
 
-#: templates/admin/userManagement.html:80
+#: templates/admin/userManagement.html:83
 msgid "SessionID"
 msgstr "ID Sessione"
 
-#: templates/admin/userManagement.html:82
+#: templates/admin/userManagement.html:85
 msgid "UserID"
 msgstr "ID Utente"
 
-#: templates/admin/userManagement.html:83
+#: templates/admin/userManagement.html:86
 msgid "IP Address"
 msgstr "Indirizzo IP"
 
-#: templates/admin/userManagement.html:84
+#: templates/admin/userManagement.html:87
 msgid "Last Activity"
 msgstr "Ultima attività"
 
-#: templates/admin/userManagement.html:99
+#: templates/admin/userManagement.html:102
 msgid "Recent Activity Logs"
 msgstr "Log attività recenti"
 
-#: templates/admin/userManagement.html:106
+#: templates/admin/userManagement.html:109
 msgid "Timestamp"
 msgstr "Timestamp"
 
-#: templates/admin/userManagement.html:107
-#: templates/admin/userManagement.html:145
+#: templates/admin/userManagement.html:110
+#: templates/admin/userManagement.html:169
 msgid "User"
 msgstr "Utente"
 
-#: templates/admin/userManagement.html:108
+#: templates/admin/userManagement.html:111
 msgid "Action"
 msgstr "Azione"
 
-#: templates/admin/userManagement.html:144
-msgid "Client"
-msgstr "Cliente"
+#: templates/admin/userManagement.html:132
+msgid "Delete user"
+msgstr "Elimina utente"
 
-#: templates/admin/userManagement.html:172
-msgid "Leave blank to keep current password."
-msgstr "Lasciare vuoto per mantenere la password corrente."
-
-#: templates/admin/userManagement.html:178
+#: templates/admin/userManagement.html:139
+#: templates/admin/userManagement.html:202
 msgid "Cancel"
 msgstr "Annulla"
 
-#: templates/admin/userManagement.html:180
+#: templates/admin/userManagement.html:142
+msgid "Confirm"
+msgstr "Conferma"
+
+#: templates/admin/userManagement.html:168
+msgid "Client"
+msgstr "Cliente"
+
+#: templates/admin/userManagement.html:196
+msgid "Leave blank to keep current password."
+msgstr "Lasciare vuoto per mantenere la password attuale."
+
+#: templates/admin/userManagement.html:204
 msgid "Save user"
 msgstr "Salva utente"
+
+#: templates/js/_dashboardJS.html:54
+msgid "No recent activity found."
+msgstr "Nessuna attività recente trovata."
+
+#: templates/js/_dashboardJS.html:72
+msgid "is ready"
+msgstr "è pronto"
+
+#: templates/js/_dashboardJS.html:79
+msgid "Processing for Barcode"
+msgstr "Elaborazione per codice a barre"
+
+#: templates/js/_dashboardJS.html:79
+msgid "has started."
+msgstr "è iniziata."
+
+#: templates/js/_dashboardJS.html:86
+msgid "has finished processing."
+msgstr "ha terminato l'elaborazione."
+
+#: templates/js/_dashboardJS.html:94
+msgid "Unknown status for Barcode"
+msgstr "Stato sconosciuto per codice a barre"
+
+#: templates/js/_dashboardJS.html:111
+msgid "Error fetching recent activity."
+msgstr "Errore nel recupero dell'attività recente."
+
+#: templates/js/_dashboardJS.html:119
+msgid "In Validation"
+msgstr "In validazione"
+
+#: templates/js/_dashboardJS.html:124
+msgid "In Export"
+msgstr "In esportazione"
+
+#: templates/js/_dashboardJS.html:139
+msgid "In OCR"
+msgstr "In OCR"
+
+#: templates/js/_dashboardJS.html:144
+msgid "In DB Saving"
+msgstr "In salvataggio DB"
+
+#: templates/js/_dashboardJS.html:149
+msgid "Processing"
+msgstr "In elaborazione"
+
+#: templates/js/_dashboardJS.html:171
+msgid "No active documents to display."
+msgstr "Nessun documento attivo da visualizzare."
+
+#: templates/js/_dashboardJS.html:190
+msgid "Current Status:"
+msgstr "Stato attuale:"
+
+#: templates/js/_dashboardJS.html:209
+msgid "Error loading data."
+msgstr "Errore nel caricamento dei dati."
+
+#: templates/js/_headerJS.html:21 templates/js/admin/_userManagementJS.html:169
+msgid "years ago"
+msgstr "anni fa"
+
+#: templates/js/_headerJS.html:23 templates/js/admin/_userManagementJS.html:171
+msgid "months ago"
+msgstr "mesi fa"
+
+#: templates/js/_headerJS.html:25 templates/js/admin/_userManagementJS.html:173
+msgid "days ago"
+msgstr "giorni fa"
+
+#: templates/js/_headerJS.html:27 templates/js/admin/_userManagementJS.html:175
+msgid "hours ago"
+msgstr "ore fa"
+
+#: templates/js/_headerJS.html:29
+msgid "minutes ago"
+msgstr "minuti fa"
+
+#: templates/js/_headerJS.html:30 templates/js/admin/_userManagementJS.html:178
+msgid "seconds ago"
+msgstr "secondi fa"
+
+#: templates/js/_headerJS.html:42
+msgid "Could not load notifications."
+msgstr "Impossibile caricare le notifiche."
+
+#: templates/js/_headerJS.html:58
+msgid "No new notifications."
+msgstr "Nessuna nuova notifica."
+
+#: templates/js/_reportsJS.html:23 templates/js/_reportsJS.html:24
+#: templates/js/_reportsJS.html:25
+msgid "Error"
+msgstr "Errore"
+
+#: templates/js/_reportsJS.html:41
+msgid "Workitems Processed"
+msgstr "Elementi elaborati"
+
+#: templates/js/_reportsJS.html:59 templates/js/_reportsJS.html:89
+#: templates/js/_reportsJS.html:124
+msgid "Could not load chart data."
+msgstr "Impossibile caricare i dati del grafico."
+
+#: templates/js/_reportsJS.html:106
+msgid "Number of Items"
+msgstr "Numero di elementi"
+
+#: templates/js/_workitems_overviewJS.html:217
+msgid "No history available for this item"
+msgstr "Nessuna cronologia disponibile per questo elemento"
+
+#: templates/js/_workitems_overviewJS.html:254
+msgid "Could not load history"
+msgstr "Impossibile caricare la cronologia"
+
+#: templates/js/_workitems_overviewJS.html:298
+msgid "Checking for media..."
+msgstr "Verifica media in corso..."
+
+#: templates/js/_workitems_overviewJS.html:311
+msgid "No media found for this workitem."
+msgstr "Nessun media trovato per questo elemento di lavoro."
+
+#: templates/js/_workitems_overviewJS.html:327
+msgid "Could not load media."
+msgstr "Impossibile caricare i media."
+
+#: templates/js/_workitems_overviewJS.html:355
+msgid "Media"
+msgstr "Media"
+
+#: templates/js/_workitems_overviewJS.html:355
+msgid "for workitem "
+msgstr "per l'elemento di lavoro "
+
+#: templates/js/_workitems_overviewJS.html:370
+msgid "Failed to load image "
+msgstr "Caricamento immagine non riuscito "
+
+#: templates/js/admin/_userManagementJS.html:81
+msgid "Edit user"
+msgstr "Modifica utente"
+
+#: templates/js/admin/_userManagementJS.html:110
+#: templates/js/admin/_userManagementJS.html:153
+msgid "Success"
+msgstr "Successo"
+
+#: templates/js/admin/_userManagementJS.html:113
+#: templates/js/admin/_userManagementJS.html:156
+msgid "Error:"
+msgstr "Errore:"
+
+#: templates/js/admin/_userManagementJS.html:117
+#: templates/js/admin/_userManagementJS.html:160
+msgid "An unexpected network error occurred."
+msgstr "Si è verificato un errore di rete imprevisto."
+
+#: templates/js/admin/_userManagementJS.html:163
+msgid "Are you sure you want to delete this user? This action cannot be undone."
+msgstr "Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata."
+
+#: templates/js/admin/_userManagementJS.html:177
+msgid " minutes ago"
+msgstr " minuti fa"
+
+#: templates/js/admin/_userManagementJS.html:190
+msgid "No recent logs found."
+msgstr "Nessun log recente trovato."
+
+#: templates/js/admin/_userManagementJS.html:197
+msgid "SUCCESS"
+msgstr "SUCCESSO"
+
+#: templates/js/admin/_userManagementJS.html:210
+msgid "Could not load logs."
+msgstr "Impossibile caricare i log."
+
+#: templates/js/admin/_userManagementJS.html:223
+msgid "No active sessions found."
+msgstr "Nessuna sessione attiva trovata."
+
+#: templates/js/admin/_userManagementJS.html:242
+msgid "Could not load sessions."
+msgstr "Impossibile caricare le sessioni."

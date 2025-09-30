@@ -69,7 +69,7 @@
         function openAddUserModal() {
             userForm.reset();
             userIdInput.value = '';
-            modalTitle.textContent = `{{ _("Add New User") }}`;
+            modalTitle.textContent = `{{ _("Add new user") }}`;
             passwordHelp.classList.add('hidden');
             usernameInput.disabled = false;
             document.getElementById('password').required = true;
@@ -78,7 +78,7 @@
 
         function openEditUserModal(user) {
             userForm.reset();
-            modalTitle.textContent = `{{ _("Edit User") }}`;
+            modalTitle.textContent = `{{ _("Edit user") }}`;
             userIdInput.value = user.userID;
             usernameInput.value = user.username;
             usernameInput.disabled = false;

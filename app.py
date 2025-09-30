@@ -20,6 +20,7 @@ import io
 from flask_caching import Cache
 from datetime import datetime, timedelta
 from functools import wraps
+import time
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -166,7 +167,7 @@ def login(page=None):
         REMEMBER = request.form.getlist('remember')
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
-            return render_template(page, error="Invalid credentials")
+            return render_template(page, error=_("Invalid credentials"))
 
         try:
             conn_str = (
@@ -213,12 +214,12 @@ def login(page=None):
                     return redirect(url_for("dashboard"))
                 
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
-            return render_template(page, error="Invalid credentials")
+            return render_template(page, error=_("Invalid credentials"))
 
         except Exception as e:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
-            return render_template(page, error="Login temporarily unavailable")
+            return render_template(page, error=_("Login temporarily unavailable"))
         
     return render_template(page)
 # ----------------------------- session login end ---------------------------- #
@@ -244,7 +245,7 @@ def create_notification(user_id, message, link=None, icon='fa-info-circle'):
 @app.route("/api/notifications")
 def get_notifications():
     if 'userid' not in session:
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({"error": _("Not authenticated")}), 401
     
     conn = None
     try:
@@ -264,7 +265,7 @@ def get_notifications():
         return jsonify(notifications)
     except Exception as e:
         app.logger.error(f"API Error fetching notifications: {e}")
-        return jsonify({"error": "Could not fetch notifications"}), 500
+        return jsonify({"error": _("Could not fetch notifications")}), 500
     finally:
         if conn:
             conn.close()
@@ -272,13 +273,13 @@ def get_notifications():
 @app.route("/api/notifications/mark_as_read", methods=['POST'])
 def mark_notifications_as_read():
     if 'userid' not in session:
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({"error": _("Not authenticated")}), 401
     
     data = request.get_json()
     notification_ids = data.get('ids')
 
     if not notification_ids or not isinstance(notification_ids, list):
-        return jsonify({"error": "Invalid payload"}), 400
+        return jsonify({"error": _("Invalid payload")}), 400
 
     conn = None
     try:
@@ -298,10 +299,10 @@ def mark_notifications_as_read():
         cursor.execute(query, params)
         conn.commit()
         
-        return jsonify({"success": True, "message": "Notifications marked as read."})
+        return jsonify({"success": True, "message": _("Notifications marked as read.")})
     except Exception as e:
         app.logger.error(f"API Error marking notifications as read: {e}")
-        return jsonify({"error": "Could not update notifications"}), 500
+        return jsonify({"error": _("Could not update notifications")}), 500
     finally:
         if conn:
             conn.close()
@@ -312,8 +313,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'scope' not in session or session['scope'] != 'Admin':
-            flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('dashboard'))
+            return forbiddenPage()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -335,11 +335,11 @@ def admin_users():
     except Exception as e:
         app.logger.error(f"Failed to fetch users for admin panel: {e}")
         log_user_action('visitUserManagement', status='FAILURE', resource_id='userManagement', details={"serverError": str(e)}, IsInternalError=1)
-        flash('Could not load user data.', 'danger')
         return redirect(url_for('dashboard'))
     finally:
         if conn:
             conn.close()
+
 
 @app.route("/admin/users/add", methods=['POST'])
 @admin_required
@@ -353,7 +353,7 @@ def admin_add_user():
     scope = data.get('scope')
     userid = session['userid']
     if not all([username, password, fullname, email, company, scope]):
-        return jsonify({'success': False, 'message': 'All fields are required.'}), 400
+        return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -365,16 +365,16 @@ def admin_add_user():
         cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, company, scope))
         conn.commit()
-        create_notification(userid, 'User created successfully.' , link=url_for('admin_users'), icon='fa-user-plus')
+        create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
-        return jsonify({'success': True, 'message': 'User created successfully.'})
+        return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
         log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username, 'scope': scope})
-        return jsonify({'success': False, 'message': 'Username or email already exists.'}), 409
+        return jsonify({'success': False, 'message': _("Username or email already exists.")}), 409
     except Exception as e:
         app.logger.error(f"Error adding user: {e}")
         log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"serverError": str(e)}, IsInternalError=1)
-        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if conn:
             conn.close()
@@ -406,13 +406,13 @@ def admin_edit_user(user_id):
                            (username, fullname, email, company, scope, user_id))
         conn.commit()
 
-        create_notification(currentUserId, 'User updated successfully', link=url_for('admin_users'), icon='fa-user-pen')
+        create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
         log_user_action('editUserAdmin', status='SUCCESS', resource_id='visitUserManagement', target_user_id=user_id)
-        return jsonify({'success': True, 'message': 'User updated successfully.'})
+        return jsonify({'success': True, 'message': _("User updated successfully.")})
     except Exception as e:
         app.logger.error(f"Error editing user {user_id}: {e}")
         log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"serverError": str(e)}, IsInternalError=1)
-        return jsonify({'success': False, 'message': 'An error occurred.'}), 500
+        return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if conn:
             conn.close()
@@ -423,7 +423,7 @@ def admin_delete_user(user_id):
     current_user = session.get('userid')
     if str(user_id) == current_user:
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'Self-delete attempt'}, resource_id='visitUserManagement')
-        return jsonify({'success': False, 'message': 'You cannot delete your own account.'}), 403
+        return jsonify({'success': False, 'message': _("You cannot delete your own account.")}), 403
 
     conn = None
     try:
@@ -435,15 +435,15 @@ def admin_delete_user(user_id):
 
         if cursor.rowcount == 0:
             log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
-            return jsonify({'success': False, 'message': 'User not found.'}), 404
+            return jsonify({'success': False, 'message': _("User not found.")}), 404
         
-        create_notification(current_user, 'User deleted successfully', link=url_for('admin_users'), icon='fa-user-slash')
+        create_notification(current_user, _("User deleted successfully"), link=url_for('admin_users'), icon='fa-user-slash')
         log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
-        return jsonify({'success': True, 'message': 'User deleted successfully.'})
+        return jsonify({'success': True, 'message': _("User deleted successfully.")})
     except Exception as e:
         app.logger.error(f"Error deleting user {user_id}: {e}")
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, resource_id='visitUserManagement', details={'serverError': str(e)}, IsInternalError=1)
-        return jsonify({'success': False, 'message': 'An error occurred.'}), 500
+        return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if conn:
             conn.close()
@@ -465,7 +465,7 @@ def admin_recent_logs():
         return jsonify(logs)
     except Exception as e:
         app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
-        return jsonify({"error": "Could not fetch logs"}), 500
+        return jsonify({"error": _("Could not fetch logs")}), 500
     finally:
         if conn:
             conn.close()
@@ -493,7 +493,7 @@ def admin_active_sessions():
         return jsonify(sessions)
     except Exception as e:
         app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
-        return jsonify({"error": "Could not fetch sessions"}), 500
+        return jsonify({"error": _("Could not fetch sessions")}), 500
     finally:
         if conn:
             conn.close()
@@ -525,11 +525,11 @@ def set_new_password():
         new_password = request.form['new-password']
         confirm_password = request.form['confirm-password']
         if new_password != confirm_password:
-            return render_template("reset_password.html", error="Passwords do not match")
+            return render_template("reset_password.html", error=_("Passwords do not match"))
         if not new_password or not confirm_password:
-            return render_template("reset_password.html", error="All Fields must be filled")
+            return render_template("reset_password.html", error=_("All Fields must be filled"))
         if not re.search('^\S{8,200}$', new_password):
-            return render_template("reset_password.html", error="New password has to be atleast 8 characters long, with no whitespaces")
+            return render_template("reset_password.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
 
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -555,7 +555,7 @@ def set_new_password():
             stored_hash = stored_hash.encode('utf-8')    
 
         if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
-            return render_template("reset_password.html", error="New Password musn't be previously used password")
+            return render_template("reset_password.html", error=_("New Password musn't be previously used password"))
 
         bytes = new_password.encode('utf-8')
         salt = bcrypt.gensalt()
@@ -572,9 +572,9 @@ def set_new_password():
         cursor.close()
         conn.close()
 
-        create_notification(userid, 'Password changed successfully', link=url_for('profile'), icon='fa-unlock')
+        create_notification(userid, _("Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
         log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
-        return render_template("reset_password.html", message="Password changed")
+        return render_template("reset_password.html", message=_("Password changed"))
     except Exception as e:
         log_user_action(action_type='resetUserPassword', status='FAILURE', resource_id='resetPassword', details={"serverError": str(e)}, IsInternalError=1)
         return 
@@ -584,12 +584,8 @@ def reset_password(token):
     try:
         session['email_for_password_reset'] = s.loads(token, salt='password-reset-salt', max_age=900)
         return render_template('reset_password.html')
-    except SignatureExpired:
-        flash('The password reset link has expired.', 'danger')
-        return redirect(url_for('index'))
     except Exception:
-        flash('The password reset link is invalid.', 'danger')
-        return redirect(url_for('reset_request'))
+        return redirect(url_for('index'))
     
 def send_reset_email(email):
     def get_link():
@@ -625,7 +621,7 @@ def send_reset_email(email):
     try:
         body = {
             "message": {
-                "subject": "Sydoc Portal Password Reset Request",
+                "subject": _("Sydoc Portal Password Reset Request"),
                 "body": {
                     "contentType": "HTML",
                     "content": f"""
@@ -667,13 +663,13 @@ def send_reset_email(email):
                                                             <tr>
                                                                 <td style="padding: 20px 30px 40px 30px; text-align: left;">
                                                                     <h1 style="margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #333333;">
-                                                                        Password Reset Request
+                                                                        {_("Password Reset Request")}
                                                                     </h1>
                                                                     <p style="margin: 20px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        Hello,
+                                                                        {_("Hello,")}
                                                                     </p>
                                                                     <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        We received a request to reset the password for your account. You can reset your password by clicking the button below.
+                                                                        {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
                                                                     </p>
                                                                     
                                                                     <table border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 30px; margin-bottom: 30px;">
@@ -683,7 +679,7 @@ def send_reset_email(email):
                                                                                     <tr>
                                                                                         <td align="center" style="border-radius: 5px; background-color: #3b82f6;">
                                                                                             <a href="{link}" target="_blank" style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 5px; padding: 15px 25px; border: 1px solid #4338ca; display: inline-block;">
-                                                                                                Reset Your Password
+                                                                                                {_("Reset Your Password")}
                                                                                             </a>
                                                                                         </td>
                                                                                     </tr>
@@ -693,10 +689,10 @@ def send_reset_email(email):
                                                                     </table>
 
                                                                     <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.
+                                                                        {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
                                                                     </p>
                                                                     <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        Thanks,<br>The Sydoc Team
+                                                                        {_("Thanks,<br>The Sydoc Team")}
                                                                     </p>
                                                                 </td>
                                                             </tr>
@@ -760,10 +756,10 @@ def request_password_reset():
     if rows:
         sendreset = send_reset_email(request_email)
         if sendreset:
-            return render_template("forgot_password.html", message="A password reset link has been sent to your email")
+            return render_template("forgot_password.html", message=_("A password reset link has been sent to your email"))
         else:
-            return render_template('forgot_password.html', error="Unexpected Error occurred")
-    return render_template('forgot_password.html', error="Invalid Email Address")
+            return render_template('forgot_password.html', error=_("Unexpected error occurred"))
+    return render_template('forgot_password.html', error=_("Invalid Email Address"))
 # ---------------------------- forgot password end --------------------------- #
 
 # --------------------------------- dashboard -------------------------------- #
@@ -1174,7 +1170,7 @@ def api_get_media_info(workitem_id):
 
         returndata = get_workitemdata_param(workitem_id)
         if not returndata:
-            return jsonify({"error": "Workitem not found"}), 404
+            return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
         extensions, urls = get_extension_and_urls(workitemdata, document_id)
@@ -1194,7 +1190,7 @@ def api_get_media_info(workitem_id):
         return jsonify(response_data)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
-        return jsonify({"error": "Internal Server Error"}), 500
+        return jsonify({"error": _("Internal Server Error")}), 500
     
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
 def api_get_media_raw(workitem_id, media_index):
@@ -1203,7 +1199,7 @@ def api_get_media_raw(workitem_id, media_index):
         if not media_data:
             returndata = get_workitemdata_param(workitem_id)
             if not returndata:
-                return Response("Workitem not found", status=404)
+                return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
             extensions, urls = get_extension_and_urls(workitemdata, document_id)
@@ -1214,7 +1210,7 @@ def api_get_media_raw(workitem_id, media_index):
         urls = media_data.get('urls', [])
 
         if media_index >= len(urls):
-            return Response("Media index out of bounds", status=404)
+            return Response(_("Media index out of bounds"), status=404)
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
@@ -1243,7 +1239,7 @@ def api_get_media_raw(workitem_id, media_index):
                     )
             except Exception as e:
                 print(f"An error occurred during TIFF conversion: {e}")
-                return "Failed to process TIFF image", 500
+                return _("Failed to process TIFF image"), 500
             
         response = make_response(raw_media_bytes)
         response.headers.set('Content-Type', mimetype)
@@ -1254,7 +1250,7 @@ def api_get_media_raw(workitem_id, media_index):
         return response
     except Exception as e:
         print(f"An error occurred: {e}")
-        return Response("Internal Server Error", status=500)
+        return Response(_("Internal Server Error"), status=500)
 
 @cache.memoize() 
 def get_activity_type_name(activity_instance_id: str) -> str:
@@ -1271,7 +1267,7 @@ def get_activity_type_name(activity_instance_id: str) -> str:
         return activity_instance_config.get('ActivityTypeName', 'Unknown Activity')
     except requests.exceptions.RequestException as e:
         print(f"Error fetching activity instance {activity_instance_id}: {e}")
-        return "Error - See Logs"
+        return _("Error fetching activity instance")
 
 @app.route('/api/get_audithistory/<int:workitem_id>')
 def get_audithistory(workitem_id):
@@ -1306,9 +1302,9 @@ def get_audithistory(workitem_id):
         return jsonify(complete_array)
 
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to fetch audit history: {e}"}), 500
+        return jsonify({"error": f"{_("Failed to fetch audit history")}: {e}"}), 500
     except Exception as e:
-        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+        return jsonify({"error": f"{_("An unexpected error occurred")}: {e}"}), 500
 # --------------------------- workitem overview end -------------------------- #
 
 # ---------------------------------- profile --------------------------------- #
@@ -1342,13 +1338,13 @@ def update_profile():
             company = request.form['company']
 
             if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
-                flash('Full name is not valid', 'failure_updateProfile') 
+                flash(_("Full name is not valid"), 'failure_updateProfile') 
                 return redirect(url_for("profile"))
             if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
-                flash('Email Adress is not valid', 'failure_updateProfile') 
+                flash(_("Email Adress is not valid"), 'failure_updateProfile') 
                 return redirect(url_for("profile"))
             if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
-                flash('Company name is not valid', 'failure_updateProfile') 
+                flash(_("Company name is not valid"), 'failure_updateProfile') 
                 return redirect(url_for("profile"))
 
             conn_str = (
@@ -1390,11 +1386,11 @@ def update_profile():
                 "email": email,
                 "company": company
             })
-            create_notification(userid, "Your profile was updated successfully.", link=url_for('profile'), icon='fa-user-pen')
-            flash(_('Profile updated successfully!'), 'success_updateProfile') 
+            create_notification(userid, _("Your profile was updated successfully."), link=url_for('profile'), icon='fa-user-pen')
+            flash(_("Profile updated successfully!"), 'success_updateProfile') 
             return redirect(url_for("profile"))
     except Exception as e:
-        flash('Unexpected Error', 'failure_updateProfile') 
+        flash(_("Unexpected error"), 'failure_updateProfile') 
         log_user_action(action_type='updateUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for("profile"))
 
@@ -1416,10 +1412,10 @@ def change_password():
                 flash('New passwords do not match', 'failure_changePW') 
                 return redirect(url_for("profile"))        
             if not newPassword or not confirmPassword or not currentPassword:
-                flash('All fields must be filled', 'failure_changePW') 
+                flash(_("All fields must be filled"), 'failure_changePW') 
                 return redirect("profile")
             if not re.search('^\S{8,200}$', newPassword):
-                flash('New password has to be atleast 8 characters long, with no whitespaces', 'failure_changePW') 
+                flash(_("New password has to be atleast 8 characters long, with no whitespaces"), 'failure_changePW') 
                 return redirect("profile")
             conn_str = (
                 f'DRIVER={{SQL Server}};'
@@ -1460,15 +1456,15 @@ def change_password():
                 cursor.close()
                 conn.close()
 
-                create_notification(userid, "Password updated successfully!", link=url_for('profile'), icon='fa-user-shield')
+                create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
                 log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
-                flash('Password updated successfully!', 'success_changePW') 
+                flash(_("Password updated successfully!"), 'success_changePW') 
                 return redirect("profile")
             else:
-                flash('Current password is incorrect', 'failure_changePW') 
+                flash(_("Current password is incorrect"), 'failure_changePW') 
                 return redirect("profile")
     except Exception as e:
-        flash('Unexpected Error', 'failure_changePW') 
+        flash(_("Unexpected Error"), 'failure_changePW') 
         log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect("profile")
 
@@ -1477,12 +1473,12 @@ def set_language(lang=None):
     try:
         userid = session['userid']
         session['locale'] = lang
-        create_notification(userid, "Language changed successfully!", link=url_for('profile'), icon='fa-language')
+        create_notification(userid, _("Language changed successfully!"), link=url_for('profile'), icon='fa-language')
         log_user_action(action_type='changeUserLanguage', status='SUCCESS', resource_id='profile', details={"new_language": lang})
-        flash('Language changed successfully!', 'success_setLanguage')
+        flash(_("Language changed successfully!"), 'success_setLanguage')
         return redirect(request.referrer or url_for('index'))
     except Exception as e:
-        flash('Unexpected Error', 'failure_setLanguage')
+        flash(_("Unexpected Error"), 'failure_setLanguage')
         log_user_action(action_type='changeUserLanguage', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(request.referrer or url_for('index'))
 
@@ -1493,11 +1489,9 @@ def inject_current_lang():
 
 # ---------------------------------- jdvance --------------------------------- #
 @app.route('/jdvance')
+@admin_required
 def jdvance():
-    if 'username' in session and session['scope'] == 'Admin':
-        return render_template("jdvance.html")
-    else:
-        return render_template("404.html"), 404
+    return render_template("jd/jdvance.html")
 # -------------------------------- jdvance end ------------------------------- #
 
 # ---------------------------------- reports --------------------------------- #
@@ -1517,7 +1511,7 @@ def reports():
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
     conn = None
     try:
@@ -1564,7 +1558,7 @@ def report_processed_over_time():
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
     stats = get_absolute_dashboard_stats() 
     
@@ -1581,7 +1575,7 @@ def report_status_distribution():
 @app.route("/api/reports/kpi_stats")
 def report_kpi_stats():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
     conn = None
     try:
@@ -1703,15 +1697,19 @@ def report_stage_breakdown():
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template("404.html"), 404
+    return render_template("handlers/404.html"), 404
 
 @app.errorhandler(500)
-def page_not_found(e):
-    return render_template("500.html"), 500
+def internalError(e):
+    return render_template("handlers/500.html"), 500
 
 @app.errorhandler(DatabaseError)
 def special_exception_handler():
-    return 'Database connection failed', 500
+    return _("Database connection failed"), 500
+
+@app.errorhandler(403)
+def forbiddenPage():
+    return render_template('handlers/403.html'), 403
 # ----------------------------- error handler end ---------------------------- #
 
 # ------------------------------- ONLY FOR IIS ------------------------------- #

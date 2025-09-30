@@ -39,7 +39,7 @@
                     updateNotificationUI(notifications);
                 } catch (error) {
                     console.error('Failed to fetch notifications:', error);
-                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-red-500">{{ _('Could not load notifications.') }}</p>`;
+                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-red-500">{{ _("Could not load notifications.") }}</p>`;
                 }
             }
 
@@ -55,7 +55,7 @@
 
                 notificationList.innerHTML = '';
                 if (notifications.length === 0) {
-                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-gray-500">{{ _('No new notifications.') }}</p>`;
+                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-gray-500">{{ _("No new notifications.") }}</p>`;
                     return;
                 }
 

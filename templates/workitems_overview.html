@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ _('Workitems overview - Sydoc Portal') }} </title>
+  <title>{{ _("Workitems overview - Sydoc Portal") }} </title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -22,13 +22,13 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-3xl font-bold text-gray-800 mb-2">
-            {{ _('Workitems overview') }}
+            {{ _("Workitems overview") }}
           </h2>
-          <p class="text-gray-600">{{ _('List of all workitems for') }} {{ scope }}</p>
+          <p class="text-gray-600">{{ _("List of all workitems for") }} {{ scope }}</p>
         </div>
         <div class="flex items-center space-x-4">
           <div class="bg-white px-4 py-2 rounded-lg shadow">
-            <span class="text-sm text-gray-500">{{ _('Total items:') }}</span>
+            <span class="text-sm text-gray-500">{{ _("Total items:") }}</span>
             <span class="font-bold text-lg text-indigo-600">{{ workitems|length }}</span>
           </div>
         </div>
@@ -52,14 +52,14 @@
         <div class="flex gap-2">
           <select id="statusFilter"
             class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="">{{ _('All statuses') }}</option>
+            <option value="">{{ _("All statuses") }}</option>
             <option value="Ready">Ready</option>
             <option value="In Progress">In progress</option>
             <option value="Done">Done</option>
           </select>
           <button onclick="exportToCSV()"
             class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-            <i class="fas fa-download mr-2"></i>{{ _('Export CSV') }} 
+            <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }} 
           </button>
         </div>
       </div>
@@ -76,17 +76,17 @@
               <th
                 class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onclick="sortTable(0)">
-                {{ _('Barcode') }} <i class="fas fa-sort ml-1"></i>
+                {{ _("Barcode") }} <i class="fas fa-sort ml-1"></i>
               </th>
               <th
                 class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onclick="sortTable(1)">
-                {{ _('Status') }} <i class="fas fa-sort ml-1"></i>
+                {{ _("Status") }} <i class="fas fa-sort ml-1"></i>
               </th>
               <th
                 class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onclick="sortTable(2)">
-                {{ _('Last movement at') }} <i class="fas fa-sort ml-1"></i>
+                {{ _("Last movement at") }} <i class="fas fa-sort ml-1"></i>
               </th>
               <!-- Last Column empty for Actions -->
               <th class="px-6 py-4 text-right text-xs"></th>
@@ -144,13 +144,13 @@
                 <div class="details-content-wrapper p-4 bg-gray-50 flex flex-col md:flex-row gap-6">
                   <div id="image-container-{{ workitem.workitemid }}"
                       class="flex-1 flex justify-center items-center max-h-80 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white cursor-pointer">
-                      <p class="text-gray-500">{{ _('Click to load media') }} ...</p>
+                      <p class="text-gray-500">{{ _("Click to load media") }} ...</p>
                   </div> 
 
                   <div class="flex-1">
                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
                     <div id="history-container-{{ workitem.workitemid }}" class="relative max-h-80 overflow-y-auto pr-2">
-                      <p class="text-gray-500 italic">{{ _('Loading history...') }}</p>
+                      <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
                     </div>
                   </div>
 
@@ -178,7 +178,7 @@
     <span class="modal-close">&times;</span>
     <img class="modal-content" id="modalImage">
   </div>
-    {% include '_workitems_overviewJS.html' %}
+    {% include 'js/_workitems_overviewJS.html' %}
   </script>
 </body>
 
