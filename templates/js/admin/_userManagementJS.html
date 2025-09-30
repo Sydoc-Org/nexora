@@ -69,7 +69,7 @@
         function openAddUserModal() {
             userForm.reset();
             userIdInput.value = '';
-            modalTitle.textContent = `{{ _("Add New User") }}`;
+            modalTitle.textContent = `{{ _("Add new user") }}`;
             passwordHelp.classList.add('hidden');
             usernameInput.disabled = false;
             document.getElementById('password').required = true;
@@ -78,7 +78,7 @@
 
         function openEditUserModal(user) {
             userForm.reset();
-            modalTitle.textContent = `{{ _("Edit User") }}`;
+            modalTitle.textContent = `{{ _("Edit user") }}`;
             userIdInput.value = user.userID;
             usernameInput.value = user.username;
             usernameInput.disabled = false;
@@ -95,7 +95,7 @@
             event.preventDefault();
             const data = Object.fromEntries(new FormData(userForm).entries());
             const userId = userIdInput.value;
-            const url = userId ? `${API_PREFIX}admin/users/edit/${userId}` : `${API_PREFIX}admin/users/add`;
+            const url =  userId ? `${API_PREFIX}admin/users/edit/${userId}` : `${API_PREFIX}admin/users/add`
 
             if (userId && !data.password) delete data.password;
 
@@ -107,7 +107,7 @@
                 });
                 const result = await response.json();
                 if (response.ok) {
-                    showNotification(result.message, `{{ _("success") }}`);
+                    showNotification(`{{ _("Success") }}`);
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
                     showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
@@ -150,7 +150,7 @@
                     const response = await fetch(`${API_PREFIX}admin/users/delete/${userId}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (response.ok) {
-                        showNotification(result.message, 'success');
+                        showNotification('{{ _("Success") }}');
                         setTimeout(() => window.location.reload(), 1500);
                     } else {
                         showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
@@ -185,7 +185,7 @@
                 if (!response.ok) throw new Error('Failed to fetch logs');
                 const logs = await response.json();
 
-                logsBody.innerHTML = ''; // Clear loading state
+                logsBody.innerHTML = '';
                 if (logs.length === 0) {
                     logsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">{{ _("No recent logs found.") }}</td></tr>`;
                     return;

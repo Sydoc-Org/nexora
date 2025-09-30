@@ -69,21 +69,21 @@
                                     <i class="fa-solid fa-hourglass-start text-xs"></i>
                                 </div>
                             `;
-                textMessage = `{{ _('Barcode') }} <span class="font-bold">${activity.Barcode}</span> {{ _('is ready') }}`;
+                textMessage = `{{ _("Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("is ready") }}`;
                 } else if (status === "In Progress") {
                 iconHTML = `
                                 <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
                                     <i class="fa-solid fa-spinner text-xs"></i>
                                 </div>
                             `;
-                textMessage = `{{ _('Processing for Barcode') }} <span class="font-bold">${activity.Barcode}</span> {{ _('has started.') }}`;
+                textMessage = `{{ _("Processing for Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("has started.") }}`;
                 } else if (status === "Done") {
                 iconHTML = `
                                 <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
                                     <i class="fas fa-file-upload text-xs"></i>
                                 </div>
                             `;
-                textMessage = `{{ _('Barcode') }} <span class="font-bold">${activity.Barcode}</span> {{ _('has finished processing.') }}`;
+                textMessage = `{{ _("Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("has finished processing.") }}`;
                 } 
                 else {
                 iconHTML = `
@@ -91,7 +91,7 @@
                                     <i class="fas fa-question text-xs"></i>
                                 </div>
                             `;
-                textMessage = `{{ _('Unknown status for Barcode') }} <span class="font-bold">${activity.Barcode}</span>.`;
+                textMessage = `{{ _("Unknown status for Barcode") }} <span class="font-bold">${activity.Barcode}</span>.`;
                 }
 
                 li.innerHTML = `
