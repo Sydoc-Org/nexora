@@ -35,8 +35,8 @@
               class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
               onchange="this.form.submit()">
               <option value="both" {% if process_name=='both' %}selected{% endif %}>{{ _("All Processes") }}</option>
-              <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>Posteingang</option>
-              <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>Invoice</option>
+              <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
+              <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
               <i class="fa-solid fa-chevron-down"></i>

@@ -1107,7 +1107,6 @@ def workitems_overview():
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
-
 def get_access_token():
     token = cache.get('octo_access_token')
     if token:
@@ -1527,8 +1526,12 @@ def reports():
             return redirect(url_for("login", page='index.html'))
         userid = session['userid']
         scope = session['scope']
+
+        process_name = request.args.get('processFilterReports', 'both')
+        session['process_name_reports'] = process_name
+
         log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
-        return render_template("reports.html", userid=userid, scope=scope)
+        return render_template("reports.html", userid=userid, scope=scope, process_name=process_name)
     except Exception as e:
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -1536,11 +1539,13 @@ def reports():
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
-        return jsonify({{"error": _("Not authorized")}}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
-    process_name = request.args.get('process_name', 'both')
-    process_filter_sql = getProcessFilter(process_name)
     conn = None
+
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+    
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1553,32 +1558,30 @@ def report_processed_over_time():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        query = f"""
+        cursor.execute(f"""
             SELECT 
                 CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
                 COUNT(twi.ID) as ItemCount
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE {process_filter_sql} 
-              AND tp.ClientName = 'Privera'
+            WHERE tp.Name IN ({placeholders})
+              AND tp.ClientName = ?
               AND twi.Status = 5 -- Status for 'Done'
               AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
             GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
             ORDER BY DoneDate;
-        """
-        cursor.execute(query)
-        
+        """,all_params)
         rows = cursor.fetchall()
         
-        labels = [row.DoneDate.strftime('%Y-%m-%d') for row in rows]
+        labels = [row.DoneDate for row in rows]
         data = [row.ItemCount for row in rows]
         
-        return jsonify({{'labels': labels, 'data': data}})
+        return jsonify({'labels': labels, 'data': data})
         
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
-        return jsonify({{"error": str(e)}}), 500
+        return jsonify({"error": str(e)}), 500
     finally:
         if conn:
             conn.close()
@@ -1586,11 +1589,9 @@ def report_processed_over_time():
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
-        return jsonify({{"error": _("Not authorized")}}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
-    process_name = request.args.get('process_name', 'both')
-    stats = get_absolute_dashboard_stats(process_name)
-    
+    stats = get_absolute_dashboard_stats(session['process_name_reports']) 
     labels = ['Ready', 'In Progress', 'Done', 'Backlog']
     data = [
         stats.get('ReadyTotal', 0),
@@ -1598,17 +1599,18 @@ def report_status_distribution():
         stats.get('DoneTotal', 0),
         stats.get('BacklogTotal', 0)
     ]
-    
-    return jsonify({{'labels': labels, 'data': data}})
+    return jsonify({'labels': labels, 'data': data})
 
 @app.route("/api/reports/kpi_stats")
 def report_kpi_stats():
     if 'username' not in session:
-        return jsonify({{"error": _("Not authorized")}}), 401
+        return jsonify({"error": _("Not authorized")}), 401
     
-    process_name = request.args.get('process_name', 'both')
-    process_filter_sql = getProcessFilter(process_name)
     conn = None
+
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1621,42 +1623,39 @@ def report_kpi_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        query_today = f"""
+        cursor.execute(f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
-        """
-        cursor.execute(query_today)
+        """,all_params)
         processed_today = cursor.fetchone()[0]
 
-        query_week = f"""
+        cursor.execute(F"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
             AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
-        """
-        cursor.execute(query_week)
+        """,all_params)
         processed_week = cursor.fetchone()[0]
         
-        query_backlog = f"""
+        cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
             LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE {process_filter_sql} AND p.ClientName = 'Privera' AND a.ActivityInstanceName = 'C+A';
-        """
-        cursor.execute(query_backlog)
+            WHERE p.Name IN ({placeholders}) AND p.ClientName = ? AND a.ActivityInstanceName = 'C+A';
+        """,all_params)
         current_backlog = cursor.fetchone()[0]
         
-        return jsonify({{
+        return jsonify({
             'processed_today': processed_today,
             'processed_week': processed_week,
             'current_backlog': current_backlog
-        }})
+        })
         
     except Exception as e:
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
-        return jsonify({{"error": str(e)}}), 500
+        return jsonify({"error": str(e)}), 500
     finally:
         if conn:
             conn.close()
@@ -1664,11 +1663,12 @@ def report_kpi_stats():
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
-        return jsonify({{"error": "Not authorized"}}), 401
+        return jsonify({"error": "Not authorized"}), 401
     
-    process_name = request.args.get('process_name', 'both')
-    process_filter_sql = getProcessFilter(process_name)
     conn = None
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1681,7 +1681,7 @@ def report_stage_breakdown():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        query = f"""
+        cursor.execute(f"""
            SELECT 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -1697,8 +1697,8 @@ def report_stage_breakdown():
             FROM t_WorkItems twi 
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE {process_filter_sql}
-              AND tp.ClientName = 'Privera' 
+            WHERE tp.Name IN ({placeholders})
+              AND tp.ClientName = ?
               and twi.Status not in (5,2)
               and tai.ActivityInstanceName NOT LIKE '%Pause%'
             GROUP BY 
@@ -1713,19 +1713,18 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """
-        cursor.execute(query)
+        """,all_params)
         
         rows = cursor.fetchall()
         
         labels = [row.Activity for row in rows]
         data = [row.ItemCount for row in rows]
         
-        return jsonify({{'labels': labels, 'data': data}})
+        return jsonify({'labels': labels, 'data': data})
         
     except Exception as e:
         app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
-        return jsonify({{"error": str(e)}}), 500
+        return jsonify({"error": str(e)}), 500
     finally:
         if conn:
             conn.close()
