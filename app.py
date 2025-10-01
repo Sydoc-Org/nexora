@@ -340,7 +340,6 @@ def admin_users():
         if conn:
             conn.close()
 
-
 @app.route("/admin/users/add", methods=['POST'])
 @admin_required
 def admin_add_user():
@@ -762,11 +761,23 @@ def request_password_reset():
     return render_template('forgot_password.html', error=_("Invalid Email Address"))
 # ---------------------------- forgot password end --------------------------- #
 
+# ------------------------------ process filter ------------------------------ #
+def get_process_filter_and_params(process_name):
+    if process_name == '02_Posteingang':
+        return "?", ["02_Posteingang"]
+    elif process_name == '02_Invoice':
+        return "?", ["02_Invoice"]
+    else:
+        return "?, ?", ["02_Posteingang", "02_Invoice"]
+# ---------------------------- process filter end ---------------------------- #
+
 # --------------------------------- dashboard -------------------------------- #
-def get_absolute_dashboard_stats():
+def get_absolute_dashboard_stats(processName="both"):
     stats = {}
     conn = None
     try:
+        placeholders, params = get_process_filter_and_params(processName)
+        all_params = params + ['Privera'] + params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -778,7 +789,7 @@ def get_absolute_dashboard_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute(
-            """
+            f"""
             WITH AllStatuses
             AS (SELECT 0 AS StatusCode,
                     'Ready' AS StatusName
@@ -797,8 +808,8 @@ def get_absolute_dashboard_stats():
                         on a.id = w.ActivityInstanceID
                     LEFT JOIN t_Processes p
                         on p.id = a.ProcessID
-                WHERE p.Name = '02_Posteingang'
-                    AND p.ClientName = 'Privera'
+                WHERE p.Name IN ({placeholders})
+                    AND p.ClientName = ?
                 GROUP BY w.[Status]
             )
             SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
@@ -814,10 +825,10 @@ def get_absolute_dashboard_stats():
                     on a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p
                     on p.id = a.ProcessID
-            WHERE p.Name = '02_Posteingang'
-                AND p.ClientName = 'Privera'
+            WHERE p.Name IN ({placeholders})
+                AND p.ClientName = ?
                 AND a.ActivityInstanceName = 'C+A';
-            """
+            """, all_params
         )
         rows = cursor.fetchall()
         stats['ReadyTotal'] = rows[0][0]
@@ -832,10 +843,12 @@ def get_absolute_dashboard_stats():
         conn.close()
     return stats
 
-def get_dashbord_preview_documents_stats():
+def get_dashbord_preview_documents_stats(processName='both'):
     stats = {}
     conn = None
     try:
+        placeholders, params = get_process_filter_and_params(processName)
+        all_params = params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -846,7 +859,7 @@ def get_dashbord_preview_documents_stats():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             WITH CTE AS (
             SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
@@ -878,16 +891,16 @@ def get_dashbord_preview_documents_stats():
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
         SELECT DISTINCT TOP 10 tdi.StringValue Barcode
         ,Activity FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            """
+            """, (all_params)
         )
         rows = cursor.fetchall()
     except Exception as e:
@@ -914,7 +927,9 @@ def dashboard():
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
 
-        absolute_stats = get_absolute_dashboard_stats()
+        process_name = request.args.get('processFilter', 'both')
+        session['process_name'] = process_name
+        absolute_stats = get_absolute_dashboard_stats(process_name)
 
         log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
         return render_template("dashboard.html", 
@@ -924,7 +939,7 @@ def dashboard():
         ReadyTotal=absolute_stats['ReadyTotal'],
         InProgressTotal=absolute_stats['InProgressTotal'],
         DoneTotal=absolute_stats['DoneTotal'],
-        BacklogTotal=absolute_stats['BacklogTotal']
+        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name
         )
     except Exception as e:
         log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
@@ -933,21 +948,26 @@ def dashboard():
 @app.route("/api/dashboard_stats_absolute")
 def dashboard_stats_absolute():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-    stats = get_absolute_dashboard_stats()
+        return jsonify({"error": _("Not authorized")}), 401
+    process_name = session['process_name']
+    stats = get_absolute_dashboard_stats(process_name)
     return jsonify(stats) 
 
 @app.route("/api/dashboard_stats_document_preview")
 def dashboard_stats_document_preview():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-    stats = get_dashbord_preview_documents_stats()
+        return jsonify({"error": _("Not authorized")}), 401
+    process_name = session['process_name']
+    stats = get_dashbord_preview_documents_stats(process_name)
     return stats
 
 @app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
-        return jsonify({"error": "Not logged in"}), 401
+        return jsonify({"error": _("Not logged in")}), 401
+    
+    placeholders, params = get_process_filter_and_params(session['process_name'])
+    all_params = params + ['Privera']
 
     try:
         conn_str = (
@@ -960,7 +980,7 @@ def recent_activity():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("""
+        query = f"""
             WITH CTE AS (
             SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
@@ -972,15 +992,16 @@ def recent_activity():
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
         SELECT DISTINCT TOP 4 tdi.StringValue Barcode, CTE.Status, CTE.ModifiedAt FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-        """)
+        """
+        cursor.execute(query, all_params)
         activities = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -1002,7 +1023,6 @@ def recent_activity():
 @app.route("/workitems")
 def workitems_overview():
     try:
-        # Check if user is logged in
         if 'username' not in session:
             return redirect(url_for('login', page='index.html'))
 
@@ -1010,7 +1030,9 @@ def workitems_overview():
         userid = session.get('userid')
         scope = session.get('scope')
         
-        # Connect to runtime database to get workitems
+        process_name = request.args.get('process_name', 'both')
+        process_filter_sql = getProcessFilter(process_name)
+        
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -1020,12 +1042,11 @@ def workitems_overview():
             f'TrustServerCertificate=yes;'
         )
         
-        # Get all workitems
         try:
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             
-            cursor.execute("""
+            query = f"""
             WITH CTE AS (
                 SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
                 CASE 
@@ -1037,7 +1058,7 @@ def workitems_overview():
                 LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
                 LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
+                WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND
                 tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
                 AND twi.Status <> 2 
             ),
@@ -1050,19 +1071,19 @@ def workitems_overview():
             )
             SELECT * FROM CTE2
             ORDER BY CTE2.ModifiedAt DESC
-            """)
+            """
+            cursor.execute(query)
             
             workitems = cursor.fetchall()
             
-            # Convert to list of dictionaries for easier template handling
             workitems_list = []
             for row in workitems:
-                workitems_list.append({
+                workitems_list.append({{
                     'barcode': row[0],                    
                     'modifiedat': row[1],           
                     'workitemid' : row[2],
                     'status': row[3]        
-                })
+                }})
                 
         except Exception as e:
             app.logger.error(f"Database error in workitems overview: {e}")
@@ -1080,7 +1101,7 @@ def workitems_overview():
                             scope=scope,
                             workitems=workitems_list)
     except Exception as e:
-        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
+        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={{"serverError": str(e)}}, IsInternalError=1)
         return render_template('500.html')
 
 def get_access_token():
@@ -1511,8 +1532,10 @@ def reports():
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
+        return jsonify({{"error": _("Not authorized")}}), 401
     
+    process_name = request.args.get('process_name', 'both')
+    process_filter_sql = getProcessFilter(process_name)
     conn = None
     try:
         conn_str = (
@@ -1526,31 +1549,32 @@ def report_processed_over_time():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        query = f"""
             SELECT 
                 CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
                 COUNT(twi.ID) as ItemCount
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name = '02_Posteingang' 
+            WHERE {process_filter_sql} 
               AND tp.ClientName = 'Privera'
               AND twi.Status = 5 -- Status for 'Done'
               AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
             GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
             ORDER BY DoneDate;
-        """)
+        """
+        cursor.execute(query)
         
         rows = cursor.fetchall()
         
-        labels = [row.DoneDate for row in rows]
+        labels = [row.DoneDate.strftime('%Y-%m-%d') for row in rows]
         data = [row.ItemCount for row in rows]
         
-        return jsonify({'labels': labels, 'data': data})
+        return jsonify({{'labels': labels, 'data': data}})
         
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({{"error": str(e)}}), 500
     finally:
         if conn:
             conn.close()
@@ -1558,9 +1582,10 @@ def report_processed_over_time():
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
+        return jsonify({{"error": _("Not authorized")}}), 401
     
-    stats = get_absolute_dashboard_stats() 
+    process_name = request.args.get('process_name', 'both')
+    stats = get_absolute_dashboard_stats(process_name)
     
     labels = ['Ready', 'In Progress', 'Done', 'Backlog']
     data = [
@@ -1570,13 +1595,15 @@ def report_status_distribution():
         stats.get('BacklogTotal', 0)
     ]
     
-    return jsonify({'labels': labels, 'data': data})
+    return jsonify({{'labels': labels, 'data': data}})
 
 @app.route("/api/reports/kpi_stats")
 def report_kpi_stats():
     if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
+        return jsonify({{"error": _("Not authorized")}}), 401
     
+    process_name = request.args.get('process_name', 'both')
+    process_filter_sql = getProcessFilter(process_name)
     conn = None
     try:
         conn_str = (
@@ -1590,39 +1617,42 @@ def report_kpi_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        query_today = f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND twi.Status = 5
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
-        """)
+        """
+        cursor.execute(query_today)
         processed_today = cursor.fetchone()[0]
 
-        cursor.execute("""
+        query_week = f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND twi.Status = 5
             AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
-        """)
+        """
+        cursor.execute(query_week)
         processed_week = cursor.fetchone()[0]
         
-        cursor.execute("""
+        query_backlog = f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
             LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera' AND a.ActivityInstanceName = 'C+A';
-        """)
+            WHERE {process_filter_sql} AND p.ClientName = 'Privera' AND a.ActivityInstanceName = 'C+A';
+        """
+        cursor.execute(query_backlog)
         current_backlog = cursor.fetchone()[0]
         
-        return jsonify({
+        return jsonify({{
             'processed_today': processed_today,
             'processed_week': processed_week,
             'current_backlog': current_backlog
-        })
+        }})
         
     except Exception as e:
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({{"error": str(e)}}), 500
     finally:
         if conn:
             conn.close()
@@ -1630,8 +1660,10 @@ def report_kpi_stats():
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
+        return jsonify({{"error": "Not authorized"}}), 401
     
+    process_name = request.args.get('process_name', 'both')
+    process_filter_sql = getProcessFilter(process_name)
     conn = None
     try:
         conn_str = (
@@ -1645,7 +1677,7 @@ def report_stage_breakdown():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        query = f"""
            SELECT 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -1661,7 +1693,7 @@ def report_stage_breakdown():
             FROM t_WorkItems twi 
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name = '02_Posteingang' 
+            WHERE {process_filter_sql}
               AND tp.ClientName = 'Privera' 
               and twi.Status not in (5,2)
               and tai.ActivityInstanceName NOT LIKE '%Pause%'
@@ -1677,18 +1709,19 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """)
+        """
+        cursor.execute(query)
         
         rows = cursor.fetchall()
         
         labels = [row.Activity for row in rows]
         data = [row.ItemCount for row in rows]
         
-        return jsonify({'labels': labels, 'data': data})
+        return jsonify({{'labels': labels, 'data': data}})
         
     except Exception as e:
         app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({{"error": str(e)}}), 500
     finally:
         if conn:
             conn.close()
@@ -1703,9 +1736,9 @@ def page_not_found(e):
 def internalError(e):
     return render_template("handlers/500.html"), 500
 
-@app.errorhandler(DatabaseError)
-def special_exception_handler():
-    return _("Database connection failed"), 500
+# @app.errorhandler(DatabaseError)
+# def special_exception_handler():
+#     return _("Database connection failed"), 500
 
 @app.errorhandler(403)
 def forbiddenPage():
