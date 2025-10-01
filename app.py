@@ -927,8 +927,8 @@ def dashboard():
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
 
-        process_name = request.args.get('processFilter', 'both')
-        session['process_name'] = process_name
+        process_name = request.args.get('processFilterDashboard', 'both')
+        session['process_name_dashboard'] = process_name
         absolute_stats = get_absolute_dashboard_stats(process_name)
 
         log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
@@ -949,7 +949,7 @@ def dashboard():
 def dashboard_stats_absolute():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    process_name = session['process_name']
+    process_name = session['process_name_dashboard']
     stats = get_absolute_dashboard_stats(process_name)
     return jsonify(stats) 
 
@@ -957,7 +957,7 @@ def dashboard_stats_absolute():
 def dashboard_stats_document_preview():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    process_name = session['process_name']
+    process_name = session['process_name_dashboard']
     stats = get_dashbord_preview_documents_stats(process_name)
     return stats
 
@@ -966,7 +966,7 @@ def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
     
-    placeholders, params = get_process_filter_and_params(session['process_name'])
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
     all_params = params + ['Privera']
 
     try:
@@ -1023,16 +1023,20 @@ def recent_activity():
 @app.route("/workitems")
 def workitems_overview():
     try:
+        # Check if user is logged in
         if 'username' not in session:
             return redirect(url_for('login', page='index.html'))
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
         scope = session.get('scope')
-        
-        process_name = request.args.get('process_name', 'both')
-        process_filter_sql = getProcessFilter(process_name)
-        
+
+        process_name = request.args.get('processFilterWorkitemOverview', 'both')
+        session['process_name_workitemOverview'] = process_name
+        placeholders, params = get_process_filter_and_params(process_name)
+        all_params = params + ['Privera']
+
+        # Connect to runtime database to get workitems
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -1042,11 +1046,12 @@ def workitems_overview():
             f'TrustServerCertificate=yes;'
         )
         
+        # Get all workitems
         try:
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             
-            query = f"""
+            cursor.execute(f"""
             WITH CTE AS (
                 SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
                 CASE 
@@ -1058,32 +1063,30 @@ def workitems_overview():
                 LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
                 LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE {process_filter_sql} AND tp.ClientName = 'Privera' AND
-                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
                 AND twi.Status <> 2 
             ),
             CTE2 AS (
             SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
             FROM CTE
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+            WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
             AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
             )
             SELECT * FROM CTE2
             ORDER BY CTE2.ModifiedAt DESC
-            """
-            cursor.execute(query)
-            
+            """, all_params)
             workitems = cursor.fetchall()
             
             workitems_list = []
             for row in workitems:
-                workitems_list.append({{
+                workitems_list.append({
                     'barcode': row[0],                    
                     'modifiedat': row[1],           
                     'workitemid' : row[2],
                     'status': row[3]        
-                }})
+                })
                 
         except Exception as e:
             app.logger.error(f"Database error in workitems overview: {e}")
@@ -1099,10 +1102,11 @@ def workitems_overview():
                             logged_in_user=logged_in_user,
                             userid=userid,
                             scope=scope,
-                            workitems=workitems_list)
+                            workitems=workitems_list, process_name=process_name)
     except Exception as e:
-        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={{"serverError": str(e)}}, IsInternalError=1)
+        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
+
 
 def get_access_token():
     token = cache.get('octo_access_token')

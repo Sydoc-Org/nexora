@@ -326,3 +326,8 @@
   opacity: 0;
   transform: scale(0.98);
 }
+.custom-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
