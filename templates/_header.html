@@ -78,9 +78,9 @@
                         <el-dropdown>
                             <button class="flex items-center space-x-2 cursor-pointer">
                                 <img src="{{ url_for('static',filename='images/' + userid + '-Icon.png') }}"
-                                    alt="User Avatar" class="h-10 w-10 rounded-full cursor-pointer">
-                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">{{
-                                    logged_in_user }}</span>
+                                    id="profilePicture" class="h-10 w-10 rounded-full cursor-pointer" onerror="defaultIcon()">
+                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">
+                                    {{ logged_in_user }}</span>
                             </button>
                             <el-menu anchor="bottom end" popover
                                 class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
