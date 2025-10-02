@@ -38,54 +38,59 @@
             }).catch((err) => console.error("Logging failed:", err));
         }
 
-        // Search functionality
-        document.getElementById("searchInput").addEventListener("keyup", function () {
-            closeAllDetails();
-            cancelAllAnimations();
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll(".workitem-row");
-            let visibleCount = 0;
+    function applyAllFilters() {
+        closeAllDetails();
+        cancelAllAnimations();
 
-            rows.forEach((row) => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = "";
-                    visibleCount++;
-                } else {
-                    row.style.display = "none";
-                }
-            });
+        const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+        const selectedStatus = document.getElementById("statusFilter").value;
+        const startDateValue = document.getElementById("startDate").value;
+        const endDateValue = document.getElementById("endDate").value;
 
-            document.getElementById("showingCount").textContent = visibleCount;
-        });
+        const startDate = startDateValue ? new Date(startDateValue) : null;
+        const endDate = endDateValue ? new Date(endDateValue) : null;
 
-        document.getElementById("statusFilter").addEventListener("change", function () {
-            try {
-                closeAllDetails();
-                cancelAllAnimations();
-                const selectedStatus = this.value;
-                const allRows = document.querySelectorAll(".workitem-row");
-                let visibleCount = 0;
+        if (startDate) startDate.setHours(0, 0, 0, 0);
+        if (endDate) endDate.setHours(23, 59, 59, 999);
 
-                logAction("filterWorkitems", "dashboard", JSON.stringify({ by_status: selectedStatus }), "SUCCESS", 0);
+        const rows = document.querySelectorAll(".workitem-row");
+        let visibleCount = 0;
 
-                allRows.forEach(row => {
-                    const rowStatus = row.dataset.status;
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const rowStatus = row.dataset.status;
+            const rowTimestamp = row.dataset.timestamp;
+            const rowDate = rowTimestamp ? new Date(rowTimestamp) : null;
 
-                    if (!selectedStatus || rowStatus === selectedStatus) {
-                        row.classList.remove('hidden');
-                        visibleCount++;
-                    } else {
-                        row.classList.add('hidden');
-                    }
-                });
-
-                document.getElementById("showingCount").textContent = visibleCount;
+            const searchMatch = text.includes(searchTerm);
+            const statusMatch = !selectedStatus || rowStatus === selectedStatus;
+            
+            let dateMatch = true;
+            if (rowDate) {
+                const isAfterStart = !startDate || rowDate >= startDate;
+                const isBeforeEnd = !endDate || rowDate <= endDate;
+                dateMatch = isAfterStart && isBeforeEnd;
+            } else if (startDate || endDate) {
+                dateMatch = false;
             }
-            catch (err) {
-                logAction("filterWorkitems", "dashboard", JSON.stringify({ by_status: selectedStatus } || null), "FAILURE", 1);
+            
+            if (searchMatch && statusMatch && dateMatch) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
             }
         });
+
+        document.getElementById("showingCount").textContent = visibleCount;
+    }
+
+    document.getElementById("searchInput").addEventListener("keyup", applyAllFilters);
+
+    document.getElementById("statusFilter").addEventListener("change", function () {
+        logAction("filterWorkitems", "workitemOverview", JSON.stringify({ by_status: this.value }), "SUCCESS", 0);
+        applyAllFilters();
+    });
 
         function closeAllDetails() {
             document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
@@ -117,19 +122,15 @@
                     );
                 }
 
-                // Handle dates
                 if (columnIndex === 2) {
                     return new Date(aValue) - new Date(bValue);
                 }
-
-                // Handle text
                 return aValue.localeCompare(bValue);
             });
 
             rows.forEach((row) => tbody.appendChild(row));
         }
 
-        // Export to CSV functionality
         function exportToCSV() {
             try {
                 let csv = [];
@@ -373,62 +374,93 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImage");
-            const closeBtn = document.querySelector(".modal-close");
+document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
+        const closeBtn = document.querySelector(".modal-close");
 
-            document.addEventListener('click', function (event) {
-                if (event.target && event.target.classList.contains('workitem-image')) {
-                    modal.style.display = "flex";
-                    modalImg.src = event.target.src;
-                }
-            });
-
-            function closeModal() {
-                modal.style.display = "none";
+        document.addEventListener('click', function (event) {
+            if (event.target && event.target.classList.contains('workitem-image')) {
+                modal.style.display = "flex";
+                modalImg.src = event.target.src;
             }
-
-            closeBtn.addEventListener('click', closeModal);
-
-            modal.addEventListener('click', function (event) {
-                if (event.target === modal) {
-                    closeModal();
-                }
-            });
-
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && modal.style.display === "flex") {
-                    closeModal();
-                }
-            });
-            const detailButtons = document.querySelectorAll('.details-toggle-button');
-            detailButtons.forEach(button => {
-                button.addEventListener('click', toggleDetailsAndLoadImages);
-            });
-
-            const animatedElements = document.querySelectorAll('.animate-on-load');
-            animatedElements.forEach(el => {
-                const delay = el.style.getPropertyValue('--delay') || '0ms';
-                setTimeout(() => {
-                    el.classList.remove('opacity-0', 'translate-y-4');
-                }, parseInt(delay));
-            });
-
-            const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
-            tableRows.forEach(row => {
-                const delay = row.style.getPropertyValue('--delay') || '0ms';
-                const timeoutId = setTimeout(() => {
-                    row.style.transform = 'translateX(-15px)';
-                    row.classList.remove('opacity-0');
-                    setTimeout(() => {
-                        row.style.transform = 'translateX(0)';
-                    }, 10);
-                }, 200 + parseInt(delay));
-                animationTimeouts.push(timeoutId);
-            });
         });
 
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        closeBtn.addEventListener('click', closeModal);
+
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.style.display === "flex") {
+                closeModal();
+            }
+        });
+        const detailButtons = document.querySelectorAll('.details-toggle-button');
+        detailButtons.forEach(button => {
+            button.addEventListener('click', toggleDetailsAndLoadImages);
+        });
+
+        const animatedElements = document.querySelectorAll('.animate-on-load');
+        animatedElements.forEach(el => {
+            const delay = el.style.getPropertyValue('--delay') || '0ms';
+            setTimeout(() => {
+                el.classList.remove('opacity-0', 'translate-y-4');
+            }, parseInt(delay));
+        });
+
+        const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+        tableRows.forEach(row => {
+            const delay = row.style.getPropertyValue('--delay') || '0ms';
+            const timeoutId = setTimeout(() => {
+                row.style.transform = 'translateX(-15px)';
+                row.classList.remove('opacity-0');
+                setTimeout(() => {
+                    row.style.transform = 'translateX(0)';
+                }, 10);
+            }, 200 + parseInt(delay));
+            animationTimeouts.push(timeoutId);
+        });
+
+        const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
+        const advancedContainer = document.getElementById('advancedFilterContainer');
+        const applyBtn = document.getElementById('applyFiltersBtn');
+        const resetBtn = document.getElementById('resetFiltersBtn');
+
+        if (toggleBtn) {
+             toggleBtn.addEventListener('click', () => {
+                advancedContainer.classList.toggle('hidden');
+            });
+        }
+
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                logAction("filterWorkitemsAdvanced", "workitemOverview", JSON.stringify({
+                    by_status: document.getElementById("statusFilter").value,
+                    from_date: document.getElementById("startDate").value,
+                    to_date: document.getElementById("endDate").value,
+                    search_term: document.getElementById("searchInput").value
+                }), "SUCCESS", 0);
+                applyAllFilters();
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                logAction("resetWorkitemsAdvancedFilter", "workitemOverview", null, "SUCCESS", 0);
+                applyAllFilters();
+            });
+        }
+    });
     </script>
 </body>
 

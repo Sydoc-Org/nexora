@@ -1,3 +1,4 @@
+import math
 import uuid
 from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
@@ -1023,7 +1024,6 @@ def recent_activity():
 @app.route("/workitems")
 def workitems_overview():
     try:
-        # Check if user is logged in
         if 'username' not in session:
             return redirect(url_for('login', page='index.html'))
 
@@ -1031,12 +1031,46 @@ def workitems_overview():
         userid = session.get('userid')
         scope = session.get('scope')
 
+        page = request.args.get('page', 1, type=int)
+        search_term = request.args.get('search', '').strip()
+        status = request.args.get('status', '')
+        start_date = request.args.get('startDate', '')
+        end_date = request.args.get('endDate', '')
+
+        per_page = 50
+        offset = (page - 1) * per_page
+
         process_name = request.args.get('processFilterWorkitemOverview', 'both')
         session['process_name_workitemOverview'] = process_name
         placeholders, params = get_process_filter_and_params(process_name)
-        all_params = params + ['Privera']
+        params.append('Privera')
 
-        # Connect to runtime database to get workitems
+        where_clauses = [
+            f"tp.Name IN ({placeholders})",
+            "tp.ClientName = ?",
+            "twi.Status <> 2",
+            "tdi_barcode.Name LIKE '%Barcode'", 
+            "tdi_barcode.StringValue IS NOT NULL"
+        ]
+        status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
+        if status and status in status_map:
+            where_clauses.append("twi.Status = ?")
+            params.append(status_map[status])
+
+        if search_term:
+            where_clauses.append("tdi_barcode.StringValue LIKE ?")
+            params.append(f"%{search_term}%")
+
+        if start_date:
+            where_clauses.append("twi.ModifiedAt >= ?")
+            params.append(start_date)
+
+        if end_date:
+            where_clauses.append("twi.ModifiedAt < DATEADD(day, 1, ?)")
+            params.append(end_date)
+            
+        where_sql = " AND ".join(where_clauses)
+
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -1045,47 +1079,52 @@ def workitems_overview():
             f'PWD={DB_PWD};'
             f'TrustServerCertificate=yes;'
         )
-        
+        workitems_list = []
+        total_items = 0
+        conn = None
         # Get all workitems
         try:
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             
             cursor.execute(f"""
-            WITH CTE AS (
-                SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-                CASE 
-                    WHEN twi.Status = 0 THEN 'Ready'
-                    WHEN twi.Status = 5 THEN 'Done'
-                    ELSE 'In Progress'
-                END AS Status
-                FROM t_WorkItems twi 
-                LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-                LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
-                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
-                AND twi.Status <> 2 
-            ),
-            CTE2 AS (
-            SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
-            FROM CTE
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
-            AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            )
-            SELECT * FROM CTE2
-            ORDER BY CTE2.ModifiedAt DESC
-            """, all_params)
-            workitems = cursor.fetchall()
+            SELECT COUNT(DISTINCT tdi_barcode.StringValue)
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                WHERE {where_sql}
+            """, params)
+            total_items = cursor.fetchone()[0] or 0
             
-            workitems_list = []
-            for row in workitems:
+            data_query = f"""
+                SELECT DISTINCT
+                    tdi_barcode.StringValue AS Barcode,
+                    twi.ModifiedAt,
+                    twi.ID AS WorkItemID,
+                    CASE
+                        WHEN twi.Status = 0 THEN 'Ready'
+                        WHEN twi.Status = 5 THEN 'Done'
+                        ELSE 'In Progress'
+                    END AS Status
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                WHERE {where_sql}
+                ORDER BY ModifiedAt DESC
+                OFFSET ? ROWS
+                FETCH NEXT ? ROWS ONLY
+            """
+            data_params = params + [offset, per_page]
+            cursor.execute(data_query, data_params)
+
+            for row in cursor.fetchall():
                 workitems_list.append({
-                    'barcode': row[0],                    
-                    'modifiedat': row[1],           
-                    'workitemid' : row[2],
-                    'status': row[3]        
+                    'barcode': row.Barcode,
+                    'modifiedat': row.ModifiedAt,
+                    'workitemid': row.WorkItemID,
+                    'status': row.Status
                 })
                 
         except Exception as e:
@@ -1096,13 +1135,23 @@ def workitems_overview():
                 cursor.close()
             if 'conn' in locals():
                 conn.close()
+        total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html", 
                             logged_in_user=logged_in_user,
                             userid=userid,
                             scope=scope,
-                            workitems=workitems_list, process_name=process_name)
+                            process_name=process_name,
+                            workitems=workitems_list,
+                               current_page=page,
+                               total_pages=total_pages,
+                               total_items=total_items,
+                               search=search_term,
+                               status=status,
+                               startDate=start_date,
+                               endDate=end_date
+                            )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
