@@ -183,7 +183,7 @@ def login(page=None):
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT userID, password, Scope, username, fullname, email, company FROM Users WHERE username = ?
+                SELECT userID, password, Scope, username, fullname, email, company, access, Subscription FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -195,6 +195,9 @@ def login(page=None):
                 stored_fullname = user_record[4]
                 stored_email = user_record[5]
                 stored_company = user_record[6]
+                stored_access = user_record[7]
+                stored_subscription = user_record[8]
+
                 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
@@ -208,6 +211,9 @@ def login(page=None):
                     session['scope'] = scope
                     session['company'] = stored_company
                     session['uuid'] = uuid.uuid4()
+                    session['access'] = stored_access
+                    session['subscription'] = stored_subscription
+
                     if len(REMEMBER) > 0:
                         session.permanent = True
 
@@ -329,7 +335,7 @@ def admin_users():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname, email, company, scope FROM Users ORDER BY username")
+        cursor.execute("SELECT userID, username, fullname, email, company, scope, access, subscription FROM Users ORDER BY username")
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
         return render_template("admin/userManagement.html", users=users, logged_in_user=logged_in_user, scope=scope, userid=userid)
@@ -350,9 +356,11 @@ def admin_add_user():
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
+    access = data.get('access')
+    subscription = data.get('subscription')
     scope = data.get('scope')
     userid = session['userid']
-    if not all([username, password, fullname, email, company, scope]):
+    if not all([username, password, fullname, email, company, scope, access, subscription]):
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -362,8 +370,8 @@ def admin_add_user():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
-                       (username, hashed_password, fullname, email, company, scope))
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope, access, subscription) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, company, scope, access, subscription))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
@@ -387,6 +395,8 @@ def admin_edit_user(user_id):
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
+    access = data.get('access')
+    subsciption = data.get('subsciption')
     scope = data.get('scope')
     password = data.get('password') 
     currentUserId = session['userid']
@@ -399,11 +409,11 @@ def admin_edit_user(user_id):
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=? WHERE userID=?",
-                           (username, fullname, email, company, scope, hashed_password, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subsciption=? WHERE userID=?",
+                           (username, fullname, email, company, scope, hashed_password, access, subsciption, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=? WHERE userID=?",
-                           (username, fullname, email, company, scope, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subsciption=? WHERE userID=?",
+                           (username, fullname, email, company, scope, access, subsciption, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -1388,12 +1398,13 @@ def profile():
             return redirect(url_for("login", page='index.html'))
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
+        subscription = session.get('subscription', 'Unknown')
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
         company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription)
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
