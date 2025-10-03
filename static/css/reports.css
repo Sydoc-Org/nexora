@@ -1,0 +1,8 @@
+body { background-color: #f9fafb; }
+
+.custom-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+

@@ -10,6 +10,7 @@
     <script>
         const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
         let animationTimeouts = [];
+        let mentionableUsers = [];
 
         function cancelAllAnimations() {
             animationTimeouts.forEach(clearTimeout);
@@ -38,54 +39,60 @@
             }).catch((err) => console.error("Logging failed:", err));
         }
 
-        // Search functionality
-        document.getElementById("searchInput").addEventListener("keyup", function () {
-            closeAllDetails();
-            cancelAllAnimations();
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll(".workitem-row");
-            let visibleCount = 0;
+    function applyAllFilters() {
+        closeAllDetails();
+        cancelAllAnimations();
 
-            rows.forEach((row) => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = "";
-                    visibleCount++;
-                } else {
-                    row.style.display = "none";
-                }
-            });
+        const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+        const selectedStatus = document.getElementById("statusFilter").value;
+        const startDateValue = document.getElementById("startDate").value;
+        const endDateValue = document.getElementById("endDate").value;
 
-            document.getElementById("showingCount").textContent = visibleCount;
-        });
+        const startDate = startDateValue ? new Date(startDateValue) : null;
+        const endDate = endDateValue ? new Date(endDateValue) : null;
 
-        document.getElementById("statusFilter").addEventListener("change", function () {
-            try {
-                closeAllDetails();
-                cancelAllAnimations();
-                const selectedStatus = this.value;
-                const allRows = document.querySelectorAll(".workitem-row");
-                let visibleCount = 0;
+        if (startDate) startDate.setHours(0, 0, 0, 0);
+        if (endDate) endDate.setHours(23, 59, 59, 999);
 
-                logAction("filterWorkitems", "dashboard", JSON.stringify({ by_status: selectedStatus }), "SUCCESS", 0);
+        const rows = document.querySelectorAll(".workitem-row");
+        let visibleCount = 0;
 
-                allRows.forEach(row => {
-                    const rowStatus = row.dataset.status;
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const rowStatus = row.dataset.status;
+            const rowTimestamp = row.dataset.timestamp;
+            const rowDate = rowTimestamp ? new Date(rowTimestamp) : null;
 
-                    if (!selectedStatus || rowStatus === selectedStatus) {
-                        row.classList.remove('hidden');
-                        visibleCount++;
-                    } else {
-                        row.classList.add('hidden');
-                    }
-                });
-
-                document.getElementById("showingCount").textContent = visibleCount;
+            const searchMatch = text.includes(searchTerm);
+            const statusMatch = !selectedStatus || rowStatus === selectedStatus;
+            
+            let dateMatch = true;
+            if (rowDate) {
+                const isAfterStart = !startDate || rowDate >= startDate;
+                const isBeforeEnd = !endDate || rowDate <= endDate;
+                dateMatch = isAfterStart && isBeforeEnd;
+            } else if (startDate || endDate) {
+                dateMatch = false;
             }
-            catch (err) {
-                logAction("filterWorkitems", "dashboard", JSON.stringify({ by_status: selectedStatus } || null), "FAILURE", 1);
+            
+            if (searchMatch && statusMatch && dateMatch) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
             }
         });
+
+        document.getElementById("showingCount").textContent = visibleCount;
+    }
+
+
+    document.getElementById("searchInput").addEventListener("keyup", applyAllFilters);
+
+    document.getElementById("statusFilter").addEventListener("change", function () {
+        logAction("filterWorkitems", "workitemOverview", JSON.stringify({ by_status: this.value }), "SUCCESS", 0);
+        applyAllFilters();
+    });
 
         function closeAllDetails() {
             document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
@@ -117,19 +124,15 @@
                     );
                 }
 
-                // Handle dates
                 if (columnIndex === 2) {
                     return new Date(aValue) - new Date(bValue);
                 }
-
-                // Handle text
                 return aValue.localeCompare(bValue);
             });
 
             rows.forEach((row) => tbody.appendChild(row));
         }
 
-        // Export to CSV functionality
         function exportToCSV() {
             try {
                 let csv = [];
@@ -255,10 +258,56 @@
             }
         }
 
+        async function loadCollaborationData(workitemId, barcode) {
+            const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
+            const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+            const assignSelector = document.getElementById(`assign-select-${workitemId}`);
+            mentionableUsers.forEach(user =>
+                {
+                    let option = document.createElement('option');
+                    option.text = user.fullname
+                    option.value = user.userID
+                    assignSelector.add(option)
+                }
+            )
+            if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const data = await response.json();
+                prioritySelector.value = data.priority;
+                assignSelector.value = data.assigneduserid;
+                commentsContainer.innerHTML = '';
+                if (data.comments.length === 0) {
+                    commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
+                } else {
+                    data.comments.forEach(comment => {
+                        const commentEl = document.createElement('div');
+                        commentEl.className = 'flex items-start gap-2.5';
+                        const commentDate = new Date(comment.Timestamp).toLocaleString();
+                        commentEl.innerHTML = `
+                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
+                            <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
+                                <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                    <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
+                                    <span class="text-sm font-normal text-gray-500">${commentDate}</span>
+                                </div>
+                                <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
+                            </div>`;
+                        commentsContainer.appendChild(commentEl);
+                    });
+                }
+                commentsContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load collaboration data:', error);
+                commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
+            }
+        }
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
                 const workitemid = button.dataset.workitemid;
+                const barcode = button.dataset.barcode;
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
                 const imageContainer = document.getElementById(`image-container-${workitemid}`);
                 const chevron = button.querySelector('.indicator');
@@ -298,6 +347,7 @@
                 imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
                 try {
                     loadHistory(workitemid);
+                    loadCollaborationData(workitemid, barcode);
                     const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
                     if (!infoResponse.ok) {
                         throw new Error('Could not fetch media information.');
@@ -332,7 +382,6 @@
                 logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
             }
         }
-
 
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
@@ -373,62 +422,219 @@
             }
         }
 
+    async function handlePostComment(event) {
+        event.preventDefault();
+        const form = event.target;
+        const barcode = form.dataset.barcode;
+        const workitemid = form.closest('.details-row').id.split('-')[2];
+        const textarea = form.querySelector('textarea');
+        const commentText = textarea.value.trim();
+        if (!commentText) return;
+
+        try {
+            const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commentText })
+            });
+            if (!response.ok) throw new Error('Failed to post comment.');
+            
+            textarea.value = '';
+            const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+            commentsContainer.dataset.loaded = 'false'; 
+            loadCollaborationData(workitemid, barcode);
+
+        } catch(error) {
+            console.error("Comment post error:", error);
+        }
+    }
+    
+    async function fetchMentionableUsers() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/users`);
+                if (!response.ok) throw new Error('Could not fetch users');
+                mentionableUsers = await response.json();
+            } catch (error) {
+                console.error("Failed to fetch users for mentions:", error);
+            }
+        }
+        
+        function insertMention(username, textarea) {
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const startIndex = mentionMatch.index;
+                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
+                textarea.value = newText;
+                textarea.focus();
+                const newCursorPos = startIndex + username.length + 2;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }
+        
+        function renderAutocompleteList(users, listElement, textarea) {
+            listElement.innerHTML = '';
+            if (users.length === 0) {
+                listElement.classList.add('hidden');
+                return;
+            }
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
+                item.textContent = `${user.fullname} (@${user.username})`;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    insertMention(user.username, textarea);
+                    listElement.classList.add('hidden');
+                });
+                listElement.appendChild(item);
+            });
+            listElement.classList.remove('hidden');
+        }
+
+        function handleMentionInput(event) {
+            const textarea = event.target;
+            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
+            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const searchTerm = mentionMatch[1].toLowerCase();
+                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
+                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
+            } else {
+                autocompleteList.classList.add('hidden');
+            }
+        }
+
+        async function handlePostComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const barcode = form.dataset.barcode;
+            const workitemid = form.closest('.details-row').id.split('-')[2];
+            const textarea = form.querySelector('textarea');
+            const commentText = textarea.value.trim();
+            if (!commentText) return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ commentText })
+                });
+                if (!response.ok) throw new Error('Failed to post comment.');
+                textarea.value = '';
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                commentsContainer.dataset.loaded = 'false';
+                loadCollaborationData(workitemid, barcode);
+            } catch (error) {
+                console.error("Comment post error:", error);
+            }
+        }
+        
+        async function handleSetPriority(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const priority = parseInt(selector.value, 10);
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ priority })
+                });
+                if (!response.ok) throw new Error('Failed to set priority.');
+                const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
+                let iconHtml = '';
+                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+                indicatorCell.innerHTML = iconHtml;
+            } catch (error) {
+                console.error("Set priority error:", error);
+            }
+        }
+
+        async function handleAssigning(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const assignedUserID = selector.value;
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/assign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assignedUserID })
+                    });
+                    if (!response.ok) throw new Error('Failed to assign.');
+                } catch (error) {
+                    console.error("Assigment error:", error);
+                }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            fetchMentionableUsers(); 
+
+            const tbody = document.getElementById('workitemsTbody');
+            tbody.addEventListener('click', (event) => {
+                const toggleButton = event.target.closest('.details-toggle-button');
+                if (toggleButton) {
+                    toggleDetailsAndLoadImages({ currentTarget: toggleButton });
+                }
+            });
+            tbody.addEventListener('submit', (event) => {
+                if (event.target.classList.contains('comment-form')) {
+                    handlePostComment(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('priority-selector')) {
+                    handleSetPriority(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('assign-selector')) {
+                    handleAssigning(event);
+                }
+            });
+            tbody.addEventListener('input', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    handleMentionInput(event);
+                }
+            });
+            tbody.addEventListener('focusout', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
+                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
+                }
+            });
+
+            // Advanced filter toggle
+            const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
+            const advancedContainer = document.getElementById('advancedFilterContainer');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => advancedContainer.classList.toggle('hidden'));
+            }
+
+            // Image modal logic
             const modal = document.getElementById("imageModal");
             const modalImg = document.getElementById("modalImage");
             const closeBtn = document.querySelector(".modal-close");
-
-            document.addEventListener('click', function (event) {
-                if (event.target && event.target.classList.contains('workitem-image')) {
+            
+            document.addEventListener('click', (event) => {
+                if (event.target.classList.contains('workitem-image')) {
                     modal.style.display = "flex";
                     modalImg.src = event.target.src;
                 }
             });
-
-            function closeModal() {
-                modal.style.display = "none";
-            }
-
+            
+            const closeModal = () => modal.style.display = "none";
             closeBtn.addEventListener('click', closeModal);
-
-            modal.addEventListener('click', function (event) {
-                if (event.target === modal) {
-                    closeModal();
-                }
-            });
-
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && modal.style.display === "flex") {
-                    closeModal();
-                }
-            });
-            const detailButtons = document.querySelectorAll('.details-toggle-button');
-            detailButtons.forEach(button => {
-                button.addEventListener('click', toggleDetailsAndLoadImages);
-            });
-
-            const animatedElements = document.querySelectorAll('.animate-on-load');
-            animatedElements.forEach(el => {
-                const delay = el.style.getPropertyValue('--delay') || '0ms';
-                setTimeout(() => {
-                    el.classList.remove('opacity-0', 'translate-y-4');
-                }, parseInt(delay));
-            });
-
-            const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
-            tableRows.forEach(row => {
-                const delay = row.style.getPropertyValue('--delay') || '0ms';
-                const timeoutId = setTimeout(() => {
-                    row.style.transform = 'translateX(-15px)';
-                    row.classList.remove('opacity-0');
-                    setTimeout(() => {
-                        row.style.transform = 'translateX(0)';
-                    }, 10);
-                }, 200 + parseInt(delay));
-                animationTimeouts.push(timeoutId);
-            });
+            modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); });
         });
-
     </script>
 </body>
 

@@ -86,6 +86,8 @@
             document.getElementById('email').value = user.email;
             document.getElementById('company').value = user.company;
             document.getElementById('scope').value = user.scope;
+            document.getElementById('access').value = user.access;
+            document.getElementById('subscription').value = user.subscription;
             passwordHelp.classList.remove('hidden');
             document.getElementById('password').required = false;
             openModal();
@@ -194,7 +196,7 @@
                 logs.forEach(log => {
                     const row = document.createElement('tr');
                     row.className = 'bg-white border-b hover:bg-gray-50';
-                    const statusColor = log.ActionStatus === `{{ _("SUCCESS") }}` ? 'text-green-600' : 'text-red-600';
+                    const statusColor = log.ActionStatus === "SUCCESS" ? 'text-green-600' : 'text-red-600';
                     const timestamp = new Date(log.Timestamp + 'Z').toLocaleString();
 
                     row.innerHTML = `

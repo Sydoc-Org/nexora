@@ -38,6 +38,8 @@
                             <th scope="col" class="px-6 py-3">{{ _("Full name") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Email") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Company")}}</th>
+                            <th scope="col" class="px-6 py-3">{{ _("Access")}}</th>
+                            <th scope="col" class="px-6 py-3">{{ _("Subscription")}}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Scope") }}</th>
                             <th scope="col" class="px-6 py-3 text-right">{{ _("Actions") }}</th>
                         </tr>
@@ -49,6 +51,8 @@
                             <td class="px-6 py-4">{{ user.fullname }}</td>
                             <td class="px-6 py-4">{{ user.email }}</td>
                             <td class="px-6 py-4">{{ user.company }}</td>
+                            <td class="px-6 py-4">{{ user.access }}</td>
+                            <td class="px-6 py-4">{{ user.subscription }}</td>
                             <td class="px-6 py-4">
                                 <span
                                     class="px-2 py-1 font-semibold leading-tight rounded-full {{ 'bg-yellow-100 text-yellow-700' if user.scope == 'Admin' else 'bg-green-100 text-green-700' }}">
@@ -171,6 +175,9 @@
                             </select>
                         </div>
                     </div>
+
+                    
+
                     <div>
                         <label for="fullname" class="block mb-1 text-sm font-medium">{{ _("Full name") }}</label>
                         <input type="text" id="fullname" name="fullname"
@@ -189,6 +196,29 @@
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
                             required>
                     </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="access" class="block mb-1 text-sm font-medium">{{ _("Access") }}</label>
+                            <select id="access" name="access"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                <option value="Privera">Privera</option>
+                                <option value="Elektromaterial">Elektromaterial</option>
+                                <option value="Compass">Compass Group</option>
+                                <option value="Unlimited">Unlimited</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="subscription" class="block mb-1 text-sm font-medium">{{ _("Subscription") }}</label>
+                            <select id="subscription" name="subscription"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                <option value="Standard">{{ _("Standard") }}</option>
+                                <option value="Sydoc+">Sydoc+</option>
+                                <option value="Sydoc Premium">Sydoc Premium</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div>
                         <label for="password" class="block mb-1 text-sm font-medium">{{ _("Password") }}</label>
                         <input type="password" id="password" name="password"
@@ -196,6 +226,8 @@
                         <p class="text-xs text-gray-500 mt-1" id="password-help">{{ _("Leave blank to keep current password.") }}
                         </p>
                     </div>
+
+                    
                 </div>
                 <div class="flex justify-end mt-6">
                     <button type="button" onclick="closeModal()"

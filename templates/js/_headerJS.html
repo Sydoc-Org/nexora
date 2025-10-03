@@ -8,6 +8,10 @@
 
 <body>
     <script>
+        function defaultIcon() {
+            document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-icon.png') }}"
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const bellButton = document.getElementById('bell-button');
             const notificationCountBadge = document.getElementById('notification-count');

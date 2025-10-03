@@ -59,3 +59,8 @@ html {
     .animate-pulse-icon {
       animation: pulse-icon 2s ease-in-out infinite;
     }
+.custom-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}

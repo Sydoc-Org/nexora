@@ -1,3 +1,4 @@
+import math
 import uuid
 from fileinput import filename
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
@@ -55,7 +56,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
-DB_SERVER = os.environ.get("DB_SERVER")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
@@ -100,7 +100,7 @@ def log_user_action(action_type, status, target_user_id=None, resource_id=None, 
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
+            f'SERVER={DB_SERVER_PRD},1433;'
             f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
@@ -172,7 +172,7 @@ def login(page=None):
         try:
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};' 
@@ -182,7 +182,7 @@ def login(page=None):
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT userID, password, Scope, username, fullname, email, company FROM Users WHERE username = ?
+                SELECT userID, password, Scope, username, fullname, email, company, access, Subscription FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -194,6 +194,9 @@ def login(page=None):
                 stored_fullname = user_record[4]
                 stored_email = user_record[5]
                 stored_company = user_record[6]
+                stored_access = user_record[7]
+                stored_subscription = user_record[8]
+
                 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')    
@@ -207,6 +210,9 @@ def login(page=None):
                     session['scope'] = scope
                     session['company'] = stored_company
                     session['uuid'] = uuid.uuid4()
+                    session['access'] = stored_access
+                    session['subscription'] = stored_subscription
+
                     if len(REMEMBER) > 0:
                         session.permanent = True
 
@@ -228,7 +234,7 @@ def login(page=None):
 def create_notification(user_id, message, link=None, icon='fa-info-circle'):
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -249,7 +255,7 @@ def get_notifications():
     
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
@@ -283,7 +289,7 @@ def mark_notifications_as_read():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
@@ -325,10 +331,10 @@ def admin_users():
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname, email, company, scope FROM Users ORDER BY username")
+        cursor.execute("SELECT userID, username, fullname, email, company, scope, access, subscription FROM Users ORDER BY username")
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
         return render_template("admin/userManagement.html", users=users, logged_in_user=logged_in_user, scope=scope, userid=userid)
@@ -340,7 +346,6 @@ def admin_users():
         if conn:
             conn.close()
 
-
 @app.route("/admin/users/add", methods=['POST'])
 @admin_required
 def admin_add_user():
@@ -350,20 +355,22 @@ def admin_add_user():
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
+    access = data.get('access')
+    subscription = data.get('subscription')
     scope = data.get('scope')
     userid = session['userid']
-    if not all([username, password, fullname, email, company, scope]):
+    if not all([username, password, fullname, email, company, scope, access, subscription]):
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope) VALUES (?, ?, ?, ?, ?, ?)",
-                       (username, hashed_password, fullname, email, company, scope))
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope, access, subscription) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, company, scope, access, subscription))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
@@ -387,23 +394,25 @@ def admin_edit_user(user_id):
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
+    access = data.get('access')
+    subscription = data.get('subscription')
     scope = data.get('scope')
     password = data.get('password') 
     currentUserId = session['userid']
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=? WHERE userID=?",
-                           (username, fullname, email, company, scope, hashed_password, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subscription=? WHERE userID=?",
+                           (username, fullname, email, company, scope, hashed_password, access, subscription, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=? WHERE userID=?",
-                           (username, fullname, email, company, scope, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subscription=? WHERE userID=?",
+                           (username, fullname, email, company, scope, access, subscription, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -427,7 +436,7 @@ def admin_delete_user(user_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM Users WHERE userID=?", (user_id,))
@@ -453,7 +462,7 @@ def admin_delete_user(user_id):
 def admin_recent_logs():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -475,7 +484,7 @@ def admin_recent_logs():
 def admin_active_sessions():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -533,7 +542,7 @@ def set_new_password():
 
         conn_str = (
             f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
+            f'SERVER={DB_SERVER_PRD},1433;'
             f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
@@ -742,7 +751,7 @@ def request_password_reset():
     request_email = request.form['email']
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
+        f'SERVER={DB_SERVER_PRD},1433;'
         f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
@@ -762,11 +771,23 @@ def request_password_reset():
     return render_template('forgot_password.html', error=_("Invalid Email Address"))
 # ---------------------------- forgot password end --------------------------- #
 
+# ------------------------------ process filter ------------------------------ #
+def get_process_filter_and_params(process_name):
+    if process_name == '02_Posteingang':
+        return "?", ["02_Posteingang"]
+    elif process_name == '02_Invoice':
+        return "?", ["02_Invoice"]
+    else:
+        return "?, ?", ["02_Posteingang", "02_Invoice"]
+# ---------------------------- process filter end ---------------------------- #
+
 # --------------------------------- dashboard -------------------------------- #
-def get_absolute_dashboard_stats():
+def get_absolute_dashboard_stats(processName="both"):
     stats = {}
     conn = None
     try:
+        placeholders, params = get_process_filter_and_params(processName)
+        all_params = params + ['Privera'] + params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -778,7 +799,7 @@ def get_absolute_dashboard_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute(
-            """
+            f"""
             WITH AllStatuses
             AS (SELECT 0 AS StatusCode,
                     'Ready' AS StatusName
@@ -797,8 +818,8 @@ def get_absolute_dashboard_stats():
                         on a.id = w.ActivityInstanceID
                     LEFT JOIN t_Processes p
                         on p.id = a.ProcessID
-                WHERE p.Name = '02_Posteingang'
-                    AND p.ClientName = 'Privera'
+                WHERE p.Name IN ({placeholders})
+                    AND p.ClientName = ?
                 GROUP BY w.[Status]
             )
             SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
@@ -814,10 +835,10 @@ def get_absolute_dashboard_stats():
                     on a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p
                     on p.id = a.ProcessID
-            WHERE p.Name = '02_Posteingang'
-                AND p.ClientName = 'Privera'
+            WHERE p.Name IN ({placeholders})
+                AND p.ClientName = ?
                 AND a.ActivityInstanceName = 'C+A';
-            """
+            """, all_params
         )
         rows = cursor.fetchall()
         stats['ReadyTotal'] = rows[0][0]
@@ -832,10 +853,12 @@ def get_absolute_dashboard_stats():
         conn.close()
     return stats
 
-def get_dashbord_preview_documents_stats():
+def get_dashbord_preview_documents_stats(processName='both'):
     stats = {}
     conn = None
     try:
+        placeholders, params = get_process_filter_and_params(processName)
+        all_params = params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -846,7 +869,7 @@ def get_dashbord_preview_documents_stats():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             WITH CTE AS (
             SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
@@ -878,16 +901,16 @@ def get_dashbord_preview_documents_stats():
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
         SELECT DISTINCT TOP 10 tdi.StringValue Barcode
         ,Activity FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            """
+            """, (all_params)
         )
         rows = cursor.fetchall()
     except Exception as e:
@@ -914,7 +937,9 @@ def dashboard():
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
 
-        absolute_stats = get_absolute_dashboard_stats()
+        process_name = request.args.get('processFilterDashboard', 'both')
+        session['process_name_dashboard'] = process_name
+        absolute_stats = get_absolute_dashboard_stats(process_name)
 
         log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
         return render_template("dashboard.html", 
@@ -924,7 +949,7 @@ def dashboard():
         ReadyTotal=absolute_stats['ReadyTotal'],
         InProgressTotal=absolute_stats['InProgressTotal'],
         DoneTotal=absolute_stats['DoneTotal'],
-        BacklogTotal=absolute_stats['BacklogTotal']
+        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name
         )
     except Exception as e:
         log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
@@ -933,21 +958,26 @@ def dashboard():
 @app.route("/api/dashboard_stats_absolute")
 def dashboard_stats_absolute():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-    stats = get_absolute_dashboard_stats()
+        return jsonify({"error": _("Not authorized")}), 401
+    process_name = session['process_name_dashboard']
+    stats = get_absolute_dashboard_stats(process_name)
     return jsonify(stats) 
 
 @app.route("/api/dashboard_stats_document_preview")
 def dashboard_stats_document_preview():
     if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-    stats = get_dashbord_preview_documents_stats()
+        return jsonify({"error": _("Not authorized")}), 401
+    process_name = session['process_name_dashboard']
+    stats = get_dashbord_preview_documents_stats(process_name)
     return stats
 
 @app.route('/api/recent_activity')
 def recent_activity():
     if 'username' not in session:
-        return jsonify({"error": "Not logged in"}), 401
+        return jsonify({"error": _("Not logged in")}), 401
+    
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    all_params = params + ['Privera']
 
     try:
         conn_str = (
@@ -960,7 +990,7 @@ def recent_activity():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("""
+        query = f"""
             WITH CTE AS (
             SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
@@ -972,15 +1002,16 @@ def recent_activity():
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
         SELECT DISTINCT TOP 4 tdi.StringValue Barcode, CTE.Status, CTE.ModifiedAt FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
+        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
         AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-        """)
+        """
+        cursor.execute(query, all_params)
         activities = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -1002,15 +1033,53 @@ def recent_activity():
 @app.route("/workitems")
 def workitems_overview():
     try:
-        # Check if user is logged in
         if 'username' not in session:
             return redirect(url_for('login', page='index.html'))
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
         scope = session.get('scope')
-        
-        # Connect to runtime database to get workitems
+
+        page = request.args.get('page', 1, type=int)
+        search_term = request.args.get('search', '').strip()
+        status = request.args.get('status', '')
+        start_date = request.args.get('startDate', '')
+        end_date = request.args.get('endDate', '')
+
+        per_page = 50
+        offset = (page - 1) * per_page
+
+        process_name = request.args.get('processFilterWorkitemOverview', 'both')
+        session['process_name_workitemOverview'] = process_name
+        placeholders, params = get_process_filter_and_params(process_name)
+        params.append('Privera')
+
+        where_clauses = [
+            f"tp.Name IN ({placeholders})",
+            "tp.ClientName = ?",
+            "twi.Status <> 2",
+            "tdi_barcode.Name LIKE '%Barcode'", 
+            "tdi_barcode.StringValue IS NOT NULL"
+        ]
+        status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
+        if status and status in status_map:
+            where_clauses.append("twi.Status = ?")
+            params.append(status_map[status])
+
+        if search_term:
+            where_clauses.append("tdi_barcode.StringValue LIKE ?")
+            params.append(f"%{search_term}%")
+
+        if start_date:
+            where_clauses.append("twi.ModifiedAt >= ?")
+            params.append(start_date)
+
+        if end_date:
+            where_clauses.append("twi.ModifiedAt < DATEADD(day, 1, ?)")
+            params.append(end_date)
+            
+        where_sql = " AND ".join(where_clauses)
+
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -1019,49 +1088,55 @@ def workitems_overview():
             f'PWD={DB_PWD};'
             f'TrustServerCertificate=yes;'
         )
-        
+        workitems_list = []
+        total_items = 0
+        conn = None
         # Get all workitems
         try:
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             
-            cursor.execute("""
-            WITH CTE AS (
-                SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-                CASE 
-                    WHEN twi.Status = 0 THEN 'Ready'
-                    WHEN twi.Status = 5 THEN 'Done'
-                    ELSE 'In Progress'
-                END AS Status
-                FROM t_WorkItems twi 
-                LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-                LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND
-                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue = 'Document'
-                AND twi.Status <> 2 
-            ),
-            CTE2 AS (
-            SELECT DISTINCT TOP 1000 tdi.StringValue Barcode, CTE.ModifiedAt, CTE.WorkItemID, CTE.Status 
-            FROM CTE
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            WHERE tdi.Name = 'Barcode' and tdi.StringValue is not NULL
-            AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            )
-            SELECT * FROM CTE2
-            ORDER BY CTE2.ModifiedAt DESC
-            """)
+            cursor.execute(f"""
+            SELECT COUNT(DISTINCT tdi_barcode.StringValue)
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                WHERE {where_sql}
+            """, params)
+            total_items = cursor.fetchone()[0] or 0
             
-            workitems = cursor.fetchall()
-            
-            # Convert to list of dictionaries for easier template handling
-            workitems_list = []
-            for row in workitems:
-                workitems_list.append({
-                    'barcode': row[0],                    
-                    'modifiedat': row[1],           
-                    'workitemid' : row[2],
-                    'status': row[3]        
+            data_query = f"""
+                SELECT DISTINCT
+                    tdi_barcode.StringValue AS Barcode,
+                    twi.ModifiedAt,
+                    twi.ID AS WorkItemID,
+                    CASE
+                        WHEN twi.Status = 0 THEN 'Ready'
+                        WHEN twi.Status = 5 THEN 'Done'
+                        ELSE 'In Progress'
+                    END AS Status,
+                    wim.Priority
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                WHERE {where_sql}
+                ORDER BY ModifiedAt DESC
+                OFFSET ? ROWS
+                FETCH NEXT ? ROWS ONLY
+            """
+            data_params = params + [offset, per_page]
+            cursor.execute(data_query, data_params)
+
+            for row in cursor.fetchall():
+               workitems_list.append({
+                    'barcode': row.Barcode,
+                    'modifiedat': row.ModifiedAt,
+                    'workitemid': row.WorkItemID,
+                    'status': row.Status,
+                    'priority': row.Priority or 0
                 })
                 
         except Exception as e:
@@ -1072,13 +1147,23 @@ def workitems_overview():
                 cursor.close()
             if 'conn' in locals():
                 conn.close()
+        total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html", 
                             logged_in_user=logged_in_user,
                             userid=userid,
                             scope=scope,
-                            workitems=workitems_list)
+                            process_name=process_name,
+                            workitems=workitems_list,
+                               current_page=page,
+                               total_pages=total_pages,
+                               total_items=total_items,
+                               search=search_term,
+                               status=status,
+                               startDate=start_date,
+                               endDate=end_date
+                            )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -1305,7 +1390,219 @@ def get_audithistory(workitem_id):
         return jsonify({"error": f"{_("Failed to fetch audit history")}: {e}"}), 500
     except Exception as e:
         return jsonify({"error": f"{_("An unexpected error occurred")}: {e}"}), 500
+
+# ------------------------ workitem collaboration apis ----------------------- #
+@app.route('/api/users')
+def get_users_for_mentions():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users for mentions: {e}")
+        return jsonify({"error": _("Could not fetch users")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/interactions')
+def get_workitem_interactions(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("""SELECT Priority, AssignedUserID FROM Workitem_Metadata
+                        WHERE Barcode = ?"""
+                       , (barcode,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({
+                'priority': 0,
+                'assigneduserid': 'None',
+                'comments': [],
+                'message': _("No data found for this workitem.")
+            }), 200
+        priority = row[0] if row[0] != None else 0
+        assigneduserid = row[1] if row[1] != None else 'None'
+        current_user_access = session.get('access')
+
+        sql_query = """
+            SELECT c.CommentText, c.Timestamp, u.username, u.userID
+            FROM Workitem_Comments c
+            JOIN Users u ON c.UserID = u.userID
+        """
+        params = [barcode]
+
+        if current_user_access == 'Unlimited':
+            sql_query += " WHERE c.Barcode = ?"
+        else:
+            sql_query += " WHERE c.Barcode = ? AND u.access = ?"
+            params.append(current_user_access)
+        
+        sql_query += " ORDER BY c.Timestamp ASC"
+        cursor.execute(sql_query, params)
+        comments_data = cursor.fetchall()
+        comments = []
+        for row in comments_data:
+            comments.append({
+                'CommentText': row.CommentText,
+                'Timestamp': row.Timestamp.isoformat(),
+                'username': row.username,
+                'userID': row.userID
+            })
+        return jsonify({
+            'priority': priority,
+            'assigneduserid': assigneduserid,
+            'comments': comments
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch interactions for barcode {barcode}: {e}")
+        return jsonify({"error": _("Could not fetch interactions")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/comment', methods=['POST'])
+def add_workitem_comment(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    data = request.get_json()
+    comment_text = data.get('commentText')
+    if not comment_text:
+        return jsonify({'success': False, 'message': _("Comment cannot be empty.")}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO Workitem_Comments (Barcode, UserID, CommentText)
+            VALUES (?, ?, ?)
+        """, (barcode, session['userid'], comment_text))
+        
+        cursor.execute("SELECT SCOPE_IDENTITY()")
+        comment_id = cursor.fetchone()[0]
+        
+        mentions = re.findall(r'@(\w+)', comment_text)
+        if mentions:
+            placeholders = ','.join('?' for _ in mentions)
+            cursor.execute(f"SELECT userID, username FROM Users WHERE username IN ({placeholders})", mentions)
+            mentioned_users = cursor.fetchall()
+            
+            for user in mentioned_users:
+                cursor.execute("INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)", (comment_id, user.userID))
+                notification_link = url_for('workitems_overview', search=barcode, _external=False)
+                create_notification(user.userID, f"{session['username']} mentioned you on barcode {barcode}", link=notification_link, icon='fa-at')
+
+        conn.commit()
+        log_user_action('addWorkitemComment', status='SUCCESS', resource_id=barcode)
+        return jsonify({'success': True, 'message': _("Comment added.")})
+    except Exception as e:
+        app.logger.error(f"Error adding comment for barcode {barcode}: {e}")
+        log_user_action('addWorkitemComment', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/assign', methods=['POST'])
+def assign_workitem(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    data = request.get_json()
+    assignedUserID = data.get('assignedUserID')
+    if assignedUserID is None:
+        return jsonify({'success': False, 'message': _("Invalid assignment.")}), 400
+    elif assignedUserID == 'None':
+        assignedUserID = None
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            MERGE Workitem_Metadata AS target
+            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (Barcode, AssignedUserID, UserID, UpdateTime)
+            ON target.Barcode = source.Barcode
+            WHEN MATCHED THEN
+                UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
+            WHEN NOT MATCHED THEN
+                INSERT (Barcode, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
+                VALUES (source.Barcode, source.AssignedUserID, source.UserID, source.UpdateTime);
+        """, (barcode, assignedUserID, session['userid']))
+        
+        conn.commit()
+        log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=barcode, details={'assignedUserID': assignedUserID})
+        if assignedUserID != None and assignedUserID != session['userid']:
+            notification_link = url_for('workitems_overview', search=barcode, _external=False)
+            create_notification(assignedUserID, f"{session['username']} {_('assigned you on barcode')} {barcode}", link=notification_link, icon='fa-people-carry-box')
+        return jsonify({'success': True, 'message': _("Assignment updated.")})
+    except Exception as e:
+        app.logger.error(f"Error setting assignment for barcode {barcode}: {e}")
+        log_user_action('assignUserToWorkitem', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/priority', methods=['POST'])
+def set_workitem_priority(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    data = request.get_json()
+    priority = data.get('priority')
+    if priority is None or priority not in [0, 1, 2, 3]:
+        return jsonify({'success': False, 'message': _("Invalid priority level.")}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            MERGE Workitem_Metadata AS target
+            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (Barcode, Priority, UserID, UpdateTime)
+            ON target.Barcode = source.Barcode
+            WHEN MATCHED THEN
+                UPDATE SET Priority = source.Priority, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
+            WHEN NOT MATCHED THEN
+                INSERT (Barcode, Priority, LastUpdatedByUserID, LastUpdatedAt)
+                VALUES (source.Barcode, source.Priority, source.UserID, source.UpdateTime);
+        """, (barcode, priority, session['userid']))
+        
+        conn.commit()
+        log_user_action('setWorkitemPriority', status='SUCCESS', resource_id=barcode, details={'priority': priority})
+        return jsonify({'success': True, 'message': _("Priority updated.")})
+    except Exception as e:
+        app.logger.error(f"Error setting priority for barcode {barcode}: {e}")
+        log_user_action('setWorkitemPriority', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+# ---------------------- workitem collaboration apis end --------------------- #
+
 # --------------------------- workitem overview end -------------------------- #
+
 
 # ---------------------------------- profile --------------------------------- #
 @app.route("/profile")
@@ -1315,12 +1612,13 @@ def profile():
             return redirect(url_for("login", page='index.html'))
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
+        subscription = session.get('subscription', 'Unknown')
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
         company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company)
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription)
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -1349,7 +1647,7 @@ def update_profile():
 
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};'
@@ -1419,7 +1717,7 @@ def change_password():
                 return redirect("profile")
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};'
@@ -1502,8 +1800,12 @@ def reports():
             return redirect(url_for("login", page='index.html'))
         userid = session['userid']
         scope = session['scope']
+
+        process_name = request.args.get('processFilterReports', 'both')
+        session['process_name_reports'] = process_name
+
         log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
-        return render_template("reports.html", userid=userid, scope=scope)
+        return render_template("reports.html", userid=userid, scope=scope, process_name=process_name)
     except Exception as e:
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -1514,6 +1816,10 @@ def report_processed_over_time():
         return jsonify({"error": _("Not authorized")}), 401
     
     conn = None
+
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+    
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1526,21 +1832,20 @@ def report_processed_over_time():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT 
                 CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
                 COUNT(twi.ID) as ItemCount
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name = '02_Posteingang' 
-              AND tp.ClientName = 'Privera'
+            WHERE tp.Name IN ({placeholders})
+              AND tp.ClientName = ?
               AND twi.Status = 5 -- Status for 'Done'
               AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
             GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
             ORDER BY DoneDate;
-        """)
-        
+        """,all_params)
         rows = cursor.fetchall()
         
         labels = [row.DoneDate for row in rows]
@@ -1560,8 +1865,7 @@ def report_status_distribution():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
     
-    stats = get_absolute_dashboard_stats() 
-    
+    stats = get_absolute_dashboard_stats(session['process_name_reports']) 
     labels = ['Ready', 'In Progress', 'Done', 'Backlog']
     data = [
         stats.get('ReadyTotal', 0),
@@ -1569,7 +1873,6 @@ def report_status_distribution():
         stats.get('DoneTotal', 0),
         stats.get('BacklogTotal', 0)
     ]
-    
     return jsonify({'labels': labels, 'data': data})
 
 @app.route("/api/reports/kpi_stats")
@@ -1578,6 +1881,10 @@ def report_kpi_stats():
         return jsonify({"error": _("Not authorized")}), 401
     
     conn = None
+
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1590,28 +1897,28 @@ def report_kpi_stats():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
-        """)
+        """,all_params)
         processed_today = cursor.fetchone()[0]
 
-        cursor.execute("""
+        cursor.execute(F"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name = '02_Posteingang' AND tp.ClientName = 'Privera' AND twi.Status = 5
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
             AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
-        """)
+        """,all_params)
         processed_week = cursor.fetchone()[0]
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
             LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name = '02_Posteingang' AND p.ClientName = 'Privera' AND a.ActivityInstanceName = 'C+A';
-        """)
+            WHERE p.Name IN ({placeholders}) AND p.ClientName = ? AND a.ActivityInstanceName = 'C+A';
+        """,all_params)
         current_backlog = cursor.fetchone()[0]
         
         return jsonify({
@@ -1633,6 +1940,9 @@ def report_stage_breakdown():
         return jsonify({"error": "Not authorized"}), 401
     
     conn = None
+    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    all_params = params + ['Privera']
+
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -1645,7 +1955,7 @@ def report_stage_breakdown():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
-        cursor.execute("""
+        cursor.execute(f"""
            SELECT 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -1661,8 +1971,8 @@ def report_stage_breakdown():
             FROM t_WorkItems twi 
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name = '02_Posteingang' 
-              AND tp.ClientName = 'Privera' 
+            WHERE tp.Name IN ({placeholders})
+              AND tp.ClientName = ?
               and twi.Status not in (5,2)
               and tai.ActivityInstanceName NOT LIKE '%Pause%'
             GROUP BY 
@@ -1677,7 +1987,7 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """)
+        """,all_params)
         
         rows = cursor.fetchall()
         
@@ -1703,9 +2013,9 @@ def page_not_found(e):
 def internalError(e):
     return render_template("handlers/500.html"), 500
 
-@app.errorhandler(DatabaseError)
-def special_exception_handler():
-    return _("Database connection failed"), 500
+# @app.errorhandler(DatabaseError)
+# def special_exception_handler():
+#     return _("Database connection failed"), 500
 
 @app.errorhandler(403)
 def forbiddenPage():
