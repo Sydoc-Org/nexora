@@ -13,7 +13,7 @@
 </head>
 
 <body class="text-gray-800 bg-gray-50">
-  {% set active_page = 'workitems_overview' %} 
+  {% set active_page = 'workitems_overview' %}
   {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
@@ -35,67 +35,78 @@
     </div>
 
     <form method="GET" action="{{ url_for('workitems_overview') }}" class="bg-white p-6 rounded-xl shadow-lg mb-6">
-        
-        <div class="flex items-center gap-3 mb-4">
-            <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
-            <div class="relative flex-grow">
-                <label for="processFilterWorkitemOverview" class="sr-only">{{ _("Filter by Process") }}</label>
-                <select id="processFilterWorkitemOverview" name="processFilterWorkitemOverview"
-                        class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
-                        onchange="this.form.submit()">
-                    <option value="both" {% if process_name == 'both' %}selected{% endif %}>{{ _("All Processes") }}</option>
-                    <option value="02_Posteingang" {% if process_name == '02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
-                    <option value="02_Invoice" {% if process_name == '02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}</option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                </div>
-            </div>
-        </div>
 
-        <div class="flex flex-col md:flex-row gap-4 items-center">
-            <div class="flex-1 w-full">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" id="searchInput" onchange="this.form.submit()" name="search" value="{{ search or '' }}"
-                           class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                           placeholder="Search for specific Barcode...">
-                </div>
-            </div>
-            <div class="flex gap-2 w-full md:w-auto">
-                <select id="statusFilter" name="status"  onchange="this.form.submit()"  class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">{{ _("All statuses") }}</option>
-                    <option value="Ready" {% if status == 'Ready' %}selected{% endif %}>Ready</option>
-                    <option value="In Progress" {% if status == 'In Progress' %}selected{% endif %}>In Progress</option>
-                    <option value="Done" {% if status == 'Done' %}selected{% endif %}>Done</option>
-                </select>
-                <button id="toggleAdvancedFilterBtn" type="button" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
-                    <i class="fas fa-sliders-h"></i>
-                </button>
-                <button onclick="exportToCSV()" type="button" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-                    <i class="fas fa-download"></i>
-                </button>
-            </div>
+      <div class="flex items-center gap-3 mb-4">
+        <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
+        <div class="relative flex-grow">
+          <label for="processFilterWorkitemOverview" class="sr-only">{{ _("Filter by Process") }}</label>
+          <select id="processFilterWorkitemOverview" name="processFilterWorkitemOverview"
+            class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
+            onchange="this.form.submit()">
+            <option value="both" {% if process_name=='both' %}selected{% endif %}>{{ _("All Processes") }}</option>
+            <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}
+            </option>
+            <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}
+            </option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </div>
         </div>
+      </div>
 
-        <div id="advancedFilterContainer" class="hidden mt-4 pt-4 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div>
-                    <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
-                    <input type="date" id="startDate" name="startDate" value="{{ startDate or '' }}" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
-                    <input type="date" id="endDate" name="endDate" value="{{ endDate or '' }}" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{ _("Apply Filters") }}</button>
-                    <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-center">{{ _("Reset") }}</a>
-                </div>
-            </div>
+      <div class="flex flex-col md:flex-row gap-4 items-center">
+        <div class="flex-1 w-full">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="searchInput" onchange="this.form.submit()" name="search" value="{{ search or '' }}"
+              class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search for specific Barcode...">
+          </div>
         </div>
+        <div class="flex gap-2 w-full md:w-auto">
+          <select id="statusFilter" name="status" onchange="this.form.submit()"
+            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">{{ _("All statuses") }}</option>
+            <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
+            <option value="In Progress" {% if status=='In Progress' %}selected{% endif %}>In Progress</option>
+            <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
+          </select>
+          <button id="toggleAdvancedFilterBtn" type="button"
+            class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+            <i class="fas fa-sliders-h"></i>
+          </button>
+          <button onclick="exportToCSV()" type="button"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="advancedFilterContainer" class="hidden mt-4 pt-4 border-t border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
+            <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
+            <input type="date" id="startDate" name="startDate" value="{{ startDate or '' }}"
+              class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
+            <input type="date" id="endDate" name="endDate" value="{{ endDate or '' }}"
+              class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          </div>
+          <div class="flex gap-2">
+            <button type="submit"
+              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{ _("Apply
+              Filters") }}</button>
+            <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
+              class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-center">{{
+              _("Reset") }}</a>
+          </div>
+        </div>
+      </div>
     </form>
 
     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -103,13 +114,19 @@
         <table class="w-full" id="workitemsTable">
           <thead class="bg-gray-100">
             <tr>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onclick="sortTable(0)">
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                onclick="sortTable(0)">
                 {{ _("Barcode") }} <i class="fas fa-sort ml-1"></i>
               </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onclick="sortTable(1)">
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                onclick="sortTable(1)">
                 {{ _("Status") }} <i class="fas fa-sort ml-1"></i>
               </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onclick="sortTable(2)">
+              <th
+                class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                onclick="sortTable(2)">
                 {{ _("Last movement at") }} <i class="fas fa-sort ml-1"></i>
               </th>
               <th class="px-6 py-4 text-right text-xs"></th>
@@ -118,20 +135,25 @@
 
           <tbody class="bg-white divide-y divide-gray-200" id="workitemsTbody">
             {% for workitem in workitems %}
-            <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="{{ workitem.status }}" id="row-{{ workitem.barcode }}">
+            <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="{{ workitem.status }}"
+              id="row-{{ workitem.barcode }}">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="font-medium text-gray-900">{{ workitem.barcode }}</div>
               </td>
-              
+
               <td class="px-6 py-4 whitespace-nowrap text-left">
                 {% if workitem.status == "Ready" %}
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ workitem.status }}</span>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ workitem.status
+                  }}</span>
                 {% elif workitem.status == "In Progress" %}
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ workitem.status }}</span>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{
+                  workitem.status }}</span>
                 {% elif workitem.status == "Done" %}
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ workitem.status }}</span>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{
+                  workitem.status }}</span>
                 {% else %}
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{{ workitem.status }}</span>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{{ workitem.status
+                  }}</span>
                 {% endif %}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -139,56 +161,74 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-{{ workitem.barcode }}">
                 {% if workitem.priority == 3 %}
-                  <span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>
+                <span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>
                 {% elif workitem.priority == 2 %}
-                  <span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>
+                <span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>
                 {% elif workitem.priority == 1 %}
-                  <span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>
+                <span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>
                 {% endif %}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-  <button class="details-toggle-button text-indigo-600 hover:text-indigo-900" data-workitemid="{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}" aria-expanded="false" aria-controls="details-row-{{ workitem.workitemid }}" aria-label="Toggle details for barcode {{ workitem.barcode }}" id="chevron-{{ workitem.workitemid }}">
-      <i class="indicator fas fa-chevron-down"></i>
-  </button>
-</td>
+                <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
+                  data-workitemid="{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                  aria-expanded="false" aria-controls="details-row-{{ workitem.workitemid }}"
+                  aria-label="Toggle details for barcode {{ workitem.barcode }}" id="chevron-{{ workitem.workitemid }}">
+                  <i class="indicator fas fa-chevron-down"></i>
+                </button>
+              </td>
             </tr>
 
             <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
               <td colspan="5">
                 <div class="details-content-wrapper p-4 bg-gray-100 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  <div id="image-container-{{ workitem.workitemid }}" class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
-                      <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
+
+                  <div id="image-container-{{ workitem.workitemid }}"
+                    class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
+                    <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
                   </div>
 
                   <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
-                    <div id="history-container-{{ workitem.workitemid }}" class="relative flex-grow overflow-y-auto pr-2">
+                    <div id="history-container-{{ workitem.workitemid }}"
+                      class="relative flex-grow overflow-y-auto pr-2">
                       <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
                     </div>
                   </div>
 
                   <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
-                    
+
                     <div class="mb-4">
-                      <label for="priority-select-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                      <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}" class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                          <option value="0">{{ _("None") }}</option>
-                          <option value="1">{{ _("Low") }}</option>
-                          <option value="2">{{ _("Medium") }}</option>
-                          <option value="3">{{ _("High") }}</option>
+                      <label for="priority-select-{{ workitem.workitemid }}"
+                        class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                      <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                        class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="0">{{ _("None") }}</option>
+                        <option value="1">{{ _("Low") }}</option>
+                        <option value="2">{{ _("Medium") }}</option>
+                        <option value="3">{{ _("High") }}</option>
                       </select>
                     </div>
 
-                    <div id="comments-container-{{ workitem.workitemid }}" class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded">
+                    <div id="comments-container-{{ workitem.workitemid }}"
+                      class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded">
                       <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
                     </div>
 
-                    <form class="comment-form mt-auto" data-barcode="{{ workitem.barcode }}">
-                      <textarea name="commentText" class="w-full p-2 border rounded-md" placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required></textarea>
-                      <button type="submit" class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{ _("Post Comment") }}</button>
-                    </form>
+                    <div class="relative mt-auto" id="comment-form-wrapper-{{ workitem.workitemid }}">
+                      <form class="comment-form" data-barcode="{{ workitem.barcode }}">
+                        <textarea name="commentText" class="w-full p-2 border rounded-md"
+                          placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required
+                          autocomplete="off"></textarea>
+                        <button type="submit"
+                          class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                          _("Post Comment") }}</button>
+                      </form>
+                      <div
+                        class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                      </div>
+                    </div>
+
                   </div>
 
                 </div>
@@ -196,9 +236,9 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="4" class="text-center py-10 text-gray-500">
-                    {{ _("No workitems found for the selected criteria.") }}
-                </td>
+              <td colspan="4" class="text-center py-10 text-gray-500">
+                {{ _("No workitems found for the selected criteria.") }}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -208,42 +248,44 @@
 
     <div class="mt-6 flex items-center justify-between">
       <div class="text-sm text-gray-700">
-        Showing <span class="font-medium">{{ workitems|length }}</span> of <span class="font-medium">{{ total_items }}</span> results
+        Showing <span class="font-medium">{{ workitems|length }}</span> of <span class="font-medium">{{ total_items
+          }}</span> results
       </div>
-      
+
       {% if total_pages > 1 %}
       <div class="flex items-center gap-2">
         {% set query_params = {
-            'processFilterWorkitemOverview': process_name,
-            'search': search,
-            'status': status,
-            'startDate': startDate,
-            'endDate': endDate
+        'processFilterWorkitemOverview': process_name,
+        'search': search,
+        'status': status,
+        'startDate': startDate,
+        'endDate': endDate
         } %}
         <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
-           class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == 1 else 'hover:bg-gray-50' }}">
-            <i class="fas fa-chevron-left mr-1"></i> Previous
+          class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == 1 else 'hover:bg-gray-50' }}">
+          <i class="fas fa-chevron-left mr-1"></i> Previous
         </a>
-        
+
         <span class="text-sm text-gray-600">
           Page {{ current_page }} of {{ total_pages }}
         </span>
 
         <a href="{{ url_for('workitems_overview', page=current_page + 1, **query_params) if current_page < total_pages else '#' }}"
-           class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == total_pages else 'hover:bg-gray-50' }}">
-            Next <i class="fas fa-chevron-right ml-1"></i>
+          class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == total_pages else 'hover:bg-gray-50' }}">
+          Next <i class="fas fa-chevron-right ml-1"></i>
         </a>
       </div>
       {% endif %}
     </div>
 
   </main>
-  
+
   <div id="imageModal" class="modal">
     <span class="modal-close">&times;</span>
     <img class="modal-content" id="modalImage">
   </div>
-  
+
   {% include 'js/_workitems_overviewJS.html' %}
 </body>
+
 </html>

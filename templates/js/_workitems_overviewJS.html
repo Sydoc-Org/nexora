@@ -10,6 +10,7 @@
     <script>
         const API_PREFIX = window.location.href.includes("sydocportal") ? "/sydocportal/" : "/";
         let animationTimeouts = [];
+        let mentionableUsers = [];
 
         function cancelAllAnimations() {
             animationTimeouts.forEach(clearTimeout);
@@ -84,6 +85,7 @@
 
         document.getElementById("showingCount").textContent = visibleCount;
     }
+
 
     document.getElementById("searchInput").addEventListener("keyup", applyAllFilters);
 
@@ -260,14 +262,11 @@
             const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
             const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
             if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
-
             try {
                 const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
-                
                 prioritySelector.value = data.priority;
-
                 commentsContainer.innerHTML = '';
                 if (data.comments.length === 0) {
                     commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
@@ -275,7 +274,7 @@
                     data.comments.forEach(comment => {
                         const commentEl = document.createElement('div');
                         commentEl.className = 'flex items-start gap-2.5';
-                        const commentDate = new Date(comment.Timestamp + 'Z').toLocaleString();
+                        const commentDate = new Date(comment.Timestamp).toLocaleString();
                         commentEl.innerHTML = `
                             <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
                             <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
@@ -294,7 +293,6 @@
                 commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
             }
         }
-
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
@@ -414,156 +412,203 @@
             }
         }
 
-async function handlePostComment(event) {
-    event.preventDefault();
-    const form = event.target;
-    const barcode = form.dataset.barcode;
-    const workitemid = form.closest('.details-row').id.split('-')[2];
-    const textarea = form.querySelector('textarea');
-    const commentText = textarea.value.trim();
-    if (!commentText) return;
+    async function handlePostComment(event) {
+        event.preventDefault();
+        const form = event.target;
+        const barcode = form.dataset.barcode;
+        const workitemid = form.closest('.details-row').id.split('-')[2];
+        const textarea = form.querySelector('textarea');
+        const commentText = textarea.value.trim();
+        if (!commentText) return;
 
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commentText })
-        });
-        if (!response.ok) throw new Error('Failed to post comment.');
-        
-        textarea.value = '';
-        const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-        commentsContainer.dataset.loaded = 'false'; 
-        loadCollaborationData(workitemid, barcode);
+        try {
+            const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commentText })
+            });
+            if (!response.ok) throw new Error('Failed to post comment.');
+            
+            textarea.value = '';
+            const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+            commentsContainer.dataset.loaded = 'false'; 
+            loadCollaborationData(workitemid, barcode);
 
-    } catch(error) {
-        console.error("Comment post error:", error);
+        } catch(error) {
+            console.error("Comment post error:", error);
+        }
     }
-}
         
 
-async function handleSetPriority(event) {
-    const selector = event.target;
-
-    const barcode = selector.dataset.barcode;
-    const priority = parseInt(selector.value, 10);
-
-    try {
-         const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ priority })
-        });
-        if (!response.ok) throw new Error('Failed to set priority.');
+    async function fetchMentionableUsers() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/users`);
+                if (!response.ok) throw new Error('Could not fetch users');
+                mentionableUsers = await response.json();
+            } catch (error) {
+                console.error("Failed to fetch users for mentions:", error);
+            }
+        }
         
-        const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
-        let iconHtml = '';
-        if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-        else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-        else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-        indicatorCell.innerHTML = iconHtml;
-
-    } catch(error) {
-        console.error("Set priority error:", error);
-    }
-}
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById("imageModal");
-        const modalImg = document.getElementById("modalImage");
-        const closeBtn = document.querySelector(".modal-close");
-
-        document.addEventListener('click', function (event) {
-            if (event.target && event.target.classList.contains('workitem-image')) {
-                modal.style.display = "flex";
-                modalImg.src = event.target.src;
+        function insertMention(username, textarea) {
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const startIndex = mentionMatch.index;
+                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
+                textarea.value = newText;
+                textarea.focus();
+                const newCursorPos = startIndex + username.length + 2;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
             }
-        });
-
-        function closeModal() {
-            modal.style.display = "none";
         }
-
-        closeBtn.addEventListener('click', closeModal);
-
-        modal.addEventListener('click', function (event) {
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape' && modal.style.display === "flex") {
-                closeModal();
-            }
-        });
-        const detailButtons = document.querySelectorAll('.details-toggle-button');
-        detailButtons.forEach(button => {
-            button.addEventListener('click', toggleDetailsAndLoadImages);
-        });
-
-        const animatedElements = document.querySelectorAll('.animate-on-load');
-        animatedElements.forEach(el => {
-            const delay = el.style.getPropertyValue('--delay') || '0ms';
-            setTimeout(() => {
-                el.classList.remove('opacity-0', 'translate-y-4');
-            }, parseInt(delay));
-        });
-        document.getElementById('workitemsTbody').addEventListener('submit', (event) => {
-            if (event.target.classList.contains('comment-form')) {
-                handlePostComment(event);
-            }
-        });
         
-        document.getElementById('workitemsTbody').addEventListener('change', (event) => {
-            if (event.target.classList.contains('priority-selector')) {
-                handleSetPriority(event);
+        function renderAutocompleteList(users, listElement, textarea) {
+            listElement.innerHTML = '';
+            if (users.length === 0) {
+                listElement.classList.add('hidden');
+                return;
             }
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
+                item.textContent = `${user.fullname} (@${user.username})`;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    insertMention(user.username, textarea);
+                    listElement.classList.add('hidden');
+                });
+                listElement.appendChild(item);
+            });
+            listElement.classList.remove('hidden');
+        }
+
+        function handleMentionInput(event) {
+            const textarea = event.target;
+            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
+            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const searchTerm = mentionMatch[1].toLowerCase();
+                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
+                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
+            } else {
+                autocompleteList.classList.add('hidden');
+            }
+        }
+
+        async function handlePostComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const barcode = form.dataset.barcode;
+            const workitemid = form.closest('.details-row').id.split('-')[2];
+            const textarea = form.querySelector('textarea');
+            const commentText = textarea.value.trim();
+            if (!commentText) return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ commentText })
+                });
+                if (!response.ok) throw new Error('Failed to post comment.');
+                textarea.value = '';
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                commentsContainer.dataset.loaded = 'false';
+                loadCollaborationData(workitemid, barcode);
+            } catch (error) {
+                console.error("Comment post error:", error);
+            }
+        }
+        
+        async function handleSetPriority(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const priority = parseInt(selector.value, 10);
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ priority })
+                });
+                if (!response.ok) throw new Error('Failed to set priority.');
+                const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
+                let iconHtml = '';
+                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+                indicatorCell.innerHTML = iconHtml;
+            } catch (error) {
+                console.error("Set priority error:", error);
+            }
+        }
+
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMentionableUsers(); // <-- FETCH USERS ON PAGE LOAD
+
+            // Setup listeners for dynamically created content via event delegation
+            const tbody = document.getElementById('workitemsTbody');
+            tbody.addEventListener('click', (event) => {
+                const toggleButton = event.target.closest('.details-toggle-button');
+                if (toggleButton) {
+                    toggleDetailsAndLoadImages({ currentTarget: toggleButton });
+                }
+            });
+            tbody.addEventListener('submit', (event) => {
+                if (event.target.classList.contains('comment-form')) {
+                    handlePostComment(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('priority-selector')) {
+                    handleSetPriority(event);
+                }
+            });
+            tbody.addEventListener('input', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    handleMentionInput(event);
+                }
+            });
+            tbody.addEventListener('focusout', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
+                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
+                }
+            });
+
+            // Advanced filter toggle
+            const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
+            const advancedContainer = document.getElementById('advancedFilterContainer');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => advancedContainer.classList.toggle('hidden'));
+            }
+
+            // Image modal logic
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            const closeBtn = document.querySelector(".modal-close");
+            
+            document.addEventListener('click', (event) => {
+                if (event.target.classList.contains('workitem-image')) {
+                    modal.style.display = "flex";
+                    modalImg.src = event.target.src;
+                }
+            });
+            
+            const closeModal = () => modal.style.display = "none";
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeModal(); });
         });
-        const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
-        tableRows.forEach(row => {
-            const delay = row.style.getPropertyValue('--delay') || '0ms';
-            const timeoutId = setTimeout(() => {
-                row.style.transform = 'translateX(-15px)';
-                row.classList.remove('opacity-0');
-                setTimeout(() => {
-                    row.style.transform = 'translateX(0)';
-                }, 10);
-            }, 200 + parseInt(delay));
-            animationTimeouts.push(timeoutId);
-        });
-
-        const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
-        const advancedContainer = document.getElementById('advancedFilterContainer');
-        const applyBtn = document.getElementById('applyFiltersBtn');
-        const resetBtn = document.getElementById('resetFiltersBtn');
-
-        if (toggleBtn) {
-             toggleBtn.addEventListener('click', () => {
-                advancedContainer.classList.toggle('hidden');
-            });
-        }
-
-        if (applyBtn) {
-            applyBtn.addEventListener('click', () => {
-                logAction("filterWorkitemsAdvanced", "workitemOverview", JSON.stringify({
-                    by_status: document.getElementById("statusFilter").value,
-                    from_date: document.getElementById("startDate").value,
-                    to_date: document.getElementById("endDate").value,
-                    search_term: document.getElementById("searchInput").value
-                }), "SUCCESS", 0);
-                applyAllFilters();
-            });
-        }
-
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                document.getElementById('startDate').value = '';
-                document.getElementById('endDate').value = '';
-                logAction("resetWorkitemsAdvancedFilter", "workitemOverview", null, "SUCCESS", 0);
-                applyAllFilters();
-            });
-        }
-    });
     </script>
 </body>
 

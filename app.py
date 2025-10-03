@@ -395,7 +395,7 @@ def admin_edit_user(user_id):
     email = data.get('email')
     company = data.get('company')
     access = data.get('access')
-    subsciption = data.get('subsciption')
+    subscription = data.get('subscription')
     scope = data.get('scope')
     password = data.get('password') 
     currentUserId = session['userid']
@@ -408,11 +408,11 @@ def admin_edit_user(user_id):
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subsciption=? WHERE userID=?",
-                           (username, fullname, email, company, scope, hashed_password, access, subsciption, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subscription=? WHERE userID=?",
+                           (username, fullname, email, company, scope, hashed_password, access, subscription, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subsciption=? WHERE userID=?",
-                           (username, fullname, email, company, scope, access, subsciption, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subscription=? WHERE userID=?",
+                           (username, fullname, email, company, scope, access, subscription, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -1405,6 +1405,7 @@ def get_users_for_mentions():
         cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
         print(session.get('access'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        print('yay i get called')
         return jsonify(users)
     except Exception as e:
         app.logger.error(f"Failed to fetch users for mentions: {e}")
@@ -1429,20 +1430,29 @@ def get_workitem_interactions(barcode):
         priority_row = cursor.fetchone()
         priority = priority_row[0] if priority_row else 0
 
-        cursor.execute("""
+        current_user_access = session.get('access')
+
+        sql_query = """
             SELECT c.CommentText, c.Timestamp, u.username, u.userID
             FROM Workitem_Comments c
             JOIN Users u ON c.UserID = u.userID
-            WHERE c.Barcode = ?
-            ORDER BY c.Timestamp ASC
-        """, (barcode,))
+        """
+        params = [barcode]
+
+        if current_user_access == 'Unlimited':
+            sql_query += " WHERE c.Barcode = ?"
+        else:
+            sql_query += " WHERE c.Barcode = ? AND u.access = ?"
+            params.append(current_user_access)
         
+        sql_query += " ORDER BY c.Timestamp ASC"
+        cursor.execute(sql_query, params)
         comments_data = cursor.fetchall()
         comments = []
         for row in comments_data:
             comments.append({
                 'CommentText': row.CommentText,
-                'Timestamp': row.Timestamp.isoformat(),  
+                'Timestamp': row.Timestamp.isoformat(),
                 'username': row.username,
                 'userID': row.userID
             })
