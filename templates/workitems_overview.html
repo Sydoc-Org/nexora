@@ -122,6 +122,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="font-medium text-gray-900">{{ workitem.barcode }}</div>
               </td>
+              
               <td class="px-6 py-4 whitespace-nowrap text-left">
                 {% if workitem.status == "Ready" %}
                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ workitem.status }}</span>
@@ -136,25 +137,60 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">{{ workitem.modifiedat.strftime('%d. %m. %Y - %H:%M') }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-              <button class="details-toggle-button text-indigo-600 hover:text-indigo-900" data-workitemid="{{ workitem.workitemid }}" aria-expanded="false" aria-controls="details-row-{{ workitem.workitemid }}" aria-label="Toggle details for barcode {{ workitem.barcode }}" id="chevron-{{ workitem.workitemid }}">
-                  <i class="indicator fas fa-chevron-down"></i>
-                </button>
+              <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-{{ workitem.barcode }}">
+                {% if workitem.priority == 3 %}
+                  <span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>
+                {% elif workitem.priority == 2 %}
+                  <span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>
+                {% elif workitem.priority == 1 %}
+                  <span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>
+                {% endif %}
               </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+  <button class="details-toggle-button text-indigo-600 hover:text-indigo-900" data-workitemid="{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}" aria-expanded="false" aria-controls="details-row-{{ workitem.workitemid }}" aria-label="Toggle details for barcode {{ workitem.barcode }}" id="chevron-{{ workitem.workitemid }}">
+      <i class="indicator fas fa-chevron-down"></i>
+  </button>
+</td>
             </tr>
 
             <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
-              <td colspan="4">
-                <div class="details-content-wrapper p-4 bg-gray-50 flex flex-col md:flex-row gap-6">
-                  <div id="image-container-{{ workitem.workitemid }}" class="flex-1 flex justify-center items-center max-h-80 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
+              <td colspan="5">
+                <div class="details-content-wrapper p-4 bg-gray-100 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  <div id="image-container-{{ workitem.workitemid }}" class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
                       <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
-                  </div> 
-                  <div class="flex-1">
+                  </div>
+
+                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
-                    <div id="history-container-{{ workitem.workitemid }}" class="relative max-h-80 overflow-y-auto pr-2">
+                    <div id="history-container-{{ workitem.workitemid }}" class="relative flex-grow overflow-y-auto pr-2">
                       <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
                     </div>
                   </div>
+
+                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+                    
+                    <div class="mb-4">
+                      <label for="priority-select-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                      <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}" class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="0">{{ _("None") }}</option>
+                          <option value="1">{{ _("Low") }}</option>
+                          <option value="2">{{ _("Medium") }}</option>
+                          <option value="3">{{ _("High") }}</option>
+                      </select>
+                    </div>
+
+                    <div id="comments-container-{{ workitem.workitemid }}" class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded">
+                      <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                    </div>
+
+                    <form class="comment-form mt-auto" data-barcode="{{ workitem.barcode }}">
+                      <textarea name="commentText" class="w-full p-2 border rounded-md" placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required></textarea>
+                      <button type="submit" class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{ _("Post Comment") }}</button>
+                    </form>
+                  </div>
+
                 </div>
               </td>
             </tr>

@@ -56,7 +56,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
-DB_SERVER = os.environ.get("DB_SERVER")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
 DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
@@ -101,7 +100,7 @@ def log_user_action(action_type, status, target_user_id=None, resource_id=None, 
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
+            f'SERVER={DB_SERVER_PRD},1433;'
             f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
@@ -173,7 +172,7 @@ def login(page=None):
         try:
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};' 
@@ -235,7 +234,7 @@ def login(page=None):
 def create_notification(user_id, message, link=None, icon='fa-info-circle'):
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -256,7 +255,7 @@ def get_notifications():
     
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
@@ -290,7 +289,7 @@ def mark_notifications_as_read():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         
@@ -332,7 +331,7 @@ def admin_users():
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("SELECT userID, username, fullname, email, company, scope, access, subscription FROM Users ORDER BY username")
@@ -367,7 +366,7 @@ def admin_add_user():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope, access, subscription) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -403,7 +402,7 @@ def admin_edit_user(user_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
@@ -437,7 +436,7 @@ def admin_delete_user(user_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM Users WHERE userID=?", (user_id,))
@@ -463,7 +462,7 @@ def admin_delete_user(user_id):
 def admin_recent_logs():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -485,7 +484,7 @@ def admin_recent_logs():
 def admin_active_sessions():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
@@ -543,7 +542,7 @@ def set_new_password():
 
         conn_str = (
             f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER},1433;'
+            f'SERVER={DB_SERVER_PRD},1433;'
             f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
@@ -752,7 +751,7 @@ def request_password_reset():
     request_email = request.form['email']
     conn_str = (
         f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER},1433;'
+        f'SERVER={DB_SERVER_PRD},1433;'
         f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
         f'UID={DB_UID};'
         f'PWD={DB_PWD};'
@@ -1116,11 +1115,13 @@ def workitems_overview():
                         WHEN twi.Status = 0 THEN 'Ready'
                         WHEN twi.Status = 5 THEN 'Done'
                         ELSE 'In Progress'
-                    END AS Status
+                    END AS Status,
+                    wim.Priority
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS
@@ -1130,11 +1131,12 @@ def workitems_overview():
             cursor.execute(data_query, data_params)
 
             for row in cursor.fetchall():
-                workitems_list.append({
+               workitems_list.append({
                     'barcode': row.Barcode,
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
-                    'status': row.Status
+                    'status': row.Status,
+                    'priority': row.Priority or 0
                 })
                 
         except Exception as e:
@@ -1388,7 +1390,161 @@ def get_audithistory(workitem_id):
         return jsonify({"error": f"{_("Failed to fetch audit history")}: {e}"}), 500
     except Exception as e:
         return jsonify({"error": f"{_("An unexpected error occurred")}: {e}"}), 500
+
+# ------------------------ workitem collaboration apis ----------------------- #
+@app.route('/api/users')
+def get_users_for_mentions():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
+        print(session.get('access'))
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users for mentions: {e}")
+        return jsonify({"error": _("Could not fetch users")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/workitem/<barcode>/interactions')
+def get_workitem_interactions(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT Priority FROM Workitem_Metadata WHERE Barcode = ?", (barcode,))
+        priority_row = cursor.fetchone()
+        priority = priority_row[0] if priority_row else 0
+
+        cursor.execute("""
+            SELECT c.CommentText, c.Timestamp, u.username, u.userID
+            FROM Workitem_Comments c
+            JOIN Users u ON c.UserID = u.userID
+            WHERE c.Barcode = ?
+            ORDER BY c.Timestamp ASC
+        """, (barcode,))
+        
+        comments_data = cursor.fetchall()
+        comments = []
+        for row in comments_data:
+            comments.append({
+                'CommentText': row.CommentText,
+                'Timestamp': row.Timestamp.isoformat(),  
+                'username': row.username,
+                'userID': row.userID
+            })
+
+        return jsonify({
+            'priority': priority,
+            'comments': comments
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch interactions for barcode {barcode}: {e}")
+        return jsonify({"error": _("Could not fetch interactions")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/comment', methods=['POST'])
+def add_workitem_comment(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    data = request.get_json()
+    comment_text = data.get('commentText')
+    if not comment_text:
+        return jsonify({'success': False, 'message': _("Comment cannot be empty.")}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO Workitem_Comments (Barcode, UserID, CommentText)
+            VALUES (?, ?, ?)
+        """, (barcode, session['userid'], comment_text))
+        
+        cursor.execute("SELECT SCOPE_IDENTITY()")
+        comment_id = cursor.fetchone()[0]
+        
+        mentions = re.findall(r'@(\w+)', comment_text)
+        if mentions:
+            placeholders = ','.join('?' for _ in mentions)
+            cursor.execute(f"SELECT userID, username FROM Users WHERE username IN ({placeholders})", mentions)
+            mentioned_users = cursor.fetchall()
+            
+            for user in mentioned_users:
+                cursor.execute("INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)", (comment_id, user.userID))
+                notification_link = url_for('workitems_overview', search=barcode, _external=False)
+                create_notification(user.userID, f"{session['username']} mentioned you on workitem {barcode}", link=notification_link, icon='fa-at')
+
+        conn.commit()
+        log_user_action('addWorkitemComment', status='SUCCESS', resource_id=barcode)
+        return jsonify({'success': True, 'message': _("Comment added.")})
+    except Exception as e:
+        app.logger.error(f"Error adding comment for barcode {barcode}: {e}")
+        log_user_action('addWorkitemComment', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/priority', methods=['POST'])
+def set_workitem_priority(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    data = request.get_json()
+    priority = data.get('priority')
+    if priority is None or priority not in [0, 1, 2, 3]:
+        return jsonify({'success': False, 'message': _("Invalid priority level.")}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            MERGE Workitem_Metadata AS target
+            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (Barcode, Priority, UserID, UpdateTime)
+            ON target.Barcode = source.Barcode
+            WHEN MATCHED THEN
+                UPDATE SET Priority = source.Priority, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
+            WHEN NOT MATCHED THEN
+                INSERT (Barcode, Priority, LastUpdatedByUserID, LastUpdatedAt)
+                VALUES (source.Barcode, source.Priority, source.UserID, source.UpdateTime);
+        """, (barcode, priority, session['userid']))
+        
+        conn.commit()
+        log_user_action('setWorkitemPriority', status='SUCCESS', resource_id=barcode, details={'priority': priority})
+        return jsonify({'success': True, 'message': _("Priority updated.")})
+    except Exception as e:
+        app.logger.error(f"Error setting priority for barcode {barcode}: {e}")
+        log_user_action('setWorkitemPriority', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+# ---------------------- workitem collaboration apis end --------------------- #
+
 # --------------------------- workitem overview end -------------------------- #
+
 
 # ---------------------------------- profile --------------------------------- #
 @app.route("/profile")
@@ -1433,7 +1589,7 @@ def update_profile():
 
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};'
@@ -1503,7 +1659,7 @@ def change_password():
                 return redirect("profile")
             conn_str = (
                 f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER},1433;'
+                f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
                 f'PWD={DB_PWD};'

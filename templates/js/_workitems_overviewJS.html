@@ -256,10 +256,50 @@
             }
         }
 
+        async function loadCollaborationData(workitemId, barcode) {
+            const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
+            const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+            if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const data = await response.json();
+                
+                prioritySelector.value = data.priority;
+
+                commentsContainer.innerHTML = '';
+                if (data.comments.length === 0) {
+                    commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
+                } else {
+                    data.comments.forEach(comment => {
+                        const commentEl = document.createElement('div');
+                        commentEl.className = 'flex items-start gap-2.5';
+                        const commentDate = new Date(comment.Timestamp + 'Z').toLocaleString();
+                        commentEl.innerHTML = `
+                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
+                            <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
+                                <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                    <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
+                                    <span class="text-sm font-normal text-gray-500">${commentDate}</span>
+                                </div>
+                                <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
+                            </div>`;
+                        commentsContainer.appendChild(commentEl);
+                    });
+                }
+                commentsContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load collaboration data:', error);
+                commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
+            }
+        }
+
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
                 const workitemid = button.dataset.workitemid;
+                const barcode = button.dataset.barcode;
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
                 const imageContainer = document.getElementById(`image-container-${workitemid}`);
                 const chevron = button.querySelector('.indicator');
@@ -299,6 +339,7 @@
                 imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
                 try {
                     loadHistory(workitemid);
+                    loadCollaborationData(workitemid, barcode);
                     const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
                     if (!infoResponse.ok) {
                         throw new Error('Could not fetch media information.');
@@ -333,7 +374,6 @@
                 logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
             }
         }
-
 
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
@@ -374,7 +414,60 @@
             }
         }
 
-document.addEventListener('DOMContentLoaded', () => {
+async function handlePostComment(event) {
+    event.preventDefault();
+    const form = event.target;
+    const barcode = form.dataset.barcode;
+    const workitemid = form.closest('.details-row').id.split('-')[2];
+    const textarea = form.querySelector('textarea');
+    const commentText = textarea.value.trim();
+    if (!commentText) return;
+
+    try {
+        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentText })
+        });
+        if (!response.ok) throw new Error('Failed to post comment.');
+        
+        textarea.value = '';
+        const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+        commentsContainer.dataset.loaded = 'false'; 
+        loadCollaborationData(workitemid, barcode);
+
+    } catch(error) {
+        console.error("Comment post error:", error);
+    }
+}
+        
+
+async function handleSetPriority(event) {
+    const selector = event.target;
+
+    const barcode = selector.dataset.barcode;
+    const priority = parseInt(selector.value, 10);
+
+    try {
+         const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ priority })
+        });
+        if (!response.ok) throw new Error('Failed to set priority.');
+        
+        const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
+        let iconHtml = '';
+        if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+        else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+        else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+        indicatorCell.innerHTML = iconHtml;
+
+    } catch(error) {
+        console.error("Set priority error:", error);
+    }
+}
+    document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById("imageModal");
         const modalImg = document.getElementById("modalImage");
         const closeBtn = document.querySelector(".modal-close");
@@ -415,7 +508,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.classList.remove('opacity-0', 'translate-y-4');
             }, parseInt(delay));
         });
-
+        document.getElementById('workitemsTbody').addEventListener('submit', (event) => {
+            if (event.target.classList.contains('comment-form')) {
+                handlePostComment(event);
+            }
+        });
+        
+        document.getElementById('workitemsTbody').addEventListener('change', (event) => {
+            if (event.target.classList.contains('priority-selector')) {
+                handleSetPriority(event);
+            }
+        });
         const tableRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
         tableRows.forEach(row => {
             const delay = row.style.getPropertyValue('--delay') || '0ms';
