@@ -1427,6 +1427,13 @@ def get_workitem_interactions(barcode):
                         WHERE Barcode = ?"""
                        , (barcode,))
         row = cursor.fetchone()
+        if not row:
+            return jsonify({
+                'priority': 0,
+                'assigneduserid': 'None',
+                'comments': [],
+                'message': _("No data found for this workitem.")
+            }), 200
         priority = row[0] if row[0] != None else 0
         assigneduserid = row[1] if row[1] != None else 'None'
         current_user_access = session.get('access')
