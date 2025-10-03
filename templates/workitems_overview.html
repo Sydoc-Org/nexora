@@ -180,70 +180,86 @@
 
             <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
               <td colspan="5">
-                <div class="details-content-wrapper p-4 bg-gray-100 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                  <div id="image-container-{{ workitem.workitemid }}"
-                    class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
-                    <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
-                  </div>
-
-                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
-                    <div id="history-container-{{ workitem.workitemid }}"
-                      class="relative flex-grow overflow-y-auto pr-2">
-                      <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
-                    </div>
-                  </div>
-
-                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
-
-                    <div class="mb-4">
-                      <label for="priority-select-{{ workitem.workitemid }}"
-                        class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                      <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
-                        class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="0">{{ _("None") }}</option>
-                        <option value="1">{{ _("Low") }}</option>
-                        <option value="2">{{ _("Medium") }}</option>
-                        <option value="3">{{ _("High") }}</option>
-                      </select>
+                <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div id="image-container-{{ workitem.workitemid }}"
+                      class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
+                      <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
                     </div>
 
-                    <div id="comments-container-{{ workitem.workitemid }}"
-                      class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded">
-                      <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
-                    </div>
-
-                    <div class="relative mt-auto" id="comment-form-wrapper-{{ workitem.workitemid }}">
-                      <form class="comment-form" data-barcode="{{ workitem.barcode }}">
-                        <textarea name="commentText" class="w-full p-2 border rounded-md"
-                          placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required
-                          autocomplete="off"></textarea>
-                        <button type="submit"
-                          class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
-                          _("Post Comment") }}</button>
-                      </form>
-                      <div
-                        class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                    <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
+                      <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
+                      <div id="history-container-{{ workitem.workitemid }}"
+                        class="relative flex-grow overflow-y-auto pr-2">
+                        <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
                       </div>
                     </div>
-
                   </div>
 
+                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div class="flex flex-col">
+                        <div id="comments-container-{{ workitem.workitemid }}"
+                          class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded">
+                          <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                        </div>
+                      </div>
+
+                      <div class="flex flex-col h-96">
+                        <div class="mb-4">
+                          <label for="priority-select-{{ workitem.workitemid }}"
+                            class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                          <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                            class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="0">{{ _("None") }}</option>
+                            <option value="1">{{ _("Low") }}</option>
+                            <option value="2">{{ _("Medium") }}</option>
+                            <option value="3">{{ _("High") }}</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-4">
+                          <label for="assign-select-{{ workitem.workitemid }}"
+                            class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+                          <select id="assign-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                            class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="None"">{{ _("None") }}</option>
+                          </select>
+                        </div>
+
+                        <div class="relative mt-auto" id="comment-form-wrapper-{{ workitem.workitemid }}">
+                          <form class="comment-form" data-barcode="{{ workitem.barcode }}">
+                            <textarea name="commentText" class="w-full p-2 border rounded-md"
+                              placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required
+                              autocomplete="off"></textarea>
+                            <button type="submit"
+                              class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                              _("Post Comment") }}</button>
+                          </form>
+                          <div
+                            class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" class="text-center py-10 text-gray-500">
-                {{ _("No workitems found for the selected criteria.") }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+
       </div>
+      </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-center py-10 text-gray-500">
+          {{ _("No workitems found for the selected criteria.") }}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+      </table>
+    </div>
     </div>
 
     <div class="mt-6 flex items-center justify-between">

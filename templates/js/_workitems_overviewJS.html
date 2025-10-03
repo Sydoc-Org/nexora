@@ -261,12 +261,22 @@
         async function loadCollaborationData(workitemId, barcode) {
             const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
             const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+            const assignSelector = document.getElementById(`assign-select-${workitemId}`);
+            mentionableUsers.forEach(user =>
+                {
+                    let option = document.createElement('option');
+                    option.text = user.fullname
+                    option.value = user.userID
+                    assignSelector.add(option)
+                }
+            )
             if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
             try {
                 const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
                 prioritySelector.value = data.priority;
+                assignSelector.value = data.assigneduserid;
                 commentsContainer.innerHTML = '';
                 if (data.comments.length === 0) {
                     commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
@@ -438,8 +448,7 @@
             console.error("Comment post error:", error);
         }
     }
-        
-
+    
     async function fetchMentionableUsers() {
             try {
                 const response = await fetch(`${API_PREFIX}api/users`);
@@ -548,13 +557,25 @@
             }
         }
 
-
-
+        async function handleAssigning(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const assignedUserID = selector.value;
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/assign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assignedUserID })
+                    });
+                    if (!response.ok) throw new Error('Failed to assign.');
+                } catch (error) {
+                    console.error("Assigment error:", error);
+                }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetchMentionableUsers(); // <-- FETCH USERS ON PAGE LOAD
+            fetchMentionableUsers(); 
 
-            // Setup listeners for dynamically created content via event delegation
             const tbody = document.getElementById('workitemsTbody');
             tbody.addEventListener('click', (event) => {
                 const toggleButton = event.target.closest('.details-toggle-button');
@@ -570,6 +591,11 @@
             tbody.addEventListener('change', (event) => {
                 if (event.target.classList.contains('priority-selector')) {
                     handleSetPriority(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('assign-selector')) {
+                    handleAssigning(event);
                 }
             });
             tbody.addEventListener('input', (event) => {

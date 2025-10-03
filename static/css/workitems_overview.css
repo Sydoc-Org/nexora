@@ -307,12 +307,12 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-  padding: 0 1rem; /* Start with no vertical padding */
+  padding: 0 1rem; 
   visibility: hidden;
 }
 
 .details-row.open .details-content-wrapper {
-  max-height: 500px; 
+  max-height: 1500px; 
   padding: 1.5rem 1rem; 
   visibility: visible;
   transition: max-height 0.4s ease-in, padding 0.4s ease-in, visibility 0s;

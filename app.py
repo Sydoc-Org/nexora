@@ -1403,9 +1403,7 @@ def get_users_for_mentions():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
-        print(session.get('access'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        print('yay i get called')
         return jsonify(users)
     except Exception as e:
         app.logger.error(f"Failed to fetch users for mentions: {e}")
@@ -1413,7 +1411,6 @@ def get_users_for_mentions():
     finally:
         if conn:
             conn.close()
-
 
 @app.route('/api/workitem/<barcode>/interactions')
 def get_workitem_interactions(barcode):
@@ -1426,10 +1423,12 @@ def get_workitem_interactions(barcode):
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT Priority FROM Workitem_Metadata WHERE Barcode = ?", (barcode,))
-        priority_row = cursor.fetchone()
-        priority = priority_row[0] if priority_row else 0
-
+        cursor.execute("""SELECT Priority, AssignedUserID FROM Workitem_Metadata
+                        WHERE Barcode = ?"""
+                       , (barcode,))
+        row = cursor.fetchone()
+        priority = row[0] if row[0] != None  else 0
+        assigneduserid = row[1] if row[1] != None else 'None'
         current_user_access = session.get('access')
 
         sql_query = """
@@ -1456,9 +1455,9 @@ def get_workitem_interactions(barcode):
                 'username': row.username,
                 'userID': row.userID
             })
-
         return jsonify({
             'priority': priority,
+            'assigneduserid': assigneduserid,
             'comments': comments
         })
     except Exception as e:
@@ -1509,6 +1508,45 @@ def add_workitem_comment(barcode):
     except Exception as e:
         app.logger.error(f"Error adding comment for barcode {barcode}: {e}")
         log_user_action('addWorkitemComment', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/assign', methods=['POST'])
+def assign_workitem(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    data = request.get_json()
+    assignedUserID = data.get('assignedUserID')
+    if assignedUserID is None:
+        return jsonify({'success': False, 'message': _("Invalid assignment.")}), 400
+    elif assignedUserID == 'None':
+        assignedUserID = None
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            MERGE Workitem_Metadata AS target
+            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (Barcode, AssignedUserID, UserID, UpdateTime)
+            ON target.Barcode = source.Barcode
+            WHEN MATCHED THEN
+                UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
+            WHEN NOT MATCHED THEN
+                INSERT (Barcode, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
+                VALUES (source.Barcode, source.AssignedUserID, source.UserID, source.UpdateTime);
+        """, (barcode, assignedUserID, session['userid']))
+        
+        conn.commit()
+        log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=barcode, details={'assignedUserID': assignedUserID})
+        return jsonify({'success': True, 'message': _("Assignment updated.")})
+    except Exception as e:
+        app.logger.error(f"Error setting assignment for barcode {barcode}: {e}")
+        log_user_action('assignUserToWorkitem', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if conn:
