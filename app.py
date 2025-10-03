@@ -1427,7 +1427,7 @@ def get_workitem_interactions(barcode):
                         WHERE Barcode = ?"""
                        , (barcode,))
         row = cursor.fetchone()
-        priority = row[0] if row[0] != None  else 0
+        priority = row[0] if row[0] != None else 0
         assigneduserid = row[1] if row[1] != None else 'None'
         current_user_access = session.get('access')
 
