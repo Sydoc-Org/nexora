@@ -1500,7 +1500,7 @@ def add_workitem_comment(barcode):
             for user in mentioned_users:
                 cursor.execute("INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)", (comment_id, user.userID))
                 notification_link = url_for('workitems_overview', search=barcode, _external=False)
-                create_notification(user.userID, f"{session['username']} mentioned you on workitem {barcode}", link=notification_link, icon='fa-at')
+                create_notification(user.userID, f"{session['username']} mentioned you on barcode {barcode}", link=notification_link, icon='fa-at')
 
         conn.commit()
         log_user_action('addWorkitemComment', status='SUCCESS', resource_id=barcode)
@@ -1543,6 +1543,9 @@ def assign_workitem(barcode):
         
         conn.commit()
         log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=barcode, details={'assignedUserID': assignedUserID})
+        if assignedUserID != None and assignedUserID != session['userid']:
+            notification_link = url_for('workitems_overview', search=barcode, _external=False)
+            create_notification(assignedUserID, f"{session['username']} {_('assigned you on barcode')} {barcode}", link=notification_link, icon='fa-people-carry-box')
         return jsonify({'success': True, 'message': _("Assignment updated.")})
     except Exception as e:
         app.logger.error(f"Error setting assignment for barcode {barcode}: {e}")
