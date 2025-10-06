@@ -89,12 +89,12 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
             <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
-            <input type="date" id="startDate" name="startDate" value="{{ startDate or '' }}"
+            <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}"
               class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           </div>
           <div>
             <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
-            <input type="date" id="endDate" name="endDate" value="{{ endDate or '' }}"
+            <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}"
               class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           </div>
           <div class="flex gap-2">

@@ -1045,7 +1045,8 @@ def workitems_overview():
         status = request.args.get('status', '')
         start_date = request.args.get('startDate', '')
         end_date = request.args.get('endDate', '')
-
+        start_date = datetime.fromisoformat(start_date) if start_date else None
+        end_date = datetime.fromisoformat(end_date) if end_date else None
         per_page = 50
         offset = (page - 1) * per_page
 
@@ -1075,7 +1076,7 @@ def workitems_overview():
             params.append(start_date)
 
         if end_date:
-            where_clauses.append("twi.ModifiedAt < DATEADD(day, 1, ?)")
+            where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
             
         where_sql = " AND ".join(where_clauses)
@@ -1107,22 +1108,28 @@ def workitems_overview():
             total_items = cursor.fetchone()[0] or 0
             
             data_query = f"""
-                SELECT DISTINCT
-                    tdi_barcode.StringValue AS Barcode,
-                    twi.ModifiedAt,
-                    twi.ID AS WorkItemID,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready'
-                        WHEN twi.Status = 5 THEN 'Done'
-                        ELSE 'In Progress'
-                    END AS Status,
-                    wim.Priority
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
-                WHERE {where_sql}
+                 WITH WorkitemCTE AS (
+                    SELECT
+                        tdi_barcode.StringValue AS Barcode,
+                        twi.ModifiedAt,
+                        twi.ID AS WorkItemID,
+                        CASE
+                            WHEN twi.Status = 0 THEN 'Ready'
+                            WHEN twi.Status = 5 THEN 'Done'
+                            ELSE 'In Progress'
+                        END AS Status,
+                        wim.Priority,
+                        ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                    FROM t_WorkItems twi
+                    INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                    INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                    INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                    LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                    WHERE {where_sql}
+                )
+                SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority
+                FROM WorkitemCTE
+                WHERE rn = 1
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS
                 FETCH NEXT ? ROWS ONLY
