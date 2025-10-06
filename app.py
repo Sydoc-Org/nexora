@@ -25,6 +25,7 @@ import time
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
+load_dotenv()
 # ---------------------------------- locale ---------------------------------- #
 def get_locale():
     if 'locale' in session:
@@ -40,7 +41,6 @@ def get_timezone():
         return user.timezone
 babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
 # -------------------------------- locale end -------------------------------- #
-load_dotenv()
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -319,7 +319,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'scope' not in session or session['scope'] != 'Admin':
-            return forbiddenPage()
+            return forbiddenPage(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -746,6 +746,7 @@ def send_reset_email(email):
         print(f"An other error occurred: {e}")
         return False
 
+@limiter.limit("5 per hour") 
 @app.route('/request-password-reset', methods=['GET', 'POST'])
 def request_password_reset():
     request_email = request.form['email']
@@ -1157,20 +1158,30 @@ def workitems_overview():
         total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+
+        # return jsonify({
+        # 'workitems': workitems_list,
+        # 'pagination': {
+        #     'currentPage': page,
+        #     'totalPages': total_pages,
+        #     'totalItems': total_items,
+        #     'perPage': per_page
+        #     }
+        # })
         return render_template("workitems_overview.html", 
-                            logged_in_user=logged_in_user,
-                            userid=userid,
-                            scope=scope,
-                            process_name=process_name,
-                            workitems=workitems_list,
-                               current_page=page,
-                               total_pages=total_pages,
-                               total_items=total_items,
-                               search=search_term,
-                               status=status,
-                               startDate=start_date,
-                               endDate=end_date
-                            )
+            logged_in_user=logged_in_user,
+            userid=userid,
+            scope=scope,
+            process_name=process_name,
+            workitems=workitems_list,
+            current_page=page,
+            total_pages=total_pages,
+            total_items=total_items,
+            search=search_term,
+            status=status,
+            startDate=start_date,
+            endDate=end_date
+        )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -1677,15 +1688,30 @@ def update_profile():
             session['email'] = email
             session['company'] = company
 
-            if request.files['file']:
+            if 'file' in request.files and request.files['file'].filename != '':
                 f = request.files['file']
-                filename = f"{userid}-icon.png"
-                rel_path = os.path.join('static', 'images', filename)
-                abs_path = os.path.join(app.root_path, rel_path)
-                if os.path.exists(abs_path):
-                    os.remove(abs_path)
-                f.save(abs_path)
+                try:
+                    in_memory_file = io.BytesIO()
+                    f.save(in_memory_file)
+                    in_memory_file.seek(0)
 
+                    img = Image.open(in_memory_file)
+                    img.verify()
+
+                    filename = f"{userid}-icon.png"
+                    rel_path = os.path.join('static', 'images', filename)
+                    abs_path = os.path.join(app.root_path, rel_path)
+                    if os.path.exists(abs_path):
+                        os.remove(abs_path)
+
+                    in_memory_file.seek(0)
+                    with open(abs_path, 'wb') as disk_file:
+                        disk_file.write(in_memory_file.read())
+                except Exception as e:
+                    app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
+                    flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
+                    return redirect(url_for("profile"))
+                
             log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
                 "fullname": fullname,
                 "email": email,
@@ -2025,7 +2051,7 @@ def internalError(e):
 #     return _("Database connection failed"), 500
 
 @app.errorhandler(403)
-def forbiddenPage():
+def forbiddenPage(e):
     return render_template('handlers/403.html'), 403
 # ----------------------------- error handler end ---------------------------- #
 
