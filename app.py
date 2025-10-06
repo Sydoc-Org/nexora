@@ -25,6 +25,7 @@ import time
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
+load_dotenv()
 # ---------------------------------- locale ---------------------------------- #
 def get_locale():
     if 'locale' in session:
@@ -40,7 +41,6 @@ def get_timezone():
         return user.timezone
 babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
 # -------------------------------- locale end -------------------------------- #
-load_dotenv()
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -319,7 +319,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'scope' not in session or session['scope'] != 'Admin':
-            return forbiddenPage()
+            return forbiddenPage(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -746,6 +746,7 @@ def send_reset_email(email):
         print(f"An other error occurred: {e}")
         return False
 
+@limiter.limit("5 per hour") 
 @app.route('/request-password-reset', methods=['GET', 'POST'])
 def request_password_reset():
     request_email = request.form['email']
@@ -1030,8 +1031,8 @@ def recent_activity():
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
-@app.route("/workitems")
-def workitems_overview():
+@app.route("/api/workitems")
+def api_workitems():
     try:
         if 'username' not in session:
             return redirect(url_for('login', page='index.html'))
@@ -1045,7 +1046,8 @@ def workitems_overview():
         status = request.args.get('status', '')
         start_date = request.args.get('startDate', '')
         end_date = request.args.get('endDate', '')
-
+        start_date = datetime.fromisoformat(start_date) if start_date else None
+        end_date = datetime.fromisoformat(end_date) if end_date else None
         per_page = 50
         offset = (page - 1) * per_page
 
@@ -1075,7 +1077,7 @@ def workitems_overview():
             params.append(start_date)
 
         if end_date:
-            where_clauses.append("twi.ModifiedAt < DATEADD(day, 1, ?)")
+            where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
             
         where_sql = " AND ".join(where_clauses)
@@ -1107,22 +1109,169 @@ def workitems_overview():
             total_items = cursor.fetchone()[0] or 0
             
             data_query = f"""
-                SELECT DISTINCT
-                    tdi_barcode.StringValue AS Barcode,
-                    twi.ModifiedAt,
-                    twi.ID AS WorkItemID,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready'
-                        WHEN twi.Status = 5 THEN 'Done'
-                        ELSE 'In Progress'
-                    END AS Status,
-                    wim.Priority
+                 WITH WorkitemCTE AS (
+                    SELECT
+                        tdi_barcode.StringValue AS Barcode,
+                        twi.ModifiedAt,
+                        twi.ID AS WorkItemID,
+                        CASE
+                            WHEN twi.Status = 0 THEN 'Ready'
+                            WHEN twi.Status = 5 THEN 'Done'
+                            ELSE 'In Progress'
+                        END AS Status,
+                        wim.Priority,
+                        ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                    FROM t_WorkItems twi
+                    INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                    INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                    INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                    LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                    WHERE {where_sql}
+                )
+                SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority
+                FROM WorkitemCTE
+                WHERE rn = 1
+                ORDER BY ModifiedAt DESC
+                OFFSET ? ROWS
+                FETCH NEXT ? ROWS ONLY
+            """
+            data_params = params + [offset, per_page] 
+            cursor.execute(data_query, data_params)
+
+            for row in cursor.fetchall():
+               workitems_list.append({
+                    'barcode': row.Barcode,
+                    'modifiedat': row.ModifiedAt,
+                    'workitemid': row.WorkItemID,
+                    'status': row.Status,
+                    'priority': row.Priority or 0
+                })
+                
+        except Exception as e:
+            app.logger.error(f"Database error in workitems overview: {e}")
+            workitems_list = []
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+        total_pages = math.ceil(total_items / per_page)
+
+        log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+
+        return jsonify({
+        'workitems': workitems_list,
+        'pagination': {
+            'currentPage': page,
+            'totalPages': total_pages,
+            'totalItems': total_items,
+            'perPage': per_page
+            }
+        })
+    except Exception as e:
+        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+
+@app.route("/workitems")
+def workitems_overview():
+    try:
+        if 'username' not in session:
+            return redirect(url_for('login', page='index.html'))
+
+        logged_in_user = session.get('username')
+        userid = session.get('userid')
+        scope = session.get('scope')
+
+        page = request.args.get('page', 1, type=int)
+        search_term = request.args.get('search', '').strip()
+        status = request.args.get('status', '')
+        start_date = request.args.get('startDate', '')
+        end_date = request.args.get('endDate', '')
+        start_date = datetime.fromisoformat(start_date) if start_date else None
+        end_date = datetime.fromisoformat(end_date) if end_date else None
+        per_page = 50
+        offset = (page - 1) * per_page
+
+        process_name = request.args.get('processFilterWorkitemOverview', 'both')
+        session['process_name_workitemOverview'] = process_name
+        placeholders, params = get_process_filter_and_params(process_name)
+        params.append('Privera')
+
+        where_clauses = [
+            f"tp.Name IN ({placeholders})",
+            "tp.ClientName = ?",
+            "twi.Status <> 2",
+            "tdi_barcode.Name LIKE '%Barcode'", 
+            "tdi_barcode.StringValue IS NOT NULL"
+        ]
+        status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
+        if status and status in status_map:
+            where_clauses.append("twi.Status = ?")
+            params.append(status_map[status])
+
+        if search_term:
+            where_clauses.append("tdi_barcode.StringValue LIKE ?")
+            params.append(f"%{search_term}%")
+
+        if start_date:
+            where_clauses.append("twi.ModifiedAt >= ?")
+            params.append(start_date)
+
+        if end_date:
+            where_clauses.append("twi.ModifiedAt < ?")
+            params.append(end_date)
+            
+        where_sql = " AND ".join(where_clauses)
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        workitems_list = []
+        total_items = 0
+        conn = None
+        # Get all workitems
+        try:
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+            
+            cursor.execute(f"""
+            SELECT COUNT(DISTINCT tdi_barcode.StringValue)
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
+            """, params)
+            total_items = cursor.fetchone()[0] or 0
+            
+            data_query = f"""
+                 WITH WorkitemCTE AS (
+                    SELECT
+                        tdi_barcode.StringValue AS Barcode,
+                        twi.ModifiedAt,
+                        twi.ID AS WorkItemID,
+                        CASE
+                            WHEN twi.Status = 0 THEN 'Ready'
+                            WHEN twi.Status = 5 THEN 'Done'
+                            ELSE 'In Progress'
+                        END AS Status,
+                        wim.Priority,
+                        ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                    FROM t_WorkItems twi
+                    INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                    INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                    INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                    LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                    WHERE {where_sql}
+                )
+                SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority
+                FROM WorkitemCTE
+                WHERE rn = 1
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS
                 FETCH NEXT ? ROWS ONLY
@@ -1150,23 +1299,25 @@ def workitems_overview():
         total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+
         return render_template("workitems_overview.html", 
-                            logged_in_user=logged_in_user,
-                            userid=userid,
-                            scope=scope,
-                            process_name=process_name,
-                            workitems=workitems_list,
-                               current_page=page,
-                               total_pages=total_pages,
-                               total_items=total_items,
-                               search=search_term,
-                               status=status,
-                               startDate=start_date,
-                               endDate=end_date
-                            )
+            logged_in_user=logged_in_user,
+            userid=userid,
+            scope=scope,
+            process_name=process_name,
+            workitems=workitems_list,
+            current_page=page,
+            total_pages=total_pages,
+            total_items=total_items,
+            search=search_term,
+            status=status,
+            startDate=start_date,
+            endDate=end_date
+        )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
+
 
 def get_access_token():
     token = cache.get('octo_access_token')
@@ -1670,15 +1821,30 @@ def update_profile():
             session['email'] = email
             session['company'] = company
 
-            if request.files['file']:
+            if 'file' in request.files and request.files['file'].filename != '':
                 f = request.files['file']
-                filename = f"{userid}-icon.png"
-                rel_path = os.path.join('static', 'images', filename)
-                abs_path = os.path.join(app.root_path, rel_path)
-                if os.path.exists(abs_path):
-                    os.remove(abs_path)
-                f.save(abs_path)
+                try:
+                    in_memory_file = io.BytesIO()
+                    f.save(in_memory_file)
+                    in_memory_file.seek(0)
 
+                    img = Image.open(in_memory_file)
+                    img.verify()
+
+                    filename = f"{userid}-icon.png"
+                    rel_path = os.path.join('static', 'images', filename)
+                    abs_path = os.path.join(app.root_path, rel_path)
+                    if os.path.exists(abs_path):
+                        os.remove(abs_path)
+
+                    in_memory_file.seek(0)
+                    with open(abs_path, 'wb') as disk_file:
+                        disk_file.write(in_memory_file.read())
+                except Exception as e:
+                    app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
+                    flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
+                    return redirect(url_for("profile"))
+                
             log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
                 "fullname": fullname,
                 "email": email,
@@ -2018,7 +2184,7 @@ def internalError(e):
 #     return _("Database connection failed"), 500
 
 @app.errorhandler(403)
-def forbiddenPage():
+def forbiddenPage(e):
     return render_template('handlers/403.html'), 403
 # ----------------------------- error handler end ---------------------------- #
 

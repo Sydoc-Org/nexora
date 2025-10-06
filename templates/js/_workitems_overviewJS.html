@@ -39,61 +39,6 @@
             }).catch((err) => console.error("Logging failed:", err));
         }
 
-    function applyAllFilters() {
-        closeAllDetails();
-        cancelAllAnimations();
-
-        const searchTerm = document.getElementById("searchInput").value.toLowerCase();
-        const selectedStatus = document.getElementById("statusFilter").value;
-        const startDateValue = document.getElementById("startDate").value;
-        const endDateValue = document.getElementById("endDate").value;
-
-        const startDate = startDateValue ? new Date(startDateValue) : null;
-        const endDate = endDateValue ? new Date(endDateValue) : null;
-
-        if (startDate) startDate.setHours(0, 0, 0, 0);
-        if (endDate) endDate.setHours(23, 59, 59, 999);
-
-        const rows = document.querySelectorAll(".workitem-row");
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            const rowStatus = row.dataset.status;
-            const rowTimestamp = row.dataset.timestamp;
-            const rowDate = rowTimestamp ? new Date(rowTimestamp) : null;
-
-            const searchMatch = text.includes(searchTerm);
-            const statusMatch = !selectedStatus || rowStatus === selectedStatus;
-            
-            let dateMatch = true;
-            if (rowDate) {
-                const isAfterStart = !startDate || rowDate >= startDate;
-                const isBeforeEnd = !endDate || rowDate <= endDate;
-                dateMatch = isAfterStart && isBeforeEnd;
-            } else if (startDate || endDate) {
-                dateMatch = false;
-            }
-            
-            if (searchMatch && statusMatch && dateMatch) {
-                row.style.display = "";
-                visibleCount++;
-            } else {
-                row.style.display = "none";
-            }
-        });
-
-        document.getElementById("showingCount").textContent = visibleCount;
-    }
-
-
-    document.getElementById("searchInput").addEventListener("keyup", applyAllFilters);
-
-    document.getElementById("statusFilter").addEventListener("change", function () {
-        logAction("filterWorkitems", "workitemOverview", JSON.stringify({ by_status: this.value }), "SUCCESS", 0);
-        applyAllFilters();
-    });
-
         function closeAllDetails() {
             document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
                 detailsRow.classList.remove('open');
@@ -105,32 +50,6 @@
                 chevron.classList.remove('glyphicon-chevron-down-custom');
                 chevron.classList.add('glyphicon-chevron-up-custom');
             });
-        }
-
-        function sortTable(columnIndex) {
-            const table = document.getElementById("workitemsTable");
-            const tbody = table.tBodies[0];
-            const rows = Array.from(tbody.rows);
-
-            const workitemRows = Array.from(tbody.querySelectorAll(".workitem-row"));
-
-            workitemRows.sort((a, b) => {
-                const aValue = a.cells[columnIndex].textContent.trim();
-                const bValue = b.cells[columnIndex].textContent.trim();
-
-                if (columnIndex === 0) {
-                    return (
-                        parseInt(aValue.replace("#", "")) - parseInt(bValue.replace("#", ""))
-                    );
-                }
-
-                if (columnIndex === 2) {
-                    return new Date(aValue) - new Date(bValue);
-                }
-                return aValue.localeCompare(bValue);
-            });
-
-            rows.forEach((row) => tbody.appendChild(row));
         }
 
         function exportToCSV() {
@@ -575,6 +494,258 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchMentionableUsers(); 
+            const filterForm = document.getElementById('filterForm');
+            async function fetchAndUpdateWorkitems(page = 1) {
+                const formData = new FormData(filterForm);
+                formData.set('page', page);
+                const params = new URLSearchParams(formData);
+                const url = `${API_PREFIX}api/workitems?${params.toString()}`;
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+
+                try {
+                    document.getElementById('workitemsTbody').innerHTML = `<tr><td colspan="5" class="text-center py-10">Loading...</td></tr>`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    renderTable(data.workitems);
+                    renderPagination(data.pagination);
+                    
+                } catch (error) {
+                    console.error("Failed to fetch or render workitems:", error);
+                    document.getElementById('workitemsTbody').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load data. Please check the console for errors.</td></tr>`;
+                }
+        }
+        
+            function renderTable(workitems) {
+            const tbody = document.getElementById('workitemsTbody');
+            tbody.innerHTML = ''; 
+
+            if (workitems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">{{ _("No workitems found for the selected criteria.") }}</td></tr>`;
+                return;
+            }
+
+            workitems.forEach(workitem => {
+                const statusBadge = {
+                    'Ready': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ready</span>',
+                    'In Progress': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>',
+                    'Done': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Done</span>',
+                }[workitem.status] || `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${workitem.status}</span>`;
+                
+                let priorityIcon = '';
+                if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+
+                const rowHtml = `
+                    <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.barcode}">
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="font-medium text-gray-900">${workitem.barcode}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-left">${statusBadge}</td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">${workitem.modifiedat}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.barcode}">${priorityIcon}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                            <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
+                                data-workitemid="${workitem.workitemid}" data-barcode="${workitem.barcode}">
+                                <i class="indicator fas fa-chevron-down"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="details-row-${workitem.workitemid}" class="details-row" hidden>
+                      <td colspan="5">
+                        <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+                          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div id="image-container-${workitem.workitemid}"
+                              class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
+                              <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
+                            </div>
+                            <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
+                              <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
+                              <div id="history-container-${workitem.workitemid}"
+                                class="relative flex-grow overflow-y-auto pr-2">
+                                <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div class="flex flex-col">
+                                <div id="comments-container-${workitem.workitemid}"
+                                  class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60">
+                                  <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                                </div>
+                              </div>
+                              <div class="flex flex-col">
+                                <div class="mb-4">
+                                  <label for="priority-select-${workitem.workitemid}"
+                                    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                                  <select id="priority-select-${workitem.workitemid}" data-barcode="${workitem.barcode}"
+                                    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="0">{{ _("None") }}</option>
+                                    <option value="1">{{ _("Low") }}</option>
+                                    <option value="2">{{ _("Medium") }}</option>
+                                    <option value="3">{{ _("High") }}</option>
+                                  </select>
+                                </div>
+                                <div class="mb-4">
+                                  <label for="assign-select-${workitem.workitemid}"
+                                    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+                                  <select id="assign-select-${workitem.workitemid}" data-barcode="${workitem.barcode}"
+                                    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="None">{{ _("None") }}</option>
+                                  </select>
+                                </div>
+                                <div class="relative mt-auto" id="comment-form-wrapper-${workitem.workitemid}">
+                                  <form class="comment-form" data-barcode="${workitem.barcode}">
+                                    <textarea name="commentText" class="w-full p-2 border rounded-md"
+                                      placeholder="{{ _('Add a comment... Tag with @username') }}" rows="2" required
+                                      autocomplete="off"></textarea>
+                                    <button type="submit"
+                                      class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                                      _("Post Comment") }}</button>
+                                  </form>
+                                  <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+            function renderPagination(pagination) {
+            const { currentPage, totalPages, totalItems, perPage } = pagination;
+            document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
+            document.getElementById('totalCount').textContent = totalItems;
+
+            const controlsContainer = document.getElementById('paginationControls');
+            if (!controlsContainer) return;
+            controlsContainer.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevDisabled = currentPage === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+            const nextDisabled = currentPage === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+
+            const paginationHtml = `
+                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${prevDisabled}">
+                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                </a>
+                <span class="text-sm text-gray-600">
+                    Page ${currentPage} of ${totalPages}
+                </span>
+                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${nextDisabled}">
+                    Next <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+            `;
+            controlsContainer.innerHTML = paginationHtml;
+        }
+
+            let sortState = {
+                columnIndex: -1,
+                ascending: true
+            };
+
+            function sortTable(columnIndex) {
+                const table = document.getElementById("workitemsTable");
+                const tbody = table.tBodies[0];
+                const headers = table.querySelectorAll('.sortable-header');
+
+                if (sortState.columnIndex === columnIndex) {
+                    sortState.ascending = !sortState.ascending;
+                } else {
+                    sortState.columnIndex = columnIndex;
+                    sortState.ascending = true;
+                }
+
+                const rowsToSort = Array.from(tbody.querySelectorAll(".workitem-row")).map(row => {
+                    return {
+                        mainRow: row,
+                        detailsRow: row.nextElementSibling 
+                    };
+                });
+
+                rowsToSort.sort((a, b) => {
+                    const aCell = a.mainRow.cells[columnIndex];
+                    const bCell = b.mainRow.cells[columnIndex];
+                    if (!aCell || !bCell) return 0;
+
+                    const aText = aCell.textContent.trim();
+                    const bText = bCell.textContent.trim();
+                    
+                    let comparison = 0;
+                    if (columnIndex === 2) {
+                        const parseDate = (str) => {
+                            const [datePart, timePart] = str.split(' - ');
+                            const [day, month, year] = datePart.split('. ');
+                            return new Date(`${year}-${month}-${day}T${timePart}:00`);
+                        };
+                        comparison = parseDate(aText) - parseDate(bText);
+                    } else {
+                        comparison = aText.localeCompare(bText, undefined, { numeric: true });
+                    }
+
+                    return sortState.ascending ? comparison : -comparison;
+                });
+
+                tbody.innerHTML = ''; 
+                rowsToSort.forEach(pair => {
+                    tbody.appendChild(pair.mainRow);
+                    if (pair.detailsRow && pair.detailsRow.classList.contains('details-row')) {
+                        tbody.appendChild(pair.detailsRow);
+                    }
+                });
+
+                headers.forEach((header, index) => {
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
+                        if (index === columnIndex) {
+                            icon.classList.remove('fa-sort');
+                            icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
+                            icon.classList.add('text-indigo-600');
+                        }
+                    }
+                });
+            }
+
+            const tableHead = document.querySelector('#workitemsTable thead');
+            if (tableHead) {
+                tableHead.addEventListener('click', (event) => {
+                    const header = event.target.closest('.sortable-header');
+                    if (header) {
+                        const colIndex = parseInt(header.dataset.columnIndex, 10);
+                        sortTable(colIndex);
+                    }
+                });
+            }
+            
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                fetchAndUpdateWorkitems();
+            });
+
+            ['processFilterWorkitemOverview', 'statusFilter', 'startDate', 'endDate'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => fetchAndUpdateWorkitems());
+            });
+            document.getElementById('searchInput').addEventListener('input', () => fetchAndUpdateWorkitems());
+            
+            document.getElementById('paginationContainer').addEventListener('click', (e) => {
+                const link = e.target.closest('.pagination-link');
+                if (link) {
+                    e.preventDefault();
+                    const page = parseInt(link.dataset.page, 10);
+                    if (page > 0) { 
+                        fetchAndUpdateWorkitems(page);
+                    }
+                }
+            });
 
             const tbody = document.getElementById('workitemsTbody');
             tbody.addEventListener('click', (event) => {
@@ -611,14 +782,12 @@
                 }
             });
 
-            // Advanced filter toggle
             const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
             const advancedContainer = document.getElementById('advancedFilterContainer');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => advancedContainer.classList.toggle('hidden'));
             }
 
-            // Image modal logic
             const modal = document.getElementById("imageModal");
             const modalImg = document.getElementById("modalImage");
             const closeBtn = document.querySelector(".modal-close");
