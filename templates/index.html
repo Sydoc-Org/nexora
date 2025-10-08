@@ -12,24 +12,22 @@
 <body class="bg-gray-50">
 
     <header class="bg-white shadow-sm">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-file-alt text-3xl text-indigo-600 mr-3"></i>
-                    <a href="{{ url_for('index') }}"><h1 class="text-2xl font-bold text-gray-800">Sydoc Portal</h1></a>
-                </div>
-                <nav class="hidden md:flex items-center space-x-6">
-                    <a href="https://sydoc.ch/" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _("sydoc Homepage") }} </a>
-                    <a href="#services" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _("Services") }}</a>
-                    <a href="mailto:support.helpdesk@sydoc.ch" class="text-gray-600 hover:text-indigo-600 transition duration-300">{{ _("Contact") }}</a>
-                </nav>
-                <button class="md:hidden">
+        <div class="container mx-auto flex items-center justify-between px-6 py-4">
+            {% include 'sydocPortalLogo/_syPortalLogo.html' %}
+            <nav class="hidden space-x-6 md:flex">
+                <a href="https://sydoc.ch/" class="text-gray-600 transition duration-300 hover:text-indigo-600">{{ _("sydoc Homepage") }}</a>
+                <a href="#services" class="text-gray-600 transition duration-300 hover:text-indigo-600">{{ _("Services") }}</a>
+                <a href="mailto:support.helpdesk@sydoc.ch" class="text-gray-600 transition duration-300 hover:text-indigo-600">{{ _("Contact") }}</a>
+            </nav>
+    
+            <div class="md:hidden">
+                <button>
                     <i class="fas fa-bars text-2xl text-gray-600"></i>
                 </button>
             </div>
+            
         </div>
     </header>
-
     <main>
         <section class="bg-white">
             <div class="container mx-auto px-6 py-20">
@@ -48,7 +46,7 @@
 
                     <div id="login-form" class="md:w-1/2 lg:w-2/5">
                         <div class="bg-white rounded-xl shadow-2xl p-8">
-                            <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Sydoc Portal Login</h3>
+                            <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h3>
                                     {% if error %}
                                         <div class="error-message">{{ error }}</div>
                                     {% endif %}

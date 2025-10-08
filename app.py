@@ -2179,10 +2179,6 @@ def page_not_found(e):
 def internalError(e):
     return render_template("handlers/500.html"), 500
 
-# @app.errorhandler(DatabaseError)
-# def special_exception_handler():
-#     return _("Database connection failed"), 500
-
 @app.errorhandler(403)
 def forbiddenPage(e):
     return render_template('handlers/403.html'), 403
