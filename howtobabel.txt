@@ -14,6 +14,7 @@ pybabel extract -F babel.cfg -o messages.pot . #get all highlighted strings
 if init:
     pybabel init -i messages.pot -d translations -l de #make folder for german
     pybabel init -i messages.pot -d translations -l fr #make folder for French
+    pybabel init -i messages.pot -d translations -l it #make folder for italian
 else:
     pybabel update -i messages.pot -d translations
 

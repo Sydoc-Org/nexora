@@ -215,7 +215,7 @@
                   </div>
 
                   <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+                     <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div class="flex flex-col">
@@ -225,7 +225,7 @@
                         </div>
                       </div>
 
-                      <div class="flex flex-col h-96">
+                      <div id="collaboration-tools-{{ workitem.workitemid }}" class="flex flex-col h-96">
                         <div class="mb-4">
                           <label for="priority-select-{{ workitem.workitemid }}"
                             class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
@@ -237,6 +237,9 @@
                             <option value="3">{{ _("High") }}</option>
                           </select>
                         </div>
+                        </div>
+                    </div>
+                  </div>
 
                         <div class="mb-4">
                           <label for="assign-select-{{ workitem.workitemid }}"
@@ -326,6 +329,8 @@
   </div>
 
   {% include 'js/_workitems_overviewJS.html' %}
+    {% include 'js/_tourJS.html' %}
+
 </body>
 
 </html>

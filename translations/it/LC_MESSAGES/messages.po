@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-09-30 11:50+0200\n"
-"PO-Revision-Date: 2025-09-30 12:34+0200\n"
-"Last-Translator: Gemini Assistant <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2025-10-09 10:57+0200\n"
+"PO-Revision-Date: 2025-10-09 10:59+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -18,876 +18,1778 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:170 app.py:217
+#: app.py:170 app.py:223
 msgid "Invalid credentials"
-msgstr "Credenziali non valide"
+msgstr ""
 
-#: app.py:222
+#: app.py:228
 msgid "Login temporarily unavailable"
-msgstr "Accesso temporaneamente non disponibile"
+msgstr ""
 
-#: app.py:248 app.py:276
+#: app.py:254 app.py:282
 msgid "Not authenticated"
-msgstr "Non autenticato"
+msgstr ""
 
-#: app.py:268
+#: app.py:274
 msgid "Could not fetch notifications"
-msgstr "Impossibile recuperare le notifiche"
+msgstr ""
 
-#: app.py:282
+#: app.py:288
 msgid "Invalid payload"
-msgstr "Dati non validi"
+msgstr ""
 
-#: app.py:302
+#: app.py:308
 msgid "Notifications marked as read."
-msgstr "Notifiche contrassegnate come lette."
+msgstr ""
 
-#: app.py:305
+#: app.py:311
 msgid "Could not update notifications"
-msgstr "Impossibile aggiornare le notifiche"
+msgstr ""
 
-#: app.py:356
+#: app.py:363
 msgid "All fields are required."
-msgstr "Tutti i campi sono obbligatori."
+msgstr ""
 
-#: app.py:368 app.py:370
+#: app.py:375 app.py:377
 msgid "User created successfully."
-msgstr "Utente creato con successo."
+msgstr ""
 
-#: app.py:373
+#: app.py:380
 msgid "Username or email already exists."
-msgstr "Nome utente o email già esistente."
+msgstr ""
 
-#: app.py:377
+#: app.py:384 app.py:1669 app.py:1711 app.py:1749
 msgid "An unexpected error occurred."
-msgstr "Si è verificato un errore imprevisto."
+msgstr ""
 
-#: app.py:409
+#: app.py:418
 msgid "User updated successfully"
-msgstr "Utente aggiornato con successo"
+msgstr ""
 
-#: app.py:411
+#: app.py:420
 msgid "User updated successfully."
-msgstr "Utente aggiornato con successo."
+msgstr ""
 
-#: app.py:415 app.py:446
+#: app.py:424 app.py:455
 msgid "An error occurred."
-msgstr "Si è verificato un errore."
+msgstr ""
 
-#: app.py:426
+#: app.py:435
 msgid "You cannot delete your own account."
-msgstr "Non puoi eliminare il tuo account."
+msgstr ""
 
-#: app.py:438
+#: app.py:447
 msgid "User not found."
-msgstr "Utente non trovato."
+msgstr ""
 
-#: app.py:440
+#: app.py:449
 msgid "User deleted successfully"
-msgstr "Utente eliminato con successo"
+msgstr ""
 
-#: app.py:442
+#: app.py:451
 msgid "User deleted successfully."
-msgstr "Utente eliminato con successo."
+msgstr ""
 
-#: app.py:468
+#: app.py:477
 msgid "Could not fetch logs"
-msgstr "Impossibile recuperare i log"
+msgstr ""
 
-#: app.py:496
+#: app.py:505
 msgid "Could not fetch sessions"
-msgstr "Impossibile recuperare le sessioni"
+msgstr ""
 
-#: app.py:528
+#: app.py:537
 msgid "Passwords do not match"
-msgstr "Le password non corrispondono"
+msgstr ""
 
-#: app.py:530
+#: app.py:539
 msgid "All Fields must be filled"
-msgstr "Tutti i campi devono essere compilati"
+msgstr ""
 
-#: app.py:532 app.py:1418
+#: app.py:541 app.py:1882
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
-msgstr "La nuova password deve essere lunga almeno 8 caratteri e non contenere spazi."
+msgstr ""
 
-#: app.py:558
+#: app.py:567
 msgid "New Password musn't be previously used password"
-msgstr "La nuova password non deve essere una password usata in precedenza"
+msgstr ""
 
-#: app.py:575
+#: app.py:584
 msgid "Password changed successfully"
-msgstr "Password modificata con successo"
+msgstr ""
 
-#: app.py:577
+#: app.py:586
 msgid "Password changed"
-msgstr "Password modificata"
+msgstr ""
 
-#: app.py:624
+#: app.py:633
 msgid "Sydoc Portal Password Reset Request"
-msgstr "Richiesta di reset password del Portale Sydoc"
+msgstr ""
 
-#: app.py:666
+#: app.py:675
 msgid "Password Reset Request"
-msgstr "Richiesta di Reset Password"
+msgstr ""
 
-#: app.py:669
+#: app.py:678
 msgid "Hello,"
-msgstr "Ciao,"
+msgstr ""
 
-#: app.py:672
+#: app.py:681
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
-msgstr "Abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account. Puoi reimpostare la password cliccando sul pulsante qui sotto."
+msgstr ""
 
-#: app.py:682
+#: app.py:691
 msgid "Reset Your Password"
-msgstr "Reimposta la tua Password"
+msgstr ""
 
-#: app.py:692
+#: app.py:701
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
-msgstr "Se non hai richiesto la reimpostazione della password, ignora questa email. Questo link è valido per 15 minuti."
+msgstr ""
 
-#: app.py:695
+#: app.py:704
 msgid "Thanks,<br>The Sydoc Team"
-msgstr "Grazie,<br>Il Team Sydoc"
+msgstr ""
 
-#: app.py:759
+#: app.py:769
 msgid "A password reset link has been sent to your email"
-msgstr "Un link per il reset della password è stato inviato alla tua email"
+msgstr ""
 
-#: app.py:761
+#: app.py:771
 msgid "Unexpected error occurred"
-msgstr "Si è verificato un errore imprevisto"
+msgstr ""
 
-#: app.py:762
+#: app.py:772
 msgid "Invalid Email Address"
-msgstr "Indirizzo email non valido"
+msgstr ""
 
-#: app.py:1173 app.py:1202
-msgid "Workitem not found"
-msgstr "Elemento di lavoro non trovato"
-
-#: app.py:1193 app.py:1253
-msgid "Internal Server Error"
-msgstr "Errore interno del server"
-
-#: app.py:1213
-msgid "Media index out of bounds"
-msgstr "Indice media fuori dai limiti"
-
-#: app.py:1242
-msgid "Failed to process TIFF image"
-msgstr "Elaborazione immagine TIFF non riuscita"
-
-#: app.py:1270
-msgid "Error fetching activity instance"
-msgstr "Errore nel recupero dell'istanza di attività"
-
-#: app.py:1305
-msgid "Failed to fetch audit history"
-msgstr "Recupero della cronologia di audit non riuscito"
-
-#: app.py:1307
-msgid "An unexpected error occurred"
-msgstr "Si è verificato un errore imprevisto"
-
-#: app.py:1341
-msgid "Full name is not valid"
-msgstr "Il nome completo non è valido"
-
-#: app.py:1344
-msgid "Email Adress is not valid"
-msgstr "L'indirizzo email non è valido"
-
-#: app.py:1347
-msgid "Company name is not valid"
-msgstr "Il nome dell'azienda non è valido"
-
-#: app.py:1389
-msgid "Your profile was updated successfully."
-msgstr "Il tuo profilo è stato aggiornato con successo."
-
-#: app.py:1390
-msgid "Profile updated successfully!"
-msgstr "Profilo aggiornato con successo!"
-
-#: app.py:1393
-msgid "Unexpected error"
-msgstr "Errore imprevisto"
-
-#: app.py:1415
-msgid "All fields must be filled"
-msgstr "Tutti i campi devono essere compilati"
-
-#: app.py:1459 app.py:1461
-msgid "Password updated successfully!"
-msgstr "Password aggiornata con successo!"
-
-#: app.py:1464
-msgid "Current password is incorrect"
-msgstr "La password attuale non è corretta"
-
-#: app.py:1467 app.py:1481
-msgid "Unexpected Error"
-msgstr "Errore Imprevisto"
-
-#: app.py:1476 app.py:1478
-msgid "Language changed successfully!"
-msgstr "Lingua modificata con successo!"
-
-#: app.py:1514 app.py:1561 app.py:1578
+#: app.py:962 app.py:970 app.py:1549 app.py:1569 app.py:1631 app.py:1677
+#: app.py:1719 app.py:1982 app.py:2032 app.py:2047
 msgid "Not authorized"
-msgstr "Non autorizzato"
+msgstr ""
 
-#: app.py:1708
-msgid "Database connection failed"
-msgstr "Connessione al database non riuscita"
+#: app.py:978
+msgid "Not logged in"
+msgstr ""
 
-#: templates/_header.html:35 templates/admin/userManagement.html:170
+#: app.py:1409 app.py:1438
+msgid "Workitem not found"
+msgstr ""
+
+#: app.py:1429 app.py:1489
+msgid "Internal Server Error"
+msgstr ""
+
+#: app.py:1449
+msgid "Media index out of bounds"
+msgstr ""
+
+#: app.py:1478
+msgid "Failed to process TIFF image"
+msgstr ""
+
+#: app.py:1506
+msgid "Error fetching activity instance"
+msgstr ""
+
+#: app.py:1541
+msgid "Failed to fetch audit history"
+msgstr ""
+
+#: app.py:1543
+msgid "An unexpected error occurred"
+msgstr ""
+
+#: app.py:1561
+msgid "Could not fetch users"
+msgstr ""
+
+#: app.py:1586
+msgid "No data found for this workitem."
+msgstr ""
+
+#: app.py:1623
+msgid "Could not fetch interactions"
+msgstr ""
+
+#: app.py:1636
+msgid "Comment cannot be empty."
+msgstr ""
+
+#: app.py:1665
+msgid "Comment added."
+msgstr ""
+
+#: app.py:1682
+msgid "Invalid assignment."
+msgstr ""
+
+#: app.py:1706
+msgid "assigned you on barcode"
+msgstr ""
+
+#: app.py:1707
+msgid "Assignment updated."
+msgstr ""
+
+#: app.py:1724
+msgid "Invalid priority level."
+msgstr ""
+
+#: app.py:1745
+msgid "Priority updated."
+msgstr ""
+
+#: app.py:1790
+msgid "Full name is not valid"
+msgstr ""
+
+#: app.py:1793
+msgid "Email Adress is not valid"
+msgstr ""
+
+#: app.py:1796
+msgid "Company name is not valid"
+msgstr ""
+
+#: app.py:1845
+msgid "Invalid file format. Please upload a valid image."
+msgstr ""
+
+#: app.py:1853
+msgid "Your profile was updated successfully."
+msgstr ""
+
+#: app.py:1854
+msgid "Profile updated successfully!"
+msgstr ""
+
+#: app.py:1857
+msgid "Unexpected error"
+msgstr ""
+
+#: app.py:1879
+msgid "All fields must be filled"
+msgstr ""
+
+#: app.py:1923 app.py:1925
+msgid "Password updated successfully!"
+msgstr ""
+
+#: app.py:1928
+msgid "Current password is incorrect"
+msgstr ""
+
+#: app.py:1931 app.py:1945
+msgid "Unexpected Error"
+msgstr ""
+
+#: app.py:1940 app.py:1942
+msgid "Language changed successfully!"
+msgstr ""
+
+#: templates/_header.html:39 templates/admin/userManagement.html:174
 msgid "Admin"
-msgstr "Admin"
+msgstr ""
 
-#: templates/_header.html:41
+#: templates/_header.html:45
 msgid "Dashboard"
-msgstr "Dashboard"
+msgstr ""
 
-#: templates/_header.html:46
+#: templates/_header.html:50
 msgid "Workitems"
-msgstr "Elementi di lavoro"
+msgstr ""
 
-#: templates/_header.html:51
+#: templates/_header.html:55
 msgid "Reports"
-msgstr "Rapporti"
+msgstr ""
 
-#: templates/_header.html:69
+#: templates/_header.html:62 templates/js/_tourJS.html:29
+#: templates/js/_tourJS.html:67 templates/js/_tourJS.html:143
+msgid "Start Tour"
+msgstr ""
+
+#: templates/_header.html:79
 msgid "Notifications"
-msgstr "Notifiche"
+msgstr ""
 
-#: templates/_header.html:72
+#: templates/_header.html:82
 msgid "Loading..."
-msgstr "Caricamento in corso..."
+msgstr ""
 
-#: templates/_header.html:89
+#: templates/_header.html:99
 msgid "Your profile"
-msgstr "Il tuo profilo"
+msgstr ""
 
-#: templates/_header.html:92 templates/profile.html:44
+#: templates/_header.html:102 templates/profile.html:49
 msgid "Sign out"
-msgstr "Esci"
+msgstr ""
 
 #: templates/dashboard.html:7
 msgid "Sydoc Portal - Dashboard"
-msgstr "Portale Sydoc - Dashboard"
+msgstr ""
 
 #: templates/dashboard.html:21
 msgid "Welcome back"
-msgstr "Bentornato"
+msgstr ""
 
 #: templates/dashboard.html:24
 msgid "Here's a summary of your document activity"
-msgstr "Ecco un riepilogo dell'attività dei tuoi documenti"
+msgstr ""
 
-#: templates/dashboard.html:78
+#: templates/dashboard.html:32 templates/reports.html:31
+#: templates/workitems_overview.html:41
+msgid "Filter by Process"
+msgstr ""
+
+#: templates/dashboard.html:37 templates/reports.html:36
+#: templates/workitems_overview.html:44
+msgid "All Processes"
+msgstr ""
+
+#: templates/dashboard.html:38 templates/reports.html:37
+#: templates/workitems_overview.html:45
+msgid "Inbox"
+msgstr ""
+
+#: templates/dashboard.html:39 templates/reports.html:38
+#: templates/workitems_overview.html:47
+msgid "Invoice"
+msgstr ""
+
+#: templates/dashboard.html:98
 msgid "Document Status"
-msgstr "Stato Documenti"
+msgstr ""
 
-#: templates/dashboard.html:84
+#: templates/dashboard.html:104 templates/js/_tourJS.html:51
 msgid "Recent Activity"
-msgstr "Attività Recente"
+msgstr ""
 
-#: templates/admin/userManagement.html:92
-#: templates/admin/userManagement.html:117 templates/dashboard.html:86
+#: templates/admin/userManagement.html:96
+#: templates/admin/userManagement.html:121 templates/dashboard.html:106
 msgid "Loading"
-msgstr "Caricamento"
+msgstr ""
 
-#: templates/dashboard.html:91
+#: templates/dashboard.html:111
 msgid "Need help"
-msgstr "Hai bisogno di aiuto"
+msgstr ""
 
-#: templates/dashboard.html:97
+#: templates/dashboard.html:117
 msgid "Contact support"
-msgstr "Contatta il supporto"
+msgstr ""
 
-#: templates/dashboard.html:100
+#: templates/dashboard.html:120
 msgid "or email us at"
-msgstr "o inviaci un'email a"
+msgstr ""
 
 #: templates/forgot_password.html:6
 msgid "Forgot password - Sydoc Portal"
-msgstr "Password dimenticata - Portale Sydoc"
+msgstr ""
 
 #: templates/forgot_password.html:34
 msgid "Forgot your password"
-msgstr "Hai dimenticato la password"
+msgstr ""
 
 #: templates/forgot_password.html:35
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
-msgstr "Nessun problema. Inserisci l'indirizzo email associato al tuo account e ti invieremo un link per reimpostare la password"
+msgstr ""
 
-#: templates/forgot_password.html:45 templates/profile.html:97
+#: templates/forgot_password.html:45 templates/profile.html:105
 msgid "Email address"
-msgstr "Indirizzo email"
+msgstr ""
 
 #: templates/forgot_password.html:55
 msgid "Send reset link"
-msgstr "Invia link di reset"
+msgstr ""
 
 #: templates/forgot_password.html:61 templates/reset_password.html:76
 msgid "Back to login"
-msgstr "Torna al login"
+msgstr ""
 
 #: templates/forgot_password.html:72
 msgid "All rights reserved"
-msgstr "Tutti i diritti riservati"
+msgstr ""
 
 #: templates/index.html:6 templates/seperate_page_login.html:6
 #: templates/seperate_page_login.html:18
 msgid "Login - Sydoc Portal"
-msgstr "Login - Portale Sydoc"
+msgstr ""
 
-#: templates/index.html:22
+#: templates/index.html:18
 msgid "sydoc Homepage"
-msgstr "Homepage Sydoc"
+msgstr ""
 
-#: templates/index.html:23
+#: templates/index.html:19
 msgid "Services"
-msgstr "Servizi"
+msgstr ""
 
-#: templates/index.html:24
+#: templates/index.html:20
 msgid "Contact"
-msgstr "Contatti"
+msgstr ""
 
-#: templates/index.html:39
+#: templates/index.html:37
 msgid "Welcome to the Sydoc Portal"
-msgstr "Benvenuto nel Portale Sydoc"
+msgstr ""
 
-#: templates/index.html:42
+#: templates/index.html:40
 msgid ""
 "Securely track the status of your scanned email/sftp imported and "
 "validated documents in real-time. Please log in to access your dashboard"
-msgstr "Traccia in modo sicuro e in tempo reale lo stato dei tuoi documenti scansionati, importati via email/SFTP e validati. Accedi per visualizzare la tua dashboard"
+msgstr ""
 
-#: templates/index.html:45
+#: templates/index.html:43
 msgid "Login to your account"
-msgstr "Accedi al tuo account"
+msgstr ""
 
 #: templates/admin/userManagement.html:37
-#: templates/admin/userManagement.html:84
-#: templates/admin/userManagement.html:159 templates/index.html:57
-#: templates/profile.html:81 templates/seperate_page_login.html:24
+#: templates/admin/userManagement.html:88
+#: templates/admin/userManagement.html:163 templates/index.html:55
+#: templates/profile.html:88 templates/seperate_page_login.html:24
 msgid "Username"
-msgstr "Nome utente"
+msgstr ""
 
-#: templates/admin/userManagement.html:193 templates/index.html:66
+#: templates/admin/userManagement.html:223 templates/index.html:64
 #: templates/profile.html:34 templates/seperate_page_login.html:33
 msgid "Password"
-msgstr "Password"
+msgstr ""
 
-#: templates/index.html:77 templates/seperate_page_login.html:44
+#: templates/index.html:75 templates/seperate_page_login.html:44
 msgid "Remember me"
-msgstr "Ricordami"
+msgstr ""
 
-#: templates/index.html:79
+#: templates/index.html:77
 msgid "Forgot password"
-msgstr "Password dimenticata"
+msgstr ""
 
-#: templates/index.html:82 templates/seperate_page_login.html:49
+#: templates/index.html:80 templates/seperate_page_login.html:49
 msgid "Sign in"
-msgstr "Accedi"
+msgstr ""
 
-#: templates/index.html:95
+#: templates/index.html:93
 msgid "Why use Sydoc Portal"
-msgstr "Perché usare il Portale Sydoc"
+msgstr ""
 
-#: templates/index.html:96
+#: templates/index.html:94
 msgid "Everything you need in one secure and convenient place"
-msgstr "Tutto ciò di cui hai bisogno in un unico posto, sicuro e conveniente"
+msgstr ""
 
-#: templates/index.html:104
+#: templates/index.html:102
 msgid "Real-time tracking"
-msgstr "Tracciamento in tempo reale"
+msgstr ""
 
-#: templates/index.html:105
+#: templates/index.html:103
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
-msgstr "Monitora il percorso del tuo documento dall'importazione alla validazione e alla consegna finale, in ogni sua fase"
+msgstr ""
 
-#: templates/index.html:112
+#: templates/index.html:110
 msgid "Document history"
-msgstr "Cronologia documenti"
+msgstr ""
 
-#: templates/index.html:113
+#: templates/index.html:111
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
-msgstr "Accedi a una cronologia completa e verificabile di tutti i tuoi documenti elaborati, disponibile 24/7."
+msgstr ""
 
-#: templates/index.html:120
+#: templates/index.html:118
 msgid "Secure access"
-msgstr "Accesso sicuro"
+msgstr ""
 
-#: templates/index.html:121
+#: templates/index.html:119
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
-msgstr "I tuoi dati sono protetti con i migliori protocolli di sicurezza del settore, garantendo la massima riservatezza"
+msgstr ""
 
 #: templates/profile.html:7
 msgid "Profile settings - Sydoc Portal"
-msgstr "Impostazioni profilo - Portale Sydoc"
+msgstr ""
 
 #: templates/profile.html:20
 msgid "Account settings"
-msgstr "Impostazioni account"
+msgstr ""
 
 #: templates/profile.html:29
 msgid "Profile"
-msgstr "Profilo"
+msgstr ""
 
-#: templates/profile.html:39 templates/profile.html:167
+#: templates/profile.html:39 templates/profile.html:181
 msgid "Language"
-msgstr "Lingua"
+msgstr ""
 
-#: templates/profile.html:52
+#: templates/admin/userManagement.html:42
+#: templates/admin/userManagement.html:212 templates/profile.html:44
+#: templates/profile.html:220
+msgid "Subscription"
+msgstr ""
+
+#: templates/profile.html:57
 msgid "Profile information"
-msgstr "Informazioni del profilo"
+msgstr ""
 
 #: templates/admin/userManagement.html:38
-#: templates/admin/userManagement.html:175 templates/profile.html:89
+#: templates/admin/userManagement.html:182 templates/profile.html:97
 msgid "Full name"
-msgstr "Nome completo"
+msgstr ""
 
 #: templates/admin/userManagement.html:40
-#: templates/admin/userManagement.html:187 templates/profile.html:104
+#: templates/admin/userManagement.html:194 templates/profile.html:113
 msgid "Company"
-msgstr "Azienda"
+msgstr ""
 
-#: templates/profile.html:113 templates/profile.html:161
+#: templates/profile.html:123 templates/profile.html:175
 msgid "Save changes"
-msgstr "Salva modifiche"
+msgstr ""
 
-#: templates/profile.html:119
+#: templates/profile.html:129
 msgid "Change password"
-msgstr "Cambia password"
+msgstr ""
 
-#: templates/profile.html:139
+#: templates/profile.html:150
 msgid "Current password"
-msgstr "Password attuale"
+msgstr ""
 
-#: templates/profile.html:146 templates/reset_password.html:47
-msgid "New password"
-msgstr "Nuova password"
+#: templates/profile.html:157
+msgid ""
+"New\n"
+"                                password"
+msgstr ""
 
-#: templates/profile.html:153 templates/reset_password.html:58
+#: templates/profile.html:166 templates/reset_password.html:58
 msgid "Confirm new password"
-msgstr "Conferma nuova password"
+msgstr ""
 
-#: templates/profile.html:186
+#: templates/profile.html:201
 msgid "Change language"
-msgstr "Cambia lingua"
+msgstr ""
+
+#: templates/profile.html:229
+msgid "Pricing"
+msgstr ""
+
+#: templates/profile.html:232
+msgid "Choose the right plan for you"
+msgstr ""
+
+#: templates/profile.html:236
+msgid ""
+"Choose an affordable plan that’s packed with the best features for "
+"engaging your audience and driving sales."
+msgstr ""
+
+#: templates/profile.html:247
+msgid "The perfect plan if you're just getting started with our product."
+msgstr ""
+
+#: templates/profile.html:279 templates/profile.html:340
+msgid "Get started today"
+msgstr ""
+
+#: templates/profile.html:289
+msgid ""
+"Dedicated support and infrastructure for your\n"
+"                                    company."
+msgstr ""
+
+#: templates/profile.html:299
+msgid "Organisation Admin"
+msgstr ""
+
+#: templates/profile.html:308
+msgid "Advanced Filters"
+msgstr ""
+
+#: templates/profile.html:317
+msgid "Advanced analytics"
+msgstr ""
+
+#: templates/profile.html:326
+msgid "Dedicated support representative"
+msgstr ""
+
+#: templates/profile.html:335
+msgid " Custom integrations"
+msgstr ""
 
 #: templates/reports.html:7
 msgid "Reports - Sydoc Portal"
-msgstr "Rapporti - Portale Sydoc"
+msgstr ""
 
-#: templates/reports.html:23
+#: templates/js/_tourJS.html:141 templates/reports.html:22
 msgid "Analytics & Reports"
-msgstr "Analisi e Rapporti"
+msgstr ""
 
-#: templates/reports.html:25
+#: templates/reports.html:24
 msgid "Visualization of your document processing activity and trends."
-msgstr "Visualizzazione dell'attività e delle tendenze di elaborazione dei tuoi documenti."
+msgstr ""
 
-#: templates/reports.html:34
+#: templates/reports.html:53
 msgid "Processed Today"
-msgstr "Elaborati oggi"
+msgstr ""
 
-#: templates/reports.html:43
+#: templates/reports.html:62
 msgid "Processed Last 7 Days"
-msgstr "Elaborati negli ultimi 7 giorni"
+msgstr ""
 
-#: templates/reports.html:52
+#: templates/reports.html:71
 msgid "Current Backlog"
-msgstr "Arretrato attuale"
+msgstr ""
 
-#: templates/reports.html:58
+#: templates/reports.html:77
 msgid "Workitems Processed (Last 30 Days)"
-msgstr "Elementi elaborati (ultimi 30 giorni)"
+msgstr ""
 
-#: templates/reports.html:66
+#: templates/reports.html:85
 msgid "Current Status Distribution"
-msgstr "Distribuzione Stato Attuale"
+msgstr ""
 
-#: templates/reports.html:72
+#: templates/reports.html:91
 msgid "In-Progress Stage Breakdown"
-msgstr "Dettaglio Fasi in Corso"
+msgstr ""
 
 #: templates/reset_password.html:7
 msgid "Reset password - Sydoc Portal"
-msgstr "Reimposta password - Portale Sydoc"
+msgstr ""
 
 #: templates/reset_password.html:36
 msgid "Set a new password"
-msgstr "Imposta una nuova password"
+msgstr ""
 
 #: templates/reset_password.html:37
 msgid "Your new password must be different from your previously used password."
-msgstr "La tua nuova password deve essere diversa da quella usata in precedenza."
+msgstr ""
+
+#: templates/reset_password.html:47
+msgid "New password"
+msgstr ""
+
+#: templates/reset_password.html:54
+msgid "Enter your new password"
+msgstr ""
+
+#: templates/reset_password.html:65
+msgid "Confirm your new password"
+msgstr ""
 
 #: templates/reset_password.html:71
 msgid "Reset password"
-msgstr "Reimposta password"
+msgstr ""
 
 #: templates/reset_password.html:87
 msgid "All rights reserved."
-msgstr "Tutti i diritti riservati."
+msgstr ""
 
 #: templates/seperate_page_login.html:46
 msgid "Forgot password?"
-msgstr "Password dimenticata?"
+msgstr ""
 
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - Sydoc Portal"
-msgstr "Panoramica elementi di lavoro - Portale Sydoc"
+msgstr ""
 
-#: templates/workitems_overview.html:25
+#: templates/workitems_overview.html:24
 msgid "Workitems overview"
-msgstr "Panoramica elementi di lavoro"
+msgstr ""
 
-#: templates/workitems_overview.html:27
+#: templates/workitems_overview.html:26
 msgid "List of all workitems for"
-msgstr "Elenco di tutti gli elementi di lavoro per"
+msgstr ""
 
-#: templates/workitems_overview.html:31
-msgid "Total items:"
-msgstr "Elementi totali:"
+#: templates/workitems_overview.html:30
+msgid "Total items found:"
+msgstr ""
 
-#: templates/workitems_overview.html:55
+#: templates/workitems_overview.html:70
 msgid "All statuses"
-msgstr "Tutti gli stati"
-
-#: templates/workitems_overview.html:62
-msgid "Export CSV"
-msgstr "Esporta CSV"
-
-#: templates/js/_dashboardJS.html:72 templates/js/_dashboardJS.html:86
-#: templates/workitems_overview.html:79
-msgid "Barcode"
-msgstr "Codice a barre"
-
-#: templates/admin/userManagement.html:112 templates/workitems_overview.html:84
-msgid "Status"
-msgstr "Stato"
+msgstr ""
 
 #: templates/workitems_overview.html:89
+msgid "From Date"
+msgstr ""
+
+#: templates/workitems_overview.html:94
+msgid "To Date"
+msgstr ""
+
+#: templates/workitems_overview.html:100
+msgid ""
+"Apply\n"
+"              Filters"
+msgstr ""
+
+#: templates/workitems_overview.html:104
+msgid "Reset"
+msgstr ""
+
+#: templates/js/_dashboardJS.html:78 templates/js/_dashboardJS.html:92
+#: templates/workitems_overview.html:118
+msgid "Barcode"
+msgstr ""
+
+#: templates/admin/userManagement.html:116
+#: templates/workitems_overview.html:127
+msgid "Status"
+msgstr ""
+
+#: templates/workitems_overview.html:136
 msgid "Last movement at"
-msgstr "Ultimo movimento il"
+msgstr ""
 
-#: templates/workitems_overview.html:147
-msgid "Click to load media"
-msgstr "Clicca per caricare i media"
+#: templates/workitems_overview.html:144
+msgid "Priority"
+msgstr ""
 
-#: templates/workitems_overview.html:151
+#: templates/js/_workitems_overviewJS.html:470
+#: templates/js/_workitems_overviewJS.html:539
+#: templates/workitems_overview.html:182
+msgid "High Priority"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:471
+#: templates/js/_workitems_overviewJS.html:540
+#: templates/workitems_overview.html:184
+msgid "Medium Priority"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:472
+#: templates/js/_workitems_overviewJS.html:541
+#: templates/workitems_overview.html:186
+msgid "Low Priority"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:562
+#: templates/workitems_overview.html:205
+msgid "Click toggle button again to load media"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:565
+#: templates/workitems_overview.html:209
 msgid "History"
-msgstr "Cronologia"
+msgstr ""
 
-#: templates/workitems_overview.html:153
+#: templates/js/_workitems_overviewJS.html:568
+#: templates/workitems_overview.html:212
 msgid "Loading history..."
-msgstr "Caricamento cronologia..."
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:573
+#: templates/workitems_overview.html:218
+msgid "Collaboration"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:578
+#: templates/workitems_overview.html:224
+msgid "Loading comments..."
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:584
+#: templates/workitems_overview.html:231
+msgid "Set Priority:"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:587
+#: templates/js/_workitems_overviewJS.html:598
+#: templates/workitems_overview.html:234 templates/workitems_overview.html:249
+msgid "None"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:588
+#: templates/workitems_overview.html:235
+msgid "Low"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:589
+#: templates/workitems_overview.html:236
+msgid "Medium"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:590
+#: templates/workitems_overview.html:237
+msgid "High"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:595
+#: templates/workitems_overview.html:246
+msgid "Assigned to:"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:604
+#: templates/workitems_overview.html:256
+msgid "Add a comment... Tag with @username"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:608
+#: templates/workitems_overview.html:260
+msgid "Post Comment"
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:527
+#: templates/workitems_overview.html:277
+msgid "No workitems found for the selected criteria."
+msgstr ""
 
 #: templates/admin/userManagement.html:7
 msgid "User Management - Sydoc Portal"
-msgstr "Gestione Utenti - Portale Sydoc"
+msgstr ""
 
 #: templates/admin/userManagement.html:23
 msgid "Admin User Management"
-msgstr "Gestione Utenti Admin"
+msgstr ""
 
 #: templates/admin/userManagement.html:24
 msgid "Create, edit, and manage user accounts."
-msgstr "Crea, modifica e gestisci gli account utente."
+msgstr ""
 
 #: templates/admin/userManagement.html:28
-#: templates/admin/userManagement.html:153
+#: templates/admin/userManagement.html:157
 #: templates/js/admin/_userManagementJS.html:72
 msgid "Add new user"
-msgstr "Aggiungi nuovo utente"
+msgstr ""
 
 #: templates/admin/userManagement.html:39
-#: templates/admin/userManagement.html:181
+#: templates/admin/userManagement.html:188
 msgid "Email"
-msgstr "Email"
+msgstr ""
 
 #: templates/admin/userManagement.html:41
-#: templates/admin/userManagement.html:165
+#: templates/admin/userManagement.html:202
+msgid "Access"
+msgstr ""
+
+#: templates/admin/userManagement.html:43
+#: templates/admin/userManagement.html:169
 msgid "Scope"
-msgstr "Ambito"
+msgstr ""
 
-#: templates/admin/userManagement.html:42
+#: templates/admin/userManagement.html:44
 msgid "Actions"
-msgstr "Azioni"
+msgstr ""
 
-#: templates/admin/userManagement.html:60
+#: templates/admin/userManagement.html:64
 msgid "Edit"
-msgstr "Modifica"
+msgstr ""
 
-#: templates/admin/userManagement.html:62
+#: templates/admin/userManagement.html:66
 msgid "Delete"
-msgstr "Elimina"
+msgstr ""
 
-#: templates/admin/userManagement.html:76
+#: templates/admin/userManagement.html:80
 msgid "Active Sessions (last 30 mins)"
-msgstr "Sessioni attive (ultimi 30 min)"
-
-#: templates/admin/userManagement.html:83
-msgid "SessionID"
-msgstr "ID Sessione"
-
-#: templates/admin/userManagement.html:85
-msgid "UserID"
-msgstr "ID Utente"
-
-#: templates/admin/userManagement.html:86
-msgid "IP Address"
-msgstr "Indirizzo IP"
+msgstr ""
 
 #: templates/admin/userManagement.html:87
+msgid "SessionID"
+msgstr ""
+
+#: templates/admin/userManagement.html:89
+msgid "UserID"
+msgstr ""
+
+#: templates/admin/userManagement.html:90
+msgid "IP Address"
+msgstr ""
+
+#: templates/admin/userManagement.html:91
 msgid "Last Activity"
-msgstr "Ultima attività"
+msgstr ""
 
-#: templates/admin/userManagement.html:102
+#: templates/admin/userManagement.html:106
 msgid "Recent Activity Logs"
-msgstr "Log attività recenti"
+msgstr ""
 
-#: templates/admin/userManagement.html:109
+#: templates/admin/userManagement.html:113
 msgid "Timestamp"
-msgstr "Timestamp"
+msgstr ""
 
-#: templates/admin/userManagement.html:110
-#: templates/admin/userManagement.html:169
+#: templates/admin/userManagement.html:114
+#: templates/admin/userManagement.html:173
 msgid "User"
-msgstr "Utente"
+msgstr ""
 
-#: templates/admin/userManagement.html:111
+#: templates/admin/userManagement.html:115
 msgid "Action"
-msgstr "Azione"
+msgstr ""
 
-#: templates/admin/userManagement.html:132
+#: templates/admin/userManagement.html:136
 msgid "Delete user"
-msgstr "Elimina utente"
+msgstr ""
 
-#: templates/admin/userManagement.html:139
-#: templates/admin/userManagement.html:202
+#: templates/admin/userManagement.html:143
+#: templates/admin/userManagement.html:234
 msgid "Cancel"
-msgstr "Annulla"
+msgstr ""
 
-#: templates/admin/userManagement.html:142
+#: templates/admin/userManagement.html:146
 msgid "Confirm"
-msgstr "Conferma"
+msgstr ""
 
-#: templates/admin/userManagement.html:168
+#: templates/admin/userManagement.html:172
 msgid "Client"
-msgstr "Cliente"
+msgstr ""
 
-#: templates/admin/userManagement.html:196
+#: templates/admin/userManagement.html:215
+msgid "Standard"
+msgstr ""
+
+#: templates/admin/userManagement.html:226
 msgid "Leave blank to keep current password."
-msgstr "Lasciare vuoto per mantenere la password attuale."
+msgstr ""
 
-#: templates/admin/userManagement.html:204
+#: templates/admin/userManagement.html:236
 msgid "Save user"
-msgstr "Salva utente"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:54
+#: templates/js/_dashboardJS.html:60
 msgid "No recent activity found."
-msgstr "Nessuna attività recente trovata."
+msgstr ""
 
-#: templates/js/_dashboardJS.html:72
+#: templates/js/_dashboardJS.html:78
 msgid "is ready"
-msgstr "è pronto"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:79
+#: templates/js/_dashboardJS.html:85
 msgid "Processing for Barcode"
-msgstr "Elaborazione per codice a barre"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:79
+#: templates/js/_dashboardJS.html:85
 msgid "has started."
-msgstr "è iniziata."
+msgstr ""
 
-#: templates/js/_dashboardJS.html:86
+#: templates/js/_dashboardJS.html:92
 msgid "has finished processing."
-msgstr "ha terminato l'elaborazione."
+msgstr ""
 
-#: templates/js/_dashboardJS.html:94
+#: templates/js/_dashboardJS.html:100
 msgid "Unknown status for Barcode"
-msgstr "Stato sconosciuto per codice a barre"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:111
+#: templates/js/_dashboardJS.html:117
 msgid "Error fetching recent activity."
-msgstr "Errore nel recupero dell'attività recente."
+msgstr ""
 
-#: templates/js/_dashboardJS.html:119
+#: templates/js/_dashboardJS.html:125
 msgid "In Validation"
-msgstr "In validazione"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:124
+#: templates/js/_dashboardJS.html:130
 msgid "In Export"
-msgstr "In esportazione"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:139
+#: templates/js/_dashboardJS.html:145
 msgid "In OCR"
-msgstr "In OCR"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:144
+#: templates/js/_dashboardJS.html:150
 msgid "In DB Saving"
-msgstr "In salvataggio DB"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:149
+#: templates/js/_dashboardJS.html:155
 msgid "Processing"
-msgstr "In elaborazione"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:171
+#: templates/js/_dashboardJS.html:177
 msgid "No active documents to display."
-msgstr "Nessun documento attivo da visualizzare."
+msgstr ""
 
-#: templates/js/_dashboardJS.html:190
+#: templates/js/_dashboardJS.html:196
 msgid "Current Status:"
-msgstr "Stato attuale:"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:209
+#: templates/js/_dashboardJS.html:215
 msgid "Error loading data."
-msgstr "Errore nel caricamento dei dati."
+msgstr ""
 
-#: templates/js/_headerJS.html:21 templates/js/admin/_userManagementJS.html:169
+#: templates/js/_headerJS.html:25 templates/js/admin/_userManagementJS.html:171
 msgid "years ago"
-msgstr "anni fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:23 templates/js/admin/_userManagementJS.html:171
+#: templates/js/_headerJS.html:27 templates/js/admin/_userManagementJS.html:173
 msgid "months ago"
-msgstr "mesi fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:25 templates/js/admin/_userManagementJS.html:173
+#: templates/js/_headerJS.html:29 templates/js/admin/_userManagementJS.html:175
 msgid "days ago"
-msgstr "giorni fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:27 templates/js/admin/_userManagementJS.html:175
+#: templates/js/_headerJS.html:31 templates/js/admin/_userManagementJS.html:177
 msgid "hours ago"
-msgstr "ore fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:29
+#: templates/js/_headerJS.html:33
 msgid "minutes ago"
-msgstr "minuti fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:30 templates/js/admin/_userManagementJS.html:178
+#: templates/js/_headerJS.html:34 templates/js/admin/_userManagementJS.html:180
 msgid "seconds ago"
-msgstr "secondi fa"
+msgstr ""
 
-#: templates/js/_headerJS.html:42
+#: templates/js/_headerJS.html:46
 msgid "Could not load notifications."
-msgstr "Impossibile caricare le notifiche."
+msgstr ""
 
-#: templates/js/_headerJS.html:58
+#: templates/js/_headerJS.html:62
 msgid "No new notifications."
-msgstr "Nessuna nuova notifica."
+msgstr ""
 
 #: templates/js/_reportsJS.html:23 templates/js/_reportsJS.html:24
 #: templates/js/_reportsJS.html:25
 msgid "Error"
-msgstr "Errore"
+msgstr ""
 
 #: templates/js/_reportsJS.html:41
 msgid "Workitems Processed"
-msgstr "Elementi elaborati"
+msgstr ""
 
 #: templates/js/_reportsJS.html:59 templates/js/_reportsJS.html:89
 #: templates/js/_reportsJS.html:124
 msgid "Could not load chart data."
-msgstr "Impossibile caricare i dati del grafico."
+msgstr ""
 
 #: templates/js/_reportsJS.html:106
 msgid "Number of Items"
-msgstr "Numero di elementi"
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:217
+#: templates/js/_tourJS.html:16 templates/js/_tourJS.html:54
+#: templates/js/_tourJS.html:123 templates/js/_tourJS.html:168
+msgid "Back"
+msgstr ""
+
+#: templates/js/_tourJS.html:17
+msgid "Next"
+msgstr ""
+
+#: templates/js/_tourJS.html:27
+msgid "Welcome to the Dashboard!"
+msgstr ""
+
+#: templates/js/_tourJS.html:28
+msgid "This is your central hub. Let's take a quick look at the key features."
+msgstr ""
+
+#: templates/js/_tourJS.html:33
+msgid "Process Filter"
+msgstr ""
+
+#: templates/js/_tourJS.html:34
+msgid ""
+"Use this dropdown to filter all the data on this page by a specific "
+"document process, like 'Inbox' or 'Invoice'."
+msgstr ""
+
+#: templates/js/_tourJS.html:39
+msgid "Key Metrics"
+msgstr ""
+
+#: templates/js/_tourJS.html:40
+msgid ""
+"These cards show a live summary of your documents: 'Ready' for "
+"processing, currently 'In Progress', successfully 'Done', and items in "
+"the 'Backlog'."
+msgstr ""
+
+#: templates/js/_tourJS.html:45
+msgid "Live Document Status"
+msgstr ""
+
+#: templates/js/_tourJS.html:46
+msgid ""
+"This section provides a real-time view of documents that are actively "
+"being processed right now."
+msgstr ""
+
+#: templates/js/_tourJS.html:52
+msgid "Here you'll find a feed of the latest status changes for your documents."
+msgstr ""
+
+#: templates/js/_tourJS.html:54 templates/js/_tourJS.html:131
+#: templates/js/_tourJS.html:168
+msgid "Finish"
+msgstr ""
+
+#: templates/js/_tourJS.html:65
+msgid "Workitems Overview"
+msgstr ""
+
+#: templates/js/_tourJS.html:66
+msgid "This page lets you search, view, and manage all your workitems in detail."
+msgstr ""
+
+#: templates/js/_tourJS.html:71
+msgid "Search & Filter"
+msgstr ""
+
+#: templates/js/_tourJS.html:72
+msgid ""
+"Use this powerful form to find specific workitems by barcode, status, or "
+"date range."
+msgstr ""
+
+#: templates/js/_tourJS.html:77
+msgid "Workitems Table"
+msgstr ""
+
+#: templates/js/_tourJS.html:78
+msgid ""
+"Your filtered results appear here. You can sort columns by clicking on "
+"their headers."
+msgstr ""
+
+#: templates/js/_tourJS.html:83
+msgid "View Details"
+msgstr ""
+
+#: templates/js/_tourJS.html:84
+msgid ""
+"Click this arrow button to expand a workitem. The tour will do this "
+"automatically for the next step."
+msgstr ""
+
+#: templates/js/_tourJS.html:96
+msgid "Media Viewer"
+msgstr ""
+
+#: templates/js/_tourJS.html:97
+msgid ""
+"Once expanded, you can see all associated images and media for the "
+"workitem here."
+msgstr ""
+
+#: templates/js/_tourJS.html:112
+msgid "History Timeline"
+msgstr ""
+
+#: templates/js/_tourJS.html:113
+msgid ""
+"This panel shows a complete audit trail, tracking every step the document"
+" has gone through in the process."
+msgstr ""
+
+#: templates/js/_tourJS.html:119
+msgid "Collaboration Tools"
+msgstr ""
+
+#: templates/js/_tourJS.html:120
+msgid ""
+"Here you can set a priority level, assign the workitem to a colleague, "
+"and add comments for your team."
+msgstr ""
+
+#: templates/js/_tourJS.html:142
+msgid ""
+"This page visualizes your document processing activity and trends over "
+"time."
+msgstr ""
+
+#: templates/js/_tourJS.html:147
+msgid "Key Performance Indicators"
+msgstr ""
+
+#: templates/js/_tourJS.html:148
+msgid ""
+"These cards highlight your processing volume for today and the last 7 "
+"days, plus the current backlog."
+msgstr ""
+
+#: templates/js/_tourJS.html:153
+msgid "Processed Over Time"
+msgstr ""
+
+#: templates/js/_tourJS.html:154
+msgid ""
+"This line chart shows the number of workitems processed over the last 30 "
+"days, helping you spot trends."
+msgstr ""
+
+#: templates/js/_tourJS.html:159
+msgid "Status Distribution"
+msgstr ""
+
+#: templates/js/_tourJS.html:160
+msgid ""
+"This pie chart gives you a snapshot of the current status of all your "
+"workitems (Ready, In Progress, etc.)."
+msgstr ""
+
+#: templates/js/_tourJS.html:165
+msgid "In-Progress Breakdown"
+msgstr ""
+
+#: templates/js/_tourJS.html:166
+msgid ""
+"This bar chart shows which stage the 'In Progress' items are currently "
+"in, like Validation, Extraction, or Export."
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:139
 msgid "No history available for this item"
-msgstr "Nessuna cronologia disponibile per questo elemento"
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:254
+#: templates/js/_workitems_overviewJS.html:176
 msgid "Could not load history"
-msgstr "Impossibile caricare la cronologia"
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:298
+#: templates/js/_workitems_overviewJS.html:201
+msgid "No comments yet."
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:222
+msgid "Could not load comments."
+msgstr ""
+
+#: templates/js/_workitems_overviewJS.html:266
 msgid "Checking for media..."
-msgstr "Verifica media in corso..."
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:311
+#: templates/js/_workitems_overviewJS.html:280
 msgid "No media found for this workitem."
-msgstr "Nessun media trovato per questo elemento di lavoro."
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:327
+#: templates/js/_workitems_overviewJS.html:296
 msgid "Could not load media."
-msgstr "Impossibile caricare i media."
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:355
+#: templates/js/_workitems_overviewJS.html:323
 msgid "Media"
-msgstr "Media"
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:355
+#: templates/js/_workitems_overviewJS.html:323
 msgid "for workitem "
-msgstr "per l'elemento di lavoro "
+msgstr ""
 
-#: templates/js/_workitems_overviewJS.html:370
+#: templates/js/_workitems_overviewJS.html:338
 msgid "Failed to load image "
-msgstr "Caricamento immagine non riuscito "
+msgstr ""
 
 #: templates/js/admin/_userManagementJS.html:81
 msgid "Edit user"
-msgstr "Modifica utente"
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:110
-#: templates/js/admin/_userManagementJS.html:153
+#: templates/js/admin/_userManagementJS.html:112
+#: templates/js/admin/_userManagementJS.html:155
 msgid "Success"
-msgstr "Successo"
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:113
-#: templates/js/admin/_userManagementJS.html:156
+#: templates/js/admin/_userManagementJS.html:115
+#: templates/js/admin/_userManagementJS.html:158
 msgid "Error:"
-msgstr "Errore:"
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:117
-#: templates/js/admin/_userManagementJS.html:160
+#: templates/js/admin/_userManagementJS.html:119
+#: templates/js/admin/_userManagementJS.html:162
 msgid "An unexpected network error occurred."
-msgstr "Si è verificato un errore di rete imprevisto."
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:163
+#: templates/js/admin/_userManagementJS.html:165
 msgid "Are you sure you want to delete this user? This action cannot be undone."
-msgstr "Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata."
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:177
+#: templates/js/admin/_userManagementJS.html:179
 msgid " minutes ago"
-msgstr " minuti fa"
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:190
+#: templates/js/admin/_userManagementJS.html:192
 msgid "No recent logs found."
-msgstr "Nessun log recente trovato."
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:197
-msgid "SUCCESS"
-msgstr "SUCCESSO"
-
-#: templates/js/admin/_userManagementJS.html:210
+#: templates/js/admin/_userManagementJS.html:212
 msgid "Could not load logs."
-msgstr "Impossibile caricare i log."
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:223
+#: templates/js/admin/_userManagementJS.html:225
 msgid "No active sessions found."
-msgstr "Nessuna sessione attiva trovata."
+msgstr ""
 
-#: templates/js/admin/_userManagementJS.html:242
+#: templates/js/admin/_userManagementJS.html:244
 msgid "Could not load sessions."
-msgstr "Impossibile caricare le sessioni."
+msgstr ""
+
+#: venv/Lib/site-packages/click/_termui_impl.py:600
+#, python-brace-format
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv/Lib/site-packages/click/_termui_impl.py:604
+#, python-brace-format
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1084
+#: venv/Lib/site-packages/click/core.py:1121
+#, python-brace-format
+msgid "{text} {deprecated_message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1140
+msgid "Options"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1202
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/core.py:1221
+#, python-brace-format
+msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1405
+msgid "Aborted!"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1779
+msgid "Commands"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1810
+msgid "Missing command."
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:1888
+#, python-brace-format
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2303
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2324
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/core.py:2404
+#, python-brace-format
+msgid ""
+"DeprecationWarning: The {param_type} {name!r} is "
+"deprecated.{extra_message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2807
+#, python-brace-format
+msgid "env var: {var}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2810
+#, python-brace-format
+msgid "default: {default}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2814
+msgid "required"
+msgstr ""
+
+#: venv/Lib/site-packages/click/core.py:2870
+msgid "(dynamic)"
+msgstr ""
+
+#: venv/Lib/site-packages/click/decorators.py:465
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv/Lib/site-packages/click/decorators.py:522
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv/Lib/site-packages/click/decorators.py:548
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:50
+#: venv/Lib/site-packages/click/exceptions.py:89
+#, python-brace-format
+msgid "Error: {message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:81
+#, python-brace-format
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:130
+#, python-brace-format
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:132
+#, python-brace-format
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:190
+msgid "Missing argument"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:192
+msgid "Missing option"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:194
+msgid "Missing parameter"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:196
+#, python-brace-format
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:203
+#, python-brace-format
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:223
+#, python-brace-format
+msgid "No such option: {name}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:235
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/exceptions.py:282
+msgid "unknown error"
+msgstr ""
+
+#: venv/Lib/site-packages/click/exceptions.py:289
+#, python-brace-format
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/formatting.py:156
+msgid "Usage:"
+msgstr ""
+
+#: venv/Lib/site-packages/click/parser.py:200
+#, python-brace-format
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv/Lib/site-packages/click/parser.py:383
+#, python-brace-format
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv/Lib/site-packages/click/parser.py:444
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/shell_completion.py:326
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv/Lib/site-packages/click/shell_completion.py:333
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:162
+msgid "Repeat for confirmation"
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:178
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:180
+#, python-brace-format
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:191
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:247
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv/Lib/site-packages/click/termui.py:866
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:332
+#, python-brace-format
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:369
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/types.py:460
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/click/types.py:482
+#, python-brace-format
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:538
+#, python-brace-format
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:679
+#, python-brace-format
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:703
+#, python-brace-format
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:893
+msgid "file"
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:895
+msgid "directory"
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:897
+msgid "path"
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:944
+#, python-brace-format
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:953
+#, python-brace-format
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:961
+#, python-brace-format
+msgid "{name} {filename!r} is a directory."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:970
+#, python-brace-format
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:979
+#, python-brace-format
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:988
+#, python-brace-format
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv/Lib/site-packages/click/types.py:1055
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:55
+#: venv/Lib/site-packages/wtforms/validators.py:293
+#: venv/Lib/site-packages/wtforms/validators.py:323
+msgid "This field is required."
+msgstr ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:94
+#, python-brace-format
+msgid "File does not have an approved extension: {extensions}"
+msgstr ""
+
+#: venv/Lib/site-packages/flask_wtf/file.py:101
+msgid "File does not have an approved extension."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:86
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:99
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:146
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:152
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:164
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:216
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:219
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:222
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:358
+msgid "Invalid input."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:422
+msgid "Invalid email address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:460
+msgid "Invalid IP address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:503
+msgid "Invalid Mac address."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:540
+msgid "Invalid URL."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:561
+msgid "Invalid UUID."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:595
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:631
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:700
+msgid "This field cannot be edited."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/validators.py:716
+msgid "This field is disabled and cannot have a value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/core.py:96
+msgid "Invalid CSRF Token."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:64
+msgid "CSRF token missing."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:72
+msgid "CSRF failed."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/csrf/session.py:77
+msgid "CSRF token expired."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:142
+msgid "Invalid Choice: could not coerce."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:149
+#: venv/Lib/site-packages/wtforms/fields/choices.py:203
+msgid "Choices cannot be None."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:155
+msgid "Not a valid choice."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:194
+msgid "Invalid choice(s): one or more data inputs could not be coerced."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/choices.py:212
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field."
+msgid_plural "'%(value)s' are not valid choices for this field."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:52
+msgid "Not a valid datetime value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:78
+msgid "Not a valid date value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:104
+msgid "Not a valid time value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/datetime.py:149
+msgid "Not a valid week value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:82
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:92
+msgid "Not a valid integer value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:168
+msgid "Not a valid decimal value."
+msgstr ""
+
+#: venv/Lib/site-packages/wtforms/fields/numeric.py:197
+msgid "Not a valid float value."
+msgstr ""
+
