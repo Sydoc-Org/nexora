@@ -293,12 +293,33 @@
         text-align: center;
       }
 
+.modal-prev,
+    .modal-next {
+      cursor: pointer;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #f1f1f1;
+      font-size: 40px;
+      font-weight: bold;
+      transition: 0.3s;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: transparent;
+    }
 
+    .modal-next {
+      right: 25px;
+    }
 
-.indicator {
-  transition: transform 0.3s ease-in-out;
-}
+    .modal-prev {
+      left: 25px;
+    }
 
+    .modal-prev:hover,
+    .modal-next:hover {
+      color: #bbb;
+    }
 .indicator.open {
   transform: rotate(180deg);
 }

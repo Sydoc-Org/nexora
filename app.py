@@ -1044,6 +1044,7 @@ def api_workitems():
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
         status = request.args.get('status', '')
+        tag_filter = request.args.get('tag', '').strip() 
         start_date = request.args.get('startDate', '')
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
@@ -1067,6 +1068,16 @@ def api_workitems():
         if status and status in status_map:
             where_clauses.append("twi.Status = ?")
             params.append(status_map[status])
+        if tag_filter:
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                )
+            """)
+            params.append(tag_filter)
 
         if search_term:
             where_clauses.append("tdi_barcode.StringValue LIKE ?")
@@ -1107,46 +1118,55 @@ def api_workitems():
                 WHERE {where_sql}
             """, params)
             total_items = cursor.fetchone()[0] or 0
-            
             data_query = f"""
-                 WITH WorkitemCTE AS (
-                    SELECT
-                        tdi_barcode.StringValue AS Barcode,
-                        twi.ModifiedAt,
-                        twi.ID AS WorkItemID,
-                        CASE
-                            WHEN twi.Status = 0 THEN 'Ready'
-                            WHEN twi.Status = 5 THEN 'Done'
-                            ELSE 'In Progress'
-                        END AS Status,
-                        wim.Priority,
-                        ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
-                    FROM t_WorkItems twi
-                    INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                    INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                    INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                    LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
-                    WHERE {where_sql}
-                )
-                SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority
-                FROM WorkitemCTE
-                WHERE rn = 1
-                ORDER BY ModifiedAt DESC
-                OFFSET ? ROWS
-                FETCH NEXT ? ROWS ONLY
-            """
+                    WITH WorkitemCTE AS (
+                        SELECT
+                            tdi_barcode.StringValue AS Barcode,
+                            twi.ModifiedAt,
+                            twi.ID AS WorkItemID,
+                            CASE
+                                WHEN twi.Status = 0 THEN 'Ready'
+                                WHEN twi.Status = 5 THEN 'Done'
+                                ELSE 'In Progress'
+                            END AS Status,
+                            wim.Priority,
+                            (
+                                SELECT 
+                                    t.TagID AS id,
+                                    t.TagName AS name,
+                                    t.TagColor AS color
+                                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                                WHERE wt.Barcode = tdi_barcode.StringValue
+                                FOR JSON PATH
+                            ) AS TagsJSON,
+                            ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                        FROM t_WorkItems twi
+                        INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                        INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                        INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                        LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                        WHERE {where_sql}
+                    )
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    FROM WorkitemCTE
+                    WHERE rn = 1
+                    ORDER BY ModifiedAt DESC
+                    OFFSET ? ROWS
+                    FETCH NEXT ? ROWS ONLY
+"""
             data_params = params + [offset, per_page] 
             cursor.execute(data_query, data_params)
 
             for row in cursor.fetchall():
-               workitems_list.append({
+                workitems_list.append({
                     'barcode': row.Barcode,
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
                     'status': row.Status,
-                    'priority': row.Priority or 0
+                    'priority': row.Priority or 0,
+                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
                 })
-                
         except Exception as e:
             app.logger.error(f"Database error in workitems overview: {e}")
             workitems_list = []
@@ -1185,6 +1205,7 @@ def workitems_overview():
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
         status = request.args.get('status', '')
+        tag_filter = request.args.get('tag', '').strip()         
         start_date = request.args.get('startDate', '')
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
@@ -1212,7 +1233,16 @@ def workitems_overview():
         if search_term:
             where_clauses.append("tdi_barcode.StringValue LIKE ?")
             params.append(f"%{search_term}%")
-
+        if tag_filter:
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                )
+            """)
+            params.append(tag_filter)
         if start_date:
             where_clauses.append("twi.ModifiedAt >= ?")
             params.append(start_date)
@@ -1239,53 +1269,54 @@ def workitems_overview():
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
             
-            cursor.execute(f"""
-            SELECT COUNT(DISTINCT tdi_barcode.StringValue)
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                WHERE {where_sql}
-            """, params)
-            total_items = cursor.fetchone()[0] or 0
-            
             data_query = f"""
-                 WITH WorkitemCTE AS (
-                    SELECT
-                        tdi_barcode.StringValue AS Barcode,
-                        twi.ModifiedAt,
-                        twi.ID AS WorkItemID,
-                        CASE
-                            WHEN twi.Status = 0 THEN 'Ready'
-                            WHEN twi.Status = 5 THEN 'Done'
-                            ELSE 'In Progress'
-                        END AS Status,
-                        wim.Priority,
-                        ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
-                    FROM t_WorkItems twi
-                    INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                    INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                    INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                    LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
-                    WHERE {where_sql}
-                )
-                SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority
-                FROM WorkitemCTE
-                WHERE rn = 1
-                ORDER BY ModifiedAt DESC
-                OFFSET ? ROWS
-                FETCH NEXT ? ROWS ONLY
+                    WITH WorkitemCTE AS (
+                        SELECT
+                            tdi_barcode.StringValue AS Barcode,
+                            twi.ModifiedAt,
+                            twi.ID AS WorkItemID,
+                            CASE
+                                WHEN twi.Status = 0 THEN 'Ready'
+                                WHEN twi.Status = 5 THEN 'Done'
+                                ELSE 'In Progress'
+                            END AS Status,
+                            wim.Priority,
+                            (
+                                SELECT 
+                                    t.TagID AS id,
+                                    t.TagName AS name,
+                                    t.TagColor AS color
+                                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                                WHERE wt.Barcode = tdi_barcode.StringValue
+                                FOR JSON PATH
+                            ) AS TagsJSON,
+                            ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                        FROM t_WorkItems twi
+                        INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                        INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                        INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                        LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                        WHERE {where_sql}
+                    )
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    FROM WorkitemCTE
+                    WHERE rn = 1
+                    ORDER BY ModifiedAt DESC
+                    OFFSET ? ROWS
+                    FETCH NEXT ? ROWS ONLY
             """
             data_params = params + [offset, per_page]
             cursor.execute(data_query, data_params)
 
             for row in cursor.fetchall():
-               workitems_list.append({
+                workitems_list.append({
                     'barcode': row.Barcode,
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
                     'status': row.Status,
-                    'priority': row.Priority or 0
+                    'priority': row.Priority or 0,
+                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
                 })
                 
         except Exception as e:
@@ -1318,6 +1349,59 @@ def workitems_overview():
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
+@app.route('/api/workitem/<barcode>')
+def get_single_workitem(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        query = f"""
+            WITH WorkitemCTE AS (
+                SELECT
+                    tdi_barcode.StringValue AS Barcode,
+                    twi.ID AS WorkItemID,
+                    (
+                        SELECT 
+                            t.TagID AS id,
+                            t.TagName AS name,
+                            t.TagColor AS color
+                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        WHERE wt.Barcode = tdi_barcode.StringValue
+                        FOR JSON PATH
+                    ) AS TagsJSON,
+                    ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                FROM t_WorkItems twi
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                WHERE tdi_barcode.StringValue = ?
+            )
+            SELECT Barcode, WorkItemID, TagsJSON
+            FROM WorkitemCTE
+            WHERE rn = 1
+        """
+        cursor.execute(query, barcode)
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({"error": "Workitem not found"}), 404
+
+        workitem_data = {
+            'barcode': row.Barcode,
+            'workitemid': row.WorkItemID,
+            'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
+        }
+        return jsonify(workitem_data)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch single workitem {barcode}: {e}")
+        return jsonify({"error": "Could not fetch workitem data"}), 500
+    finally:
+        if conn:
+            conn.close()
 
 def get_access_token():
     token = cache.get('octo_access_token')
@@ -1422,10 +1506,10 @@ def api_get_media_info(workitem_id):
         }
         
         cache.set(f"media_info_{workitem_id}", response_data)
-
         return jsonify(response_data)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
+        print(workitem_id)
         return jsonify({"error": _("Internal Server Error")}), 500
     
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
@@ -1583,6 +1667,7 @@ def get_workitem_interactions(barcode):
                 'priority': 0,
                 'assigneduserid': 'None',
                 'comments': [],
+                'tags': [], 
                 'message': _("No data found for this workitem.")
             }), 200
         priority = row[0] if row[0] != None else 0
@@ -1595,6 +1680,15 @@ def get_workitem_interactions(barcode):
             JOIN Users u ON c.UserID = u.userID
         """
         params = [barcode]
+
+        cursor.execute("""
+            SELECT t.TagID, t.TagName, t.TagColor
+            FROM Workitem_Tags wt
+            JOIN Tags t ON wt.TagID = t.TagID
+            WHERE wt.Barcode = ?
+        """, (barcode,))
+        tags_data = cursor.fetchall()
+        tags = [{'id': row.TagID, 'name': row.TagName, 'color': row.TagColor} for row in tags_data]
 
         if current_user_access == 'Unlimited':
             sql_query += " WHERE c.Barcode = ?"
@@ -1616,7 +1710,8 @@ def get_workitem_interactions(barcode):
         return jsonify({
             'priority': priority,
             'assigneduserid': assigneduserid,
-            'comments': comments
+            'comments': comments,
+            'tags': tags 
         })
     except Exception as e:
         app.logger.error(f"Failed to fetch interactions for barcode {barcode}: {e}")
@@ -1746,6 +1841,99 @@ def set_workitem_priority(barcode):
     except Exception as e:
         app.logger.error(f"Error setting priority for barcode {barcode}: {e}")
         log_user_action('setWorkitemPriority', status='FAILURE', resource_id=barcode, details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/tags')
+def get_all_tags():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
+        tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(tags)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch all tags: {e}")
+        return jsonify({"error": _("Could not fetch tags")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/tags', methods=['POST'])
+def add_tag_to_workitem(barcode):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    data = request.get_json()
+    tag_name = data.get('tagName', '').strip()
+    tag_color = data.get('tagColor', '#6B7280') 
+
+    if not tag_name:
+        return jsonify({'success': False, 'message': _("Tag name cannot be empty.")}), 400
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
+        tag = cursor.fetchone()
+        
+        if tag:
+            tag_id = tag.TagID
+        else:
+            cursor.execute("INSERT INTO Tags (TagName, TagColor, CreatedByUserID) OUTPUT INSERTED.TagID VALUES (?, ?, ?)",
+                           (tag_name, tag_color, session['userid']))
+            tag_id = cursor.fetchone().TagID
+        
+        cursor.execute("SELECT 1 FROM Workitem_Tags WHERE Barcode = ? AND TagID = ?", (barcode, tag_id))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': _("Workitem already has this tag.")}), 409
+
+        cursor.execute("INSERT INTO Workitem_Tags (Barcode, TagID) VALUES (?, ?)", (barcode, tag_id))
+        conn.commit()
+
+        log_user_action('addWorkitemTag', status='SUCCESS', resource_id=barcode, details={'tagName': tag_name})
+        return jsonify({'success': True, 'message': _("Tag added successfully."), 'tag': {'TagID': tag_id, 'TagName': tag_name, 'TagColor': tag_color}})
+
+    except Exception as e:
+        app.logger.error(f"Error adding tag to barcode {barcode}: {e}")
+        log_user_action('addWorkitemTag', status='FAILURE', resource_id=barcode, details={'serverError': str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/workitem/<barcode>/tags/<int:tag_id>', methods=['DELETE'])
+def remove_tag_from_workitem(barcode, tag_id):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM Workitem_Tags WHERE Barcode = ? AND TagID = ?", (barcode, tag_id))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': _("Tag association not found.")}), 404
+
+        log_user_action('removeWorkitemTag', status='SUCCESS', resource_id=barcode, details={'tagId': tag_id})
+        return jsonify({'success': True, 'message': _("Tag removed successfully.")})
+    except Exception as e:
+        app.logger.error(f"Error removing tag {tag_id} from barcode {barcode}: {e}")
+        log_user_action('removeWorkitemTag', status='FAILURE', resource_id=barcode, details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if conn:
