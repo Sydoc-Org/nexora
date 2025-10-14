@@ -117,7 +117,7 @@
       .bh-sparks i{ animation: none; opacity:.5; }
     }
 
-    .sydoc-title{
+    .nexora-title{
       background: linear-gradient(90deg, #0b0b12, #111827 35%, var(--indigo));
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }

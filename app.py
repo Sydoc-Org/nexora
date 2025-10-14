@@ -88,7 +88,7 @@ class PrefixMiddleware(object):
 def index():
     if 'username' in session:
         return redirect(url_for("dashboard"))
-    return render_template("index.html")
+    return render_template("hero.html")
 # ------------------------------- app start end ------------------------------ #
 
 # ------------------------------ app config end ------------------------------ #
@@ -154,20 +154,17 @@ def log_action():
 # -------------------------------- logging end ------------------------------- #
 
 # ------------------------------- session login ------------------------------ #
-@app.route("/signin")
-def signin():
-    return render_template("seperate_page_login.html")
 
-@app.route("/login/<page>", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
-def login(page=None):
+def login():
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         REMEMBER = request.form.getlist('remember')
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
-            return render_template(page, error=_("Invalid credentials"))
+            return render_template('index.html', error=_("Invalid credentials"))
 
         try:
             conn_str = (
@@ -220,14 +217,14 @@ def login(page=None):
                     return redirect(url_for("dashboard"))
                 
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
-            return render_template(page, error=_("Invalid credentials"))
+            return render_template('index.html', error=_("Invalid credentials"))
 
         except Exception as e:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
-            return render_template(page, error=_("Login temporarily unavailable"))
+            return render_template('index.html', error=_("Login temporarily unavailable"))
         
-    return render_template(page)
+    return render_template('index.html')
 # ----------------------------- session login end ---------------------------- #
 
 # ------------------------------- notifications ------------------------------ #
@@ -516,7 +513,7 @@ def logout():
         session.pop('uuid', None)
         session.pop('userid', None)
         log_user_action('logUserOut', status='SUCCESS', resource_id='logout')
-        return redirect(url_for("login", page="index.html"))
+        return redirect(url_for("index"))
     except Exception as e:
         log_user_action('logUserOut', status='FAILURE', resource_id='logout', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -630,7 +627,7 @@ def send_reset_email(email):
     try:
         body = {
             "message": {
-                "subject": _("Sydoc Portal Password Reset Request"),
+                "subject": _("nexora Password Reset Request"),
                 "body": {
                     "contentType": "HTML",
                     "content": f"""
@@ -932,7 +929,7 @@ def get_dashbord_preview_documents_stats(processName='both'):
 def dashboard():
     try:
         if 'username' not in session:
-            return redirect(url_for("login", page='index.html'))
+            return redirect(url_for("login"))
         
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
@@ -1035,7 +1032,7 @@ def recent_activity():
 def api_workitems():
     try:
         if 'username' not in session:
-            return redirect(url_for('login', page='index.html'))
+            return redirect(url_for('login'))
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
@@ -1196,7 +1193,7 @@ def api_workitems():
 def workitems_overview():
     try:
         if 'username' not in session:
-            return redirect(url_for('login', page='index.html'))
+            return redirect(url_for('login'))
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
@@ -1948,7 +1945,7 @@ def remove_tag_from_workitem(barcode, tag_id):
 def profile():
     try:
         if 'username' not in session:
-            return redirect(url_for("login", page='index.html'))
+            return redirect(url_for("login"))
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
         subscription = session.get('subscription', 'Unknown')
@@ -1966,7 +1963,7 @@ def profile():
 def update_profile():
     try:
         if 'username' not in session:
-            return redirect(url_for("login", page='index.html'))
+            return redirect(url_for("login"))
         if request.method == "POST":
             userid = session['userid']
             username = session['username']
@@ -2050,7 +2047,7 @@ def update_profile():
 def change_password():
     try:
         if 'username' not in session:
-            return redirect(url_for("login", page='index.html'))
+            return redirect(url_for("login"))
         
         if request.method == "POST":
             username = session['username']
@@ -2151,7 +2148,7 @@ def jdvance():
 def reports():
     try:
         if 'username' not in session:
-            return redirect(url_for("login", page='index.html'))
+            return redirect(url_for("login"))
         userid = session['userid']
         scope = session['scope']
 
@@ -2373,7 +2370,7 @@ def forbiddenPage(e):
 # ----------------------------- error handler end ---------------------------- #
 
 # ------------------------------- ONLY FOR IIS ------------------------------- #
-#  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/sydocportal')
+#  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR IIS end ----------------------------- #
 
 

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>document.addEventListener('DOMContentLoaded', () => {
+            const progressLine = document.getElementById('progress-line');
+            const statusText = document.getElementById('status-text');
+            const stepElements = document.querySelectorAll('.process-step');
+
+            const steps = [
+                { text: 'Importing Document...', progress: '0%' },
+                { text: 'Extracting Key Data...', progress: '33%' },
+                { text: 'Validating Information...', progress: '66%' },
+                { text: 'Delivering Securely', progress: '100%' }
+            ];
+            
+            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const updateStatusText = async (newText) => {
+                statusText.style.opacity = '0';
+                await wait(400);
+                statusText.textContent = newText;
+                statusText.style.opacity = '1';
+            };
+
+            const resetAnimation = async () => {
+                statusText.style.opacity = '0';
+                await wait(400);
+                
+                progressLine.style.width = '0%';
+                
+                stepElements.forEach(stepEl => {
+                    const iconWrapper = stepEl.querySelector('.step-icon-wrapper');
+                    const icon = stepEl.querySelector('i');
+                    const label = stepEl.querySelector('p');
+                    
+                    iconWrapper.classList.remove('active', 'completed');
+                    iconWrapper.style.transform = 'scale(1)';
+                    label.classList.remove('active', 'completed');
+                    icon.className = `fas ${icon.dataset.originalIcon} text-2xl text-gray-400`;
+                });
+
+                await wait(500);
+                statusText.textContent = 'Waiting for new document...';
+                statusText.style.opacity = '1';
+            };
+
+            const runAnimation = async () => {
+                await updateStatusText(steps[0].text);
+                
+                const firstStep = stepElements[0];
+                firstStep.querySelector('.step-icon-wrapper').classList.add('active');
+                firstStep.querySelector('p').classList.add('active');
+
+                await wait(2000);
+
+                for (let i = 1; i < steps.length; i++) {
+                    const prevStep = stepElements[i - 1];
+                    const currentStep = stepElements[i];
+                    
+                    progressLine.style.width = steps[i].progress;
+                    await wait(800); // Wait for progress bar to fill
+
+                    await updateStatusText(steps[i].text);
+
+                    prevStep.querySelector('.step-icon-wrapper').classList.remove('active');
+                    prevStep.querySelector('.step-icon-wrapper').classList.add('completed');
+                    prevStep.querySelector('p').classList.remove('active');
+                    prevStep.querySelector('p').classList.add('completed');
+                    prevStep.querySelector('i').className = 'fas fa-check text-2xl';
+
+                    currentStep.querySelector('.step-icon-wrapper').classList.add('active');
+                    currentStep.querySelector('p').classList.add('active');
+
+                    await wait(2000); // "Processing" time at the current step
+                }
+
+                await updateStatusText('Process Complete!');
+                const lastStep = stepElements[steps.length - 1];
+                lastStep.querySelector('.step-icon-wrapper').classList.remove('active');
+                lastStep.querySelector('.step-icon-wrapper').classList.add('completed');
+                lastStep.querySelector('i').className = 'fas fa-check text-2xl';
+
+                await wait(4000);
+                await resetAnimation();
+                await wait(1000);
+                runAnimation();
+            };
+
+            document.fonts.ready.then(() => {
+                runAnimation();
+            });
+        });
+        </script>
+</body>
+</html>
