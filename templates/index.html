@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,54 +9,64 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/index.css') }}">
-  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 
 </head>
-<body class="bg-gray-50">
+
+<body class="min-h-screen flex flex-col">
 
     <header class="bg-white shadow-sm">
         <div class="container mx-auto flex items-center justify-between px-6 py-4">
             {% include 'nexoraLogo/_nexoraLogo.html' %}
         </div>
     </header>
-    <main>
-        <section class="bg-white">
+    <main class="flex-grow">
+            <section class="bg-white">
             <div class="container mx-auto px-6 py-20">
                 <div class="flex flex-col md:flex-row items-center justify-center">
                     <div id="login-form" class="md:w-1/2 lg:w-2/5">
                         <div class="bg-white rounded-xl shadow-2xl p-8">
                             <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h3>
-                                    {% if error %}
-                                        <div class="error-message">{{ error }}</div>
-                                    {% endif %}
+                            {% if error %}
+                            <div class="error-message">{{ error }}</div>
+                            {% endif %}
                             <form method="POST" action="{{ url_for('login') }}">
                                 <div class="mb-4">
-                                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">{{ _("Username") }} </label>
+                                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">{{
+                                        _("Username") }} </label>
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                                             <i class="fas fa-user text-gray-400"></i>
                                         </span>
-                                        <input type="username" id="username" name="username" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Your Username">
+                                        <input type="username" id="username" name="username"
+                                            class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="Your Username">
                                     </div>
                                 </div>
                                 <div class="mb-6">
-                                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">{{ _("Password") }} </label>
+                                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">{{
+                                        _("Password") }} </label>
                                     <div class="relative">
-                                         <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                                             <i class="fas fa-lock text-gray-400"></i>
                                         </span>
-                                        <input type="password" id="password" name="password" class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="••••••••••">
+                                        <input type="password" id="password" name="password"
+                                            class="w-full pl-10 pr-4 py-2 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="••••••••••">
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between mb-6">
                                     <label class="flex items-center text-sm text-gray-600">
-                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600" id="remember" name="remember">
+                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-indigo-600"
+                                            id="remember" name="remember">
                                         <span class="ml-2">{{ _("Remember me") }} </span>
                                     </label>
-                                    <a href="{{ url_for('forgot_password') }}" class="text-sm text-indigo-600 hover:underline">{{ _("Forgot password") }}? </a>
+                                    <a href="{{ url_for('forgot_password') }}"
+                                        class="text-sm text-indigo-600 hover:underline">{{ _("Forgot password") }}? </a>
                                 </div>
-                                <button type="submit" class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
-                                    {{ _("Sign in") }} 
+                                <button type="submit"
+                                    class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300">
+                                    {{ _("Sign in") }}
                                 </button>
                             </form>
                         </div>
@@ -64,5 +75,10 @@
             </div>
         </section>
     </main>
+    <footer class="bg-gray-50 mt-auto">
+        <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+            &copy; 2025 nexora. {{ _("All rights reserved") }}.
+        </div>
+    </footer>
 </body>
 </html>
