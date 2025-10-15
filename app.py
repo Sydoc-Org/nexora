@@ -1046,7 +1046,7 @@ def api_workitems():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
-        per_page = 50
+        per_page = 40
         offset = (page - 1) * per_page
 
         process_name = request.args.get('processFilterWorkitemOverview', 'both')
@@ -1207,7 +1207,7 @@ def workitems_overview():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
-        per_page = 50
+        per_page = 40
         offset = (page - 1) * per_page
 
         process_name = request.args.get('processFilterWorkitemOverview', 'both')
@@ -1265,7 +1265,16 @@ def workitems_overview():
         try:
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
-            
+            cursor.execute(f"""
+            SELECT COUNT(DISTINCT tdi_barcode.StringValue)
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                WHERE {where_sql}
+            """, params)
+            total_items = cursor.fetchone()[0] or 0
+
             data_query = f"""
                     WITH WorkitemCTE AS (
                         SELECT

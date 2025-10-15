@@ -30,7 +30,7 @@
         <div class="flex items-center space-x-4">
           <div class="bg-white px-4 py-2 rounded-lg shadow">
             <span class="text-sm text-gray-500">{{ _("Total items found:") }}</span>
-            <span class="font-bold text-lg text-indigo-600">{{ total_items }}</span>
+            <span class="font-bold text-lg text-indigo-600" id="totalItemsCount">{{ total_items }}</span>
           </div>
         </div>
       </div>
@@ -114,16 +114,16 @@
           class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
           <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
         </button>
-        <button onclick="exportToCSV()" type="button"
-          class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
-          <i class="fas fa-download mr-2"></i>{{ _("Export") }}
-        </button>
-        <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
+         <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm font-medium text-center">{{
           _("Reset") }}</a>
-        <button type="submit"
+        <button onclick="exportToCSV()" type="button"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
+          <i class="fas fa-download mr-2"></i>{{ _("Export") }}
+        </button>
+        <!-- <button type="submit"
           class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{{
-          _("Apply Filters") }}</button>
+          _("Apply Filters") }}</button> -->
       </div>
     </form>
 
@@ -298,36 +298,29 @@
                         </div>
 
                         <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
-  <form class="comment-form" data-barcode="{{ workitem.barcode }}">
-    <label for="comment-text-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">
-      {{ _("Add Comment:") }}
-    </label>
+                          <form class="comment-form" data-barcode="{{ workitem.barcode }}">
+                            <label for="comment-text-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">
+                              {{ _("Add Comment:") }}
+                            </label>
 
-    <div class="relative"> 
-      <textarea
-        name="commentText"
-        id="comment-text-{{ workitem.workitemid }}"
-        class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-        placeholder="{{ _('Add a comment... Tag with @username') }}"
-        rows="3"
-        required
-        autocomplete="off"
-      ></textarea>
+                            <div class="relative">
+                              <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}"
+                                class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
+                                autocomplete="off"></textarea>
 
-<div
-  class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
-</div>
+                              <div
+                                class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
+                              </div>
 
-    </div>
+                            </div>
 
-    <button
-      type="submit"
-      class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-    >
-      {{ _("Post Comment") }}
-    </button>
-  </form>
-</div>
+                            <button type="submit"
+                              class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                              {{ _("Post Comment") }}
+                            </button>
+                          </form>
+                        </div>
 
                       </div>
                     </div>
@@ -338,7 +331,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="4" class="text-center py-10 text-gray-500">
+        <td colspan="6" class="text-center py-10 text-gray-500">
           {{ _("No workitems found for the selected criteria.") }}
         </td>
       </tr>
@@ -348,43 +341,40 @@
     </div>
     </div>
 
+
     <div id="paginationContainer" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-gray-700">
-        Showing <span class="font-medium" id="showingCount">{{ workitems|length }}</span> of <span class="font-medium"
-          id="totalCount">{{ total_items }}</span> results
+        {{ _("Showing") }} <span class="font-medium" id="showingCount">{{ ((current_page - 1) * 50) + 1 if workitems else 0 }}-{{ ((current_page - 1) * 50) + workitems|length }}</span> {{ _("of") }} <span class="font-medium"
+          id="totalCount">{{ total_items }}</span> {{ _("results") }}
       </div>
 
       {% if total_pages > 1 %}
       <div id="paginationControls" class="flex items-center gap-2">
+        {% set query_params = {
+        'processFilterWorkitemOverview': process_name,
+        'search': search,
+        'status': status,
+        'startDate': startDate,
+        'endDate': endDate,
+        'tag': tag
+        } %}
+        <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
+          data-page="{{ current_page - 1 }}"
+          class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == 1 else 'hover:bg-gray-50' }}">
+          <i class="fas fa-chevron-left mr-1"></i> {{ _("Previous") }}
+        </a>
+
+        <span class="text-sm text-gray-600">
+          {{ _("Page") }} {{ current_page }} {{ _("of") }} {{ total_pages }}
+        </span>
+
+        <a href="{{ url_for('workitems_overview', page=current_page + 1, **query_params) if current_page < total_pages else '#' }}"
+          data-page="{{ current_page + 1 }}"
+          class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == total_pages else 'hover:bg-gray-50' }}">
+          {{ _("Next") }} <i class="fas fa-chevron-right ml-1"></i>
+        </a>
       </div>
       {% endif %}
-    </div>
-
-
-    {% if total_pages > 1 %}
-    <div class="flex items-center gap-2" id="paginationControls">
-      {% set query_params = {
-      'processFilterWorkitemOverview': process_name,
-      'search': search,
-      'status': status,
-      'startDate': startDate,
-      'endDate': endDate
-      } %}
-      <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
-        class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == 1 else 'hover:bg-gray-50' }}">
-        <i class="fas fa-chevron-left mr-1"></i> Previous
-      </a>
-
-      <span class="text-sm text-gray-600">
-        Page {{ current_page }} of {{ total_pages }}
-      </span>
-
-      <a href="{{ url_for('workitems_overview', page=current_page + 1, **query_params) if current_page < total_pages else '#' }}"
-        class="px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == total_pages else 'hover:bg-gray-50' }}">
-        Next <i class="fas fa-chevron-right ml-1"></i>
-      </a>
-    </div>
-    {% endif %}
     </div>
 
   </main>
@@ -395,12 +385,12 @@
     <a class="modal-prev">&#10094;</a>
     <a class="modal-next">&#10095;</a>
   </div>
-    
+
   <footer class="bg-gray-50 mt-auto">
-        <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
-            &copy; 2025 nexora. {{ _("All rights reserved") }}.
-        </div>
-    </footer>
+    <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+      &copy; 2025 nexora. {{ _("All rights reserved") }}.
+    </div>
+  </footer>
 
   {% include 'js/_workitems_overviewJS.html' %}
   {% include 'js/_tourJS.html' %}
