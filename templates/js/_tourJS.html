@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const helpButton = document.getElementById('help-tour-button');
+    if (!helpButton) return;
+
+    const tour = new Shepherd.Tour({
+        useModalOverlay: true,
+        defaultStepOptions: {
+            classes: 'shepherd-custom',
+            scrollTo: { behavior: 'smooth', block: 'center' },
+            cancelIcon: { enabled: true, label: 'Close tour' },
+            buttons: [
+                { action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` },
+                { action() { return this.next(); }, text: `{{ _("Next") }}` }
+            ]
+        }
+    });
+
+    const path = window.location.pathname;
+
+    if (path.includes('/dashboard') || path.endsWith('/')) {
+        tour.addStep({
+            id: 'dashboard-welcome',
+            title: `{{ _("Welcome to the Dashboard!") }}`,
+            text: `{{ _("This is your central hub. Let's take a quick look at the key features.") }}`,
+            buttons: [{ action() { return this.next(); }, text: `{{ _("Start Tour") }}` }]
+        });
+        tour.addStep({
+            id: 'dashboard-filter',
+            title: `{{ _("Process Filter") }}`,
+            text: `{{ _("Use this dropdown to filter all the data on this page by a specific document process, like 'Inbox' or 'Invoice'.") }}`,
+            attachTo: { element: 'select[name="processFilterDashboard"]', on: 'bottom' },
+        });
+        tour.addStep({
+            id: 'dashboard-kpis',
+            title: `{{ _("Key Metrics") }}`,
+            text: `{{ _("These cards show a live summary of your documents: 'Ready' for processing, currently 'In Progress', successfully 'Done', and items in the 'Backlog'.") }}`,
+            attachTo: { element: '.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4', on: 'bottom' },
+        });
+        tour.addStep({
+            id: 'dashboard-status',
+            title: `{{ _("Live Document Status") }}`,
+            text: `{{ _("This section provides a real-time view of documents that are actively being processed right now.") }}`,
+            attachTo: { element: '#document-preview-container', on: 'top' },
+        });
+        tour.addStep({
+            id: 'dashboard-activity',
+            title: `{{ _("Recent Activity") }}`,
+            text: `{{ _("Here you'll find a feed of the latest status changes for your documents.") }}`,
+            attachTo: { element: '#recent-activity-list', on: 'left' },
+            buttons: [{ action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` }, { action() { return this.complete(); }, text: `{{ _("Finish") }}` }]
+        });
+    }
+
+    else if (path.includes('/workitems')) {
+        const firstToggleButton = document.querySelector('.details-toggle-button');
+        const firstDetailsRow = document.querySelector('.details-row');
+        const firstWorkitemId = firstToggleButton ? firstToggleButton.dataset.workitemid : null;
+        if (firstToggleButton && firstDetailsRow && firstWorkitemId) {
+            tour.addStep({
+                id: 'workitems-intro',
+                title: `{{ _("Workitems Overview") }}`,
+                text: `{{ _("This page lets you search, view, and manage all your workitems in detail.") }}`,
+                buttons: [{ action() { return this.next(); }, text: `{{ _("Start Tour") }}` }]
+            });
+            tour.addStep({
+                id: 'workitems-filter-form',
+                title: `{{ _("Search & Filter") }}`,
+                text: `{{ _("Use this powerful form to find specific workitems by barcode, status, or date range.") }}`,
+                attachTo: { element: '#filterForm', on: 'bottom' },
+            });
+            tour.addStep({
+                id: 'workitems-table',
+                title: `{{ _("Workitems Table") }}`,
+                text: `{{ _("Your filtered results appear here. You can sort columns by clicking on their headers.") }}`,
+                attachTo: { element: '#workitemsTable', on: 'top' },
+            });
+            tour.addStep({
+                id: 'workitems-details-toggle',
+                title: `{{ _("View Details") }}`,
+                text: `{{ _("Click this arrow button to expand a workitem. The tour will do this automatically for the next step.") }}`,
+                attachTo: { element: firstToggleButton, on: 'left' },
+                when: {
+                    show: () => {
+                        if (firstDetailsRow.classList.contains('open')) {
+                            firstToggleButton.click();
+                        }
+                    }
+                }
+            });
+            tour.addStep({
+                id: 'workitems-media',
+                title: `{{ _("Media Viewer") }}`,
+                text: `{{ _("Once expanded, you can see all associated images and media for the workitem here.") }}`,
+                attachTo: { element: `#${firstDetailsRow.id} .details-content-wrapper > div:first-child`, on: 'bottom' },
+                beforeShowPromise: () => {
+                    return new Promise(resolve => {
+                        if (!firstDetailsRow.classList.contains('open')) {
+                            firstToggleButton.click();
+                            setTimeout(resolve, 300); 
+                        } else {
+                            resolve();
+                        }
+                    });
+                }
+            });
+            tour.addStep({
+                id: 'workitems-history',
+                title: `{{ _("History Timeline") }}`,
+                text: `{{ _("This panel shows a complete audit trail, tracking every step the document has gone through in the process.") }}`,
+                attachTo: { element: `#history-container-${firstWorkitemId}`, on: 'left' }
+            });
+
+            tour.addStep({
+                id: 'workitems-collaboration',
+                title: `{{ _("Collaboration Tools") }}`,
+                text: `{{ _("Here you can set a priority level, assign the workitem to a colleague, and add comments for your team.") }}`,
+                attachTo: { element: `#collaboration-tools-${firstWorkitemId}`, on: 'left' },
+                buttons: [
+                    { action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` },
+                    {
+                      action() {
+                        if (firstDetailsRow.classList.contains('open')) {
+                            firstToggleButton.click();
+                        }
+                        return this.complete();
+                      },
+                      text: `{{ _("Finish") }}`
+                    }
+                ]
+            });
+        }
+    }
+
+    else if (path.includes('/reports')) {
+        tour.addStep({
+            id: 'reports-intro',
+            title: `{{ _("Analytics & Reports") }}`,
+            text: `{{ _("This page visualizes your document processing activity and trends over time.") }}`,
+            buttons: [{ action() { return this.next(); }, text: `{{ _("Start Tour") }}` }]
+        });
+        tour.addStep({
+            id: 'reports-kpis',
+            title: `{{ _("Key Performance Indicators") }}`,
+            text: `{{ _("These cards highlight your processing volume for today and the last 7 days, plus the current backlog.") }}`,
+            attachTo: { element: '.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3', on: 'bottom' },
+        });
+        tour.addStep({
+            id: 'reports-processed-chart',
+            title: `{{ _("Processed Over Time") }}`,
+            text: `{{ _("This line chart shows the number of workitems processed over the last 30 days, helping you spot trends.") }}`,
+            attachTo: { element: '#processedOverTimeChart', on: 'top' },
+        });
+        tour.addStep({
+            id: 'reports-distribution-chart',
+            title: `{{ _("Status Distribution") }}`,
+            text: `{{ _("This pie chart gives you a snapshot of the current status of all your workitems (Ready, In Progress, etc.).") }}`,
+            attachTo: { element: '#statusDistributionChart', on: 'top' },
+        });
+        tour.addStep({
+            id: 'reports-stage-chart',
+            title: `{{ _("In-Progress Breakdown") }}`,
+            text: `{{ _("This bar chart shows which stage the 'In Progress' items are currently in, like Validation, Extraction, or Export.") }}`,
+            attachTo: { element: '#stageBreakdownChart', on: 'top' },
+            buttons: [{ action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` }, { action() { return this.complete(); }, text: `{{ _("Finish") }}` }]
+        });
+    }
+
+
+    if (tour.steps.length > 0) {
+        helpButton.addEventListener('click', () => tour.start());
+    } else {
+        helpButton.style.display = 'none'; 
+    }
+});
+</script>
+</body>
+</html>

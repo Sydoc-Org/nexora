@@ -4,12 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('Profile settings - Sydoc Portal') }}</title>
+    <title>{{ _('Profile settings - nexora') }}</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/profile.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+
 </head>
 
 <body class="bg-gray-50 text-gray-800 font-sans">
@@ -238,7 +240,7 @@
                             class="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
                             <div
                                 class="rounded-3xl rounded-t-3xl bg-white/60 p-8 ring-1 ring-gray-900/10 sm:mx-8 sm:rounded-b-none sm:p-10 lg:mx-0 lg:rounded-tr-none lg:rounded-bl-3xl">
-                                <h3 id="tier-sydoc+" class="text-base/7 font-semibold text-indigo-600">Sydoc+</h3>
+                                <h3 id="tier-nexora+" class="text-base/7 font-semibold text-indigo-600">nexora+</h3>
                                 <p class="mt-4 flex items-baseline gap-x-2">
                                     <span class="text-5xl font-semibold tracking-tight text-gray-900">CHF 29</span>
                                     <span class="text-base text-gray-500">/month</span>
@@ -274,13 +276,13 @@
                                         Support
                                     </li>
                                 </ul>
-                                <a href="#" aria-describedby="tier-sydoc+"
+                                <a href="#" aria-describedby="tier-nexora+"
                                     class="mt-8 block rounded-md px-3.5 py-2.5 text-center text-sm font-semibold text-indigo-600 inset-ring inset-ring-indigo-200 hover:inset-ring-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:mt-10">
                                     {{ _("Get started today") }}</a>
                             </div>
                             <div
                                 class="relative rounded-3xl bg-gray-900 p-8 shadow-2xl ring-1 ring-gray-900/10 sm:p-10">
-                                <h3 id="tier-sydocPremium" class="text-base/7 font-semibold text-indigo-400">Sydoc Premium
+                                <h3 id="tier-nexoraPremium" class="text-base/7 font-semibold text-indigo-400">nexora Premium
                                 </h3>
                                 <p class="mt-4 flex items-baseline gap-x-2">
                                     <span class="text-5xl font-semibold tracking-tight text-white">CHF 99</span>
@@ -335,7 +337,7 @@
                                        {{ _(" Custom integrations") }}
                                     </li>
                                 </ul>
-                                <a href="#" aria-describedby="tier-sydocPremium"
+                                <a href="#" aria-describedby="tier-nexoraPremium"
                                     class="mt-8 block rounded-md bg-indigo-500 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 sm:mt-10">
                                     {{ _("Get started today") }}</a>
                             </div>
@@ -347,7 +349,15 @@
             </div>
         </div>
     </main>
+
+        <footer class="bg-gray-50 mt-auto">
+        <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+            &copy; 2025 nexora. {{ _("All rights reserved") }}.
+        </div>
+    </footer>
+    
     {% include 'js/_profileJS.html' %}
+
 </body>
 
 </html>
