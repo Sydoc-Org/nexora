@@ -905,7 +905,7 @@ async function handleRemoveTag(event) {
                 fetchAndUpdateWorkitems();
             });
 
-            ['processFilterWorkitemOverview', 'statusFilter', 'startDate', 'endDate'].forEach(id => {
+            ['processFilterWorkitemOverview', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter'].forEach(id => {                   
                 document.getElementById(id).addEventListener('change', () => fetchAndUpdateWorkitems());
             });
             document.getElementById('searchInput').addEventListener('input', () => fetchAndUpdateWorkitems());

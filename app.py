@@ -1047,6 +1047,8 @@ def api_workitems():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
+        priority = request.args.get('priority', '')
+        assigned_user = request.args.get('assignedUser', '')
         per_page = 40
         offset = (page - 1) * per_page
 
@@ -1088,7 +1090,16 @@ def api_workitems():
         if end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
-            
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+        if assigned_user:
+            if assigned_user == 'None' or assigned_user == 'Unassigned':
+                where_clauses.append("(wim.AssignedUserID IS NULL)")
+            else:
+                where_clauses.append("wim.AssignedUserID = ?")
+                params.append(assigned_user)
+
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1113,8 +1124,10 @@ def api_workitems():
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
             """, params)
+
             total_items = cursor.fetchone()[0] or 0
             data_query = f"""
                     WITH WorkitemCTE AS (
@@ -1199,6 +1212,7 @@ def workitems_overview():
         logged_in_user = session.get('username')
         userid = session.get('userid')
         scope = session.get('scope')
+        access = session.get('access')
 
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
@@ -1208,6 +1222,8 @@ def workitems_overview():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
+        priority = request.args.get('priority', '')
+        assigned_user = request.args.get('assignedUser', '')
         per_page = 40
         offset = (page - 1) * per_page
 
@@ -1248,7 +1264,16 @@ def workitems_overview():
         if end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
-            
+
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+        if assigned_user:
+            if assigned_user == 'None' or assigned_user == 'Unassigned':
+                where_clauses.append("(wim.AssignedUserID IS NULL)")
+            else:
+                where_clauses.append("wim.AssignedUserID = ?")
+                params.append(assigned_user)
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1272,6 +1297,7 @@ def workitems_overview():
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
             """, params)
             total_items = cursor.fetchone()[0] or 0
@@ -1337,6 +1363,7 @@ def workitems_overview():
         total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+        portal_users = get_all_portal_users(access)
 
         return render_template("workitems_overview.html", 
             logged_in_user=logged_in_user,
@@ -1350,7 +1377,10 @@ def workitems_overview():
             search=search_term,
             status=status,
             startDate=start_date,
-            endDate=end_date
+            endDate=end_date,
+            priority=priority,
+            assignedUser=assigned_user,
+            portal_users=portal_users
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
@@ -1980,6 +2010,25 @@ def remove_tag_from_workitem(barcode, tag_id):
 # ---------------------- workitem collaboration apis end --------------------- #
 
 # --------------------------- workitem overview end -------------------------- #
+
+def get_all_portal_users(access):
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        if access != 'Unlimited':
+            cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname WHERE access = ?",access)  
+        else:
+            cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return users
+    except Exception as e:
+        app.logger.error(f"Failed to fetch all portal users: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
 
 
 # ---------------------------------- profile --------------------------------- #

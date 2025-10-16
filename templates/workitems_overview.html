@@ -106,7 +106,7 @@
       </div>
 
       <div id="advancedFilterContainer" class="hidden mt-4 pt-4 border-t border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
             <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}"
@@ -116,6 +116,27 @@
             <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
             <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}"
               class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          </div>
+
+          <div>
+            <label for="priorityFilter" class="block text-sm font-medium text-gray-700">{{ _("Priority") }}</label>
+            <select id="priorityFilter" name="priority" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <option value="">{{ _("All Priorities") }}</option>
+              <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
+              <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
+              <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
+              <option value="0" {% if priority=='0' %}selected{% endif %}>{{ _("None") }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="assignedUserFilter" class="block text-sm font-medium text-gray-700">{{ _("Assigned To") }}</label>
+            <select id="assignedUserFilter" name="assignedUser" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
+              {% for user in portal_users %}
+              <option value="{{ user.userID }}" {% if assignedUser == user.userID|string %}selected{% endif %}>{{ user.fullname }}</option>
+              {% endfor %}
+            </select>
           </div>
         </div>
       </div>
@@ -372,7 +393,9 @@
         'status': status,
         'startDate': startDate,
         'endDate': endDate,
-        'tag': tag
+        'tag': tag,
+        'priority': priority,
+        'assignedUser': assignedUser
         } %}
         <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
           data-page="{{ current_page - 1 }}"
