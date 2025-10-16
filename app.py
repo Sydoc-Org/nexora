@@ -1074,10 +1074,10 @@ def api_workitems():
                     SELECT 1
                     FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                     JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName like ?
                 )
             """)
-            params.append(tag_filter)
+            params.append('%'+tag_filter+'%')
 
         if search_term:
             where_clauses.append("tdi_barcode.StringValue LIKE ?")
@@ -1253,10 +1253,10 @@ def workitems_overview():
                     SELECT 1
                     FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                     JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName like ?
                 )
             """)
-            params.append(tag_filter)
+            params.append('%'+tag_filter+'%')
         if start_date:
             where_clauses.append("twi.ModifiedAt >= ?")
             params.append(start_date)
