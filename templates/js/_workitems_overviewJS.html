@@ -533,6 +533,46 @@ async function refreshWorkitemUI(barcode, workitemId) {
             fetchMentionableUsers(); 
             fetchAllTags(); 
 
+            const importBtn = document.getElementById('importBtn');
+            const importFileInput = document.getElementById('importFile');
+
+            if (importBtn && importFileInput) {
+                importBtn.addEventListener('click', () => {
+                    importFileInput.click(); 
+                });
+
+                importFileInput.addEventListener('change', () => {
+                    if (importFileInput.files.length > 0) {
+                        const file = importFileInput.files[0];
+                        const formData = new FormData();
+                        formData.append('importFile', file);
+
+                        importBtn.disabled = true;
+                        importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
+
+                        fetch(`${API_PREFIX}import_workitems`, {
+                            method: 'POST',
+                            body: formData,
+                        })
+                        .then(response => {
+                            if (response.redirected) {
+                                window.location.href = response.url;
+                            } else {
+                                console.error('Import failed. The server did not redirect.');
+                                importBtn.disabled = false;
+                                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('An error occurred during the file import:', error);
+                            importBtn.disabled = false;
+                            importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+                            alert('An unexpected error occurred. Please try again.');
+                        });
+                    }
+                });
+            }
+
             const filterForm = document.getElementById('filterForm');
             async function fetchAndUpdateWorkitems(page = 1) {
                 const formData = new FormData(filterForm);

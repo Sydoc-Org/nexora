@@ -22,6 +22,7 @@ from flask_caching import Cache
 from datetime import datetime, timedelta
 from functools import wraps
 import time
+from werkzeug.utils import secure_filename
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -1354,6 +1355,38 @@ def workitems_overview():
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
+
+@app.route('/import_workitems', methods=['POST'])
+def import_workitems():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if 'importFile' not in request.files:
+        flash(_("No file part in the request."), 'error')
+        return redirect(url_for('workitems_overview'))
+
+    file = request.files['importFile']
+
+    if file.filename == '':
+        flash(_("No file selected for uploading."), 'error')
+        return redirect(url_for('workitems_overview'))
+
+    if file:
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join(app.root_path, 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        
+        try:
+            file.save(file_path)
+            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename})
+            flash(_("File '{}' successfully imported.").format(filename), 'success')
+        except Exception as e:
+            app.logger.error(f"Error saving imported file: {e}")
+            log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
+            flash(_("An error occurred while saving the file."), 'error')
+
+    return redirect(url_for('workitems_overview'))
 
 @app.route('/api/workitem/<barcode>')
 def get_single_workitem(barcode):

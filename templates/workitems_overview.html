@@ -19,6 +19,17 @@
   {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 rounded-lg border px-4 py-3 {% if category == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %}" role="alert">
+            <span class="block sm:inline">{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+  <main class="container mx-auto p-6">
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -117,13 +128,18 @@
          <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm font-medium text-center">{{
           _("Reset") }}</a>
+
+        <form id="importForm" action="{{ url_for('import_workitems') }}" method="post" enctype="multipart/form-data" class="inline-block">
+            <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf">
+        <button type="button" id="importBtn"
+          class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
+          <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
+        </button>
+        </form>
         <button onclick="exportToCSV()" type="button"
           class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
           <i class="fas fa-download mr-2"></i>{{ _("Export") }}
         </button>
-        <!-- <button type="submit"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{{
-          _("Apply Filters") }}</button> -->
       </div>
     </form>
 
