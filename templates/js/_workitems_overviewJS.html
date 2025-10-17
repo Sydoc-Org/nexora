@@ -339,8 +339,8 @@ async function refreshWorkitemUI(barcode, workitemId) {
                                     const label = fieldLabels[key] || key;
                                     fieldsHtml += `
                                         <div class="py-2 flex justify-between items-center gap-4">
-                                            <dt class="font-medium text-gray-600 truncate">${label}</dt>
-                                            <dd class="text-gray-800 text-right">${fields[key]}</dd>
+                                            <dt class="text-gray-500 truncate">${label}</dt>
+                                            <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
                                         </div>
                                     `;
                                 }
@@ -351,7 +351,6 @@ async function refreshWorkitemUI(barcode, workitemId) {
                             fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                         }
                     }
-
                     imageContainer.dataset.loaded = 'true';
 
                     if (imageCount === 0) {
@@ -683,6 +682,12 @@ async function refreshWorkitemUI(barcode, workitemId) {
                             <div id="image-container-${workitem.workitemid}"
                               class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
                               <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
+                            </div>
+                            <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Document Details') }}</h4>
+                            <div id="fields-container-${workitem.workitemid}" class="relative flex-grow overflow-y-auto pr-2">
+                                <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
+                            </div>
                             </div>
                             <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
                               <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
