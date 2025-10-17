@@ -310,6 +310,47 @@ async function refreshWorkitemUI(barcode, workitemId) {
                     }
                     const mediaInfo = await infoResponse.json();
                     const imageCount = mediaInfo.media_count;
+                    const fields = mediaInfo.fields || {};
+                    const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+                    if (fieldsContainer) {
+                        if (Object.keys(fields).length > 0) {
+                            const fieldLabels = {
+                                DocDate: '{{ _("Document Date") }}',
+                                DocType: '{{ _("Document Type") }}',
+                                OwnerNr: '{{ _("Owner No.") }}',
+                                OwnerName: '{{ _("Owner Name") }}',
+                                PropertyNr: '{{ _("Property No.") }}',
+                                PropertyName: '{{ _("Property Name") }}',
+                                TenantNr: '{{ _("Tenant No.") }}',
+                                TenantName: '{{ _("Tenant Name") }}',
+                                BroadcastNr: '{{ _("Broadcast No.") }}',
+                                Branch: '{{ _("Branch") }}',
+                                CrdName: '{{ _("Creditor Name") }}',
+                                DocNo: '{{ _("Document No.") }}',
+                                CrdNo: '{{ _("Creditor No.") }}',
+                                GrossAmount: '{{ _("Gross Amount") }}',
+                                NetAmount: '{{ _("Net Amount") }}',
+                                VatAmount: '{{ _("VAT Amount") }}'
+                            };
+
+                            let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                            for (const key in fields) {
+                                if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                                    const label = fieldLabels[key] || key;
+                                    fieldsHtml += `
+                                        <div class="py-2 flex justify-between items-center gap-4">
+                                            <dt class="font-medium text-gray-600 truncate">${label}</dt>
+                                            <dd class="text-gray-800 text-right">${fields[key]}</dd>
+                                        </div>
+                                    `;
+                                }
+                            }
+                            fieldsHtml += '</dl>';
+                            fieldsContainer.innerHTML = fieldsHtml;
+                        } else {
+                            fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
+                        }
+                    }
 
                     imageContainer.dataset.loaded = 'true';
 

@@ -1528,13 +1528,13 @@ def get_extensions_urls_fields(workitemdata, document_id):
     extension = []
     fields = {}
     isP = False
-    
+
     for customvalues in response.json()['CustomValues']:
         if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
             isP = True
             break
-
-    if response.json()['DocumentType'] == 'Batch':
+    
+    if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
                 if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
@@ -1653,7 +1653,8 @@ def api_get_media_info(workitem_id):
 
         response_data = {
             "workitem_id": workitem_id,
-            "media_count": media_count
+            "media_count": media_count,
+            "fields": fields
         }
         
         cache.set(f"media_info_{workitem_id}", response_data)
