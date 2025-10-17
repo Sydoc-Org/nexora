@@ -46,6 +46,84 @@
         </form>
       </div>
 
+<section
+  id="reportControls"
+  class="bg-white p-6 rounded-xl shadow-lg mb-8">
+  <header class="flex items-center gap-2 mb-3">
+    <div class="h-8 w-8 rounded-lg bg-indigo-600/10 flex items-center justify-center">
+      <i class="fa-solid fa-sliders text-indigo-600"></i>
+    </div>
+    <h2 class="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-100 m-0">
+      {{ _("Customize report") }}
+    </h2>
+    <div class="ml-auto flex items-center gap-2">
+      <button type="button" id="repReset"
+        class="text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-white/20
+               hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2
+               focus-visible:ring-indigo-500">
+        {{ _("Reset") }}
+      </button>
+      <button type="button" id="repApply"
+        class="relative text-sm px-3.5 py-2.5 rounded-lg bg-indigo-600 text-white
+               hover:bg-indigo-700 focus:outline-none focus-visible:ring-2
+               focus-visible:ring-offset-2 focus-visible:ring-indigo-500
+               disabled:opacity-60 disabled:cursor-not-allowed">
+        <span class="inline-flex items-center gap-2">
+          <i class="fa-solid fa-play"></i>
+          <span>{{ _("Apply") }}</span>
+          <svg id="repSpinner" class="hidden animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".25" stroke-width="4"></circle>
+            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    <label class="block">
+      <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ _("From") }}</span>
+      <input type="date" id="repStart"
+             class="ui-input w-full" />
+    </label>
+
+    <label class="block">
+      <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ _("To") }}</span>
+      <input type="date" id="repEnd"
+             class="ui-input w-full" />
+    </label>
+
+    <label class="block">
+      <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ _("Group by") }}</span>
+      <select id="repGroup" class="ui-select w-full">
+        <option value="day">{{ _("Day") }}</option>
+        <option value="week">{{ _("Week") }}</option>
+        <option value="month">{{ _("Month") }}</option>
+      </select>
+    </label>
+
+    <label class="block">
+      <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ _("Statuses") }}</span>
+      <select id="repStatuses" multiple
+              class="ui-select w-full min-h-10">
+        <option>Ready</option>
+        <option selected>Done</option>
+      </select>
+      <span class="mt-1 block text-[11px] text-gray-400">{{ _("Ctrl/Cmd-click to multi-select") }}</span>
+    </label>
+
+    <label class="block">
+      <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ _("Process") }}</span>
+      <select id="repProcess" class="ui-select w-full">
+        <option value="both">{{ _("All") }}</option>
+        <option value="02_Posteingang">{{ _("Inbox") }}</option>
+        <option value="02_Invoice">{{ _("Invoice") }}</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
           <div class="bg-green-100 text-green-600 h-16 w-16 flex items-center justify-center rounded-full text-2xl">

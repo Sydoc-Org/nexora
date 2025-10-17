@@ -1515,7 +1515,7 @@ def get_workitemdata_param(workitem_id):
 
     return base64_string, response.json()['DocumentID']
 
-def get_extension_and_urls(workitemdata, document_id):
+def get_extensions_urls_fields(workitemdata, document_id):
     url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
     access_token = get_access_token()
     headers = {
@@ -1526,18 +1526,100 @@ def get_extension_and_urls(workitemdata, document_id):
     response = requests.get(url=url, headers=headers)
     urls = []
     extension = []
+    fields = {}
+    isP = False
+    
+    for customvalues in response.json()['CustomValues']:
+        if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
+            isP = True
+            break
+
     if response.json()['DocumentType'] == 'Batch':
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
                 if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                     urls.append(media['Url'])
                     extension.append(media['Extension'])
+            for field in element['IndexFields']:
+                if field['Name'] == 'exp_dokDatum':
+                    fields['DocDate'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'exp_dokTyp':
+                    fields['DocType'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_eigNr':
+                    fields['OwnerNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'eigentuemerName':
+                    fields['OwnerName'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_liegNr':
+                    fields['PropertyNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'liegenschaftName':
+                    fields['PropertyName'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_mietNr':
+                    fields['TenantNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'mieterName':
+                    fields['TenantName'] = field["FieldValue"]['Text']
+                
+                elif field['Name'] == 'exp_sendNr':
+                    fields['BroadcastNr'] = field["FieldValue"]['Text']
+                
+                elif field['Name'] == 'exp_niederlassung':
+                    fields['Branch'] = field["FieldValue"]['Text']
+    
+    elif isP:
+        for element in response.json()['Media']:
+            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                urls.append(element['Url'])
+                extension.append(element['Extension'])
+        for field in response.json()['IndexFields']:
+            if field['Name'] == 'exp_dokDatum':
+                fields['DocDate'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'exp_dokTyp':
+                fields['DocType'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_eigNr':
+                fields['OwnerNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'eigentuemerName':
+                fields['OwnerName'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_liegNr':
+                fields['PropertyNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'liegenschaftName':
+                fields['PropertyName'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_mietNr':
+                fields['TenantNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'mieterName':
+                fields['TenantName'] = field["FieldValue"]['Text']
+            
+            elif field['Name'] == 'exp_sendNr':
+                fields['BroadcastNr'] = field["FieldValue"]['Text']
+            
+            elif field['Name'] == 'exp_niederlassung':
+                fields['Branch'] = field["FieldValue"]['Text']
+    
     else:
         for element in response.json()['Media']:
             if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                 urls.append(element['Url'])
                 extension.append(element['Extension'])
-    return extension, urls
+        for element in response.json()['IndexFields']:
+            if element['Name'] == 'CrdName':
+                fields['CrdName'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'DocNo':
+                fields['DocNo'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'CrdNo':
+                fields['CrdNo'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'GrossAmount':
+                fields['GrossAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'NetAmount':
+                fields['NetAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'VatAmount':
+                fields['VatAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'DocType':
+                fields['DocType'] = element["FieldValue"]['Text']
+    return extension, urls, fields
 
 def get_media(url):
     access_token = get_access_token()
@@ -1562,7 +1644,7 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls = get_extension_and_urls(workitemdata, document_id)
+        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
         
         media_count = len(urls) if urls else 0
         
@@ -1591,7 +1673,7 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls = get_extension_and_urls(workitemdata, document_id)
+            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
             media_data = {'extensions': extensions, 'urls': urls}
             cache.set(f"media_data_{workitem_id}", media_data)
         
@@ -2252,49 +2334,94 @@ def reports():
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
+# ---- replace the current /api/reports/processed_over_time with this version ----
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
-    conn = None
 
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
-    all_params = params + ['Privera']
-    
+    # read customization options (all optional & backwards compatible)
+    start_str = request.args.get('startDate')   # ISO 8601: "2025-10-01"
+    end_str   = request.args.get('endDate')     # ISO 8601
+    group_by  = (request.args.get('groupBy') or 'day').lower()  # day|week|month
+    statuses_q = request.args.get('statuses')   # e.g., "Done" or "Ready,In Progress,Done"
+    process_override = request.args.get('processFilterReports')
+
+    # fall back to session process filter (existing behaviour)
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    # map status names -> codes used in DB (0=Ready,1=In Progress,5=Done)
+    name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
+    status_codes = None
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    # default window: last 30 days (existing behaviour)
+    # allow custom start/end
+    date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
+    date_params = []
+    if start_str:
+        date_filter_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        # inclusive end -> use < end + 1 day, or cast as date; keep simple with < end
+        if start_str:
+            date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
+            date_params.append(datetime.fromisoformat(end_str))
+        else:
+            date_filter_sql = "twi.ModifiedAt < ?"
+            date_params.append(datetime.fromisoformat(end_str))
+
+    # grouping key
+    if group_by == 'week':
+        group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
+        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
+    elif group_by == 'month':
+        group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
+        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
+    else:  # day
+        group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
+        order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
+
+    # status filter (default used to be Done only)
+    status_sql = "twi.Status = 5"
+    status_params = []
+    if status_codes:
+        placeholders_status = ','.join(['?'] * len(status_codes))
+        status_sql = f"twi.Status IN ({placeholders_status})"
+        status_params = status_codes
+
+    conn = None
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute(f"""
             SELECT 
-                CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
-                COUNT(twi.ID) as ItemCount
+                {group_key} AS Bucket,
+                COUNT(twi.ID) as ItemCount,
+                {order_key} as SortKey
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders})
               AND tp.ClientName = ?
-              AND twi.Status = 5 -- Status for 'Done'
-              AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
-            GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
-            ORDER BY DoneDate;
-        """,all_params)
+              AND {status_sql}
+              AND {date_filter_sql}
+            GROUP BY {group_key}
+            ORDER BY SortKey;
+        """, *(all_params + status_params + date_params))
         rows = cursor.fetchall()
-        
-        labels = [row.DoneDate for row in rows]
+
+        labels = [row.Bucket for row in rows]
         data = [row.ItemCount for row in rows]
-        
         return jsonify({'labels': labels, 'data': data})
-        
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": str(e)}), 500
@@ -2302,20 +2429,94 @@ def report_processed_over_time():
         if conn:
             conn.close()
 
+# ---- replace /api/reports/status_distribution with this version ----
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
-    stats = get_absolute_dashboard_stats(session['process_name_reports']) 
-    labels = ['Ready', 'In Progress', 'Done', 'Backlog']
-    data = [
-        stats.get('ReadyTotal', 0),
-        stats.get('InProgressTotal', 0),
-        stats.get('DoneTotal', 0),
-        stats.get('BacklogTotal', 0)
-    ]
-    return jsonify({'labels': labels, 'data': data})
+
+    start_str = request.args.get('startDate')
+    end_str   = request.args.get('endDate')
+    statuses_q = request.args.get('statuses')  # optional
+    process_override = request.args.get('processFilterReports')
+
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    name_to_code = {'ready':0,'in progress':1,'done':5}
+    status_codes = [0,1,5]
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    # If date window provided, compute counts within the window; else use your fast absolute helper.
+    if not start_str and not end_str and set(status_codes)=={0,1,5}:
+        stats = get_absolute_dashboard_stats(process_name)  # existing behaviour
+        labels = ['Ready','In Progress','Done','Backlog']
+        data = [
+            stats.get('ReadyTotal',0),
+            stats.get('InProgressTotal',0),
+            stats.get('DoneTotal',0),
+            stats.get('BacklogTotal',0)
+        ]
+        return jsonify({'labels': labels, 'data': data})
+
+    date_sql = "1=1"
+    date_params = []
+    if start_str:
+        date_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
+        if not start_str:
+            date_params = []
+        date_params.append(datetime.fromisoformat(end_str))
+
+    conn = None
+    try:
+        conn_str = (
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        # Count Ready / In Progress / Done inside the window
+        placeholders_status = ','.join(['?']*len(status_codes))
+        cursor.execute(f"""
+            WITH Mapped AS (
+              SELECT 
+                CASE WHEN twi.Status = 0 THEN 'Ready'
+                     WHEN twi.Status = 1 THEN 'In Progress'
+                     WHEN twi.Status = 5 THEN 'Done'
+                     ELSE 'Other' END as S
+              FROM t_WorkItems twi
+              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+              LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+              WHERE tp.Name IN ({placeholders})
+                AND tp.ClientName = ?
+                AND twi.Status IN ({placeholders_status})
+                AND {date_sql}
+            )
+            SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
+        """, *(all_params + status_codes + date_params))
+        counts = {'Ready':0,'In Progress':0,'Done':0}
+        for s,c in cursor.fetchall():
+            counts[s] = c
+
+        # Backlog unchanged (it's a system total), keep your existing backlog count:
+        stats_abs = get_absolute_dashboard_stats(process_name)
+
+        return jsonify({
+            'labels': ['Ready','In Progress','Done','Backlog'],
+            'data': [counts['Ready'], counts['In Progress'], counts['Done'], stats_abs.get('BacklogTotal',0)]
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch status_distribution report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 @app.route("/api/reports/kpi_stats")
 def report_kpi_stats():
@@ -2346,13 +2547,14 @@ def report_kpi_stats():
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
         """,all_params)
         processed_today = cursor.fetchone()[0]
-
+        
+        window_days = int(request.args.get('windowDays', '7'))
         cursor.execute(F"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
-            AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
-        """,all_params)
+            AND twi.ModifiedAt >= DATEADD(day, -?, GETDATE());
+        """, *(all_params + [window_days]))
         processed_week = cursor.fetchone()[0]
         
         cursor.execute(f"""
@@ -2376,27 +2578,47 @@ def report_kpi_stats():
         if conn:
             conn.close()
 
+# ---- replace /api/reports/stage_breakdown with this version ----
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
-    
-    conn = None
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
-    all_params = params + ['Privera']
 
+    start_str = request.args.get('startDate')
+    end_str   = request.args.get('endDate')
+    statuses_q = request.args.get('statuses')
+    process_override = request.args.get('processFilterReports')
+
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    name_to_code = {'ready':0,'in progress':1,'done':5}
+    status_codes = [0,1]  # previously excluded Done/Deleted -> keep default; include Done if requested
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    date_sql = "1=1"
+    date_params = []
+    if start_str:
+        date_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
+        if not start_str:
+            date_params = []
+        date_params.append(datetime.fromisoformat(end_str))
+
+    conn = None
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
+        placeholders_status = ','.join(['?']*len(status_codes))
         cursor.execute(f"""
            SELECT 
                 CASE
@@ -2415,8 +2637,9 @@ def report_stage_breakdown():
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders})
               AND tp.ClientName = ?
-              and twi.Status not in (5,2)
-              and tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND twi.Status IN ({placeholders_status})
+              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND {date_sql}
             GROUP BY 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -2429,15 +2652,12 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """,all_params)
-        
+        """, *(all_params + status_codes + date_params))
+
         rows = cursor.fetchall()
-        
         labels = [row.Activity for row in rows]
         data = [row.ItemCount for row in rows]
-        
         return jsonify({'labels': labels, 'data': data})
-        
     except Exception as e:
         app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
         return jsonify({"error": str(e)}), 500
