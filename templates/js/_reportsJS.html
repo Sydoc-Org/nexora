@@ -1,136 +1,195 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-    <script>
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-        
-    async function populateKpiCards() {
-    try {
-        const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`);
-        if (!response.ok) throw new Error('Failed to fetch KPI data');
-        const stats = await response.json();
+<script>
+const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
-        document.getElementById('kpi-processed-today').textContent = stats.processed_today.toLocaleString();
-        document.getElementById('kpi-processed-week').textContent = stats.processed_week.toLocaleString();
-        document.getElementById('kpi-current-backlog').textContent = stats.current_backlog.toLocaleString();
+// helper: build query from controls (if present)
+function getReportParams() {
+  const form = document.getElementById('reportControls');
+  if (!form) return '';
+  const start = document.getElementById('repStart')?.value;
+  const end   = document.getElementById('repEnd')?.value;
+  const group = document.getElementById('repGroup')?.value;
+  const proc  = document.getElementById('repProcess')?.value;
+  const statusesSel = document.getElementById('repStatuses');
+  let statuses = '';
+  if (statusesSel) {
+    const vals = [...statusesSel.selectedOptions].map(o => o.value);
+    if (vals.length) statuses = vals.join(',');
+  }
+  const p = new URLSearchParams();
+  if (start) p.set('startDate', start);
+  if (end) p.set('endDate', end);
+  if (group) p.set('groupBy', group);
+  if (proc) p.set('processFilterReports', proc);
+  if (statuses) p.set('statuses', statuses);
+  const qs = p.toString();
+  return qs ? `?${qs}` : '';
+}
 
-    } catch (error) {
-        console.error("Error populating KPI cards:", error);
-        document.getElementById('kpi-processed-today').textContent = `{{ _("Error") }}`;
-        document.getElementById('kpi-processed-week').textContent = `{{ _("Error") }}`;
-        document.getElementById('kpi-current-backlog').textContent = `{{ _("Error") }}`;
-    }
-    }
+async function populateKpiCards() {
+  try {
+    const response = await fetch(`${API_PREFIX}api/reports/kpi_stats${getReportParams()}`);
+    if (!response.ok) throw new Error('Failed to fetch KPI data');
+    const stats = await response.json();
+    document.getElementById('kpi-processed-today').textContent = Number(stats.processed_today || 0).toLocaleString();
+    document.getElementById('kpi-processed-week').textContent = Number(stats.processed_week || 0).toLocaleString();
+    document.getElementById('kpi-current-backlog').textContent = Number(stats.current_backlog || 0).toLocaleString();
+  } catch (error) {
+    console.error("Error populating KPI cards:", error);
+    document.getElementById('kpi-processed-today').textContent = `{{ _("Error") }}`;
+    document.getElementById('kpi-processed-week').textContent = `{{ _("Error") }}`;
+    document.getElementById('kpi-current-backlog').textContent = `{{ _("Error") }}`;
+  }
+}
 
-    async function renderProcessedOverTimeChart() {
-    try {
-        const response = await fetch(`${API_PREFIX}api/reports/processed_over_time`);
-        if (!response.ok) throw new Error('Failed to fetch processed over time data');
-        const chartData = await response.json();
+let processedChart, statusChart, stageChart;
 
-        const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
-        new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-            label: `{{ _("Workitems Processed") }}`,
-            data: chartData.data,
-            borderColor: 'rgb(79, 70, 229)',
-            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-            fill: true,
-            tension: 0.4,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } },
-            plugins: { legend: { display: false } }
-        }
-        });
-    } catch (error) {
-        console.error("Error rendering processed over time chart:", error);
-        document.getElementById('processedOverTimeChart').parentElement.innerHTML =
-        `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
-    }
-    }
+function destroyIfExists(chart) { if (chart) chart.destroy(); }
 
-    async function renderStatusDistributionChart() {
-    try {
-        const response = await fetch(`${API_PREFIX}api/reports/status_distribution`);
-        if (!response.ok) throw new Error('Failed to fetch status distribution data');
-        const chartData = await response.json();
-
-        const ctx = document.getElementById('statusDistributionChart').getContext('2d');
-        new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-            data: chartData.data,
-            backgroundColor: ['rgb(59, 130, 246)', 'rgb(251, 191, 36)', 'rgb(34, 197, 94)', 'rgb(168, 85, 247)'],
-            hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: { legend: { position: 'top' } }
-        }
-        });
-    } catch (error) {
-        console.error("Error rendering status distribution chart:", error);
-        document.getElementById('statusDistributionChart').parentElement.innerHTML =
-        `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
-    }
-    }
-
-
-    async function renderStageBreakdownChart() {
-    try {
-        const response = await fetch(`${API_PREFIX}api/reports/stage_breakdown`);
-        if (!response.ok) throw new Error('Failed to fetch stage breakdown data');
-        const chartData = await response.json();
-
-        const ctx = document.getElementById('stageBreakdownChart').getContext('2d');
-        new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-            label: `{{ _("Number of Items") }}`,
-            data: chartData.data,
-            backgroundColor: 'rgba(234, 88, 12, 0.8)',
-            borderColor: 'rgb(234, 88, 12)',
-            borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y', 
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: { x: { beginAtZero: true } },
-            plugins: { legend: { display: false } }
-        }
-        });
-    } catch (error) {
-        console.error("Error rendering stage breakdown chart:", error);
-        document.getElementById('stageBreakdownChart').parentElement.innerHTML =
-        `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
-    }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-    populateKpiCards();
-    renderProcessedOverTimeChart();
-    renderStatusDistributionChart();
-    renderStageBreakdownChart();
+async function renderProcessedOverTimeChart() {
+  try {
+    const response = await fetch(`${API_PREFIX}api/reports/processed_over_time${getReportParams()}`);
+    if (!response.ok) throw new Error('Failed to fetch processed over time data');
+    const chartData = await response.json();
+    const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
+    destroyIfExists(processedChart);
+    processedChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: `{{ _("Workitems Processed") }}`,
+          data: chartData.data,
+          borderColor: 'rgb(79, 70, 229)',
+          backgroundColor: 'rgba(79, 70, 229, 0.1)',
+          fill: true,
+          tension: 0.4,
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
     });
-    </script>
-</body>
-</html>
+  } catch (error) {
+    console.error("Error rendering processed over time chart:", error);
+    document.getElementById('processedOverTimeChart').parentElement.innerHTML =
+      `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
+  }
+}
+
+async function renderStatusDistributionChart() {
+  try {
+    const response = await fetch(`${API_PREFIX}api/reports/status_distribution${getReportParams()}`);
+    if (!response.ok) throw new Error('Failed to fetch status distribution data');
+    const chartData = await response.json();
+    const ctx = document.getElementById('statusDistributionChart').getContext('2d');
+    destroyIfExists(statusChart);
+    statusChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: chartData.labels,
+        datasets: [{ data: chartData.data, backgroundColor: ['rgb(59,130,246)', 'rgb(251,191,36)', 'rgb(34,197,94)', 'rgb(168,85,247)'], hoverOffset: 4 }]
+      },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+    });
+  } catch (error) {
+    console.error("Error rendering status distribution chart:", error);
+    document.getElementById('statusDistributionChart').parentElement.innerHTML =
+      `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
+  }
+}
+
+async function renderStageBreakdownChart() {
+  try {
+    const response = await fetch(`${API_PREFIX}api/reports/stage_breakdown${getReportParams()}`);
+    if (!response.ok) throw new Error('Failed to fetch stage breakdown data');
+    const chartData = await response.json();
+    const ctx = document.getElementById('stageBreakdownChart').getContext('2d');
+    destroyIfExists(stageChart);
+    stageChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartData.labels,
+        datasets: [{ label: `{{ _("Number of Items") }}`, data: chartData.data, backgroundColor: 'rgba(234, 88, 12, 0.8)', borderColor: 'rgb(234, 88, 12)', borderWidth: 1 }]
+      },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+    });
+  } catch (error) {
+    console.error("Error rendering stage breakdown chart:", error);
+    document.getElementById('stageBreakdownChart').parentElement.innerHTML =
+      `<p class="text-red-500">{{ _("Could not load chart data.") }}</p>`;
+  }
+}
+
+function setApplyLoading(isLoading) {
+    const btn = document.getElementById('repApply');
+    const spn = document.getElementById('repSpinner');
+    if (!btn || !spn) return;
+    btn.disabled = !!isLoading;
+    spn.classList.toggle('hidden', !isLoading);
+  }
+
+  function clearControls() {
+    const ids = ['repStart','repEnd','repGroup','repProcess','repStatuses'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT' && el.multiple) {
+        [...el.options].forEach(o => o.selected = false);
+      } else if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+      } else {
+        el.value = '';
+      }
+    });
+    try { localStorage.removeItem('reportParams'); } catch(e){}
+  }
+
+  async function refreshAllPretty() {
+    try {
+      setApplyLoading(true);
+      await Promise.all([
+        populateKpiCards(),
+        renderProcessedOverTimeChart(),
+        renderStatusDistributionChart(),
+        renderStageBreakdownChart()
+      ]);
+    } finally {
+      setApplyLoading(false);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // first render (keeps defaults if toolbar missing)
+    refreshAllPretty();
+
+    const applyBtn = document.getElementById('repApply');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => {
+        try { localStorage.setItem('reportParams', getReportParams()); } catch(e){}
+        refreshAllPretty();
+      });
+    }
+
+    const resetBtn = document.getElementById('repReset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        clearControls();
+        refreshAllPretty();
+      });
+    }
+
+    // prefill from previous choices (unchanged from your version)
+    try {
+      const saved = localStorage.getItem('reportParams');
+      if (saved) {
+        const u = new URLSearchParams(saved.replace(/^\?/, ''));
+        if (u.get('startDate')) document.getElementById('repStart').value = u.get('startDate');
+        if (u.get('endDate')) document.getElementById('repEnd').value = u.get('endDate');
+        if (u.get('groupBy')) document.getElementById('repGroup').value = u.get('groupBy');
+        if (u.get('processFilterReports')) document.getElementById('repProcess').value = u.get('processFilterReports');
+        const sts = u.get('statuses'); 
+        if (sts && document.getElementById('repStatuses')) {
+          [...document.getElementById('repStatuses').options].forEach(o => o.selected = sts.split(',').includes(o.value));
+        }
+      }
+    } catch(e){}
+  });
+</script>

@@ -22,6 +22,7 @@ from flask_caching import Cache
 from datetime import datetime, timedelta
 from functools import wraps
 import time
+from werkzeug.utils import secure_filename
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -1046,6 +1047,8 @@ def api_workitems():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
+        priority = request.args.get('priority', '')
+        assigned_user = request.args.get('assignedUser', '')
         per_page = 40
         offset = (page - 1) * per_page
 
@@ -1071,10 +1074,10 @@ def api_workitems():
                     SELECT 1
                     FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                     JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName like ?
                 )
             """)
-            params.append(tag_filter)
+            params.append('%'+tag_filter+'%')
 
         if search_term:
             where_clauses.append("tdi_barcode.StringValue LIKE ?")
@@ -1087,7 +1090,16 @@ def api_workitems():
         if end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
-            
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+        if assigned_user:
+            if assigned_user == 'None' or assigned_user == 'Unassigned':
+                where_clauses.append("(wim.AssignedUserID IS NULL)")
+            else:
+                where_clauses.append("wim.AssignedUserID = ?")
+                params.append(assigned_user)
+
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1112,8 +1124,10 @@ def api_workitems():
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
             """, params)
+
             total_items = cursor.fetchone()[0] or 0
             data_query = f"""
                     WITH WorkitemCTE AS (
@@ -1126,6 +1140,15 @@ def api_workitems():
                                 WHEN twi.Status = 5 THEN 'Done'
                                 ELSE 'In Progress'
                             END AS Status,
+                            CASE
+                                WHEN twi.Status = 5 THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                                WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                                WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                                WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                                ELSE 'Extraction'
+                            END AS CurrentStage,
                             wim.Priority,
                             (
                                 SELECT 
@@ -1145,7 +1168,7 @@ def api_workitems():
                         LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                         WHERE {where_sql}
                     )
-                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
                     FROM WorkitemCTE
                     WHERE rn = 1
                     ORDER BY ModifiedAt DESC
@@ -1161,6 +1184,7 @@ def api_workitems():
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
                     'status': row.Status,
+                    'current_stage': row.CurrentStage,
                     'priority': row.Priority or 0,
                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
                 })
@@ -1198,6 +1222,7 @@ def workitems_overview():
         logged_in_user = session.get('username')
         userid = session.get('userid')
         scope = session.get('scope')
+        access = session.get('access')
 
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
@@ -1207,6 +1232,8 @@ def workitems_overview():
         end_date = request.args.get('endDate', '')
         start_date = datetime.fromisoformat(start_date) if start_date else None
         end_date = datetime.fromisoformat(end_date) if end_date else None
+        priority = request.args.get('priority', '')
+        assigned_user = request.args.get('assignedUser', '')
         per_page = 40
         offset = (page - 1) * per_page
 
@@ -1236,10 +1263,10 @@ def workitems_overview():
                     SELECT 1
                     FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                     JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName = ?
+                    WHERE wt.Barcode = tdi_barcode.StringValue AND t.TagName like ?
                 )
             """)
-            params.append(tag_filter)
+            params.append('%'+tag_filter+'%')
         if start_date:
             where_clauses.append("twi.ModifiedAt >= ?")
             params.append(start_date)
@@ -1247,7 +1274,16 @@ def workitems_overview():
         if end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(end_date)
-            
+
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+        if assigned_user:
+            if assigned_user == 'None' or assigned_user == 'Unassigned':
+                where_clauses.append("(wim.AssignedUserID IS NULL)")
+            else:
+                where_clauses.append("wim.AssignedUserID = ?")
+                params.append(assigned_user)
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1271,6 +1307,7 @@ def workitems_overview():
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                 WHERE {where_sql}
             """, params)
             total_items = cursor.fetchone()[0] or 0
@@ -1286,6 +1323,15 @@ def workitems_overview():
                                 WHEN twi.Status = 5 THEN 'Done'
                                 ELSE 'In Progress'
                             END AS Status,
+                            CASE
+                                WHEN twi.Status = 5 THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                                WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                                WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                                WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                                ELSE 'Extraction'
+                            END AS CurrentStage,
                             wim.Priority,
                             (
                                 SELECT 
@@ -1305,7 +1351,7 @@ def workitems_overview():
                         LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                         WHERE {where_sql}
                     )
-                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
                     FROM WorkitemCTE
                     WHERE rn = 1
                     ORDER BY ModifiedAt DESC
@@ -1320,6 +1366,7 @@ def workitems_overview():
                     'barcode': row.Barcode,
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
+                    'current_stage': row.CurrentStage,
                     'status': row.Status,
                     'priority': row.Priority or 0,
                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
@@ -1336,11 +1383,13 @@ def workitems_overview():
         total_pages = math.ceil(total_items / per_page)
 
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
+        portal_users = get_all_portal_users(access)
 
         return render_template("workitems_overview.html", 
             logged_in_user=logged_in_user,
             userid=userid,
             scope=scope,
+            access=access,
             process_name=process_name,
             workitems=workitems_list,
             current_page=page,
@@ -1349,11 +1398,46 @@ def workitems_overview():
             search=search_term,
             status=status,
             startDate=start_date,
-            endDate=end_date
+            endDate=end_date,
+            priority=priority,
+            assignedUser=assigned_user,
+            portal_users=portal_users
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
+
+@app.route('/import_workitems', methods=['POST'])
+def import_workitems():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if 'importFile' not in request.files:
+        flash(_("No file part in the request."), 'error')
+        return redirect(url_for('workitems_overview'))
+
+    file = request.files['importFile']
+
+    if file.filename == '':
+        flash(_("No file selected for uploading."), 'error')
+        return redirect(url_for('workitems_overview'))
+
+    if file:
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join(app.root_path, 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        
+        try:
+            file.save(file_path)
+            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename})
+            flash(_("File '{}' successfully imported.").format(filename), 'success')
+        except Exception as e:
+            app.logger.error(f"Error saving imported file: {e}")
+            log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
+            flash(_("An error occurred while saving the file."), 'error')
+
+    return redirect(url_for('workitems_overview'))
 
 @app.route('/api/workitem/<barcode>')
 def get_single_workitem(barcode):
@@ -1452,7 +1536,7 @@ def get_workitemdata_param(workitem_id):
 
     return base64_string, response.json()['DocumentID']
 
-def get_extension_and_urls(workitemdata, document_id):
+def get_extensions_urls_fields(workitemdata, document_id):
     url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
     access_token = get_access_token()
     headers = {
@@ -1463,18 +1547,100 @@ def get_extension_and_urls(workitemdata, document_id):
     response = requests.get(url=url, headers=headers)
     urls = []
     extension = []
-    if response.json()['DocumentType'] == 'Batch':
+    fields = {}
+    isP = False
+
+    for customvalues in response.json()['CustomValues']:
+        if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
+            isP = True
+            break
+    
+    if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
                 if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                     urls.append(media['Url'])
                     extension.append(media['Extension'])
+            for field in element['IndexFields']:
+                if field['Name'] == 'exp_dokDatum':
+                    fields['DocDate'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'exp_dokTyp':
+                    fields['DocType'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_eigNr':
+                    fields['OwnerNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'eigentuemerName':
+                    fields['OwnerName'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_liegNr':
+                    fields['PropertyNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'liegenschaftName':
+                    fields['PropertyName'] = field["FieldValue"]['Text']
+
+                elif field['Name'] == 'exp_mietNr':
+                    fields['TenantNr'] = field["FieldValue"]['Text']
+                elif field['Name'] == 'mieterName':
+                    fields['TenantName'] = field["FieldValue"]['Text']
+                
+                elif field['Name'] == 'exp_sendNr':
+                    fields['BroadcastNr'] = field["FieldValue"]['Text']
+                
+                elif field['Name'] == 'exp_niederlassung':
+                    fields['Branch'] = field["FieldValue"]['Text']
+    
+    elif isP:
+        for element in response.json()['Media']:
+            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
+                urls.append(element['Url'])
+                extension.append(element['Extension'])
+        for field in response.json()['IndexFields']:
+            if field['Name'] == 'exp_dokDatum':
+                fields['DocDate'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'exp_dokTyp':
+                fields['DocType'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_eigNr':
+                fields['OwnerNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'eigentuemerName':
+                fields['OwnerName'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_liegNr':
+                fields['PropertyNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'liegenschaftName':
+                fields['PropertyName'] = field["FieldValue"]['Text']
+
+            elif field['Name'] == 'exp_mietNr':
+                fields['TenantNr'] = field["FieldValue"]['Text']
+            elif field['Name'] == 'mieterName':
+                fields['TenantName'] = field["FieldValue"]['Text']
+            
+            elif field['Name'] == 'exp_sendNr':
+                fields['BroadcastNr'] = field["FieldValue"]['Text']
+            
+            elif field['Name'] == 'exp_niederlassung':
+                fields['Branch'] = field["FieldValue"]['Text']
+    
     else:
         for element in response.json()['Media']:
             if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                 urls.append(element['Url'])
                 extension.append(element['Extension'])
-    return extension, urls
+        for element in response.json()['IndexFields']:
+            if element['Name'] == 'CrdName':
+                fields['CrdName'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'DocNo':
+                fields['DocNo'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'CrdNo':
+                fields['CrdNo'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'GrossAmount':
+                fields['GrossAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'NetAmount':
+                fields['NetAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'VatAmount':
+                fields['VatAmount'] = element["FieldValue"]['Text']
+            elif element['Name'] == 'DocType':
+                fields['DocType'] = element["FieldValue"]['Text']
+    return extension, urls, fields
 
 def get_media(url):
     access_token = get_access_token()
@@ -1499,7 +1665,7 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls = get_extension_and_urls(workitemdata, document_id)
+        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
         
         media_count = len(urls) if urls else 0
         
@@ -1508,7 +1674,8 @@ def api_get_media_info(workitem_id):
 
         response_data = {
             "workitem_id": workitem_id,
-            "media_count": media_count
+            "media_count": media_count,
+            "fields": fields
         }
         
         cache.set(f"media_info_{workitem_id}", response_data)
@@ -1528,7 +1695,7 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls = get_extension_and_urls(workitemdata, document_id)
+            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
             media_data = {'extensions': extensions, 'urls': urls}
             cache.set(f"media_data_{workitem_id}", media_data)
         
@@ -1948,6 +2115,25 @@ def remove_tag_from_workitem(barcode, tag_id):
 
 # --------------------------- workitem overview end -------------------------- #
 
+def get_all_portal_users(access):
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        if access != 'Unlimited':
+            cursor.execute("SELECT userID, fullname FROM Users WHERE access = ? ORDER BY fullname",access)  
+        else:
+            cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return users
+    except Exception as e:
+        app.logger.error(f"Failed to fetch all portal users: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
 
 # ---------------------------------- profile --------------------------------- #
 @app.route("/profile")
@@ -2170,49 +2356,94 @@ def reports():
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
+# ---- replace the current /api/reports/processed_over_time with this version ----
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
-    conn = None
 
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
-    all_params = params + ['Privera']
-    
+    # read customization options (all optional & backwards compatible)
+    start_str = request.args.get('startDate')   # ISO 8601: "2025-10-01"
+    end_str   = request.args.get('endDate')     # ISO 8601
+    group_by  = (request.args.get('groupBy') or 'day').lower()  # day|week|month
+    statuses_q = request.args.get('statuses')   # e.g., "Done" or "Ready,In Progress,Done"
+    process_override = request.args.get('processFilterReports')
+
+    # fall back to session process filter (existing behaviour)
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    # map status names -> codes used in DB (0=Ready,1=In Progress,5=Done)
+    name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
+    status_codes = None
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    # default window: last 30 days (existing behaviour)
+    # allow custom start/end
+    date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
+    date_params = []
+    if start_str:
+        date_filter_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        # inclusive end -> use < end + 1 day, or cast as date; keep simple with < end
+        if start_str:
+            date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
+            date_params.append(datetime.fromisoformat(end_str))
+        else:
+            date_filter_sql = "twi.ModifiedAt < ?"
+            date_params.append(datetime.fromisoformat(end_str))
+
+    # grouping key
+    if group_by == 'week':
+        group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
+        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
+    elif group_by == 'month':
+        group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
+        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
+    else:  # day
+        group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
+        order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
+
+    # status filter (default used to be Done only)
+    status_sql = "twi.Status = 5"
+    status_params = []
+    if status_codes:
+        placeholders_status = ','.join(['?'] * len(status_codes))
+        status_sql = f"twi.Status IN ({placeholders_status})"
+        status_params = status_codes
+
+    conn = None
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute(f"""
             SELECT 
-                CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) as DoneDate,
-                COUNT(twi.ID) as ItemCount
+                {group_key} AS Bucket,
+                COUNT(twi.ID) as ItemCount,
+                {order_key} as SortKey
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders})
               AND tp.ClientName = ?
-              AND twi.Status = 5 -- Status for 'Done'
-              AND twi.ModifiedAt >= DATEADD(day, -30, GETDATE())
-            GROUP BY CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE)
-            ORDER BY DoneDate;
-        """,all_params)
+              AND {status_sql}
+              AND {date_filter_sql}
+            GROUP BY {group_key}
+            ORDER BY SortKey;
+        """, *(all_params + status_params + date_params))
         rows = cursor.fetchall()
-        
-        labels = [row.DoneDate for row in rows]
+
+        labels = [row.Bucket for row in rows]
         data = [row.ItemCount for row in rows]
-        
         return jsonify({'labels': labels, 'data': data})
-        
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": str(e)}), 500
@@ -2220,20 +2451,94 @@ def report_processed_over_time():
         if conn:
             conn.close()
 
+# ---- replace /api/reports/status_distribution with this version ----
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
-    stats = get_absolute_dashboard_stats(session['process_name_reports']) 
-    labels = ['Ready', 'In Progress', 'Done', 'Backlog']
-    data = [
-        stats.get('ReadyTotal', 0),
-        stats.get('InProgressTotal', 0),
-        stats.get('DoneTotal', 0),
-        stats.get('BacklogTotal', 0)
-    ]
-    return jsonify({'labels': labels, 'data': data})
+
+    start_str = request.args.get('startDate')
+    end_str   = request.args.get('endDate')
+    statuses_q = request.args.get('statuses')  # optional
+    process_override = request.args.get('processFilterReports')
+
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    name_to_code = {'ready':0,'in progress':1,'done':5}
+    status_codes = [0,1,5]
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    # If date window provided, compute counts within the window; else use your fast absolute helper.
+    if not start_str and not end_str and set(status_codes)=={0,1,5}:
+        stats = get_absolute_dashboard_stats(process_name)  # existing behaviour
+        labels = ['Ready','In Progress','Done','Backlog']
+        data = [
+            stats.get('ReadyTotal',0),
+            stats.get('InProgressTotal',0),
+            stats.get('DoneTotal',0),
+            stats.get('BacklogTotal',0)
+        ]
+        return jsonify({'labels': labels, 'data': data})
+
+    date_sql = "1=1"
+    date_params = []
+    if start_str:
+        date_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
+        if not start_str:
+            date_params = []
+        date_params.append(datetime.fromisoformat(end_str))
+
+    conn = None
+    try:
+        conn_str = (
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        # Count Ready / In Progress / Done inside the window
+        placeholders_status = ','.join(['?']*len(status_codes))
+        cursor.execute(f"""
+            WITH Mapped AS (
+              SELECT 
+                CASE WHEN twi.Status = 0 THEN 'Ready'
+                     WHEN twi.Status = 1 THEN 'In Progress'
+                     WHEN twi.Status = 5 THEN 'Done'
+                     ELSE 'Other' END as S
+              FROM t_WorkItems twi
+              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+              LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+              WHERE tp.Name IN ({placeholders})
+                AND tp.ClientName = ?
+                AND twi.Status IN ({placeholders_status})
+                AND {date_sql}
+            )
+            SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
+        """, *(all_params + status_codes + date_params))
+        counts = {'Ready':0,'In Progress':0,'Done':0}
+        for s,c in cursor.fetchall():
+            counts[s] = c
+
+        # Backlog unchanged (it's a system total), keep your existing backlog count:
+        stats_abs = get_absolute_dashboard_stats(process_name)
+
+        return jsonify({
+            'labels': ['Ready','In Progress','Done','Backlog'],
+            'data': [counts['Ready'], counts['In Progress'], counts['Done'], stats_abs.get('BacklogTotal',0)]
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch status_distribution report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 @app.route("/api/reports/kpi_stats")
 def report_kpi_stats():
@@ -2264,13 +2569,14 @@ def report_kpi_stats():
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
         """,all_params)
         processed_today = cursor.fetchone()[0]
-
+        
+        window_days = int(request.args.get('windowDays', '7'))
         cursor.execute(F"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
-            AND twi.ModifiedAt >= DATEADD(day, -7, GETDATE());
-        """,all_params)
+            AND twi.ModifiedAt >= DATEADD(day, -?, GETDATE());
+        """, *(all_params + [window_days]))
         processed_week = cursor.fetchone()[0]
         
         cursor.execute(f"""
@@ -2294,27 +2600,47 @@ def report_kpi_stats():
         if conn:
             conn.close()
 
+# ---- replace /api/reports/stage_breakdown with this version ----
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
-    
-    conn = None
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
-    all_params = params + ['Privera']
 
+    start_str = request.args.get('startDate')
+    end_str   = request.args.get('endDate')
+    statuses_q = request.args.get('statuses')
+    process_override = request.args.get('processFilterReports')
+
+    process_name = process_override or session.get('process_name_reports', 'both')
+    placeholders, proc_params = get_process_filter_and_params(process_name)
+    all_params = proc_params + ['Privera']
+
+    name_to_code = {'ready':0,'in progress':1,'done':5}
+    status_codes = [0,1]  # previously excluded Done/Deleted -> keep default; include Done if requested
+    if statuses_q:
+        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
+
+    date_sql = "1=1"
+    date_params = []
+    if start_str:
+        date_sql = "twi.ModifiedAt >= ?"
+        date_params.append(datetime.fromisoformat(start_str))
+    if end_str:
+        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
+        if not start_str:
+            date_params = []
+        date_params.append(datetime.fromisoformat(end_str))
+
+    conn = None
     try:
         conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
+        placeholders_status = ','.join(['?']*len(status_codes))
         cursor.execute(f"""
            SELECT 
                 CASE
@@ -2333,8 +2659,9 @@ def report_stage_breakdown():
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders})
               AND tp.ClientName = ?
-              and twi.Status not in (5,2)
-              and tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND twi.Status IN ({placeholders_status})
+              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND {date_sql}
             GROUP BY 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -2347,15 +2674,12 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """,all_params)
-        
+        """, *(all_params + status_codes + date_params))
+
         rows = cursor.fetchall()
-        
         labels = [row.Activity for row in rows]
         data = [row.ItemCount for row in rows]
-        
         return jsonify({'labels': labels, 'data': data})
-        
     except Exception as e:
         app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
         return jsonify({"error": str(e)}), 500

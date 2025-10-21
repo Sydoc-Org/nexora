@@ -19,6 +19,17 @@
   {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 rounded-lg border px-4 py-3 {% if category == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %}" role="alert">
+            <span class="block sm:inline">{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+  <main class="container mx-auto p-6">
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -95,7 +106,7 @@
       </div>
 
       <div id="advancedFilterContainer" class="hidden mt-4 pt-4 border-t border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
             <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}"
@@ -105,6 +116,27 @@
             <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
             <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}"
               class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          </div>
+
+          <div>
+            <label for="priorityFilter" class="block text-sm font-medium text-gray-700">{{ _("Priority") }}</label>
+            <select id="priorityFilter" name="priority" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <option value="">{{ _("All Priorities") }}</option>
+              <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
+              <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
+              <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
+              <option value="0" {% if priority=='0' %}selected{% endif %}>{{ _("None") }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="assignedUserFilter" class="block text-sm font-medium text-gray-700">{{ _("Assigned To") }}</label>
+            <select id="assignedUserFilter" name="assignedUser" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
+              {% for user in portal_users %}
+              <option value="{{ user.userID }}" {% if assignedUser == user.userID|string %}selected{% endif %}>{{ user.fullname }}</option>
+              {% endfor %}
+            </select>
           </div>
         </div>
       </div>
@@ -117,13 +149,18 @@
          <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm font-medium text-center">{{
           _("Reset") }}</a>
+
+        <form id="importForm" action="{{ url_for('import_workitems') }}" method="post" enctype="multipart/form-data" class="inline-block">
+            <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf">
+        <button type="button" id="importBtn"
+          class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
+          <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
+        </button>
+        </form>
         <button onclick="exportToCSV()" type="button"
           class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
           <i class="fas fa-download mr-2"></i>{{ _("Export") }}
         </button>
-        <!-- <button type="submit"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">{{
-          _("Apply Filters") }}</button> -->
       </div>
     </form>
 
@@ -234,100 +271,151 @@
 
             <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
               <td colspan="6">
-                <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div id="image-container-{{ workitem.workitemid }}"
-                      class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
-                      <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
-                    </div>
+              <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+                
+                 <div id="timeline-container-{{ workitem.workitemid }}" 
+                     class="relative bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200"
+                     data-current-stage="{{ workitem.current_stage }}"
+                     data-status="{{ workitem.status }}">
+                    <div class="relative flex justify-between items-center">
+                        
+                        <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+                        <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
 
+                        <div class="process-step z-10 flex flex-col items-center text-center">
+                            <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
+                            </div>
+                            <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
+                        </div>
+                        <div class="process-step z-10 flex flex-col items-center text-center">
+                            <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                <i class="fas fa-gears text-xl text-gray-400"></i>
+                            </div>
+                            <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
+                        </div>
+                        <div class="process-step z-10 flex flex-col items-center text-center">
+                            <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                <i class="fas fa-shield-halved text-xl text-gray-400"></i>
+                            </div>
+                            <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
+                        </div>
+                        <div class="process-step z-10 flex flex-col items-center text-center">
+                            <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                <i class="fas fa-paper-plane text-xl text-gray-400"></i>
+                            </div>
+                            <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if access == 'Unlimited' %}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  <div id="image-container-{{ workitem.workitemid }}"
+                    class="flex-1 flex justify-center items-center h-[30rem] overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
+                    <p class="text-gray-500">{{ _("Click toggle button again to load media") }}</p>
+                  </div>
+                    <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
+                      <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Document Details') }}</h4>
+                      <div id="fields-container-{{ workitem.workitemid }}" class="relative flex-grow overflow-y-auto pr-2">
+                          <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
+                      </div>
+                    </div>
+                    
                     <div class="flex-1 flex flex-col bg-white rounded-lg p-4 h-96">
                       <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('History') }}</h4>
-                      <div id="history-container-{{ workitem.workitemid }}"
-                        class="relative flex-grow overflow-y-auto pr-2">
+                      <div id="history-container-{{ workitem.workitemid }}" class="relative flex-grow overflow-y-auto pr-2">
                         <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
                       </div>
                     </div>
-                  </div>
+                </div>
+                {% else %}
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-800">
+                                {{ _("Detailed document information and history are available only to users with unlimited access rights.") }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
-                  <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div class="flex flex-col">
-                        <div id="comments-container-{{ workitem.workitemid }}"
-                          class="flex-grow space-y-3 overflow-y-auto p-2 bg-gray-50 rounded">
-                          <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
+                  <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col">
+                      <div id="comments-container-{{ workitem.workitemid }}"
+                        class="flex-grow space-y-3 overflow-y-auto p-2 bg-gray-50 rounded h-80">
+                        <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                      </div>
+                    </div>
+                    <div id="collaboration-tools-{{ workitem.workitemid }}" class="flex flex-col">
+                      <div class="mb-4">
+                        <label for="priority-select-{{ workitem.workitemid }}"
+                          class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                        <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                          class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="0">{{ _("None") }}</option>
+                          <option value="1">{{ _("Low") }}</option>
+                          <option value="2">{{ _("Medium") }}</option>
+                          <option value="3">{{ _("High") }}</option>
+                        </select>
+                      </div>
+                      <div class="mb-4">
+                        <label for="assign-select-{{ workitem.workitemid }}"
+                          class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+                        <select id="assign-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
+                          class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="None">{{ _("None") }}</option>
+                        </select>
+                      </div>
+                      <div class="mb-4">
+                        <label class="text-sm font-medium text-gray-700">{{ _("Tags") }}</label>
+                        <div class="flex items-center gap-2">
+                          <input type="text" id="tag-input-{{ workitem.workitemid }}" list="taglist"
+                            class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
+                          <input type="color" id="tag-color-{{ workitem.workitemid }}"
+                            class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
+                          <button type="button"
+                            class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
+                            data-barcode="{{ workitem.barcode }}" data-workitemid="{{ workitem.workitemid }}">
+                            <i class="fas fa-plus"></i>
+                          </button>
+                        </div>
+                        <div id="tags-container-{{ workitem.workitemid }}"
+                          class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
                         </div>
                       </div>
-                      <div id="collaboration-tools-{{ workitem.workitemid }}" class="flex flex-col">
-                        <div class="mb-4">
-                          <label for="priority-select-{{ workitem.workitemid }}"
-                            class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                          <select id="priority-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
-                            class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="0">{{ _("None") }}</option>
-                            <option value="1">{{ _("Low") }}</option>
-                            <option value="2">{{ _("Medium") }}</option>
-                            <option value="3">{{ _("High") }}</option>
-                          </select>
-                        </div>
-                        <div class="mb-4">
-                          <label for="assign-select-{{ workitem.workitemid }}"
-                            class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                          <select id="assign-select-{{ workitem.workitemid }}" data-barcode="{{ workitem.barcode }}"
-                            class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="None">{{ _("None") }}</option>
-                          </select>
-                        </div>
-                        <div class="mb-4">
-                          <label class="text-sm font-medium text-gray-700">{{ _("Tags") }}</label>
-                          <div class="flex items-center gap-2">
-                            <input type="text" id="tag-input-{{ workitem.workitemid }}" list="taglist"
-                              class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
-                            <input type="color" id="tag-color-{{ workitem.workitemid }}"
-                              class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
-                            <button type="button"
-                              class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
-                              data-barcode="{{ workitem.barcode }}" data-workitemid="{{ workitem.workitemid }}">
-                              <i class="fas fa-plus"></i>
-                            </button>
-                          </div>
-                          <div id="tags-container-{{ workitem.workitemid }}"
-                            class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
-                          </div>
-                        </div>
-
-                        <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
-                          <form class="comment-form" data-barcode="{{ workitem.barcode }}">
-                            <label for="comment-text-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">
-                              {{ _("Add Comment:") }}
-                            </label>
-
-                            <div class="relative">
-                              <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}"
-                                class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
-                                autocomplete="off"></textarea>
-
-                              <div
-                                class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
-                              </div>
-
+                      <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
+                        <form class="comment-form" data-barcode="{{ workitem.barcode }}">
+                          <label for="comment-text-{{ workitem.workitemid }}" class="text-sm font-medium text-gray-700">
+                            {{ _("Add Comment:") }}
+                          </label>
+                          <div class="relative">
+                            <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}"
+                              class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
+                              autocomplete="off"></textarea>
+                            <div
+                              class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
                             </div>
-
-                            <button type="submit"
-                              class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-                              {{ _("Post Comment") }}
-                            </button>
-                          </form>
-                        </div>
-
+                          </div>
+                          <button type="submit"
+                            class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                            {{ _("Post Comment") }}
+                          </button>
+                        </form>
                       </div>
                     </div>
                   </div>
                 </div>
-      </div>
-      </td>
+              </div>
+            </td>
       </tr>
       {% else %}
       <tr>
@@ -356,7 +444,9 @@
         'status': status,
         'startDate': startDate,
         'endDate': endDate,
-        'tag': tag
+        'tag': tag,
+        'priority': priority,
+        'assignedUser': assignedUser
         } %}
         <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
           data-page="{{ current_page - 1 }}"
