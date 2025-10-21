@@ -975,56 +975,64 @@ def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
     
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    limit = request.args.get('limit', 10, type=int)
+    
+    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'both'))
     all_params = params + ['Privera']
 
     try:
         conn_str = (
-                f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER_PRD},1433;'
-                f'DATABASE={DB_SERVER_DB_RUNTIME};'
-                f'UID={DB_UID};'
-                f'PWD={DB_PWD};'
-                f'TrustServerCertificate=yes;'
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        query = f"""
+        cursor.execute(f"""
             WITH CTE AS (
-            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-            CASE 
-                WHEN twi.Status = 0 THEN 'Ready'
-                WHEN twi.Status = 5 THEN 'Done'
-                ELSE 'In Progress'
-            END AS Status
-            FROM t_WorkItems twi 
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
-            AND twi.Status <> 2 
-        )
-        SELECT DISTINCT TOP 4 tdi.StringValue Barcode, CTE.Status, CTE.ModifiedAt FROM CTE
-        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
-        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+                SELECT 
+                    tdi.WorkItemID, 
+                    DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt, 
+                    CASE 
+                        WHEN twi.Status = 0 THEN 'Ready'
+                        WHEN twi.Status = 5 THEN 'Done'
+                        ELSE 'In Progress'
+                    END AS Status
+                FROM t_WorkItems twi 
+                JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+                JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
+                AND twi.Status <> 2 
+            )
+            SELECT DISTINCT TOP ({limit})
+                tdi.StringValue AS Barcode, 
+                CTE.Status, 
+                CTE.ModifiedAt 
+            FROM CTE
+            JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
+            ORDER BY CTE.ModifiedAt DESC
         """
-        cursor.execute(query, all_params)
+        ,all_params)
         activities = cursor.fetchall()
         cursor.close()
         conn.close()
 
         return jsonify([
             {
-                "state": row[1],
-                "datetime": row[2].strftime('%Y-%m-%d %H:%M:%S'),  
-                "Barcode": row[0]
+                "state": row.Status,
+                "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),  
+                "Barcode": row.Barcode
             }
             for row in activities
         ])
     except Exception as e:
-        print(e)
+        app.logger.error(f"Failed to fetch recent activity: {e}")
         return jsonify({"error": str(e)}), 500
 # ------------------------------- dashboard end ------------------------------ #
 
@@ -2348,7 +2356,7 @@ def reports():
         scope = session['scope']
 
         process_name = request.args.get('processFilterReports', 'both')
-        session['process_name_reports'] = process_name
+        session['process_name_dashboard'] = process_name
 
         log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
         return render_template("reports.html", userid=userid, scope=scope, process_name=process_name)
@@ -2370,7 +2378,7 @@ def report_processed_over_time():
     process_override = request.args.get('processFilterReports')
 
     # fall back to session process filter (existing behaviour)
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
@@ -2462,7 +2470,7 @@ def report_status_distribution():
     statuses_q = request.args.get('statuses')  # optional
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
@@ -2547,7 +2555,7 @@ def report_kpi_stats():
     
     conn = None
 
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
     all_params = params + ['Privera']
 
     try:
@@ -2600,7 +2608,6 @@ def report_kpi_stats():
         if conn:
             conn.close()
 
-# ---- replace /api/reports/stage_breakdown with this version ----
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
@@ -2611,7 +2618,7 @@ def report_stage_breakdown():
     statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 

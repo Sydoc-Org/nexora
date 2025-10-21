@@ -6,7 +6,9 @@
     <title>Document</title>
 </head>
 <body>
-    <script>document.addEventListener('DOMContentLoaded', () => {
+    <script>
+        // ### HOW IT WORKS ANIMATION SCRIPT ###
+        document.addEventListener('DOMContentLoaded', () => {
             const progressLine = document.getElementById('progress-line');
             const statusText = document.getElementById('status-text');
             const stepElements = document.querySelectorAll('.process-step');
@@ -91,8 +93,26 @@
                 runAnimation();
             };
 
-            document.fonts.ready.then(() => {
-                runAnimation();
+            // Only run animation if the container exists
+            if (document.getElementById('animation-container')) {
+                 document.fonts.ready.then(() => {
+                    runAnimation();
+                });
+            }
+
+            // ### FAQ ACCORDION SCRIPT ###
+            const faqButtons = document.querySelectorAll('.faq-btn');
+            faqButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Close all other panels first
+                    faqButtons.forEach(otherButton => {
+                        if (otherButton !== button && otherButton.classList.contains('active')) {
+                            otherButton.classList.remove('active');
+                        }
+                    });
+                    // Toggle the clicked panel
+                    button.classList.toggle('active');
+                });
             });
         });
         </script>

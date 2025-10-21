@@ -44,3 +44,19 @@ body {
         .process-step p.completed {
             color: #374151;
         }
+
+        /* ADD THIS TO YOUR hero.css FILE */
+
+.faq-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.faq-btn.active + .faq-panel {
+    max-height: 200px; /* Adjust as needed */
+}
+
+.faq-btn.active i {
+    transform: rotate(180deg);
+}

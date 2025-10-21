@@ -64,33 +64,29 @@ html {
   -moz-appearance: none;
   appearance: none;
 }
-
-
-/* ADD THIS TO YOUR dashboard.css FILE */
-
 .timeline-item {
   display: flex;
   position: relative;
-  align-items: center; /* This is the key for vertical alignment */
-  padding-left: 4.5rem; /* Increased padding to create a gap */
+  align-items: center; 
+  padding-left: 4.5rem; 
 }
 
 .timeline-connector {
   position: absolute;
-  left: 28px; /* Center of the icon */
-  top: 50%;   /* Start from the new center point */
-  height: 125%; /* Make it long enough to connect */
+  left: 28px; 
+  top: 50%;   
+  height: 125%; 
   width: 2px;
   background-color: #e5e7eb;
 }
 .timeline-item:last-child .timeline-connector {
-  display: none; /* No line after the last item */
+  display: none; 
 }
 .timeline-icon {
   position: absolute;
   left: 0;
   top: 50%;
-  transform: translateY(-50%); /* This ensures perfect vertical centering */
+  transform: translateY(-50%); 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,4 +94,28 @@ html {
   height: 56px;
   border-radius: 9999px;
   z-index: 10;
+}
+.flatpickr-calendar {
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+    background: #4f46e5;
+    border-color: #4f46e5;
+}
+.flatpickr-day:hover {
+    background: #eef2ff;
+}
+.flatpickr-months .flatpickr-month {
+    color: #111827;
+    fill: #111827;
+}
+.flatpickr-current-month .numInputWrapper {
+    color: #111827;
+}
+span.flatpickr-weekday {
+    color: #4b5563;
 }
