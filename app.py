@@ -904,7 +904,7 @@ def get_dashbord_preview_documents_stats(processName='both'):
             tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
-        SELECT DISTINCT TOP 10 tdi.StringValue Barcode
+        SELECT DISTINCT TOP 20 tdi.StringValue Barcode
         ,Activity FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
