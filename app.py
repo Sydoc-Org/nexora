@@ -2121,6 +2121,117 @@ def remove_tag_from_workitem(barcode, tag_id):
             conn.close()
 # ---------------------- workitem collaboration apis end --------------------- #
 
+
+# -------------------------------- process board --------------------------------- #
+@app.route("/team-board")
+def team_board():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        
+        access = session.get('access')
+        
+        process_name = request.args.get('processFilterBoard', 'both')
+        priority = request.args.get('priority', '')
+
+        placeholders, params = get_process_filter_and_params(process_name)
+        params.append('Privera')
+        
+        where_clauses = [
+            f"tp.Name IN ({placeholders})",
+            "tp.ClientName = ?",
+            "tdi_barcode.Name LIKE '%Barcode'", 
+            "tdi_barcode.StringValue IS NOT NULL"
+        ]
+
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+
+        where_sql = " AND ".join(where_clauses)
+        
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        query = f"""
+            WITH BoardItems AS (
+                SELECT
+                    tdi_barcode.StringValue AS Barcode,
+                    twi.ModifiedAt,
+                    CASE
+                        WHEN twi.Status = 5 THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS CurrentStage,
+                    wim.Priority,
+                    wim.AssignedUserID,
+                    (
+                        SELECT t.TagName AS name, t.TagColor AS color
+                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        WHERE wt.Barcode = tdi_barcode.StringValue
+                        FOR JSON PATH
+                    ) AS TagsJSON,
+                    ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                WHERE {where_sql}
+            )
+            SELECT Barcode, ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
+            FROM BoardItems
+            WHERE rn = 1
+            ORDER BY Priority DESC, ModifiedAt ASC;
+        """
+        
+        cursor.execute(query, params)
+        
+        portal_users = get_all_portal_users(access)
+        workitems_by_user = {user['userID']: [] for user in portal_users}
+        workitems_by_user['Unassigned'] = []
+
+        for row in cursor.fetchall():
+            user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
+            if user_id in workitems_by_user:
+                workitems_by_user[user_id].append({
+                    'barcode': row.Barcode,
+                    'modifiedat': row.ModifiedAt,
+                    'current_stage': row.CurrentStage,
+                    'priority': row.Priority or 0,
+                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
+                })
+
+        log_user_action('visitTeamBoard', status='SUCCESS', resource_id='teamBoard')
+
+        return render_template("team_board.html", 
+            workitems_by_user=workitems_by_user,
+            process_name=process_name,
+            priority=priority,
+            portal_users=portal_users,
+            userid=session.get('userid'),
+            scope=session.get('scope')
+        )
+    except Exception as e:
+        app.logger.error(f"Error loading team board: {e}")
+        log_user_action('visitTeamBoard', status='FAILURE', resource_id='teamBoard', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+# ------------------------------ process board end ------------------------------- #
+
+
 # --------------------------- workitem overview end -------------------------- #
 
 def get_all_portal_users(access):
@@ -2364,39 +2475,32 @@ def reports():
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
-# ---- replace the current /api/reports/processed_over_time with this version ----
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    # read customization options (all optional & backwards compatible)
-    start_str = request.args.get('startDate')   # ISO 8601: "2025-10-01"
-    end_str   = request.args.get('endDate')     # ISO 8601
-    group_by  = (request.args.get('groupBy') or 'day').lower()  # day|week|month
-    statuses_q = request.args.get('statuses')   # e.g., "Done" or "Ready,In Progress,Done"
+    start_str = request.args.get('startDate')   
+    end_str   = request.args.get('endDate')     
+    group_by  = (request.args.get('groupBy') or 'day').lower()  
+    statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    # fall back to session process filter (existing behaviour)
     process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
-    # map status names -> codes used in DB (0=Ready,1=In Progress,5=Done)
     name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
     status_codes = None
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
-    # default window: last 30 days (existing behaviour)
-    # allow custom start/end
     date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
     date_params = []
     if start_str:
         date_filter_sql = "twi.ModifiedAt >= ?"
         date_params.append(datetime.fromisoformat(start_str))
     if end_str:
-        # inclusive end -> use < end + 1 day, or cast as date; keep simple with < end
         if start_str:
             date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
             date_params.append(datetime.fromisoformat(end_str))
@@ -2404,7 +2508,6 @@ def report_processed_over_time():
             date_filter_sql = "twi.ModifiedAt < ?"
             date_params.append(datetime.fromisoformat(end_str))
 
-    # grouping key
     if group_by == 'week':
         group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
         order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
@@ -2415,7 +2518,6 @@ def report_processed_over_time():
         group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
         order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
 
-    # status filter (default used to be Done only)
     status_sql = "twi.Status = 5"
     status_params = []
     if status_codes:
@@ -2459,7 +2561,6 @@ def report_processed_over_time():
         if conn:
             conn.close()
 
-# ---- replace /api/reports/status_distribution with this version ----
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
@@ -2467,7 +2568,7 @@ def report_status_distribution():
 
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')  # optional
+    statuses_q = request.args.get('statuses')  
     process_override = request.args.get('processFilterReports')
 
     process_name = process_override or session.get('process_name_dashboard', 'both')
@@ -2479,9 +2580,8 @@ def report_status_distribution():
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
-    # If date window provided, compute counts within the window; else use your fast absolute helper.
     if not start_str and not end_str and set(status_codes)=={0,1,5}:
-        stats = get_absolute_dashboard_stats(process_name)  # existing behaviour
+        stats = get_absolute_dashboard_stats(process_name) 
         labels = ['Ready','In Progress','Done','Backlog']
         data = [
             stats.get('ReadyTotal',0),
@@ -2623,7 +2723,7 @@ def report_stage_breakdown():
     all_params = proc_params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1]  # previously excluded Done/Deleted -> keep default; include Done if requested
+    status_codes = [0,1]  
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
@@ -2694,6 +2794,9 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
+
+
+
 
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
