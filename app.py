@@ -1140,6 +1140,15 @@ def api_workitems():
                                 WHEN twi.Status = 5 THEN 'Done'
                                 ELSE 'In Progress'
                             END AS Status,
+                            CASE
+                                WHEN twi.Status = 5 THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                                WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                                WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                                WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                                ELSE 'Extraction'
+                            END AS CurrentStage,
                             wim.Priority,
                             (
                                 SELECT 
@@ -1159,7 +1168,7 @@ def api_workitems():
                         LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                         WHERE {where_sql}
                     )
-                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
                     FROM WorkitemCTE
                     WHERE rn = 1
                     ORDER BY ModifiedAt DESC
@@ -1175,6 +1184,7 @@ def api_workitems():
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
                     'status': row.Status,
+                    'current_stage': row.CurrentStage,
                     'priority': row.Priority or 0,
                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
                 })
@@ -1313,6 +1323,15 @@ def workitems_overview():
                                 WHEN twi.Status = 5 THEN 'Done'
                                 ELSE 'In Progress'
                             END AS Status,
+                            CASE
+                                WHEN twi.Status = 5 THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                                WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                                WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                                WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                                WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                                ELSE 'Extraction'
+                            END AS CurrentStage,
                             wim.Priority,
                             (
                                 SELECT 
@@ -1332,7 +1351,7 @@ def workitems_overview():
                         LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
                         WHERE {where_sql}
                     )
-                    SELECT Barcode, ModifiedAt, WorkItemID, Status, Priority, TagsJSON
+                    SELECT Barcode, ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
                     FROM WorkitemCTE
                     WHERE rn = 1
                     ORDER BY ModifiedAt DESC
@@ -1347,6 +1366,7 @@ def workitems_overview():
                     'barcode': row.Barcode,
                     'modifiedat': row.ModifiedAt,
                     'workitemid': row.WorkItemID,
+                    'current_stage': row.CurrentStage,
                     'status': row.Status,
                     'priority': row.Priority or 0,
                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
@@ -1369,6 +1389,7 @@ def workitems_overview():
             logged_in_user=logged_in_user,
             userid=userid,
             scope=scope,
+            access=access,
             process_name=process_name,
             workitems=workitems_list,
             current_page=page,
@@ -2101,7 +2122,7 @@ def get_all_portal_users(access):
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         if access != 'Unlimited':
-            cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname WHERE access = ?",access)  
+            cursor.execute("SELECT userID, fullname FROM Users WHERE access = ? ORDER BY fullname",access)  
         else:
             cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]

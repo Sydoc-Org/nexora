@@ -259,22 +259,65 @@ async function refreshWorkitemUI(barcode, workitemId) {
                 commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
             }
         }
+
+        function renderWorkitemTimeline(container) {
+            if (!container || container.dataset.rendered === 'true') return;
+
+            const currentStage = container.dataset.currentStage;
+            const status = container.dataset.status;
+            const progressLine = container.querySelector('.progress-line');
+            const stepElements = container.querySelectorAll('.process-step');
+            
+            const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
+            const stageIndex = stages.indexOf(currentStage);
+            const scaleFactors = { 0: 0, 1: 0.3334, 2: 0.6667, 3: 1 };
+
+            const progressValues = { 0: '0%', 1: '33%', 2: '66%', 3: '100%' };
+
+            stepElements.forEach(step => {
+                step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
+                step.querySelector('.step-label').classList.remove('active', 'completed');
+            });
+
+            if (status === 'Done') {
+                 stepElements.forEach(step => {
+                    step.querySelector('.step-icon-wrapper').classList.add('completed');
+                    step.querySelector('.step-label').classList.add('completed');
+                });
+                progressLine.style.transform = `scaleX(1)`;
+            } else if (stageIndex !== -1) {
+                for (let i = 0; i < stageIndex; i++) {
+                    stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
+                    stepElements[i].querySelector('.step-label').classList.add('completed');
+                }
+                stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
+                stepElements[stageIndex].querySelector('.step-label').classList.add('active');
+                progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
+            } else {
+                progressLine.style.transform = `scaleX(0)`;
+            }
+
+            container.dataset.rendered = 'true';
+        }
+
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
                 const workitemid = button.dataset.workitemid;
                 const barcode = button.dataset.barcode;
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
-                const imageContainer = document.getElementById(`image-container-${workitemid}`);
                 const chevron = button.querySelector('.indicator');
+                const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
+                renderWorkitemTimeline(timelineContainer);
 
-                if (!detailsRow || !imageContainer) {
+                if (!detailsRow) {
                     console.error('Could not find detail elements for workitem:', workitemid);
                     return;
                 }
 
-                const isHidden = detailsRow.hasAttribute('hidden');
-                if (isHidden) {
+                const isOpening = detailsRow.hasAttribute('hidden');
+
+                if (isOpening) {
                     detailsRow.removeAttribute('hidden');
                     setTimeout(() => {
                         detailsRow.classList.add('open');
@@ -287,91 +330,88 @@ async function refreshWorkitemUI(barcode, workitemId) {
                         detailsRow.hidden = true;
                     }, { once: true });
                 }
-
                 chevron.classList.toggle('glyphicon-chevron-up-custom');
                 chevron.classList.toggle('glyphicon-chevron-down-custom');
 
-                if (!isHidden) {
-                    return;
+                if (!isOpening) {
+                    return; 
                 }
 
-                const isLoaded = imageContainer.dataset.loaded === 'true';
-                if (isLoaded) {
-                    return;
-                }
 
-                imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
-                try {
-                    loadHistory(workitemid);
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
                     loadCollaborationData(workitemid, barcode);
-                    const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
-                    if (!infoResponse.ok) {
-                        throw new Error('Could not fetch media information.');
-                    }
-                    const mediaInfo = await infoResponse.json();
-                    const imageCount = mediaInfo.media_count;
-                    const fields = mediaInfo.fields || {};
-                    const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
-                    if (fieldsContainer) {
-                        if (Object.keys(fields).length > 0) {
-                            const fieldLabels = {
-                                DocDate: '{{ _("Document Date") }}',
-                                DocType: '{{ _("Document Type") }}',
-                                OwnerNr: '{{ _("Owner No.") }}',
-                                OwnerName: '{{ _("Owner Name") }}',
-                                PropertyNr: '{{ _("Property No.") }}',
-                                PropertyName: '{{ _("Property Name") }}',
-                                TenantNr: '{{ _("Tenant No.") }}',
-                                TenantName: '{{ _("Tenant Name") }}',
-                                BroadcastNr: '{{ _("Broadcast No.") }}',
-                                Branch: '{{ _("Branch") }}',
-                                CrdName: '{{ _("Creditor Name") }}',
-                                DocNo: '{{ _("Document No.") }}',
-                                CrdNo: '{{ _("Creditor No.") }}',
-                                GrossAmount: '{{ _("Gross Amount") }}',
-                                NetAmount: '{{ _("Net Amount") }}',
-                                VatAmount: '{{ _("VAT Amount") }}'
-                            };
+                }
 
-                            let fieldsHtml = '<dl class="divide-y divide-gray-200">';
-                            for (const key in fields) {
-                                if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
-                                    const label = fieldLabels[key] || key;
-                                    fieldsHtml += `
-                                        <div class="py-2 flex justify-between items-center gap-4">
-                                            <dt class="text-gray-500 truncate">${label}</dt>
-                                            <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
-                                        </div>
-                                    `;
+                const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                if (imageContainer) {
+                    const isLoaded = imageContainer.dataset.loaded === 'true';
+                    if (isLoaded) {
+                        return; 
+                    }
+
+                    imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
+                    try {
+                        loadHistory(workitemid);
+                        const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
+                        if (!infoResponse.ok) throw new Error('Could not fetch media information.');
+                        
+                        const mediaInfo = await infoResponse.json();
+                        const imageCount = mediaInfo.media_count;
+                        const fields = mediaInfo.fields || {};
+                        const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+                        if (fieldsContainer) {
+                            if (Object.keys(fields).length > 0) {
+                                const fieldLabels = {
+                                    DocDate: '{{ _("Document Date") }}', DocType: '{{ _("Document Type") }}',
+                                    OwnerNr: '{{ _("Owner No.") }}', OwnerName: '{{ _("Owner Name") }}',
+                                    PropertyNr: '{{ _("Property No.") }}', PropertyName: '{{ _("Property Name") }}',
+                                    TenantNr: '{{ _("Tenant No.") }}', TenantName: '{{ _("Tenant Name") }}',
+                                    BroadcastNr: '{{ _("Broadcast No.") }}', Branch: '{{ _("Branch") }}',
+                                    CrdName: '{{ _("Creditor Name") }}', DocNo: '{{ _("Document No.") }}',
+                                    CrdNo: '{{ _("Creditor No.") }}', GrossAmount: '{{ _("Gross Amount") }}',
+                                    NetAmount: '{{ _("Net Amount") }}', VatAmount: '{{ _("VAT Amount") }}'
+                                };
+                                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                                for (const key in fields) {
+                                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                                        const label = fieldLabels[key] || key;
+                                        fieldsHtml += `
+                                            <div class="py-2 flex justify-between items-center gap-4">
+                                                <dt class="text-gray-500 truncate">${label}</dt>
+                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
+                                            </div>`;
+                                    }
                                 }
+                                fieldsHtml += '</dl>';
+                                fieldsContainer.innerHTML = fieldsHtml;
+                            } else {
+                                fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                             }
-                            fieldsHtml += '</dl>';
-                            fieldsContainer.innerHTML = fieldsHtml;
-                        } else {
-                            fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                         }
-                    }
-                    imageContainer.dataset.loaded = 'true';
+                        imageContainer.dataset.loaded = 'true';
 
-                    if (imageCount === 0) {
-                        imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
-                        return;
-                    }
+                        if (imageCount === 0) {
+                            imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
+                            return;
+                        }
 
-                    imageContainer.innerHTML = '';
-                    imageContainer.classList.remove('justify-center', 'items-center');
-                    imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+                        imageContainer.innerHTML = '';
+                        imageContainer.classList.remove('justify-center', 'items-center');
+                        imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
 
-                    const imagePromises = [];
-                    for (let i = 0; i < imageCount; i++) {
-                        imagePromises.push(loadImage(imageContainer, workitemid, i));
+                        for (let i = 0; i < imageCount; i++) {
+                            loadImage(imageContainer, workitemid, i);
+                        }
+                        logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
+                    } catch (error) {
+                        console.error('Error loading media info:', error);
+                        logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1);
+                        imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
+                        imageContainer.dataset.loaded = 'true';
                     }
-                    logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0)
-                } catch (error) { 
-                    console.error('Error loading media info:', error);
-                    logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
-                    imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
-                    imageContainer.dataset.loaded = 'true';
+                } else {
+                    logAction('toggleDetails', 'workitemOverview', { access: 'restricted' }, 'SUCCESS', 0)
                 }
             }
             catch (error) {
@@ -678,6 +718,44 @@ async function refreshWorkitemUI(barcode, workitemId) {
                     <tr id="details-row-${workitem.workitemid}" class="details-row" hidden>
                       <td colspan="6">
                         <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+
+                            <div id="timeline-container-${workitem.workitemid}" 
+                                class="relative bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200"
+                                data-current-stage="${workitem.current_stage}"
+                                data-status="${workitem.status}">
+                                <div class="relative flex justify-between items-center">
+                                    
+                                    <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+                                    <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+
+                                    <div class="process-step z-10 flex flex-col items-center text-center">
+                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                            <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
+                                        </div>
+                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
+                                    </div>
+                                    <div class="process-step z-10 flex flex-col items-center text-center">
+                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                            <i class="fas fa-gears text-xl text-gray-400"></i>
+                                        </div>
+                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
+                                    </div>
+                                    <div class="process-step z-10 flex flex-col items-center text-center">
+                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                            <i class="fas fa-shield-halved text-xl text-gray-400"></i>
+                                        </div>
+                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
+                                    </div>
+                                    <div class="process-step z-10 flex flex-col items-center text-center">
+                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                            <i class="fas fa-paper-plane text-xl text-gray-400"></i>
+                                        </div>
+                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        {% if access == 'Unlimited' %}
                           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div id="image-container-${workitem.workitemid}"
                               class="flex-1 flex justify-center items-center h-96 overflow-y-auto p-2 border-2 border-dashed rounded-lg bg-white">
@@ -697,6 +775,20 @@ async function refreshWorkitemUI(barcode, workitemId) {
                               </div>
                             </div>
                           </div>
+                        {% else %}
+                            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-800">
+                                    {{ _("Detailed document information and history are available only to users with unlimited access rights.") }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                           <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
                             <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
