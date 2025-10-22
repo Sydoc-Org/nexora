@@ -11,6 +11,7 @@
             const preloader = document.getElementById('preloader');
             const preloaderLogo = document.getElementById('preloader-logo');
             const preloaderTitle = preloader.querySelector('.nexora-title');
+            const preloadersubTitle = preloader.querySelector('.nexora-subtitle');
             const headerLogo = document.getElementById('header-logo-wrapper');
             const siginin = document.getElementById('signin');
             const mainContent = document.getElementById('main-content-wrapper');
@@ -31,7 +32,7 @@
 
                 preloader.style.backgroundColor = 'transparent';
                 preloaderTitle.style.opacity = '0';
-                
+                preloadersubTitle.style.opacity = '0';
                 setTimeout(() => {
                     headerLogo.style.opacity = '1';
                     siginin.style.opacity = '1'

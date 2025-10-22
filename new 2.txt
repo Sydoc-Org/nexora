@@ -35,3 +35,9 @@ Invoice
 	-OwnerNr -> EigentuemerNr -> exp_eigNr
 	-DocSource -> DocSource -> DocSource
 	-CrdNo -> CRD_NR -> CrdNo
+	
+	
+	LEFT JOIN [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang PrivP ON twi.ID = PrivP.WorkItemID
+	LEFT JOIN [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice PrivI ON twi.ID = PrivI.WID
+	[{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang.Dokumenttyp LIKE ?
+	[{DB_SERVER_DB_STAT}].dbo.PriveraInvoice.DocType LIKE ?
