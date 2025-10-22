@@ -364,13 +364,28 @@ async function refreshWorkitemUI(barcode, workitemId) {
                             if (Object.keys(fields).length > 0) {
                                 const fieldLabels = {
                                     DocDate: '{{ _("Document Date") }}', DocType: '{{ _("Document Type") }}',
-                                    OwnerNr: '{{ _("Owner No.") }}', OwnerName: '{{ _("Owner Name") }}',
+                                    OwnerNr: '{{ _("Owner No.") }}', 
+                                    TenancyNr: '{{ _("Tenancy No.") }}', Registered: "{{ _('Registered') }}",
                                     PropertyNr: '{{ _("Property No.") }}', PropertyName: '{{ _("Property Name") }}',
                                     TenantNr: '{{ _("Tenant No.") }}', TenantName: '{{ _("Tenant Name") }}',
-                                    BroadcastNr: '{{ _("Broadcast No.") }}', Branch: '{{ _("Branch") }}',
-                                    CrdName: '{{ _("Creditor Name") }}', DocNo: '{{ _("Document No.") }}',
+                                    Branch: '{{ _("Branch") }}',
+                                    CrdName: '{{ _("Creditor Name") }}', InvoiceNR: '{{ _("Invoice No.") }}',
                                     CrdNo: '{{ _("Creditor No.") }}', GrossAmount: '{{ _("Gross Amount") }}',
-                                    NetAmount: '{{ _("Net Amount") }}', VatAmount: '{{ _("VAT Amount") }}'
+                                    NetAmount: '{{ _("Net Amount") }}', VatAmount: '{{ _("VAT Amount") }}',
+                                    Forwarding: "{{ _('Forwarding') }}", 
+                                    Department: "{{ _('Department') }}",
+                                    Postcode: "{{ _('Postcode') }}",
+                                    IBAN: "{{ _('IBAN') }}",
+                                    Recipient: "{{ _('Recipient') }}",
+                                    Confidentiality: "{{ _('Confidentiality') }}",
+                                    PensionFund: "{{ _('PensionFund') }}",
+                                    DocCurrency: "{{ _('DocCurrency') }}",
+                                    Tec: "{{ _('Tec') }}",
+                                    ESRReference: "{{ _('ESRReference') }}",
+                                    OrderNumber: "{{ _('OrderNumber') }}",
+                                    Client: "{{ _('Client') }}",
+                                    DocSource: "{{ _('DocSource') }}"
+
                                 };
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
                                 for (const key in fields) {

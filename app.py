@@ -1556,12 +1556,12 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    isP = False
+    # isP = False
 
-    for customvalues in response.json()['CustomValues']:
-        if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
-            isP = True
-            break
+    # for customvalues in response.json()['CustomValues']:
+    #     if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
+    #         isP = True
+    #         break
     
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
@@ -1570,84 +1570,122 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     urls.append(media['Url'])
                     extension.append(media['Extension'])
             for field in element['IndexFields']:
-                if field['Name'] == 'exp_dokDatum':
-                    fields['DocDate'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'exp_dokTyp':
-                    fields['DocType'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_eigNr':
-                    fields['OwnerNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'eigentuemerName':
-                    fields['OwnerName'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_liegNr':
-                    fields['PropertyNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'liegenschaftName':
-                    fields['PropertyName'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_mietNr':
-                    fields['TenantNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'mieterName':
-                    fields['TenantName'] = field["FieldValue"]['Text']
-                
-                elif field['Name'] == 'exp_sendNr':
-                    fields['BroadcastNr'] = field["FieldValue"]['Text']
-                
-                elif field['Name'] == 'exp_niederlassung':
-                    fields['Branch'] = field["FieldValue"]['Text']
-    
-    elif isP:
-        for element in response.json()['Media']:
-            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-                urls.append(element['Url'])
-                extension.append(element['Extension'])
-        for field in response.json()['IndexFields']:
-            if field['Name'] == 'exp_dokDatum':
-                fields['DocDate'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'exp_dokTyp':
-                fields['DocType'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_eigNr':
-                fields['OwnerNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'eigentuemerName':
-                fields['OwnerName'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_liegNr':
-                fields['PropertyNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'liegenschaftName':
-                fields['PropertyName'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_mietNr':
-                fields['TenantNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'mieterName':
-                fields['TenantName'] = field["FieldValue"]['Text']
-            
-            elif field['Name'] == 'exp_sendNr':
-                fields['BroadcastNr'] = field["FieldValue"]['Text']
-            
-            elif field['Name'] == 'exp_niederlassung':
-                fields['Branch'] = field["FieldValue"]['Text']
-    
+                match field['Name']:
+                    case 'exp_dokTyp' | 'DocType':
+                        fields['DocType'] = field["FieldValue"]['Text']
+                    case 'exp_eigNr':
+                        fields['OwnerNr'] = field["FieldValue"]['Text']
+                    case 'exp_mietNr':
+                        fields['TenancyNr'] = field["FieldValue"]['Text']
+                    case 'exp_liegNr':
+                        fields['PropertyNr'] = field["FieldValue"]['Text']
+                    case 'exp_einschreiben':
+                        fields['Registered'] = field["FieldValue"]['Text']
+                    case 'exp_niederlassung':
+                        fields['Branch'] = field["FieldValue"]['Text']
+                    case 'exp_dokDatum':
+                        fields['DocDate'] = field["FieldValue"]['Text']
+                    case 'exp_nachSend':
+                        fields['Forwarding'] = field["FieldValue"]['Text']
+                    case 'exp_abteilung':
+                        fields['Department'] = field["FieldValue"]['Text']
+                    case 'exp_einschreibenBC':
+                        fields['Postcode'] = field["FieldValue"]['Text']
+                    case 'exp_iban' | 'IBAN':
+                        fields['IBAN'] = field["FieldValue"]['Text']
+                    case 'exp_intEmpf':
+                        fields['Recipient'] = field["FieldValue"]['Text']
+                    case 'exp_vertraulich':
+                        fields['Confidentiality'] = field["FieldValue"]['Text']
+                    case 'CrdName1':
+                        fields['CrdName'] = field["FieldValue"]['Text']
+                    case 'BankPK':
+                        fields['PensionFund'] = field["FieldValue"]['Text']
+                    case 'GrossAmount':
+                        fields['GrossAmount'] = field["FieldValue"]['Text']
+                    case 'NetAmount':
+                        fields['NetAmount'] = field["FieldValue"]['Text']
+                    case 'VatAmount':
+                        fields['VatAmount'] = field["FieldValue"]['Text']
+                    case 'DocCurrency':
+                        fields['DocCurrency'] = field["FieldValue"]['Text']
+                    case 'DocNo':
+                        fields['InvoiceNR'] = field["FieldValue"]['Text']
+                    case 'ISTEC':
+                        fields['Tec'] = field["FieldValue"]['Text']
+                    case 'LiegenschaftID':
+                        fields['PropertyNr'] = field["FieldValue"]['Text']
+                    case 'ESRReference':
+                        fields['ESRReference'] = field["FieldValue"]['Text']
+                    case 'ReferenceKey':
+                        fields['OrderNumber'] = field["FieldValue"]['Text']
+                    case 'RptCompCode':
+                        fields['Client'] = field["FieldValue"]['Text']
+                    case 'DocSource':
+                        fields['DocSource'] = field["FieldValue"]['Text']
+                    case 'CrdNo':
+                        fields['CrdNo'] = field["FieldValue"]['Text']
     else:
         for element in response.json()['Media']:
             if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                 urls.append(element['Url'])
                 extension.append(element['Extension'])
         for element in response.json()['IndexFields']:
-            if element['Name'] == 'CrdName':
-                fields['CrdName'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'DocNo':
-                fields['DocNo'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'CrdNo':
-                fields['CrdNo'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'GrossAmount':
-                fields['GrossAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'NetAmount':
-                fields['NetAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'VatAmount':
-                fields['VatAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'DocType':
-                fields['DocType'] = element["FieldValue"]['Text']
+            match element['Name']:
+                case 'exp_dokTyp' | 'DocType':
+                    fields['DocType'] = element["FieldValue"]['Text']
+                case 'exp_eigNr':
+                    fields['OwnerNr'] = element["FieldValue"]['Text']
+                case 'exp_mietNr':
+                    fields['TenancyNr'] = element["FieldValue"]['Text']
+                case 'exp_liegNr':
+                    fields['PropertyNr'] = element["FieldValue"]['Text']
+                case 'exp_einschreiben':
+                    fields['Registered'] = element["FieldValue"]['Text']
+                case 'exp_niederlassung':
+                    fields['Branch'] = element["FieldValue"]['Text']
+                case 'exp_dokDatum':
+                    fields['DocDate'] = element["FieldValue"]['Text']
+                case 'exp_nachSend':
+                    fields['Forwarding'] = element["FieldValue"]['Text']
+                case 'exp_abteilung':
+                    fields['Department'] = element["FieldValue"]['Text']
+                case 'exp_einschreibenBC':
+                    fields['Postcode'] = element["FieldValue"]['Text']
+                case 'exp_iban' | 'IBAN':
+                    fields['IBAN'] = element["FieldValue"]['Text']
+                case 'exp_intEmpf':
+                    fields['Recipient'] = element["FieldValue"]['Text']
+                case 'exp_vertraulich':
+                    fields['Confidentiality'] = element["FieldValue"]['Text']
+                case 'CrdName1':
+                    fields['CrdName'] = element["FieldValue"]['Text']
+                case 'BankPK':
+                    fields['PensionFund'] = element["FieldValue"]['Text']
+                case 'GrossAmount':
+                    fields['GrossAmount'] = element["FieldValue"]['Text']
+                case 'NetAmount':
+                    fields['NetAmount'] = element["FieldValue"]['Text']
+                case 'VatAmount':
+                    fields['VatAmount'] = element["FieldValue"]['Text']
+                case 'DocCurrency':
+                    fields['DocCurrency'] = element["FieldValue"]['Text']
+                case 'DocNo':
+                    fields['InvoiceNR'] = element["FieldValue"]['Text']
+                case 'ISTEC':
+                    fields['Tec'] = element["FieldValue"]['Text']
+                case 'LiegenschaftID':
+                    fields['PropertyNr'] = element["FieldValue"]['Text']
+                case 'ESRReference':
+                    fields['ESRReference'] = element["FieldValue"]['Text']
+                case 'ReferenceKey':
+                    fields['OrderNumber'] = element["FieldValue"]['Text']
+                case 'RptCompCode':
+                    fields['Client'] = element["FieldValue"]['Text']
+                case 'DocSource':
+                    fields['DocSource'] = element["FieldValue"]['Text']
+                case 'CrdNo':
+                    fields['CrdNo'] = element["FieldValue"]['Text']
     return extension, urls, fields
 
 def get_media(url):
