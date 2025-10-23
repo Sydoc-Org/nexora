@@ -12,6 +12,27 @@
         let animationTimeouts = [];
         let mentionableUsers = [];
 
+        async function fetchDocTypes() {
+            try {
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                const res = await fetch(`${API_PREFIX}api/doctypes?process=${encodeURIComponent(process)}`);
+                if (!res.ok) throw new Error('Could not fetch doctypes');
+                allDocTypes = await res.json();
+
+                const dl = document.getElementById('doctypelist');
+                if (!dl) return;
+                dl.innerHTML = '';
+                allDocTypes.forEach(dt => {
+                const opt = document.createElement('option');
+                opt.value = dt;
+                dl.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Failed to fetch doctypes:', e);
+            }
+            }
+
+
         function cancelAllAnimations() {
             animationTimeouts.forEach(clearTimeout);
             animationTimeouts = [];
@@ -363,15 +384,22 @@ async function refreshWorkitemUI(barcode, workitemId) {
                         if (fieldsContainer) {
                             if (Object.keys(fields).length > 0) {
                                 const fieldLabels = {
-                                    DocDate: '{{ _("Document Date") }}', DocType: '{{ _("Document Type") }}',
+                                    DocDate: '{{ _("Document Date") }}', 
+                                    DocType: '{{ _("Document Type") }}',
                                     OwnerNr: '{{ _("Owner No.") }}', 
-                                    TenancyNr: '{{ _("Tenancy No.") }}', Registered: "{{ _('Registered') }}",
-                                    PropertyNr: '{{ _("Property No.") }}', PropertyName: '{{ _("Property Name") }}',
-                                    TenantNr: '{{ _("Tenant No.") }}', TenantName: '{{ _("Tenant Name") }}',
+                                    TenancyNr: '{{ _("Tenancy No.") }}', 
+                                    Registered: "{{ _('Registered') }}",
+                                    PropertyNr: '{{ _("Property No.") }}', 
+                                    PropertyName: '{{ _("Property Name") }}',
+                                    TenantNr: '{{ _("Tenant No.") }}', 
+                                    TenantName: '{{ _("Tenant Name") }}',
                                     Branch: '{{ _("Branch") }}',
-                                    CrdName: '{{ _("Creditor Name") }}', InvoiceNR: '{{ _("Invoice No.") }}',
-                                    CrdNo: '{{ _("Creditor No.") }}', GrossAmount: '{{ _("Gross Amount") }}',
-                                    NetAmount: '{{ _("Net Amount") }}', VatAmount: '{{ _("VAT Amount") }}',
+                                    CrdName: '{{ _("Creditor Name") }}', 
+                                    InvoiceNR: '{{ _("Invoice No.") }}',
+                                    CrdNo: '{{ _("Creditor No.") }}', 
+                                    GrossAmount: '{{ _("Gross Amount") }}',
+                                    NetAmount: '{{ _("Net Amount") }}', 
+                                    VatAmount: '{{ _("VAT Amount") }}',
                                     Forwarding: "{{ _('Forwarding') }}", 
                                     Department: "{{ _('Department') }}",
                                     Postcode: "{{ _('Postcode') }}",
@@ -627,7 +655,32 @@ async function refreshWorkitemUI(barcode, workitemId) {
         document.addEventListener('DOMContentLoaded', () => {
             fetchMentionableUsers(); 
             fetchAllTags(); 
+            fetchDocTypes();
+            
+            const doctypeInput = document.getElementById('doctypeFilter');
+            if (doctypeInput) {
+            doctypeInput.addEventListener('input', () => fetchAndUpdateWorkitems());
 
+            doctypeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                e.preventDefault();
+                if (filterForm.requestSubmit) filterForm.requestSubmit();
+                else fetchAndUpdateWorkitems();
+                }
+            });
+
+            doctypeInput.addEventListener('change', () => {
+                if (filterForm.requestSubmit) filterForm.requestSubmit();
+                else fetchAndUpdateWorkitems();
+            });
+            }
+
+            const procSel = document.getElementById('processFilterWorkitemOverview');
+            if (procSel) {
+                procSel.addEventListener('change', () => {
+                fetchDocTypes();
+                });
+            }
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
 

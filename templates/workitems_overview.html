@@ -139,6 +139,23 @@
             </select>
           </div>
         </div>
+        <div>
+        <label for="doctypeFilter" class="block text-sm font-medium text-gray-700">{{ _("Document type") }}</label>
+        <div class="relative mt-1">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <i class="fa-regular fa-file-lines"></i>
+          </span>
+          <input type="text"
+                id="doctypeFilter"
+                name="doctype"
+                value="{{ doctype or '' }}"
+                list="doctypelist"
+                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="{{ _('Type or pick a doc type') }}">
+          <datalist id="doctypelist"></datalist>
+        </div>
+      </div>
+
       </div>
 
       <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
@@ -463,8 +480,10 @@
         'endDate': endDate,
         'tag': tag,
         'priority': priority,
-        'assignedUser': assignedUser
-        } %}
+        'assignedUser': assignedUser,
+        'doctype': doctype
+      } %}
+
         <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
           data-page="{{ current_page - 1 }}"
           class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors {{ 'opacity-50 cursor-not-allowed bg-gray-100' if current_page == 1 else 'hover:bg-gray-50' }}">

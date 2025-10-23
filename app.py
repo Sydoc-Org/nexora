@@ -1037,6 +1037,72 @@ def recent_activity():
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
+@app.route('/api/doctypes')
+def get_doctypes():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    process = request.args.get('process', 'both')
+    q = request.args.get('q', '').strip()
+
+    conn = None
+    try:
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_STAT};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        params = []
+        if process == '02_Posteingang':
+            base = f"SELECT DISTINCT Dokumenttyp AS DocType FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang"
+            if q:
+                base += " WHERE Dokumenttyp LIKE ?"
+                params.append(f"%{q}%")
+            base += " ORDER BY DocType"
+            cursor.execute(base, params)
+
+        elif process == '02_Invoice':
+            base = f"SELECT DISTINCT DocType FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice"
+            if q:
+                base += " WHERE DocType LIKE ?"
+                params.append(f"%{q}%")
+            base += " ORDER BY DocType"
+            cursor.execute(base, params)
+
+        else:  
+            base = f"""
+                SELECT DISTINCT DocType
+                FROM (
+                    SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS DocType
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    UNION ALL
+                    SELECT DocType COLLATE DATABASE_DEFAULT AS DocType
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                ) t
+            """
+            params = []
+            if q:
+                base += " WHERE t.DocType COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            base += " ORDER BY t.DocType"
+            cursor.execute(base, params)
+
+        doctypes = [row.DocType for row in cursor.fetchall() if row.DocType]
+        return jsonify(doctypes)
+
+    except Exception as e:
+        app.logger.error(f"Failed to fetch doctypes: {e}")
+        return jsonify({"error": _("Could not fetch document types")}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @app.route("/api/workitems")
 def api_workitems():
     try:
@@ -1047,6 +1113,7 @@ def api_workitems():
         userid = session.get('userid')
         scope = session.get('scope')
 
+        doctype = request.args.get('doctype', '').strip()
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
         status = request.args.get('status', '')
@@ -1107,6 +1174,46 @@ def api_workitems():
             else:
                 where_clauses.append("wim.AssignedUserID = ?")
                 params.append(assigned_user)
+        if doctype:
+            if process_name == '02_Posteingang':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{doctype}%")
+            elif process_name == '02_Invoice':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{doctype}%")
+            else:  
+                where_clauses.append(f"""
+                    (
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                        OR EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    )
+                """)
+                params.extend([f"%{doctype}%", f"%{doctype}%"])
+
 
         where_sql = " AND ".join(where_clauses)
 
@@ -1231,7 +1338,8 @@ def workitems_overview():
         userid = session.get('userid')
         scope = session.get('scope')
         access = session.get('access')
-
+        
+        doctype = request.args.get('doctype', '').strip()
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
         status = request.args.get('status', '')
@@ -1292,6 +1400,46 @@ def workitems_overview():
             else:
                 where_clauses.append("wim.AssignedUserID = ?")
                 params.append(assigned_user)
+        if doctype:
+            if process_name == '02_Posteingang':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode = tdi_barcode.StringValue
+                          AND p.Dokumenttyp LIKE ?
+                    )
+                """)
+                params.append(f"%{doctype}%")
+            elif process_name == '02_Invoice':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode = tdi_barcode.StringValue
+                          AND i.DocType LIKE ?
+                    )
+                """)
+                params.append(f"%{doctype}%")
+            else: 
+                where_clauses.append(f"""
+                    (
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode = tdi_barcode.StringValue
+                              AND p.Dokumenttyp LIKE ?
+                        )
+                        OR EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode = tdi_barcode.StringValue
+                              AND i.DocType LIKE ?
+                        )
+                    )
+                """)
+                params.extend([f"%{doctype}%", f"%{doctype}%"])
+
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1556,12 +1704,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    # isP = False
-
-    # for customvalues in response.json()['CustomValues']:
-    #     if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
-    #         isP = True
-    #         break
     
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
@@ -1571,8 +1713,9 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     extension.append(media['Extension'])
             for field in element['IndexFields']:
                 match field['Name']:
-                    case 'exp_dokTyp' | 'DocType':
+                    case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
                         fields['DocType'] = field["FieldValue"]['Text']
+                        print(field["FieldValue"]['Text'], '<- batch')
                     case 'exp_eigNr':
                         fields['OwnerNr'] = field["FieldValue"]['Text']
                     case 'exp_mietNr':
@@ -1632,8 +1775,9 @@ def get_extensions_urls_fields(workitemdata, document_id):
                 extension.append(element['Extension'])
         for element in response.json()['IndexFields']:
             match element['Name']:
-                case 'exp_dokTyp' | 'DocType':
+                case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
                     fields['DocType'] = element["FieldValue"]['Text']
+                    print(element["FieldValue"]['Text'], '<- andere')
                 case 'exp_eigNr':
                     fields['OwnerNr'] = element["FieldValue"]['Text']
                 case 'exp_mietNr':
