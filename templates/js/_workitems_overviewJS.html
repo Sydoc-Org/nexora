@@ -11,6 +11,31 @@
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         let animationTimeouts = [];
         let mentionableUsers = [];
+        let docValuesCache = [];
+
+
+        async function fetchDocFieldValues(q = '') {
+            try {
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                const field = document.getElementById('docFieldFilter')?.value || 'doctype';
+                const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Could not fetch field values');
+
+                docValuesCache = await res.json();
+                const dl = document.getElementById('docfieldValuesList');
+                if (!dl) return;
+                dl.innerHTML = '';
+                docValuesCache.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                dl.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Failed to fetch field values:', e);
+            }
+            }
+
 
         async function fetchDocTypes() {
             try {
@@ -655,8 +680,8 @@ async function refreshWorkitemUI(barcode, workitemId) {
         document.addEventListener('DOMContentLoaded', () => {
             fetchMentionableUsers(); 
             fetchAllTags(); 
-            fetchDocTypes();
-            
+            fetchDocFieldValues();
+
             const doctypeInput = document.getElementById('doctypeFilter');
             if (doctypeInput) {
             doctypeInput.addEventListener('input', () => fetchAndUpdateWorkitems());
@@ -722,6 +747,44 @@ async function refreshWorkitemUI(barcode, workitemId) {
             }
 
             const filterForm = document.getElementById('filterForm');
+            const docFieldSel = document.getElementById('docFieldFilter');
+            const docValueInput = document.getElementById('docValueInput');
+            if (docFieldSel) {
+                docFieldSel.addEventListener('change', () => {
+                // refresh suggestions when field or process changes
+                fetchDocFieldValues(docValueInput?.value || '');
+                // and re-run the filter
+                if (filterForm?.requestSubmit) filterForm.requestSubmit(); else fetchAndUpdateWorkitems();
+                });
+            }
+
+            // Refresh suggestions as the user types
+            if (docValueInput) {
+                docValueInput.addEventListener('input', (e) => {
+                fetchDocFieldValues(e.target.value);
+                // live-filter results
+                fetchAndUpdateWorkitems();
+                });
+                // Support Enter-to-submit
+                docValueInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (filterForm?.requestSubmit) filterForm.requestSubmit(); else fetchAndUpdateWorkitems();
+                }
+                });
+                // If the user picks a datalist option
+                docValueInput.addEventListener('change', () => {
+                if (filterForm?.requestSubmit) filterForm.requestSubmit(); else fetchAndUpdateWorkitems();
+                });
+            }
+
+            // If process changes, refresh the options too
+            const processSel = document.getElementById('processFilterWorkitemOverview');
+            if (processSel) {
+                processSel.addEventListener('change', () => {
+                fetchDocFieldValues(docValueInput?.value || '');
+                });
+            }
             async function fetchAndUpdateWorkitems(page = 1) {
                 const formData = new FormData(filterForm);
                 formData.set('page', page);

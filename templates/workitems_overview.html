@@ -139,22 +139,38 @@
             </select>
           </div>
         </div>
+
         <div>
-        <label for="doctypeFilter" class="block text-sm font-medium text-gray-700">{{ _("Document type") }}</label>
+        <label for="docFieldFilter" class="block text-sm font-medium text-gray-700">{{ _("Document field") }}</label>
         <div class="relative mt-1">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-            <i class="fa-regular fa-file-lines"></i>
+            <i class="fa-regular fa-rectangle-list"></i>
           </span>
-          <input type="text"
-                id="doctypeFilter"
-                name="doctype"
-                value="{{ doctype or '' }}"
-                list="doctypelist"
-                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="{{ _('Type or pick a doc type') }}">
-          <datalist id="doctypelist"></datalist>
+          <select id="docFieldFilter" name="docfield"
+                  class="w-full pl-10 pr-8 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doc type") }}</option>
+            <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
+            <!-- add more later: <option value="invoice_no">Invoice no.</option> -->
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </div>
         </div>
       </div>
+
+      <div>
+        <label for="docValueInput" class="block text-sm font-medium text-gray-700">{{ _("Field value") }}</label>
+        <div class="relative mt-1">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <i class="fa-regular fa-keyboard"></i>
+          </span>
+          <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" list="docfieldValuesList"
+                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="{{ _('Type to search…') }}">
+          <datalist id="docfieldValuesList"></datalist>
+        </div>
+      </div>
+
 
       </div>
 
@@ -178,6 +194,7 @@
           class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
           <i class="fas fa-download mr-2"></i>{{ _("Export") }}
         </button>
+        <button type="submit" class="hidden" aria-hidden="true"></button>
       </div>
     </form>
 
@@ -481,8 +498,10 @@
         'tag': tag,
         'priority': priority,
         'assignedUser': assignedUser,
-        'doctype': doctype
+        'docfield': docfield,
+        'docvalue': docvalue
       } %}
+
 
         <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
           data-page="{{ current_page - 1 }}"
