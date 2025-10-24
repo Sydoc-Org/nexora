@@ -221,11 +221,11 @@
           id="docValueInput"
           name="docvalue"
           value="{{ docvalue or '' }}"
-          list="docfieldValuesList"
+          autocomplete="off"
           class="{{ input_base }} pl-10 pr-4"
           placeholder="{{ _('Type to search…') }}"
         />
-        <datalist id="docfieldValuesList"></datalist>
+        <div id="docValueCustomList" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"></div>
       </div>
     </div>
 
