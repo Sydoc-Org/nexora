@@ -20,7 +20,7 @@ Invoice
 	nexora -> DB -> octo
 	-DocType -> DocType -> DocType
 	-CrdName -> CRD_NAME_1 -> CrdName1
-	-PensionFund -> BankPK -> BankPK
+	-BankPK -> BankPK -> BankPK
 	-GrossAmount -> GrossAmount -> GrossAmount
 	-NetAmount -> NetAmount -> NetAmount
 	-VatAmount -> VatAmount -> VatAmount

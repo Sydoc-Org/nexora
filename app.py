@@ -1061,7 +1061,7 @@ def api_docfield_values():
         if field == 'doctype':
             if process == '02_Posteingang':
                 sql = f"""
-                    SELECT DISTINCT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
+                    SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 """
                 if q:
@@ -1072,7 +1072,7 @@ def api_docfield_values():
 
             elif process == '02_Invoice':
                 sql = f"""
-                    SELECT DISTINCT DocType COLLATE DATABASE_DEFAULT AS Val
+                    SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 """
                 if q:
@@ -1083,7 +1083,7 @@ def api_docfield_values():
 
             else:  
                 sql = f"""
-                    SELECT DISTINCT Val FROM (
+                    SELECT DISTINCT TOP 15 Val FROM (
                         SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         UNION ALL
@@ -1099,7 +1099,7 @@ def api_docfield_values():
 
         elif field == 'crdno':
             sql = f"""
-                SELECT DISTINCT CRD_NR  COLLATE DATABASE_DEFAULT AS Val
+                SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
             """
             if q:
@@ -1110,11 +1110,22 @@ def api_docfield_values():
 
         elif field == 'crdname':
             sql = f"""
-                SELECT DISTINCT CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
+                SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
             """
             if q:
                 sql += " WHERE CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'bankpk':
+            sql = f"""
+                SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+            """
+            if q:
+                sql += " WHERE bankpk COLLATE DATABASE_DEFAULT LIKE ?"
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
@@ -1329,6 +1340,17 @@ def api_workitems():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
                         WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
                         AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'bankpk':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND BankPK COLLATE DATABASE_DEFAULT LIKE ?
                     )
                 """)
                 params.append(f"%{docvalue}%")
@@ -1578,6 +1600,17 @@ def workitems_overview():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
                         WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
                         AND i.CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'bankpk':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.bankpk COLLATE DATABASE_DEFAULT LIKE ?
                     )
                 """)
                 params.append(f"%{docvalue}%")
@@ -1848,7 +1881,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -1885,8 +1917,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['Confidentiality'] = field["FieldValue"]['Text']
                     case 'CrdName1':
                         fields['CrdName'] = field["FieldValue"]['Text']
-                    case 'BankPK':
-                        fields['PensionFund'] = field["FieldValue"]['Text']
+                    case 'BankPk':
+                        fields['BankPk'] = field["FieldValue"]['Text']
                     case 'GrossAmount':
                         fields['GrossAmount'] = field["FieldValue"]['Text']
                     case 'NetAmount':
@@ -1946,8 +1978,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     fields['Confidentiality'] = element["FieldValue"]['Text']
                 case 'CrdName1':
                     fields['CrdName'] = element["FieldValue"]['Text']
-                case 'BankPK':
-                    fields['PensionFund'] = element["FieldValue"]['Text']
+                case 'BankPk':
+                    fields['BankPk'] = element["FieldValue"]['Text']
                 case 'GrossAmount':
                     fields['GrossAmount'] = element["FieldValue"]['Text']
                 case 'NetAmount':
