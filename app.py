@@ -1302,7 +1302,6 @@ def api_workitems():
 
             elif docfield == 'crdno':
                 if process_name == '02_Invoice':
-                    print('1crdno, invoice')
                     where_clauses.append(f"""
                         EXISTS (
                             SELECT 1
@@ -1313,7 +1312,6 @@ def api_workitems():
                     """)
                     params.append(f"%{docvalue}%")
                 else:
-                    print('2crdno, all')
                     where_clauses.append(f"""
                         EXISTS (
                             SELECT 1
@@ -1553,7 +1551,6 @@ def workitems_overview():
 
             elif docfield == 'crdno':
                 if process_name == '02_Invoice':
-                    print('1crdno, invoice')
                     where_clauses.append(f"""
                         EXISTS (
                             SELECT 1
@@ -1564,7 +1561,6 @@ def workitems_overview():
                     """)
                     params.append(f"%{docvalue}%")
                 else:
-                    print('2crdno, all')
                     where_clauses.append(f"""
                         EXISTS (
                             SELECT 1
@@ -1903,7 +1899,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     case 'DocSource':
                         fields['DocSource'] = field["FieldValue"]['Text']
                     case 'CrdNo':
-                        print(field["FieldValue"]['Text'], '<-batch')
                         fields['CrdNo'] = field["FieldValue"]['Text']
     else:
         for element in response.json()['Media']:
@@ -1965,7 +1960,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
                 case 'DocSource':
                     fields['DocSource'] = element["FieldValue"]['Text']
                 case 'CrdNo':
-                    print(element["FieldValue"]['Text'], '<-andere')
                     fields['CrdNo'] = element["FieldValue"]['Text']
     return extension, urls, fields
 

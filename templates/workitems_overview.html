@@ -105,74 +105,131 @@
         </div>
       </div>
 
-      <div id="advancedFilterContainer" class="hidden mt-4 pt-4 border-t border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label for="startDate" class="block text-sm font-medium text-gray-700">{{ _("From Date") }}</label>
-            <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}"
-              class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-          </div>
-          <div>
-            <label for="endDate" class="block text-sm font-medium text-gray-700">{{ _("To Date") }}</label>
-            <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}"
-              class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-          </div>
+{% set input_base = "block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %}
 
-          <div>
-            <label for="priorityFilter" class="block text-sm font-medium text-gray-700">{{ _("Priority") }}</label>
-            <select id="priorityFilter" name="priority" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-              <option value="">{{ _("All Priorities") }}</option>
-              <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
-              <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
-              <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
-              <option value="0" {% if priority=='0' %}selected{% endif %}>{{ _("None") }}</option>
-            </select>
-          </div>
+<div id="advancedFilterContainer" class="hidden mt-4 pt-6 border-t border-gray-200">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
 
-          <div>
-            <label for="assignedUserFilter" class="block text-sm font-medium text-gray-700">{{ _("Assigned To") }}</label>
-            <select id="assignedUserFilter" name="assignedUser" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-              <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
-              {% for user in portal_users %}
-              <option value="{{ user.userID }}" {% if assignedUser == user.userID|string %}selected{% endif %}>{{ user.fullname }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div>
-        <label for="docFieldFilter" class="block text-sm font-medium text-gray-700">{{ _("Document field") }}</label>
-        <div class="relative mt-1">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-            <i class="fa-regular fa-rectangle-list"></i>
-          </span>
-          <select id="docFieldFilter" name="docfield"
-                  class="w-full pl-10 pr-8 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doc type") }}</option>
-            <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
-            <!-- add more later: <option value="invoice_no">Invoice no.</option> -->
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-            <i class="fa-solid fa-chevron-down text-xs"></i>
-          </div>
-        </div>
+    <div class="min-w-0">
+      <label for="startDate" class="block text-sm font-medium text-gray-700">
+        {{ _("From Date") }}
+      </label>
+      <div class="relative mt-1">
+        <input
+          type="datetime-local"
+          id="startDate"
+          name="startDate"
+          value="{{ startDate or '' }}"
+          class="{{ input_base }}"
+        />
       </div>
+    </div>
 
-      <div>
-        <label for="docValueInput" class="block text-sm font-medium text-gray-700">{{ _("Field value") }}</label>
-        <div class="relative mt-1">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-            <i class="fa-regular fa-keyboard"></i>
-          </span>
-          <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" list="docfieldValuesList"
-                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="{{ _('Type to search…') }}">
-          <datalist id="docfieldValuesList"></datalist>
-        </div>
+    <div class="min-w-0">
+      <label for="endDate" class="block text-sm font-medium text-gray-700">
+        {{ _("To Date") }}
+      </label>
+      <div class="relative mt-1">
+        <input
+          type="datetime-local"
+          id="endDate"
+          name="endDate"
+          value="{{ endDate or '' }}"
+          class="{{ input_base }}"
+        />
       </div>
+    </div>
 
-
+    <div class="min-w-0">
+      <label for="priorityFilter" class="block text-sm font-medium text-gray-700">
+        {{ _("Priority") }}
+      </label>
+      <div class="relative mt-1">
+        <select
+          id="priorityFilter"
+          name="priority"
+          class="{{ input_base }} appearance-none pr-10"
+        >
+          <option value="">{{ _("All Priorities") }}</option>
+          <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
+          <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
+          <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
+          <option value="0" {% if priority=='0' %}selected{% endif %}>{{ _("None") }}</option>
+        </select>
+        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </span>
       </div>
+    </div>
+
+    <div class="min-w-0">
+      <label for="assignedUserFilter" class="block text-sm font-medium text-gray-700">
+        {{ _("Assigned To") }}
+      </label>
+      <div class="relative mt-1">
+        <select
+          id="assignedUserFilter"
+          name="assignedUser"
+          class="{{ input_base }} appearance-none pr-10"
+        >
+          <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
+          {% for user in portal_users %}
+            <option value="{{ user.userID }}" {% if assignedUser == user.userID|string %}selected{% endif %}>
+              {{ user.fullname }}
+            </option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="min-w-0">
+      <label for="docFieldFilter" class="block text-sm font-medium text-gray-700">
+        {{ _("Document field") }}
+      </label>
+      <div class="relative mt-1">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+          <i class="fa-regular fa-rectangle-list"></i>
+        </span>
+        <select
+          id="docFieldFilter"
+          name="docfield"
+          class="{{ input_base }} pl-10 appearance-none pr-10"
+        >
+          <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doc type") }}</option>
+          <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
+        </select>
+        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="min-w-0">
+      <label for="docValueInput" class="block text-sm font-medium text-gray-700">
+        {{ _("Field value") }}
+      </label>
+      <div class="relative mt-1">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+          <i class="fa-regular fa-keyboard"></i>
+        </span>
+        <input
+          type="text"
+          id="docValueInput"
+          name="docvalue"
+          value="{{ docvalue or '' }}"
+          list="docfieldValuesList"
+          class="{{ input_base }} pl-10 pr-4"
+          placeholder="{{ _('Type to search…') }}"
+        />
+        <datalist id="docfieldValuesList"></datalist>
+      </div>
+    </div>
+
+  </div>
+</div>
 
       <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
         <button id="toggleAdvancedFilterBtn" type="button"
