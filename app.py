@@ -1099,11 +1099,22 @@ def api_docfield_values():
 
         elif field == 'crdno':
             sql = f"""
-                SELECT DISTINCT CAST(CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT AS Val
+                SELECT DISTINCT CRD_NR  COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
             """
             if q:
-                sql += " WHERE CAST(CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT LIKE ?"
+                sql += " WHERE CRD_NR COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'crdname':
+            sql = f"""
+                SELECT DISTINCT CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+            """
+            if q:
+                sql += " WHERE CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
@@ -1301,26 +1312,26 @@ def api_workitems():
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
 
             elif docfield == 'crdno':
-                if process_name == '02_Invoice':
-                    where_clauses.append(f"""
-                        EXISTS (
-                            SELECT 1
-                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
-                            AND CAST(i.CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT LIKE ?
-                        )
-                    """)
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"""
-                        EXISTS (
-                            SELECT 1
-                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
-                            AND CAST(i.CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT LIKE ?
-                        )
-                    """)
-                    params.append(f"%{docvalue}%")
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'crdname':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1550,26 +1561,26 @@ def workitems_overview():
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
 
             elif docfield == 'crdno':
-                if process_name == '02_Invoice':
-                    where_clauses.append(f"""
-                        EXISTS (
-                            SELECT 1
-                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
-                            AND CAST(i.CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT LIKE ?
-                        )
-                    """)
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"""
-                        EXISTS (
-                            SELECT 1
-                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
-                            AND CAST(i.CRD_NR AS NVARCHAR(255)) COLLATE DATABASE_DEFAULT LIKE ?
-                        )
-                    """)
-                    params.append(f"%{docvalue}%")
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'crdname':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
 
         where_sql = " AND ".join(where_clauses)
 
