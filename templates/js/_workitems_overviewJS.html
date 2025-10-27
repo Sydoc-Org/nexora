@@ -843,13 +843,19 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             console.log(procSel.value)
             if (procSel.value == '02_Posteingang') {
-                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered'], 
+                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered',
+                'branch', 'docdate', 'forwarding', 'department', 'postcode'], 
                 { 
                     doctype: 'Document Type',
                     ownernr: 'Owner No.',
                     tenancynr: 'Tenancy No.',
                     propertynr: 'Property No.',
-                    registered: 'Registered'
+                    registered: 'Registered',
+                    branch: 'Branch',
+                    docdate: 'Document Date',
+                    forwarding: 'Forwarding',
+                    department: 'Department',
+                    postcode: 'Post Code no.'
                 });
             } 
             else if (procSel.value == '02_Invoice') {
@@ -864,7 +870,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } 
             else {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered'], 
+                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 
+                'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'], 
                 { 
                     doctype: 'Document Type',
                     crdno: 'Creditor No.',
@@ -873,7 +880,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     ownernr: 'Owner No.',
                     tenancynr: 'Tenancy No.',
                     propertynr: 'Property No.',
-                    registered: 'Registered'
+                    registered: 'Registered',
+                    branch: 'Branch',
+                    docdate: 'Document Date',
+                    forwarding: 'Forwarding',
+                    department: 'Department',
+                    postcode: 'Post Code no.'
                 });
             }
         });

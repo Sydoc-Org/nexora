@@ -216,6 +216,11 @@
           <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
           <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
           <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}</option>
+          <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
+          <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
+          <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}</option>
+          <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}</option>
+          <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
         {% elif process_name == '02_Invoice'  %}
           <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
           <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
@@ -232,6 +237,11 @@
           <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
           <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
           <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}</option>
+          <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
+          <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
+          <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}</option>
+          <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}</option>
+          <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
           {% endif %}
         </select>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">

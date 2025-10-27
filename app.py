@@ -1190,6 +1190,61 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
+        
+        elif field == 'branch':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Niederlassung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'docdate':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Dokdatum COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'forwarding':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'department':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Abteilung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'postcode':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
 
         elif field == 'propertynr':
             if process == '02_Posteingang':
@@ -1445,6 +1500,61 @@ def api_workitems():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
                         WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
                         AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'branch':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'docdate':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'forwarding':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'department':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'postcode':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?
                     )
                 """)
                 params.append(f"%{docvalue}%")
@@ -1808,7 +1918,60 @@ def workitems_overview():
                     )
                 """)
                 params.append(f"%{docvalue}%")
+            elif docfield == 'branch':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
             
+            elif docfield == 'docdate':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'forwarding':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'department':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'postcode':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
             elif docfield == 'propertynr':
                 if process_name == '02_Posteingang':
                     where_clauses.append(f"""

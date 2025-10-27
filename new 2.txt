@@ -5,12 +5,14 @@ Posteingang
 	-OwnerNr -> EigentuemerNr -> exp_eigNr ✓
 	-TenancyNr -> MietverhältnisNr -> exp_mietNr ✓
 	-PropertyNr -> LiegenschaftsNr -> exp_liegNr ✓
-	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben
+	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben ✓
+	
 	-Branch -> Niederlassung -> exp_niederlassung
 	-DocDate -> Dokdatum -> exp_dokDatum
 	-Forwarding -> Nachsendung -> exp_nachSend
 	-Department -> Abteilung -> exp_abteilung
 	-Postcode -> Sendungsbarcode -> exp_einschreibenBC
+
 	-IBAN -> IBAN -> exp_iban
 	-Recipient -> Empfaenger -> exp_intEmpf
 	-Confidentiality -> Vertraulichkeit -> exp_vertraulich
