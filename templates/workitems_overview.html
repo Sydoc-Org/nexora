@@ -213,12 +213,21 @@
         {% if process_name == '02_Posteingang' %}
           <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
           <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
-        {% elif process_name == '02_Invoice' %}
+          <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
+        {% elif process_name == '02_Invoice'  %}
+          <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
           <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
           <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
           <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
           <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
-        {% endif %}
+        {% else %}
+          <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+          <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
+          <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
+          <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
+          <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
+          <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
+          {% endif %}
         </select>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
           <i class="fa-solid fa-chevron-down text-xs"></i>

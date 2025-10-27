@@ -1168,6 +1168,17 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
+        
+        if field == 'tenancynr':
+            sql = f"""
+                SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
         else:
             return jsonify([])
 
@@ -1367,6 +1378,16 @@ def api_workitems():
                         )
                     """)
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'tenancynr':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1667,6 +1688,16 @@ def workitems_overview():
                     """)
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
 
+            elif docfield == 'tenancynr':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
