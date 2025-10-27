@@ -1129,6 +1129,45 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
+
+        if field == 'ownernr':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                """
+                if q:
+                    sql += " WHERE EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_Invoice':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                """
+                if q:
+                    sql += " WHERE EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        UNION ALL
+                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
         else:
             return jsonify([])
 
@@ -1288,6 +1327,46 @@ def api_workitems():
                     )
                 """)
                 params.append(f"%{docvalue}%")
+
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1548,6 +1627,45 @@ def workitems_overview():
                     )
                 """)
                 params.append(f"%{docvalue}%")
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
 
         where_sql = " AND ".join(where_clauses)
 

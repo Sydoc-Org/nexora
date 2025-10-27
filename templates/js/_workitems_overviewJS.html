@@ -75,7 +75,7 @@ function renderCustomDatalist(values) {
 async function fetchDocFieldValues(q = '') {
     try {
         const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
-        const field = document.getElementById('docFieldFilter')?.value || 'doctype';
+        const field = document.getElementById('docFieldFilter')?.value;
         console.log(process, field)
         const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
         const res = await fetch(url);
@@ -843,15 +843,20 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (procSel.value === '02_Posteingang') {
-                setOptions(['doctype'], { doctype: 'Document Type' });
+                setOptions(['doctype', 'ownernr'], 
+                { 
+                    doctype: 'Document Type',
+                    ownernr: 'Owner No.'
+                });
             } else {
                 setOptions(
-                    ['doctype', 'crdno', 'crdname', 'bankpk'],
+                    ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr'],
                     {
                         doctype: 'Document Type',
                         crdno: 'Creditor No.',
                         crdname: 'Creditor Name',
-                        bankpk: 'Bank PK'
+                        bankpk: 'Bank PK',
+                        ownernr: 'Owner No.'
                     }
                 );
             }
