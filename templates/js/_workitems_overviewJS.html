@@ -843,32 +843,35 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             console.log(procSel.value)
             if (procSel.value == '02_Posteingang') {
-                setOptions(['doctype', 'ownernr', 'tenancynr'], 
+                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr'], 
                 { 
                     doctype: 'Document Type',
                     ownernr: 'Owner No.',
-                    tenancynr: 'Tenancy No.'
+                    tenancynr: 'Tenancy No.',
+                    propertynr: 'Property No.'
                 });
             } 
             else if (procSel.value == '02_Invoice') {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr'], 
-                { 
-                    doctype: 'Document Type',
-                    crdno: 'Creditor No.',
-                    crdname: 'Creditor Name',
-                    bankpk: 'Bank PK',
-                    ownernr: 'Owner No.'
-                });
-            } 
-            else {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr'], 
+                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr'], 
                 { 
                     doctype: 'Document Type',
                     crdno: 'Creditor No.',
                     crdname: 'Creditor Name',
                     bankpk: 'Bank PK',
                     ownernr: 'Owner No.',
-                    tenancynr: 'Tenancy No.'
+                    propertynr: 'Property No.'
+                });
+            } 
+            else {
+                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr'], 
+                { 
+                    doctype: 'Document Type',
+                    crdno: 'Creditor No.',
+                    crdname: 'Creditor Name',
+                    bankpk: 'Bank PK',
+                    ownernr: 'Owner No.',
+                    tenancynr: 'Tenancy No.',
+                    propertynr: 'Property No.'
                 });
             }
         });

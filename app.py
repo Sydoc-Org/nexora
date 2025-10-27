@@ -1130,7 +1130,7 @@ def api_docfield_values():
             sql += " ORDER BY Val"
             cur.execute(sql, params)
 
-        if field == 'ownernr':
+        elif field == 'ownernr':
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
@@ -1169,7 +1169,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
         
-        if field == 'tenancynr':
+        elif field == 'tenancynr':
             sql = f"""
                 SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
@@ -1179,6 +1179,45 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
+
+        elif field == 'propertynr':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                """
+                if q:
+                    sql += " WHERE LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_Invoice':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                """
+                if q:
+                    sql += " WHERE LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        UNION ALL
+                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
         else:
             return jsonify([])
 
@@ -1388,6 +1427,46 @@ def api_workitems():
                     )
                 """)
                 params.append(f"%{docvalue}%")
+
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1698,6 +1777,46 @@ def workitems_overview():
                     )
                 """)
                 params.append(f"%{docvalue}%")
+            
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1964,6 +2083,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
+    # with open('data.json', 'w') as f:
+    #     json.dump(response.json(), f)
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -1978,7 +2099,7 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['OwnerNr'] = field["FieldValue"]['Text']
                     case 'exp_mietNr':
                         fields['TenancyNr'] = field["FieldValue"]['Text']
-                    case 'exp_liegNr':
+                    case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['PropertyNr'] = field["FieldValue"]['Text']
                     case 'exp_einschreiben':
                         fields['Registered'] = field["FieldValue"]['Text']
@@ -2014,8 +2135,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['InvoiceNR'] = field["FieldValue"]['Text']
                     case 'ISTEC':
                         fields['Tec'] = field["FieldValue"]['Text']
-                    case 'LiegenschaftID':
-                        fields['PropertyNr'] = field["FieldValue"]['Text']
                     case 'ESRReference':
                         fields['ESRReference'] = field["FieldValue"]['Text']
                     case 'ReferenceKey':
@@ -2039,7 +2158,7 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     fields['OwnerNr'] = element["FieldValue"]['Text']
                 case 'exp_mietNr':
                     fields['TenancyNr'] = element["FieldValue"]['Text']
-                case 'exp_liegNr':
+                case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
                     fields['PropertyNr'] = element["FieldValue"]['Text']
                 case 'exp_einschreiben':
                     fields['Registered'] = element["FieldValue"]['Text']
@@ -2075,8 +2194,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     fields['InvoiceNR'] = element["FieldValue"]['Text']
                 case 'ISTEC':
                     fields['Tec'] = element["FieldValue"]['Text']
-                case 'LiegenschaftID':
-                    fields['PropertyNr'] = element["FieldValue"]['Text']
                 case 'ESRReference':
                     fields['ESRReference'] = element["FieldValue"]['Text']
                 case 'ReferenceKey':

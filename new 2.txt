@@ -3,7 +3,7 @@ Posteingang
 	nexora -> DB -> octo
 	-DocType -> Dokumenttyp -> exp_dokTyp ✓ 
 	-OwnerNr -> EigentuemerNr -> exp_eigNr ✓
-	-TenancyNr -> MietverhältnisNr -> exp_mietNr
+	-TenancyNr -> MietverhältnisNr -> exp_mietNr ✓
 	-PropertyNr -> LiegenschaftsNr -> exp_liegNr
 	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben
 	-Branch -> Niederlassung -> exp_niederlassung
