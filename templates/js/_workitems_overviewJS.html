@@ -76,6 +76,7 @@ async function fetchDocFieldValues(q = '') {
     try {
         const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
         const field = document.getElementById('docFieldFilter')?.value || 'doctype';
+        console.log(process, field)
         const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Could not fetch field values');
@@ -86,27 +87,6 @@ async function fetchDocFieldValues(q = '') {
         console.error('Failed to fetch field values:', e);
         const listContainer = document.getElementById('docValueCustomList');
         if (listContainer) listContainer.classList.add('hidden');
-    }
-}
-
-
-async function fetchDocTypes() {
-    try {
-        const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
-        const res = await fetch(`${API_PREFIX}api/doctypes?process=${encodeURIComponent(process)}`);
-        if (!res.ok) throw new Error('Could not fetch doctypes');
-        allDocTypes = await res.json();
-
-        const dl = document.getElementById('doctypelist');
-        if (!dl) return;
-        dl.innerHTML = '';
-        allDocTypes.forEach(dt => {
-            const opt = document.createElement('option');
-            opt.value = dt;
-            dl.appendChild(opt);
-        });
-    } catch (e) {
-        console.error('Failed to fetch doctypes:', e);
     }
 }
 
@@ -773,8 +753,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
     const advancedContainer = document.getElementById('advancedFilterContainer');
 
-    // --- START: MODIFIED CODE FOR CUSTOM DATALIST ---
-
     if (docValueInput) {
         let debounceTimer;
         const debounce = (callback, time) => {
@@ -790,15 +768,11 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchDocFieldValues(docValueInput.value);
         });
 
-        // MODIFICATION 1: Check where focus is going on blur
         docValueInput.addEventListener('blur', (event) => {
-            // If focus is moving to the "Advanced" button, do nothing.
-            // The list will stay open until the button click is handled.
             if (event.relatedTarget === toggleBtn) {
                 return;
             }
 
-            // Otherwise, hide the list after a short delay
             setTimeout(() => {
                 const list = document.getElementById('docValueCustomList');
                 if (list) list.classList.add('hidden');
@@ -816,20 +790,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
-    // MODIFICATION 2: Handle the "Advanced" button click
     if (toggleBtn && advancedContainer) {
         toggleBtn.addEventListener('click', () => {
             advancedContainer.classList.toggle('hidden');
-            // Crucially, return focus to the input field after the click.
-            // This keeps the datalist open and allows the user to continue typing.
             if (docValueInput) {
                 docValueInput.focus();
             }
         });
     }
-
-    // --- END: MODIFIED CODE FOR CUSTOM DATALIST ---
 
     if (docFieldSel) {
         docFieldSel.addEventListener('change', () => {
@@ -861,7 +829,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const procSel = document.getElementById('processFilterWorkitemOverview');
     if (procSel) {
         procSel.addEventListener('change', () => {
-            fetchDocTypes();
+            const docFieldFilter = document.getElementById('docFieldFilter');
+            if (!docFieldFilter) return;
+
+            const setOptions = (values, textMap = {}) => {
+                docFieldFilter.innerHTML = '';
+                values.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.text = (textMap && textMap[v]) ? textMap[v] : v;
+                    docFieldFilter.appendChild(opt);
+                });
+            };
+
+            if (procSel.value === '02_Posteingang') {
+                setOptions(['doctype'], { doctype: 'Document Type' });
+            } else {
+                setOptions(
+                    ['doctype', 'crdno', 'crdname', 'bankpk'],
+                    {
+                        doctype: 'Document Type',
+                        crdno: 'Creditor No.',
+                        crdname: 'Creditor Name',
+                        bankpk: 'Bank PK'
+                    }
+                );
+            }
         });
     }
     function uploadFile(file) {

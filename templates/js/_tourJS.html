@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollTo: { behavior: 'smooth', block: 'center' },
             cancelIcon: { enabled: true, label: 'Close tour' },
             buttons: [
-                { action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` },
+                { action() { return this.back(); }, classes: 'shepherd-button-secondary', text: `{{ _("Back") }}` },
                 { action() { return this.next(); }, text: `{{ _("Next") }}` }
             ]
         }
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: `{{ _("Recent Activity") }}`,
             text: `{{ _("Here you'll find a feed of the latest status changes for your documents.") }}`,
             attachTo: { element: '#recent-activity-list', on: 'left' },
-            buttons: [{ action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` }, { action() { return this.complete(); }, text: `{{ _("Finish") }}` }]
+            buttons: [{ action() { return this.back(); }, classes: 'shepherd-button-secondary', text: `{{ _("Back") }}` }, { action() { return this.complete(); }, text: `{{ _("Finish") }}` }]
         });
     }
 
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return new Promise(resolve => {
                         if (!firstDetailsRow.classList.contains('open')) {
                             firstToggleButton.click();
-                            setTimeout(resolve, 300); 
+                            setTimeout(resolve, 300);
                         } else {
                             resolve();
                         }
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: `{{ _("Here you can set a priority level, assign the workitem to a colleague, and add comments for your team.") }}`,
                 attachTo: { element: `#collaboration-tools-${firstWorkitemId}`, on: 'left' },
                 buttons: [
-                    { action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` },
+                    { action() { return this.back(); }, classes: 'shepherd-button-secondary', text: `{{ _("Back") }}` },
                     {
                       action() {
                         if (firstDetailsRow.classList.contains('open')) {
@@ -135,45 +135,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    else if (path.includes('/reports')) {
+    else if (path.includes('/team-board')) {
         tour.addStep({
-            id: 'reports-intro',
-            title: `{{ _("Analytics & Reports") }}`,
-            text: `{{ _("This page visualizes your document processing activity and trends over time.") }}`,
+            id: 'teamboard-intro',
+            title: `{{ _("Welcome to the Team Board!") }}`,
+            text: `{{ _("This Kanban-style board helps you visualize the workload and task distribution across your entire team.") }}`,
             buttons: [{ action() { return this.next(); }, text: `{{ _("Start Tour") }}` }]
         });
         tour.addStep({
-            id: 'reports-kpis',
-            title: `{{ _("Key Performance Indicators") }}`,
-            text: `{{ _("These cards highlight your processing volume for today and the last 7 days, plus the current backlog.") }}`,
-            attachTo: { element: '.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3', on: 'bottom' },
+            id: 'teamboard-filters',
+            title: `{{ _("Filter Tasks") }}`,
+            text: `{{ _("Quickly find what you're looking for by filtering tasks by process or priority level.") }}`,
+            attachTo: { element: '#filterForm', on: 'bottom' },
         });
         tour.addStep({
-            id: 'reports-processed-chart',
-            title: `{{ _("Processed Over Time") }}`,
-            text: `{{ _("This line chart shows the number of workitems processed over the last 30 days, helping you spot trends.") }}`,
-            attachTo: { element: '#processedOverTimeChart', on: 'top' },
+            id: 'teamboard-column',
+            title: `{{ _("User Columns") }}`,
+            text: `{{ _("Each column represents a team member. All tasks assigned to them will appear here.") }}`,
+            attachTo: { element: '.team-column', on: 'right' },
         });
         tour.addStep({
-            id: 'reports-distribution-chart',
-            title: `{{ _("Status Distribution") }}`,
-            text: `{{ _("This pie chart gives you a snapshot of the current status of all your workitems (Ready, In Progress, etc.).") }}`,
-            attachTo: { element: '#statusDistributionChart', on: 'top' },
+            id: 'teamboard-header',
+            title: `{{ _("Workload at a Glance") }}`,
+            text: `{{ _("The header shows the team member's name and the total number of tasks currently assigned to them.") }}`,
+            attachTo: { element: '.team-column-header', on: 'bottom' },
         });
         tour.addStep({
-            id: 'reports-stage-chart',
-            title: `{{ _("In-Progress Breakdown") }}`,
-            text: `{{ _("This bar chart shows which stage the 'In Progress' items are currently in, like Validation, Extraction, or Export.") }}`,
-            attachTo: { element: '#stageBreakdownChart', on: 'top' },
-            buttons: [{ action() { return this.back(); }, secondary: true, text: `{{ _("Back") }}` }, { action() { return this.complete(); }, text: `{{ _("Finish") }}` }]
+            id: 'teamboard-card',
+            title: `{{ _("Task Cards") }}`,
+            text: `{{ _("Each card is a workitem. It shows key details like the barcode, last modification time, and priority. Click a card to jump to its detailed view.") }}`,
+            attachTo: { element: '.kanban-card', on: 'bottom' },
+            buttons: [
+                { action() { return this.back(); }, classes: 'shepherd-button-secondary', text: `{{ _("Back") }}` },
+                { action() { return this.complete(); }, text: `{{ _("Finish") }}` }
+            ]
         });
     }
-
 
     if (tour.steps.length > 0) {
         helpButton.addEventListener('click', () => tour.start());
     } else {
-        helpButton.style.display = 'none'; 
+        helpButton.style.display = 'none';
     }
 });
 </script>

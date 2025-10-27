@@ -1,74 +1,87 @@
 .shepherd-element {
   opacity: 0;
-  transition: opacity 0.25s ease-in-out; 
+  transform: scale(0.95) translateY(10px);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .shepherd-element[data-popper-placement] {
   opacity: 1;
+  transform: scale(1) translateY(0);
 }
 
 .shepherd-custom {
   max-width: 400px;
-  border-radius: 0.75rem; 
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); 
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   background-color: #ffffff;
+  border: 1px solid #e5e7eb;
 }
 
 .shepherd-custom .shepherd-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb; 
+  padding: 1rem 1.5rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
   background-color: transparent;
 }
 
 .shepherd-custom .shepherd-title {
-  color: #4338ca; 
+  color: #4338ca;
   font-weight: 700;
   font-size: 1.125rem;
 }
 
 .shepherd-custom .shepherd-cancel-icon {
-  color: #9ca3af; 
+  color: #9ca3af;
+  transition: color 0.2s ease-in-out;
 }
+
 .shepherd-custom .shepherd-cancel-icon:hover {
   color: #4b5563;
 }
 
 .shepherd-custom .shepherd-text {
-  color: #374151; 
+  color: #4b5563;
   padding: 1.25rem 1.5rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
 .shepherd-custom .shepherd-footer {
   padding: 0.75rem 1.5rem;
-  border-top: 1px solid #e5e7eb; 
+  border-top: 1px solid #e5e7eb;
   background-color: transparent;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .shepherd-custom .shepherd-button {
   background: #4f46e5;
   color: #ffffff;
-  border-radius: 0.5rem; 
-  padding: 0.5rem 1rem;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
   border: none;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .shepherd-custom .shepherd-button:hover {
-  background: #4338ca; 
+  background: #4338ca;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .shepherd-custom .shepherd-button.shepherd-button-secondary {
-  background: #f3f4f6; 
-  color: #374151; 
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .shepherd-custom .shepherd-button.shepherd-button-secondary:hover {
-  background: #e5e7eb; 
+  background: #e5e7eb;
+  color: #1f2937;
 }
 
 .shepherd-arrow::before {
   background-color: #ffffff;
+  border: 1px solid #e5e7eb;
 }
