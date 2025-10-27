@@ -1,284 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
 <body>
   <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
-    function getSelectedProcess() {
-      return localStorage.getItem('selectedProcess') || 'both';
-    }
+    // Chart instances
+    let processedChart, statusChart;
+    let dateRangePicker;
 
-    function logAction(actionType, resourceId, details, status, IsInternalError) {
-      fetch(`${API_PREFIX}log_action`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action_type: actionType,
-          resource_id: resourceId,
-          details: details,
-          status: status,
-        }),
-      }).catch((err) => console.error("Logging failed:", err));
-    }
-
-    try {
-      const supportLink = document.querySelector(".support-link");
-
-      supportLink.addEventListener("click", function () {
-        logAction("clickSupportLink", "dashboard", null, "SUCCESS", 0);
-      });
-    }
-    catch (e) {
-      logAction("clickSupportLink", "dashboard", e, "FAILURE", 1);
-    }
-
-
-    async function updateRecentActivity() {
-      const list = document.getElementById("recent-activity-list");
-      //list.innerHTML = '<li class="text-gray-500">Loading...</li>';
-
-      fetch(`${API_PREFIX}api/recent_activity`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Error fetching recent activity");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          list.innerHTML = ""; // Liste leeren
-
-          if (!Array.isArray(data) || data.length === 0) {
-            list.innerHTML =
-              `<li class='text-gray-500'>{{ _("No recent activity found.") }}</li>`;
-            return;
-          }
-
-          data.forEach((activity) => {
-            const li = document.createElement("li");
-            li.className = "flex items-start space-x-3";
-
-            let iconHTML = "";
-            let textMessage = "";
-            const status = activity.state;
-
-            if (status === "Ready") {
-              iconHTML = `
-                                <div class="h-6 w-6 flex-shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                    <i class="fa-solid fa-hourglass-start text-xs"></i>
-                                </div>
-                            `;
-              textMessage = `{{ _("Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("is ready") }}`;
-            } else if (status === "In Progress") {
-              iconHTML = `
-                                <div class="h-6 w-6 flex-shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                    <i class="fa-solid fa-spinner text-xs"></i>
-                                </div>
-                            `;
-              textMessage = `{{ _("Processing for Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("has started.") }}`;
-            } else if (status === "Done") {
-              iconHTML = `
-                                <div class="h-6 w-6 flex-shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mr-3 mt-1">
-                                    <i class="fas fa-file-upload text-xs"></i>
-                                </div>
-                            `;
-              textMessage = `{{ _("Barcode") }} <span class="font-bold">${activity.Barcode}</span> {{ _("has finished processing.") }}`;
-            }
-            else {
-              iconHTML = `
-                                <div class="h-6 w-6 flex-shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mr-3 mt-1">
-                                    <i class="fas fa-question text-xs"></i>
-                                </div>
-                            `;
-              textMessage = `{{ _("Unknown status for Barcode") }} <span class="font-bold">${activity.Barcode}</span>.`;
-            }
-
-            li.innerHTML = `
-                            ${iconHTML}
-                            <div>
-                                <p class="text-sm font-medium">${textMessage}</p>
-                                <p class="text-xs text-gray-500">${activity.datetime}</p>
-                            </div>
-                        `;
-
-            list.appendChild(li);
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching recent activity:", error);
-          list.innerHTML =
-            `<li class="text-red-500">{{ _("Error fetching recent activity.") }}</li>`;
-        });
-    };
-
-    const activityDetails = {
-      'InValidation': {
-        icon: 'fa-solid fa-laptop-file',
-        color: 'violet',
-        text: `{{ _("In Validation") }}`
-      },
-      'InExport': {
-        icon: 'fa-solid fa-file-export',
-        color: 'green',
-        text: `{{ _("In Export") }}`
-      },
-      'InImport': {
-        icon: 'fa-solid fa-file-import',
-        color: 'red',
-        text: `{{ ("In Import") }}`
-      },
-      'InExtraction': {
-        icon: 'fa-solid fa-file-waveform',
-        color: 'blue',
-        text: `{{ ("In Extraction") }}`
-      },
-      'InOCR': {
-        icon: 'fa-solid fa-file-lines',
-        color: 'sky',
-        text: `{{ _("In OCR") }}`
-      },
-      'InDBSaving': {
-        icon: 'fa-solid fa-database',
-        color: 'orange',
-        text: `{{ _("In DB Saving") }}`
-      },
-      'Processing': {
-        icon: 'fa-solid fa-list-check',
-        color: 'yellow',
-        text: `{{ _("Processing") }}`
-      }
-    };
-
-    async function updateDocumentPreviewStats(caller) {
-      let css_animation = (caller === undefined) ? "transition-all duration-500 ease-out" : "";
-
-      const container = document.getElementById('document-preview-container');
-      if (!container) {
-        console.error('Error: The container with ID "document-preview-container" was not found.');
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-        const rows = await response.json();
-        container.innerHTML = '';
-
-        if (rows.length === 0) {
-          container.innerHTML = `<p class="text-gray-500">{{ _("No active documents to display.") }}</p>`;
-          return;
-        }
-        rows.forEach((row, index) => {
-          const details = activityDetails[row.Activity] || activityDetails.default;
-          const color = details.color;
-
-          const cardElement = document.createElement('div');
-
-          cardElement.className = `group bg-white p-4 rounded-xl shadow-lg flex items-center space-x-4 
-                                    ${css_animation} hover:shadow-2xl hover:-translate-y-1`;
-
-          cardElement.innerHTML = `
-                <div class="bg-${color}-100 text-${color}-600 h-16 w-16 flex-shrink-0 flex items-center justify-center
-                            rounded-full text-2xl ${css_animation} group-hover:bg-${color}-500 group-hover:text-white">
-                    <i class="${details.icon}"></i>
-        </div>
-        <div>
-            <h4 class="font-bold text-lg text-gray-800">Barcode ${row.Barcode}</h4>
-            <p class="text-sm text-gray-500">{{ _("Current Status:") }}</p>
-            <span class="bg-${color}-100 text-${color}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                ${details.text}
-            </span>
-        </div>
-    `;
-
-          cardElement.classList.add('opacity-0', 'translate-y-4');
-
-          container.appendChild(cardElement);
-
-          const delay = index * 100;
-          setTimeout(() => {
-            cardElement.classList.remove('opacity-0', 'translate-y-4');
-          }, delay);
-        });
-
-      } catch (error) {
-        console.error("Failed to update document preview stats:", error);
-        container.innerHTML = `<div class="text-center text-red-500 p-4">{{ _("Error loading data.") }}</div>`;
-      }
-    };
+    // Chart Colors & Fonts
+    const chartFontColor = '#6b7280';
+    const chartGridColor = '#f3f4f6';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = chartFontColor;
 
     function animateValue(element, start, end, duration) {
-      let startTimestamp = null;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        element.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
+        if (!element) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            element.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+    
+    // ## DATA FETCHING & CHART RENDERING ##
+    function buildApiUrl(endpoint, startDate, endDate) {
+        let url = `${API_PREFIX}${endpoint}`;
+        if (startDate && endDate) {
+            url += `?startDate=${startDate}&endDate=${endDate}`;
         }
-      };
-      window.requestAnimationFrame(step);
+        return url;
     }
 
-    let lastAbsoluteReadyTotal = 0
-    let lastAbsoluteInProgressTotal = 0
-    let lastAbsoluteDoneTotal = 0
-    let lastAbsoluteBacklogTotal = 0
-
-    async function updateAbsoluteStats() {
-      try {
-        const response = await fetch(`${API_PREFIX}api/dashboard_stats_absolute`);
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+    async function updateKpiStats() {
+        // KPIs are usually absolute and not affected by date range
+        try {
+            const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`);
+            const stats = await response.json();
+            animateValue(document.getElementById("processed-today"), 0, stats.processed_today, 1500);
+            animateValue(document.getElementById("processed-week"), 0, stats.processed_week, 1500);
+            animateValue(document.getElementById("current-backlog"), 0, stats.current_backlog, 1500);
+        } catch (error) {
+            console.error("Failed to update KPI stats:", error);
         }
-        const stats = await response.json();
-        const readyTotalEl = document.getElementById("ready-total");
-        const inProgressTotalEl = document.getElementById("in-progress-total");
-        const doneTotalEl = document.getElementById("done-total");
-        const backlogTotalEl = document.getElementById("backlog-total");
+    }
 
-        animateValue(readyTotalEl, lastAbsoluteReadyTotal, stats.ReadyTotal, 1500);
-        animateValue(inProgressTotalEl, lastAbsoluteInProgressTotal, stats.InProgressTotal, 1500);
-        animateValue(doneTotalEl, lastAbsoluteDoneTotal, stats.DoneTotal, 1500);
-        animateValue(backlogTotalEl, lastAbsoluteBacklogTotal, stats.BacklogTotal, 1500);
+    async function updateProcessedOverTimeChart(startDate, endDate) {
+        try {
+            const url = buildApiUrl('api/reports/processed_over_time', startDate, endDate);
+            const response = await fetch(url);
+            const data = await response.json();
+            const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
 
-        lastAbsoluteReadyTotal = stats.ReadyTotal
-        lastAbsoluteInProgressTotal = stats.InProgressTotal
-        lastAbsoluteDoneTotal = stats.DoneTotal
-        lastAbsoluteBacklogTotal = stats.BacklogTotal
+            if (processedChart) {
+                processedChart.data.labels = data.labels;
+                processedChart.data.datasets[0].data = data.data;
+                processedChart.update();
+            } else {
+                processedChart = new Chart(ctx, { type: 'line', data: { labels: data.labels, datasets: [{ label: '{{ _("Documents Processed") }}', data: data.data, fill: true, backgroundColor: gradient, borderColor: '#4F46E5', borderWidth: 2, pointBackgroundColor: '#4F46E5', tension: 0.4, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: chartGridColor } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+            }
+        } catch (error) { console.error("Failed to update processed chart:", error); }
+    }
 
-      } catch (error) {
-        console.error("Failed to update stats:", error);
-        document.getElementById('ready-total').textContent = 'Error';
-      }
+    async function updateStatusDistributionChart(startDate, endDate) {
+        try {
+            const url = buildApiUrl('api/reports/status_distribution', startDate, endDate);
+            const response = await fetch(url);
+            const data = await response.json();
+            const ctx = document.getElementById('statusDistributionChart').getContext('2d');
+
+            if (statusChart) {
+                statusChart.data.labels = data.labels;
+                statusChart.data.datasets[0].data = data.data;
+                statusChart.update();
+            } else {
+                statusChart = new Chart(ctx, { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6'], borderColor: '#ffffff', borderWidth: 4, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } } } } });
+            }
+        } catch (error) { console.error("Failed to update status chart:", error); }
+    }
+    
+    async function updateStageBreakdownChart(startDate, endDate) {
+        const container = document.getElementById('stage-breakdown-container');
+        if (!container) return;
+
+        const stageDetails = {
+            'In Validation': { icon: 'fa-magnifying-glass', color: 'violet' },
+            'In Export': { icon: 'fa-file-export', color: 'green' },
+            'In Import': { icon: 'fa-file-import', color: 'sky' },
+            'In Extraction': { icon: 'fa-wand-magic-sparkles', color: 'blue' },
+            'In OCR': { icon: 'fa-file-lines', color: 'orange' },
+            'DB Saving': { icon: 'fa-database', color: 'red' },
+            'Collecting': { icon: 'fa-box-archive', color: 'yellow' },
+            'Processing': { icon: 'fa-cogs', color: 'gray' }
+        };
+
+        try {
+            const url = buildApiUrl('api/reports/stage_breakdown', startDate, endDate);
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            container.innerHTML = ''; // Clear previous content
+
+            if (!data.labels || data.labels.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">{{ _("No documents are currently in progress.") }}</div>`;
+                return;
+            }
+
+            data.labels.forEach((label, index) => {
+                const count = data.data[index];
+                const details = stageDetails[label] || stageDetails['Processing'];
+                
+                const card = document.createElement('div');
+                card.className = `bg-${details.color}-50 border-2 border-${details.color}-200 text-${details.color}-800 p-4 rounded-xl flex items-center gap-4`;
+                
+                card.innerHTML = `
+                    <div class="text-2xl">
+                        <i class="fas ${details.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold">${count}</div>
+                        <div class="text-sm font-medium text-${details.color}-600">${label}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error("Failed to update stage breakdown:", error);
+            container.innerHTML = `<div class="col-span-full text-center text-red-500 py-10">{{ _("Could not load data.") }}</div>`;
+        }
+    }
+    const activityDetails = { 'InValidation': { icon: 'fa-solid fa-laptop-file', color: 'violet', text: `{{ _("In Validation") }}` }, 'InExport': { icon: 'fa-solid fa-file-export', color: 'green', text: `{{ _("In Export") }}` }, 'InImport': { icon: 'fa-solid fa-file-import', color: 'red', text: `{{ _("In Import") }}` }, 'InExtraction': { icon: 'fa-solid fa-file-waveform', color: 'blue', text: `{{ _("In Extraction") }}` }, 'InOCR': { icon: 'fa-solid fa-file-lines', color: 'sky', text: `{{ _("In OCR") }}` }, 'InDBSaving': { icon: 'fa-solid fa-database', color: 'orange', text: `{{ _("In DB Saving") }}` }, 'Processing': { icon: 'fa-solid fa-list-check', color: 'yellow', text: `{{ _("Processing") }}` } };
+    async function updateDocumentTimeline() {
+      const container = document.getElementById('document-timeline-container');
+      try {
+        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
+        const rows = await response.json();
+        container.innerHTML = '';
+        if (rows.length === 0) {
+          container.innerHTML = `<p class="text-gray-500 text-center p-4">{{ _("No active documents.") }}</p>`;
+          return;
+        }
+        rows.forEach(row => {
+          const details = activityDetails[row.Activity] || activityDetails.Processing;
+          const color = details.color;
+          const item = document.createElement('div');
+          item.className = 'timeline-item py-1';
+          item.innerHTML = `<div class="timeline-connector"></div><div class="timeline-icon bg-${color}-100 text-${color}-600"><i class="${details.icon} text-2xl"></i></div><div class="flex-grow"><h4 class="font-bold text-gray-800">Barcode ${row.Barcode}</h4><p class="text-sm text-gray-500">{{ _("Current Stage:") }} <span class="font-semibold text-${color}-700">${details.text}</span></p></div>`;
+          container.appendChild(item);
+        });
+      } catch (error) { console.error("Failed to update document timeline:", error); }
+    }
+    
+    async function updateRecentActivity() {
+      const list = document.getElementById("recent-activity-list");
+      try {
+        const response = await fetch(`${API_PREFIX}api/recent_activity`);
+        const data = await response.json();
+        list.innerHTML = "";
+        if (!Array.isArray(data) || data.length === 0) {
+            list.innerHTML = `<li class='text-gray-500'>{{ _("No recent activity.") }}</li>`; return;
+        }
+        data.forEach(act => {
+            const li = document.createElement("li");
+            li.className = "flex items-start space-x-3";
+            let icon = "", msg = "";
+            if (act.state === "Ready") { icon = `<div class="h-6 w-6 shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-hourglass-start text-xs"></i></div>`; msg = `{{ _("Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("is ready") }}`; }
+            else if (act.state === "In Progress") { icon = `<div class="h-6 w-6 shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-spinner text-xs"></i></div>`; msg = `{{ _("Processing for Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("started.") }}`; }
+            else if (act.state === "Done") { icon = `<div class="h-6 w-6 shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mt-1"><i class="fas fa-check-circle text-xs"></i></div>`; msg = `{{ _("Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("finished processing.") }}`; }
+            else { icon = `<div class="h-6 w-6 shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mt-1"><i class="fas fa-question text-xs"></i></div>`; msg = `{{ _("Unknown status for") }} <span class="font-bold">${act.Barcode}</span>.`; }
+            li.innerHTML = `${icon}<div><p class="text-sm font-medium text-gray-800">${msg}</p><p class="text-xs text-gray-500">${act.datetime}</p></div>`;
+            list.appendChild(li);
+        });
+      } catch(error) { console.error("Error fetching recent activity:", error); }
     };
+    
+    async function exportActivityToCSV() {
+        const response = await fetch(`${API_PREFIX}api/recent_activity?limit=200`);
+        const data = await response.json();
+        let csvContent = "data:text/csv;charset=utf-8,Barcode,Status,DateTime\n";
+        data.forEach(row => {
+            csvContent += `${row.Barcode},${row.state},"${row.datetime}"\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "nexora_activity_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    function updateAllCharts(startDate = null, endDate = null) {
+        updateProcessedOverTimeChart(startDate, endDate);
+        updateStatusDistributionChart(startDate, endDate);
+        updateStageBreakdownChart(startDate, endDate);
+    }
 
+    // ## INITIALIZATION ##
     document.addEventListener('DOMContentLoaded', () => {
-      updateRecentActivity();
-      updateAbsoluteStats();
-      updateDocumentPreviewStats();
-      const animatedElements = document.querySelectorAll(".animate-on-load");
-      animatedElements.forEach(el => {
-        const delay = el.style.getPropertyValue("--delay") || "0ms";
-        setTimeout(() => {
-          el.classList.remove("opacity-0", "translate-y-4");
-        }, parseInt(delay));
-      });
-    });
+        // Init Date Picker
+        dateRangePicker = flatpickr("#date-range-picker", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "M j, Y",
+        });
 
-    setInterval(updateRecentActivity, 15000);
-    setInterval(updateDocumentPreviewStats(''), 15000);
-    setInterval(updateAbsoluteStats, 15000);
+        // Initial data load
+        updateKpiStats();
+        updateAllCharts(); // Load with no date range
+        updateDocumentTimeline();
+        updateRecentActivity();
+
+        // Event Listeners
+        document.getElementById('apply-filters-btn').addEventListener('click', () => {
+            const selectedDates = dateRangePicker.selectedDates;
+            if (selectedDates.length === 2) {
+                const startDate = selectedDates[0].toISOString().split('T')[0];
+                const endDate = selectedDates[1].toISOString().split('T')[0];
+                updateAllCharts(startDate, endDate);
+            } else {
+                 // Optionally, reset to default if no valid range is selected
+                updateAllCharts();
+            }
+        });
+        
+        document.getElementById('export-csv-btn').addEventListener('click', exportActivityToCSV);
+
+        setInterval(() => {
+            if (dateRangePicker.selectedDates.length === 0) {
+                updateKpiStats();
+                updateAllCharts();
+                updateDocumentTimeline();
+                updateRecentActivity();
+            }
+        }, 30000); ds
+    });
   </script>
 </body>
-
 </html>

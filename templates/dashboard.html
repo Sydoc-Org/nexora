@@ -5,8 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Dashboard - nexora") }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/dashboard.css') }}">
@@ -17,124 +19,107 @@
   {% set active_page = 'dashboard' %} {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
-    <div class="mb-10">
-      <h2 class="text-3xl font-bold text-gray-800 mb-2 opacity-0 translate-y-4 animate-on-load">
+    <div class="mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 mb-1">
         {{ _("Welcome back") }}, {{ logged_in_user }}! 👋
       </h2>
-      <p class="text-gray-600 opacity-0 translate-y-4 animate-on-load" style="--delay: 100ms;">
-        {{ _("Here's a summary of your document activity") }}.
+      <p class="text-gray-600">
+        {{ _("Here's a real-time overview of your document processing activity.") }}
       </p>
     </div>
 
-    <div class="mt-4 sm:mt-0">
-      <div class="mb-8 bg-white p-4 rounded-xl shadow-lg flex items-center gap-3 opacity-0 translate-y-4 animate-on-load" style="--delay: 150ms;">
-        <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
-        <form method="GET" action="" class="flex-grow">
-          <label for="processFilterDashboard" class="text-sm font-medium text-gray-500 sr-only">{{ _("Filter by Process") }}</label>
-          <div class="relative">
-            <select id="processFilterDashboard" name="processFilterDashboard"
-              class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
-              onchange="this.form.submit()">
-              <option value="both" {% if process_name=='both' %}selected{% endif %}>{{ _("All Processes") }}</option>
-              <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
-              <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-              <i class="fa-solid fa-chevron-down"></i>
+    <div class="bg-white p-4 rounded-2xl shadow-lg border border-gray-200 mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+            <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
+            <form method="GET" action="">
+                <select id="processFilterDashboard" name="processFilterDashboard"
+                    class="w-full custom-select cursor-pointer bg-gray-50 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
+                    onchange="this.form.submit()">
+                    <option value="both" {% if process_name=='both' %}selected{% endif %}>{{ _("All Processes") }}</option>
+                    <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
+                    <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}</option>
+                </select>
+            </form>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <input id="date-range-picker" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-64 p-2.5 pl-10" placeholder="Select Date Range">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
             </div>
-          </div>
-        </form>
-      </div>
+            <button id="apply-filters-btn" class="bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-indigo-700 transition duration-300">
+                {{ _("Apply") }}
+            </button>
+        </div>
+        <div>
+            <button id="export-csv-btn" class="bg-gray-100 text-gray-700 font-semibold py-2.5 px-5 rounded-lg hover:bg-gray-200 transition duration-300 border border-gray-300">
+                <i class="fas fa-file-csv mr-2"></i>{{ _("Export Activity") }}
+            </button>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">{{ _("Processed Today") }}</p>
+                <p class="text-3xl font-bold text-gray-800" id="processed-today">0</p>
+            </div>
+            <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-calendar-day"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">{{ _("Processed This Week") }}</p>
+                <p class="text-3xl font-bold text-gray-800" id="processed-week">0</p>
+            </div>
+            <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-calendar-week"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">{{ _("Current Backlog") }}</p>
+                <p class="text-3xl font-bold text-gray-800" id="current-backlog">0</p>
+            </div>
+            <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-layer-group"></i></div>
+        </div>
+    </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]"
-          style="--delay: 200ms;">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Ready</p>
-            <p class="text-3xl font-bold" id="ready-total">{{ ReadyTotal }}</p>
-          </div>
-          <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full">
-            <i class="fa-solid fa-hourglass-start"></i>
-          </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 flex flex-col gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Documents Processed Over Time") }}</h3>
+            <div class="h-80"><canvas id="processedOverTimeChart"></canvas></div>
         </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]"
-          style="--delay: 300ms;">
-          <div>
-            <p class="text-sm font-medium text-gray-500">In progress</p>
-            <p class="text-3xl font-bold" id="in-progress-total">{{ InProgressTotal }}</p>
-          </div>
-          <div class="bg-yellow-100 text-yellow-600 h-12 w-12 flex items-center justify-center rounded-full">
-            <i class="fa-solid fa-spinner animate-spin"></i>
-          </div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]"
-          style="--delay: 400ms;">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Done</p>
-            <p class="text-3xl font-bold" id="done-total">{{ DoneTotal }}</p>
-          </div>
-          <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full">
-            <i class="fas fa-check-circle"></i>
-          </div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between transition-all duration-500 ease-out opacity-0 translate-y-4 animate-on-load hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02]"
-          style="--delay: 500ms;">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Backlog</p>
-            <p class="text-3xl font-bold" id="backlog-total">{{ BacklogTotal }}</p>
-          </div>
-          <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full">
-            <i class="fa-solid fa-laptop-file"></i>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6 ">
-          <h3 class="text-2xl font-bold text-gray-800 opacity-0 translate-y-4 animate-on-load">
-            {{ _("Document Status") }} </h3>
-          <div class="space-y-6" id="document-preview-container">
-          </div>
-        </div>
-        <div class="space-y-6">
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">{{ _("Recent Activity") }} </h3>
-            <ul id="recent-activity-list" class="space-y-4">
-              <li class="text-gray-500"> {{ _("Loading") }} ...</li>
-            </ul>
-          </div>
-
-          <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-4">{{ _("Need help") }}? </h3>
-            <ul class="space-y-3">
-              <li>
-
-                <a href="mailto:support.helpdesk@sydoc.ch" class="flex items-center text-indigo-600 support-link group">
-                  <i class="fas fa-headset w-6 mr-2 transition-transform duration-300 group-hover:rotate-[-15deg]"></i>
-                  {{ _("Contact support") }}
-                </a>
-                <p class="text-sm text-gray-500 mt-1 pl-8">
-                  {{ _("or email us at") }} support.helpdesk@sydoc.ch
-                </p>
-              </li>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Status Distribution") }}</h3>
+                <div class="h-64 flex items-center justify-center"><canvas id="statusDistributionChart"></canvas></div>
+            </div>
+             <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Recent Activity") }}</h3>
+            <ul id="recent-activity-list" class="space-y-4 max-h-[250px] overflow-y-auto pr-2">
+              <li class="text-gray-500">{{ _("Loading...") }}</li>
             </ul>
           </div>
         </div>
       </div>
+      <div class="lg:col-span-1 flex flex-col gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200 h-full">
+              <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Active Document Timeline") }}</h3>
+              <div id="document-timeline-container" class="space-y-6 max-h-[700px] overflow-y-auto pr-2">
+                  <p class="text-gray-500">{{ _("Loading timeline...") }}</p>
+              </div>
+          </div>
+          
+      </div>
+    </div>
   </main>
-    <footer class="bg-gray-50 mt-auto">
-        <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
-            &copy; 2025 nexora. {{ _("All rights reserved") }}.
-        </div>
-    </footer>
-  {% include 'js/_dashboardJS.html' %}
-    {% include 'js/_tourJS.html' %}
-  <!-- <script src="{{ url_for('static',filename='js/dashboard.js') }}">
-  </script> -->
-</body>
+  
+  <footer class="bg-gray-50 mt-auto">
+      <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+          &copy; 2025 nexora. {{ _("All rights reserved") }}.
+      </div>
+  </footer>
 
+  {% include 'js/_dashboardJS.html' %}
+</body>
 </html>

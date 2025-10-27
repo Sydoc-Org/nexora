@@ -1,0 +1,42 @@
+Posteingang
+	
+	nexora -> DB -> octo
+	-DocType -> Dokumenttyp -> exp_dokTyp ✓ 
+	-OwnerNr -> EigentuemerNr -> exp_eigNr ✓
+	-TenancyNr -> MietverhältnisNr -> exp_mietNr ✓
+	-PropertyNr -> LiegenschaftsNr -> exp_liegNr ✓
+	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben ✓
+	
+	-Branch -> Niederlassung -> exp_niederlassung
+	-DocDate -> Dokdatum -> exp_dokDatum
+	-Forwarding -> Nachsendung -> exp_nachSend
+	-Department -> Abteilung -> exp_abteilung
+	-Postcode -> Sendungsbarcode -> exp_einschreibenBC
+
+	-IBAN -> IBAN -> exp_iban
+	-Recipient -> Empfaenger -> exp_intEmpf
+	-Confidentiality -> Vertraulichkeit -> exp_vertraulich
+
+Invoice
+
+	nexora -> DB -> octo
+	-DocType -> DocType -> DocType ✓
+	-CrdName -> CRD_NAME_1 -> CrdName1 ✓
+	-BankPK -> BankPK -> BankPK ✓
+	-GrossAmount -> GrossAmount -> GrossAmount
+	-NetAmount -> NetAmount -> NetAmount
+	-VatAmount -> VatAmount -> VatAmount
+	-DocCurrency -> DocCurrency -> DocCurrency
+	-InvoiceNR -> InvoiceNR -> DocNo
+	-Tec -> ISTEC -> ISTEC
+	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID ✓
+	-IBAN -> IBAN -> IBAN
+	-ESRReference -> ESR -> ESRReference
+	-OrderNumber -> BestellNummer -> ReferenceKey
+	-Client -> Mandant -> RptCompCode
+	-OwnerNr -> EigentuemerNr -> exp_eigNr
+	-DocSource -> DocSource -> DocSource
+	-CrdNo -> CRD_NR -> CrdNo ✓
+	
+
+	\\10.31.103.103\SY_Q_Layer\05_Betrieb\05_01_Team\PostCodes\2025

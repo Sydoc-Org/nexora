@@ -6,7 +6,47 @@
     <title>Document</title>
 </head>
 <body>
-    <script>document.addEventListener('DOMContentLoaded', () => {
+    <script>
+        window.addEventListener('load', () => {
+            const preloader = document.getElementById('preloader');
+            const preloaderLogo = document.getElementById('preloader-logo');
+            const preloaderTitle = preloader.querySelector('.nexora-title');
+            const preloadersubTitle = preloader.querySelector('.nexora-subtitle');
+            const headerLogo = document.getElementById('header-logo-wrapper');
+            const siginin = document.getElementById('signin');
+            const mainContent = document.getElementById('main-content-wrapper');
+
+            if (!preloader || !preloaderLogo || !headerLogo || !siginin|| !mainContent) {
+                console.error('Preloader elements not found!');
+                return;
+            }
+
+            setTimeout(() => {
+                const endRect = headerLogo.getBoundingClientRect();
+                const startRect = preloaderLogo.getBoundingClientRect();
+                
+                const deltaX = endRect.left - startRect.left;
+                const deltaY = endRect.top - startRect.top;
+
+                preloaderLogo.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1)`;
+
+                preloader.style.backgroundColor = 'transparent';
+                preloaderTitle.style.opacity = '0';
+                preloadersubTitle.style.opacity = '0';
+                setTimeout(() => {
+                    headerLogo.style.opacity = '1';
+                    siginin.style.opacity = '1'
+                    mainContent.style.opacity = '1';
+                }, 900);
+
+                setTimeout(() => {
+                    preloader.style.display = 'none';
+                }, 1000);
+
+            }, 1000); 
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
             const progressLine = document.getElementById('progress-line');
             const statusText = document.getElementById('status-text');
             const stepElements = document.querySelectorAll('.process-step');
@@ -63,7 +103,7 @@
                     const currentStep = stepElements[i];
                     
                     progressLine.style.width = steps[i].progress;
-                    await wait(800); // Wait for progress bar to fill
+                    await wait(800);
 
                     await updateStatusText(steps[i].text);
 
@@ -76,7 +116,7 @@
                     currentStep.querySelector('.step-icon-wrapper').classList.add('active');
                     currentStep.querySelector('p').classList.add('active');
 
-                    await wait(2000); // "Processing" time at the current step
+                    await wait(2000); 
                 }
 
                 await updateStatusText('Process Complete!');
@@ -91,8 +131,22 @@
                 runAnimation();
             };
 
-            document.fonts.ready.then(() => {
-                runAnimation();
+            if (document.getElementById('animation-container')) {
+                 document.fonts.ready.then(() => {
+                    runAnimation();
+                });
+            }
+
+            const faqButtons = document.querySelectorAll('.faq-btn');
+            faqButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    faqButtons.forEach(otherButton => {
+                        if (otherButton !== button && otherButton.classList.contains('active')) {
+                            otherButton.classList.remove('active');
+                        }
+                    });
+                    button.classList.toggle('active');
+                });
             });
         });
         </script>

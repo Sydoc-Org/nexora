@@ -51,10 +51,10 @@
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-list mr-2"></i>{{ _("Workitems") }}
                         </a>
-                        <a href="{{ url_for('reports') }}"
-                            class="{% if active_page == 'reports' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
+                        <a href="{{ url_for('team_board') }}"
+                            class="{% if active_page == 'teamboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-chart-line mr-2"></i>{{ _("Reports") }}
+                            <i class="fas fa-people-group mr-2"></i>{{ _("Team Board") }}
                         </a>
                     </nav>
                 </div>

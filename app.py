@@ -904,7 +904,7 @@ def get_dashbord_preview_documents_stats(processName='both'):
             tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
-        SELECT DISTINCT TOP 10 tdi.StringValue Barcode
+        SELECT DISTINCT TOP 20 tdi.StringValue Barcode
         ,Activity FROM CTE
         LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
         WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
@@ -975,69 +975,339 @@ def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
     
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    limit = request.args.get('limit', 10, type=int)
+    
+    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'both'))
     all_params = params + ['Privera']
 
     try:
         conn_str = (
-                f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER_PRD},1433;'
-                f'DATABASE={DB_SERVER_DB_RUNTIME};'
-                f'UID={DB_UID};'
-                f'PWD={DB_PWD};'
-                f'TrustServerCertificate=yes;'
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        query = f"""
+        cursor.execute(f"""
             WITH CTE AS (
-            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-            CASE 
-                WHEN twi.Status = 0 THEN 'Ready'
-                WHEN twi.Status = 5 THEN 'Done'
-                ELSE 'In Progress'
-            END AS Status
-            FROM t_WorkItems twi 
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
-            AND twi.Status <> 2 
-        )
-        SELECT DISTINCT TOP 4 tdi.StringValue Barcode, CTE.Status, CTE.ModifiedAt FROM CTE
-        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
-        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+                SELECT 
+                    tdi.WorkItemID, 
+                    DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt, 
+                    CASE 
+                        WHEN twi.Status = 0 THEN 'Ready'
+                        WHEN twi.Status = 5 THEN 'Done'
+                        ELSE 'In Progress'
+                    END AS Status
+                FROM t_WorkItems twi 
+                JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+                JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
+                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
+                AND twi.Status <> 2 
+            )
+            SELECT DISTINCT TOP ({limit})
+                tdi.StringValue AS Barcode, 
+                CTE.Status, 
+                CTE.ModifiedAt 
+            FROM CTE
+            JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
+            ORDER BY CTE.ModifiedAt DESC
         """
-        cursor.execute(query, all_params)
+        ,all_params)
         activities = cursor.fetchall()
         cursor.close()
         conn.close()
 
         return jsonify([
             {
-                "state": row[1],
-                "datetime": row[2].strftime('%Y-%m-%d %H:%M:%S'),  
-                "Barcode": row[0]
+                "state": row.Status,
+                "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),  
+                "Barcode": row.Barcode
             }
             for row in activities
         ])
     except Exception as e:
-        print(e)
+        app.logger.error(f"Failed to fetch recent activity: {e}")
         return jsonify({"error": str(e)}), 500
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
+@app.route('/api/docfield_values')
+def api_docfield_values():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    process = request.args.get('process', 'both')
+    field = (request.args.get('field', '') or '').lower().strip()
+    q = (request.args.get('q', '') or '').strip()
+
+    conn = None
+    try:
+        conn_str = (
+            f"DRIVER={{SQL Server}};"
+            f"SERVER={DB_SERVER_PRD},1433;"
+            f"DATABASE={DB_SERVER_DB_STAT};"
+            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
+        )
+        conn = pyodbc.connect(conn_str)
+        cur = conn.cursor()
+
+        params = []
+        if field == 'doctype':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                """
+                if q:
+                    sql += " WHERE Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_Invoice':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                """
+                if q:
+                    sql += " WHERE DocType COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        UNION ALL
+                        SELECT DocType COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+        elif field == 'crdno':
+            sql = f"""
+                SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+            """
+            if q:
+                sql += " WHERE CRD_NR COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'crdname':
+            sql = f"""
+                SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+            """
+            if q:
+                sql += " WHERE CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'bankpk':
+            sql = f"""
+                SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+            """
+            if q:
+                sql += " WHERE bankpk COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'ownernr':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                """
+                if q:
+                    sql += " WHERE EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_Invoice':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                """
+                if q:
+                    sql += " WHERE EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        UNION ALL
+                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+        
+        elif field == 'tenancynr':
+            sql = f"""
+                SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'registered':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Einschreiben COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'branch':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Niederlassung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'docdate':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Dokdatum COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'forwarding':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'department':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Abteilung COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'postcode':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'propertynr':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                """
+                if q:
+                    sql += " WHERE LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_Invoice':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                """
+                if q:
+                    sql += " WHERE LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        UNION ALL
+                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+        else:
+            return jsonify([])
+
+        rows = [r.Val for r in cur.fetchall() if r.Val]
+        return jsonify(rows)
+
+    except Exception as e:
+        app.logger.error(f"/api/docfield_values error: {e}")
+        return jsonify({"error": _("Could not fetch values")}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @app.route("/api/workitems")
 def api_workitems():
     try:
         if 'username' not in session:
             return redirect(url_for('login'))
 
-        logged_in_user = session.get('username')
-        userid = session.get('userid')
-        scope = session.get('scope')
+
+        # ------------------------------- field filters ------------------------------ #
+        docfield = (request.args.get('docfield', '') or '').lower().strip()
+        docvalue = (request.args.get('docvalue', '') or '').strip()
+        # ----------------------------- field filters end ---------------------------- #
 
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
@@ -1100,6 +1370,234 @@ def api_workitems():
                 where_clauses.append("wim.AssignedUserID = ?")
                 params.append(assigned_user)
 
+        if docvalue:
+            if docfield == 'doctype':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+
+            elif docfield == 'crdno':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'crdname':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'bankpk':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND BankPK COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'tenancynr':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'registered':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'branch':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'docdate':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'forwarding':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'department':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'postcode':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1224,6 +1722,9 @@ def workitems_overview():
         scope = session.get('scope')
         access = session.get('access')
 
+        docfield = (request.args.get('docfield', '') or '').lower().strip()
+        docvalue = (request.args.get('docvalue', '') or '').strip()
+
         page = request.args.get('page', 1, type=int)
         search_term = request.args.get('search', '').strip()
         status = request.args.get('status', '')
@@ -1284,6 +1785,232 @@ def workitems_overview():
             else:
                 where_clauses.append("wim.AssignedUserID = ?")
                 params.append(assigned_user)
+        if docvalue:
+            if docfield == 'doctype':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+
+            elif docfield == 'crdno':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+
+            elif docfield == 'crdname':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'bankpk':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                        WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND i.bankpk COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+
+            elif docfield == 'tenancynr':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'registered':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'branch':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'docdate':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'forwarding':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'department':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            
+            elif docfield == 'postcode':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                            WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_Invoice':
+                    where_clauses.append(f"""
+                        EXISTS (
+                            SELECT 1
+                            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                            AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                        )
+                    """)
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"""
+                        (
+                            EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                                WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                            OR EXISTS (
+                                SELECT 1
+                                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                                WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                                AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?
+                            )
+                        )
+                    """)
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         where_sql = " AND ".join(where_clauses)
 
         conn_str = (
@@ -1401,7 +2128,9 @@ def workitems_overview():
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            portal_users=portal_users
+            portal_users=portal_users,
+            docfield=docfield,
+            docvalue=docvalue,
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
@@ -1548,13 +2277,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    isP = False
-
-    for customvalues in response.json()['CustomValues']:
-        if customvalues['Key'] == 'FilePath' and 'posteingang' in customvalues['Value']:
-            isP = True
-            break
-    
+    # with open('data.json', 'w') as f:
+    #     json.dump(response.json(), f)
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -1562,84 +2286,118 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     urls.append(media['Url'])
                     extension.append(media['Extension'])
             for field in element['IndexFields']:
-                if field['Name'] == 'exp_dokDatum':
-                    fields['DocDate'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'exp_dokTyp':
-                    fields['DocType'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_eigNr':
-                    fields['OwnerNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'eigentuemerName':
-                    fields['OwnerName'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_liegNr':
-                    fields['PropertyNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'liegenschaftName':
-                    fields['PropertyName'] = field["FieldValue"]['Text']
-
-                elif field['Name'] == 'exp_mietNr':
-                    fields['TenantNr'] = field["FieldValue"]['Text']
-                elif field['Name'] == 'mieterName':
-                    fields['TenantName'] = field["FieldValue"]['Text']
-                
-                elif field['Name'] == 'exp_sendNr':
-                    fields['BroadcastNr'] = field["FieldValue"]['Text']
-                
-                elif field['Name'] == 'exp_niederlassung':
-                    fields['Branch'] = field["FieldValue"]['Text']
-    
-    elif isP:
-        for element in response.json()['Media']:
-            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-                urls.append(element['Url'])
-                extension.append(element['Extension'])
-        for field in response.json()['IndexFields']:
-            if field['Name'] == 'exp_dokDatum':
-                fields['DocDate'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'exp_dokTyp':
-                fields['DocType'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_eigNr':
-                fields['OwnerNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'eigentuemerName':
-                fields['OwnerName'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_liegNr':
-                fields['PropertyNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'liegenschaftName':
-                fields['PropertyName'] = field["FieldValue"]['Text']
-
-            elif field['Name'] == 'exp_mietNr':
-                fields['TenantNr'] = field["FieldValue"]['Text']
-            elif field['Name'] == 'mieterName':
-                fields['TenantName'] = field["FieldValue"]['Text']
-            
-            elif field['Name'] == 'exp_sendNr':
-                fields['BroadcastNr'] = field["FieldValue"]['Text']
-            
-            elif field['Name'] == 'exp_niederlassung':
-                fields['Branch'] = field["FieldValue"]['Text']
-    
+                match field['Name']:
+                    case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
+                        fields['DocType'] = field["FieldValue"]['Text']
+                    case 'exp_eigNr':
+                        fields['OwnerNr'] = field["FieldValue"]['Text']
+                    case 'exp_mietNr':
+                        fields['TenancyNr'] = field["FieldValue"]['Text']
+                    case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
+                        fields['PropertyNr'] = field["FieldValue"]['Text']
+                    case 'exp_einschreiben':
+                        fields['Registered'] = field["FieldValue"]['Text']
+                    case 'exp_niederlassung':
+                        fields['Branch'] = field["FieldValue"]['Text']
+                    case 'exp_dokDatum':
+                        fields['DocDate'] = field["FieldValue"]['Text']
+                    case 'exp_nachSend':
+                        fields['Forwarding'] = field["FieldValue"]['Text']
+                    case 'exp_abteilung':
+                        fields['Department'] = field["FieldValue"]['Text']
+                    case 'exp_einschreibenBC':
+                        fields['Postcode'] = field["FieldValue"]['Text']
+                    case 'exp_iban' | 'IBAN':
+                        fields['IBAN'] = field["FieldValue"]['Text']
+                    case 'exp_intEmpf':
+                        fields['Recipient'] = field["FieldValue"]['Text']
+                    case 'exp_vertraulich':
+                        fields['Confidentiality'] = field["FieldValue"]['Text']
+                    case 'CrdName1':
+                        fields['CrdName'] = field["FieldValue"]['Text']
+                    case 'BankPk':
+                        fields['BankPk'] = field["FieldValue"]['Text']
+                    case 'GrossAmount':
+                        fields['GrossAmount'] = field["FieldValue"]['Text']
+                    case 'NetAmount':
+                        fields['NetAmount'] = field["FieldValue"]['Text']
+                    case 'VatAmount':
+                        fields['VatAmount'] = field["FieldValue"]['Text']
+                    case 'DocCurrency':
+                        fields['DocCurrency'] = field["FieldValue"]['Text']
+                    case 'DocNo':
+                        fields['InvoiceNR'] = field["FieldValue"]['Text']
+                    case 'ISTEC':
+                        fields['Tec'] = field["FieldValue"]['Text']
+                    case 'ESRReference':
+                        fields['ESRReference'] = field["FieldValue"]['Text']
+                    case 'ReferenceKey':
+                        fields['OrderNumber'] = field["FieldValue"]['Text']
+                    case 'RptCompCode':
+                        fields['Client'] = field["FieldValue"]['Text']
+                    case 'DocSource':
+                        fields['DocSource'] = field["FieldValue"]['Text']
+                    case 'CrdNo':
+                        fields['CrdNo'] = field["FieldValue"]['Text']
     else:
         for element in response.json()['Media']:
             if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
                 urls.append(element['Url'])
                 extension.append(element['Extension'])
         for element in response.json()['IndexFields']:
-            if element['Name'] == 'CrdName':
-                fields['CrdName'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'DocNo':
-                fields['DocNo'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'CrdNo':
-                fields['CrdNo'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'GrossAmount':
-                fields['GrossAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'NetAmount':
-                fields['NetAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'VatAmount':
-                fields['VatAmount'] = element["FieldValue"]['Text']
-            elif element['Name'] == 'DocType':
-                fields['DocType'] = element["FieldValue"]['Text']
+            match element['Name']:
+                case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
+                    fields['DocType'] = element["FieldValue"]['Text']
+                case 'exp_eigNr':
+                    fields['OwnerNr'] = element["FieldValue"]['Text']
+                case 'exp_mietNr':
+                    fields['TenancyNr'] = element["FieldValue"]['Text']
+                case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
+                    fields['PropertyNr'] = element["FieldValue"]['Text']
+                case 'exp_einschreiben':
+                    fields['Registered'] = element["FieldValue"]['Text']
+                case 'exp_niederlassung':
+                    fields['Branch'] = element["FieldValue"]['Text']
+                case 'exp_dokDatum':
+                    fields['DocDate'] = element["FieldValue"]['Text']
+                case 'exp_nachSend':
+                    fields['Forwarding'] = element["FieldValue"]['Text']
+                case 'exp_abteilung':
+                    fields['Department'] = element["FieldValue"]['Text']
+                case 'exp_einschreibenBC':
+                    fields['Postcode'] = element["FieldValue"]['Text']
+                case 'exp_iban' | 'IBAN':
+                    fields['IBAN'] = element["FieldValue"]['Text']
+                case 'exp_intEmpf':
+                    fields['Recipient'] = element["FieldValue"]['Text']
+                case 'exp_vertraulich':
+                    fields['Confidentiality'] = element["FieldValue"]['Text']
+                case 'CrdName1':
+                    fields['CrdName'] = element["FieldValue"]['Text']
+                case 'BankPk':
+                    fields['BankPk'] = element["FieldValue"]['Text']
+                case 'GrossAmount':
+                    fields['GrossAmount'] = element["FieldValue"]['Text']
+                case 'NetAmount':
+                    fields['NetAmount'] = element["FieldValue"]['Text']
+                case 'VatAmount':
+                    fields['VatAmount'] = element["FieldValue"]['Text']
+                case 'DocCurrency':
+                    fields['DocCurrency'] = element["FieldValue"]['Text']
+                case 'DocNo':
+                    fields['InvoiceNR'] = element["FieldValue"]['Text']
+                case 'ISTEC':
+                    fields['Tec'] = element["FieldValue"]['Text']
+                case 'ESRReference':
+                    fields['ESRReference'] = element["FieldValue"]['Text']
+                case 'ReferenceKey':
+                    fields['OrderNumber'] = element["FieldValue"]['Text']
+                case 'RptCompCode':
+                    fields['Client'] = element["FieldValue"]['Text']
+                case 'DocSource':
+                    fields['DocSource'] = element["FieldValue"]['Text']
+                case 'CrdNo':
+                    fields['CrdNo'] = element["FieldValue"]['Text']
     return extension, urls, fields
 
 def get_media(url):
@@ -2113,6 +2871,117 @@ def remove_tag_from_workitem(barcode, tag_id):
             conn.close()
 # ---------------------- workitem collaboration apis end --------------------- #
 
+
+# -------------------------------- process board --------------------------------- #
+@app.route("/team-board")
+def team_board():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        
+        access = session.get('access')
+        
+        process_name = request.args.get('processFilterBoard', 'both')
+        priority = request.args.get('priority', '')
+
+        placeholders, params = get_process_filter_and_params(process_name)
+        params.append('Privera')
+        
+        where_clauses = [
+            f"tp.Name IN ({placeholders})",
+            "tp.ClientName = ?",
+            "tdi_barcode.Name LIKE '%Barcode'", 
+            "tdi_barcode.StringValue IS NOT NULL"
+        ]
+
+        if priority:
+            where_clauses.append("wim.Priority = ?")
+            params.append(priority)
+
+        where_sql = " AND ".join(where_clauses)
+        
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_RUNTIME};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        query = f"""
+            WITH BoardItems AS (
+                SELECT
+                    tdi_barcode.StringValue AS Barcode,
+                    twi.ModifiedAt,
+                    CASE
+                        WHEN twi.Status = 5 THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS CurrentStage,
+                    wim.Priority,
+                    wim.AssignedUserID,
+                    (
+                        SELECT t.TagName AS name, t.TagColor AS color
+                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        WHERE wt.Barcode = tdi_barcode.StringValue
+                        FOR JSON PATH
+                    ) AS TagsJSON,
+                    ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                WHERE {where_sql}
+            )
+            SELECT Barcode, ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
+            FROM BoardItems
+            WHERE rn = 1
+            ORDER BY Priority DESC, ModifiedAt ASC;
+        """
+        
+        cursor.execute(query, params)
+        
+        portal_users = get_all_portal_users(access)
+        workitems_by_user = {user['userID']: [] for user in portal_users}
+        workitems_by_user['Unassigned'] = []
+
+        for row in cursor.fetchall():
+            user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
+            if user_id in workitems_by_user:
+                workitems_by_user[user_id].append({
+                    'barcode': row.Barcode,
+                    'modifiedat': row.ModifiedAt,
+                    'current_stage': row.CurrentStage,
+                    'priority': row.Priority or 0,
+                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
+                })
+
+        log_user_action('visitTeamBoard', status='SUCCESS', resource_id='teamBoard')
+
+        return render_template("team_board.html", 
+            workitems_by_user=workitems_by_user,
+            process_name=process_name,
+            priority=priority,
+            portal_users=portal_users,
+            userid=session.get('userid'),
+            scope=session.get('scope')
+        )
+    except Exception as e:
+        app.logger.error(f"Error loading team board: {e}")
+        log_user_action('visitTeamBoard', status='FAILURE', resource_id='teamBoard', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+# ------------------------------ process board end ------------------------------- #
+
+
 # --------------------------- workitem overview end -------------------------- #
 
 def get_all_portal_users(access):
@@ -2348,7 +3217,7 @@ def reports():
         scope = session['scope']
 
         process_name = request.args.get('processFilterReports', 'both')
-        session['process_name_reports'] = process_name
+        session['process_name_dashboard'] = process_name
 
         log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
         return render_template("reports.html", userid=userid, scope=scope, process_name=process_name)
@@ -2356,39 +3225,32 @@ def reports():
         log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
-# ---- replace the current /api/reports/processed_over_time with this version ----
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    # read customization options (all optional & backwards compatible)
-    start_str = request.args.get('startDate')   # ISO 8601: "2025-10-01"
-    end_str   = request.args.get('endDate')     # ISO 8601
-    group_by  = (request.args.get('groupBy') or 'day').lower()  # day|week|month
-    statuses_q = request.args.get('statuses')   # e.g., "Done" or "Ready,In Progress,Done"
+    start_str = request.args.get('startDate')   
+    end_str   = request.args.get('endDate')     
+    group_by  = (request.args.get('groupBy') or 'day').lower()  
+    statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    # fall back to session process filter (existing behaviour)
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
-    # map status names -> codes used in DB (0=Ready,1=In Progress,5=Done)
     name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
     status_codes = None
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
-    # default window: last 30 days (existing behaviour)
-    # allow custom start/end
     date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
     date_params = []
     if start_str:
         date_filter_sql = "twi.ModifiedAt >= ?"
         date_params.append(datetime.fromisoformat(start_str))
     if end_str:
-        # inclusive end -> use < end + 1 day, or cast as date; keep simple with < end
         if start_str:
             date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
             date_params.append(datetime.fromisoformat(end_str))
@@ -2396,7 +3258,6 @@ def report_processed_over_time():
             date_filter_sql = "twi.ModifiedAt < ?"
             date_params.append(datetime.fromisoformat(end_str))
 
-    # grouping key
     if group_by == 'week':
         group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
         order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
@@ -2407,7 +3268,6 @@ def report_processed_over_time():
         group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
         order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
 
-    # status filter (default used to be Done only)
     status_sql = "twi.Status = 5"
     status_params = []
     if status_codes:
@@ -2451,7 +3311,6 @@ def report_processed_over_time():
         if conn:
             conn.close()
 
-# ---- replace /api/reports/status_distribution with this version ----
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
     if 'username' not in session:
@@ -2459,10 +3318,10 @@ def report_status_distribution():
 
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')  # optional
+    statuses_q = request.args.get('statuses')  
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
@@ -2471,9 +3330,8 @@ def report_status_distribution():
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
-    # If date window provided, compute counts within the window; else use your fast absolute helper.
     if not start_str and not end_str and set(status_codes)=={0,1,5}:
-        stats = get_absolute_dashboard_stats(process_name)  # existing behaviour
+        stats = get_absolute_dashboard_stats(process_name) 
         labels = ['Ready','In Progress','Done','Backlog']
         data = [
             stats.get('ReadyTotal',0),
@@ -2547,7 +3405,7 @@ def report_kpi_stats():
     
     conn = None
 
-    placeholders, params = get_process_filter_and_params(session['process_name_reports'])
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
     all_params = params + ['Privera']
 
     try:
@@ -2600,7 +3458,6 @@ def report_kpi_stats():
         if conn:
             conn.close()
 
-# ---- replace /api/reports/stage_breakdown with this version ----
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
     if 'username' not in session:
@@ -2611,12 +3468,12 @@ def report_stage_breakdown():
     statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_reports', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'both')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1]  # previously excluded Done/Deleted -> keep default; include Done if requested
+    status_codes = [0,1]  
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
@@ -2687,6 +3544,9 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
+
+
+
 
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)

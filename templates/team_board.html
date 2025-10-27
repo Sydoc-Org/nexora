@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Team Board - nexora") }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/team_board.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="text-gray-800 bg-gray-50">
+  {% set active_page = 'teamboard' %}
+  {% include '_header.html' %}
+
+  <main class="container mx-auto p-6">
+    <div class="mb-8">
+      <h2 class="text-3xl font-bold text-gray-800 mb-2">
+        {{ _("Team Board") }}
+      </h2>
+      <p class="text-gray-600">{{ _("View task distribution and workload across the team.") }}</p>
+    </div>
+
+    <form id="filterForm" method="GET" action="{{ url_for('team_board') }}" class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label for="processFilterBoard" class="block text-sm font-medium text-gray-700">{{ _("Process") }}</label>
+          <div class="relative mt-1">
+            <select id="processFilterBoard" name="processFilterBoard" onchange="this.form.submit()"
+              class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300">
+              <option value="both" {% if process_name=='both' %}selected{% endif %}>{{ _("All Processes") }}</option>
+              <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
+              <option value="02_Invoice" {% if process_name=='02_Invoice' %}selected{% endif %}>{{ _("Invoice") }}</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="priorityFilter" class="block text-sm font-medium text-gray-700">{{ _("Priority") }}</label>
+          <select id="priorityFilter" name="priority" onchange="this.form.submit()"
+            class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">{{ _("All Priorities") }}</option>
+            <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
+            <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
+            <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
+            <option value="0" {% if priority=='0' %}selected{% endif %}>{{ _("None") }}</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <a href="{{ url_for('team_board') }}" class="w-full text-center bg-gray-500 text-white px-4 py-2.5 rounded-lg hover:bg-gray-600 transition text-sm font-medium">{{ _("Reset Filters") }}</a>
+        </div>
+      </div>
+    </form>
+
+    <div class="team-board">
+      {% for user in portal_users %}
+      <div class="team-column">
+        <div class="team-column-header">
+           <div class="flex items-center">
+             <img class="w-8 h-8 rounded-full object-cover mr-3" src="/static/images/{{ user.userID }}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="{{ user.fullname }}">
+            <h3 class="font-bold text-lg text-gray-700 truncate">
+              {{ user.fullname }}
+            </h3>
+            <span class="ml-2 bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded-full">
+              {{ workitems_by_user.get(user.userID, [])|length }}
+            </span>
+           </div>
+        </div>
+        <div class="team-column-body">
+          {% if workitems_by_user.get(user.userID) %}
+            {% for item in workitems_by_user[user.userID] %}
+            <a href="{{ url_for('workitems_overview', search=item.barcode) }}" class="kanban-card-link">
+              <div class="kanban-card">
+                <div class="flex justify-between items-start">
+                  <p class="font-bold text-gray-800">{{ item.barcode }}</p>
+                  <span class="text-xs font-medium text-gray-500">{{ item.modifiedat.strftime('%d.%m %H:%M') }}</span>
+                </div>
+                 
+                 <div class="mt-2">
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style="background-color: #6366f120; color: #4338ca;">{{ item.current_stage }}</span>
+                 </div>
+
+                {% if item.priority or item.tags %}
+                <div class="mt-3 flex items-center gap-2 flex-wrap">
+                  {% if item.priority == 3 %}
+                    <span title="{{ _('High Priority') }}" class="flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full"><i class="fas fa-flag"></i></span>
+                  {% elif item.priority == 2 %}
+                    <span title="{{ _('Medium Priority') }}" class="flex items-center gap-1 text-xs font-semibold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full"><i class="fas fa-flag"></i></span>
+                  {% elif item.priority == 1 %}
+                    <span title="{{ _('Low Priority') }}" class="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full"><i class="fas fa-flag"></i></span>
+                  {% endif %}
+
+                  {% for tag in item.tags[:2] %}
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:{{ tag.color }}20; color:{{ tag.color }};">{{ tag.name }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </a>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-10 px-4">
+              <p class="text-sm text-gray-500">{{ _("No tasks assigned.") }}</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </main>
+
+  <footer class="bg-gray-50 mt-auto">
+    <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+      &copy; 2025 nexora. {{ _("All rights reserved") }}.
+    </div>
+  </footer>
+
+</body>
+</html>

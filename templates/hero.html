@@ -9,172 +9,349 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/hero.css') }}">
+    <style>
+        :root{
+          --indigo:#4338ca;          
+          --indigo-600:#4f46e5;     
+          --space:#0b0b12;
+        }
+        .bh {
+          position: relative;
+          width: 60px; height: 60px; 
+          perspective: 300px;
+          filter: drop-shadow(0 3px 6px rgba(17, 24, 39, .14)) drop-shadow(0 12px 24px rgba(17, 24, 39, .10));
+        }
+        .bh-core {
+          position: absolute; inset: 0; border-radius: 50%;
+          background: radial-gradient(circle at 50% 50%, #000 0%, #000 35%, rgba(0, 0, 0, 0.7) 45%, rgba(67, 56, 202, 0) 60%);
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.8);
+          pointer-events: none;
+        }
+        .bh-einstein-ring{
+          position:absolute; inset: 0; border-radius:50%;
+          background: radial-gradient(closest-side, transparent calc(50% - 2px), rgba(156, 163, 255, .95) calc(50% - 2px), rgba(129,140,248,.85) calc(50% - 1px), rgba(99,102,241,.55) 50%, transparent 52%);
+          filter: blur(.6px) saturate(130%); opacity: .95;
+        }
+        .bh-disk{
+          position:absolute; inset: -3px; transform-style:preserve-3d;
+          transform: rotateX(64deg) rotateZ(0deg) translateZ(0);
+          animation: spin 25s linear infinite; 
+        }
+        .bh-disk::before{
+          content:""; position:absolute; inset: 4px; border-radius:50%;
+          background: conic-gradient(from 0deg, rgba(67,56,202,0) 0deg, rgba(67,56,202,.12) 12deg, rgba(79,70,229,.28) 60deg, rgba(129,140,248,.5) 110deg, rgba(79,70,229,.32) 180deg, rgba(67,56,202,.14) 300deg, rgba(67,56,202,0) 360deg);
+          -webkit-mask: radial-gradient(circle at 50% 50%, transparent 30%, black 31%);
+                  mask: radial-gradient(circle at 50% 50%, transparent 30%, black 31%);
+          filter: blur(.5px) saturate(120%);
+          box-shadow: 0 1px 6px rgba(17,24,39,.12), 0 10px 18px rgba(17,24,39,.08), inset 0 0 28px rgba(67,56,202,.38);
+        }
+        .bh-disk::after{
+          content:""; position:absolute; inset: -2px; border-radius:50%;
+          background: radial-gradient(60% 60% at 50% 50%, rgba(67,56,202,.18), rgba(67,56,202,0) 70%);
+          -webkit-mask: radial-gradient(circle at 50% 50%, transparent 48%, black 60%);
+                  mask: radial-gradient(circle at 50% 50%, transparent 48%, black 60%);
+          filter: blur(2.2px); opacity:.95;
+        }
+        .bh-penumbra{
+          position:absolute; inset:-8px; border-radius:50%;
+          background: radial-gradient(55% 55% at 50% 50%, rgba(0,0,0,.08), rgba(0,0,0,0) 70%);
+          filter: blur(8px); opacity:.7;
+        }
+        .bh-sparks{ position:absolute; inset:0; }
+        .bh-sparks i{
+          position:absolute; width:3px; height:3px; border-radius:50%; background: #312e81; 
+          box-shadow: 0 0 9px rgba(79,70,229,.9); animation: spiral 10s linear infinite; opacity:.85;
+        }
+        .bh-sparks i:nth-child(1){ left: 50%; top: 6%; animation-delay: -.1s; }
+        .bh-sparks i:nth-child(2){ left: 12%; top: 44%; animation-delay: -.7s; }
+        .bh-sparks i:nth-child(3){ left: 84%; top: 58%; animation-delay: -1.3s; }
+        .bh-sparks i:nth-child(4){ left: 28%; top: 16%; animation-delay: -1.9s; }
+        @keyframes spin { to { transform: rotateX(64deg) rotateZ(360deg); } }
+        @keyframes spiral { 0% { transform: translate(-2px,-2px) rotate(0deg) translateX(18px) rotate(0deg); opacity:.15; } 60% { opacity:.95; } 100% { transform: translate(-2px,-2px) rotate(540deg) translateX(6px) rotate(-540deg); opacity:0; } }
+        @media (prefers-reduced-motion: reduce) { .bh-disk, .bh-glow, .bh-sparks i { animation: none; } }
+        .nexora-title .nexora-subtitle{
+          background: linear-gradient(90deg, #0b0b12, #111827 35%, var(--indigo));
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+
+        #preloader {
+            transition: background-color 0.6s ease-out;
+        }
+        #preloader-logo {
+            transform: scale(1.5); 
+            transform-origin: top left;
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        #preloader .nexora-title .nexora-subtitle {
+            transition: opacity 0.4s ease-out;
+        }
+        #header-logo-wrapper {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+        #main-content-wrapper {
+            opacity: 0;
+            transition: opacity 0.6s ease-in;
+        }
+        #signin{
+            opacity: 0;
+            transition: opacity 0.6s ease-in;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto flex items-center justify-between px-6 py-4">
-            <div class="text-2xl font-bold text-indigo-600">
-                {% include 'nexoraLogo/_nexoraLogo.html' %}
-            </div>
-            <a href="{{ url_for('login') }}" class="hidden md:inline-block bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-100 transition duration-300">
-                Sign In
-            </a>
-            <div class="md:hidden">
-                <button>
-                    <i class="fas fa-bars text-2xl text-gray-600"></i>
-                </button>
-            </div>
+
+    <div id="preloader" class="fixed inset-0 bg-white z-[100] flex items-center justify-center">
+        <div id="preloader-logo" class="brand title-wrap">
+            {% include 'nexoraLogo/_nexoraLogo.html' %}
         </div>
-    </header>
+    </div>
+    <div id="page-content">
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <div class="container mx-auto flex items-center justify-between px-6 py-4">
+                <div id="header-logo-wrapper" class="text-2xl font-bold text-indigo-600">
+                    {% include 'nexoraLogo/_nexoraLogo.html' %}
+                </div>
+                <a href="{{ url_for('login') }}" id="signin" class="hidden md:inline-block bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-100 transition duration-300">
+                    Sign In
+                </a>
+                <div class="md:hidden">
+                    <button>
+                        <i class="fas fa-bars text-2xl text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
 
-    <main>
-        <section class="relative bg-white pt-20 pb-24">
-            <div class="container mx-auto px-6">
-                <div class="grid md:grid-cols-2 gap-12 items-center">
-                    <div class="text-center md:text-left">
-                        <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
-                            Seamless Document Tracking, Complete Peace of Mind.
-                        </h1>
-                        <p class="text-lg text-gray-600 mb-10">
-                            Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.
-                        </p>
-                        <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg">
-                            Access Your Portal
-                        </a>
-                    </div>
-
-                    <div class="hidden md:flex items-center justify-center">
-                        <div class="relative w-full max-w-lg">
-                            <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-                            <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                            <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-                            
-                            <div class="relative bg-white/60 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
-                                <div class="flex items-center text-indigo-600 mb-5">
-                                    <i class="fas fa-file-alt text-4xl mr-4"></i>
-                                    <div>
-                                        <h3 class="font-bold text-xl text-gray-800">Document Status</h3>
-                                        <p class="text-gray-500">Real-time updates</p>
-                                    </div>
-                                </div>
-                                <div class="space-y-4">
-                                    <div class="flex items-center">
-                                        <span class="w-28 text-sm font-medium text-gray-600">Invoice #431</span>
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-green-500 h-2.5 rounded-full" style="width: 100%"></div></div>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <span class="w-28 text-sm font-medium text-gray-600">Contract #A89</span>
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 75%"></div></div>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <span class="w-28 text-sm font-medium text-gray-600">Report Q3</span>
-                                        <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div></div>
+        <div id="main-content-wrapper">
+            <main>
+                <section class="relative bg-white pt-20 pb-24">
+                    <div class="container mx-auto px-6">
+                        <div class="grid md:grid-cols-2 gap-12 items-center">
+                            <div class="text-center md:text-left">
+                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+                                    Seamless Document Tracking, Complete Peace of Mind.
+                                </h1>
+                                <p class="text-lg text-gray-600 mb-10">
+                                    Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.
+                                </p>
+                                <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg">
+                                    Access Your Portal
+                                </a>
+                            </div>
+        
+                            <div class="hidden md:flex items-center justify-center">
+                                <div class="relative w-full max-w-lg">
+                                    <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+                                    <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+                                    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+                                    
+                                    <div class="relative bg-white/60 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
+                                        <div class="flex items-center text-indigo-600 mb-5">
+                                            <i class="fas fa-file-alt text-4xl mr-4"></i>
+                                            <div>
+                                                <h3 class="font-bold text-xl text-gray-800">Document Status</h3>
+                                                <p class="text-gray-500">Real-time updates</p>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-4">
+                                            <div class="flex items-center">
+                                                <span class="w-28 text-sm font-medium text-gray-600">Invoice #431</span>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-green-500 h-2.5 rounded-full" style="width: 100%"></div></div>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <span class="w-28 text-sm font-medium text-gray-600">Contract #A89</span>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 75%"></div></div>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <span class="w-28 text-sm font-medium text-gray-600">Report Q3</span>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </section>
+        
+                <section id="how-it-works" class="bg-gray-100 py-20 sm:py-24">
+                    <div class="container mx-auto px-6">
+                        
+                        <div class="text-center mb-16">
+                            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                                Visualize Your Document's Journey
+                            </h2>
+                            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                                Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.
+                            </p>
+                        </div>
+        
+                       <div id="animation-container" class="relative max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-xl border border-gray-200">
+        
+                            <div class="relative flex justify-between items-center">
+                                
+                                <div class="absolute top-1/2 h-1 transform -translate-y-1/2" style="left: 2rem; right: 2rem;">
+                                    <div class="absolute top-0 left-0 w-full h-full bg-gray-200 rounded-full"></div>
+                                    <div id="progress-line" class="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style="width: 0%; transition: width 0.8s ease-in-out;"></div>
+                                </div>
+        
+                                <div id="step-1" class="process-step z-10 flex flex-col items-center text-center">
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
+                                        <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
+                                    </div>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">Import</p>
+                                </div>
+        
+                                <div id="step-2" class="process-step z-10 flex flex-col items-center text-center">
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
+                                        <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400"></i>
+                                    </div>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">Extraction</p>
+                                </div>
+        
+                                <div id="step-3" class="process-step z-10 flex flex-col items-center text-center">
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
+                                        <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400"></i>
+                                    </div>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">Validation</p>
+                                </div>
+        
+                                <div id="step-4" class="process-step z-10 flex flex-col items-center text-center">
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
+                                        <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400"></i>
+                                    </div>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">Delivery</p>
+                                </div>
+                            </div>
+        
+                             <div class="text-center mt-10 h-8">
+                                <p class="text-lg font-medium text-gray-700">
+                                    Status: <span id="status-text" class="font-bold text-indigo-600" style="transition: opacity 0.4s ease-in-out;">Initializing...</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+        
+                <section id="services" class="bg-white py-20 sm:py-24">
+                        <div class="container mx-auto px-6">
+                            <div class="text-center mb-16">
+                                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{{ _("Why use nexora") }}? </h2>
+                                <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ _("Everything you need in one secure and convenient place") }}. </p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
+                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
+                                         <i class="fas fa-search-location text-3xl text-indigo-600"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Real-time tracking") }} </h3>
+                                    <p class="text-gray-600">{{ _("Monitor your document's journey from import to validation and final delivery, every step of the way") }}. </p>
+                                </div>
+                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
+                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
+                                        <i class="fas fa-history text-3xl text-indigo-600"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Document history") }} </h3>
+                                    <p class="text-gray-600">{{ _("Access a complete, auditable history of all your processed documents available 24/7.") }} </p>
+                                </div>
+                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
+                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
+                                        <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Secure access") }} </h3>
+                                    <p class="text-gray-600">{{ _("Your data is protected with industry-leading security protocols, ensuring complete confidentiality") }}.</p>
+                                </div>
+                            </div>
+                        </div>
+                </section>
+        
+                <section id="getting-started" class="bg-gray-100 py-20 sm:py-24">
+                    <div class="container mx-auto px-6">
+                        <div class="text-center mb-16">
+                            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{{ _("Getting Started is Easy") }}</h2>
+                            <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ _("Follow these simple steps to begin processing your documents.") }}</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">1</div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Log In to Your Portal") }}</h3>
+                                <p class="text-gray-600">{{ _("Access your secure dashboard with your provided credentials.") }}</p>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">2</div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Monitor Your Documents") }}</h3>
+                                <p class="text-gray-600">{{ _("Use the dashboard to see the real-time status of all your active documents.") }}</p>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">3</div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("View Completed History") }}</h3>
+                                <p class="text-gray-600">{{ _("Access detailed archives and audit trails for all processed items.") }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+        
+                <section id="faq" class="bg-white py-20 sm:py-24">
+                    <div class="container mx-auto px-6 max-w-4xl">
+                        <div class="text-center mb-16">
+                            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{{ _("Frequently Asked Questions") }}</h2>
+                            <p class="text-lg text-gray-600">{{ _("Have questions? We've got answers.") }}</p>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                                <button class="faq-btn flex items-center justify-between w-full p-6">
+                                    <span class="text-lg font-semibold text-gray-800">{{ _("What document formats can be processed?") }}</span>
+                                    <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                                </button>
+                                <div class="faq-panel">
+                                    <p class="p-6 pt-0 text-gray-600">{{ _("Our system supports a wide range of formats, including PDF, JPG, PNG, TIFF, and more. For specific inquiries, please contact our support team.") }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                                <button class="faq-btn flex items-center justify-between w-full p-6">
+                                    <span class="text-lg font-semibold text-gray-800">{{ _("How secure is my data?") }}</span>
+                                    <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                                </button>
+                                <div class="faq-panel">
+                                    <p class="p-6 pt-0 text-gray-600">{{ _("Data security is our top priority. We use industry-standard encryption, secure servers, and strict access protocols to ensure your information is protected at all times.") }}</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                                <button class="faq-btn flex items-center justify-between w-full p-6">
+                                    <span class="text-lg font-semibold text-gray-800">{{ _("What is the average processing time for a document?") }}</span>
+                                    <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                                </button>
+                                <div class="faq-panel">
+                                    <p class="p-6 pt-0 text-gray-600">{{ _("Processing times can vary based on document complexity and volume. However, you can monitor the real-time status of each document directly from your dashboard.") }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="bg-gray-100">
+                    <div class="container mx-auto px-6 py-20 text-center">
+                         <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                            {{ _("Ready to See Your Documents in Action?") }}
+                        </h2>
+                        <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+                            {{ _("Log in to your portal to access real-time tracking, view your history, and manage your workflow with confidence.") }}
+                        </p>
+                        <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg">
+                            {{ _("Access Your Portal Now") }}
+                        </a>
+                    </div>
+                </section>
+        
+            </main>
+            <footer class="bg-white mt-auto">
+                <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+                    &copy; 2025 nexora. {{ _("All rights reserved") }}.
                 </div>
-            </div>
-        </section>
-    </main>
-    <section id="how-it-works" class="bg-gray-100 py-20 sm:py-24">
-        <div class="container mx-auto px-6">
-            
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-                    Visualize Your Document's Journey
-                </h2>
-                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                    Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.
-                </p>
-            </div>
-
-           <div id="animation-container" class="relative max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-xl border border-gray-200">
-
-                <div class="relative flex justify-between items-center">
-                    
-                    <div class="absolute top-1/2 h-1 transform -translate-y-1/2" style="left: 2rem; right: 2rem;">
-                        <div class="absolute top-0 left-0 w-full h-full bg-gray-200 rounded-full"></div>
-                        <div id="progress-line" class="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style="width: 0%; transition: width 0.8s ease-in-out;"></div>
-                    </div>
-
-                    <div id="step-1" class="process-step z-10 flex flex-col items-center text-center">
-                        <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                            <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="step-label mt-3 font-semibold text-gray-500">Import</p>
-                    </div>
-
-                    <div id="step-2" class="process-step z-10 flex flex-col items-center text-center">
-                        <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                            <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="step-label mt-3 font-semibold text-gray-500">Extraction</p>
-                    </div>
-
-                    <div id="step-3" class="process-step z-10 flex flex-col items-center text-center">
-                        <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                            <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="step-label mt-3 font-semibold text-gray-500">Validation</p>
-                    </div>
-
-                    <div id="step-4" class="process-step z-10 flex flex-col items-center text-center">
-                        <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                            <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="step-label mt-3 font-semibold text-gray-500">Delivery</p>
-                    </div>
-                </div>
-
-                 <div class="text-center mt-10 h-8">
-                    <p class="text-lg font-medium text-gray-700">
-                        Status: <span id="status-text" class="font-bold text-indigo-600" style="transition: opacity 0.4s ease-in-out;">Initializing...</span>
-                    </p>
-                </div>
-            </div>
+            </footer>
         </div>
-    </section>
-    <section id="services" class="bg-gray-50 py-20">
-            <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-3xl font-bold text-gray-800">{{ _("Why use nexora") }}? </h2>
-                    <p class="text-gray-600 mt-2">{{ _("Everything you need in one secure and convenient place") }}. </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Feature 1 -->
-                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
-                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
-                             <i class="fas fa-search-location text-3xl text-indigo-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Real-time tracking") }} </h3>
-                        <p class="text-gray-600">{{ _("Monitor your document's journey from import to validation and final delivery, every step of the way") }}. </p>
-                    </div>
-                    <!-- Feature 2 -->
-                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
-                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
-                            <i class="fas fa-history text-3xl text-indigo-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Document history") }} </h3>
-                        <p class="text-gray-600">{{ _("Access a complete, auditable history of all your processed documents available 24/7.") }} </p>
-                    </div>
-                    <!-- Feature 3 -->
-                    <div class="bg-white p-8 rounded-lg shadow-md text-center">
-                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-4">
-                            <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Secure access") }} </h3>
-                        <p class="text-gray-600">{{ _("Your data is protected with industry-leading security protocols, ensuring complete confidentiality") }}.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-    <footer class="bg-gray-50 mt-auto">
-        <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
-            &copy; 2025 nexora. {{ _("All rights reserved") }}.
-        </div>
-    </footer>
-        {% include 'js/_heroJS.html' %}
+    </div>
+    {% include 'js/_heroJS.html' %}
 </body>
 </html>
