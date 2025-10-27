@@ -974,32 +974,46 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchDocFieldValues(docValueInput?.value || '');
         });
     }
-    async function fetchAndUpdateWorkitems(page = 1) {
+async function fetchAndUpdateWorkitems(page = 1) {
+        const tbody = document.getElementById('workitemsTbody');
+        const filterForm = document.getElementById('filterForm');
         const formData = new FormData(filterForm);
         formData.set('page', page);
         const params = new URLSearchParams(formData);
         const url = `${API_PREFIX}api/workitems?${params.toString()}`;
         const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.pushState({
-            path: newUrl
-        }, '', newUrl);
+        window.history.pushState({ path: newUrl }, '', newUrl);
+
+        const loaderHtml = `
+            <tr>
+                <td colspan="6" class="text-center py-20">
+                    <div class="flex items-center justify-center space-x-3 text-gray-700">
+                        <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                        <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
+                    </div>
+                </td>
+            </tr>`;
+
+        if (tbody) {
+            tbody.innerHTML = loaderHtml;
+        }
 
         try {
-            document.getElementById('workitemsTbody').innerHTML = `<tr><td colspan="5" class="text-center py-10">Loading...</td></tr>`;
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            renderTable(data.workitems);
+            renderTable(data.workitems); 
             renderPagination(data.pagination);
 
         } catch (error) {
             console.error("Failed to fetch or render workitems:", error);
-            document.getElementById('workitemsTbody').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500">Failed to load data. Please check the console for errors.</td></tr>`;
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+            }
         }
     }
-
     function renderTable(workitems) {
         const tbody = document.getElementById('workitemsTbody');
         tbody.innerHTML = '';
