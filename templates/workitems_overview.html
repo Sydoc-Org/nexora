@@ -17,6 +17,18 @@
 <body class="text-gray-800 bg-gray-50">
   {% set active_page = 'workitems_overview' %}
   {% include '_header.html' %}
+  
+  <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3">
+        </div>
+        
+  <div id="dropZoneOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-16">
+      <div class="bg-gray-500 bg-opacity-50 border-4 border-dashed border-indigo-400 rounded-2xl w-full h-95/100 mt-24 flex items-center justify-center pointer-events-none">
+          <div class="text-center">
+              <i class="fas fa-file-pdf text-indigo-500 text-6xl mb-4"></i>
+              <p class="text-2xl font-bold text-gray-700">{{ _("Drop PDF file here to import") }}</p>
+          </div>
+      </div>
+  </div>
 
   <main class="container mx-auto p-6">
     {% with messages = get_flashed_messages(with_categories=true) %}
