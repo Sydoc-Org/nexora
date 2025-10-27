@@ -843,12 +843,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             console.log(procSel.value)
             if (procSel.value == '02_Posteingang') {
-                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr'], 
+                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered'], 
                 { 
                     doctype: 'Document Type',
                     ownernr: 'Owner No.',
                     tenancynr: 'Tenancy No.',
-                    propertynr: 'Property No.'
+                    propertynr: 'Property No.',
+                    registered: 'Registered'
                 });
             } 
             else if (procSel.value == '02_Invoice') {
@@ -863,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } 
             else {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr'], 
+                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered'], 
                 { 
                     doctype: 'Document Type',
                     crdno: 'Creditor No.',
@@ -871,7 +872,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     bankpk: 'Bank PK',
                     ownernr: 'Owner No.',
                     tenancynr: 'Tenancy No.',
-                    propertynr: 'Property No.'
+                    propertynr: 'Property No.',
+                    registered: 'Registered'
                 });
             }
         });

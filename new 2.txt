@@ -4,7 +4,7 @@ Posteingang
 	-DocType -> Dokumenttyp -> exp_dokTyp ✓ 
 	-OwnerNr -> EigentuemerNr -> exp_eigNr ✓
 	-TenancyNr -> MietverhältnisNr -> exp_mietNr ✓
-	-PropertyNr -> LiegenschaftsNr -> exp_liegNr
+	-PropertyNr -> LiegenschaftsNr -> exp_liegNr ✓
 	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben
 	-Branch -> Niederlassung -> exp_niederlassung
 	-DocDate -> Dokdatum -> exp_dokDatum
@@ -27,7 +27,7 @@ Invoice
 	-DocCurrency -> DocCurrency -> DocCurrency
 	-InvoiceNR -> InvoiceNR -> DocNo
 	-Tec -> ISTEC -> ISTEC
-	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID
+	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID ✓
 	-IBAN -> IBAN -> IBAN
 	-ESRReference -> ESR -> ESRReference
 	-OrderNumber -> BestellNummer -> ReferenceKey

@@ -1180,6 +1180,17 @@ def api_docfield_values():
             sql += " ORDER BY Val"
             cur.execute(sql, params)
 
+        elif field == 'registered':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+            """
+            if q:
+                sql += " WHERE Einschreiben COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
         elif field == 'propertynr':
             if process == '02_Posteingang':
                 sql = f"""
@@ -1424,6 +1435,16 @@ def api_workitems():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
                         WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
                         AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'registered':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ?
                     )
                 """)
                 params.append(f"%{docvalue}%")
@@ -1774,6 +1795,16 @@ def workitems_overview():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
                         WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
                         AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?
+                    )
+                """)
+                params.append(f"%{docvalue}%")
+            elif docfield == 'registered':
+                where_clauses.append(f"""
+                    EXISTS (
+                        SELECT 1
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue
+                        AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ?
                     )
                 """)
                 params.append(f"%{docvalue}%")
