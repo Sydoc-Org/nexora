@@ -13,7 +13,6 @@ Posteingang
 	-Department -> Abteilung -> exp_abteilung
 	-Postcode -> Sendungsbarcode -> exp_einschreibenBC
 
-	-IBAN -> IBAN -> exp_iban
 	-Recipient -> Empfaenger -> exp_intEmpf
 	-Confidentiality -> Vertraulichkeit -> exp_vertraulich
 
@@ -30,7 +29,6 @@ Invoice
 	-InvoiceNR -> InvoiceNR -> DocNo
 	-Tec -> ISTEC -> ISTEC
 	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID ✓
-	-IBAN -> IBAN -> IBAN
 	-ESRReference -> ESR -> ESRReference
 	-OrderNumber -> BestellNummer -> ReferenceKey
 	-Client -> Mandant -> RptCompCode

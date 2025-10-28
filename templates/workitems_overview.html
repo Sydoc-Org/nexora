@@ -185,69 +185,117 @@
               </div>
             </div>
 
-            <div class="min-w-0">
-              <label for="docFieldFilter" class="block text-sm font-medium text-gray-700">
-                {{ _("Document field") }}
-              </label>
-              <div class="relative mt-1">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                  <i class="fa-regular fa-rectangle-list"></i>
-                </span>
-                <select id="docFieldFilter" name="docfield" class="{{ input_base }} pl-10 appearance-none pr-10">
-                  {% if process_name == '02_Posteingang' %}
-                  <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
-                  <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
-                  <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
-                  <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
-                  <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}</option>
-                  <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
-                  <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
-                  <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}</option>
-                  <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}</option>
-                  <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
-                  {% elif process_name == '02_Invoice' %}
-                  <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
-                  <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
-                  <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
-                  <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
-                  <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
-                  <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
-                  {% else %}
-                  <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
-                  <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
-                  <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
-                  <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
-                  <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
-                  <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
-                  <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
-                  <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}</option>
-                  <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
-                  <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
-                  <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}</option>
-                  <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}</option>
-                  <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
-                  {% endif %}
-                </select>
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                  <i class="fa-solid fa-chevron-down text-xs"></i>
-                </span>
+            <div class="min-w-0 col-span-full">
+              <div class="flex items-center gap-4 mb-2">
+                <label class="block text-sm font-medium text-gray-700">{{ _("Document fields") }}</label>
               </div>
-            </div>
+            <div id="docFiltersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">
+                  <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                      <i class="fa-regular fa-rectangle-list"></i>
+                    </span>
+                    <select id="docFieldFilter" name="docfield"
+                      class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field">
+                      {% if process_name == '02_Posteingang' %}
+                      <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
+                      <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}
+                      </option>
+                      <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}
+                      </option>
+                      <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}
+                      </option>
+                      <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
+                      <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
+                      <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}
+                      </option>
+                      <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}
+                      </option>
+                      <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}
+                      </option>
+                      {% elif process_name == '02_Invoice' %}
+                      <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
+                      <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
+                      <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
+                      <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
+                      <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}
+                      </option>
+                      {% else %}
+                      <option value="doctype">{{ _("Doctype") }}</option>
+                      <option value="crdno">{{ _("Creditor no.") }}</option>
+                      <option value="crdname">{{ _("Creditor Name") }}</option>
+                      <option value="bankpk">BankPk</option>
+                      <option value="ownernr">{{ _("Owner No.") }}</option>
+                      <option value="tenancynr">{{ _("Tenancy No.") }}</option>
+                      <option value="propertynr">{{ _("Property No.") }}</option>
+                      <option value="registered">{{ _("Registered") }}</option>
+                      <option value="branch">{{ _("Branch") }}</option>
+                      <option value="docdate">{{ _("Document Date") }}</option>
+                      <option value="forwarding">{{ _("Forwarding") }}</option>
+                      <option value="department">{{ _("Department") }}</option>
+                      <option value="postcode">{{ _("Post Code no.") }}</option>
+                      {% endif %}
+                    </select>
+                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </span>
+                  </div>
 
-            <div class="min-w-0">
-              <label for="docValueInput" class="block text-sm font-medium text-gray-700">
-                {{ _("Field value") }}
-              </label>
-              <div class="relative mt-1">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                  <i class="fa-regular fa-keyboard"></i>
-                </span>
-                <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" autocomplete="off"
-                  class="{{ input_base }} pl-10 pr-4" placeholder="{{ _('Type to search…') }}" />
-                <div id="docValueCustomList"
-                  class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                      <i class="fa-regular fa-keyboard"></i>
+                    </span>
+                    <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}"
+                      autocomplete="off" class="{{ input_base }} pl-10 pr-4 doc-filter-value"
+                      placeholder="{{ _('Type to search…') }}" />
+                    <div id="docValueCustomList"
+                      class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <template id="docFilterRowTemplate">
+                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                      <i class="fa-regular fa-rectangle-list"></i>
+                    </span>
+                    <select name="docfield"
+                      class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field"></select>
+                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </span>
+                  </div>
+
+                  <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                      <i class="fa-regular fa-keyboard"></i>
+                    </span>
+                    <input type="text" name="docvalue" autocomplete="off"
+                      class="{{ input_base }} pl-10 pr-4 doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                    <div
+                      class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
+                    </div>
+
+                    <button type="button"
+                      class="absolute -right-3 -top-3 w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center remove-doc-filter"
+                      title="{{ _('Remove') }}">
+                      <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </template>
+
+            </div>
+
+            <div class="flex items-center gap-4 mb-2 mt-2">
+              <button type="button" id="addDocFilterBtn"
+                class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+                <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
+              </button>
             </div>
 
           </div>
@@ -280,7 +328,9 @@
 
       <div class="bg-white rounded-xl shadow-lg overflow-hidden relative">
         <div class="overflow-x-auto">
-        <div id="table-top-loader" class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm" style="display: none;">
+          <div id="table-top-loader"
+            class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm"
+            style="display: none;">
           </div>
           <table class="w-full" id="workitemsTable">
             <thead class="bg-gray-50 border-b border-gray-200">

@@ -8,22 +8,22 @@
 
 <body>
     <script>
-const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-let animationTimeouts = [];
-let mentionableUsers = [];
-let docValuesCache = [];
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        let animationTimeouts = [];
+        let mentionableUsers = [];
+        let docValuesCache = [];
 
-function showNotification(message, type = 'success') {
+        function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
 
             const notification = document.createElement('div');
             const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-            const icon = type === 'success' 
-                ? '<i class="fas fa-check-circle"></i>' 
+            const icon = type === 'success'
+                ? '<i class="fas fa-check-circle"></i>'
                 : '<i class="fas fa-exclamation-circle"></i>';
 
             notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
-            
+
             notification.innerHTML = `
                 <div class="text-xl">${icon}</div>
                 <div class="ml-3 text-sm font-medium">${message}</div>
@@ -39,228 +39,228 @@ function showNotification(message, type = 'success') {
                 notification.classList.add('opacity-0', 'translate-x-full');
                 setTimeout(() => {
                     notification.remove();
-                }, 700); 
+                }, 700);
             }, 5000);
         }
 
-function renderCustomDatalist(values) {
-    const listContainer = document.getElementById('docValueCustomList');
-    const docValueInput = document.getElementById('docValueInput');
-    if (!listContainer || !docValueInput) return;
+        function renderCustomDatalist(values) {
+            const listContainer = document.getElementById('docValueCustomList');
+            const docValueInput = document.getElementById('docValueInput');
+            if (!listContainer || !docValueInput) return;
 
-    listContainer.innerHTML = '';
-    if (values.length === 0) {
-        listContainer.classList.add('hidden');
-        return;
-    }
+            listContainer.innerHTML = '';
+            if (values.length === 0) {
+                listContainer.classList.add('hidden');
+                return;
+            }
 
-    values.forEach(value => {
-        const item = document.createElement('div');
-        item.className = 'cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
-        item.textContent = value;
-        item.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            docValueInput.value = value;
-            listContainer.classList.add('hidden');
-            const filterForm = document.getElementById('filterForm');
-            if (filterForm.requestSubmit) filterForm.requestSubmit();
-            else fetchAndUpdateWorkitems();
-        });
-        listContainer.appendChild(item);
-    });
-
-    listContainer.classList.remove('hidden');
-}
-
-async function fetchDocFieldValues(q = '') {
-    try {
-        const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
-        const field = document.getElementById('docFieldFilter')?.value;
-        console.log(process, field)
-        const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Could not fetch field values');
-
-        docValuesCache = await res.json();
-        renderCustomDatalist(docValuesCache);
-    } catch (e) {
-        console.error('Failed to fetch field values:', e);
-        const listContainer = document.getElementById('docValueCustomList');
-        if (listContainer) listContainer.classList.add('hidden');
-    }
-}
-
-
-function cancelAllAnimations() {
-    animationTimeouts.forEach(clearTimeout);
-    animationTimeouts = [];
-
-    const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
-    allRows.forEach(row => {
-        row.classList.remove('opacity-0');
-        row.style.transform = '';
-    });
-}
-
-function logAction(actionType, resourceId, details, status, IsInternalError) {
-    fetch(`${API_PREFIX}log_action`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            action_type: actionType,
-            resource_id: resourceId,
-            details: details,
-            status: status,
-            IsInternalError: IsInternalError
-        }),
-    }).catch((err) => console.error("Logging failed:", err));
-}
-
-function closeAllDetails() {
-    document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
-        detailsRow.classList.remove('open');
-        detailsRow.setAttribute('hidden', true);
-    });
-
-    document.querySelectorAll(".indicator").forEach((chevron) => {
-        chevron.classList.remove('open');
-        chevron.classList.remove('glyphicon-chevron-down-custom');
-        chevron.classList.add('glyphicon-chevron-up-custom');
-    });
-}
-
-function exportToCSV() {
-    try {
-        let csv = [];
-        const table = document.getElementById("workitemsTable");
-        const rows = table.querySelectorAll(
-            'tr:not([style*="display: none"]):not(.details-row)'
-        );
-
-        const headers = Array.from(rows[0].cells)
-            .slice(0, -1)
-            .map((cell) => cell.textContent.trim());
-        csv.push(headers.join(";"));
-
-        for (let i = 1; i < rows.length; i++) {
-            const row = Array.from(rows[i].cells)
-                .slice(0, -1)
-                .map((cell) => {
-                    let text = cell.textContent.trim();
-                    if (/[;\n"]/.test(text)) {
-                        text = `"${text.replace(/"/g, '""')}"`;
-                    }
-                    return text;
+            values.forEach(value => {
+                const item = document.createElement('div');
+                item.className = 'cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
+                item.textContent = value;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    docValueInput.value = value;
+                    listContainer.classList.add('hidden');
+                    const filterForm = document.getElementById('filterForm');
+                    if (filterForm.requestSubmit) filterForm.requestSubmit();
+                    else fetchAndUpdateWorkitems();
                 });
-            csv.push(row.join(";"));
-        }
-
-        const csvString = csv.join("\n");
-        const blob = new Blob([csvString], {
-            type: "text/csv"
-        });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `workitems_${new Date().toISOString().split("T")[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
-            searchInput: getCurrentFilterOrSearch().search || "none",
-            filteredFor: getCurrentFilterOrSearch().status || "All",
-        }), "SUCCESS", 0);
-    } catch (err) {
-        logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
-            error: err,
-            searchInput: getCurrentFilterOrSearch().search || "none",
-            filteredFor: getCurrentFilterOrSearch().status || "All",
-        }), "FAILURE", 1);
-    }
-}
-
-function getCurrentFilterOrSearch() {
-    const statusFilter = document.getElementById("statusFilter");
-    const searchInput = document.getElementById("searchInput");
-    return {
-        status: statusFilter.value,
-        search: searchInput.value,
-    };
-}
-
-async function loadHistory(workitemId) {
-    const historyContainer = document.getElementById(`history-container-${workitemId}`);
-    if (!historyContainer) {
-        console.error(`History container not found for workitem ID: ${workitemId}`);
-        return;
-    }
-
-    if (historyContainer.dataset.loaded === 'true') {
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const historyData = await response.json();
-
-        historyContainer.innerHTML = '';
-
-        if (historyData.length === 0) {
-            historyContainer.innerHTML = `<p class="text-gray-500">{{ _("No history available for this item") }}</p>`;
-        } else {
-            const timeline = document.createElement('div');
-            timeline.className = 'border-l-2 border-indigo-200 ml-2';
-
-            historyData.forEach(item => {
-                const eventElement = document.createElement('div');
-                eventElement.className = 'relative mb-4 pl-6';
-
-                const dot = document.createElement('div');
-                dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
-                eventElement.appendChild(dot);
-
-                const eventText = document.createElement('p');
-                eventText.className = 'text-sm text-gray-800';
-                eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
-                eventElement.appendChild(eventText);
-
-                const detailsText = document.createElement('p');
-                detailsText.className = 'text-xs text-gray-500 mt-1';
-                const eventDate = new Date(item.DateTime);
-                const formattedDate = eventDate.toLocaleString(undefined, {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                detailsText.textContent = formattedDate;
-                eventElement.appendChild(detailsText);
-
-                timeline.appendChild(eventElement);
+                listContainer.appendChild(item);
             });
-            historyContainer.appendChild(timeline);
+
+            listContainer.classList.remove('hidden');
         }
 
-        historyContainer.dataset.loaded = 'true';
+        async function fetchDocFieldValues(q = '') {
+            try {
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                const field = document.getElementById('docFieldFilter')?.value;
+                console.log(process, field)
+                const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Could not fetch field values');
 
-    } catch (error) {
-        console.error('Failed to load history:', error);
-        historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
-    }
-}
+                docValuesCache = await res.json();
+                renderCustomDatalist(docValuesCache);
+            } catch (e) {
+                console.error('Failed to fetch field values:', e);
+                const listContainer = document.getElementById('docValueCustomList');
+                if (listContainer) listContainer.classList.add('hidden');
+            }
+        }
 
-function renderTagsInDetails(workitemId, barcode, tags) {
-    const container = document.getElementById(`tags-container-${workitemId}`);
-    if (!container) return;
-    container.innerHTML = tags.map(tag => `
+
+        function cancelAllAnimations() {
+            animationTimeouts.forEach(clearTimeout);
+            animationTimeouts = [];
+
+            const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+            allRows.forEach(row => {
+                row.classList.remove('opacity-0');
+                row.style.transform = '';
+            });
+        }
+
+        function logAction(actionType, resourceId, details, status, IsInternalError) {
+            fetch(`${API_PREFIX}log_action`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    action_type: actionType,
+                    resource_id: resourceId,
+                    details: details,
+                    status: status,
+                    IsInternalError: IsInternalError
+                }),
+            }).catch((err) => console.error("Logging failed:", err));
+        }
+
+        function closeAllDetails() {
+            document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
+                detailsRow.classList.remove('open');
+                detailsRow.setAttribute('hidden', true);
+            });
+
+            document.querySelectorAll(".indicator").forEach((chevron) => {
+                chevron.classList.remove('open');
+                chevron.classList.remove('glyphicon-chevron-down-custom');
+                chevron.classList.add('glyphicon-chevron-up-custom');
+            });
+        }
+
+        function exportToCSV() {
+            try {
+                let csv = [];
+                const table = document.getElementById("workitemsTable");
+                const rows = table.querySelectorAll(
+                    'tr:not([style*="display: none"]):not(.details-row)'
+                );
+
+                const headers = Array.from(rows[0].cells)
+                    .slice(0, -1)
+                    .map((cell) => cell.textContent.trim());
+                csv.push(headers.join(";"));
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = Array.from(rows[i].cells)
+                        .slice(0, -1)
+                        .map((cell) => {
+                            let text = cell.textContent.trim();
+                            if (/[;\n"]/.test(text)) {
+                                text = `"${text.replace(/"/g, '""')}"`;
+                            }
+                            return text;
+                        });
+                    csv.push(row.join(";"));
+                }
+
+                const csvString = csv.join("\n");
+                const blob = new Blob([csvString], {
+                    type: "text/csv"
+                });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `workitems_${new Date().toISOString().split("T")[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
+                    searchInput: getCurrentFilterOrSearch().search || "none",
+                    filteredFor: getCurrentFilterOrSearch().status || "All",
+                }), "SUCCESS", 0);
+            } catch (err) {
+                logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
+                    error: err,
+                    searchInput: getCurrentFilterOrSearch().search || "none",
+                    filteredFor: getCurrentFilterOrSearch().status || "All",
+                }), "FAILURE", 1);
+            }
+        }
+
+        function getCurrentFilterOrSearch() {
+            const statusFilter = document.getElementById("statusFilter");
+            const searchInput = document.getElementById("searchInput");
+            return {
+                status: statusFilter.value,
+                search: searchInput.value,
+            };
+        }
+
+        async function loadHistory(workitemId) {
+            const historyContainer = document.getElementById(`history-container-${workitemId}`);
+            if (!historyContainer) {
+                console.error(`History container not found for workitem ID: ${workitemId}`);
+                return;
+            }
+
+            if (historyContainer.dataset.loaded === 'true') {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const historyData = await response.json();
+
+                historyContainer.innerHTML = '';
+
+                if (historyData.length === 0) {
+                    historyContainer.innerHTML = `<p class="text-gray-500">{{ _("No history available for this item") }}</p>`;
+                } else {
+                    const timeline = document.createElement('div');
+                    timeline.className = 'border-l-2 border-indigo-200 ml-2';
+
+                    historyData.forEach(item => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'relative mb-4 pl-6';
+
+                        const dot = document.createElement('div');
+                        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
+                        eventElement.appendChild(dot);
+
+                        const eventText = document.createElement('p');
+                        eventText.className = 'text-sm text-gray-800';
+                        eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+                        eventElement.appendChild(eventText);
+
+                        const detailsText = document.createElement('p');
+                        detailsText.className = 'text-xs text-gray-500 mt-1';
+                        const eventDate = new Date(item.DateTime);
+                        const formattedDate = eventDate.toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        detailsText.textContent = formattedDate;
+                        eventElement.appendChild(detailsText);
+
+                        timeline.appendChild(eventElement);
+                    });
+                    historyContainer.appendChild(timeline);
+                }
+
+                historyContainer.dataset.loaded = 'true';
+
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
+            }
+        }
+
+        function renderTagsInDetails(workitemId, barcode, tags) {
+            const container = document.getElementById(`tags-container-${workitemId}`);
+            if (!container) return;
+            container.innerHTML = tags.map(tag => `
         <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
             ${tag.name}
             <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-barcode="${barcode}">
@@ -268,62 +268,62 @@ function renderTagsInDetails(workitemId, barcode, tags) {
             </button>
         </span>
     `).join('');
-}
-
-
-async function refreshWorkitemUI(barcode, workitemId) {
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}`);
-        if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
-
-        const workitem = await response.json();
-        const tags = workitem.tags || [];
-
-        const previewContainer = document.getElementById(`tags-preview-${barcode}`);
-        if (previewContainer) {
-            previewContainer.innerHTML = tags.map(tag =>
-                `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
-            ).join('');
         }
 
-        const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
-        if (detailsContainer) {
-            renderTagsInDetails(workitemId, barcode, tags);
+
+        async function refreshWorkitemUI(barcode, workitemId) {
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}`);
+                if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
+
+                const workitem = await response.json();
+                const tags = workitem.tags || [];
+
+                const previewContainer = document.getElementById(`tags-preview-${barcode}`);
+                if (previewContainer) {
+                    previewContainer.innerHTML = tags.map(tag =>
+                        `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
+                    ).join('');
+                }
+
+                const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
+                if (detailsContainer) {
+                    renderTagsInDetails(workitemId, barcode, tags);
+                }
+
+            } catch (error) {
+                console.error("Failed to refresh workitem UI:", error);
+            }
         }
 
-    } catch (error) {
-        console.error("Failed to refresh workitem UI:", error);
-    }
-}
-
-async function loadCollaborationData(workitemId, barcode) {
-    const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
-    const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
-    const assignSelector = document.getElementById(`assign-select-${workitemId}`);
-    const tagsContainer = document.getElementById(`tags-container-${workitemId}`);
-    mentionableUsers.forEach(user => {
-        let option = document.createElement('option');
-        option.text = user.fullname
-        option.value = user.userID
-        assignSelector.add(option)
-    })
-    if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const data = await response.json();
-        prioritySelector.value = data.priority;
-        assignSelector.value = data.assigneduserid;
-        renderTagsInDetails(workitemId, barcode, data.tags)
-        commentsContainer.innerHTML = '';
-        if (data.comments.length === 0) {
-            commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
-        } else {
-            data.comments.forEach(comment => {
-                const commentEl = document.createElement('div');
-                commentEl.className = 'flex items-start gap-2.5';
-                const commentDate = new Date(comment.Timestamp).toLocaleString();
-                commentEl.innerHTML = `
+        async function loadCollaborationData(workitemId, barcode) {
+            const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
+            const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+            const assignSelector = document.getElementById(`assign-select-${workitemId}`);
+            const tagsContainer = document.getElementById(`tags-container-${workitemId}`);
+            mentionableUsers.forEach(user => {
+                let option = document.createElement('option');
+                option.text = user.fullname
+                option.value = user.userID
+                assignSelector.add(option)
+            })
+            if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const data = await response.json();
+                prioritySelector.value = data.priority;
+                assignSelector.value = data.assigneduserid;
+                renderTagsInDetails(workitemId, barcode, data.tags)
+                commentsContainer.innerHTML = '';
+                if (data.comments.length === 0) {
+                    commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
+                } else {
+                    data.comments.forEach(comment => {
+                        const commentEl = document.createElement('div');
+                        commentEl.className = 'flex items-start gap-2.5';
+                        const commentDate = new Date(comment.Timestamp).toLocaleString();
+                        commentEl.innerHTML = `
                             <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
                             <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
                                 <div class="flex items-center space-x-2 rtl:space-x-reverse">
@@ -332,659 +332,733 @@ async function loadCollaborationData(workitemId, barcode) {
                                 </div>
                                 <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
                             </div>`;
-                commentsContainer.appendChild(commentEl);
+                        commentsContainer.appendChild(commentEl);
+                    });
+                }
+                commentsContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load collaboration data:', error);
+                commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
+            }
+        }
+
+        function renderWorkitemTimeline(container) {
+            if (!container || container.dataset.rendered === 'true') return;
+
+            const currentStage = container.dataset.currentStage;
+            const status = container.dataset.status;
+            const progressLine = container.querySelector('.progress-line');
+            const stepElements = container.querySelectorAll('.process-step');
+
+            const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
+            const stageIndex = stages.indexOf(currentStage);
+            const scaleFactors = {
+                0: 0,
+                1: 0.3334,
+                2: 0.6667,
+                3: 1
+            };
+
+            const progressValues = {
+                0: '0%',
+                1: '33%',
+                2: '66%',
+                3: '100%'
+            };
+
+            stepElements.forEach(step => {
+                step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
+                step.querySelector('.step-label').classList.remove('active', 'completed');
             });
-        }
-        commentsContainer.dataset.loaded = 'true';
-    } catch (error) {
-        console.error('Failed to load collaboration data:', error);
-        commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
-    }
-}
 
-function renderWorkitemTimeline(container) {
-    if (!container || container.dataset.rendered === 'true') return;
-
-    const currentStage = container.dataset.currentStage;
-    const status = container.dataset.status;
-    const progressLine = container.querySelector('.progress-line');
-    const stepElements = container.querySelectorAll('.process-step');
-
-    const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
-    const stageIndex = stages.indexOf(currentStage);
-    const scaleFactors = {
-        0: 0,
-        1: 0.3334,
-        2: 0.6667,
-        3: 1
-    };
-
-    const progressValues = {
-        0: '0%',
-        1: '33%',
-        2: '66%',
-        3: '100%'
-    };
-
-    stepElements.forEach(step => {
-        step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
-        step.querySelector('.step-label').classList.remove('active', 'completed');
-    });
-
-    if (status === 'Done') {
-        stepElements.forEach(step => {
-            step.querySelector('.step-icon-wrapper').classList.add('completed');
-            step.querySelector('.step-label').classList.add('completed');
-        });
-        progressLine.style.transform = `scaleX(1)`;
-    } else if (stageIndex !== -1) {
-        for (let i = 0; i < stageIndex; i++) {
-            stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
-            stepElements[i].querySelector('.step-label').classList.add('completed');
-        }
-        stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
-        stepElements[stageIndex].querySelector('.step-label').classList.add('active');
-        progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
-    } else {
-        progressLine.style.transform = `scaleX(0)`;
-    }
-
-    container.dataset.rendered = 'true';
-}
-
-async function toggleDetailsAndLoadImages(event) {
-    try {
-        const button = event.currentTarget;
-        const workitemid = button.dataset.workitemid;
-        const barcode = button.dataset.barcode;
-        const detailsRow = document.getElementById(`details-row-${workitemid}`);
-        const chevron = button.querySelector('.indicator');
-        const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
-        renderWorkitemTimeline(timelineContainer);
-
-        if (!detailsRow) {
-            console.error('Could not find detail elements for workitem:', workitemid);
-            return;
-        }
-
-        const isOpening = detailsRow.hasAttribute('hidden');
-
-        if (isOpening) {
-            detailsRow.removeAttribute('hidden');
-            setTimeout(() => {
-                detailsRow.classList.add('open');
-                chevron.classList.add('open');
-            }, 10);
-        } else {
-            detailsRow.classList.remove('open');
-            chevron.classList.remove('open');
-            detailsRow.addEventListener('transitionend', () => {
-                detailsRow.hidden = true;
-            }, {
-                once: true
-            });
-        }
-        chevron.classList.toggle('glyphicon-chevron-up-custom');
-        chevron.classList.toggle('glyphicon-chevron-down-custom');
-
-        if (!isOpening) {
-            return;
-        }
-
-
-        const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-        if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
-            loadCollaborationData(workitemid, barcode);
-        }
-
-        const imageContainer = document.getElementById(`image-container-${workitemid}`);
-        if (imageContainer) {
-            const isLoaded = imageContainer.dataset.loaded === 'true';
-            if (isLoaded) {
-                return;
+            if (status === 'Done') {
+                stepElements.forEach(step => {
+                    step.querySelector('.step-icon-wrapper').classList.add('completed');
+                    step.querySelector('.step-label').classList.add('completed');
+                });
+                progressLine.style.transform = `scaleX(1)`;
+            } else if (stageIndex !== -1) {
+                for (let i = 0; i < stageIndex; i++) {
+                    stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
+                    stepElements[i].querySelector('.step-label').classList.add('completed');
+                }
+                stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
+                stepElements[stageIndex].querySelector('.step-label').classList.add('active');
+                progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
+            } else {
+                progressLine.style.transform = `scaleX(0)`;
             }
 
-            imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
+            container.dataset.rendered = 'true';
+        }
+
+        async function toggleDetailsAndLoadImages(event) {
             try {
-                loadHistory(workitemid);
-                const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
-                if (!infoResponse.ok) throw new Error('Could not fetch media information.');
+                const button = event.currentTarget;
+                const workitemid = button.dataset.workitemid;
+                const barcode = button.dataset.barcode;
+                const detailsRow = document.getElementById(`details-row-${workitemid}`);
+                const chevron = button.querySelector('.indicator');
+                const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
+                renderWorkitemTimeline(timelineContainer);
 
-                const mediaInfo = await infoResponse.json();
-                const imageCount = mediaInfo.media_count;
-                const fields = mediaInfo.fields || {};
-                const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
-                if (fieldsContainer) {
-                    if (Object.keys(fields).length > 0) {
-                        const fieldLabels = {
-                            DocDate: '{{ _("Document Date") }}',
-                            DocType: '{{ _("Document Type") }}',
-                            OwnerNr: '{{ _("Owner No.") }}',
-                            TenancyNr: '{{ _("Tenancy No.") }}',
-                            Registered: "{{ _('Registered') }}",
-                            PropertyNr: '{{ _("Property No.") }}',
-                            PropertyName: '{{ _("Property Name") }}',
-                            TenantNr: '{{ _("Tenant No.") }}',
-                            TenantName: '{{ _("Tenant Name") }}',
-                            Branch: '{{ _("Branch") }}',
-                            CrdName: '{{ _("Creditor Name") }}',
-                            InvoiceNR: '{{ _("Invoice No.") }}',
-                            CrdNo: '{{ _("Creditor No.") }}',
-                            GrossAmount: '{{ _("Gross Amount") }}',
-                            NetAmount: '{{ _("Net Amount") }}',
-                            VatAmount: '{{ _("VAT Amount") }}',
-                            Forwarding: "{{ _('Forwarding') }}",
-                            Department: "{{ _('Department') }}",
-                            Postcode: "{{ _('Postcode') }}",
-                            IBAN: "{{ _('IBAN') }}",
-                            Recipient: "{{ _('Recipient') }}",
-                            Confidentiality: "{{ _('Confidentiality') }}",
-                            BankPk: "BankPk",
-                            DocCurrency: "{{ _('DocCurrency') }}",
-                            Tec: "{{ _('Tec') }}",
-                            ESRReference: "{{ _('ESRReference') }}",
-                            OrderNumber: "{{ _('OrderNumber') }}",
-                            Client: "{{ _('Client') }}",
-                            DocSource: "{{ _('DocSource') }}"
+                if (!detailsRow) {
+                    console.error('Could not find detail elements for workitem:', workitemid);
+                    return;
+                }
 
-                        };
-                        let fieldsHtml = '<dl class="divide-y divide-gray-200">';
-                        for (const key in fields) {
-                            if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
-                                const label = fieldLabels[key] || key;
-                                fieldsHtml += `
+                const isOpening = detailsRow.hasAttribute('hidden');
+
+                if (isOpening) {
+                    detailsRow.removeAttribute('hidden');
+                    setTimeout(() => {
+                        detailsRow.classList.add('open');
+                        chevron.classList.add('open');
+                    }, 10);
+                } else {
+                    detailsRow.classList.remove('open');
+                    chevron.classList.remove('open');
+                    detailsRow.addEventListener('transitionend', () => {
+                        detailsRow.hidden = true;
+                    }, {
+                        once: true
+                    });
+                }
+                chevron.classList.toggle('glyphicon-chevron-up-custom');
+                chevron.classList.toggle('glyphicon-chevron-down-custom');
+
+                if (!isOpening) {
+                    return;
+                }
+
+
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
+                    loadCollaborationData(workitemid, barcode);
+                }
+
+                const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                if (imageContainer) {
+                    const isLoaded = imageContainer.dataset.loaded === 'true';
+                    if (isLoaded) {
+                        return;
+                    }
+
+                    imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
+                    try {
+                        loadHistory(workitemid);
+                        const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`);
+                        if (!infoResponse.ok) throw new Error('Could not fetch media information.');
+
+                        const mediaInfo = await infoResponse.json();
+                        const imageCount = mediaInfo.media_count;
+                        const fields = mediaInfo.fields || {};
+                        const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+                        if (fieldsContainer) {
+                            if (Object.keys(fields).length > 0) {
+                                const fieldLabels = {
+                                    DocDate: '{{ _("Document Date") }}',
+                                    DocType: '{{ _("Document Type") }}',
+                                    OwnerNr: '{{ _("Owner No.") }}',
+                                    TenancyNr: '{{ _("Tenancy No.") }}',
+                                    Registered: "{{ _('Registered') }}",
+                                    PropertyNr: '{{ _("Property No.") }}',
+                                    PropertyName: '{{ _("Property Name") }}',
+                                    TenantNr: '{{ _("Tenant No.") }}',
+                                    TenantName: '{{ _("Tenant Name") }}',
+                                    Branch: '{{ _("Branch") }}',
+                                    CrdName: '{{ _("Creditor Name") }}',
+                                    InvoiceNR: '{{ _("Invoice No.") }}',
+                                    CrdNo: '{{ _("Creditor No.") }}',
+                                    GrossAmount: '{{ _("Gross Amount") }}',
+                                    NetAmount: '{{ _("Net Amount") }}',
+                                    VatAmount: '{{ _("VAT Amount") }}',
+                                    Forwarding: "{{ _('Forwarding') }}",
+                                    Department: "{{ _('Department') }}",
+                                    Postcode: "{{ _('Postcode') }}",
+                                    IBAN: "{{ _('IBAN') }}",
+                                    Recipient: "{{ _('Recipient') }}",
+                                    Confidentiality: "{{ _('Confidentiality') }}",
+                                    BankPk: "BankPk",
+                                    DocCurrency: "{{ _('DocCurrency') }}",
+                                    Tec: "{{ _('Tec') }}",
+                                    ESRReference: "{{ _('ESRReference') }}",
+                                    OrderNumber: "{{ _('OrderNumber') }}",
+                                    Client: "{{ _('Client') }}",
+                                    DocSource: "{{ _('DocSource') }}"
+
+                                };
+                                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                                for (const key in fields) {
+                                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                                        const label = fieldLabels[key] || key;
+                                        fieldsHtml += `
                                             <div class="py-2 flex justify-between items-center gap-4">
                                                 <dt class="text-gray-500 truncate">${label}</dt>
                                                 <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
                                             </div>`;
+                                    }
+                                }
+                                fieldsHtml += '</dl>';
+                                fieldsContainer.innerHTML = fieldsHtml;
+                            } else {
+                                fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                             }
                         }
-                        fieldsHtml += '</dl>';
-                        fieldsContainer.innerHTML = fieldsHtml;
-                    } else {
-                        fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
+                        imageContainer.dataset.loaded = 'true';
+
+                        if (imageCount === 0) {
+                            imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
+                            return;
+                        }
+
+                        imageContainer.innerHTML = '';
+                        imageContainer.classList.remove('justify-center', 'items-center');
+                        imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+
+                        for (let i = 0; i < imageCount; i++) {
+                            loadImage(imageContainer, workitemid, i);
+                        }
+                        logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
+                    } catch (error) {
+                        console.error('Error loading media info:', error);
+                        logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1);
+                        imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
+                        imageContainer.dataset.loaded = 'true';
                     }
+                } else {
+                    logAction('toggleDetails', 'workitemOverview', {
+                        access: 'restricted'
+                    }, 'SUCCESS', 0)
                 }
-                imageContainer.dataset.loaded = 'true';
-
-                if (imageCount === 0) {
-                    imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
-                    return;
-                }
-
-                imageContainer.innerHTML = '';
-                imageContainer.classList.remove('justify-center', 'items-center');
-                imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
-
-                for (let i = 0; i < imageCount; i++) {
-                    loadImage(imageContainer, workitemid, i);
-                }
-                logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
             } catch (error) {
-                console.error('Error loading media info:', error);
-                logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1);
-                imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
-                imageContainer.dataset.loaded = 'true';
+                logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
             }
-        } else {
-            logAction('toggleDetails', 'workitemOverview', {
-                access: 'restricted'
-            }, 'SUCCESS', 0)
-        }
-    } catch (error) {
-        logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
-    }
-}
-
-async function loadImage(container, workitemid, index) {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
-    container.appendChild(placeholder);
-
-    try {
-        const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-            throw new Error(`Status ${response.status}`);
         }
 
-        const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
+        async function loadImage(container, workitemid, index) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
+            container.appendChild(placeholder);
 
-        const imgElement = document.createElement('img');
-        imgElement.src = imageUrl;
-        imgElement.alt = `{{ _("Media") }} ${index + 1} {{ _("for workitem ") }}${workitemid}`;
-        imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image cursor-pointer';
+            try {
+                const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
+                const response = await fetch(apiUrl);
 
-        imgElement.onload = () => {
-            placeholder.replaceWith(imgElement);
-        };
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
 
-        imgElement.onerror = () => {
-            URL.revokeObjectURL(imageUrl);
-            throw new Error('Image could not be loaded into element.');
+                const imageBlob = await response.blob();
+                const imageUrl = URL.createObjectURL(imageBlob);
+
+                const imgElement = document.createElement('img');
+                imgElement.src = imageUrl;
+                imgElement.alt = `{{ _("Media") }} ${index + 1} {{ _("for workitem ") }}${workitemid}`;
+                imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image cursor-pointer';
+
+                imgElement.onload = () => {
+                    placeholder.replaceWith(imgElement);
+                };
+
+                imgElement.onerror = () => {
+                    URL.revokeObjectURL(imageUrl);
+                    throw new Error('Image could not be loaded into element.');
+                }
+
+
+            } catch (error) {
+                console.error(`Error loading image index ${index}:`, error);
+                placeholder.innerHTML = `<div class="text-center text-xs text-red-600 p-2">{{ _("Failed to load image ") }}${index + 1}</div>`;
+                placeholder.classList.remove('animate-pulse', 'bg-gray-200');
+                placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
+            }
         }
 
+        async function handlePostComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const barcode = form.dataset.barcode;
+            const workitemid = form.closest('.details-row').id.split('-')[2];
+            const textarea = form.querySelector('textarea');
+            const commentText = textarea.value.trim();
+            if (!commentText) return;
 
-    } catch (error) {
-        console.error(`Error loading image index ${index}:`, error);
-        placeholder.innerHTML = `<div class="text-center text-xs text-red-600 p-2">{{ _("Failed to load image ") }}${index + 1}</div>`;
-        placeholder.classList.remove('animate-pulse', 'bg-gray-200');
-        placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
-    }
-}
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        commentText
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to post comment.');
 
-async function handlePostComment(event) {
-    event.preventDefault();
-    const form = event.target;
-    const barcode = form.dataset.barcode;
-    const workitemid = form.closest('.details-row').id.split('-')[2];
-    const textarea = form.querySelector('textarea');
-    const commentText = textarea.value.trim();
-    if (!commentText) return;
+                textarea.value = '';
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                commentsContainer.dataset.loaded = 'false';
+                loadCollaborationData(workitemid, barcode);
 
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                commentText
-            })
-        });
-        if (!response.ok) throw new Error('Failed to post comment.');
+            } catch (error) {
+                console.error("Comment post error:", error);
+            }
+        }
 
-        textarea.value = '';
-        const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-        commentsContainer.dataset.loaded = 'false';
-        loadCollaborationData(workitemid, barcode);
+        async function fetchMentionableUsers() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/users`);
+                if (!response.ok) throw new Error('Could not fetch users');
+                mentionableUsers = await response.json();
+            } catch (error) {
+                console.error("Failed to fetch users for mentions:", error);
+            }
+        }
 
-    } catch (error) {
-        console.error("Comment post error:", error);
-    }
-}
+        function insertMention(username, textarea) {
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const startIndex = mentionMatch.index;
+                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
+                textarea.value = newText;
+                textarea.focus();
+                const newCursorPos = startIndex + username.length + 2;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }
 
-async function fetchMentionableUsers() {
-    try {
-        const response = await fetch(`${API_PREFIX}api/users`);
-        if (!response.ok) throw new Error('Could not fetch users');
-        mentionableUsers = await response.json();
-    } catch (error) {
-        console.error("Failed to fetch users for mentions:", error);
-    }
-}
-
-function insertMention(username, textarea) {
-    const text = textarea.value;
-    const cursorPos = textarea.selectionStart;
-    const textToCursor = text.substring(0, cursorPos);
-    const mentionMatch = textToCursor.match(/@(\w*)$/);
-    if (mentionMatch) {
-        const startIndex = mentionMatch.index;
-        const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
-        textarea.value = newText;
-        textarea.focus();
-        const newCursorPos = startIndex + username.length + 2;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }
-}
-
-function renderAutocompleteList(users, listElement, textarea) {
-    listElement.innerHTML = '';
-    if (users.length === 0) {
-        listElement.classList.add('hidden');
-        return;
-    }
-    users.forEach(user => {
-        const item = document.createElement('div');
-        item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
-        item.textContent = `${user.fullname} (@${user.username})`;
-        item.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            insertMention(user.username, textarea);
-            listElement.classList.add('hidden');
-        });
-        listElement.appendChild(item);
-    });
-    listElement.classList.remove('hidden');
-}
-
-function handleMentionInput(event) {
-    const textarea = event.target;
-    const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
-    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-    const text = textarea.value;
-    const cursorPos = textarea.selectionStart;
-    const textToCursor = text.substring(0, cursorPos);
-    const mentionMatch = textToCursor.match(/@(\w*)$/);
-    if (mentionMatch) {
-        const searchTerm = mentionMatch[1].toLowerCase();
-        const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
-        renderAutocompleteList(filteredUsers, autocompleteList, textarea);
-    } else {
-        autocompleteList.classList.add('hidden');
-    }
-}
-
-async function handlePostComment(event) {
-    event.preventDefault();
-    const form = event.target;
-    const barcode = form.dataset.barcode;
-    const workitemid = form.closest('.details-row').id.split('-')[2];
-    const textarea = form.querySelector('textarea');
-    const commentText = textarea.value.trim();
-    if (!commentText) return;
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                commentText
-            })
-        });
-        if (!response.ok) throw new Error('Failed to post comment.');
-        textarea.value = '';
-        const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-        commentsContainer.dataset.loaded = 'false';
-        loadCollaborationData(workitemid, barcode);
-    } catch (error) {
-        console.error("Comment post error:", error);
-    }
-}
-
-async function handleSetPriority(event) {
-    const selector = event.target;
-    const barcode = selector.dataset.barcode;
-    const priority = parseInt(selector.value, 10);
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                priority
-            })
-        });
-        if (!response.ok) throw new Error('Failed to set priority.');
-        const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
-        let iconHtml = '';
-        if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-        else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-        else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-        indicatorCell.innerHTML = iconHtml;
-    } catch (error) {
-        console.error("Set priority error:", error);
-    }
-}
-
-async function handleAssigning(event) {
-    const selector = event.target;
-    const barcode = selector.dataset.barcode;
-    const assignedUserID = selector.value;
-    try {
-        const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/assign`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                assignedUserID
-            })
-        });
-        if (!response.ok) throw new Error('Failed to assign.');
-    } catch (error) {
-        console.error("Assigment error:", error);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    fetchMentionableUsers();
-    fetchAllTags();
-    fetchDocFieldValues();
-
-    const filterForm = document.getElementById('filterForm');
-    const docFieldSel = document.getElementById('docFieldFilter');
-    const docValueInput = document.getElementById('docValueInput');
-    const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
-    const advancedContainer = document.getElementById('advancedFilterContainer');
-
-    if (docValueInput) {
-        let debounceTimer;
-        const debounce = (callback, time) => {
-            window.clearTimeout(debounceTimer);
-            debounceTimer = window.setTimeout(callback, time);
-        };
-
-        docValueInput.addEventListener('input', () => {
-            debounce(() => fetchDocFieldValues(docValueInput.value), 300);
-        });
-
-        docValueInput.addEventListener('focus', () => {
-            fetchDocFieldValues(docValueInput.value);
-        });
-
-        docValueInput.addEventListener('blur', (event) => {
-            if (event.relatedTarget === toggleBtn) {
+        function renderAutocompleteList(users, listElement, textarea) {
+            listElement.innerHTML = '';
+            if (users.length === 0) {
+                listElement.classList.add('hidden');
                 return;
             }
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
+                item.textContent = `${user.fullname} (@${user.username})`;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    insertMention(user.username, textarea);
+                    listElement.classList.add('hidden');
+                });
+                listElement.appendChild(item);
+            });
+            listElement.classList.remove('hidden');
+        }
 
-            setTimeout(() => {
-                const list = document.getElementById('docValueCustomList');
-                if (list) list.classList.add('hidden');
-            }, 200);
-        });
-        
-        docValueInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const list = document.getElementById('docValueCustomList');
-                if(list) list.classList.add('hidden');
-                
-                if (filterForm?.requestSubmit) filterForm.requestSubmit();
-                else fetchAndUpdateWorkitems();
+        function handleMentionInput(event) {
+            const textarea = event.target;
+            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
+            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const searchTerm = mentionMatch[1].toLowerCase();
+                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
+                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
+            } else {
+                autocompleteList.classList.add('hidden');
             }
-        });
-    }
-    if (toggleBtn && advancedContainer) {
-        toggleBtn.addEventListener('click', () => {
-            advancedContainer.classList.toggle('hidden');
+        }
+
+        async function handlePostComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const barcode = form.dataset.barcode;
+            const workitemid = form.closest('.details-row').id.split('-')[2];
+            const textarea = form.querySelector('textarea');
+            const commentText = textarea.value.trim();
+            if (!commentText) return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        commentText
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to post comment.');
+                textarea.value = '';
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                commentsContainer.dataset.loaded = 'false';
+                loadCollaborationData(workitemid, barcode);
+            } catch (error) {
+                console.error("Comment post error:", error);
+            }
+        }
+
+        async function handleSetPriority(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const priority = parseInt(selector.value, 10);
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        priority
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to set priority.');
+                const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
+                let iconHtml = '';
+                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+                indicatorCell.innerHTML = iconHtml;
+            } catch (error) {
+                console.error("Set priority error:", error);
+            }
+        }
+
+        async function handleAssigning(event) {
+            const selector = event.target;
+            const barcode = selector.dataset.barcode;
+            const assignedUserID = selector.value;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        assignedUserID
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to assign.');
+            } catch (error) {
+                console.error("Assigment error:", error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMentionableUsers();
+            fetchAllTags();
+            fetchDocFieldValues();
+
+            const filterForm = document.getElementById('filterForm');
+            const docFieldSel = document.getElementById('docFieldFilter');
+            const docValueInput = document.getElementById('docValueInput').blur();
+            const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
+            const advancedContainer = document.getElementById('advancedFilterContainer');
+
             if (docValueInput) {
-                docValueInput.focus();
+                let debounceTimer;
+                const debounce = (callback, time) => {
+                    window.clearTimeout(debounceTimer);
+                    debounceTimer = window.setTimeout(callback, time);
+                };
+
+                // docValueInput.addEventListener('input', () => {
+                //     debounce(() => fetchDocFieldValues(docValueInput.value), 300);
+                // });
+
+                // docValueInput.addEventListener('focus', () => {
+                //     fetchDocFieldValues(docValueInput.value);
+                // });
+
+                // docValueInput.addEventListener('blur', (event) => {
+                //     if (event.relatedTarget === toggleBtn) {
+                //         return;
+                //     }
+
+                //     setTimeout(() => {
+                //         const list = document.getElementById('docValueCustomList');
+                //         if (list) list.classList.add('hidden');
+                //     }, 200);
+                // });
+
+                // docValueInput.addEventListener('keydown', (e) => {
+                //     if (e.key === 'Enter') {
+                //         e.preventDefault();
+                //         const list = document.getElementById('docValueCustomList');
+                //         if (list) list.classList.add('hidden');
+
+                //         if (filterForm?.requestSubmit) filterForm.requestSubmit();
+                //         else fetchAndUpdateWorkitems();
+                //     }
+                // });
             }
-        });
-    }
-
-    if (docFieldSel) {
-        docFieldSel.addEventListener('change', () => {
-            if (docValueInput) docValueInput.value = '';
-            fetchDocFieldValues('');
-            if (filterForm?.requestSubmit) filterForm.requestSubmit();
-            else fetchAndUpdateWorkitems();
-        });
-    }
-
-    const doctypeInput = document.getElementById('doctypeFilter');
-    if (doctypeInput) {
-        doctypeInput.addEventListener('input', () => fetchAndUpdateWorkitems());
-
-        doctypeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (filterForm.requestSubmit) filterForm.requestSubmit();
-                else fetchAndUpdateWorkitems();
+            if (toggleBtn && advancedContainer) {
+                toggleBtn.addEventListener('click', () => {
+                    advancedContainer.classList.toggle('hidden');
+                });
             }
-        });
 
-        doctypeInput.addEventListener('change', () => {
-            if (filterForm.requestSubmit) filterForm.requestSubmit();
-            else fetchAndUpdateWorkitems();
-        });
-    }
+            // if (docFieldSel) {
+            //     docFieldSel.addEventListener('change', () => {
+            //         if (docValueInput) {
+            //             docValueInput.value = '';
+            //         }
+            //         if (filterForm?.requestSubmit) {
+            //             filterForm.requestSubmit();
+            //         } else {
+            //             fetchAndUpdateWorkitems();
+            //         }
+            //     });
+            // }
 
-    const procSel = document.getElementById('processFilterWorkitemOverview');
-    if (procSel) {
-        procSel.addEventListener('change', () => {
-            const docFieldFilter = document.getElementById('docFieldFilter');
-            if (!docFieldFilter) return;
 
-            const setOptions = (values, textMap = {}) => {
-                docFieldFilter.innerHTML = '';
-                values.forEach(v => {
+            function getDocFieldOptions(process) {
+                if (process === '02_Posteingang') {
+                    return {
+                        order: ['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'],
+                        labels: {
+                            doctype: 'Document Type', ownernr: 'Owner No.', tenancynr: 'Tenancy No.',
+                            propertynr: 'Property No.', registered: 'Registered', branch: 'Branch',
+                            docdate: 'Document Date', forwarding: 'Forwarding', department: 'Department', postcode: 'Post Code no.'
+                        }
+                    };
+                }
+                if (process === '02_Invoice') {
+                    return {
+                        order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr'],
+                        labels: {
+                            doctype: 'Document Type', crdno: 'Creditor No.', crdname: 'Creditor Name',
+                            bankpk: 'Bank PK', ownernr: 'Owner No.', propertynr: 'Property No.'
+                        }
+                    };
+                }
+                return {
+                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'],
+                    labels: {
+                        doctype: 'Document Type', crdno: 'Creditor No.', crdname: 'Creditor Name',
+                        bankpk: 'Bank PK', ownernr: 'Owner No.', tenancynr: 'Tenancy No.', propertynr: 'Property No.',
+                        registered: 'Registered', branch: 'Branch', docdate: 'Document Date', forwarding: 'Forwarding',
+                        department: 'Department', postcode: 'Post Code no.'
+                    }
+                };
+            }
+
+            function fillDocFieldSelect(selectEl, process) {
+                const { order, labels } = getDocFieldOptions(process);
+                selectEl.innerHTML = '';
+                order.forEach(v => {
                     const opt = document.createElement('option');
                     opt.value = v;
-                    opt.text = (textMap && textMap[v]) ? textMap[v] : v;
-                    docFieldFilter.appendChild(opt);
-                });
-            };
-            console.log(procSel.value)
-            if (procSel.value == '02_Posteingang') {
-                setOptions(['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered',
-                'branch', 'docdate', 'forwarding', 'department', 'postcode'], 
-                { 
-                    doctype: 'Document Type',
-                    ownernr: 'Owner No.',
-                    tenancynr: 'Tenancy No.',
-                    propertynr: 'Property No.',
-                    registered: 'Registered',
-                    branch: 'Branch',
-                    docdate: 'Document Date',
-                    forwarding: 'Forwarding',
-                    department: 'Department',
-                    postcode: 'Post Code no.'
-                });
-            } 
-            else if (procSel.value == '02_Invoice') {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr'], 
-                { 
-                    doctype: 'Document Type',
-                    crdno: 'Creditor No.',
-                    crdname: 'Creditor Name',
-                    bankpk: 'Bank PK',
-                    ownernr: 'Owner No.',
-                    propertynr: 'Property No.'
-                });
-            } 
-            else {
-                setOptions(['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 
-                'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'], 
-                { 
-                    doctype: 'Document Type',
-                    crdno: 'Creditor No.',
-                    crdname: 'Creditor Name',
-                    bankpk: 'Bank PK',
-                    ownernr: 'Owner No.',
-                    tenancynr: 'Tenancy No.',
-                    propertynr: 'Property No.',
-                    registered: 'Registered',
-                    branch: 'Branch',
-                    docdate: 'Document Date',
-                    forwarding: 'Forwarding',
-                    department: 'Department',
-                    postcode: 'Post Code no.'
+                    opt.textContent = labels[v] || v;
+                    selectEl.appendChild(opt);
                 });
             }
-        });
-    }
-    function uploadFile(file) {
-        if (!file || file.type !== 'application/pdf') {
-            alert('{{ _("Please drop a valid PDF file.") }}');
-            return;
-        }
-        const importBtn = document.getElementById('importBtn');
-        const formData = new FormData();
-        formData.append('importFile', file);
-        if (importBtn) {
-            importBtn.disabled = true;
-            importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
-        }
-        fetch(`${API_PREFIX}import_workitems`, {
-            method: 'POST',
-            body: formData,
-        })
-        .then(response => {
-            if (response.redirected) {
-                window.location.href = response.url;
-                showNotification('Import successful');
-            } else {
-                console.error('Import failed. The server did not redirect.');
-                showNotification('Import failed. The server did not redirect.', '');
-                if (importBtn) {
-                    importBtn.disabled = false;
-                    importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+
+            function addDocFilterRow() {
+                const tpl = document.getElementById('docFilterRowTemplate');
+                const container = document.getElementById('docFiltersContainer');
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                if (!tpl || !container) return;
+                const node = tpl.content.firstElementChild.cloneNode(true);
+                const select = node.querySelector('.doc-filter-field');
+                fillDocFieldSelect(select, process);
+                container.appendChild(node);
+            }
+
+
+            (function initMultiDocFilters() {
+                const container = document.getElementById('docFiltersContainer');
+                const addBtn = document.getElementById('addDocFilterBtn');
+                if (!container) return;
+
+                if (addBtn) addBtn.addEventListener('click', addDocFilterRow);
+
+                container.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        debounceFetchRowSuggestions(row, e.target.value);
+                    }
+                });
+
+                container.addEventListener('focusin', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        fetchRowSuggestions(row, e.target.value);
+                    }
+                });
+
+                container.addEventListener('keydown', (e) => {
+                    if (e.target.classList.contains('doc-filter-value') && e.key === 'Enter') {
+                        e.preventDefault();
+                        hideRowList(e.target.closest('.doc-filter-row'));
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
+                container.addEventListener('click', (e) => {
+                    const item = e.target.closest('.doc-row-suggestion');
+                    if (item) {
+                        const row = item.closest('.doc-filter-row');
+                        const input = row.querySelector('.doc-filter-value');
+                        input.value = item.textContent;
+                        hideRowList(row);
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                    if (e.target.closest('.remove-doc-filter')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        row.remove();
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
+                container.addEventListener('focusout', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        setTimeout(() => hideRowList(row), 200);
+                    }
+                });
+
+                const procSel = document.getElementById('processFilterWorkitemOverview');
+                if (procSel) {
+                    procSel.addEventListener('change', () => {
+                        container.querySelectorAll('.doc-filter-field').forEach(sel => fillDocFieldSelect(sel, procSel.value));
+                    });
+                }
+            })();
+
+
+            function hideRowList(row) {
+                row.querySelector('.doc-filter-list')?.classList.add('hidden');
+            }
+            function renderRowList(row, values) {
+                const list = row.querySelector('.doc-filter-list');
+                const input = row.querySelector('.doc-filter-value');
+                if (!list || !input) return;
+                list.innerHTML = '';
+                if (!values || values.length === 0) { list.classList.add('hidden'); return; }
+                values.forEach(v => {
+                    const div = document.createElement('div');
+                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
+                    div.textContent = v;
+                    list.appendChild(div);
+                });
+                list.classList.remove('hidden');
+            }
+            async function fetchRowSuggestions(row, q = '') {
+                try {
+                    const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                    const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
+                    const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`);
+                    if (!res.ok) throw new Error('Could not fetch field values');
+                    const values = await res.json();
+                    renderRowList(row, values);
+                } catch (e) {
+                    hideRowList(row);
                 }
             }
-        })
-        .catch(error => {
-            console.error('An error occurred during the file import:', error);
-            if (importBtn) {
-                importBtn.disabled = false;
-                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+            let _rowDebounce;
+            function debounceFetchRowSuggestions(row, q) {
+                clearTimeout(_rowDebounce);
+                _rowDebounce = setTimeout(() => fetchRowSuggestions(row, q), 300);
             }
-            showNotification('An error occurred during the file import', '');
-        });
-    }
-    const importBtn = document.getElementById('importBtn');
-    const importFileInput = document.getElementById('importFile');
-    if (importBtn && importFileInput) {
-        importBtn.addEventListener('click', () => {
-            importFileInput.click();
-        });
-        importFileInput.addEventListener('change', () => {
-            if (importFileInput.files.length > 0) {
-                uploadFile(importFileInput.files[0]);
-            }
-        });
-    }
-    const dropZoneOverlay = document.getElementById('dropZoneOverlay');
-    if (dropZoneOverlay) {
-        let dragCounter = 0;
-        window.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            dragCounter++;
-            dropZoneOverlay.classList.remove('hidden');
-        });
-        window.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-        window.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dragCounter--;
-            if (dragCounter === 0) {
-                dropZoneOverlay.classList.add('hidden');
-            }
-        });
-        window.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dragCounter = 0;
-            dropZoneOverlay.classList.add('hidden');
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                uploadFile(e.dataTransfer.files[0]);
-                e.dataTransfer.clearData();
-            }
-        });
-    }
-    const processSel = document.getElementById('processFilterWorkitemOverview');
-    if (processSel) {
-        processSel.addEventListener('change', () => {
-            fetchDocFieldValues(docValueInput?.value || '');
-        });
-    }
-async function fetchAndUpdateWorkitems(page = 1) {
-        const tbody = document.getElementById('workitemsTbody');
-        const filterForm = document.getElementById('filterForm');
-        const formData = new FormData(filterForm);
-        formData.set('page', page);
-        const params = new URLSearchParams(formData);
-        const url = `${API_PREFIX}api/workitems?${params.toString()}`;
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
 
-        const loaderHtml = `
+
+            function uploadFile(file) {
+                if (!file || file.type !== 'application/pdf') {
+                    alert('{{ _("Please drop a valid PDF file.") }}');
+                    return;
+                }
+                const importBtn = document.getElementById('importBtn');
+                const formData = new FormData();
+                formData.append('importFile', file);
+                if (importBtn) {
+                    importBtn.disabled = true;
+                    importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
+                }
+                fetch(`${API_PREFIX}import_workitems`, {
+                    method: 'POST',
+                    body: formData,
+                })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                            showNotification('Import successful');
+                        } else {
+                            console.error('Import failed. The server did not redirect.');
+                            showNotification('Import failed. The server did not redirect.', '');
+                            if (importBtn) {
+                                importBtn.disabled = false;
+                                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('An error occurred during the file import:', error);
+                        if (importBtn) {
+                            importBtn.disabled = false;
+                            importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+                        }
+                        showNotification('An error occurred during the file import', '');
+                    });
+            }
+            const importBtn = document.getElementById('importBtn');
+            const importFileInput = document.getElementById('importFile');
+            if (importBtn && importFileInput) {
+                importBtn.addEventListener('click', () => {
+                    importFileInput.click();
+                });
+                importFileInput.addEventListener('change', () => {
+                    if (importFileInput.files.length > 0) {
+                        uploadFile(importFileInput.files[0]);
+                    }
+                });
+            }
+            const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+            if (dropZoneOverlay) {
+                let dragCounter = 0;
+                window.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    dragCounter++;
+                    dropZoneOverlay.classList.remove('hidden');
+                });
+                window.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                window.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    dragCounter--;
+                    if (dragCounter === 0) {
+                        dropZoneOverlay.classList.add('hidden');
+                    }
+                });
+                window.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dragCounter = 0;
+                    dropZoneOverlay.classList.add('hidden');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        uploadFile(e.dataTransfer.files[0]);
+                        e.dataTransfer.clearData();
+                    }
+                });
+            }
+            const processSel = document.getElementById('processFilterWorkitemOverview');
+            if (processSel) {
+                processSel.addEventListener('change', () => {
+                    fetchDocFieldValues(docValueInput?.value || '');
+                });
+            }
+            async function fetchAndUpdateWorkitems(page = 1) {
+                const tbody = document.getElementById('workitemsTbody');
+                const filterForm = document.getElementById('filterForm');
+                const formData = new FormData(filterForm);
+                formData.set('page', page);
+                const params = new URLSearchParams(formData);
+                const url = `${API_PREFIX}api/workitems?${params.toString()}`;
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+
+                const loaderHtml = `
             <tr>
                 <td colspan="6" class="text-center py-20">
                     <div class="flex items-center justify-center space-x-3 text-gray-700">
@@ -994,48 +1068,48 @@ async function fetchAndUpdateWorkitems(page = 1) {
                 </td>
             </tr>`;
 
-        if (tbody) {
-            tbody.innerHTML = loaderHtml;
-        }
+                if (tbody) {
+                    tbody.innerHTML = loaderHtml;
+                }
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    renderTable(data.workitems);
+                    renderPagination(data.pagination);
+
+                } catch (error) {
+                    console.error("Failed to fetch or render workitems:", error);
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+                    }
+                }
             }
-            const data = await response.json();
-            renderTable(data.workitems); 
-            renderPagination(data.pagination);
+            function renderTable(workitems) {
+                const tbody = document.getElementById('workitemsTbody');
+                tbody.innerHTML = '';
 
-        } catch (error) {
-            console.error("Failed to fetch or render workitems:", error);
-            if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
-            }
-        }
-    }
-    function renderTable(workitems) {
-        const tbody = document.getElementById('workitemsTbody');
-        tbody.innerHTML = '';
+                if (workitems.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">{{ _("No workitems found for the selected criteria.") }}</td></tr>`;
+                    return;
+                }
 
-        if (workitems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">{{ _("No workitems found for the selected criteria.") }}</td></tr>`;
-            return;
-        }
+                workitems.forEach(workitem => {
+                    const statusBadge = {
+                        'Ready': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ready</span>',
+                        'In Progress': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>',
+                        'Done': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Done</span>',
+                    }[workitem.status] || `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${workitem.status}</span>`;
 
-        workitems.forEach(workitem => {
-            const statusBadge = {
-                'Ready': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ready</span>',
-                'In Progress': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>',
-                'Done': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Done</span>',
-            } [workitem.status] || `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${workitem.status}</span>`;
+                    let priorityIcon = '';
+                    if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                    if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                    if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
 
-            let priorityIcon = '';
-            if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-            if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-            if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-
-            const rowHtml = `
+                    const rowHtml = `
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.barcode}">
                         <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.barcode}</div> </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
@@ -1211,103 +1285,103 @@ async function fetchAndUpdateWorkitems(page = 1) {
                       </td>
                     </tr>
                 `;
-            tbody.insertAdjacentHTML('beforeend', rowHtml);
-        });
-    }
+                    tbody.insertAdjacentHTML('beforeend', rowHtml);
+                });
+            }
 
-    let allTags = [];
+            let allTags = [];
 
-    async function fetchAllTags() {
-        try {
-            const response = await fetch(`${API_PREFIX}api/tags`);
-            if (!response.ok) throw new Error('Could not fetch tags');
-            allTags = await response.json();
+            async function fetchAllTags() {
+                try {
+                    const response = await fetch(`${API_PREFIX}api/tags`);
+                    if (!response.ok) throw new Error('Could not fetch tags');
+                    allTags = await response.json();
 
-            const datalist = document.getElementById('taglist');
-            datalist.innerHTML = '';
-            allTags.forEach(tag => {
-                const option = document.createElement('option');
-                option.value = tag.TagName;
-                datalist.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Failed to fetch tags:", error);
-        }
-    }
-
-
-    async function handleAddTag(event) {
-        const button = event.currentTarget;
-        const barcode = button.dataset.barcode;
-        const workitemId = button.dataset.workitemid;
-        const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
-        const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
-
-        if (!tagName) return;
-
-        try {
-            const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    tagName,
-                    tagColor
-                })
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
-
-            document.getElementById(`tag-input-${workitemId}`).value = '';
-            refreshWorkitemUI(barcode, workitemId);
-
-        } catch (error) {
-            console.error("Add tag error:", error);
-        }
-    }
-
-    async function handleRemoveTag(event) {
-        const button = event.currentTarget;
-        const barcode = button.dataset.barcode;
-        const tagId = button.dataset.tagId;
-        const workitemId = button.closest('.details-row').id.split('-')[2];
-
-        try {
-            const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags/${tagId}`, {
-                method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Failed to remove tag.');
-
-            refreshWorkitemUI(barcode, workitemId);
-        } catch (error) {
-            console.error("Remove tag error:", error);
-        }
-    }
+                    const datalist = document.getElementById('taglist');
+                    datalist.innerHTML = '';
+                    allTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag.TagName;
+                        datalist.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error("Failed to fetch tags:", error);
+                }
+            }
 
 
+            async function handleAddTag(event) {
+                const button = event.currentTarget;
+                const barcode = button.dataset.barcode;
+                const workitemId = button.dataset.workitemid;
+                const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
+                const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
+
+                if (!tagName) return;
+
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tagName,
+                            tagColor
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
+
+                    document.getElementById(`tag-input-${workitemId}`).value = '';
+                    refreshWorkitemUI(barcode, workitemId);
+
+                } catch (error) {
+                    console.error("Add tag error:", error);
+                }
+            }
+
+            async function handleRemoveTag(event) {
+                const button = event.currentTarget;
+                const barcode = button.dataset.barcode;
+                const tagId = button.dataset.tagId;
+                const workitemId = button.closest('.details-row').id.split('-')[2];
+
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags/${tagId}`, {
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) throw new Error('Failed to remove tag.');
+
+                    refreshWorkitemUI(barcode, workitemId);
+                } catch (error) {
+                    console.error("Remove tag error:", error);
+                }
+            }
 
 
-    function renderPagination(pagination) {
-        const {
-            currentPage,
-            totalPages,
-            totalItems,
-            perPage
-        } = pagination;
-        document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
-        document.getElementById('totalCount').textContent = totalItems;
 
-        const controlsContainer = document.getElementById('paginationControls');
-        if (!controlsContainer) return;
-        controlsContainer.innerHTML = '';
 
-        if (totalPages <= 1) return;
+            function renderPagination(pagination) {
+                const {
+                    currentPage,
+                    totalPages,
+                    totalItems,
+                    perPage
+                } = pagination;
+                document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
+                document.getElementById('totalCount').textContent = totalItems;
 
-        const prevDisabled = currentPage === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
-        const nextDisabled = currentPage === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+                const controlsContainer = document.getElementById('paginationControls');
+                if (!controlsContainer) return;
+                controlsContainer.innerHTML = '';
 
-        const paginationHtml = `
+                if (totalPages <= 1) return;
+
+                const prevDisabled = currentPage === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+                const nextDisabled = currentPage === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+
+                const paginationHtml = `
                 <a href="#" data-page="${currentPage - 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${prevDisabled}">
                     <i class="fas fa-chevron-left mr-1"></i> Previous
                 </a>
@@ -1318,240 +1392,240 @@ async function fetchAndUpdateWorkitems(page = 1) {
                     Next <i class="fas fa-chevron-right ml-1"></i>
                 </a>
             `;
-        controlsContainer.innerHTML = paginationHtml;
-    }
+                controlsContainer.innerHTML = paginationHtml;
+            }
 
-    let sortState = {
-        columnIndex: -1,
-        ascending: true
-    };
-
-    function sortTable(columnIndex) {
-        const table = document.getElementById("workitemsTable");
-        const tbody = table.tBodies[0];
-        const headers = table.querySelectorAll('.sortable-header');
-
-        if (sortState.columnIndex === columnIndex) {
-            sortState.ascending = !sortState.ascending;
-        } else {
-            sortState.columnIndex = columnIndex;
-            sortState.ascending = true;
-        }
-
-        const rowsToSort = Array.from(tbody.querySelectorAll(".workitem-row")).map(row => {
-            return {
-                mainRow: row,
-                detailsRow: row.nextElementSibling
+            let sortState = {
+                columnIndex: -1,
+                ascending: true
             };
-        });
 
-        rowsToSort.sort((a, b) => {
-            const aCell = a.mainRow.cells[columnIndex];
-            const bCell = b.mainRow.cells[columnIndex];
-            if (!aCell || !bCell) return 0;
+            function sortTable(columnIndex) {
+                const table = document.getElementById("workitemsTable");
+                const tbody = table.tBodies[0];
+                const headers = table.querySelectorAll('.sortable-header');
 
-            const aText = aCell.textContent.trim();
-            const bText = bCell.textContent.trim();
+                if (sortState.columnIndex === columnIndex) {
+                    sortState.ascending = !sortState.ascending;
+                } else {
+                    sortState.columnIndex = columnIndex;
+                    sortState.ascending = true;
+                }
 
-            let comparison = 0;
-            if (columnIndex === 2) {
-                const parseDate = (str) => {
-                    const [datePart, timePart] = str.split(' - ');
-                    const [day, month, year] = datePart.split('. ');
-                    return new Date(`${year}-${month}-${day}T${timePart}:00`);
-                };
-                comparison = parseDate(aText) - parseDate(bText);
-            } else {
-                comparison = aText.localeCompare(bText, undefined, {
-                    numeric: true
+                const rowsToSort = Array.from(tbody.querySelectorAll(".workitem-row")).map(row => {
+                    return {
+                        mainRow: row,
+                        detailsRow: row.nextElementSibling
+                    };
+                });
+
+                rowsToSort.sort((a, b) => {
+                    const aCell = a.mainRow.cells[columnIndex];
+                    const bCell = b.mainRow.cells[columnIndex];
+                    if (!aCell || !bCell) return 0;
+
+                    const aText = aCell.textContent.trim();
+                    const bText = bCell.textContent.trim();
+
+                    let comparison = 0;
+                    if (columnIndex === 2) {
+                        const parseDate = (str) => {
+                            const [datePart, timePart] = str.split(' - ');
+                            const [day, month, year] = datePart.split('. ');
+                            return new Date(`${year}-${month}-${day}T${timePart}:00`);
+                        };
+                        comparison = parseDate(aText) - parseDate(bText);
+                    } else {
+                        comparison = aText.localeCompare(bText, undefined, {
+                            numeric: true
+                        });
+                    }
+
+                    return sortState.ascending ? comparison : -comparison;
+                });
+
+                tbody.innerHTML = '';
+                rowsToSort.forEach(pair => {
+                    tbody.appendChild(pair.mainRow);
+                    if (pair.detailsRow && pair.detailsRow.classList.contains('details-row')) {
+                        tbody.appendChild(pair.detailsRow);
+                    }
+                });
+
+                headers.forEach((header, index) => {
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
+                        if (index === columnIndex) {
+                            icon.classList.remove('fa-sort');
+                            icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
+                            icon.classList.add('text-indigo-600');
+                        }
+                    }
                 });
             }
 
-            return sortState.ascending ? comparison : -comparison;
-        });
-
-        tbody.innerHTML = '';
-        rowsToSort.forEach(pair => {
-            tbody.appendChild(pair.mainRow);
-            if (pair.detailsRow && pair.detailsRow.classList.contains('details-row')) {
-                tbody.appendChild(pair.detailsRow);
+            const tableHead = document.querySelector('#workitemsTable thead');
+            if (tableHead) {
+                tableHead.addEventListener('click', (event) => {
+                    const header = event.target.closest('.sortable-header');
+                    if (header) {
+                        const colIndex = parseInt(header.dataset.columnIndex, 10);
+                        sortTable(colIndex);
+                    }
+                });
             }
-        });
 
-        headers.forEach((header, index) => {
-            const icon = header.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
-                if (index === columnIndex) {
-                    icon.classList.remove('fa-sort');
-                    icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
-                    icon.classList.add('text-indigo-600');
-                }
-            }
-        });
-    }
-
-    const tableHead = document.querySelector('#workitemsTable thead');
-    if (tableHead) {
-        tableHead.addEventListener('click', (event) => {
-            const header = event.target.closest('.sortable-header');
-            if (header) {
-                const colIndex = parseInt(header.dataset.columnIndex, 10);
-                sortTable(colIndex);
-            }
-        });
-    }
-
-    filterForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        fetchAndUpdateWorkitems();
-    });
-
-    ['processFilterWorkitemOverview', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
-    });
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.addEventListener('input', () => fetchAndUpdateWorkitems());
-    
-    const tagFilterInput = document.getElementById('tagFilterInput');
-    if (tagFilterInput) tagFilterInput.addEventListener('input', () => fetchAndUpdateWorkitems());
-
-    const paginationContainer = document.getElementById('paginationContainer');
-    if(paginationContainer) {
-        paginationContainer.addEventListener('click', (e) => {
-            const link = e.target.closest('.pagination-link');
-            if (link) {
+            filterForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const page = parseInt(link.dataset.page, 10);
-                if (page > 0) {
-                    fetchAndUpdateWorkitems(page);
+                fetchAndUpdateWorkitems();
+            });
+
+            ['processFilterWorkitemOverview', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
+            });
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.addEventListener('input', () => fetchAndUpdateWorkitems());
+
+            const tagFilterInput = document.getElementById('tagFilterInput');
+            if (tagFilterInput) tagFilterInput.addEventListener('input', () => fetchAndUpdateWorkitems());
+
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (paginationContainer) {
+                paginationContainer.addEventListener('click', (e) => {
+                    const link = e.target.closest('.pagination-link');
+                    if (link) {
+                        e.preventDefault();
+                        const page = parseInt(link.dataset.page, 10);
+                        if (page > 0) {
+                            fetchAndUpdateWorkitems(page);
+                        }
+                    }
+                });
+            }
+
+
+            const tbody = document.getElementById('workitemsTbody');
+            tbody.addEventListener('click', (event) => {
+                const toggleButton = event.target.closest('.details-toggle-button');
+                if (toggleButton) {
+                    toggleDetailsAndLoadImages({
+                        currentTarget: toggleButton
+                    });
+                    return;
+                }
+
+                const addTagButton = event.target.closest('.add-tag-btn');
+                if (addTagButton) {
+                    handleAddTag({
+                        currentTarget: addTagButton
+                    });
+                }
+                const removeTagButton = event.target.closest('.remove-tag-btn');
+                if (removeTagButton) {
+                    handleRemoveTag({
+                        currentTarget: removeTagButton
+                    });
+                }
+            });
+            tbody.addEventListener('submit', (event) => {
+                if (event.target.classList.contains('comment-form')) {
+                    handlePostComment(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('priority-selector')) {
+                    handleSetPriority(event);
+                }
+                if (event.target.classList.contains('assign-selector')) {
+                    handleAssigning(event);
+                }
+            });
+            tbody.addEventListener('input', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    handleMentionInput(event);
+                }
+            });
+            tbody.addEventListener('focusout', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
+                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
+                }
+            });
+
+            let currentImages = [];
+            let currentIndex = 0;
+
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            const closeBtn = document.querySelector(".modal-close");
+            const prevBtn = document.querySelector(".modal-prev");
+            const nextBtn = document.querySelector(".modal-next");
+
+            function showImage(index) {
+                if (index >= 0 && index < currentImages.length) {
+                    modalImg.src = currentImages[index];
+                    currentIndex = index;
+                    prevBtn.style.display = index > 0 ? 'block' : 'none';
+                    nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
                 }
             }
-        });
-    }
 
+            const closeModal = () => {
+                modal.style.display = "none";
+                currentImages = [];
+                currentIndex = 0;
+            };
 
-    const tbody = document.getElementById('workitemsTbody');
-    tbody.addEventListener('click', (event) => {
-        const toggleButton = event.target.closest('.details-toggle-button');
-        if (toggleButton) {
-            toggleDetailsAndLoadImages({
-                currentTarget: toggleButton
+            document.addEventListener('click', (event) => {
+                if (event.target.classList.contains('workitem-image')) {
+                    const imageContainer = event.target.closest('[id^="image-container-"]');
+                    const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
+
+                    currentImages = allImages.map(img => img.src);
+                    const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
+
+                    if (clickedIndex !== -1) {
+                        modal.style.display = "flex";
+                        showImage(clickedIndex);
+                    }
+                }
             });
-            return;
-        }
 
-        const addTagButton = event.target.closest('.add-tag-btn');
-        if (addTagButton) {
-            handleAddTag({
-                currentTarget: addTagButton
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (modal) modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
             });
-        }
-        const removeTagButton = event.target.closest('.remove-tag-btn');
-        if (removeTagButton) {
-            handleRemoveTag({
-                currentTarget: removeTagButton
-            });
-        }
-    });
-    tbody.addEventListener('submit', (event) => {
-        if (event.target.classList.contains('comment-form')) {
-            handlePostComment(event);
-        }
-    });
-    tbody.addEventListener('change', (event) => {
-        if (event.target.classList.contains('priority-selector')) {
-            handleSetPriority(event);
-        }
-        if (event.target.classList.contains('assign-selector')) {
-            handleAssigning(event);
-        }
-    });
-    tbody.addEventListener('input', (event) => {
-        if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-            handleMentionInput(event);
-        }
-    });
-    tbody.addEventListener('focusout', (event) => {
-        if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-            const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
-            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-            setTimeout(() => autocompleteList.classList.add('hidden'), 200);
-        }
-    });
 
-    let currentImages = [];
-    let currentIndex = 0;
-
-    const modal = document.getElementById("imageModal");
-    const modalImg = document.getElementById("modalImage");
-    const closeBtn = document.querySelector(".modal-close");
-    const prevBtn = document.querySelector(".modal-prev");
-    const nextBtn = document.querySelector(".modal-next");
-
-    function showImage(index) {
-        if (index >= 0 && index < currentImages.length) {
-            modalImg.src = currentImages[index];
-            currentIndex = index;
-            prevBtn.style.display = index > 0 ? 'block' : 'none';
-            nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
-        }
-    }
-
-    const closeModal = () => {
-        modal.style.display = "none";
-        currentImages = [];
-        currentIndex = 0;
-    };
-
-    document.addEventListener('click', (event) => {
-        if (event.target.classList.contains('workitem-image')) {
-            const imageContainer = event.target.closest('[id^="image-container-"]');
-            const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
-
-            currentImages = allImages.map(img => img.src);
-            const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
-
-            if (clickedIndex !== -1) {
-                modal.style.display = "flex";
-                showImage(clickedIndex);
-            }
-        }
-    });
-
-    if(closeBtn) closeBtn.addEventListener('click', closeModal);
-    if(modal) modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-
-    if(prevBtn) prevBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showImage(currentIndex - 1);
-    });
-
-    if(nextBtn) nextBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showImage(currentIndex + 1);
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (modal.style.display === "flex") {
-            if (event.key === 'Escape') {
-                closeModal();
-            } else if (event.key === 'ArrowLeft') {
-                event.preventDefault();
+            if (prevBtn) prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 showImage(currentIndex - 1);
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
+            });
+
+            if (nextBtn) nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 showImage(currentIndex + 1);
-            }
-        }
-    });
-});
-</script>
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (modal.style.display === "flex") {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    } else if (event.key === 'ArrowLeft') {
+                        event.preventDefault();
+                        showImage(currentIndex - 1);
+                    } else if (event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        showImage(currentIndex + 1);
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
