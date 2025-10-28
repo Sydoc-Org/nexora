@@ -774,10 +774,10 @@ def request_password_reset():
 def get_process_filter_and_params(process_name):
     if process_name == '02_Posteingang':
         return "?", ["02_Posteingang"]
-    elif process_name == '02_Invoice':
-        return "?", ["02_Invoice"]
+    elif process_name == '03_Invoice_New':
+        return "?", ["03_Invoice_New"]
     else:
-        return "?, ?", ["02_Posteingang", "02_Invoice"]
+        return "?, ?", ["02_Posteingang", "03_Invoice_New"]
 # ---------------------------- process filter end ---------------------------- #
 
 # --------------------------------- dashboard -------------------------------- #
@@ -1111,7 +1111,7 @@ def _get_workitems_data(args):
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_Invoice':
+            elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND i.DocType COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
             else:
@@ -1130,7 +1130,7 @@ def _get_workitems_data(args):
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_Invoice':
+            elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
             else:
@@ -1161,7 +1161,7 @@ def _get_workitems_data(args):
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_Invoice':
+            elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?)")
                 params.append(f"%{docvalue}%")
             else:
@@ -1298,7 +1298,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            elif process == '02_Invoice':
+            elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
@@ -1385,7 +1385,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            elif process == '02_Invoice':
+            elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
@@ -1524,7 +1524,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            elif process == '02_Invoice':
+            elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
@@ -2508,7 +2508,6 @@ def get_all_portal_users(access):
         if conn:
             conn.close()
 
-
 # ---------------------------------- profile --------------------------------- #
 @app.route("/profile")
 def profile():
@@ -2713,23 +2712,6 @@ def jdvance():
 # -------------------------------- jdvance end ------------------------------- #
 
 # ---------------------------------- reports --------------------------------- #
-@app.route("/reports")
-def reports():
-    try:
-        if 'username' not in session:
-            return redirect(url_for("login"))
-        userid = session['userid']
-        scope = session['scope']
-
-        process_name = request.args.get('processFilterReports', 'both')
-        session['process_name_dashboard'] = process_name
-
-        log_user_action(action_type='visitReports', status='SUCCESS', resource_id='reports')
-        return render_template("reports.html", userid=userid, scope=scope, process_name=process_name)
-    except Exception as e:
-        log_user_action(action_type='visitReports', status='FAILURE', resource_id='reports', details={"serverError": str(e)}, IsInternalError=1)
-        return render_template('500.html')
-
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
@@ -3049,7 +3031,6 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
-
 
 
 
