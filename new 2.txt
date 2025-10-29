@@ -22,18 +22,20 @@ Invoice
 	-DocType -> DocType -> DocType ✓
 	-CrdName -> CRD_NAME_1 -> CrdName1 ✓
 	-BankPK -> BankPK -> BankPK ✓
+
 	-GrossAmount -> GrossAmount -> GrossAmount
 	-NetAmount -> NetAmount -> NetAmount
 	-VatAmount -> VatAmount -> VatAmount
 	-DocCurrency -> DocCurrency -> DocCurrency
 	-InvoiceNR -> InvoiceNR -> DocNo
 	-Tec -> ISTEC -> ISTEC
-	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID ✓
 	-ESRReference -> ESR -> ESRReference
 	-OrderNumber -> BestellNummer -> ReferenceKey
 	-Client -> Mandant -> RptCompCode
-	-OwnerNr -> EigentuemerNr -> exp_eigNr
 	-DocSource -> DocSource -> DocSource
+
+	-PropertyNr -> LiegenschaftsNr -> LiegenschaftID ✓
+	-OwnerNr -> EigentuemerNr -> exp_eigNr  ✓
 	-CrdNo -> CRD_NR -> CrdNo ✓
 	
 
