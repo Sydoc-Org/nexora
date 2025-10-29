@@ -1126,6 +1126,36 @@ def _get_workitems_data(args):
         elif docfield == 'bankpk':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND BankPK COLLATE DATABASE_DEFAULT LIKE ?)")
             params.append(f"%{docvalue}%")
+        elif docfield == 'grossamount':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"{docvalue}%")
+        elif docfield == 'netamount':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND netamount COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"{docvalue}%")
+        elif docfield == 'vatamount':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND vatamount COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"{docvalue}%")
+        elif docfield == 'doccurrency':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND doccurrency COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'invoicenr':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND invoicenr COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'tec':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND istec LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'esrreference':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND esr COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'ordernumber':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'client':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND mandant COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'docsource':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND docsource COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
         elif docfield == 'ownernr':
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?)")
@@ -1258,7 +1288,6 @@ def _get_workitems_data(args):
             conn.close()
 
     total_pages = math.ceil(total_items / per_page)
-    
     return {
         'workitems': workitems_list,
         'pagination': {
@@ -1373,6 +1402,136 @@ def api_docfield_values():
             """
             if q:
                 sql += " and bankpk COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'grossamount':
+            sql = f"""
+                SELECT DISTINCT TOP 15 convert(float,GrossAmount) AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE grossamount is not null and grossamount <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and grossamount COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'netamount':
+            sql = f"""
+                SELECT DISTINCT TOP 15 convert(float,netamount) AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE netamount is not null and netamount <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and netamount COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'vatamount':
+            sql = f"""
+                SELECT DISTINCT TOP 15 convert(float,vatamount) AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE vatamount is not null and vatamount <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and vatamount COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'doccurrency':
+            sql = f"""
+                SELECT DISTINCT TOP 15 DocCurrency COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE DocCurrency is not null and DocCurrency <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and DocCurrency COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'invoicenr':
+            sql = f"""
+                SELECT DISTINCT TOP 15 InvoiceNR COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE InvoiceNR is not null and InvoiceNR <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and InvoiceNR COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'tec':
+            sql = f"""
+                SELECT DISTINCT TOP 15 ISTEC AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE ISTEC is not null 
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and ISTEC LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'esrreference':
+            sql = f"""
+                SELECT DISTINCT TOP 15 ESR COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE ESR is not null and ESR <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and ESR COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'ordernumber':
+            sql = f"""
+                SELECT DISTINCT TOP 15 BestellNummer COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE BestellNummer is not null and BestellNummer <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and BestellNummer COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'client':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Mandant COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE Mandant is not null and Mandant <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and Mandant COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'docsource':
+            sql = f"""
+                SELECT DISTINCT TOP 15 docsource COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                WHERE docsource is not null and docsource <> ''
+                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and docsource COLLATE DATABASE_DEFAULT LIKE ?"
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
@@ -1593,6 +1752,7 @@ def api_docfield_values():
             return jsonify([])
 
         rows = [r.Val for r in cur.fetchall() if r.Val]
+        if field == 'tec': rows.insert(0, 0)
         return jsonify(rows)
 
     except Exception as e:
@@ -1754,7 +1914,7 @@ def get_single_workitem(barcode):
         return jsonify(workitem_data)
     except Exception as e:
         app.logger.error(f"Failed to fetch single workitem {barcode}: {e}")
-        return jsonify({"error": "Could not fetch workitem data"}), 500
+        return jsonify({"error": _("Could not fetch workitem data")}), 500
     finally:
         if conn:
             conn.close()
@@ -2658,7 +2818,7 @@ def change_password():
             confirmPassword = request.form['confirmPassword']
 
             if newPassword != confirmPassword:
-                flash('New passwords do not match', 'failure_changePW') 
+                flash(_('New passwords do not match'), 'failure_changePW') 
                 return redirect(url_for("profile"))        
             if not newPassword or not confirmPassword or not currentPassword:
                 flash(_("All fields must be filled"), 'failure_changePW') 
@@ -2903,7 +3063,6 @@ def report_status_distribution():
         for s,c in cursor.fetchall():
             counts[s] = c
 
-        # Backlog unchanged (it's a system total), keep your existing backlog count:
         stats_abs = get_absolute_dashboard_stats(process_name)
 
         return jsonify({

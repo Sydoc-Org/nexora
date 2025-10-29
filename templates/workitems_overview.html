@@ -220,26 +220,49 @@
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
                       <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
                       <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
-                      <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>{{ _("BankPk") }}</option>
+                      <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>Bank Pk</option>
                       <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
                       <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}
+                      
+                      <option value="grossamount" {{ 'selected' if docfield=='grossamount' }}>{{ _("Gross Amount") }}</option>
+                      <option value="netamount" {{ 'selected' if docfield=='netamount' }}>{{ _("Net Amount") }}</option>
+                      <option value="vatamount" {{ 'selected' if docfield=='vatamount' }}>{{ _("Vat Amount") }}</option>
+                      <option value="doccurrency" {{ 'selected' if docfield=='doccurrency' }}>{{ _("Document Currency") }}</option>
+                      <option value="invoicenr" {{ 'selected' if docfield=='invoicenr' }}>{{ _("Invoice no.") }}</option>
+                      <option value="tec" {{ 'selected' if docfield=='tec' }}>Tec</option>
+                      <option value="esrreference" {{ 'selected' if docfield=='esrreference' }}>ESR Reference</option>
+                      <option value="ordernumber" {{ 'selected' if docfield=='ordernumber' }}>{{ _("Order no.") }}</option>
+                      <option value="client" {{ 'selected' if docfield=='client' }}>{{ _("Client") }}</option>
+                      <option value="docsource" {{ 'selected' if docfield=='docsource' }}>{{ _("Document Source") }}</option>
+                      
                       </option>
                       {% else %}
-                      <option value="doctype">{{ _("Doctype") }}</option>
-                      <option value="crdno">{{ _("Creditor no.") }}</option>
-                      <option value="crdname">{{ _("Creditor Name") }}</option>
-                      <option value="bankpk">BankPk</option>
-                      <option value="ownernr">{{ _("Owner No.") }}</option>
-                      <option value="tenancynr">{{ _("Tenancy No.") }}</option>
-                      <option value="propertynr">{{ _("Property No.") }}</option>
-                      <option value="registered">{{ _("Registered") }}</option>
-                      <option value="branch">{{ _("Branch") }}</option>
-                      <option value="docdate">{{ _("Document Date") }}</option>
-                      <option value="forwarding">{{ _("Forwarding") }}</option>
-                      <option value="department">{{ _("Department") }}</option>
-                      <option value="postcode">{{ _("Post Code no.") }}</option>
-                      <option value="recipient">{{ _("Recipient") }}</option>
-                      <option value="confidentiality">{{ _("Confidentiality") }}</option>
+                      <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
+                      <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
+                      <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>BankPk</option>
+                      <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
+                      <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
+                      <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
+                      <option value="registered" {{ 'selected' if docfield=='registered' }}>{{ _("Registered") }}</option>
+                      <option value="branch" {{ 'selected' if docfield=='branch' }}>{{ _("Branch") }}</option>
+                      <option value="docdate" {{ 'selected' if docfield=='docdate' }}>{{ _("Document Date") }}</option>
+                      <option value="forwarding" {{ 'selected' if docfield=='forwarding' }}>{{ _("Forwarding") }}</option>
+                      <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}</option>
+                      <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
+                      <option value="recipient" {{ 'selected' if docfield=='recipient' }}>{{ _("Recipient") }}</option>
+                      <option value="confidentiality" {{ 'selected' if docfield=='confidentiality' }}>{{ _("Confidentiality") }}</option>
+
+                      <option value="grossamount" {{ 'selected' if docfield=='grossamount' }}>{{ _("Gross Amount") }}</option>
+                      <option value="netamount" {{ 'selected' if docfield=='netamount' }}>{{ _("Net Amount") }}</option>
+                      <option value="vatamount" {{ 'selected' if docfield=='vatamount' }}>{{ _("Vat Amount") }}</option>
+                      <option value="doccurrency" {{ 'selected' if docfield=='doccurrency' }}>{{ _("Document Currency") }}</option>
+                      <option value="invoicenr" {{ 'selected' if docfield=='invoicenr' }}>{{ _("Invoice no.") }}</option>
+                      <option value="tec" {{ 'selected' if docfield=='tec' }}>Tec</option>
+                      <option value="esrreference" {{ 'selected' if docfield=='esrreference' }}>ESR Reference</option>
+                      <option value="ordernumber" {{ 'selected' if docfield=='ordernumber' }}>{{ _("Order no.") }}</option>
+                      <option value="client" {{ 'selected' if docfield=='client' }}>{{ _("Client") }}</option>
+                      <option value="docsource" {{ 'selected' if docfield=='docsource' }}>{{ _("Document Source") }}</option>
                       {% endif %}
                     </select>
                     <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">

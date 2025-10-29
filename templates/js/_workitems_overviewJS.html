@@ -324,7 +324,7 @@
                         commentEl.className = 'flex items-start gap-2.5';
                         const commentDate = new Date(comment.Timestamp).toLocaleString();
                         commentEl.innerHTML = `
-                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
+                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-Icon.png'" alt="${comment.username} avatar">
                             <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
                                 <div class="flex items-center space-x-2 rtl:space-x-reverse">
                                     <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
@@ -390,6 +390,32 @@
             }
 
             container.dataset.rendered = 'true';
+        }
+
+        function loadImagesInBatch(container, workitemid, totalImages) {
+            const existingBtn = container.querySelector('.load-more-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+
+            const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
+            const batchSize = 10;
+            const endIndex = Math.min(loadedCount + batchSize, totalImages);
+
+            for (let i = loadedCount; i < endIndex; i++) {
+                loadImage(container, workitemid, i);
+            }
+
+            container.dataset.loadedCount = endIndex;
+
+            if (endIndex < totalImages) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition';
+                loadMoreBtn.textContent = `{{ _("Load more") }} (${endIndex} / ${totalImages})`;
+                loadMoreBtn.dataset.workitemid = workitemid;
+                loadMoreBtn.dataset.totalImages = totalImages;
+                container.appendChild(loadMoreBtn);
+            }
         }
 
         async function toggleDetailsAndLoadImages(event) {
@@ -459,33 +485,33 @@
                                 const fieldLabels = {
                                     DocDate: '{{ _("Document Date") }}',
                                     DocType: '{{ _("Document Type") }}',
-                                    OwnerNr: '{{ _("Owner No.") }}',
-                                    TenancyNr: '{{ _("Tenancy No.") }}',
+                                    OwnerNr: '{{ _("Owner no.") }}',
+                                    TenancyNr: '{{ _("Tenancy no.") }}',
                                     Registered: "{{ _('Registered') }}",
-                                    PropertyNr: '{{ _("Property No.") }}',
+                                    PropertyNr: '{{ _("Property no.") }}',
                                     PropertyName: '{{ _("Property Name") }}',
-                                    TenantNr: '{{ _("Tenant No.") }}',
+                                    TenantNr: '{{ _("Tenant no.") }}',
                                     TenantName: '{{ _("Tenant Name") }}',
                                     Branch: '{{ _("Branch") }}',
                                     CrdName: '{{ _("Creditor Name") }}',
-                                    InvoiceNR: '{{ _("Invoice No.") }}',
-                                    CrdNo: '{{ _("Creditor No.") }}',
+                                    InvoiceNR: '{{ _("Invoice no.") }}',
+                                    CrdNo: '{{ _("Creditor no.") }}',
                                     GrossAmount: '{{ _("Gross Amount") }}',
                                     NetAmount: '{{ _("Net Amount") }}',
-                                    VatAmount: '{{ _("VAT Amount") }}',
+                                    VatAmount: '{{ _("Vat Amount") }}',
                                     Forwarding: "{{ _('Forwarding') }}",
                                     Department: "{{ _('Department') }}",
                                     Postcode: "{{ _('Postcode') }}",
-                                    IBAN: "{{ _('IBAN') }}",
+                                    IBAN: "IBAN",
                                     Recipient: "{{ _('Recipient') }}",
                                     Confidentiality: "{{ _('Confidentiality') }}",
-                                    BankPk: "BankPk",
-                                    DocCurrency: "{{ _('DocCurrency') }}",
-                                    Tec: "{{ _('Tec') }}",
-                                    ESRReference: "{{ _('ESRReference') }}",
-                                    OrderNumber: "{{ _('OrderNumber') }}",
+                                    BankPk: "Bank Pk",
+                                    DocCurrency: "{{ _('Document Currency') }}",
+                                    Tec: "Tec",
+                                    ESRReference: "ESR Reference",
+                                    OrderNumber: "{{ _('Order no.') }}",
                                     Client: "{{ _('Client') }}",
-                                    DocSource: "{{ _('DocSource') }}"
+                                    DocSource: "{{ _('Document Source') }}"
 
                                 };
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
@@ -515,10 +541,9 @@
                         imageContainer.innerHTML = '';
                         imageContainer.classList.remove('justify-center', 'items-center');
                         imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+                        imageContainer.dataset.loadedCount = '0';
+                        loadImagesInBatch(imageContainer, workitemid, imageCount);
 
-                        for (let i = 0; i < imageCount; i++) {
-                            loadImage(imageContainer, workitemid, i);
-                        }
                         logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
                     } catch (error) {
                         console.error('Error loading media info:', error);
@@ -539,8 +564,13 @@
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
             placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
-            container.appendChild(placeholder);
-
+            
+            const loadMoreButton = container.querySelector('.load-more-btn');
+            if (loadMoreButton) {
+                container.insertBefore(placeholder, loadMoreButton);
+            } else {
+                container.appendChild(placeholder);
+            }
             try {
                 const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
                 const response = await fetch(apiUrl);
@@ -815,29 +845,34 @@
                     return {
                         order: ['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'recipient', 'confidentiality'],
                         labels: {
-                            doctype: 'Document Type', ownernr: 'Owner No.', tenancynr: 'Tenancy No.',
-                            propertynr: 'Property No.', registered: 'Registered', branch: 'Branch',
-                            docdate: 'Document Date', forwarding: 'Forwarding', department: 'Department', postcode: 'Post Code no.'
-                            ,recipient: 'Recipient', confidentiality: 'Confidentiality'
+                            doctype: '{{ _("Document Type") }}', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
+                            propertynr: '{{ _("Property No.") }}', registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}',
+                            docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}', department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}'
+                            ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}'
                         }
                     };
                 }
                 if (process === '03_Invoice_New') {
                     return {
-                        order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr'],
+                        order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
+                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'
+                        ],
                         labels: {
-                            doctype: 'Document Type', crdno: 'Creditor No.', crdname: 'Creditor Name',
-                            bankpk: 'Bank PK', ownernr: 'Owner No.', propertynr: 'Property No.'
+                            doctype: '{{ _("Document Type") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
+                            bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', propertynr: '{{ _("Property no.") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
+                            invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
                         }
                     };
                 }
                 return {
-                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality'],
+                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
+                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'],
                     labels: {
-                        doctype: 'Document Type', crdno: 'Creditor No.', crdname: 'Creditor Name',
-                        bankpk: 'Bank PK', ownernr: 'Owner No.', tenancynr: 'Tenancy No.', propertynr: 'Property No.',
-                        registered: 'Registered', branch: 'Branch', docdate: 'Document Date', forwarding: 'Forwarding',
-                        department: 'Department', postcode: 'Post Code no.' ,recipient: 'Recipient', confidentiality: 'Confidentiality'
+                        doctype: '{{ _("Document Type") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
+                        bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}', propertynr: '{{ _("Property no.") }}',
+                        registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}', docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}',
+                        department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}' ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
+                            invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
                     }
                 };
             }
@@ -987,7 +1022,7 @@
                             showNotification('Import successful');
                         } else {
                             console.error('Import failed. The server did not redirect.');
-                            showNotification('Import failed. The server did not redirect.', '');
+                            showNotification(`{{ _("Import failed. The server did not redirect.") }}`, '');
                             if (importBtn) {
                                 importBtn.disabled = false;
                                 importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
@@ -1384,10 +1419,10 @@
 
                 const paginationHtml = `
                 <a href="#" data-page="${currentPage - 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${prevDisabled}">
-                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                    <i class="fas fa-chevron-left mr-1"></i> {{ _("Previous") }}
                 </a>
                 <span class="text-sm text-gray-600">
-                    Page ${currentPage} of ${totalPages}
+                    {{ _("Page") }} ${currentPage} of ${totalPages}
                 </span>
                 <a href="#" data-page="${currentPage + 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${nextDisabled}">
                     Next <i class="fas fa-chevron-right ml-1"></i>
@@ -1529,7 +1564,18 @@
                         currentTarget: removeTagButton
                     });
                 }
+
+                const loadMoreButton = event.target.closest('.load-more-btn');
+                if (loadMoreButton) {
+                    const workitemid = loadMoreButton.dataset.workitemid;
+                    const totalImages = parseInt(loadMoreButton.dataset.totalImages, 10);
+                    const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                    if (imageContainer) {
+                        loadImagesInBatch(imageContainer, workitemid, totalImages);
+                    }
+                }
             });
+            
             tbody.addEventListener('submit', (event) => {
                 if (event.target.classList.contains('comment-form')) {
                     handlePostComment(event);
