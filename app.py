@@ -1157,6 +1157,12 @@ def _get_workitems_data(args):
         elif docfield == 'postcode':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?)")
             params.append(f"%{docvalue}%")
+        elif docfield == 'recipient':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'confidentiality':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ?)")
+            params.append(f"%{docvalue}%")
         elif docfield == 'propertynr':
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.Barcode COLLATE DATABASE_DEFAULT = tdi_barcode.StringValue AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?)")
@@ -1506,6 +1512,32 @@ def api_docfield_values():
             """
             if q:
                 sql += " and Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'confidentiality':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                WHERE Vertraulichkeit is not null and Vertraulichkeit <> ''
+                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'recipient':
+            sql = f"""
+                SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                WHERE Empfaenger is not null and Empfaenger <> ''
+                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+            """
+            if q:
+                sql += " and Empfaenger COLLATE DATABASE_DEFAULT LIKE ?"
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)

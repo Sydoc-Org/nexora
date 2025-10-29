@@ -813,11 +813,12 @@
             function getDocFieldOptions(process) {
                 if (process === '02_Posteingang') {
                     return {
-                        order: ['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'],
+                        order: ['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'recipient', 'confidentiality'],
                         labels: {
                             doctype: 'Document Type', ownernr: 'Owner No.', tenancynr: 'Tenancy No.',
                             propertynr: 'Property No.', registered: 'Registered', branch: 'Branch',
                             docdate: 'Document Date', forwarding: 'Forwarding', department: 'Department', postcode: 'Post Code no.'
+                            ,recipient: 'Recipient', confidentiality: 'Confidentiality'
                         }
                     };
                 }
@@ -831,12 +832,12 @@
                     };
                 }
                 return {
-                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode'],
+                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality'],
                     labels: {
                         doctype: 'Document Type', crdno: 'Creditor No.', crdname: 'Creditor Name',
                         bankpk: 'Bank PK', ownernr: 'Owner No.', tenancynr: 'Tenancy No.', propertynr: 'Property No.',
                         registered: 'Registered', branch: 'Branch', docdate: 'Document Date', forwarding: 'Forwarding',
-                        department: 'Department', postcode: 'Post Code no.'
+                        department: 'Department', postcode: 'Post Code no.' ,recipient: 'Recipient', confidentiality: 'Confidentiality'
                     }
                 };
             }

@@ -7,14 +7,14 @@ Posteingang
 	-PropertyNr -> LiegenschaftsNr -> exp_liegNr ✓
 	-Registered -> Einschreiben (nein/ja/'') -> exp_einschreiben ✓
 	
-	-Branch -> Niederlassung -> exp_niederlassung
-	-DocDate -> Dokdatum -> exp_dokDatum
-	-Forwarding -> Nachsendung -> exp_nachSend
-	-Department -> Abteilung -> exp_abteilung
-	-Postcode -> Sendungsbarcode -> exp_einschreibenBC
+	-Branch -> Niederlassung -> exp_niederlassung✓
+	-DocDate -> Dokdatum -> exp_dokDatum✓
+	-Forwarding -> Nachsendung -> exp_nachSend✓
+	-Department -> Abteilung -> exp_abteilung✓
+	-Postcode -> Sendungsbarcode -> exp_einschreibenBC✓
 
-	-Recipient -> Empfaenger -> exp_intEmpf
-	-Confidentiality -> Vertraulichkeit -> exp_vertraulich
+	-Recipient -> Empfaenger -> exp_intEmpf✓
+	-Confidentiality -> Vertraulichkeit -> exp_vertraulich✓
 
 Invoice
 

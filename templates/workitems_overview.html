@@ -213,6 +213,8 @@
                       <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}
                       </option>
                       <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}
+                      <option value="recipient" {{ 'selected' if docfield=='recipient' }}>{{ _("Recipient") }}
+                      <option value="confidentiality" {{ 'selected' if docfield=='confidentiality' }}>{{ _("Confidentiality") }}
                       </option>
                       {% elif process_name == '03_Invoice_New' %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
@@ -236,6 +238,8 @@
                       <option value="forwarding">{{ _("Forwarding") }}</option>
                       <option value="department">{{ _("Department") }}</option>
                       <option value="postcode">{{ _("Post Code no.") }}</option>
+                      <option value="recipient">{{ _("Recipient") }}</option>
+                      <option value="confidentiality">{{ _("Confidentiality") }}</option>
                       {% endif %}
                     </select>
                     <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
