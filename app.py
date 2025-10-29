@@ -1288,7 +1288,6 @@ def _get_workitems_data(args):
             conn.close()
 
     total_pages = math.ceil(total_items / per_page)
-    print(data_query, data_params)
     return {
         'workitems': workitems_list,
         'pagination': {

@@ -392,6 +392,32 @@
             container.dataset.rendered = 'true';
         }
 
+        function loadImagesInBatch(container, workitemid, totalImages) {
+            const existingBtn = container.querySelector('.load-more-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+
+            const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
+            const batchSize = 10;
+            const endIndex = Math.min(loadedCount + batchSize, totalImages);
+
+            for (let i = loadedCount; i < endIndex; i++) {
+                loadImage(container, workitemid, i);
+            }
+
+            container.dataset.loadedCount = endIndex;
+
+            if (endIndex < totalImages) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition';
+                loadMoreBtn.textContent = `{{ _("Load more") }} (${endIndex} / ${totalImages})`;
+                loadMoreBtn.dataset.workitemid = workitemid;
+                loadMoreBtn.dataset.totalImages = totalImages;
+                container.appendChild(loadMoreBtn);
+            }
+        }
+
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
@@ -515,10 +541,9 @@
                         imageContainer.innerHTML = '';
                         imageContainer.classList.remove('justify-center', 'items-center');
                         imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+                        imageContainer.dataset.loadedCount = '0';
+                        loadImagesInBatch(imageContainer, workitemid, imageCount);
 
-                        for (let i = 0; i < imageCount; i++) {
-                            loadImage(imageContainer, workitemid, i);
-                        }
                         logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
                     } catch (error) {
                         console.error('Error loading media info:', error);
@@ -539,8 +564,13 @@
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
             placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
-            container.appendChild(placeholder);
-
+            
+            const loadMoreButton = container.querySelector('.load-more-btn');
+            if (loadMoreButton) {
+                container.insertBefore(placeholder, loadMoreButton);
+            } else {
+                container.appendChild(placeholder);
+            }
             try {
                 const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
                 const response = await fetch(apiUrl);
@@ -1534,7 +1564,18 @@
                         currentTarget: removeTagButton
                     });
                 }
+
+                const loadMoreButton = event.target.closest('.load-more-btn');
+                if (loadMoreButton) {
+                    const workitemid = loadMoreButton.dataset.workitemid;
+                    const totalImages = parseInt(loadMoreButton.dataset.totalImages, 10);
+                    const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                    if (imageContainer) {
+                        loadImagesInBatch(imageContainer, workitemid, totalImages);
+                    }
+                }
             });
+            
             tbody.addEventListener('submit', (event) => {
                 if (event.target.classList.contains('comment-form')) {
                     handlePostComment(event);
