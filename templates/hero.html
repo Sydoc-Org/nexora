@@ -130,13 +130,13 @@
                         <div class="grid md:grid-cols-2 gap-12 items-center">
                             <div class="text-center md:text-left">
                                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
-                                    Seamless Document Tracking, Complete Peace of Mind.
+                                    {{ _("Seamless Document Tracking, Complete Peace of Mind.") }}
                                 </h1>
                                 <p class="text-lg text-gray-600 mb-10">
-                                    Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.
+                                    {{ _("Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.") }}
                                 </p>
                                 <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg">
-                                    Access Your Portal
+                                    {{ _("Access Your Portal") }}
                                 </a>
                             </div>
         
@@ -150,21 +150,21 @@
                                         <div class="flex items-center text-indigo-600 mb-5">
                                             <i class="fas fa-file-alt text-4xl mr-4"></i>
                                             <div>
-                                                <h3 class="font-bold text-xl text-gray-800">Document Status</h3>
-                                                <p class="text-gray-500">Real-time updates</p>
+                                                <h3 class="font-bold text-xl text-gray-800">{{ _("Document Status") }}</h3>
+                                                <p class="text-gray-500">{{ _("Real-time updates") }}</p>
                                             </div>
                                         </div>
                                         <div class="space-y-4">
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">Invoice #431</span>
+                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Invoice") }} #431</span>
                                                 <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-green-500 h-2.5 rounded-full" style="width: 100%"></div></div>
                                             </div>
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">Contract #A89</span>
+                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Contract") }} #A89</span>
                                                 <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 75%"></div></div>
                                             </div>
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">Report Q3</span>
+                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Report") }} Q3</span>
                                                 <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div></div>
                                             </div>
                                         </div>
@@ -180,10 +180,10 @@
                         
                         <div class="text-center mb-16">
                             <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-                                Visualize Your Document's Journey
+                               {{ _("Visualize Your Document's Journey") }}
                             </h2>
                             <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                                Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.
+                                {{ _("Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.") }}
                             </p>
                         </div>
         
@@ -200,34 +200,34 @@
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">Import</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Import") }}</p>
                                 </div>
         
                                 <div id="step-2" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">Extraction</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Extraction") }}</p>
                                 </div>
         
                                 <div id="step-3" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">Validation</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Validation") }}</p>
                                 </div>
         
                                 <div id="step-4" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">Delivery</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Delivery") }}</p>
                                 </div>
                             </div>
         
                              <div class="text-center mt-10 h-8">
                                 <p class="text-lg font-medium text-gray-700">
-                                    Status: <span id="status-text" class="font-bold text-indigo-600" style="transition: opacity 0.4s ease-in-out;">Initializing...</span>
+                                    Status: <span id="status-text" class="font-bold text-indigo-600" style="transition: opacity 0.4s ease-in-out;">{{ _("Initializing...") }}</span>
                                 </p>
                             </div>
                         </div>

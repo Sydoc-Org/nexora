@@ -85,7 +85,7 @@
                 });
 
                 await wait(500);
-                statusText.textContent = 'Waiting for new document...';
+                statusText.textContent = '{{ _("Waiting for new document...") }}';
                 statusText.style.opacity = '1';
             };
 
@@ -119,7 +119,7 @@
                     await wait(2000); 
                 }
 
-                await updateStatusText('Process Complete!');
+                await updateStatusText('{{ _("Process Complete!") }}');
                 const lastStep = stepElements[steps.length - 1];
                 lastStep.querySelector('.step-icon-wrapper').classList.remove('active');
                 lastStep.querySelector('.step-icon-wrapper').classList.add('completed');

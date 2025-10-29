@@ -1914,7 +1914,7 @@ def get_single_workitem(barcode):
         return jsonify(workitem_data)
     except Exception as e:
         app.logger.error(f"Failed to fetch single workitem {barcode}: {e}")
-        return jsonify({"error": "Could not fetch workitem data"}), 500
+        return jsonify({"error": _("Could not fetch workitem data")}), 500
     finally:
         if conn:
             conn.close()
@@ -2818,7 +2818,7 @@ def change_password():
             confirmPassword = request.form['confirmPassword']
 
             if newPassword != confirmPassword:
-                flash('New passwords do not match', 'failure_changePW') 
+                flash(_('New passwords do not match'), 'failure_changePW') 
                 return redirect(url_for("profile"))        
             if not newPassword or not confirmPassword or not currentPassword:
                 flash(_("All fields must be filled"), 'failure_changePW') 
@@ -3063,7 +3063,6 @@ def report_status_distribution():
         for s,c in cursor.fetchall():
             counts[s] = c
 
-        # Backlog unchanged (it's a system total), keep your existing backlog count:
         stats_abs = get_absolute_dashboard_stats(process_name)
 
         return jsonify({

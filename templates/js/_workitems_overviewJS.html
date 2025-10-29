@@ -324,7 +324,7 @@
                         commentEl.className = 'flex items-start gap-2.5';
                         const commentDate = new Date(comment.Timestamp).toLocaleString();
                         commentEl.innerHTML = `
-                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-icon.png'" alt="${comment.username} avatar">
+                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-Icon.png'" alt="${comment.username} avatar">
                             <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
                                 <div class="flex items-center space-x-2 rtl:space-x-reverse">
                                     <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
@@ -1022,7 +1022,7 @@
                             showNotification('Import successful');
                         } else {
                             console.error('Import failed. The server did not redirect.');
-                            showNotification('Import failed. The server did not redirect.', '');
+                            showNotification(`{{ _("Import failed. The server did not redirect.") }}`, '');
                             if (importBtn) {
                                 importBtn.disabled = false;
                                 importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
@@ -1419,10 +1419,10 @@
 
                 const paginationHtml = `
                 <a href="#" data-page="${currentPage - 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${prevDisabled}">
-                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                    <i class="fas fa-chevron-left mr-1"></i> {{ _("Previous") }}
                 </a>
                 <span class="text-sm text-gray-600">
-                    Page ${currentPage} of ${totalPages}
+                    {{ _("Page") }} ${currentPage} of ${totalPages}
                 </span>
                 <a href="#" data-page="${currentPage + 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${nextDisabled}">
                     Next <i class="fas fa-chevron-right ml-1"></i>
