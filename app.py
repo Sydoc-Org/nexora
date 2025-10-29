@@ -2914,16 +2914,23 @@ def report_kpi_stats():
             AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
         """,all_params)
         processed_today = cursor.fetchone()[0]
-        
-        window_days = int(request.args.get('windowDays', '7'))
-        cursor.execute(F"""
+        cursor.execute(f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
             LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
-            AND twi.ModifiedAt >= DATEADD(day, -?, GETDATE());
-        """, *(all_params + [window_days]))
+            AND twi.ModifiedAt >= DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0)
+                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0);
+        """, *(all_params))
         processed_week = cursor.fetchone()[0]
         
+        print(f"""
+            SELECT COUNT(twi.ID) FROM t_WorkItems twi
+            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
+            AND twi.ModifiedAt >= DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0)
+                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0);
+        """,all_params, processed_week)
+
         cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
@@ -3031,8 +3038,6 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
-
-
 
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)

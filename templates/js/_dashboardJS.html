@@ -8,11 +8,9 @@
   <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
-    // Chart instances
     let processedChart, statusChart;
     let dateRangePicker;
 
-    // Chart Colors & Fonts
     const chartFontColor = '#6b7280';
     const chartGridColor = '#f3f4f6';
     Chart.defaults.font.family = "'Inter', sans-serif";
@@ -30,7 +28,6 @@
         window.requestAnimationFrame(step);
     }
     
-    // ## DATA FETCHING & CHART RENDERING ##
     function buildApiUrl(endpoint, startDate, endDate) {
         let url = `${API_PREFIX}${endpoint}`;
         if (startDate && endDate) {
@@ -40,7 +37,6 @@
     }
 
     async function updateKpiStats() {
-        // KPIs are usually absolute and not affected by date range
         try {
             const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`);
             const stats = await response.json();
@@ -109,7 +105,7 @@
             const response = await fetch(url);
             const data = await response.json();
             
-            container.innerHTML = ''; // Clear previous content
+            container.innerHTML = '';
 
             if (!data.labels || data.labels.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">{{ _("No documents are currently in progress.") }}</div>`;
@@ -185,31 +181,13 @@
       } catch(error) { console.error("Error fetching recent activity:", error); }
     };
     
-    async function exportActivityToCSV() {
-        const response = await fetch(`${API_PREFIX}api/recent_activity?limit=200`);
-        const data = await response.json();
-        let csvContent = "data:text/csv;charset=utf-8,Barcode,Status,DateTime\n";
-        data.forEach(row => {
-            csvContent += `${row.Barcode},${row.state},"${row.datetime}"\n`;
-        });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "nexora_activity_export.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    
     function updateAllCharts(startDate = null, endDate = null) {
         updateProcessedOverTimeChart(startDate, endDate);
         updateStatusDistributionChart(startDate, endDate);
         updateStageBreakdownChart(startDate, endDate);
     }
 
-    // ## INITIALIZATION ##
     document.addEventListener('DOMContentLoaded', () => {
-        // Init Date Picker
         dateRangePicker = flatpickr("#date-range-picker", {
             mode: "range",
             dateFormat: "Y-m-d",
@@ -217,13 +195,11 @@
             altFormat: "M j, Y",
         });
 
-        // Initial data load
         updateKpiStats();
-        updateAllCharts(); // Load with no date range
+        updateAllCharts(); 
         updateDocumentTimeline();
         updateRecentActivity();
 
-        // Event Listeners
         document.getElementById('apply-filters-btn').addEventListener('click', () => {
             const selectedDates = dateRangePicker.selectedDates;
             if (selectedDates.length === 2) {
@@ -231,13 +207,10 @@
                 const endDate = selectedDates[1].toISOString().split('T')[0];
                 updateAllCharts(startDate, endDate);
             } else {
-                 // Optionally, reset to default if no valid range is selected
                 updateAllCharts();
             }
         });
         
-        document.getElementById('export-csv-btn').addEventListener('click', exportActivityToCSV);
-
         setInterval(() => {
             if (dateRangePicker.selectedDates.length === 0) {
                 updateKpiStats();
