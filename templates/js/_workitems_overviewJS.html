@@ -257,46 +257,45 @@
             }
         }
 
-        function renderTagsInDetails(workitemId, barcode, tags) {
-            const container = document.getElementById(`tags-container-${workitemId}`);
-            if (!container) return;
-            container.innerHTML = tags.map(tag => `
+function renderTagsInDetails(workitemId, tags) {
+    const container = document.getElementById(`tags-container-${workitemId}`);
+    if (!container) return;
+    container.innerHTML = tags.map(tag => `
         <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
             ${tag.name}
-            <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-barcode="${barcode}">
+            <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}">
                 <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
             </button>
         </span>
     `).join('');
-        }
+}
 
 
-        async function refreshWorkitemUI(barcode, workitemId) {
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}`);
-                if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
+        async function refreshWorkitemUI(workitemId) {
+        try {
+            const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}`);
+            if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
+            const workitem = await response.json();
+            const tags = workitem.tags || [];
 
-                const workitem = await response.json();
-                const tags = workitem.tags || [];
-
-                const previewContainer = document.getElementById(`tags-preview-${barcode}`);
-                if (previewContainer) {
-                    previewContainer.innerHTML = tags.map(tag =>
-                        `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
-                    ).join('');
-                }
-
-                const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
-                if (detailsContainer) {
-                    renderTagsInDetails(workitemId, barcode, tags);
-                }
-
-            } catch (error) {
-                console.error("Failed to refresh workitem UI:", error);
+            const previewContainer = document.getElementById(`tags-preview-${workitem.workitemid}`);
+            if (previewContainer) {
+                previewContainer.innerHTML = tags.map(tag =>
+                    `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
+                ).join('');
             }
-        }
 
-        async function loadCollaborationData(workitemId, barcode) {
+            const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
+            if (detailsContainer) {
+                renderTagsInDetails(workitemId, tags);
+            }
+
+        } catch (error) {
+            console.error("Failed to refresh workitem UI:", error);
+        }
+    }
+
+        async function loadCollaborationData(workitemId) {
             const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
             const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
             const assignSelector = document.getElementById(`assign-select-${workitemId}`);
@@ -309,12 +308,12 @@
             })
             if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
             try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/interactions`);
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
                 prioritySelector.value = data.priority;
                 assignSelector.value = data.assigneduserid;
-                renderTagsInDetails(workitemId, barcode, data.tags)
+                renderTagsInDetails(workitemId, data.tags)
                 commentsContainer.innerHTML = '';
                 if (data.comments.length === 0) {
                     commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
@@ -422,7 +421,6 @@
             try {
                 const button = event.currentTarget;
                 const workitemid = button.dataset.workitemid;
-                const barcode = button.dataset.barcode;
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
                 const chevron = button.querySelector('.indicator');
                 const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
@@ -460,7 +458,7 @@
 
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
-                    loadCollaborationData(workitemid, barcode);
+                    loadCollaborationData(workitemid); 
                 }
 
                 const imageContainer = document.getElementById(`image-container-${workitemid}`);
@@ -608,14 +606,14 @@
         async function handlePostComment(event) {
             event.preventDefault();
             const form = event.target;
-            const barcode = form.dataset.barcode;
-            const workitemid = form.closest('.details-row').id.split('-')[2];
+            const workitemid = form.dataset.workitemid; 
+            console.log(workitemid)
             const textarea = form.querySelector('textarea');
             const commentText = textarea.value.trim();
             if (!commentText) return;
 
             try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/comment`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -629,7 +627,7 @@
                 textarea.value = '';
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 commentsContainer.dataset.loaded = 'false';
-                loadCollaborationData(workitemid, barcode);
+                loadCollaborationData(workitemid);
 
             } catch (error) {
                 console.error("Comment post error:", error);
@@ -698,40 +696,12 @@
             }
         }
 
-        async function handlePostComment(event) {
-            event.preventDefault();
-            const form = event.target;
-            const barcode = form.dataset.barcode;
-            const workitemid = form.closest('.details-row').id.split('-')[2];
-            const textarea = form.querySelector('textarea');
-            const commentText = textarea.value.trim();
-            if (!commentText) return;
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/comment`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        commentText
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to post comment.');
-                textarea.value = '';
-                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-                commentsContainer.dataset.loaded = 'false';
-                loadCollaborationData(workitemid, barcode);
-            } catch (error) {
-                console.error("Comment post error:", error);
-            }
-        }
-
         async function handleSetPriority(event) {
             const selector = event.target;
-            const barcode = selector.dataset.barcode;
+            const workitemid = selector.dataset.workitemid; 
             const priority = parseInt(selector.value, 10);
             try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/priority`, {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/priority`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -741,7 +711,7 @@
                     })
                 });
                 if (!response.ok) throw new Error('Failed to set priority.');
-                const indicatorCell = document.getElementById(`priority-indicator-${barcode}`);
+                const indicatorCell = document.getElementById(`priority-indicator-${workitemid}`);
                 let iconHtml = '';
                 if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
                 else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
@@ -754,10 +724,10 @@
 
         async function handleAssigning(event) {
             const selector = event.target;
-            const barcode = selector.dataset.barcode;
+            const workitemid = selector.dataset.workitemid;
             const assignedUserID = selector.value;
             try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/assign`, {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/assign`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1146,17 +1116,17 @@
                     if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
 
                     const rowHtml = `
-                     <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.barcode}">
-                        <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.barcode}</div> </td>
+                     <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
+                        <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div> </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat}</div></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.barcode}">${priorityIcon}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.barcode}">
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
                         </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
-                                data-workitemid="${workitem.workitemid}" data-barcode="${workitem.barcode}">
+                                data-workitemid="${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
                             </button>
                         </td>
@@ -1264,7 +1234,7 @@
                                     <div class="mb-4">
                                   <label for="priority-select-${workitem.workitemid}"
                                     class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                                  <select id="priority-select-${workitem.workitemid}" data-barcode="${workitem.barcode}"
+                                  <select id="priority-select-${workitem.workitemid}"
                                     class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="0">{{ _("None") }}</option>
                                     <option value="1">{{ _("Low") }}</option>
@@ -1275,7 +1245,7 @@
                                 <div class="mb-4">
                                   <label for="assign-select-${workitem.workitemid}"
                                     class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                                  <select id="assign-select-${workitem.workitemid}" data-barcode="${workitem.barcode}"
+                                  <select id="assign-select-${workitem.workitemid}" 
                                     class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                                     <option value="None">{{ _("None") }}</option>
                                   </select>
@@ -1291,7 +1261,7 @@
                               class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
                             <button type="button"
                               class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
-                              data-barcode="${workitem.barcode}" data-workitemid="${workitem.workitemid}">
+                               data-workitemid="${workitem.workitemid}">
                               <i class="fas fa-plus"></i>
                             </button>
                           </div>
@@ -1302,7 +1272,7 @@
 
 
                                 <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitem.workitemid}">
-                                  <form class="comment-form" data-barcode="${workitem.barcode}">
+                                  <form class="comment-form" data-workitemid="${workitem.workitemid}">
                                      <label for="comment-text-${workitem.workitemid}"
                               class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
                                     <textarea name="commentText" id="comment-text-${workitem.workitemid}" class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
@@ -1348,7 +1318,6 @@
 
             async function handleAddTag(event) {
                 const button = event.currentTarget;
-                const barcode = button.dataset.barcode;
                 const workitemId = button.dataset.workitemid;
                 const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
                 const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
@@ -1356,7 +1325,7 @@
                 if (!tagName) return;
 
                 try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags`, {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/tags`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1370,7 +1339,7 @@
                     if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
 
                     document.getElementById(`tag-input-${workitemId}`).value = '';
-                    refreshWorkitemUI(barcode, workitemId);
+                    refreshWorkitemUI(workitemId);
 
                 } catch (error) {
                     console.error("Add tag error:", error);
@@ -1379,17 +1348,16 @@
 
             async function handleRemoveTag(event) {
                 const button = event.currentTarget;
-                const barcode = button.dataset.barcode;
+                const workitemid = button.dataset.workitemid;
                 const tagId = button.dataset.tagId;
-                const workitemId = button.closest('.details-row').id.split('-')[2];
 
                 try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${barcode}/tags/${tagId}`, {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/tags/${tagId}`, {
                         method: 'DELETE'
                     });
                     if (!response.ok) throw new Error('Failed to remove tag.');
 
-                    refreshWorkitemUI(barcode, workitemId);
+                    refreshWorkitemUI(workitemid);
                 } catch (error) {
                     console.error("Remove tag error:", error);
                 }
