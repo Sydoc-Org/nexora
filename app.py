@@ -1327,8 +1327,8 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                    WHERE Dokumenttyp is not null and MietverhaeltnisNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    WHERE Dokumenttyp is not null and Dokumenttyp <> ''
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
                 """
                 if q:
                     sql += " AND Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1341,7 +1341,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                     WHERE DocType is not null and DocType <> ''
-                    and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    and ImportTime >= DATEADD(day,-3,getdate())
                 """
                 if q:
                     sql += " and DocType COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1355,13 +1355,13 @@ def api_docfield_values():
                         SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)  
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
 
                         UNION ALL
                         SELECT DocType COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE DocType is not null and DocType <> ''
-                        and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                        and ImportTime >= DATEADD(day,-3,getdate())
                     ) t
                 """
                 if q:
@@ -1375,7 +1375,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE CRD_NR is not null and CRD_NR <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and CRD_NR COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1388,7 +1388,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE CRD_NAME_1 is not null and CRD_NAME_1 <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1401,7 +1401,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE bankpk is not null and bankpk <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and bankpk COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1414,7 +1414,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 convert(float,GrossAmount) AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE grossamount is not null and grossamount <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and grossamount COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1427,7 +1427,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 convert(float,netamount) AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE netamount is not null and netamount <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and netamount COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1440,7 +1440,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 convert(float,vatamount) AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE vatamount is not null and vatamount <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and vatamount COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1453,7 +1453,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 DocCurrency COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE DocCurrency is not null and DocCurrency <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and DocCurrency COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1466,7 +1466,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 InvoiceNR COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE InvoiceNR is not null and InvoiceNR <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and InvoiceNR COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1479,7 +1479,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 ISTEC AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE ISTEC is not null 
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and ISTEC LIKE ?"
@@ -1492,7 +1492,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 ESR COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE ESR is not null and ESR <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and ESR COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1505,7 +1505,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 BestellNummer COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE BestellNummer is not null and BestellNummer <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and BestellNummer COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1518,7 +1518,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Mandant COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE Mandant is not null and Mandant <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and Mandant COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1531,7 +1531,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 docsource COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                 WHERE docsource is not null and docsource <> ''
-                and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
                 sql += " and docsource COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1545,7 +1545,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
                 """
                 if q:
                     sql += " and EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1558,7 +1558,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                     WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                    and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    and ImportTime >= DATEADD(day,-3,getdate())
                 """
                 if q:
                     sql += " and EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1572,13 +1572,13 @@ def api_docfield_values():
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                        and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                        and ImportTime >= DATEADD(day,-3,getdate())
                     ) t
                 """
                 if q:
@@ -1592,7 +1592,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1605,7 +1605,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Einschreiben is not null and Einschreiben <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Einschreiben COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1618,7 +1618,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Niederlassung is not null and Niederlassung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Niederlassung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1631,7 +1631,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Dokdatum is not null and Dokdatum <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Dokdatum COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1644,7 +1644,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Nachsendung is not null and Nachsendung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)  
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
             """
             if q:
                 sql += " and Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1657,7 +1657,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Abteilung is not null and Abteilung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Abteilung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1670,7 +1670,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Sendungsbarcode is not null and Sendungsbarcode <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1683,7 +1683,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Vertraulichkeit is not null and Vertraulichkeit <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1696,7 +1696,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Empfaenger is not null and Empfaenger <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Empfaenger COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1710,7 +1710,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
                 """
                 if q:
                     sql += " and LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1723,7 +1723,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                     WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                    and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                    and ImportTime >= DATEADD(day,-3,getdate())
                 """
                 if q:
                     sql += " and LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1737,13 +1737,13 @@ def api_docfield_values():
                         SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
                         SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                        and ImportTime >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)
+                        and ImportTime >= DATEADD(day,-3,getdate())
                     ) t
                 """
                 if q:
