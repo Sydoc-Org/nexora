@@ -781,7 +781,7 @@ def get_process_filter_and_params(process_name):
 # ---------------------------- process filter end ---------------------------- #
 
 # --------------------------------- dashboard -------------------------------- #
-def get_absolute_dashboard_stats(processName="both"):
+def get_absolute_dashboard_stats(processName="all"):
     stats = {}
     conn = None
     try:
@@ -852,7 +852,7 @@ def get_absolute_dashboard_stats(processName="both"):
         conn.close()
     return stats
 
-def get_dashbord_preview_documents_stats(processName='both'):
+def get_dashbord_preview_documents_stats(processName='all'):
     stats = {}
     conn = None
     try:
@@ -935,8 +935,9 @@ def dashboard():
         logged_in_user = session.get('username', 'Unknown')
         scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
+        access = session.get('access')
 
-        process_name = request.args.get('processFilterDashboard', 'both')
+        process_name = request.args.get('processFilterDashboard', 'all')
         session['process_name_dashboard'] = process_name
         absolute_stats = get_absolute_dashboard_stats(process_name)
 
@@ -948,7 +949,8 @@ def dashboard():
         ReadyTotal=absolute_stats['ReadyTotal'],
         InProgressTotal=absolute_stats['InProgressTotal'],
         DoneTotal=absolute_stats['DoneTotal'],
-        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name
+        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name,
+        access=access
         )
     except Exception as e:
         log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
@@ -977,7 +979,7 @@ def recent_activity():
     
     limit = request.args.get('limit', 10, type=int)
     
-    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'both'))
+    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'all'))
     all_params = params + ['Privera']
 
     try:
@@ -1051,7 +1053,7 @@ def _get_workitems_data(args):
     per_page = 40
     offset = (page - 1) * per_page
 
-    process_name = args.get('processFilterWorkitemOverview', 'both')
+    process_name = args.get('processFilterWorkitemOverview', 'all')
     session['process_name_workitemOverview'] = process_name
     placeholders, params = get_process_filter_and_params(process_name)
     params.append('Privera')
@@ -1303,7 +1305,7 @@ def api_docfield_values():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    process = request.args.get('process', 'both')
+    process = request.args.get('process', 'all')
     field = (request.args.get('field', '') or '').lower().strip()
     q = (request.args.get('q', '') or '').strip()
 
@@ -1800,7 +1802,7 @@ def workitems_overview():
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
         priority = request.args.get('priority', '')
         assigned_user = request.args.get('assignedUser', '')
-        process_name = request.args.get('processFilterWorkitemOverview', 'both')
+        process_name = request.args.get('processFilterWorkitemOverview', 'all')
         
         docfields = request.args.getlist('docfield')
         docvalues = request.args.getlist('docvalue')
@@ -2578,7 +2580,7 @@ def team_board():
         
         access = session.get('access')
         
-        process_name = request.args.get('processFilterBoard', 'both')
+        process_name = request.args.get('processFilterBoard', 'all')
         priority = request.args.get('priority', '')
 
         placeholders, params = get_process_filter_and_params(process_name)
@@ -2915,7 +2917,7 @@ def report_processed_over_time():
     statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'all')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
@@ -3000,7 +3002,7 @@ def report_status_distribution():
     statuses_q = request.args.get('statuses')  
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'all')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 
@@ -3153,7 +3155,7 @@ def report_stage_breakdown():
     statuses_q = request.args.get('statuses')
     process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'both')
+    process_name = process_override or session.get('process_name_dashboard', 'all')
     placeholders, proc_params = get_process_filter_and_params(process_name)
     all_params = proc_params + ['Privera']
 

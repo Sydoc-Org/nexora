@@ -74,7 +74,7 @@
 
         async function fetchDocFieldValues(q = '') {
             try {
-                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'all';
                 const field = document.getElementById('docFieldFilter')?.value;
                 console.log(process, field)
                 const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
@@ -891,7 +891,7 @@
             function addDocFilterRow() {
                 const tpl = document.getElementById('docFilterRowTemplate');
                 const container = document.getElementById('docFiltersContainer');
-                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                const process = document.getElementById('processFilterWorkitemOverview')?.value || 'all';
                 if (!tpl || !container) return;
                 const node = tpl.content.firstElementChild.cloneNode(true);
                 const select = node.querySelector('.doc-filter-field');
@@ -983,7 +983,7 @@
             }
             async function fetchRowSuggestions(row, q = '') {
                 try {
-                    const process = document.getElementById('processFilterWorkitemOverview')?.value || 'both';
+                    const process = document.getElementById('processFilterWorkitemOverview')?.value || 'all';
                     const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
                     const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`);
                     if (!res.ok) throw new Error('Could not fetch field values');
