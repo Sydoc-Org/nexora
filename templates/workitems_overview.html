@@ -200,6 +200,7 @@
                       class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field">
                       {% if process_name == '02_Posteingang' %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="docbarcode" {{ 'selected' if docfield=='docbarcode' }}>{{ _("Document Barcode") }}</option>
                       <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
                       <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}
                       </option>
@@ -220,6 +221,7 @@
                       </option>
                       {% elif process_name == '03_Invoice_New' %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="docbarcode" {{ 'selected' if docfield=='docbarcode' }}>{{ _("Document Barcode") }}</option>
                       <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
                       <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
                       <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>Bank Pk</option>
@@ -245,6 +247,7 @@
                       </option>
                       {% else %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
+                      <option value="docbarcode" {{ 'selected' if docfield=='docbarcode' }}>{{ _("Document Barcode") }}</option>
                       <option value="crdno" {{ 'selected' if docfield=='crdno' }}>{{ _("Creditor no.") }}</option>
                       <option value="crdname" {{ 'selected' if docfield=='crdname' }}>{{ _("Creditor Name") }}</option>
                       <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>BankPk</option>

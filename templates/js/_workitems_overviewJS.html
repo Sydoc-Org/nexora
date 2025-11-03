@@ -311,6 +311,7 @@ function renderTagsInDetails(workitemId, tags) {
                 const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
+                console.log(data)
                 prioritySelector.value = data.priority;
                 assignSelector.value = data.assigneduserid;
                 renderTagsInDetails(workitemId, data.tags)
@@ -483,6 +484,7 @@ function renderTagsInDetails(workitemId, tags) {
                                 const fieldLabels = {
                                     DocDate: '{{ _("Document Date") }}',
                                     DocType: '{{ _("Document Type") }}',
+                                    DocBarcode: '{{ _("Document Barcode") }}',
                                     OwnerNr: '{{ _("Owner no.") }}',
                                     TenancyNr: '{{ _("Tenancy no.") }}',
                                     Registered: "{{ _('Registered') }}",
@@ -607,7 +609,6 @@ function renderTagsInDetails(workitemId, tags) {
             event.preventDefault();
             const form = event.target;
             const workitemid = form.dataset.workitemid; 
-            console.log(workitemid)
             const textarea = form.querySelector('textarea');
             const commentText = textarea.value.trim();
             if (!commentText) return;
@@ -813,9 +814,9 @@ function renderTagsInDetails(workitemId, tags) {
             function getDocFieldOptions(process) {
                 if (process === '02_Posteingang') {
                     return {
-                        order: ['doctype', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'recipient', 'confidentiality'],
+                        order: ['doctype', 'docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'recipient', 'confidentiality'],
                         labels: {
-                            doctype: '{{ _("Document Type") }}', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
+                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}',ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
                             propertynr: '{{ _("Property No.") }}', registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}',
                             docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}', department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}'
                             ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}'
@@ -824,21 +825,21 @@ function renderTagsInDetails(workitemId, tags) {
                 }
                 if (process === '03_Invoice_New') {
                     return {
-                        order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
+                        order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
                             ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'
                         ],
                         labels: {
-                            doctype: '{{ _("Document Type") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
+                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
                             bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', propertynr: '{{ _("Property no.") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
                             invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
                         }
                     };
                 }
                 return {
-                    order: ['doctype', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
+                    order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
                             ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'],
                     labels: {
-                        doctype: '{{ _("Document Type") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
+                        doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
                         bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}', propertynr: '{{ _("Property no.") }}',
                         registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}', docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}',
                         department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}' ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 

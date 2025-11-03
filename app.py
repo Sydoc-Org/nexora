@@ -492,7 +492,7 @@ def admin_active_sessions():
                 IPAddress,
                 MAX(Timestamp) as LastActivity
             FROM User_Logs
-            WHERE Timestamp >= DATEADD(minute, -30, GETUTCDATE())
+            WHERE Timestamp >= DATEADD(minute, -30, getdate())
             GROUP BY SessionID, Username, IPAddress, Userid
             ORDER BY LastActivity DESC
         """)
@@ -870,7 +870,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
         cursor = conn.cursor()
         cursor.execute(f"""
             WITH CTE AS (
-            SELECT tdi.WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
+            SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
             CASE 
                 WHEN twi.Status = 0 THEN 'Ready'
                 WHEN twi.Status = 5 THEN 'Done'
@@ -899,16 +899,19 @@ def get_dashbord_preview_documents_stats(processName='all'):
             FROM t_WorkItems twi 
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
-            tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
+            --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
+            --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 
         )
-        SELECT DISTINCT TOP 20 tdi.StringValue Barcode
+        SELECT DISTINCT TOP 20 
+        WorkItemID
+        --tdi.StringValue Barcode
         ,Activity FROM CTE
-        LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
-        AND CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
+        --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+        WHERE 
+        --tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
+        CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
             """, (all_params)
         )
         rows = cursor.fetchall()
@@ -920,7 +923,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
 
     return jsonify([
             {
-                "Barcode": row[0],
+                "WorkItemID": row[0],
                 "Activity": row[1]
             }
             for row in rows
@@ -996,7 +999,7 @@ def recent_activity():
         cursor.execute(f"""
             WITH CTE AS (
                 SELECT 
-                    tdi.WorkItemID, 
+                    twi.ID WorkItemID, 
                     DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt, 
                     CASE 
                         WHEN twi.Status = 0 THEN 'Ready'
@@ -1006,18 +1009,19 @@ def recent_activity():
                 FROM t_WorkItems twi 
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND
-                tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
+                --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
+                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? 
+                --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
                 AND twi.Status <> 2 
             )
             SELECT DISTINCT TOP ({limit})
-                tdi.StringValue AS Barcode, 
+                --tdi.StringValue AS Barcode, 
+                CTE.WorkItemID,
                 CTE.Status, 
                 CTE.ModifiedAt 
             FROM CTE
-            JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
+            --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
+            --WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
             ORDER BY CTE.ModifiedAt DESC
         """
         ,all_params)
@@ -1029,7 +1033,7 @@ def recent_activity():
             {
                 "state": row.Status,
                 "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),  
-                "Barcode": row.Barcode
+                "workitemid": row.WorkItemID
             }
             for row in activities
         ])
@@ -1094,7 +1098,6 @@ def _get_workitems_data(args):
     if priority:
         where_clauses.append("wim.Priority = ?")
         params.append(priority)
-        print(priority)
     if assigned_user:
         if assigned_user == 'None' or assigned_user == 'Unassigned':
             where_clauses.append("(wim.AssignedUserID IS NULL)")
@@ -1118,6 +1121,18 @@ def _get_workitems_data(args):
             else:
                 where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
                 params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+        
+        elif docfield == 'docbarcode':
+            if process_name == '02_Posteingang':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif process_name == '03_Invoice_New':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            else:
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+
         elif docfield == 'crdno':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
             params.append(f"%{docvalue}%")
@@ -1220,7 +1235,7 @@ def _get_workitems_data(args):
         cursor = conn.cursor()
         
         count_query = f"""
-            SELECT COUNT(DISTINCT twi.ID)
+            SELECT COUNT(twi.ID)
             FROM t_WorkItems twi
             INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
@@ -1228,6 +1243,7 @@ def _get_workitems_data(args):
             LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {where_sql}
         """
+        print(count_query)
         cursor.execute(count_query, params)
         total_items = cursor.fetchone()[0] or 0
         
@@ -1272,7 +1288,6 @@ def _get_workitems_data(args):
         """
         data_params = params + [offset, per_page] 
         cursor.execute(data_query, data_params)
-        print(data_query, data_params)
         for row in cursor.fetchall():
             workitems_list.append({
                 # 'barcode': row.Barcode,
@@ -1369,6 +1384,55 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
+
+        if field == 'docbarcode':
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    WHERE Barcode is not null and Barcode <> ''
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                """
+                if q:
+                    sql += " AND Barcode COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '03_Invoice_New':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    WHERE Barcode is not null and Barcode <> ''
+                    and ImportTime >= DATEADD(day,-3,getdate())
+                """
+                if q:
+                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        WHERE Barcode is not null and Barcode <> ''
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
+
+                        UNION ALL
+                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                        WHERE Barcode is not null and Barcode <> ''
+                        and ImportTime >= DATEADD(day,-3,getdate())
+                    ) t
+                """
+                if q:
+                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
 
         elif field == 'crdno':
             sql = f"""
@@ -1881,7 +1945,7 @@ def get_single_workitem(workitemid):
         query = f"""
             WITH WorkitemCTE AS (
                 SELECT
-                    tdi_barcode.StringValue AS Barcode,
+                    --tdi_barcode.StringValue AS Barcode,
                     twi.ID AS WorkItemID,
                     (
                         SELECT 
@@ -1895,10 +1959,10 @@ def get_single_workitem(workitemid):
                     ) AS TagsJSON,
                     ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn 
                 FROM t_WorkItems twi
-                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 WHERE twi.ID = ?
             )
-            SELECT Barcode, WorkItemID, TagsJSON
+            SELECT WorkItemID, TagsJSON
             FROM WorkitemCTE
             WHERE rn = 1
         """
@@ -1909,13 +1973,13 @@ def get_single_workitem(workitemid):
             return jsonify({"error": "Workitem not found"}), 404
 
         workitem_data = {
-            'barcode': row.Barcode,
+            # 'barcode': row.Barcode,
             'workitemid': row.WorkItemID,
             'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
         }
         return jsonify(workitem_data)
     except Exception as e:
-        app.logger.error(f"Failed to fetch single workitem {barcode}: {e}")
+        app.logger.error(f"Failed to fetch single workitem {row.WorkItemID}: {e}")
         return jsonify({"error": _("Could not fetch workitem data")}), 500
     finally:
         if conn:
@@ -1976,8 +2040,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    # with open('data.json', 'w') as f:
-    #     json.dump(response.json(), f)
+    with open('data.json', 'w') as f:
+        json.dump(response.json(), f)
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -1988,6 +2052,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
                 match field['Name']:
                     case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
                         fields['DocType'] = field["FieldValue"]['Text']
+                    case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and field["FieldValue"]['Text'] != None:
+                        fields['DocBarcode'] = field["FieldValue"]['Text']
                     case 'exp_eigNr':
                         fields['OwnerNr'] = field["FieldValue"]['Text']
                     case 'exp_mietNr':
@@ -2047,6 +2113,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
             match element['Name']:
                 case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
                     fields['DocType'] = element["FieldValue"]['Text']
+                case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and element["FieldValue"]['Text'] != None:
+                    fields['DocBarcode'] = element["FieldValue"]['Text']
                 case 'exp_eigNr':
                     fields['OwnerNr'] = element["FieldValue"]['Text']
                 case 'exp_mietNr':
@@ -2139,7 +2207,6 @@ def api_get_media_info(workitem_id):
         return jsonify(response_data)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
-        print(workitem_id)
         return jsonify({"error": _("Internal Server Error")}), 500
     
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
@@ -2287,21 +2354,6 @@ def get_workitem_interactions(workitemid):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-
-        cursor.execute("""SELECT Priority, AssignedUserID FROM Workitem_Metadata
-                        WHERE WorkItemID = ?"""
-                       , (workitemid,))
-        row = cursor.fetchone()
-        if not row:
-            return jsonify({
-                'priority': 0,
-                'assigneduserid': 'None',
-                'comments': [],
-                'tags': [], 
-                'message': _("No data found for this workitem.")
-            }), 200
-        priority = row[0] if row[0] != None else 0
-        assigneduserid = row[1] if row[1] != None else 'None'
         current_user_access = session.get('access')
 
         sql_query = """
@@ -2310,15 +2362,6 @@ def get_workitem_interactions(workitemid):
             JOIN Users u ON c.UserID = u.userID
         """
         params = [workitemid]
-
-        cursor.execute("""
-            SELECT t.TagID, t.TagName, t.TagColor
-            FROM Workitem_Tags wt
-            JOIN Tags t ON wt.TagID = t.TagID
-            WHERE wt.workitemid = ?
-        """, (workitemid,))
-        tags_data = cursor.fetchall()
-        tags = [{'id': row.TagID, 'name': row.TagName, 'color': row.TagColor} for row in tags_data]
 
         if current_user_access == 'Unlimited':
             sql_query += " WHERE c.WorkItemID = ?"
@@ -2329,14 +2372,44 @@ def get_workitem_interactions(workitemid):
         sql_query += " ORDER BY c.Timestamp ASC"
         cursor.execute(sql_query, params)
         comments_data = cursor.fetchall()
+        print(comments_data)
+
+        cursor.execute("""
+            SELECT t.TagID, t.TagName, t.TagColor
+            FROM Workitem_Tags wt
+            JOIN Tags t ON wt.TagID = t.TagID
+            WHERE wt.workitemid = ?
+        """, (workitemid,))
+        tags_data = cursor.fetchall()
+
+        cursor.execute("""SELECT Priority, AssignedUserID FROM Workitem_Metadata
+                        WHERE WorkItemID = ?"""
+                       , (workitemid,))
+        meta_row = cursor.fetchone()
+
+        if meta_row is None and not comments_data and not tags_data:
+            return jsonify({
+                'priority': 0,
+                'assigneduserid': 'None',
+                'comments': [],
+                'tags': [], 
+                'message': _("No data found for this workitem.")
+            }), 200
+
+        priority = meta_row[0] if (meta_row and meta_row[0] is not None) else 0
+        assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else 'None' 
+        tags = [{'id': trow.TagID, 'name': trow.TagName, 'color': trow.TagColor} for trow in tags_data] if tags_data else []
+
+        
         comments = []
-        for row in comments_data:
-            comments.append({
-                'CommentText': row.CommentText,
-                'Timestamp': row.Timestamp.isoformat(),
-                'username': row.username,
-                'userID': row.userID
-            })
+        if comments_data:
+            for crow in comments_data:
+                comments.append({
+                    'CommentText': crow.CommentText,
+                    'Timestamp': crow.Timestamp.isoformat(),
+                    'username': crow.username,
+                    'userID': crow.userID
+                })
         return jsonify({
             'priority': priority,
             'assigneduserid': assigneduserid,
@@ -2415,7 +2488,7 @@ def assign_workitem(workitemid):
 
         cursor.execute("""
             MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (WorkItemID, AssignedUserID, UserID, UpdateTime)
+            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, AssignedUserID, UserID, UpdateTime)
             ON target.WorkItemID = source.WorkItemID 
             WHEN MATCHED THEN
                 UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
@@ -2423,6 +2496,7 @@ def assign_workitem(workitemid):
                 INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
                 VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
         """, (workitemid, assignedUserID, session['userid']))
+        print(workitemid, assignedUserID, session['userid'])
         
         conn.commit()
         log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=workitemid, details={'assignedUserID': assignedUserID})
@@ -2456,7 +2530,7 @@ def set_workitem_priority(workitemid):
 
         cursor.execute("""
             MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETUTCDATE())) AS source (WorkItemID, Priority, UserID, UpdateTime)
+            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, Priority, UserID, UpdateTime)
             ON target.WorkItemID = source.WorkItemID
             WHEN MATCHED THEN
                 UPDATE SET Priority = source.Priority, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
@@ -2588,9 +2662,9 @@ def team_board():
         
         where_clauses = [
             f"tp.Name IN ({placeholders})",
-            "tp.ClientName = ?",
-            "tdi_barcode.Name LIKE '%Barcode'", 
-            "tdi_barcode.StringValue IS NOT NULL"
+            "tp.ClientName = ?"
+            # "tdi_barcode.Name LIKE '%Barcode'", 
+            # "tdi_barcode.StringValue IS NOT NULL"
         ]
 
         if priority:
@@ -2610,10 +2684,11 @@ def team_board():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        query = f"""
+        cursor.execute(f"""
             WITH BoardItems AS (
                 SELECT
-                    tdi_barcode.StringValue AS Barcode,
+                    -- tdi_barcode.StringValue AS Barcode,
+                    twi.id WorkitemID,
                     twi.ModifiedAt,
                     CASE
                         WHEN twi.Status = 5 THEN 'Delivery'
@@ -2630,24 +2705,25 @@ def team_board():
                         SELECT t.TagName AS name, t.TagColor AS color
                         FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                         JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.Barcode = tdi_barcode.StringValue
+                        WHERE wt.workitemid = twi.id
                         FOR JSON PATH
                     ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY tdi_barcode.StringValue ORDER BY twi.ModifiedAt DESC) as rn
+                    ROW_NUMBER() OVER(PARTITION BY twi.id ORDER BY twi.ModifiedAt DESC) as rn
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
-                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON tdi_barcode.StringValue = wim.Barcode
+                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
+                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
-            SELECT Barcode, ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
+            SELECT --Barcode, 
+            WorkitemID,
+            ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
             FROM BoardItems
             WHERE rn = 1
             ORDER BY Priority DESC, ModifiedAt ASC;
         """
-        
-        cursor.execute(query, params)
+        ,params)
         
         portal_users = get_all_portal_users(access)
         workitems_by_user = {user['userID']: [] for user in portal_users}
@@ -2657,7 +2733,8 @@ def team_board():
             user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
             if user_id in workitems_by_user:
                 workitems_by_user[user_id].append({
-                    'barcode': row.Barcode,
+                    # 'barcode': row.Barcode,
+                    'workitemid': row.WorkitemID,
                     'modifiedat': row.ModifiedAt,
                     'current_stage': row.CurrentStage,
                     'priority': row.Priority or 0,
@@ -3116,14 +3193,6 @@ def report_kpi_stats():
         """, *(all_params))
         processed_week = cursor.fetchone()[0]
         
-        print(f"""
-            SELECT COUNT(twi.ID) FROM t_WorkItems twi
-            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
-            AND twi.ModifiedAt >= DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0)
-                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0);
-        """,all_params, processed_week)
-
         cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
