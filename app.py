@@ -819,6 +819,19 @@ def get_absolute_dashboard_stats(processName="all"):
                         on p.id = a.ProcessID
                 WHERE p.Name IN ({placeholders})
                     AND p.ClientName = ?
+                    AND a.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
                 GROUP BY w.[Status]
             )
             SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
@@ -902,7 +915,19 @@ def get_dashbord_preview_documents_stats(processName='all'):
             --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
             --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
-            AND twi.Status <> 2 
+            AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
         )
         SELECT DISTINCT TOP 20 
         WorkItemID
@@ -959,14 +984,6 @@ def dashboard():
         log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
-@app.route("/api/dashboard_stats_absolute")
-def dashboard_stats_absolute():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-    process_name = session['process_name_dashboard']
-    stats = get_absolute_dashboard_stats(process_name)
-    return jsonify(stats) 
-
 @app.route("/api/dashboard_stats_document_preview")
 def dashboard_stats_document_preview():
     if 'username' not in session:
@@ -1012,7 +1029,19 @@ def recent_activity():
                 --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
                 WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? 
                 --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
-                AND twi.Status <> 2 
+                AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
             )
             SELECT DISTINCT TOP ({limit})
                 --tdi.StringValue AS Barcode, 
@@ -1068,7 +1097,20 @@ def _get_workitems_data(args):
     where_clauses = [
         f"tp.Name IN ({placeholders})",
         "tp.ClientName = ?",
-        "twi.Status <> 2"
+        "twi.Status <> 2",
+        """tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+        )"""
     ]
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
     if status and status in status_map:
@@ -1243,7 +1285,6 @@ def _get_workitems_data(args):
             LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {where_sql}
         """
-        print(count_query)
         cursor.execute(count_query, params)
         total_items = cursor.fetchone()[0] or 0
         
@@ -1290,7 +1331,6 @@ def _get_workitems_data(args):
         cursor.execute(data_query, data_params)
         for row in cursor.fetchall():
             workitems_list.append({
-                # 'barcode': row.Barcode,
                 'modifiedat': row.ModifiedAt,
                 'workitemid': row.WorkItemID,
                 'status': row.Status,
@@ -2662,9 +2702,20 @@ def team_board():
         
         where_clauses = [
             f"tp.Name IN ({placeholders})",
-            "tp.ClientName = ?"
-            # "tdi_barcode.Name LIKE '%Barcode'", 
-            # "tdi_barcode.StringValue IS NOT NULL"
+            "tp.ClientName = ?",
+            """tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )"""
         ]
 
         if priority:
@@ -3022,11 +3073,11 @@ def report_processed_over_time():
     elif group_by == 'month':
         group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
         order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    else:  # day
+    else:  
         group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
         order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
 
-    status_sql = "twi.Status = 5"
+    status_sql = "(twi.Status = 5 or tai.ActivityInstanceName = 'Pause Process')"
     status_params = []
     if status_codes:
         placeholders_status = ','.join(['?'] * len(status_codes))
@@ -3054,6 +3105,19 @@ def report_processed_over_time():
               AND tp.ClientName = ?
               AND {status_sql}
               AND {date_filter_sql}
+              AND tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
             GROUP BY {group_key}
             ORDER BY SortKey;
         """, *(all_params + status_params + date_params))
@@ -3119,7 +3183,6 @@ def report_status_distribution():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        # Count Ready / In Progress / Done inside the window
         placeholders_status = ','.join(['?']*len(status_codes))
         cursor.execute(f"""
             WITH Mapped AS (
@@ -3135,6 +3198,19 @@ def report_status_distribution():
                 AND tp.ClientName = ?
                 AND twi.Status IN ({placeholders_status})
                 AND {date_sql}
+                AND tai.ActivityInstanceName not in (
+                    --posteingang
+                    'Deletion Marker Privera Posteingang C+A',
+                    'Deletion Marker ohne PDF PP_END',
+                    'Deletion Marker ohne PDF PP_END_1',
+                    'Deletion Marker Privera Posteingang NoImages',
+                    --invoice
+                    'Deletion Marker MAIL Invalid or Empty',
+                    'Deletion Marker MAIL',
+                    'Deleted Documents',
+                    'Deletion Marker Posteingang2Invoice Parent',
+                    'Deletion Marker Scan Duplicate'
+                    )
             )
             SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
         """, *(all_params + status_codes + date_params))
@@ -3179,17 +3255,45 @@ def report_kpi_stats():
         
         cursor.execute(f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
-            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
-            AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE);
+            LEFT JOIN t_ActivityInstances a on a.ID = twi.ActivityInstanceID
+            LEFT JOIN t_Processes tp ON tp.ID = a.processid
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND (twi.Status = 5 or a.ActivityInstanceName = 'Pause Process')
+            AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE)
+            AND a.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
         """,all_params)
         processed_today = cursor.fetchone()[0]
         cursor.execute(f"""
             SELECT COUNT(twi.ID) FROM t_WorkItems twi
-            LEFT JOIN t_Processes tp ON tp.ID = (SELECT ProcessID FROM t_ActivityInstances WHERE ID = twi.ActivityInstanceID)
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND twi.Status = 5
+            LEFT JOIN t_ActivityInstances a on a.ID = twi.ActivityInstanceID
+            LEFT JOIN t_Processes tp ON tp.ID = a.processid
+            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND (twi.Status = 5 or a.ActivityInstanceName = 'Pause Process')
             AND twi.ModifiedAt >= DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0)
-                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0);
+                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0)
+            AND a.ActivityInstanceName not in (
+            --posteingang
+            'Deletion Marker Privera Posteingang C+A',
+                'Deletion Marker ohne PDF PP_END',
+                'Deletion Marker ohne PDF PP_END_1',
+            'Deletion Marker Privera Posteingang NoImages',
+            --invoice
+                'Deletion Marker MAIL Invalid or Empty',
+                'Deletion Marker MAIL',
+                'Deleted Documents',
+                'Deletion Marker Posteingang2Invoice Parent',
+            'Deletion Marker Scan Duplicate'
+            )
         """, *(all_params))
         processed_week = cursor.fetchone()[0]
         
@@ -3275,6 +3379,19 @@ def report_stage_breakdown():
               AND twi.Status IN ({placeholders_status})
               AND tai.ActivityInstanceName NOT LIKE '%Pause%'
               AND {date_sql}
+              AND tai.ActivityInstanceName not in (
+                --posteingang
+                'Deletion Marker Privera Posteingang C+A',
+                 'Deletion Marker ohne PDF PP_END',
+                 'Deletion Marker ohne PDF PP_END_1',
+                'Deletion Marker Privera Posteingang NoImages',
+                --invoice
+                 'Deletion Marker MAIL Invalid or Empty',
+                 'Deletion Marker MAIL',
+                 'Deleted Documents',
+                 'Deletion Marker Posteingang2Invoice Parent',
+                'Deletion Marker Scan Duplicate'
+                )
             GROUP BY 
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
