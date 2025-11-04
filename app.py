@@ -3034,6 +3034,10 @@ def jdvance():
 # -------------------------------- jdvance end ------------------------------- #
 
 # ---------------------------------- reports --------------------------------- #
+
+# ---------------------------------------------------------------------------- #
+# --------------------------------- fix here --------------------------------- #
+# ---------------------------------------------------------------------------- #
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
@@ -3087,44 +3091,55 @@ def report_processed_over_time():
     conn = None
     try:
         conn_str = (
-            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
+            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_STAT};"
             f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        cursor.execute(f"""
-            SELECT 
-                {group_key} AS Bucket,
-                COUNT(twi.ID) as ItemCount,
-                {order_key} as SortKey
-            FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({placeholders})
-              AND tp.ClientName = ?
-              AND {status_sql}
-              AND {date_filter_sql}
-              AND tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
-                )
-            GROUP BY {group_key}
-            ORDER BY SortKey;
-        """, *(all_params + status_params + date_params))
+        if session['process_name_dashboard'] == '03_Invoice_New':
+            cursor.execute(f"""
+                select CAST(ExportDate AS DATE) d,count(*) c from [SYDOC_Statistik].dbo.PriveraInvoice
+                where ExportDate >= dateadd(day,-14,getdate())
+                group by CAST(ExportDate AS DATE)
+        """)
+        elif session['process_name_dashboard'] == '02_Posteingang':
+            cursor.execute(f"""
+                select CONVERT(date, exportdatetime,104) d,count(*) c from PriveraPosteingang
+                where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate())
+                group by CONVERT(date, exportdatetime,104)
+        """)
+        else:
+            cursor.execute(f"""
+                SELECT
+                d,
+            SUM(cnt) AS c
+        FROM (
+            -- Invoices
+            SELECT
+                CAST(i.ExportDate AS date) AS d,
+                COUNT(DISTINCT i.wid) AS cnt
+            FROM PriveraInvoice i
+            WHERE i.ExportDate >= DATEADD(DAY, -14, GETDATE())
+            GROUP BY CAST(i.ExportDate AS date)
+
+            UNION ALL
+
+            -- Posteingang
+            SELECT
+                CONVERT(DATE,p.ExportDatetime,104) AS d,
+                COUNT(DISTINCT p.Workitemid) AS cnt
+            FROM PriveraPosteingang p
+            WHERE CONVERT(DATE,p.ExportDatetime,104) >= DATEADD(DAY, -14, GETDATE())
+            GROUP BY CONVERT(DATE,p.ExportDatetime,104)
+        ) x
+        GROUP BY d;
+        """)
         rows = cursor.fetchall()
 
-        labels = [row.Bucket for row in rows]
-        data = [row.ItemCount for row in rows]
+        labels = [row.d for row in rows]
+        data = [row.c for row in rows]
+        print(labels, data)
         return jsonify({'labels': labels, 'data': data})
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
@@ -3252,49 +3267,65 @@ def report_kpi_stats():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
-        cursor.execute(f"""
-            SELECT COUNT(twi.ID) FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances a on a.ID = twi.ActivityInstanceID
-            LEFT JOIN t_Processes tp ON tp.ID = a.processid
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND (twi.Status = 5 or a.ActivityInstanceName = 'Pause Process')
-            AND CAST(DATEADD(HOUR, 2, twi.ModifiedAt) AS DATE) = CAST(GETDATE() AS DATE)
-            AND a.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
-                )
-        """,all_params)
-        processed_today = cursor.fetchone()[0]
-        cursor.execute(f"""
-            SELECT COUNT(twi.ID) FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances a on a.ID = twi.ActivityInstanceID
-            LEFT JOIN t_Processes tp ON tp.ID = a.processid
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? AND (twi.Status = 5 or a.ActivityInstanceName = 'Pause Process')
-            AND twi.ModifiedAt >= DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0)
-                AND twi.ModifiedAt < DATEADD(wk, DATEDIFF(wk, 0, GETDATE()) + 1, 0)
-            AND a.ActivityInstanceName not in (
-            --posteingang
-            'Deletion Marker Privera Posteingang C+A',
-                'Deletion Marker ohne PDF PP_END',
-                'Deletion Marker ohne PDF PP_END_1',
-            'Deletion Marker Privera Posteingang NoImages',
-            --invoice
-                'Deletion Marker MAIL Invalid or Empty',
-                'Deletion Marker MAIL',
-                'Deleted Documents',
-                'Deletion Marker Posteingang2Invoice Parent',
-            'Deletion Marker Scan Duplicate'
+        if session['process_name_dashboard'] == '03_Invoice_New':
+            cursor.execute(f"""
+                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE)
+            """)
+        elif session['process_name_dashboard'] == '02_Posteingang':
+            cursor.execute(f"""
+                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE)
+            """)
+        else:
+            cursor.execute(f"""
+                SELECT
+            (SELECT COUNT(*) 
+            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+            WHERE i.ExportDate >= CONVERT(date, GETDATE())
+            AND i.ExportDate <  DATEADD(DAY, 1, CONVERT(date, GETDATE()))
             )
-        """, *(all_params))
+        + (SELECT COUNT(*) 
+            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+            WHERE CONVERT(DATE, p.ExportDatetime,104) >= CONVERT(date, GETDATE())
+            AND CONVERT(DATE, p.ExportDatetime,104) <  DATEADD(DAY, 1, CONVERT(date, GETDATE()))
+            ) AS TotalCountToday;
+            """)
+        processed_today = cursor.fetchone()[0]
+        if session['process_name_dashboard'] == '03_Invoice_New':
+            cursor.execute(f"""
+                    select
+                        count(distinct i.wid)
+                        from [SYDOC_STATISTIK].dbo.PriveraInvoice i
+                        WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                        AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+            """)
+        elif session['process_name_dashboard'] == '02_Posteingang':
+            cursor.execute(f"""
+                    select
+                    count(distinct P.WorkItemID)
+                    from [SYDOC_STATISTIK].dbo.PriveraPosteingang p
+                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                    AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+            """)
+        else:
+            cursor.execute(f"""
+                    DECLARE @WeekStart DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0);
+DECLARE @WeekEnd   DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+
+SELECT
+    (SELECT COUNT(DISTINCT i.wid)
+     FROM [SYDOC_STATISTIK].dbo.PriveraInvoice i
+     WHERE i.ExportDate >= @WeekStart
+       AND i.ExportDate <  @WeekEnd
+    )
+  + (SELECT COUNT(DISTINCT p.WorkItemID)
+     FROM [SYDOC_STATISTIK].dbo.PriveraPosteingang p
+     WHERE CONVERT(DATE, p.ExportDatetime,104) >= @WeekStart
+       AND CONVERT(DATE, p.ExportDatetime,104) <  @WeekEnd
+    ) AS TotalDistinctIdsThisWeek;
+
+            """)
         processed_week = cursor.fetchone()[0]
         
         cursor.execute(f"""
