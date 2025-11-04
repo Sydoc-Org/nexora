@@ -152,7 +152,7 @@
           const color = details.color;
           const item = document.createElement('div');
           item.className = 'timeline-item py-1';
-          item.innerHTML = `<div class="timeline-connector"></div><div class="timeline-icon bg-${color}-100 text-${color}-600"><i class="${details.icon} text-2xl"></i></div><div class="flex-grow"><h4 class="font-bold text-gray-800">Barcode ${row.Barcode}</h4><p class="text-sm text-gray-500">{{ _("Current Stage:") }} <span class="font-semibold text-${color}-700">${details.text}</span></p></div>`;
+          item.innerHTML = `<div class="timeline-connector"></div><div class="timeline-icon bg-${color}-100 text-${color}-600"><i class="${details.icon} text-2xl"></i></div><div class="flex-grow"><h4 class="font-bold text-gray-800">Workitem ${row.WorkItemID}</h4><p class="text-sm text-gray-500">{{ _("Current Stage:") }} <span class="font-semibold text-${color}-700">${details.text}</span></p></div>`;
           container.appendChild(item);
         });
       } catch (error) { console.error("Failed to update document timeline:", error); }
@@ -171,10 +171,10 @@
             const li = document.createElement("li");
             li.className = "flex items-start space-x-3";
             let icon = "", msg = "";
-            if (act.state === "Ready") { icon = `<div class="h-6 w-6 shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-hourglass-start text-xs"></i></div>`; msg = `{{ _("Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("is ready") }}`; }
-            else if (act.state === "In Progress") { icon = `<div class="h-6 w-6 shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-spinner text-xs"></i></div>`; msg = `{{ _("Processing for Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("started.") }}`; }
-            else if (act.state === "Done") { icon = `<div class="h-6 w-6 shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mt-1"><i class="fas fa-check-circle text-xs"></i></div>`; msg = `{{ _("Barcode") }} <span class="font-bold">${act.Barcode}</span> {{ _("finished processing.") }}`; }
-            else { icon = `<div class="h-6 w-6 shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mt-1"><i class="fas fa-question text-xs"></i></div>`; msg = `{{ _("Unknown status for") }} <span class="font-bold">${act.Barcode}</span>.`; }
+            if (act.state === "Ready") { icon = `<div class="h-6 w-6 shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-hourglass-start text-xs"></i></div>`; msg = `{{ _("Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("is ready") }}`; }
+            else if (act.state === "In Progress") { icon = `<div class="h-6 w-6 shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-spinner text-xs"></i></div>`; msg = `{{ _("Processing for Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("started.") }}`; }
+            else if (act.state === "Done") { icon = `<div class="h-6 w-6 shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mt-1"><i class="fas fa-check-circle text-xs"></i></div>`; msg = `{{ _("Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("finished processing.") }}`; }
+            else { icon = `<div class="h-6 w-6 shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mt-1"><i class="fas fa-question text-xs"></i></div>`; msg = `{{ _("Unknown status for") }} <span class="font-bold">${act.workitemid}</span>.`; }
             li.innerHTML = `${icon}<div><p class="text-sm font-medium text-gray-800">${msg}</p><p class="text-xs text-gray-500">${act.datetime}</p></div>`;
             list.appendChild(li);
         });
@@ -218,7 +218,7 @@
                 updateDocumentTimeline();
                 updateRecentActivity();
             }
-        }, 30000); ds
+        }, 30000);
     });
   </script>
 </body>

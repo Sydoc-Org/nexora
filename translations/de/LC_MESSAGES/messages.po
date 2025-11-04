@@ -1698,11 +1698,11 @@ msgstr "Mietvertrags-Nr."
 #: templates/js/_workitems_overviewJS.html:862
 #: templates/js/_workitems_overviewJS.html:872
 msgid "Property no."
-msgstr "Objekt-Nr."
+msgstr "Liegenschafts-Nr."
 
 #: templates/js/_workitems_overviewJS.html:492
 msgid "Property Name"
-msgstr "Objektname"
+msgstr "Liegenschafts-Name"
 
 #: templates/js/_workitems_overviewJS.html:493
 msgid "Tenant no."
