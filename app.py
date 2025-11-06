@@ -1177,10 +1177,12 @@ def _get_workitems_data(args):
             elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
             else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'crdno':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
             params.append(f"%{docvalue}%")
@@ -1471,7 +1473,18 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
-
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Barcode is not null and Barcode <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
             else:  
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
@@ -1485,6 +1498,13 @@ def api_docfield_values():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE Barcode is not null and Barcode <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
+
+                        UNION ALL
+
+                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Barcode is not null and Barcode <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
                 """
                 if q:
