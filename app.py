@@ -1169,7 +1169,6 @@ def _get_workitems_data(args):
             else:
                 where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
                 params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        
         elif docfield == 'docbarcode':
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
@@ -1282,6 +1281,9 @@ def _get_workitems_data(args):
             else:
                 where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                 params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
+        elif docfield == 'separatorsheet':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -1973,6 +1975,19 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
+            
+        elif field == 'separatorsheet':
+            sql = f"""
+                SELECT DISTINCT TOP 15 trennblatt COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE trennblatt is not null and trennblatt <> ''
+                and Export >= DATEADD(MONTH, -6, getdate())
+            """
+            if q:
+                sql += " and trennblatt COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
         else:
             return jsonify([])
 
@@ -2212,11 +2227,10 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['DocType'] = field["FieldValue"]['Text']
                     case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['DocBarcode'] = field["FieldValue"]['Text']
-                    
                     case 'Deckblatt':
                         fields['SeparatorSheet'] = field["FieldValue"]['Text']
                     case 'register':
-                        fields['Register'] = field["FieldValue"]['Text']
+                        fields['Registry'] = field["FieldValue"]['Text']
                     case 'doc_id':
                         fields['DocID'] = field["FieldValue"]['Text']
                     case 'ArchivBoxNummer':
@@ -2285,7 +2299,7 @@ def get_extensions_urls_fields(workitemdata, document_id):
                 case 'Deckblatt':
                     fields['SeparatorSheet'] = element["FieldValue"]['Text']
                 case 'register':
-                    fields['Register'] = element["FieldValue"]['Text']
+                    fields['Registry'] = element["FieldValue"]['Text']
                 case 'doc_id':
                     fields['DocID'] = element["FieldValue"]['Text']
                 case 'ArchivBoxNummer':

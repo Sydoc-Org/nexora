@@ -514,7 +514,7 @@ function renderTagsInDetails(workitemId, tags) {
                                     DocSource: "{{ _('Document Source') }}",
 
                                     SeparatorSheet: '{{ _("Seperator-sheet") }}',
-                                    Register: '{{ _("Register") }}',
+                                    Registry: '{{ _("Registry") }}',
                                     DocID: '{{ _("Document ID.") }}',
                                     ArchiveBoxNo: '{{ _("Archive-box No.") }}'
                                 };
@@ -841,24 +841,24 @@ function renderTagsInDetails(workitemId, tags) {
                 }
                 if (process === '02_InitialScan') {
                     return {
-                        order: ['docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'register', 'separatorsheet', 'docid', 'archiveboxno'],
+                        order: ['docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'separatorsheet', 'docid', 'archiveboxno'],
                         labels: {
                             doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}',ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
-                            propertynr: '{{ _("Property No.") }}', register: '{{ _("Register") }}', separatorsheet: '{{ _("Separator-sheet") }}',
+                            propertynr: '{{ _("Property No.") }}', separatorsheet: '{{ _("Separator-sheet") }}',
                             docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
                         }
                     };
                 }
                 return {
                     order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
-                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource', 'register', 'separatorsheet', 'docid', 'archiveboxno'],
+                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource',  'separatorsheet', 'docid', 'archiveboxno'],
                     labels: {
                         doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
                         bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}', propertynr: '{{ _("Property no.") }}',
                         registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}', docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}',
                         department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}' ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
                             invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
-                            , register: '{{ _("Register") }}', separatorsheet: '{{ _("Separator-sheet") }}',
+                            , separatorsheet: '{{ _("Separator-sheet") }}',
                             docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
                     }
                 };
