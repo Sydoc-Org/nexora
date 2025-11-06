@@ -1234,8 +1234,15 @@ def _get_workitems_data(args):
                 where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                 params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'tenancynr':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
+            if process_name == '02_Posteingang':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            else:
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'registered':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
             params.append(f"%{docvalue}%")
@@ -1723,17 +1730,54 @@ def api_docfield_values():
                 cur.execute(sql, params)
         
         elif field == 'tenancynr':
-            sql = f"""
-                SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
-            """
-            if q:
-                sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
+
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                """
+                if q:
+                    sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE ID_Miet is not null and ID_Miet <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and ID_Miet COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        
+                        UNION ALL
+
+                        SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE ID_Miet is not null and ID_Miet <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
+                    ) t
+                """
+                if q:
+                    sql += " where Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
 
         elif field == 'registered':
             sql = f"""
