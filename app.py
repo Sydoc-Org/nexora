@@ -1287,6 +1287,9 @@ def _get_workitems_data(args):
         elif docfield == 'docid':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
             params.append(f"%{docvalue}%")
+        elif docfield == 'archiveboxno':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -2001,6 +2004,19 @@ def api_docfield_values():
             """
             if q:
                 sql += " and ID COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'archiveboxno':
+            sql = f"""
+                SELECT DISTINCT TOP 15 ArchivBoxNummer AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE ArchivBoxNummer is not null and ArchivBoxNummer <> ''
+                and Export >= DATEADD(MONTH, -6, getdate())
+            """
+            if q:
+                sql += " and ArchivBoxNummer LIKE ?"
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
