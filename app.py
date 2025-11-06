@@ -1274,9 +1274,12 @@ def _get_workitems_data(args):
             elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
             else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -1910,19 +1913,39 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and Liegenschaftsnummer LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
             else:  
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
-                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
+
+                        union all
+
+                        SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
                 """
                 if q:
@@ -2178,7 +2201,6 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['DocID'] = field["FieldValue"]['Text']
                     case 'ArchivBoxNummer':
                         fields['ArchiveBoxNo'] = field["FieldValue"]['Text']
-
                     case 'exp_eigNr' | 'eigentuemer' if 'OwnerNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['OwnerNr'] = field["FieldValue"]['Text']
                     case 'exp_mietNr' | 'mietverhaeltnis' if 'TenancyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
