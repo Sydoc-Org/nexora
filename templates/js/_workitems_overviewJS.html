@@ -1392,6 +1392,7 @@ function renderTagsInDetails(workitemId, tags) {
                 } = pagination;
                 document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
                 document.getElementById('totalCount').textContent = totalItems;
+                document.getElementById('totalItemsCount').textContent = totalItems;
 
                 const controlsContainer = document.getElementById('paginationControls');
                 if (!controlsContainer) return;
