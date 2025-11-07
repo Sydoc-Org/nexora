@@ -73,12 +73,12 @@
               <select id="processFilterWorkitemOverview" name="processFilterWorkitemOverview"
                 class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300">
                 <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
-                <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox")
-                  }}
+                <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox")}}
                 </option>
                 <option value="03_Invoice_New" {% if process_name=='03_Invoice_New' %}selected{% endif %}>{{
                   _("Invoice") }}
                 </option>
+                <option value="02_InitialScan" {% if process_name=='02_InitialScan' %}selected{% endif %}>{{ _("Initial-scan")}}
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -214,8 +214,8 @@
                       </option>
                       <option value="department" {{ 'selected' if docfield=='department' }}>{{ _("Department") }}
                       </option>
-                      <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}
-                      <option value="recipient" {{ 'selected' if docfield=='recipient' }}>{{ _("Recipient") }}
+                      <option value="postcode" {{ 'selected' if docfield=='postcode' }}>{{ _("Post Code no.") }}</option>
+                      <option value="recipient" {{ 'selected' if docfield=='recipient' }}>{{ _("Recipient") }} </option>
                       <option value="confidentiality" {{ 'selected' if docfield=='confidentiality' }}>{{
                         _("Confidentiality") }}
                       </option>
@@ -227,6 +227,7 @@
                       <option value="bankpk" {{ 'selected' if docfield=='bankpk' }}>Bank Pk</option>
                       <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
                       <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}
+                      </option>
 
                       <option value="grossamount" {{ 'selected' if docfield=='grossamount' }}>{{ _("Gross Amount") }}
                       </option>
@@ -244,7 +245,15 @@
                       <option value="docsource" {{ 'selected' if docfield=='docsource' }}>{{ _("Document Source") }}
                       </option>
 
-                      </option>
+                      {% elif process_name == '02_InitialScan' %}
+                      <option value="docbarcode" {{ 'selected' if docfield=='docbarcode' }}>{{ _("Document Barcode") }}</option>
+                      <option value="ownernr" {{ 'selected' if docfield=='ownernr' }}>{{ _("Owner No.") }}</option>
+                      <option value="propertynr" {{ 'selected' if docfield=='propertynr' }}>{{ _("Property No.") }}</option>
+                      <option value="tenancynr" {{ 'selected' if docfield=='tenancynr' }}>{{ _("Tenancy No.") }}</option>
+                      <option value="separatorsheet" {{ 'selected' if docfield=='separatorsheet' }}>{{ _("Separator-sheet") }}</option>
+                      <option value="docid" {{ 'selected' if docfield=='docid' }}>{{ _("Document ID") }}</option>
+                      <option value="archiveboxno" {{ 'selected' if docfield=='archiveboxno' }}>{{ _("Archive-box No.") }}</option>
+
                       {% else %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
                       <option value="docbarcode" {{ 'selected' if docfield=='docbarcode' }}>{{ _("Document Barcode") }}</option>
@@ -285,6 +294,10 @@
                       <option value="client" {{ 'selected' if docfield=='client' }}>{{ _("Client") }}</option>
                       <option value="docsource" {{ 'selected' if docfield=='docsource' }}>{{ _("Document Source") }}
                       </option>
+                      <option value="separatorsheet" {{ 'selected' if docfield=='separatorsheet' }}>{{ _("Separator-sheet") }}</option>
+                      <option value="docno" {{ 'selected' if docfield=='docno' }}>{{ _("Document No.") }}</option>
+                      <option value="docid" {{ 'selected' if docfield=='docid' }}>{{ _("Document ID.") }}</option>
+                      <option value="archiveboxno" {{ 'selected' if docfield=='archiveboxno' }}>{{ _("Archive-box No.") }}</option>
                       {% endif %}
                     </select>
                     <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
@@ -670,8 +683,8 @@
 
       <div id="paginationContainer" class="mt-6 flex items-center justify-between">
         <div class="text-sm text-gray-700">
-          {{ _("Showing") }} <span class="font-medium" id="showingCount">{{ ((current_page - 1) * 50) + 1 if workitems
-            else 0 }}-{{ ((current_page - 1) * 50) + workitems|length }}</span> {{ _("of") }} <span class="font-medium"
+          {{ _("Showing") }} <span class="font-medium" id="showingCount">{{ ((current_page - 1) * 40) + 1 if workitems
+            else 0 }}-{{ ((current_page - 1) * 40) + workitems|length }}</span> {{ _("of") }} <span class="font-medium"
             id="totalCount">{{ total_items }}</span> {{ _("results") }}
         </div>
 

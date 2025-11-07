@@ -774,10 +774,12 @@ def request_password_reset():
 def get_process_filter_and_params(process_name):
     if process_name == '02_Posteingang':
         return "?", ["02_Posteingang"]
+    elif process_name == '02_InitialScan':
+        return "?", ["02_InitialScan"]
     elif process_name == '03_Invoice_New':
         return "?", ["03_Invoice_New"]
     else:
-        return "?, ?", ["02_Posteingang", "03_Invoice_New"]
+        return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
 # ---------------------------- process filter end ---------------------------- #
 
 # --------------------------------- dashboard -------------------------------- #
@@ -830,7 +832,8 @@ def get_absolute_dashboard_stats(processName="all"):
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
                 )
                 GROUP BY w.[Status]
             )
@@ -926,7 +929,8 @@ def get_dashbord_preview_documents_stats(processName='all'):
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
                 )
         )
         SELECT DISTINCT TOP 20 
@@ -1040,7 +1044,8 @@ def recent_activity():
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
                 )
             )
             SELECT DISTINCT TOP ({limit})
@@ -1109,7 +1114,8 @@ def _get_workitems_data(args):
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
         )"""
     ]
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
@@ -1163,7 +1169,6 @@ def _get_workitems_data(args):
             else:
                 where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
                 params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        
         elif docfield == 'docbarcode':
             if process_name == '02_Posteingang':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
@@ -1171,10 +1176,12 @@ def _get_workitems_data(args):
             elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
             else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'crdno':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
             params.append(f"%{docvalue}%")
@@ -1221,12 +1228,22 @@ def _get_workitems_data(args):
             elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
             else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'tenancynr':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
+            if process_name == '02_Posteingang':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            else:
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
         elif docfield == 'registered':
             where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
             params.append(f"%{docvalue}%")
@@ -1258,9 +1275,21 @@ def _get_workitems_data(args):
             elif process_name == '03_Invoice_New':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
+            elif process_name == '02_InitialScan':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
             else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
+        elif docfield == 'separatorsheet':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'docid':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            params.append(f"%{docvalue}%")
+        elif docfield == 'archiveboxno':
+            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -1329,6 +1358,7 @@ def _get_workitems_data(args):
         """
         data_params = params + [offset, per_page] 
         cursor.execute(data_query, data_params)
+        print(data_query,data_params)
         for row in cursor.fetchall():
             workitems_list.append({
                 'modifiedat': row.ModifiedAt,
@@ -1451,7 +1481,18 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
-
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Barcode is not null and Barcode <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
             else:  
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
@@ -1465,6 +1506,13 @@ def api_docfield_values():
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE Barcode is not null and Barcode <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
+
+                        UNION ALL
+
+                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Barcode is not null and Barcode <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
                 """
                 if q:
@@ -1657,6 +1705,19 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
             elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
@@ -1679,6 +1740,14 @@ def api_docfield_values():
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
+
+                        SELECT Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
+
+                        UNION ALL
+                        
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
@@ -1692,17 +1761,54 @@ def api_docfield_values():
                 cur.execute(sql, params)
         
         elif field == 'tenancynr':
-            sql = f"""
-                SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
-            """
-            if q:
-                sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
+
+            if process == '02_Posteingang':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                """
+                if q:
+                    sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE ID_Miet is not null and ID_Miet <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and ID_Miet COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
+            else:  
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Val FROM (
+                        SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        
+                        UNION ALL
+
+                        SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE ID_Miet is not null and ID_Miet <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
+                    ) t
+                """
+                if q:
+                    sql += " where Val COLLATE DATABASE_DEFAULT LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
 
         elif field == 'registered':
             sql = f"""
@@ -1835,19 +1941,39 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
+            elif process == '02_InitialScan':
+                sql = f"""
+                    SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
+                    and Export >= DATEADD(MONTH, -6, getdate())
+                """
+                if q:
+                    sql += " and Liegenschaftsnummer LIKE ?"
+                    params.append(f"%{q}%")
+                sql += " ORDER BY Val"
+                cur.execute(sql, params)
+
             else:  
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
-                        SELECT LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
+                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
+
+                        union all
+
+                        SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
+                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
+                        and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
                 """
                 if q:
@@ -1855,6 +1981,45 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
+            
+        elif field == 'separatorsheet':
+            sql = f"""
+                SELECT DISTINCT TOP 15 trennblatt COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE trennblatt is not null and trennblatt <> ''
+                and Export >= DATEADD(MONTH, -6, getdate())
+            """
+            if q:
+                sql += " and trennblatt COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+        
+        elif field == 'docid':
+            sql = f"""
+                SELECT DISTINCT TOP 15 ID COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE ID is not null and ID <> ''
+                and Export >= DATEADD(MONTH, -6, getdate())
+            """
+            if q:
+                sql += " and ID COLLATE DATABASE_DEFAULT LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
+
+        elif field == 'archiveboxno':
+            sql = f"""
+                SELECT DISTINCT TOP 15 ArchivBoxNummer AS Val
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE ArchivBoxNummer is not null and ArchivBoxNummer <> ''
+                and Export >= DATEADD(MONTH, -6, getdate())
+            """
+            if q:
+                sql += " and ArchivBoxNummer LIKE ?"
+                params.append(f"%{q}%")
+            sql += " ORDER BY Val"
+            cur.execute(sql, params)
         else:
             return jsonify([])
 
@@ -2094,11 +2259,19 @@ def get_extensions_urls_fields(workitemdata, document_id):
                         fields['DocType'] = field["FieldValue"]['Text']
                     case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['DocBarcode'] = field["FieldValue"]['Text']
-                    case 'exp_eigNr':
+                    case 'Deckblatt':
+                        fields['SeparatorSheet'] = field["FieldValue"]['Text']
+                    case 'register':
+                        fields['Registry'] = field["FieldValue"]['Text']
+                    case 'doc_id':
+                        fields['DocID'] = field["FieldValue"]['Text']
+                    case 'ArchivBoxNummer':
+                        fields['ArchiveBoxNo'] = field["FieldValue"]['Text']
+                    case 'exp_eigNr' | 'eigentuemer' if 'OwnerNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['OwnerNr'] = field["FieldValue"]['Text']
-                    case 'exp_mietNr':
+                    case 'exp_mietNr' | 'mietverhaeltnis' if 'TenancyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['TenancyNr'] = field["FieldValue"]['Text']
-                    case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
+                    case 'exp_liegNr' | 'LiegenschaftID' | 'liegenschaft' if 'PropertyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
                         fields['PropertyNr'] = field["FieldValue"]['Text']
                     case 'exp_einschreiben':
                         fields['Registered'] = field["FieldValue"]['Text']
@@ -2155,11 +2328,19 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     fields['DocType'] = element["FieldValue"]['Text']
                 case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and element["FieldValue"]['Text'] != None:
                     fields['DocBarcode'] = element["FieldValue"]['Text']
-                case 'exp_eigNr':
+                case 'Deckblatt':
+                    fields['SeparatorSheet'] = element["FieldValue"]['Text']
+                case 'register':
+                    fields['Registry'] = element["FieldValue"]['Text']
+                case 'doc_id':
+                    fields['DocID'] = element["FieldValue"]['Text']
+                case 'ArchivBoxNummer':
+                    fields['ArchiveBoxNo'] = element["FieldValue"]['Text']
+                case 'exp_eigNr' | 'eigentuemer' if 'OwnerNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
                     fields['OwnerNr'] = element["FieldValue"]['Text']
-                case 'exp_mietNr':
+                case 'exp_mietNr' | 'mietverhaeltnis' if 'TenancyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
                     fields['TenancyNr'] = element["FieldValue"]['Text']
-                case 'exp_liegNr' | 'LiegenschaftID' if 'PropertyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
+                case 'exp_liegNr' | 'LiegenschaftID' | 'liegenschaft' if 'PropertyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
                     fields['PropertyNr'] = element["FieldValue"]['Text']
                 case 'exp_einschreiben':
                     fields['Registered'] = element["FieldValue"]['Text']
@@ -2412,7 +2593,6 @@ def get_workitem_interactions(workitemid):
         sql_query += " ORDER BY c.Timestamp ASC"
         cursor.execute(sql_query, params)
         comments_data = cursor.fetchall()
-        print(comments_data)
 
         cursor.execute("""
             SELECT t.TagID, t.TagName, t.TagColor
@@ -2536,7 +2716,6 @@ def assign_workitem(workitemid):
                 INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
                 VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
         """, (workitemid, assignedUserID, session['userid']))
-        print(workitemid, assignedUserID, session['userid'])
         
         conn.commit()
         log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=workitemid, details={'assignedUserID': assignedUserID})
@@ -2714,7 +2893,8 @@ def team_board():
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
                 )"""
         ]
 
@@ -3099,15 +3279,21 @@ def report_processed_over_time():
 
         if session['process_name_dashboard'] == '03_Invoice_New':
             cursor.execute(f"""
-                select CAST(ExportDate AS DATE) d,count(*) c from [SYDOC_Statistik].dbo.PriveraInvoice
-                where ExportDate >= dateadd(day,-14,getdate())
+                select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
                 group by CAST(ExportDate AS DATE)
         """)
         elif session['process_name_dashboard'] == '02_Posteingang':
             cursor.execute(f"""
-                select CONVERT(date, exportdatetime,104) d,count(*) c from PriveraPosteingang
-                where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate())
+                select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
                 group by CONVERT(date, exportdatetime,104)
+        """)
+        elif session['process_name_dashboard'] == '02_InitialScan':
+            cursor.execute(f"""
+                select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                where Export >= dateadd(day,-14,getdate())
+                group by cast(Export as date)
         """)
         else:
             cursor.execute(f"""
@@ -3119,27 +3305,32 @@ def report_processed_over_time():
             SELECT
                 CAST(i.ExportDate AS date) AS d,
                 COUNT(DISTINCT i.wid) AS cnt
-            FROM PriveraInvoice i
-            WHERE i.ExportDate >= DATEADD(DAY, -14, GETDATE())
+            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+            WHERE i.ExportDate >= DATEADD(DAY, -14, GETDATE()) and GeloeschtAm is null
             GROUP BY CAST(i.ExportDate AS date)
 
             UNION ALL
 
+            select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+            where Export >= dateadd(day,-14,getdate())
+            group by cast(Export as date)
+
+            union all
             -- Posteingang
             SELECT
                 CONVERT(DATE,p.ExportDatetime,104) AS d,
                 COUNT(DISTINCT p.Workitemid) AS cnt
-            FROM PriveraPosteingang p
-            WHERE CONVERT(DATE,p.ExportDatetime,104) >= DATEADD(DAY, -14, GETDATE())
+            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+            WHERE CONVERT(DATE,p.ExportDatetime,104) >= DATEADD(DAY, -14, GETDATE()) and DokumentGeloescht is null
             GROUP BY CONVERT(DATE,p.ExportDatetime,104)
         ) x
         GROUP BY d;
+
         """)
         rows = cursor.fetchall()
 
         labels = [row.d for row in rows]
         data = [row.c for row in rows]
-        print(labels, data)
         return jsonify({'labels': labels, 'data': data})
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
@@ -3224,7 +3415,8 @@ def report_status_distribution():
                     'Deletion Marker MAIL',
                     'Deleted Documents',
                     'Deletion Marker Posteingang2Invoice Parent',
-                    'Deletion Marker Scan Duplicate'
+                    'Deletion Marker Scan Duplicate',
+                    'Keine Dokumente nach TB P2'
                     )
             )
             SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
@@ -3270,25 +3462,32 @@ def report_kpi_stats():
         if session['process_name_dashboard'] == '03_Invoice_New':
             cursor.execute(f"""
                 select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE)
+                where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
             """)
         elif session['process_name_dashboard'] == '02_Posteingang':
             cursor.execute(f"""
                 select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE)
+                where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
+            """)
+        elif session['process_name_dashboard'] == '02_InitialScan':
+            cursor.execute(f"""
+                select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                where cast(export as date) = cast(getdate() as date)
             """)
         else:
             cursor.execute(f"""
                 SELECT
-            (SELECT COUNT(*) 
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-            WHERE i.ExportDate >= CONVERT(date, GETDATE())
-            AND i.ExportDate <  DATEADD(DAY, 1, CONVERT(date, GETDATE()))
-            )
-        + (SELECT COUNT(*) 
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-            WHERE CONVERT(DATE, p.ExportDatetime,104) >= CONVERT(date, GETDATE())
-            AND CONVERT(DATE, p.ExportDatetime,104) <  DATEADD(DAY, 1, CONVERT(date, GETDATE()))
+                (SELECT COUNT(*)
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                WHERE CAST(i.ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null)
+                    + (SELECT COUNT(*)
+                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                WHERE CONVERT(DATE, p.ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
+                        ) + 
+                        (
+            select count(WorkitemID)
+                from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                WHERE cast(Export as date) = CAST(GETDATE() AS DATE)
             ) AS TotalCountToday;
             """)
         processed_today = cursor.fetchone()[0]
@@ -3296,35 +3495,47 @@ def report_kpi_stats():
             cursor.execute(f"""
                     select
                         count(distinct i.wid)
-                        from [SYDOC_STATISTIK].dbo.PriveraInvoice i
+                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
                         WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+                        AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
             """)
         elif session['process_name_dashboard'] == '02_Posteingang':
             cursor.execute(f"""
                     select
                     count(distinct P.WorkItemID)
-                    from [SYDOC_STATISTIK].dbo.PriveraPosteingang p
+                    from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
                     WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+                    AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
+            """)
+        elif session['process_name_dashboard'] == '02_InitialScan':
+            cursor.execute(f"""
+                    select count(*)
+                    from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                    AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
             """)
         else:
             cursor.execute(f"""
-                    DECLARE @WeekStart DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0);
-DECLARE @WeekEnd   DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+                DECLARE @WeekStart DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0);
+                DECLARE @WeekEnd   DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
 
-SELECT
-    (SELECT COUNT(DISTINCT i.wid)
-     FROM [SYDOC_STATISTIK].dbo.PriveraInvoice i
-     WHERE i.ExportDate >= @WeekStart
-       AND i.ExportDate <  @WeekEnd
-    )
-  + (SELECT COUNT(DISTINCT p.WorkItemID)
-     FROM [SYDOC_STATISTIK].dbo.PriveraPosteingang p
-     WHERE CONVERT(DATE, p.ExportDatetime,104) >= @WeekStart
-       AND CONVERT(DATE, p.ExportDatetime,104) <  @WeekEnd
-    ) AS TotalDistinctIdsThisWeek;
-
+                SELECT
+                    (SELECT COUNT(DISTINCT i.wid)
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                    WHERE i.ExportDate >= @WeekStart
+                    AND i.ExportDate <  @WeekEnd and GeloeschtAm is null
+                    )
+                + (SELECT COUNT(DISTINCT p.WorkItemID)
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= @WeekStart
+                    AND CONVERT(DATE, p.ExportDatetime,104) <  @WeekEnd and DokumentGeloescht is null
+                    ) +
+                    (SELECT COUNT(n.WorkitemID)
+                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n
+                    WHERE n.Export >= @WeekStart
+                    AND n.Export <  @WeekEnd
+                    ) 
+                    AS TotalDistinctIdsThisWeek;
             """)
         processed_week = cursor.fetchone()[0]
         
@@ -3421,7 +3632,8 @@ def report_stage_breakdown():
                  'Deletion Marker MAIL',
                  'Deleted Documents',
                  'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate'
+                'Deletion Marker Scan Duplicate',
+                'Keine Dokumente nach TB P2'
                 )
             GROUP BY 
                 CASE

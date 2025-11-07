@@ -399,7 +399,7 @@ function renderTagsInDetails(workitemId, tags) {
             }
 
             const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
-            const batchSize = 10;
+            const batchSize = 7;
             const endIndex = Math.min(loadedCount + batchSize, totalImages);
 
             for (let i = loadedCount; i < endIndex; i++) {
@@ -511,8 +511,12 @@ function renderTagsInDetails(workitemId, tags) {
                                     ESRReference: "ESR Reference",
                                     OrderNumber: "{{ _('Order no.') }}",
                                     Client: "{{ _('Client') }}",
-                                    DocSource: "{{ _('Document Source') }}"
+                                    DocSource: "{{ _('Document Source') }}",
 
+                                    SeparatorSheet: '{{ _("Separator-sheet") }}',
+                                    Registry: '{{ _("Registry") }}',
+                                    DocID: '{{ _("Document ID.") }}',
+                                    ArchiveBoxNo: '{{ _("Archive-box No.") }}'
                                 };
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
                                 for (const key in fields) {
@@ -835,15 +839,27 @@ function renderTagsInDetails(workitemId, tags) {
                         }
                     };
                 }
+                if (process === '02_InitialScan') {
+                    return {
+                        order: ['docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'separatorsheet', 'docid', 'archiveboxno'],
+                        labels: {
+                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}',ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
+                            propertynr: '{{ _("Property No.") }}', separatorsheet: '{{ _("Separator-sheet") }}',
+                            docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
+                        }
+                    };
+                }
                 return {
                     order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
-                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'],
+                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource',  'separatorsheet', 'docid', 'archiveboxno'],
                     labels: {
                         doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
                         bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}', propertynr: '{{ _("Property no.") }}',
                         registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}', docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}',
                         department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}' ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
                             invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
+                            , separatorsheet: '{{ _("Separator-sheet") }}',
+                            docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
                     }
                 };
             }
@@ -1376,6 +1392,7 @@ function renderTagsInDetails(workitemId, tags) {
                 } = pagination;
                 document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
                 document.getElementById('totalCount').textContent = totalItems;
+                document.getElementById('totalItemsCount').textContent = totalItems;
 
                 const controlsContainer = document.getElementById('paginationControls');
                 if (!controlsContainer) return;
