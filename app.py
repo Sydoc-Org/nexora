@@ -70,6 +70,8 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
+BEXIO_PAT = os.environ.get("BEXIO_PAT")
+BEXIO_PRIVERA_CLIENT_ID = os.environ.get("BEXIO_PRIVERA_CLIENT_ID")
 
 class PrefixMiddleware(object):
     def __init__(self, app, prefix=''):
@@ -3660,6 +3662,206 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
+def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None):
+    url = "https://api.bexio.com/2.0/kb_invoice/search"
+    accessToken = BEXIO_PAT
+    if not accessToken:
+        app.logger.error("BEXIO_PAT is not set.")
+        return []
+
+    headers = {
+        'Accept': "application/json",
+        'Authorization': f"Bearer {accessToken}",
+    }
+
+    payload = [
+        {"field": "contact_id", "value": str(clientId), "criteria": "="},
+        {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
+        {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
+    ]
+
+    if search_nr:
+        payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  
+        invoices = response.json()
+        
+        if status:
+            status_map = {
+                'Paid': [9], 
+                'Open': [8]
+            }
+            target_status_ids = status_map.get(status, [])
+            if target_status_ids:
+                invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
+
+        for inv in invoices:
+            inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
+            try:
+                inv['total'] = f"{float(inv['total']):.2f}"
+            except (ValueError, TypeError):
+                inv['total'] = "0.00"
+
+        return invoices
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Bexio API search failed: {e}")
+        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return []
+    except json.JSONDecodeError:
+        app.logger.error(f"Bexio API returned invalid JSON.")
+        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
+        return []
+
+def getBexioInvoicePDF(invoice_id):
+    url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}/pdf"
+    accessToken = BEXIO_PAT
+    if not accessToken:
+        app.logger.error("BEXIO_PAT is not set.")
+        return None, None
+
+    headers = {
+        'Accept': "application/json",
+        'Authorization': f"Bearer {accessToken}",
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        content = data.get('content')
+        name = data.get('name')
+        
+        if not content or not name:
+            app.logger.error(f"Bexio API response for PDF {invoice_id} missing content or name.")
+            return None, None
+            
+        return base64.b64decode(content), name
+        
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Bexio API PDF fetch failed for {invoice_id}: {e}")
+        log_user_action('getBexioInvoicePDF', 'FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
+        return None, None
+
+def map_invoice_status(status_id):
+    if status_id == 9:
+        return {'text': _('Paid'), 'color': 'green'}
+    else:
+        return {'text': _('Open'), 'color': 'blue'}
+    
+
+
+def getBexioClientId(scope, access):
+    clientId = None 
+    if (scope == 'Client' and access == 'Privera') or (scope == 'Admin' and access == 'Unlimited'):
+        clientId = BEXIO_PRIVERA_CLIENT_ID 
+    
+    return clientId 
+# -------------------------------- bexio end --------------------------------- #
+
+
+# ---------------------------------- invoices ---------------------------------- #
+@app.route("/invoices")
+def invoices():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        
+        logged_in_user = session.get('username', 'Unknown')
+        scope = session.get('scope', 'Unknown')
+        userid = session.get('userid', 'Unknown')
+
+        search_nr = request.args.get('search', '')
+        status = request.args.get('status', '')
+        dateFrom = request.args.get('dateFrom', (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
+        dateTo = request.args.get('dateTo', datetime.now().strftime('%Y-%m-%d'))
+
+        log_user_action('visitInvoices', status='SUCCESS', resource_id='invoices')
+        
+        return render_template("invoices.html", 
+                               logged_in_user=logged_in_user, 
+                               scope=scope, 
+                               userid=userid,
+                               search=search_nr,
+                               status=status,
+                               dateFrom=dateFrom,
+                               dateTo=dateTo)
+    except Exception as e:
+        log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+
+@app.route("/api/invoices")
+def api_invoices():
+    try:
+        if 'username' not in session:
+            return jsonify({"error": _("Not authorized")}), 401
+        
+        scope = session.get('scope', 'Unknown')
+        access = session.get('access', 'Unknown')
+
+        search_nr = request.args.get('search', '')
+        status = request.args.get('status', '')
+        dateFrom = request.args.get('dateFrom', (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
+        dateTo = request.args.get('dateTo', datetime.now().strftime('%Y-%m-%d'))
+
+        bexio_client_id = getBexioClientId(scope=scope, access=access)
+        
+        if not bexio_client_id:
+            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')} (Scope: {scope}, Access: {access})")
+            return jsonify([]) 
+
+        invoices_list = searchBexioInvoices(
+            clientId=bexio_client_id,
+            dateFrom=dateFrom,
+            dateTo=dateTo,
+            search_nr=search_nr,
+            status=status
+        )
+        
+
+        log_user_action('apiSearchInvoices', status='SUCCESS', resource_id='invoices', details={
+            "filter_search": search_nr,
+            "filter_status": status,
+            "filter_dateFrom": dateFrom,
+            "filter_dateTo": dateTo
+        })
+        
+        return jsonify(invoices_list)
+
+    except Exception as e:
+        log_user_action('apiSearchInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({"error": "Failed to fetch invoices"}), 500
+
+
+@app.route("/invoice/<int:invoice_id>/pdf")
+def download_invoice_pdf(invoice_id):
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    try:
+        pdf_content, pdf_name = getBexioInvoicePDF(invoice_id)
+        
+        if pdf_content and pdf_name:
+            log_user_action('downloadBexioPDF', status='SUCCESS', resource_id=invoice_id)
+            return Response(
+                pdf_content,
+                mimetype='application/pdf',
+                headers={'Content-Disposition': f'attachment;filename={pdf_name}'}
+            )
+        else:
+            log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"error": "PDF content not found in Bexio."})
+            flash(_("Could not download PDF. File not found or API error."), 'error')
+            return redirect(url_for('invoices'))
+
+    except Exception as e:
+        log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
+        app.logger.error(f"Failed to download invoice PDF {invoice_id}: {e}")
+        flash(_("An unexpected error occurred while downloading the PDF."), 'error')
+        return redirect(url_for('invoices'))
+# -------------------------------- invoices end -------------------------------- #
+
 
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
