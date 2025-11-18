@@ -197,7 +197,7 @@ def load_permissions_for_user(user_id):
 
 def has_permission(code: str) -> bool:
     perms = set(session.get('permissions', []))
-    print(code, code in perms)
+    print('requestedcode:',code,code in perms, '\n\n')
     return code in perms
 
 def require_permission(code):
@@ -824,10 +824,15 @@ def get_process_filter_and_params(process_name):
 def get_absolute_dashboard_stats(processName="all"):
     stats = {}
     conn = None
+
     placeholders, params = get_process_filter_and_params(processName)
-    for param in params:
-        if not has_permission(f'dashboard.filter.process.privera.{param}'):
-             raise PermissionDenied()
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     try:
         all_params = params + ['Privera'] + params + ['Privera']
         conn_str = (
@@ -913,9 +918,13 @@ def get_dashbord_preview_documents_stats(processName='all'):
     stats = {}
     conn = None
     placeholders, params = get_process_filter_and_params(processName)
-    for param in params:
-        if not has_permission(f'dashboard.filter.process.privera.{param}'):
-             raise PermissionDenied()
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     try:
         all_params = params + ['Privera']
         conn_str = (
@@ -1013,25 +1022,52 @@ def dashboard():
 
         logged_in_user = session.get('username', 'Unknown')
         userid = session.get('userid', 'Unknown')
+        perms = session.get('permissions', [])
+
+        prefix = "dashboard.filter.process."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
         process_name = request.args.get('processFilterDashboard', 'all')
+
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
+
         session['process_name_dashboard'] = process_name
         absolute_stats = get_absolute_dashboard_stats(process_name)
 
-        log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
-        return render_template("dashboard.html",
-        logged_in_user=logged_in_user,
-        userid=userid,
-        ReadyTotal=absolute_stats['ReadyTotal'],
-        InProgressTotal=absolute_stats['InProgressTotal'],
-        DoneTotal=absolute_stats['DoneTotal'],
-        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name
+        log_user_action(
+            action_type='visitDashboard',
+            status='SUCCESS',
+            resource_id='dashboard'
+        )
+
+        return render_template(
+            "dashboard.html",
+            logged_in_user=logged_in_user,
+            userid=userid,
+            ReadyTotal=absolute_stats['ReadyTotal'],
+            InProgressTotal=absolute_stats['InProgressTotal'],
+            DoneTotal=absolute_stats['DoneTotal'],
+            BacklogTotal=absolute_stats['BacklogTotal'],
+            process_name=process_name,
+            allowed_processes=allowed_processes,  
         )
     except PermissionDenied:
         raise
     except Exception as e:
-        log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
+        log_user_action(
+            action_type='visitDashboard',
+            status='FAILURE',
+            resource_id='dashboard',
+            details={"serverError": str(e)},
+            IsInternalError=1
+        )
         return render_template('500.html')
+
 
 @app.route("/api/dashboard_stats_document_preview")
 def dashboard_stats_document_preview():
@@ -1049,9 +1085,13 @@ def recent_activity():
     limit = request.args.get('limit', 10, type=int)
 
     placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'all'))
-    for param in params:
-        if not has_permission(f'dashboard.filter.process.privera.{param}'):
-             raise PermissionDenied()
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     all_params = params + ['Privera']
 
     try:
@@ -3264,9 +3304,6 @@ def jdvance():
 
 # ---------------------------------- reports --------------------------------- #
 
-# ---------------------------------------------------------------------------- #
-# --------------------------------- fix here --------------------------------- #
-# ---------------------------------------------------------------------------- #
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
@@ -3276,11 +3313,17 @@ def report_processed_over_time():
     end_str   = request.args.get('endDate')
     group_by  = (request.args.get('groupBy') or 'day').lower()
     statuses_q = request.args.get('statuses')
-    process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+
+    all_params = params + ['Privera']
 
     name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
     status_codes = None
@@ -3326,58 +3369,28 @@ def report_processed_over_time():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
-                group by CAST(ExportDate AS DATE)
-        """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
-                group by CONVERT(date, exportdatetime,104)
-        """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                where Export >= dateadd(day,-14,getdate())
-                group by cast(Export as date)
-        """)
-        else:
-            cursor.execute(f"""
-                SELECT
-                d,
-            SUM(cnt) AS c
-        FROM (
-            -- Invoices
-            SELECT
-                CAST(i.ExportDate AS date) AS d,
-                COUNT(DISTINCT i.wid) AS cnt
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-            WHERE i.ExportDate >= DATEADD(DAY, -14, GETDATE()) and GeloeschtAm is null
-            GROUP BY CAST(i.ExportDate AS date)
-
-            UNION ALL
-
-            select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-            where Export >= dateadd(day,-14,getdate())
-            group by cast(Export as date)
-
-            union all
-            -- Posteingang
-            SELECT
-                CONVERT(DATE,p.ExportDatetime,104) AS d,
-                COUNT(DISTINCT p.Workitemid) AS cnt
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-            WHERE CONVERT(DATE,p.ExportDatetime,104) >= DATEADD(DAY, -14, GETDATE()) and DokumentGeloescht is null
-            GROUP BY CONVERT(DATE,p.ExportDatetime,104)
-        ) x
-        GROUP BY d;
-
-        """)
-        rows = cursor.fetchall()
-
+        rows = []
+        for param in params:
+            if param == '03_Invoice_New':
+                cursor.execute(f"""
+                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
+                    group by CAST(ExportDate AS DATE)
+            """)
+            elif param == '02_Posteingang':
+                cursor.execute(f"""
+                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
+                    group by CONVERT(date, exportdatetime,104)
+            """)
+            elif param == '02_InitialScan':
+                cursor.execute(f"""
+                    select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    where Export >= dateadd(day,-14,getdate())
+                    group by cast(Export as date)
+            """)
+            rows += cursor.fetchall()
+        rows.sort(key=lambda r: r.d)  
         labels = [row.d for row in rows]
         data = [row.c for row in rows]
         return jsonify({'labels': labels, 'data': data})
@@ -3396,11 +3409,17 @@ def report_status_distribution():
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
     statuses_q = request.args.get('statuses')
-    process_override = request.args.get('processFilterReports')
+    process_name = session['process_name_dashboard']
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(process_name)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+    all_params = params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
     status_codes = [0,1,5]
@@ -3495,8 +3514,15 @@ def report_kpi_stats():
     conn = None
 
     placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     all_params = params + ['Privera']
 
+    print(params)
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -3508,85 +3534,50 @@ def report_kpi_stats():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
-            """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-            """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                where cast(export as date) = cast(getdate() as date)
-            """)
-        else:
-            cursor.execute(f"""
-                SELECT
-                (SELECT COUNT(*)
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                WHERE CAST(i.ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null)
-                    + (SELECT COUNT(*)
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                WHERE CONVERT(DATE, p.ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-                        ) +
-                        (
-            select count(WorkitemID)
-                from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                WHERE cast(Export as date) = CAST(GETDATE() AS DATE)
-            ) AS TotalCountToday;
-            """)
-        processed_today = cursor.fetchone()[0]
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                    select
-                        count(distinct i.wid)
-                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                        WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
-            """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                    select
-                    count(distinct P.WorkItemID)
-                    from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
-            """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                    select count(*)
-                    from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
-            """)
-        else:
-            cursor.execute(f"""
-                DECLARE @WeekStart DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0);
-                DECLARE @WeekEnd   DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
-
-                SELECT
-                    (SELECT COUNT(DISTINCT i.wid)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                    WHERE i.ExportDate >= @WeekStart
-                    AND i.ExportDate <  @WeekEnd and GeloeschtAm is null
-                    )
-                + (SELECT COUNT(DISTINCT p.WorkItemID)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= @WeekStart
-                    AND CONVERT(DATE, p.ExportDatetime,104) <  @WeekEnd and DokumentGeloescht is null
-                    ) +
-                    (SELECT COUNT(n.WorkitemID)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n
-                    WHERE n.Export >= @WeekStart
-                    AND n.Export <  @WeekEnd
-                    )
-                    AS TotalDistinctIdsThisWeek;
-            """)
-        processed_week = cursor.fetchone()[0]
+        processed_today = 0
+        processed_week = 0
+        for param in params:
+            if param == '03_Invoice_New':
+                cursor.execute(f"""
+                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select
+                            count(distinct i.wid)
+                            from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                            AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
+                """)
+                processed_week += cursor.fetchone()[0]
+            elif param == '02_Posteingang':
+                cursor.execute(f"""
+                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select
+                        count(distinct P.WorkItemID)  
+                        from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                        AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
+                """)
+                processed_week += cursor.fetchone()[0]
+            elif param == '02_InitialScan':
+                cursor.execute(f"""
+                    select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    where cast(export as date) = cast(getdate() as date)
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select count(*)
+                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                        AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+                    """)
+                processed_week += cursor.fetchone()[0]
 
         cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
@@ -3617,11 +3608,16 @@ def report_stage_breakdown():
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
     statuses_q = request.args.get('statuses')
-    process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(processName)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+    all_params = params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
     status_codes = [0,1]
