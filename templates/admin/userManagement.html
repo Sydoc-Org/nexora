@@ -38,9 +38,6 @@
                             <th scope="col" class="px-6 py-3">{{ _("Full name") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Email") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Company")}}</th>
-                            <th scope="col" class="px-6 py-3">{{ _("Access")}}</th>
-                            <th scope="col" class="px-6 py-3">{{ _("Subscription")}}</th>
-                            <th scope="col" class="px-6 py-3">{{ _("Scope") }}</th>
                             <th scope="col" class="px-6 py-3 text-right">{{ _("Actions") }}</th>
                         </tr>
                     </thead>
@@ -51,14 +48,13 @@
                             <td class="px-6 py-4">{{ user.fullname }}</td>
                             <td class="px-6 py-4">{{ user.email }}</td>
                             <td class="px-6 py-4">{{ user.company }}</td>
-                            <td class="px-6 py-4">{{ user.access }}</td>
-                            <td class="px-6 py-4">{{ user.subscription }}</td>
-                            <td class="px-6 py-4">
+                            <!-- <td class="px-6 py-4">
                                 <span
-                                    class="px-2 py-1 font-semibold leading-tight rounded-full {{ 'bg-yellow-100 text-yellow-700' if user.scope == 'Admin' else 'bg-green-100 text-green-700' }}">
-                                    {{ user.scope }}
+                                    class="px-2 py-1 font-semibold leading-tight rounded-full
+                                    bg-green-100 text-green-700">
+                                    {{ user.accessProfile }}
                                 </span>
-                            </td>
+                            </td> -->
                             <td class="px-6 py-4 text-right">
                                 <button data-user='{{ user|tojson|safe }}'
                                     class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4">{{ _("Edit") }}</button>
@@ -92,7 +88,7 @@
                         </thead>
                         <tbody id="active-sessions-body">
                             <tr>
-                                <td colspan="3" class="px-6 py-4 text-center text-gray-500">{{ _("Loading") }}...</td>
+                                <td colspan="4" class="px-6 pt-4 py-4 text-center text-gray-500">{{ _("Loading") }}...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -157,25 +153,12 @@
             <form id="userForm">
                 <input type="hidden" id="userId" name="userId">
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="username" class="block mb-1 text-sm font-medium">{{ _("Username") }}</label>
-                            <input type="text" id="username" name="username"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                                required>
-                        </div>
-                        <div>
-                            <label for="scope" class="block mb-1 text-sm font-medium">{{ _("Scope") }}</label>
-                            <select id="scope" name="scope"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                                <option value="Client">{{ _("Client") }}</option>
-                                <option value="User">{{ _("User") }}</option>
-                                <option value="Admin">{{ _("Admin") }}</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label for="username" class="block mb-1 text-sm font-medium">{{ _("Username") }}</label>
+                        <input type="text" id="username" name="username"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                            required>
                     </div>
-
-                    
 
                     <div>
                         <label for="fullname" class="block mb-1 text-sm font-medium">{{ _("Full name") }}</label>
@@ -195,34 +178,11 @@
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
                             required>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="access" class="block mb-1 text-sm font-medium">{{ _("Access") }}</label>
-                            <select id="access" name="access"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                                <option value="Privera">Privera</option>
-                                <option value="Elektromaterial">Elektromaterial</option>
-                                <option value="Compass">Compass Group</option>
-                                <option value="Unlimited">Unlimited</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="subscription" class="block mb-1 text-sm font-medium">{{ _("Subscription") }}</label>
-                            <select id="subscription" name="subscription"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                                <option value="Standard">{{ _("Standard") }}</option>
-                                <option value="nexora+">nexora+</option>
-                                <option value="nexora Premium">nexora Premium</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <div>
                         <label for="password" class="block mb-1 text-sm font-medium">{{ _("Password") }}</label>
                         <input type="password" id="password" name="password"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                        <p class="text-xs text-gray-500 mt-1" id="password-help">{{ _("Leave blank to keep current password.") }}
+                        <p class="text-xs text-gray-500 mt-1" id="password-help">{{ _("Leave blank to keep password.") }}
                         </p>
                     </div>
 

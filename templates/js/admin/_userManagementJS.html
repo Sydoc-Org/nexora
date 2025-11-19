@@ -85,9 +85,6 @@
             document.getElementById('fullname').value = user.fullname;
             document.getElementById('email').value = user.email;
             document.getElementById('company').value = user.company;
-            document.getElementById('scope').value = user.scope;
-            document.getElementById('access').value = user.access;
-            document.getElementById('subscription').value = user.subscription;
             passwordHelp.classList.remove('hidden');
             document.getElementById('password').required = false;
             openModal();
@@ -222,7 +219,7 @@
 
                 sessionsBody.innerHTML = '';
                 if (sessions.length === 0) {
-                    sessionsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">{{ _("No active sessions found.") }}</td></tr>`;
+                    sessionsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 pt-4 text-center text-gray-500">{{ _("No active sessions found.") }}</td></tr>`;
                     return;
                 }
 

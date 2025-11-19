@@ -365,19 +365,24 @@ def mark_notifications_as_read():
 # ----------------------------------- admin ---------------------------------- #
 
 @app.route("/admin/users")
+@require_permission('admin.view')
 def admin_users():
     conn = None
     try:
         logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname, email, company, scope, access, subscription FROM Users ORDER BY username")
+        cursor.execute("""
+            SELECT userID, username, fullname, email, company FROM Users
+            ORDER BY username
+        """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        cursor.execute("select AccessID, name from AccessProfile")
+        accessProfiles = cursor.fetchall()
         log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
-        return render_template("admin/userManagement.html", users=users, logged_in_user=logged_in_user, scope=scope, userid=userid)
+        return render_template("admin/userManagement.html", users=users, accessProfiles=accessProfiles, logged_in_user=logged_in_user, userid=userid)
     except Exception as e:
         app.logger.error(f"Failed to fetch users for admin panel: {e}")
         log_user_action('visitUserManagement', status='FAILURE', resource_id='userManagement', details={"serverError": str(e)}, IsInternalError=1)
@@ -387,6 +392,7 @@ def admin_users():
             conn.close()
 
 @app.route("/admin/users/add", methods=['POST'])
+@require_permission('admin.create.user')
 def admin_add_user():
     data = request.get_json()
     username = data.get('username')
@@ -394,11 +400,9 @@ def admin_add_user():
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
-    access = data.get('access')
-    subscription = data.get('subscription')
-    scope = data.get('scope')
     userid = session['userid']
-    if not all([username, password, fullname, email, company, scope, access, subscription]):
+
+    if not all([username, password, fullname, email, company]):
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -408,11 +412,11 @@ def admin_add_user():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope, access, subscription) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                       (username, hashed_password, fullname, email, company, scope, access, subscription))
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, company) VALUES (?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, company))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
-        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
+        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username})
         return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
         log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username, 'scope': scope})
@@ -426,15 +430,13 @@ def admin_add_user():
             conn.close()
 
 @app.route("/admin/users/edit/<int:user_id>", methods=['POST'])
+@require_permission('admin.edit.user')
 def admin_edit_user(user_id):
     data = request.get_json()
     username = data.get('username')
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
-    access = data.get('access')
-    subscription = data.get('subscription')
-    scope = data.get('scope')
     password = data.get('password')
     currentUserId = session['userid']
 
@@ -446,11 +448,11 @@ def admin_edit_user(user_id):
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subscription=? WHERE userID=?",
-                           (username, fullname, email, company, scope, hashed_password, access, subscription, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, password=? WHERE userID=?",
+                           (username, fullname, email, company, hashed_password, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subscription=? WHERE userID=?",
-                           (username, fullname, email, company, scope, access, subscription, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=? WHERE userID=?",
+                           (username, fullname, email, company, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -465,6 +467,7 @@ def admin_edit_user(user_id):
             conn.close()
 
 @app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
+@require_permission('admin.delete.user')
 def admin_delete_user(user_id):
     current_user = session.get('userid')
     if str(user_id) == current_user:
@@ -495,6 +498,7 @@ def admin_delete_user(user_id):
             conn.close()
 
 @app.route("/api/admin/recent_logs")
+@require_permission('admin.view')
 def admin_recent_logs():
     conn = None
     try:
@@ -516,6 +520,7 @@ def admin_recent_logs():
             conn.close()
 
 @app.route("/api/admin/active_sessions")
+@require_permission('admin.view')
 def admin_active_sessions():
     conn = None
     try:
@@ -541,6 +546,181 @@ def admin_active_sessions():
     finally:
         if conn:
             conn.close()
+
+
+# ----------------------------- Access Control ------------------------------ #
+
+@app.route("/admin/access_control")
+@require_permission('admin.view') 
+def admin_access_control():
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
+            profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY Code")
+            all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        return render_template("admin/accessControl.html", 
+                             profiles=profiles, 
+                             all_permissions=all_permissions,
+                             logged_in_user=session.get('username'), userid=session.get('userid'))
+    except Exception as e:
+        app.logger.error(f"Error loading access control: {e}")
+        return render_template('500.html')
+
+@app.route('/api/admin/users')
+@require_permission('admin.view')
+def get_users_admin_access_control():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT 
+                u.userID, 
+                u.username, 
+                u.fullname, 
+                ap.Name as AccessProfileName,
+                (SELECT COUNT(*) FROM UserPermissionOverride upo WHERE upo.UserID = u.userID) as OverrideCount
+            FROM Users u
+            LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
+            ORDER BY u.fullname
+        """
+        cursor.execute(query)
+        
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users for access control: {e}")
+        return jsonify({"error": _("Could not fetch users")}), 500
+    finally:
+        if conn:
+            conn.close()
+            
+@app.route("/api/admin/access_profile/<int:access_id>/details", methods=['GET'])
+@require_permission('admin.edit.user')
+def get_profile_details(access_id):
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT PermissionID, Effect 
+                FROM AccessProfilePermission 
+                WHERE AccessID = ?
+            """, (access_id,))
+            assigned_perms = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            
+        return jsonify({'success': True, 'permissions': assigned_perms})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/access_profile/save", methods=['POST'])
+@require_permission('admin.edit.user')
+def save_access_profile():
+    data = request.get_json()
+    access_id = data.get('accessId') 
+    name = data.get('name')
+    description = data.get('description')
+    permissions = data.get('permissions')
+
+    if not name:
+        return jsonify({'success': False, 'message': _("Name is required")}), 400
+
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            if access_id:
+                cursor.execute("UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?", (name, description, access_id))
+                cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
+            else:
+                cursor.execute("INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)", (name, description))
+                access_id = cursor.fetchone()[0]
+
+            if permissions:
+                params = [(access_id, p['PermissionID'], p['Effect']) for p in permissions]
+                cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+
+            conn.commit()
+            
+        log_user_action('saveAccessProfile', 'SUCCESS', resource_id=access_id, details={'name': name})
+        return jsonify({'success': True, 'message': _("Profile saved successfully")})
+    except Exception as e:
+        app.logger.error(f"Error saving profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/user_overrides/<int:user_id>", methods=['GET'])
+@require_permission('admin.edit.user')
+def get_user_overrides(user_id):
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT AccessID FROM Users WHERE UserID = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                 return jsonify({'success': False, 'message': "User not found"}), 404
+            base_access_id = row[0]
+
+            cursor.execute("SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,))
+            overrides = {row.PermissionID: row.Effect for row in cursor.fetchall()}
+            
+            base_perms = {}
+            if base_access_id:
+                cursor.execute("SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?", (base_access_id,))
+                base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
+
+        return jsonify({
+            'success': True, 
+            'overrides': overrides, 
+            'base_permissions': base_perms
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/user_overrides/save", methods=['POST'])
+@require_permission('admin.edit.user')
+def save_user_overrides():
+    data = request.get_json()
+    user_id = data.get('userId')
+    overrides = data.get('overrides')
+
+    if not user_id:
+        return jsonify({'success': False, 'message': "User ID required"}), 400
+
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("DELETE FROM UserPermissionOverride WHERE UserID=?", (user_id,))
+            
+            if overrides:
+                params = [(user_id, p['PermissionID'], p['Effect']) for p in overrides]
+                cursor.executemany("INSERT INTO UserPermissionOverride (UserID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+            
+            conn.commit()
+            
+        log_user_action('saveUserOverrides', 'SUCCESS', target_user_id=user_id)
+        return jsonify({'success': True, 'message': _("Overrides updated successfully")})
+    except Exception as e:
+        app.logger.error(f"Error saving overrides: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# --------------------------- Access Control End ---------------------------- #
+
 # --------------------------------- admin end -------------------------------- #
 
 # ---------------------------------- logout ---------------------------------- #
