@@ -34,10 +34,16 @@
                 <div class="flex items-center space-x-5">
                     <nav class="hidden md:flex space-x-6">
 
-                        <a href="{{ url_for('admin_users') }}"
-                            class="{% if active_page == 'admin_users' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
+                        <a href="{{ url_for('admin_dashboard') }}"
+                            class="{% if active_page == 'adminOverview' or 
+                            active_page == 'userManagement' or
+                            active_page == 'admin_logs' or 
+                            active_page == 'admin_sessions' or 
+                            active_page == 'admin_access'
+                            %}
+                              text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-user-tie mr-2"></i>{{ _("Admin") }}
+                            <i class="fas fa-user-tie mr-2"></i>{{ _("Admin Management") }}
                         </a>
                         <a href="{{ url_for('dashboard') }}"
                             class="{% if active_page == 'dashboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md

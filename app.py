@@ -363,14 +363,20 @@ def mark_notifications_as_read():
 # ----------------------------- notifications end ---------------------------- #
 
 # ----------------------------------- admin ---------------------------------- #
+@app.route("/admin")
+@require_permission('admin.view')
+def admin_dashboard():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    return render_template("admin/adminOverview.html", 
+                         logged_in_user=session.get('username'), 
+                         userid=session.get('userid'))
 
 @app.route("/admin/users")
 @require_permission('admin.view')
 def admin_users():
     conn = None
     try:
-        logged_in_user = session.get('username', 'Unknown')
-        userid = session.get('userid', 'Unknown')
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
@@ -379,17 +385,92 @@ def admin_users():
             ORDER BY username
         """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        cursor.execute("select AccessID, name from AccessProfile")
-        accessProfiles = cursor.fetchall()
-        log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
-        return render_template("admin/userManagement.html", users=users, accessProfiles=accessProfiles, logged_in_user=logged_in_user, userid=userid)
+        
+        return render_template("admin/userManagement.html", users=users, userid=session.get('userid'), logged_in_user=session.get('username'))
     except Exception as e:
-        app.logger.error(f"Failed to fetch users for admin panel: {e}")
-        log_user_action('visitUserManagement', status='FAILURE', resource_id='userManagement', details={"serverError": str(e)}, IsInternalError=1)
-        return redirect(url_for('dashboard'))
+        app.logger.error(f"Failed to fetch users: {e}")
+        return render_template('500.html')
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
+
+@app.route("/admin/logs")
+@require_permission('admin.view')
+def admin_logs_view():
+    return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'))
+
+@app.route("/api/admin/logs/search")
+@require_permission('admin.view')
+def api_admin_logs_search():
+    # Filters
+    username = request.args.get('username', '').strip()
+    action_type = request.args.get('action_type', '').strip()
+    status = request.args.get('status', '').strip()
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    offset = (page - 1) * per_page
+
+    query_parts = ["1=1"]
+    params = []
+
+    if username:
+        query_parts.append("Username LIKE ?")
+        params.append(f"%{username}%")
+    if action_type:
+        query_parts.append("ActionType LIKE ?")
+        params.append(f"%{action_type}%")
+    if status:
+        query_parts.append("ActionStatus = ?")
+        params.append(status)
+    if start_date:
+        query_parts.append("Timestamp >= ?")
+        params.append(start_date)
+    if end_date:
+        query_parts.append("Timestamp <= ?")
+        params.append(f"{end_date} 23:59:59")
+
+    where_clause = " AND ".join(query_parts)
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        # Get Total Count for Pagination
+        cursor.execute(f"SELECT COUNT(*) FROM User_Logs WHERE {where_clause}", params)
+        total_count = cursor.fetchone()[0]
+
+        # Get Data
+        sql = f"""
+            SELECT LogID, Timestamp, Username, ActionType, ActionStatus, Details, IPAddress 
+            FROM User_Logs 
+            WHERE {where_clause}
+            ORDER BY Timestamp DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """
+        cursor.execute(sql, params + [offset, per_page])
+        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        return jsonify({
+            "logs": logs,
+            "total": total_count,
+            "page": page,
+            "pages": math.ceil(total_count / per_page)
+        })
+    except Exception as e:
+        app.logger.error(f"Log search error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@app.route("/admin/sessions")
+@require_permission('admin.view')
+def admin_sessions_view():
+    return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'))
 
 @app.route("/admin/users/add", methods=['POST'])
 @require_permission('admin.create.user')

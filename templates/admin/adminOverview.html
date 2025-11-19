@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ _("Admin Overview - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+</head>3
+<body class="bg-gray-50 text-gray-800">
+    {% set active_page = 'adminOverview' %}
+    {% include '_header.html' %}
+    
+    <main class="container mx-auto p-6">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">{{ _("Administration Hub") }}</h2>
+            <p class="text-gray-600">{{ _("Manage users, security, and system activity.") }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <a href="{{ url_for('admin_users') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-indigo-100 rounded-lg text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-indigo-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">{{ _("User Management") }}</h3>
+                <p class="text-sm text-gray-500 mt-2">{{ _("Create, edit, and delete user accounts. Manage personal details and companies.") }}</p>
+            </a>
+
+            <a href="{{ url_for('admin_access_control') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-purple-100 rounded-lg text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+                        <i class="fas fa-id-badge fa-2x"></i>
+                    </div>
+                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-purple-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">{{ _("Permissions & Profiles") }}</h3>
+                <p class="text-sm text-gray-500 mt-2">{{ _("Manage access profiles, role-based permissions, and individual user overrides.") }}</p>
+            </a>
+
+            <a href="{{ url_for('admin_logs_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-orange-100 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-orange-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">{{ _("System Logs") }}</h3>
+                <p class="text-sm text-gray-500 mt-2">{{ _("Deep dive into system activity. Filter by user, date, action type, and status.") }}</p>
+            </a>
+
+            <a href="{{ url_for('admin_sessions_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-green-100 rounded-lg text-green-600 group-hover:bg-green-600 group-hover:text-white transition">
+                        <i class="fas fa-signal fa-2x"></i>
+                    </div>
+                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-green-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">{{ _("Active Sessions") }}</h3>
+                <p class="text-sm text-gray-500 mt-2">{{ _("View users currently logged in or active within the last 30 minutes.") }}</p>
+            </a>
+
+        </div>
+    </main>
+</body>
+</html>
