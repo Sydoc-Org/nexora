@@ -245,7 +245,7 @@ def login():
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT userID, password, username, fullname, email, company, Subscription FROM Users WHERE username = ?
+                SELECT userID, password, username, fullname, email, company, Subscription, organizationcode FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -257,6 +257,7 @@ def login():
                 stored_email = user_record[4]
                 stored_company = user_record[5]
                 stored_subscription = user_record[6]
+                stored_organizationcode = user_record[7]
 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')
@@ -271,6 +272,7 @@ def login():
                     session['uuid'] = uuid.uuid4()
                     session['subscription'] = stored_subscription
                     session['permissions'] = load_permissions_for_user(str(stored_userid))
+                    session['organizationcode'] = stored_organizationcode
 
                     if len(REMEMBER) > 0:
                         session.permanent = True
@@ -3229,18 +3231,33 @@ def remove_tag_from_workitem(workitemid, tag_id):
 
 # -------------------------------- team board --------------------------------- #
 @app.route("/team-board")
+@require_permission('teamboard.view')
 def team_board():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-
-        access = session.get('access')
-
+        
+        perms = session.get('permissions', [])
+        prefix = "teamboard.filter.process."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
         process_name = request.args.get('processFilterBoard', 'all')
-        priority = request.args.get('priority', '')
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
 
         placeholders, params = get_process_filter_and_params(process_name)
+        allowed_params = [
+            p for p in params
+            if has_permission(f'teamboard.filter.process.privera.{p}')
+        ]
+        placeholders = ", ".join(["?"] * len(allowed_params))
+        params = allowed_params
         params.append('Privera')
+        
+        priority = request.args.get('priority', '')
 
         where_clauses = [
             f"tp.Name IN ({placeholders})",
@@ -3318,8 +3335,8 @@ def team_board():
             ORDER BY Priority DESC, ModifiedAt ASC;
         """
         ,params)
-
-        portal_users = get_all_portal_users(access)
+        
+        portal_users = get_all_portal_users('teamboard')
         workitems_by_user = {user['userID']: [] for user in portal_users}
         workitems_by_user['Unassigned'] = []
 
@@ -3327,7 +3344,6 @@ def team_board():
             user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
             if user_id in workitems_by_user:
                 workitems_by_user[user_id].append({
-                    # 'barcode': row.Barcode,
                     'workitemid': row.WorkitemID,
                     'modifiedat': row.ModifiedAt,
                     'current_stage': row.CurrentStage,
@@ -3343,7 +3359,8 @@ def team_board():
             priority=priority,
             portal_users=portal_users,
             userid=session.get('userid'),
-            scope=session.get('scope'), pageV=pageVisability()
+            scope=session.get('scope'), pageV=pageVisability(),
+            allowed_processes=allowed_processes
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
@@ -3354,16 +3371,19 @@ def team_board():
 
 # --------------------------- workitem overview end -------------------------- #
 
-def get_all_portal_users(access):
+def get_all_portal_users(fromRequest):
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        if access != 'Unlimited':
-            cursor.execute("SELECT userID, fullname FROM Users WHERE access = ? ORDER BY fullname",access)
-        else:
+
+        if has_permission(f'{fromRequest}.view.users.global'):
             cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
+        elif has_permission(f'{fromRequest}.view.users.native-provider'):
+            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?, 'SYDC') ORDER BY fullname", session.get('organizationcode'))
+        elif has_permission(f'{fromRequest}.view.users.native'):
+            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?) ORDER BY fullname", session.get('organizationcode'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return users
     except Exception as e:
