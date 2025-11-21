@@ -33,7 +33,7 @@
 
                 <div class="flex items-center space-x-5">
                     <nav class="hidden md:flex space-x-6">
-
+                        {% if pageV.adminPagePerm == True %}
                         <a href="{{ url_for('admin_dashboard') }}"
                             class="{% if active_page == 'adminOverview' or 
                             active_page == 'userManagement' or
@@ -45,26 +45,35 @@
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-user-tie mr-2"></i>{{ _("Admin Management") }}
                         </a>
+                        {% endif %}
+                        {% if pageV.dashboardPagePerm == True %}
                         <a href="{{ url_for('dashboard') }}"
                             class="{% if active_page == 'dashboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-tachometer-alt mr-2"></i>{{ _("Dashboard") }}
                         </a>
+                        {% endif %}
+                        {% if pageV.workitemsPagePerm == True %}
                         <a href="{{ url_for('workitems_overview') }}"
                             class="{% if active_page == 'workitems_overview' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-list mr-2"></i>{{ _("Workitems") }}
                         </a>
+                        {% endif %}
+                        {% if pageV.teamboardPagePerm == True %}
                         <a href="{{ url_for('team_board') }}"
                             class="{% if active_page == 'teamboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-people-group mr-2"></i>{{ _("Team Board") }}
                         </a>
+                        {% endif %}
+                        {% if pageV.invoicesPagePerm == True %}
                         <a href="{{ url_for('invoices') }}"
                             class="{% if active_page == 'invoices' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
                             {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
                             <i class="fas fa-file-invoice-dollar mr-2"></i>{{ _("Invoices") }}
                         </a>
+                        {% endif %}
                     </nav>
                 </div>
 

@@ -210,6 +210,17 @@ def require_permission(code):
         return wrapper
     return decorator
 
+def pageVisability():
+    adminPagePerm = has_permission('admin.view')
+    dashboardPagePerm = has_permission('dashboard.view')
+    workitemsPagePerm = has_permission('workitems.view')
+    teamboardPagePerm = has_permission('teamboard.view')
+    invoicesPagePerm = has_permission('invoices.view')
+    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
+            'workitemsPagePerm':workitemsPagePerm, 'teamboardPagePerm': teamboardPagePerm,
+            'invoicesPagePerm': invoicesPagePerm}
+
+
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
@@ -370,7 +381,7 @@ def admin_dashboard():
         return redirect(url_for("login"))
     return render_template("admin/adminOverview.html", 
                          logged_in_user=session.get('username'), 
-                         userid=session.get('userid'))
+                         userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/admin/users")
 @require_permission('admin.view')
@@ -386,7 +397,7 @@ def admin_users():
         """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         
-        return render_template("admin/userManagement.html", users=users, userid=session.get('userid'), logged_in_user=session.get('username'))
+        return render_template("admin/userManagement.html", users=users, userid=session.get('userid'), logged_in_user=session.get('username'), pageV=pageVisability())
     except Exception as e:
         app.logger.error(f"Failed to fetch users: {e}")
         return render_template('500.html')
@@ -396,7 +407,7 @@ def admin_users():
 @app.route("/admin/logs")
 @require_permission('admin.view')
 def admin_logs_view():
-    return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'))
+    return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/api/admin/logs/search")
 @require_permission('admin.view')
@@ -467,7 +478,7 @@ def api_admin_logs_search():
 @app.route("/admin/sessions")
 @require_permission('admin.view')
 def admin_sessions_view():
-    return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'))
+    return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/admin/users/add", methods=['POST'])
 @require_permission('admin.create.user')
@@ -645,7 +656,7 @@ def admin_access_control():
         return render_template("admin/accessControl.html", 
                              profiles=profiles, 
                              all_permissions=all_permissions,
-                             logged_in_user=session.get('username'), userid=session.get('userid'))
+                             logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
     except Exception as e:
         app.logger.error(f"Error loading access control: {e}")
         return render_template('500.html')
@@ -1315,6 +1326,7 @@ def dashboard():
             BacklogTotal=absolute_stats['BacklogTotal'],
             process_name=process_name,
             allowed_processes=allowed_processes,  
+            pageV=pageVisability()
         )
     except PermissionDenied:
         raise
@@ -2449,6 +2461,7 @@ def workitems_overview():
             portal_users=portal_users,
             docfield=docfields[0] if docfields else '',
             docvalue=docvalues[0] if docvalues else '',
+            pageV=pageVisability()
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
@@ -3214,7 +3227,7 @@ def remove_tag_from_workitem(workitemid, tag_id):
 # ---------------------- workitem collaboration apis end --------------------- #
 
 
-# -------------------------------- process board --------------------------------- #
+# -------------------------------- team board --------------------------------- #
 @app.route("/team-board")
 def team_board():
     try:
@@ -3330,7 +3343,7 @@ def team_board():
             priority=priority,
             portal_users=portal_users,
             userid=session.get('userid'),
-            scope=session.get('scope')
+            scope=session.get('scope'), pageV=pageVisability()
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
@@ -3374,7 +3387,8 @@ def profile():
         email = session.get('email', 'Unknown')
         company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription)
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription,
+                               pageV=pageVisability())
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -4096,7 +4110,8 @@ def invoices():
                                dateTo=dateTo
                                ,search_nr_perm=search_nr_perm
                                ,status_perm=status_perm
-                               ,date_perm=date_perm)
+                               ,date_perm=date_perm
+                               ,pageV=pageVisability())
     except Exception as e:
         log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
