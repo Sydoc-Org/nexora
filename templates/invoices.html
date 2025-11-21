@@ -27,12 +27,12 @@
     <form id="filterForm" class="bg-white p-6 rounded-xl shadow-lg mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label for="invoiceSearch" class="block text-sm font-medium text-gray-700">{{ _("Search Invoice #") }}</label>
+          <label for="invoiceSearch" class="block text-sm font-medium text-gray-700" >{{ _("Search Invoice #") }}</label>
           <div class="relative mt-1">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
               <i class="fas fa-search"></i>
             </span>
-            <input type="text" id="invoiceSearch" name="search" value="{{ search or '' }}"
+            <input type="text" id="invoiceSearch" name="search" value="{{ search or '' }}"  {% if search_nr_perm == False %} disabled {% endif %}
               class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Enter invoice number...">
           </div>
@@ -43,7 +43,7 @@
               {{ _("From Date") }}
             </label>
             <div class="relative mt-1">
-              <input type="date" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}"
+              <input type="date" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}" {% if date_perm == False %} disabled {% endif %}
                 class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
             </div>
           </div>
@@ -52,8 +52,8 @@
             <label for="dateTo" class="block text-sm font-medium text-gray-700">
               {{ _("To Date") }}
             </label>
-            <div class="relative mt-1">
-              <input type="date" id="dateTo" name="dateTo" value="{{ dateTo or '' }}"
+            <div class="relative mt-1"> 
+              <input type="date" id="dateTo" name="dateTo" value="{{ dateTo or '' }}"  {% if date_perm == False %} disabled {% endif %}
                 class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
             </div>
           </div>
@@ -61,7 +61,7 @@
         <div>
           <label for="statusFilter" class="block text-sm font-medium text-gray-700">{{ _("Status") }}</label>
           
-          <select id="statusFilter" name="status"
+          <select id="statusFilter" name="status" {% if status_perm == False %} disabled {% endif %}
             class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">{{ _("All Statuses") }}</option>
             <option value="Paid" {% if status == 'Paid' %}selected{% endif %}>{{ _("Paid") }}</option>

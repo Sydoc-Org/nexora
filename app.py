@@ -401,14 +401,12 @@ def admin_logs_view():
 @app.route("/api/admin/logs/search")
 @require_permission('admin.view')
 def api_admin_logs_search():
-    # Filters
     username = request.args.get('username', '').strip()
     action_type = request.args.get('action_type', '').strip()
     status = request.args.get('status', '').strip()
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
     
-    # Pagination
     page = request.args.get('page', 1, type=int)
     per_page = 50
     offset = (page - 1) * per_page
@@ -444,7 +442,6 @@ def api_admin_logs_search():
         cursor.execute(f"SELECT COUNT(*) FROM User_Logs WHERE {where_clause}", params)
         total_count = cursor.fetchone()[0]
 
-        # Get Data
         sql = f"""
             SELECT LogID, Timestamp, Username, ActionType, ActionStatus, Details, IPAddress 
             FROM User_Logs 
@@ -734,7 +731,8 @@ def save_access_profile():
                 cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
 
             conn.commit()
-            
+
+        session['permissions'] = load_permissions_for_user(session['userid'])
         log_user_action('saveAccessProfile', 'SUCCESS', resource_id=access_id, details={'name': name})
         return jsonify({'success': True, 'message': _("Profile saved successfully")})
     except Exception as e:
@@ -793,7 +791,8 @@ def save_user_overrides():
                 cursor.executemany("INSERT INTO UserPermissionOverride (UserID, PermissionID, Effect) VALUES (?, ?, ?)", params)
             
             conn.commit()
-            
+
+        session['permissions'] = load_permissions_for_user(session['userid'])
         log_user_action('saveUserOverrides', 'SUCCESS', target_user_id=user_id)
         return jsonify({'success': True, 'message': _("Overrides updated successfully")})
     except Exception as e:
@@ -3966,6 +3965,9 @@ def report_stage_breakdown():
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
+
+# -------------------------------- bexio ------------------------------------- #
+
 def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None):
     url = "https://api.bexio.com/2.0/kb_invoice/search"
     accessToken = BEXIO_PAT
@@ -4055,11 +4057,9 @@ def map_invoice_status(status_id):
     else:
         return {'text': _('Open'), 'color': 'blue'}
 
-
-
-def getBexioClientId(scope, access):
+def getBexioClientId():
     clientId = None
-    if (scope == 'Client' and access == 'Privera') or (scope == 'Admin' and access == 'Unlimited'):
+    if has_permission('invoices.view.privera'):
         clientId = BEXIO_PRIVERA_CLIENT_ID
 
     return clientId
@@ -4068,52 +4068,55 @@ def getBexioClientId(scope, access):
 
 # ---------------------------------- invoices ---------------------------------- #
 @app.route("/invoices")
+@require_permission('invoices.view')
 def invoices():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
 
         logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
 
-        search_nr = request.args.get('search', '')
-        status = request.args.get('status', '')
-        dateFrom = request.args.get('dateFrom', (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
-        dateTo = request.args.get('dateTo', datetime.now().strftime('%Y-%m-%d'))
+        search_nr_perm = has_permission('invoices.filter.invoiceid')
+        search_nr = request.args.get('search', '') if search_nr_perm else None
+        status_perm = has_permission('invoices.filter.status')
+        status = request.args.get('status', '') if status_perm else None
+        date_perm = has_permission('invoices.filter.date')
+        dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if date_perm else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if date_perm else datetime.now().strftime('%Y-%m-%d')
 
         log_user_action('visitInvoices', status='SUCCESS', resource_id='invoices')
 
         return render_template("invoices.html",
                                logged_in_user=logged_in_user,
-                               scope=scope,
                                userid=userid,
                                search=search_nr,
                                status=status,
                                dateFrom=dateFrom,
-                               dateTo=dateTo)
+                               dateTo=dateTo
+                               ,search_nr_perm=search_nr_perm
+                               ,status_perm=status_perm
+                               ,date_perm=date_perm)
     except Exception as e:
         log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
 @app.route("/api/invoices")
+@require_permission('invoices.view')
 def api_invoices():
     try:
         if 'username' not in session:
             return jsonify({"error": _("Not authorized")}), 401
 
-        scope = session.get('scope', 'Unknown')
-        access = session.get('access', 'Unknown')
+        search_nr = request.args.get('search', '') if has_permission('invoices.filter.invoiceid') else None
+        status = request.args.get('status', '')  if has_permission('invoices.filter.status') else None
+        dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else datetime.now().strftime('%Y-%m-%d')
 
-        search_nr = request.args.get('search', '')
-        status = request.args.get('status', '')
-        dateFrom = request.args.get('dateFrom', (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d'))
-        dateTo = request.args.get('dateTo', datetime.now().strftime('%Y-%m-%d'))
-
-        bexio_client_id = getBexioClientId(scope=scope, access=access)
+        bexio_client_id = getBexioClientId()
 
         if not bexio_client_id:
-            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')} (Scope: {scope}, Access: {access})")
+            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')}")
             return jsonify([])
 
         invoices_list = searchBexioInvoices(
@@ -4138,8 +4141,8 @@ def api_invoices():
         log_user_action('apiSearchInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({"error": "Failed to fetch invoices"}), 500
 
-
 @app.route("/invoice/<int:invoice_id>/pdf")
+@require_permission('invoices.download')
 def download_invoice_pdf(invoice_id):
     if 'username' not in session:
         return redirect(url_for("login"))
