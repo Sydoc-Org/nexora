@@ -174,7 +174,7 @@
               <div class="relative mt-1">
                 <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10">
                   <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
-                  {% for user in portal_users %}
+                  {% for user in portal_users_4assigning %}
                   <option value="{{ user.userID }}" {% if assignedUser==user.userID|string %}selected{% endif %}>
                     {{ user.fullname }}
                   </option>
@@ -546,7 +546,6 @@
                       </div>
                     </div>
 
-                    {% if access == 'Unlimited' %}
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                       <div class="flex flex-col gap-6 h-[50rem]">
                         <div id="image-container-{{ workitem.workitemid }}"
@@ -577,8 +576,7 @@
                     </div>
 
 
-                    {% else %}
-                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
+                    <!-- <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
                       <div class="flex">
                         <div class="flex-shrink-0">
                           <i class="fas fa-info-circle text-blue-400 mt-1"></i>
@@ -590,8 +588,7 @@
                           </p>
                         </div>
                       </div>
-                    </div>
-                    {% endif %}
+                    </div> -->
 
                     <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
                       <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>

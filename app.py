@@ -245,7 +245,7 @@ def login():
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT userID, password, username, fullname, email, company, Subscription, organizationcode FROM Users WHERE username = ?
+                SELECT userID, password, username, fullname, email, company, organizationcode FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -256,8 +256,7 @@ def login():
                 stored_fullname = user_record[3]
                 stored_email = user_record[4]
                 stored_company = user_record[5]
-                stored_subscription = user_record[6]
-                stored_organizationcode = user_record[7]
+                stored_organizationcode = user_record[6]
 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')
@@ -270,7 +269,6 @@ def login():
                     session['email'] = stored_email
                     session['company'] = stored_company
                     session['uuid'] = uuid.uuid4()
-                    session['subscription'] = stored_subscription
                     session['permissions'] = load_permissions_for_user(str(stored_userid))
                     session['organizationcode'] = stored_organizationcode
 
@@ -510,7 +508,7 @@ def admin_add_user():
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username})
         return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
-        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username, 'scope': scope})
+        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username})
         return jsonify({'success': False, 'message': _("Username or email already exists.")}), 409
     except Exception as e:
         app.logger.error(f"Error adding user: {e}")
@@ -1241,9 +1239,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-            --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
                 --posteingang
                 'Deletion Marker Privera Posteingang C+A',
@@ -1261,11 +1257,8 @@ def get_dashbord_preview_documents_stats(processName='all'):
         )
         SELECT DISTINCT TOP 20
         WorkItemID
-        --tdi.StringValue Barcode
         ,Activity FROM CTE
-        --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID
         WHERE
-        --tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
         CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
             """, (all_params)
         )
@@ -1392,16 +1385,12 @@ def recent_activity():
                 FROM t_WorkItems twi
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
                 WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-                --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
                 AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                --posteingang
                 'Deletion Marker Privera Posteingang C+A',
                  'Deletion Marker ohne PDF PP_END',
                  'Deletion Marker ohne PDF PP_END_1',
                 'Deletion Marker Privera Posteingang NoImages',
-                --invoice
                  'Deletion Marker MAIL Invalid or Empty',
                  'Deletion Marker MAIL',
                  'Deleted Documents',
@@ -1411,13 +1400,10 @@ def recent_activity():
                 )
             )
             SELECT DISTINCT TOP ({limit})
-                --tdi.StringValue AS Barcode,
                 CTE.WorkItemID,
                 CTE.Status,
                 CTE.ModifiedAt
             FROM CTE
-            --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID
-            --WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
             ORDER BY CTE.ModifiedAt DESC
         """
         ,all_params)
@@ -1674,7 +1660,6 @@ def _get_workitems_data(args):
             FROM t_WorkItems twi
             INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
             LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {where_sql}
         """
@@ -1684,7 +1669,6 @@ def _get_workitems_data(args):
         data_query = f"""
             WITH WorkitemCTE AS (
                 SELECT
-                    --tdi_barcode.StringValue AS Barcode,
                     twi.ModifiedAt, twi.ID AS WorkItemID,
                     CASE
                         WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
@@ -1710,11 +1694,10 @@ def _get_workitems_data(args):
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
                 WHERE {where_sql}
             )
-            SELECT --Barcode,
+            SELECT 
              ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
             FROM WorkitemCTE WHERE rn = 1
             ORDER BY ModifiedAt DESC
@@ -2419,8 +2402,6 @@ def workitems_overview():
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
-        scope = session.get('scope')
-        access = session.get('access')
 
         data = _get_workitems_data(request.args)
 
@@ -2441,13 +2422,11 @@ def workitems_overview():
         docfields = request.args.getlist('docfield')
         docvalues = request.args.getlist('docvalue')
 
-        portal_users = get_all_portal_users(access)
+        portal_users_4assigning = get_all_portal_users('workitems', 'details.assign.users')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
             logged_in_user=logged_in_user,
             userid=userid,
-            scope=scope,
-            access=access,
             process_name=process_name,
             workitems=workitems_list,
             current_page=pagination['currentPage'],
@@ -2460,7 +2439,7 @@ def workitems_overview():
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            portal_users=portal_users,
+            portal_users_4assigning=portal_users_4assigning,
             docfield=docfields[0] if docfields else '',
             docvalue=docvalues[0] if docvalues else '',
             pageV=pageVisability()
@@ -2515,7 +2494,6 @@ def get_single_workitem(workitemid):
         query = f"""
             WITH WorkitemCTE AS (
                 SELECT
-                    --tdi_barcode.StringValue AS Barcode,
                     twi.ID AS WorkItemID,
                     (
                         SELECT
@@ -2529,7 +2507,6 @@ def get_single_workitem(workitemid):
                     ) AS TagsJSON,
                     ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
                 FROM t_WorkItems twi
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 WHERE twi.ID = ?
             )
             SELECT WorkItemID, TagsJSON
@@ -2610,8 +2587,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    with open('data.json', 'w') as f:
-        json.dump(response.json(), f)
+    # with open('data.json', 'w') as f:
+    #     json.dump(response.json(), f)
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -2920,7 +2897,7 @@ def get_users_for_mentions():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
+        cursor.execute("SELECT userID, username, fullname FROM Users")
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(users)
     except Exception as e:
@@ -2940,7 +2917,6 @@ def get_workitem_interactions(workitemid):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        current_user_access = session.get('access')
 
         sql_query = """
             SELECT c.CommentText, c.Timestamp, u.username, u.userID
@@ -2949,11 +2925,8 @@ def get_workitem_interactions(workitemid):
         """
         params = [workitemid]
 
-        if current_user_access == 'Unlimited':
-            sql_query += " WHERE c.WorkItemID = ?"
-        else:
-            sql_query += " WHERE c.WorkItemID = ? AND u.access = ?"
-            params.append(current_user_access)
+        # ---------------------------- access control here --------------------------- #
+        sql_query += " WHERE c.WorkItemID = ?"
 
         sql_query += " ORDER BY c.Timestamp ASC"
         cursor.execute(sql_query, params)
@@ -3298,7 +3271,6 @@ def team_board():
         cursor.execute(f"""
             WITH BoardItems AS (
                 SELECT
-                    -- tdi_barcode.StringValue AS Barcode,
                     twi.id WorkitemID,
                     twi.ModifiedAt,
                     CASE
@@ -3323,7 +3295,6 @@ def team_board():
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
@@ -3336,7 +3307,7 @@ def team_board():
         """
         ,params)
         
-        portal_users = get_all_portal_users('teamboard')
+        portal_users = get_all_portal_users('teamboard', 'view.users')
         workitems_by_user = {user['userID']: [] for user in portal_users}
         workitems_by_user['Unassigned'] = []
 
@@ -3359,7 +3330,7 @@ def team_board():
             priority=priority,
             portal_users=portal_users,
             userid=session.get('userid'),
-            scope=session.get('scope'), pageV=pageVisability(),
+            pageV=pageVisability(),
             allowed_processes=allowed_processes
         )
     except Exception as e:
@@ -3371,19 +3342,21 @@ def team_board():
 
 # --------------------------- workitem overview end -------------------------- #
 
-def get_all_portal_users(fromRequest):
+def get_all_portal_users(fromRequest, action):
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        if has_permission(f'{fromRequest}.view.users.global'):
+
+        if has_permission(f'{fromRequest}.{action}.global'):
             cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
-        elif has_permission(f'{fromRequest}.view.users.native-provider'):
+        elif has_permission(f'{fromRequest}.{action}.native-provider'):
             cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?, 'SYDC') ORDER BY fullname", session.get('organizationcode'))
-        elif has_permission(f'{fromRequest}.view.users.native'):
+        elif has_permission(f'{fromRequest}.{action}.native'):
             cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?) ORDER BY fullname", session.get('organizationcode'))
+
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return users
     except Exception as e:
@@ -3400,15 +3373,12 @@ def profile():
         if 'username' not in session:
             return redirect(url_for("login"))
         logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
-        subscription = session.get('subscription', 'Unknown')
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
         company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription,
-                               pageV=pageVisability())
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, fullname=fullname, email=email, company=company, pageV=pageVisability())
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
