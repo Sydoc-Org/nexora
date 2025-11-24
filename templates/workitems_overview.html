@@ -73,13 +73,13 @@
               <select id="processFilterWorkitemOverview" name="processFilterWorkitemOverview"
                 class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300">
                 <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
-                <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox")}}
-                </option>
-                <option value="03_Invoice_New" {% if process_name=='03_Invoice_New' %}selected{% endif %}>{{
-                  _("Invoice") }}
-                </option>
-                <option value="02_InitialScan" {% if process_name=='02_InitialScan' %}selected{% endif %}>{{ _("Initial-scan")}}
-              </select>
+                {% for proc in allowed_processes %}
+                    <option value="{{ proc }}"
+                            {% if process_name == proc %}selected{% endif %}>
+                        {{ _('process.' ~ proc) }} 
+                    </option>
+                {% endfor %}
+                </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <i class="fa-solid fa-chevron-down text-xs"></i>
               </div>
@@ -92,7 +92,7 @@
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <i class="fas fa-search"></i>
               </span>
-              <input type="text" id="searchInput" name="search" value="{{ search or '' }}"
+              <input type="text" id="searchInput" name="search" value="{{ search or '' }}" {% if search_term_perm == False %} disabled {% endif %}
                 class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Enter workitem...">
             </div>
@@ -104,7 +104,7 @@
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <i class="fas fa-tag"></i>
               </span>
-              <input type="text" id="tagFilterInput" name="tag" value="{{ tag or '' }}" list="taglist"
+              <input type="text" id="tagFilterInput" name="tag" value="{{ tag or '' }}" list="taglist" {% if tag_filter_perm == False %} disabled {% endif %}
                 class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Enter tag name...">
               <datalist id="taglist"></datalist>
@@ -113,7 +113,7 @@
 
           <div>
             <label for="statusFilter" class="block text-sm font-medium text-gray-700">{{ _("Status") }}</label>
-            <select id="statusFilter" name="status"
+            <select id="statusFilter" name="status"  {% if status_perm == False %} disabled {% endif %}
               class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">{{ _("All statuses") }}</option>
               <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
@@ -134,7 +134,7 @@
                 {{ _("From Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}"
+                <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}" {% if datetime_perm == False %} disabled {% endif %}
                   class="{{ input_base }}" />
               </div>
             </div>
@@ -144,7 +144,7 @@
                 {{ _("To Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}"
+                <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}" {% if datetime_perm == False %} disabled {% endif %}
                   class="{{ input_base }}" />
               </div>
             </div>
@@ -154,7 +154,7 @@
                 {{ _("Priority") }}
               </label>
               <div class="relative mt-1">
-                <select id="priorityFilter" name="priority" class="{{ input_base }} appearance-none pr-10">
+                <select id="priorityFilter" name="priority" class="{{ input_base }} appearance-none pr-10" {% if priority_perm == False %} disabled {% endif %}>
                   <option value="">{{ _("All Priorities") }}</option>
                   <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
                   <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
@@ -172,9 +172,9 @@
                 {{ _("Assigned To") }}
               </label>
               <div class="relative mt-1">
-                <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10">
+                <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10" {% if assigned_user_perm == False %} disabled {% endif %}>
                   <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
-                  {% for user in portal_users_4assigning %}
+                  {% for user in protal_assignedUsers_filter %}
                   <option value="{{ user.userID }}" {% if assignedUser==user.userID|string %}selected{% endif %}>
                     {{ user.fullname }}
                   </option>
@@ -196,7 +196,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                       <i class="fa-regular fa-rectangle-list"></i>
                     </span>
-                    <select id="docFieldFilter" name="docfield"
+                    <select id="docFieldFilter" name="docfield" {% if docFieldsValues_perm == False %} disabled {% endif %} 
                       class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field">
                       {% if process_name == '02_Posteingang' %}
                       <option value="doctype" {{ 'selected' if docfield=='doctype' }}>{{ _("Doctype") }}</option>
@@ -309,7 +309,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                       <i class="fa-regular fa-keyboard"></i>
                     </span>
-                    <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}"
+                    <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if docFieldsValues_perm == False %} disabled {% endif %} 
                       autocomplete="off" class="{{ input_base }} pl-10 pr-4 doc-filter-value"
                       placeholder="{{ _('Type to search…') }}" />
                     <div id="docValueCustomList"

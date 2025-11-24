@@ -1444,6 +1444,13 @@ def _get_workitems_data(args):
     process_name = args.get('processFilterWorkitemOverview', 'all')
     session['process_name_workitemOverview'] = process_name
     placeholders, params = get_process_filter_and_params(process_name)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'workitems.filter.process.privera.{p}')
+    ]
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+
     params.append('Privera')
 
     docfields = args.getlist('docfield')
@@ -1472,174 +1479,203 @@ def _get_workitems_data(args):
     if status and status in status_map:
         where_clauses.append("twi.Status = ?")
         params.append(status_map[status])
-    if tag_filter:
-        where_clauses.append(f"""
-            EXISTS (
-                SELECT 1
-                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                WHERE wt.workitemid = twi.id AND t.TagName like ?
-            )
-        """)
-        params.append(f"%{tag_filter}%")
+    if tag_filter and has_permission('workitems.filter.tag'):
+        if has_permission('workitems.filter.tag.global'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+        elif has_permission('workitems.filter.tag.native-provider'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                    AND u.organizationCode IN (?, 'SYDC')
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+            params.append(session.get('organizationcode'))
+        elif has_permission('workitems.filter.tag.native'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                    AND u.organizationCode IN (?)
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+            params.append(session.get('organizationcode'))
 
-    if search_term:
+
+    if search_term and has_permission('workitems.filter.workitemid'):
         where_clauses.append("twi.id LIKE ?")
         params.append(f"%{search_term}%")
 
-    if start_date:
+    if start_date and has_permission('workitems.filter.datetime'):
         where_clauses.append("twi.ModifiedAt >= ?")
         params.append(start_date)
-    if end_date:
+    if end_date and has_permission('workitems.filter.datetime'):
         where_clauses.append("twi.ModifiedAt < ?")
         params.append(end_date)
-    if priority:
+    if priority and has_permission('workitems.filter.priority'):
         where_clauses.append("wim.Priority = ?")
         params.append(priority)
-    if assigned_user:
+    if assigned_user and has_permission('workitems.filter.assignedUser'):
         if assigned_user == 'None' or assigned_user == 'Unassigned':
             where_clauses.append("(wim.AssignedUserID IS NULL)")
         else:
             where_clauses.append("wim.AssignedUserID = ?")
             params.append(assigned_user)
 
-    for docfield, docvalue in zip(docfields, docvalues):
-        docfield = (docfield or '').lower().strip()
-        docvalue = (docvalue or '').strip()
-        if not docvalue or not docfield:
-            continue
+    if has_permission('workitems.filter.documentfields'):
+        for docfield, docvalue in zip(docfields, docvalues):
+            docfield = (docfield or '').lower().strip()
+            docvalue = (docvalue or '').strip()
+            if not docvalue or not docfield:
+                continue
 
-        if docfield == 'doctype':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            if docfield == 'doctype':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'docbarcode':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'crdno':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
+            elif docfield == 'crdname':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'docbarcode':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'bankpk':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'grossamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'netamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'vatamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'doccurrency':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'invoicenr':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'crdno':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'crdname':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'bankpk':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'grossamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'netamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'vatamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'doccurrency':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'invoicenr':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'tec':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'esrreference':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'ordernumber':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'client':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docsource':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'ownernr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'tec':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'esrreference':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'ordernumber':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'tenancynr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'client':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'docsource':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'registered':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'branch':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docdate':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'forwarding':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'department':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'postcode':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'recipient':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'confidentiality':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'propertynr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'tenancynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'registered':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'branch':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'docdate':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
-        elif docfield == 'separatorsheet':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docid':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'archiveboxno':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
+            elif docfield == 'forwarding':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'department':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'postcode':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'recipient':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'confidentiality':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
+            elif docfield == 'separatorsheet':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'docid':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'archiveboxno':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -1705,7 +1741,6 @@ def _get_workitems_data(args):
         """
         data_params = params + [offset, per_page]
         cursor.execute(data_query, data_params)
-        print(data_query,data_params)
         for row in cursor.fetchall():
             workitems_list.append({
                 'modifiedat': row.ModifiedAt,
@@ -1734,6 +1769,7 @@ def _get_workitems_data(args):
     }
 
 @app.route('/api/docfield_values')
+@require_permission('workitems.filter.documentfields')
 def api_docfield_values():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2382,6 +2418,7 @@ def api_docfield_values():
             conn.close()
 
 @app.route("/api/workitems")
+@require_permission('workitems.view')
 def api_workitems():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -2395,6 +2432,7 @@ def api_workitems():
         return jsonify({"error": "An internal error occurred"}), 500
 
 @app.route("/workitems")
+@require_permission('workitems.view')
 def workitems_overview():
     try:
         if 'username' not in session:
@@ -2408,21 +2446,44 @@ def workitems_overview():
         workitems_list = data['workitems']
         pagination = data['pagination']
 
-        search_term = request.args.get('search', '').strip()
-        status = request.args.get('status', '')
-        tag_filter = request.args.get('tag', '').strip()
-        start_date_str = request.args.get('startDate', '')
-        end_date_str = request.args.get('endDate', '')
+        search_term_perm = has_permission('workitems.filter.workitemid')
+        search_term = request.args.get('search', '').strip() if search_term_perm else None
+
+        status_perm = has_permission('workitems.filter.status')
+        status = request.args.get('status', '') if status_perm else None
+
+        tag_filter_perm = has_permission('workitems.filter.tag')
+        tag_filter = request.args.get('tag', '').strip() if tag_filter_perm else None
+
+        datetime_perm = has_permission('workitems.filter.datetime')
+        start_date_str = request.args.get('startDate', '') if datetime_perm else None
+        end_date_str = request.args.get('endDate', '') if datetime_perm else None
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-        priority = request.args.get('priority', '')
-        assigned_user = request.args.get('assignedUser', '')
+
+        priority_perm = has_permission('workitems.filter.priority')
+        priority = request.args.get('priority', '') if priority_perm else None
+
+        assigned_user_perm = has_permission('workitems.filter.assignedUser')
+        assigned_user = request.args.get('assignedUser', '') if assigned_user_perm else None
+        
+        perms = session.get('permissions', [])
+        prefix = "workitems.filter.process.privera."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
+
         process_name = request.args.get('processFilterWorkitemOverview', 'all')
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
 
-        docfields = request.args.getlist('docfield')
-        docvalues = request.args.getlist('docvalue')
+        docFieldsValues_perm = has_permission('workitems.filter.documentfields')
+        docfields = request.args.getlist('docfield') if docFieldsValues_perm else None
+        docvalues = request.args.getlist('docvalue') if docFieldsValues_perm else None
 
-        portal_users_4assigning = get_all_portal_users('workitems', 'details.assign.users')
+        protal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
             logged_in_user=logged_in_user,
@@ -2439,16 +2500,25 @@ def workitems_overview():
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            portal_users_4assigning=portal_users_4assigning,
+            protal_assignedUsers_filter=protal_assignedUsers_filter,
             docfield=docfields[0] if docfields else '',
             docvalue=docvalues[0] if docvalues else '',
-            pageV=pageVisability()
+            pageV=pageVisability(),
+            allowed_processes=allowed_processes,
+            search_term_perm=search_term_perm,
+            status_perm=status_perm,
+            tag_filter_perm=tag_filter_perm,
+            datetime_perm=datetime_perm,
+            priority_perm=priority_perm,
+            assigned_user_perm=assigned_user_perm,
+            docFieldsValues_perm=docFieldsValues_perm
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
 @app.route('/import_workitems', methods=['POST'])
+@require_permission('workitems.import.workitem')
 def import_workitems():
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -3348,7 +3418,6 @@ def get_all_portal_users(fromRequest, action):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-
 
         if has_permission(f'{fromRequest}.{action}.global'):
             cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
