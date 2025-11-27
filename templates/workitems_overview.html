@@ -490,14 +490,20 @@
                   {% endfor %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
-                    data-workitemid="{{ workitem.workitemid }}" aria-expanded="false"
-                    aria-controls="details-row-{{ workitem.workitemid }}"
-                    aria-label="Toggle details for workitem {{ workitem.workitemid }}"
-                    id="chevron-{{ workitem.workitemid }}">
-                    <i class="indicator fas fa-chevron-down"></i>
-                  </button>
-                </td>
+                {% if details_view_perm %}
+                <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
+                  data-workitemid="{{ workitem.workitemid }}" aria-expanded="false"
+                  aria-controls="details-row-{{ workitem.workitemid }}"
+                  aria-label="Toggle details for workitem {{ workitem.workitemid }}"
+                  id="chevron-{{ workitem.workitemid }}">
+                  <i class="indicator fas fa-chevron-down"></i>
+                </button>
+                {% else %}
+                <span class="text-gray-400 cursor-not-allowed" title="{{ _('Insufficient permissions') }}">
+                  <i class="fas fa-lock"></i>
+                </span>
+                {% endif %}
+              </td>
               </tr>
 
               <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
@@ -547,32 +553,54 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                      <div class="flex flex-col gap-6 h-[50rem]">
-                        <div id="image-container-{{ workitem.workitemid }}"
-                          class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed rounded-lg bg-white">
-                          <p class="text-gray-500 text-center px-2">
-                            {{ _("Click toggle button again to load media") }}
-                          </p>
-                        </div>
-
-                        <div class="flex-1 flex flex-col bg-white rounded-lg p-4 overflow-hidden">
-                          <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
-                            {{ _('History') }}
-                          </h4>
-                          <div id="history-container-{{ workitem.workitemid }}" class="flex-grow overflow-y-auto pr-2">
-                            <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
-                          </div>
+                       <div class="flex flex-col gap-6 h-[50rem]">
+          
+                      {% if details_images_perm %}
+                      <div id="image-container-{{ workitem.workitemid }}"
+                        class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed rounded-lg bg-white">
+                        <p class="text-gray-500 text-center px-2">
+                          {{ _("Click toggle button again to load media") }}
+                        </p>
+                      </div>
+                      {% else %}
+                      <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-200 rounded-lg bg-gray-50">
+                        <div class="text-center">
+                            <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
+                            <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
                         </div>
                       </div>
+                      {% endif %}
+
+                      <div class="flex-1 flex flex-col bg-white rounded-lg p-4 overflow-hidden">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                          {{ _('History') }}
+                        </h4>
+                        {% if details_audit_perm %}
+                        <div id="history-container-{{ workitem.workitemid }}" class="flex-grow overflow-y-auto pr-2">
+                          <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
+                        </div>
+                        {% else %}
+                        <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                            <p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
 
                       <div class="flex flex-col bg-white rounded-lg p-4 h-[50rem] overflow-y-auto">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
-                          {{ _('Document Details') }}
-                        </h4>
-                        <div id="fields-container-{{ workitem.workitemid }}" class="flex-grow pr-2">
-                          <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
-                        </div>
-                      </div>
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                      {{ _('Document Details') }}
+                    </h4>
+                    {% if details_fields_perm %}
+                    <div id="fields-container-{{ workitem.workitemid }}" class="flex-grow pr-2">
+                      <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
+                    </div>
+                    {% else %}
+                    <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                      <p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p>
+                    </div>
+                    {% endif %}
+                  </div>
                     </div>
 
 

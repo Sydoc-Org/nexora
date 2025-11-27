@@ -650,7 +650,7 @@ def admin_access_control():
             cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
             profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
             
-            cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY Code")
+            cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
             all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
         return render_template("admin/accessControl.html", 
@@ -2483,6 +2483,11 @@ def workitems_overview():
         docfields = request.args.getlist('docfield') if docFieldsValues_perm else None
         docvalues = request.args.getlist('docvalue') if docFieldsValues_perm else None
 
+        details_view_perm = has_permission('workitems.details.view')
+        details_images_perm = has_permission('workitems.details.view.images')
+        details_audit_perm = has_permission('workitems.details.view.audit')
+        details_fields_perm = has_permission('workitems.details.view.fields')
+
         protal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
@@ -2511,7 +2516,11 @@ def workitems_overview():
             datetime_perm=datetime_perm,
             priority_perm=priority_perm,
             assigned_user_perm=assigned_user_perm,
-            docFieldsValues_perm=docFieldsValues_perm
+            docFieldsValues_perm=docFieldsValues_perm,
+            details_view_perm=details_view_perm,
+            details_images_perm=details_images_perm,
+            details_audit_perm=details_audit_perm,
+            details_fields_perm=details_fields_perm
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
@@ -2813,10 +2822,20 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300}
 
 @app.route('/api/get_media_info/<int:workitem_id>')
 def api_get_media_info(workitem_id):
+    if not has_permission('workitems.details.view'):
+         return jsonify({"error": _("Not authorized")}), 403
     try:
+        can_view_images = has_permission('workitems.details.view.images')
+        can_view_fields = has_permission('workitems.details.view.fields')
+
         cached_info = cache.get(f"media_info_{workitem_id}")
         if cached_info:
-            return jsonify(cached_info)
+            response_data = cached_info.copy()
+            if not can_view_images:
+                response_data['media_count'] = 0
+            if not can_view_fields:
+                response_data['fields'] = {}
+            return jsonify(response_data)
 
         returndata = get_workitemdata_param(workitem_id)
         if not returndata:
@@ -2837,12 +2856,20 @@ def api_get_media_info(workitem_id):
         }
 
         cache.set(f"media_info_{workitem_id}", response_data)
-        return jsonify(response_data)
+
+        filtered_response = response_data.copy()
+        if not can_view_images:
+             filtered_response['media_count'] = 0
+        if not can_view_fields:
+             filtered_response['fields'] = {}
+
+        return jsonify(filtered_response)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
 
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
+@require_permission('workitems.details.view.images')
 def api_get_media_raw(workitem_id, media_index):
     try:
         media_data = cache.get(f"media_data_{workitem_id}")
@@ -2864,7 +2891,6 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
-
         raw_media_bytes = get_media(target_url)
 
         if target_extension == '.jpg':
@@ -2920,6 +2946,7 @@ def get_activity_type_name(activity_instance_id: str) -> str:
         return _("Error fetching activity instance")
 
 @app.route('/api/get_audithistory/<int:workitem_id>')
+@require_permission('workitems.details.view.audit') 
 def get_audithistory(workitem_id):
     try:
         audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
