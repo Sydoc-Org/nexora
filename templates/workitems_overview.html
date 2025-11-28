@@ -628,10 +628,11 @@
                           </div>
                         </div>
                         <div id="collaboration-tools-{{ workitem.workitemid }}" class="flex flex-col">
+                          
                           <div class="mb-4">
                             <label for="priority-select-{{ workitem.workitemid }}"
                               class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                            <select id="priority-select-{{ workitem.workitemid }}"
+                            <select id="priority-select-{{ workitem.workitemid }}" {% if details_set_priority_perm == False  %} disabled {% endif %}
                               data-workitemid="{{ workitem.workitemid }}"
                               class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                               <option value="0">{{ _("None") }}</option>
@@ -643,7 +644,7 @@
                           <div class="mb-4">
                             <label for="assign-select-{{ workitem.workitemid }}"
                               class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                            <select id="assign-select-{{ workitem.workitemid }}"
+                            <select id="assign-select-{{ workitem.workitemid }}" {% if details_assign_users_perm == False  %} disabled {% endif %}
                                 data-workitemid="{{ workitem.workitemid }}"
                                 class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="None">{{ _("None") }}</option>
@@ -652,11 +653,11 @@
                           <div class="mb-4">
                             <label class="text-sm font-medium text-gray-700">{{ _("Tags") }}</label>
                             <div class="flex items-center gap-2">
-                              <input type="text" id="tag-input-{{ workitem.workitemid }}" list="taglist"
+                              <input type="text" id="tag-input-{{ workitem.workitemid }}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
                                 class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
-                              <input type="color" id="tag-color-{{ workitem.workitemid }}"
+                              <input type="color" id="tag-color-{{ workitem.workitemid }}" {% if details_add_tag_perm == False  %} disabled {% endif %}
                                 class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
-                              <button type="button"
+                              <button type="button" {% if details_add_tag_perm == False  %} disabled {% endif %}
                                 class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
                                 data-workitemid="{{ workitem.workitemid }}">
                                 <i class="fas fa-plus"></i>
@@ -673,7 +674,7 @@
                                 {{ _("Add Comment:") }}
                               </label>
                               <div class="relative">
-                                <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}"
+                                <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}" {% if details_add_comment_perm == False  %} disabled {% endif %}
                                   class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                                   placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
                                   autocomplete="off"></textarea>
@@ -681,7 +682,7 @@
                                   class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
                                 </div>
                               </div>
-                              <button type="submit"
+                              <button type="submit" {% if details_add_comment_perm == False  %} disabled {% endif %}
                                 class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
                                 {{ _("Post Comment") }}
                               </button>

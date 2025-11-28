@@ -204,6 +204,8 @@ def require_permission(code):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            if 'username' not in session:
+                return redirect(url_for('login'))
             if not has_permission(code):
                 raise PermissionDenied()
             return f(*args, **kwargs)
@@ -1179,8 +1181,6 @@ def get_absolute_dashboard_stats(processName="all"):
         stats['BacklogTotal'] = rows[3][0]
         cursor.close()
         conn.close()
-    except PermissionDenied:
-        raise
     except Exception as e:
         print(e)
     return stats
@@ -1263,8 +1263,6 @@ def get_dashbord_preview_documents_stats(processName='all'):
             """, (all_params)
         )
         rows = cursor.fetchall()
-    except PermissionDenied:
-        raise
     except Exception as e:
         print(e)
     finally:
@@ -1323,8 +1321,6 @@ def dashboard():
             allowed_processes=allowed_processes,  
             pageV=pageVisability()
         )
-    except PermissionDenied:
-        raise
     except Exception as e:
         log_user_action(
             action_type='visitDashboard',
@@ -1419,8 +1415,6 @@ def recent_activity():
             }
             for row in activities
         ])
-    except PermissionDenied:
-        raise
     except Exception as e:
         app.logger.error(f"Failed to fetch recent activity: {e}")
         return jsonify({"error": str(e)}), 500
@@ -2488,6 +2482,11 @@ def workitems_overview():
         details_audit_perm = has_permission('workitems.details.view.audit')
         details_fields_perm = has_permission('workitems.details.view.fields')
 
+        details_set_priority_perm = has_permission('workitems.details.set.priority')
+        details_add_tag_perm = has_permission('workitems.details.add.tag')
+        details_assign_users_perm = has_permission('workitems.details.assign.users')
+        details_add_comment_perm = has_permission('workitems.details.add.comment')
+
         protal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
@@ -2520,7 +2519,11 @@ def workitems_overview():
             details_view_perm=details_view_perm,
             details_images_perm=details_images_perm,
             details_audit_perm=details_audit_perm,
-            details_fields_perm=details_fields_perm
+            details_fields_perm=details_fields_perm,
+            details_set_priority_perm=details_set_priority_perm,
+            details_add_tag_perm=details_add_tag_perm,
+            details_assign_users_perm=details_assign_users_perm,
+            details_add_comment_perm=details_add_comment_perm
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
@@ -2994,7 +2997,12 @@ def get_users_for_mentions():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname FROM Users")
+        if has_permission('workitems.details.mention-assign.users.global'):
+            cursor.execute("SELECT userID, username, fullname FROM Users")
+        elif has_permission('workitems.details.mention.users.native'):
+            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN ('SYDC', ?)", session.get('organizationcode'))
+        elif has_permission('workitems.details.mention-assign.users.native-provider'):
+            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN (?)", session.get('organizationcode'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(users)
     except Exception as e:
