@@ -23,10 +23,34 @@ from datetime import datetime, timedelta
 from functools import wraps
 import time
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
 load_dotenv()
+
+# ------------------------------- error handler ------------------------------ #
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("handlers/404.html"), 404
+
+@app.errorhandler(500)
+def internalError(e):
+    return render_template("handlers/500.html"), 500
+
+@app.errorhandler(403)
+def forbiddenPage(e):
+    return render_template('handlers/403.html'), 403
+
+class PermissionDenied(HTTPException):
+    code = 403
+    description = "Forbidden"
+
+@app.errorhandler(PermissionDenied)
+def handle_permission_denied(e):
+    return render_template('handlers/403.html'), 403
+# ----------------------------- error handler end ---------------------------- #
+
 # ---------------------------------- locale ---------------------------------- #
 def get_locale():
     if 'locale' in session:
@@ -52,8 +76,8 @@ limiter = Limiter(
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True  
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
@@ -70,6 +94,10 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
+BEXIO_PAT = os.environ.get("BEXIO_PAT")
+BEXIO_PRIVERA_CLIENT_ID = os.environ.get("BEXIO_PRIVERA_CLIENT_ID")
+
+
 
 class PrefixMiddleware(object):
     def __init__(self, app, prefix=''):
@@ -109,16 +137,15 @@ def log_user_action(action_type, status, target_user_id=None, resource_id=None, 
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            INSERT INTO User_Logs 
-            (SessionID, UserID, Username, PerformerScope, ActionType, ActionStatus, TargetUserID, TargetResourceID, Details, IPAddress, UserAgent, IsInternalError)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO User_Logs
+            (SessionID, UserID, Username, ActionType, ActionStatus, TargetUserID, TargetResourceID, Details, IPAddress, UserAgent, IsInternalError)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             session.get('uuid'),
             session.get('userid'),
             session.get('username'),
-            session.get('scope'),
             action_type,
             str(status),
             target_user_id,
@@ -128,7 +155,7 @@ def log_user_action(action_type, status, target_user_id=None, resource_id=None, 
             request.headers.get('User-Agent', ''),
             IsInternalError
         ))
-        
+
         conn.commit()
     except Exception as e:
         app.logger.error(f"Failed to log user action '{action_type}': {e}")
@@ -142,7 +169,7 @@ def log_user_action(action_type, status, target_user_id=None, resource_id=None, 
 def log_action():
     if 'username' not in session:
         return jsonify({'error': 'not authenticated'}), 401
-    
+
     data = request.get_json()
     log_user_action(action_type=(data.get('action_type')),
                     resource_id=(data.get('resource_id')),
@@ -150,11 +177,51 @@ def log_action():
                     details=(data.get('details')),
                     IsInternalError=(data.get('IsInternalError'))
                     )
-    
+
     return jsonify({'success': True})
 # -------------------------------- logging end ------------------------------- #
 
 # ------------------------------- session login ------------------------------ #
+
+def load_permissions_for_user(user_id):
+    conn_str = (
+        f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;'
+        f'DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};'
+        f'TrustServerCertificate=yes;'
+    )
+    with pyodbc.connect(conn_str) as conn:
+        cur = conn.cursor()
+        cur.execute("EXEC dbo.spGetUserPermissions ?", user_id)
+        perms = [row[0] for row in cur.fetchall()]
+    return perms
+
+def has_permission(code: str) -> bool:
+    perms = set(session.get('permissions', []))
+    print('requestedcode:',code,code in perms, '\n\n')
+    return code in perms
+
+def require_permission(code):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if 'username' not in session:
+                return redirect(url_for('login'))
+            if not has_permission(code):
+                raise PermissionDenied()
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def pageVisability():
+    adminPagePerm = has_permission('admin.view')
+    dashboardPagePerm = has_permission('dashboard.view')
+    workitemsPagePerm = has_permission('workitems.view')
+    teamboardPagePerm = has_permission('teamboard.view')
+    invoicesPagePerm = has_permission('invoices.view')
+    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
+            'workitemsPagePerm':workitemsPagePerm, 'teamboardPagePerm': teamboardPagePerm,
+            'invoicesPagePerm': invoicesPagePerm}
+
 
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -173,50 +240,46 @@ def login():
                 f'SERVER={DB_SERVER_PRD},1433;'
                 f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
                 f'UID={DB_UID};'
-                f'PWD={DB_PWD};' 
+                f'PWD={DB_PWD};'
                 f'TrustServerCertificate=yes;'
             )
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                SELECT userID, password, Scope, username, fullname, email, company, access, Subscription FROM Users WHERE username = ?
+                SELECT userID, password, username, fullname, email, company, organizationcode FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
             if user_record:
                 stored_userid = user_record[0]
                 stored_hash = user_record[1]
-                scope = user_record[2]
-                stored_username = user_record[3]
-                stored_fullname = user_record[4]
-                stored_email = user_record[5]
-                stored_company = user_record[6]
-                stored_access = user_record[7]
-                stored_subscription = user_record[8]
+                stored_username = user_record[2]
+                stored_fullname = user_record[3]
+                stored_email = user_record[4]
+                stored_company = user_record[5]
+                stored_organizationcode = user_record[6]
 
-                
                 if isinstance(stored_hash, str):
-                    stored_hash = stored_hash.encode('utf-8')    
-            
+                    stored_hash = stored_hash.encode('utf-8')
+
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
                     session.clear()
-                    session['userid'] = str(stored_userid)  
+                    session['userid'] = str(stored_userid)
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
-                    session['scope'] = scope
                     session['company'] = stored_company
                     session['uuid'] = uuid.uuid4()
-                    session['access'] = stored_access
-                    session['subscription'] = stored_subscription
+                    session['permissions'] = load_permissions_for_user(str(stored_userid))
+                    session['organizationcode'] = stored_organizationcode
 
                     if len(REMEMBER) > 0:
                         session.permanent = True
 
                     log_user_action(action_type='logUserIn', status='SUCCESS', resource_id='login')
                     return redirect(url_for("dashboard"))
-                
+
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -224,7 +287,7 @@ def login():
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
             return render_template('index.html', error=_("Login temporarily unavailable"))
-        
+
     return render_template('index.html')
 # ----------------------------- session login end ---------------------------- #
 
@@ -250,22 +313,22 @@ def create_notification(user_id, message, link=None, icon='fa-info-circle'):
 def get_notifications():
     if 'userid' not in session:
         return jsonify({"error": _("Not authenticated")}), 401
-    
+
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT TOP 10 NotificationID, Message, Link, Icon, Timestamp
             FROM Notifications
             WHERE UserID = ? AND IsRead = 0
             ORDER BY Timestamp DESC
         """, (session['userid'],))
-        
+
         notifications = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        
+
         return jsonify(notifications)
     except Exception as e:
         app.logger.error(f"API Error fetching notifications: {e}")
@@ -278,7 +341,7 @@ def get_notifications():
 def mark_notifications_as_read():
     if 'userid' not in session:
         return jsonify({"error": _("Not authenticated")}), 401
-    
+
     data = request.get_json()
     notification_ids = data.get('ids')
 
@@ -290,19 +353,19 @@ def mark_notifications_as_read():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         placeholders = ','.join(['?' for _ in notification_ids])
-        
+
         query = f"""
             UPDATE Notifications
             SET IsRead = 1
             WHERE UserID = ? AND NotificationID IN ({placeholders})
         """
-        
+
         params = [session['userid']] + notification_ids
         cursor.execute(query, params)
         conn.commit()
-        
+
         return jsonify({"success": True, "message": _("Notifications marked as read.")})
     except Exception as e:
         app.logger.error(f"API Error marking notifications as read: {e}")
@@ -313,39 +376,114 @@ def mark_notifications_as_read():
 # ----------------------------- notifications end ---------------------------- #
 
 # ----------------------------------- admin ---------------------------------- #
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'scope' not in session or session['scope'] != 'Admin':
-            return forbiddenPage(403)
-        return f(*args, **kwargs)
-    return decorated_function
+@app.route("/admin")
+@require_permission('admin.view')
+def admin_dashboard():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    return render_template("admin/adminOverview.html", 
+                         logged_in_user=session.get('username'), 
+                         userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/admin/users")
-@admin_required
+@require_permission('admin.view')
 def admin_users():
     conn = None
     try:
-        logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
-        userid = session.get('userid', 'Unknown')
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname, email, company, scope, access, subscription FROM Users ORDER BY username")
+        cursor.execute("""
+            SELECT userID, username, fullname, email, company FROM Users
+            ORDER BY username
+        """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        log_user_action('visitUserManagement', status='SUCCESS', resource_id='userManagement')
-        return render_template("admin/userManagement.html", users=users, logged_in_user=logged_in_user, scope=scope, userid=userid)
+        
+        return render_template("admin/userManagement.html", users=users, userid=session.get('userid'), logged_in_user=session.get('username'), pageV=pageVisability())
     except Exception as e:
-        app.logger.error(f"Failed to fetch users for admin panel: {e}")
-        log_user_action('visitUserManagement', status='FAILURE', resource_id='userManagement', details={"serverError": str(e)}, IsInternalError=1)
-        return redirect(url_for('dashboard'))
+        app.logger.error(f"Failed to fetch users: {e}")
+        return render_template('500.html')
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
+
+@app.route("/admin/logs")
+@require_permission('admin.view')
+def admin_logs_view():
+    return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+
+@app.route("/api/admin/logs/search")
+@require_permission('admin.view')
+def api_admin_logs_search():
+    username = request.args.get('username', '').strip()
+    action_type = request.args.get('action_type', '').strip()
+    status = request.args.get('status', '').strip()
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    offset = (page - 1) * per_page
+
+    query_parts = ["1=1"]
+    params = []
+
+    if username:
+        query_parts.append("Username LIKE ?")
+        params.append(f"%{username}%")
+    if action_type:
+        query_parts.append("ActionType LIKE ?")
+        params.append(f"%{action_type}%")
+    if status:
+        query_parts.append("ActionStatus = ?")
+        params.append(status)
+    if start_date:
+        query_parts.append("Timestamp >= ?")
+        params.append(start_date)
+    if end_date:
+        query_parts.append("Timestamp <= ?")
+        params.append(f"{end_date} 23:59:59")
+
+    where_clause = " AND ".join(query_parts)
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        # Get Total Count for Pagination
+        cursor.execute(f"SELECT COUNT(*) FROM User_Logs WHERE {where_clause}", params)
+        total_count = cursor.fetchone()[0]
+
+        sql = f"""
+            SELECT LogID, Timestamp, Username, ActionType, ActionStatus, Details, IPAddress 
+            FROM User_Logs 
+            WHERE {where_clause}
+            ORDER BY Timestamp DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """
+        cursor.execute(sql, params + [offset, per_page])
+        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        return jsonify({
+            "logs": logs,
+            "total": total_count,
+            "page": page,
+            "pages": math.ceil(total_count / per_page)
+        })
+    except Exception as e:
+        app.logger.error(f"Log search error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@app.route("/admin/sessions")
+@require_permission('admin.view')
+def admin_sessions_view():
+    return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/admin/users/add", methods=['POST'])
-@admin_required
+@require_permission('admin.create.user')
 def admin_add_user():
     data = request.get_json()
     username = data.get('username')
@@ -353,11 +491,9 @@ def admin_add_user():
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
-    access = data.get('access')
-    subscription = data.get('subscription')
-    scope = data.get('scope')
     userid = session['userid']
-    if not all([username, password, fullname, email, company, scope, access, subscription]):
+
+    if not all([username, password, fullname, email, company]):
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -367,14 +503,14 @@ def admin_add_user():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, company, scope, access, subscription) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                       (username, hashed_password, fullname, email, company, scope, access, subscription))
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, company) VALUES (?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, company))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
-        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username, 'scope': scope})
+        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username})
         return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
-        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username, 'scope': scope})
+        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username})
         return jsonify({'success': False, 'message': _("Username or email already exists.")}), 409
     except Exception as e:
         app.logger.error(f"Error adding user: {e}")
@@ -385,17 +521,14 @@ def admin_add_user():
             conn.close()
 
 @app.route("/admin/users/edit/<int:user_id>", methods=['POST'])
-@admin_required
+@require_permission('admin.edit.user')
 def admin_edit_user(user_id):
     data = request.get_json()
     username = data.get('username')
     fullname = data.get('fullname')
     email = data.get('email')
     company = data.get('company')
-    access = data.get('access')
-    subscription = data.get('subscription')
-    scope = data.get('scope')
-    password = data.get('password') 
+    password = data.get('password')
     currentUserId = session['userid']
 
     conn = None
@@ -406,11 +539,11 @@ def admin_edit_user(user_id):
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?, password=?, access=?, subscription=? WHERE userID=?",
-                           (username, fullname, email, company, scope, hashed_password, access, subscription, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, password=? WHERE userID=?",
+                           (username, fullname, email, company, hashed_password, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, scope=?,access=?,subscription=? WHERE userID=?",
-                           (username, fullname, email, company, scope, access, subscription, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=? WHERE userID=?",
+                           (username, fullname, email, company, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -425,7 +558,7 @@ def admin_edit_user(user_id):
             conn.close()
 
 @app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
-@admin_required
+@require_permission('admin.delete.user')
 def admin_delete_user(user_id):
     current_user = session.get('userid')
     if str(user_id) == current_user:
@@ -443,7 +576,7 @@ def admin_delete_user(user_id):
         if cursor.rowcount == 0:
             log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
             return jsonify({'success': False, 'message': _("User not found.")}), 404
-        
+
         create_notification(current_user, _("User deleted successfully"), link=url_for('admin_users'), icon='fa-user-slash')
         log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
         return jsonify({'success': True, 'message': _("User deleted successfully.")})
@@ -456,7 +589,7 @@ def admin_delete_user(user_id):
             conn.close()
 
 @app.route("/api/admin/recent_logs")
-@admin_required
+@require_permission('admin.view')
 def admin_recent_logs():
     conn = None
     try:
@@ -478,7 +611,7 @@ def admin_recent_logs():
             conn.close()
 
 @app.route("/api/admin/active_sessions")
-@admin_required
+@require_permission('admin.view')
 def admin_active_sessions():
     conn = None
     try:
@@ -486,7 +619,7 @@ def admin_active_sessions():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT 
+            SELECT
 				Username,
 				Userid,
                 IPAddress,
@@ -504,6 +637,183 @@ def admin_active_sessions():
     finally:
         if conn:
             conn.close()
+
+
+# ----------------------------- Access Control ------------------------------ #
+
+@app.route("/admin/access_control")
+@require_permission('admin.view') 
+def admin_access_control():
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
+            profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
+            all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        return render_template("admin/accessControl.html", 
+                             profiles=profiles, 
+                             all_permissions=all_permissions,
+                             logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Error loading access control: {e}")
+        return render_template('500.html')
+
+@app.route('/api/admin/users')
+@require_permission('admin.view')
+def get_users_admin_access_control():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT 
+                u.userID, 
+                u.username, 
+                u.fullname, 
+                ap.Name as AccessProfileName,
+                (SELECT COUNT(*) FROM UserPermissionOverride upo WHERE upo.UserID = u.userID) as OverrideCount
+            FROM Users u
+            LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
+            ORDER BY u.fullname
+        """
+        cursor.execute(query)
+        
+        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users for access control: {e}")
+        return jsonify({"error": _("Could not fetch users")}), 500
+    finally:
+        if conn:
+            conn.close()
+            
+@app.route("/api/admin/access_profile/<int:access_id>/details", methods=['GET'])
+@require_permission('admin.edit.user')
+def get_profile_details(access_id):
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT PermissionID, Effect 
+                FROM AccessProfilePermission 
+                WHERE AccessID = ?
+            """, (access_id,))
+            assigned_perms = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            
+        return jsonify({'success': True, 'permissions': assigned_perms})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/access_profile/save", methods=['POST'])
+@require_permission('admin.edit.user')
+def save_access_profile():
+    data = request.get_json()
+    access_id = data.get('accessId') 
+    name = data.get('name')
+    description = data.get('description')
+    permissions = data.get('permissions')
+
+    if not name:
+        return jsonify({'success': False, 'message': _("Name is required")}), 400
+
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            if access_id:
+                cursor.execute("UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?", (name, description, access_id))
+                cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
+            else:
+                cursor.execute("INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)", (name, description))
+                access_id = cursor.fetchone()[0]
+
+            if permissions:
+                params = [(access_id, p['PermissionID'], p['Effect']) for p in permissions]
+                cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+
+            conn.commit()
+
+        session['permissions'] = load_permissions_for_user(session['userid'])
+        log_user_action('saveAccessProfile', 'SUCCESS', resource_id=access_id, details={'name': name})
+        return jsonify({'success': True, 'message': _("Profile saved successfully")})
+    except Exception as e:
+        app.logger.error(f"Error saving profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/user_overrides/<int:user_id>", methods=['GET'])
+@require_permission('admin.edit.user')
+def get_user_overrides(user_id):
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT AccessID FROM Users WHERE UserID = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                 return jsonify({'success': False, 'message': "User not found"}), 404
+            base_access_id = row[0]
+
+            cursor.execute("SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,))
+            overrides = {row.PermissionID: row.Effect for row in cursor.fetchall()}
+            
+            base_perms = {}
+            if base_access_id:
+                cursor.execute("SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?", (base_access_id,))
+                base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
+
+        return jsonify({
+            'success': True, 
+            'overrides': overrides, 
+            'base_permissions': base_perms
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route("/api/admin/user_overrides/save", methods=['POST'])
+@require_permission('admin.edit.user')
+def save_user_overrides():
+    data = request.get_json()
+    user_id = data.get('userId')
+    overrides = data.get('overrides')
+
+    if not user_id:
+        return jsonify({'success': False, 'message': "User ID required"}), 400
+
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("DELETE FROM UserPermissionOverride WHERE UserID=?", (user_id,))
+            
+            if overrides:
+                params = [(user_id, p['PermissionID'], p['Effect']) for p in overrides]
+                cursor.executemany("INSERT INTO UserPermissionOverride (UserID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+            
+            conn.commit()
+
+        session['permissions'] = load_permissions_for_user(session['userid'])
+        log_user_action('saveUserOverrides', 'SUCCESS', target_user_id=user_id)
+        return jsonify({'success': True, 'message': _("Overrides updated successfully")})
+    except Exception as e:
+        app.logger.error(f"Error saving overrides: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# --------------------------- Access Control End ---------------------------- #
+
 # --------------------------------- admin end -------------------------------- #
 
 # ---------------------------------- logout ---------------------------------- #
@@ -548,7 +858,7 @@ def set_new_password():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute(
             """
                 SELECT password, userid FROM Users WHERE Email = ?
@@ -559,7 +869,7 @@ def set_new_password():
         userid = row[1]
 
         if isinstance(stored_hash, str):
-            stored_hash = stored_hash.encode('utf-8')    
+            stored_hash = stored_hash.encode('utf-8')
 
         if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
             return render_template("reset_password.html", error=_("New Password musn't be previously used password"))
@@ -574,7 +884,7 @@ def set_new_password():
             SET password = ?
             WHERE email = ?
         """, (hash_str, email_for_password_reset))
-        
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -584,8 +894,8 @@ def set_new_password():
         return render_template("reset_password.html", message=_("Password changed"))
     except Exception as e:
         log_user_action(action_type='resetUserPassword', status='FAILURE', resource_id='resetPassword', details={"serverError": str(e)}, IsInternalError=1)
-        return 
-    
+        return
+
 @app.route('/reset_password/<token>')
 def reset_password(token):
     try:
@@ -593,7 +903,7 @@ def reset_password(token):
         return render_template('reset_password.html')
     except Exception:
         return redirect(url_for('index'))
-    
+
 def send_reset_email(email):
     def get_link():
         token = s.dumps(email, salt='password-reset-salt')
@@ -678,7 +988,7 @@ def send_reset_email(email):
                                                                     <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
                                                                         {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
                                                                     </p>
-                                                                    
+
                                                                     <table border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 30px; margin-bottom: 30px;">
                                                                         <tr>
                                                                             <td align="center">
@@ -730,21 +1040,21 @@ def send_reset_email(email):
                     }
                 ]
             },
-            "saveToSentItems": True 
+            "saveToSentItems": True
         }
 
         response = requests.post(uri, headers=headers, json=body)
-        response.raise_for_status()  
+        response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        print(f"Response body: {response.text}") 
+        print(f"Response body: {response.text}")
         return False
     except Exception as e:
         print(f"An other error occurred: {e}")
         return False
 
-@limiter.limit("5 per hour") 
+@limiter.limit("5 per hour")
 @app.route('/request-password-reset', methods=['GET', 'POST'])
 def request_password_reset():
     request_email = request.form['email']
@@ -783,11 +1093,20 @@ def get_process_filter_and_params(process_name):
 # ---------------------------- process filter end ---------------------------- #
 
 # --------------------------------- dashboard -------------------------------- #
+
 def get_absolute_dashboard_stats(processName="all"):
     stats = {}
     conn = None
+
+    placeholders, params = get_process_filter_and_params(processName)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     try:
-        placeholders, params = get_process_filter_and_params(processName)
         all_params = params + ['Privera'] + params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -860,19 +1179,24 @@ def get_absolute_dashboard_stats(processName="all"):
         stats['InProgressTotal'] = rows[1][0]
         stats['DoneTotal'] = rows[2][0]
         stats['BacklogTotal'] = rows[3][0]
-
-    except Exception as e:
-        print(e)
-    finally:
         cursor.close()
         conn.close()
+    except Exception as e:
+        print(e)
     return stats
 
 def get_dashbord_preview_documents_stats(processName='all'):
     stats = {}
     conn = None
+    placeholders, params = get_process_filter_and_params(processName)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     try:
-        placeholders, params = get_process_filter_and_params(processName)
         all_params = params + ['Privera']
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -886,8 +1210,8 @@ def get_dashbord_preview_documents_stats(processName='all'):
         cursor = conn.cursor()
         cursor.execute(f"""
             WITH CTE AS (
-            SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt, 
-            CASE 
+            SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt,
+            CASE
                 WHEN twi.Status = 0 THEN 'Ready'
                 WHEN twi.Status = 5 THEN 'Done'
                 ELSE 'In Progress'
@@ -912,12 +1236,10 @@ def get_dashbord_preview_documents_stats(processName='all'):
                     ELSE
                         'Processing'
                 END AS Activity
-            FROM t_WorkItems twi 
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            FROM t_WorkItems twi
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-            --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
             AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
                 --posteingang
                 'Deletion Marker Privera Posteingang C+A',
@@ -933,13 +1255,10 @@ def get_dashbord_preview_documents_stats(processName='all'):
                 'Keine Dokumente nach TB P2'
                 )
         )
-        SELECT DISTINCT TOP 20 
+        SELECT DISTINCT TOP 20
         WorkItemID
-        --tdi.StringValue Barcode
         ,Activity FROM CTE
-        --LEFT JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-        WHERE 
-        --tdi.Name LIKE '%Barcode' and tdi.StringValue is not NULL
+        WHERE
         CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
             """, (all_params)
         )
@@ -959,34 +1278,59 @@ def get_dashbord_preview_documents_stats(processName='all'):
         ])
 
 @app.route("/dashboard")
+@require_permission('dashboard.view')
 def dashboard():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        
+
         logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
         userid = session.get('userid', 'Unknown')
-        access = session.get('access')
+        perms = session.get('permissions', [])
+
+        prefix = "dashboard.filter.process."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
         process_name = request.args.get('processFilterDashboard', 'all')
+
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
+
         session['process_name_dashboard'] = process_name
         absolute_stats = get_absolute_dashboard_stats(process_name)
 
-        log_user_action(action_type='visitDashboard', status='SUCCESS', resource_id='dashboard')
-        return render_template("dashboard.html", 
-        logged_in_user=logged_in_user,
-        scope=scope,
-        userid=userid,
-        ReadyTotal=absolute_stats['ReadyTotal'],
-        InProgressTotal=absolute_stats['InProgressTotal'],
-        DoneTotal=absolute_stats['DoneTotal'],
-        BacklogTotal=absolute_stats['BacklogTotal'], process_name=process_name,
-        access=access
+        log_user_action(
+            action_type='visitDashboard',
+            status='SUCCESS',
+            resource_id='dashboard'
+        )
+
+        return render_template(
+            "dashboard.html",
+            logged_in_user=logged_in_user,
+            userid=userid,
+            ReadyTotal=absolute_stats['ReadyTotal'],
+            InProgressTotal=absolute_stats['InProgressTotal'],
+            DoneTotal=absolute_stats['DoneTotal'],
+            BacklogTotal=absolute_stats['BacklogTotal'],
+            process_name=process_name,
+            allowed_processes=allowed_processes,  
+            pageV=pageVisability()
         )
     except Exception as e:
-        log_user_action(action_type='visitDashboard', status='FAILURE', resource_id='dashboard', details={"serverError": str(e)}, IsInternalError=1)
+        log_user_action(
+            action_type='visitDashboard',
+            status='FAILURE',
+            resource_id='dashboard',
+            details={"serverError": str(e)},
+            IsInternalError=1
+        )
         return render_template('500.html')
+
 
 @app.route("/api/dashboard_stats_document_preview")
 def dashboard_stats_document_preview():
@@ -1000,10 +1344,17 @@ def dashboard_stats_document_preview():
 def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
-    
+
     limit = request.args.get('limit', 10, type=int)
-    
+
     placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'all'))
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     all_params = params + ['Privera']
 
     try:
@@ -1019,27 +1370,23 @@ def recent_activity():
         cursor = conn.cursor()
         cursor.execute(f"""
             WITH CTE AS (
-                SELECT 
-                    twi.ID WorkItemID, 
-                    DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt, 
-                    CASE 
+                SELECT
+                    twi.ID WorkItemID,
+                    DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt,
+                    CASE
                         WHEN twi.Status = 0 THEN 'Ready'
                         WHEN twi.Status = 5 THEN 'Done'
                         ELSE 'In Progress'
                     END AS Status
-                FROM t_WorkItems twi 
-                JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+                FROM t_WorkItems twi
+                JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = twi.ID
-                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ? 
-                --tdi.Name = 'PLATFORM_DocumentType' AND tdi.StringValue LIKE '%Document'
+                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
                 AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                --posteingang
                 'Deletion Marker Privera Posteingang C+A',
                  'Deletion Marker ohne PDF PP_END',
                  'Deletion Marker ohne PDF PP_END_1',
                 'Deletion Marker Privera Posteingang NoImages',
-                --invoice
                  'Deletion Marker MAIL Invalid or Empty',
                  'Deletion Marker MAIL',
                  'Deleted Documents',
@@ -1049,13 +1396,10 @@ def recent_activity():
                 )
             )
             SELECT DISTINCT TOP ({limit})
-                --tdi.StringValue AS Barcode, 
                 CTE.WorkItemID,
-                CTE.Status, 
-                CTE.ModifiedAt 
+                CTE.Status,
+                CTE.ModifiedAt
             FROM CTE
-            --JOIN t_DocumentIndexes tdi ON tdi.WorkItemID = CTE.WorkItemID 
-            --WHERE tdi.Name LIKE '%Barcode' AND tdi.StringValue IS NOT NULL
             ORDER BY CTE.ModifiedAt DESC
         """
         ,all_params)
@@ -1066,7 +1410,7 @@ def recent_activity():
         return jsonify([
             {
                 "state": row.Status,
-                "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),  
+                "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),
                 "workitemid": row.WorkItemID
             }
             for row in activities
@@ -1094,6 +1438,13 @@ def _get_workitems_data(args):
     process_name = args.get('processFilterWorkitemOverview', 'all')
     session['process_name_workitemOverview'] = process_name
     placeholders, params = get_process_filter_and_params(process_name)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'workitems.filter.process.privera.{p}')
+    ]
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+
     params.append('Privera')
 
     docfields = args.getlist('docfield')
@@ -1122,174 +1473,203 @@ def _get_workitems_data(args):
     if status and status in status_map:
         where_clauses.append("twi.Status = ?")
         params.append(status_map[status])
-    if tag_filter:
-        where_clauses.append(f"""
-            EXISTS (
-                SELECT 1
-                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                WHERE wt.workitemid = twi.id AND t.TagName like ?
-            )
-        """)
-        params.append(f"%{tag_filter}%")
+    if tag_filter and has_permission('workitems.filter.tag'):
+        if has_permission('workitems.filter.tag.global'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+        elif has_permission('workitems.filter.tag.native-provider'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                    AND u.organizationCode IN (?, 'SYDC')
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+            params.append(session.get('organizationcode'))
+        elif has_permission('workitems.filter.tag.native'):
+            where_clauses.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+                    WHERE wt.workitemid = twi.id AND t.TagName like ?
+                    AND u.organizationCode IN (?)
+                )
+            """)
+            params.append(f"%{tag_filter}%")
+            params.append(session.get('organizationcode'))
 
-    if search_term:
+
+    if search_term and has_permission('workitems.filter.workitemid'):
         where_clauses.append("twi.id LIKE ?")
         params.append(f"%{search_term}%")
 
-    if start_date:
+    if start_date and has_permission('workitems.filter.datetime'):
         where_clauses.append("twi.ModifiedAt >= ?")
         params.append(start_date)
-    if end_date:
+    if end_date and has_permission('workitems.filter.datetime'):
         where_clauses.append("twi.ModifiedAt < ?")
         params.append(end_date)
-    if priority:
+    if priority and has_permission('workitems.filter.priority'):
         where_clauses.append("wim.Priority = ?")
         params.append(priority)
-    if assigned_user:
+    if assigned_user and has_permission('workitems.filter.assignedUser'):
         if assigned_user == 'None' or assigned_user == 'Unassigned':
             where_clauses.append("(wim.AssignedUserID IS NULL)")
         else:
             where_clauses.append("wim.AssignedUserID = ?")
             params.append(assigned_user)
 
-    for docfield, docvalue in zip(docfields, docvalues):
-        docfield = (docfield or '').lower().strip()
-        docvalue = (docvalue or '').strip()
-        if not docvalue or not docfield:
-            continue
-        
-        if docfield == 'doctype':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+    if has_permission('workitems.filter.documentfields'):
+        for docfield, docvalue in zip(docfields, docvalues):
+            docfield = (docfield or '').lower().strip()
+            docvalue = (docvalue or '').strip()
+            if not docvalue or not docfield:
+                continue
+
+            if docfield == 'doctype':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'docbarcode':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'crdno':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
+            elif docfield == 'crdname':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'docbarcode':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'bankpk':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'grossamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'netamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'vatamount':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                params.append(f"{docvalue}%")
+            elif docfield == 'doccurrency':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'invoicenr':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'crdno':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'crdname':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'bankpk':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'grossamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'netamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'vatamount':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"{docvalue}%")
-        elif docfield == 'doccurrency':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'invoicenr':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'tec':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'esrreference':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'ordernumber':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'client':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docsource':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'ownernr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'tec':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'esrreference':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'ordernumber':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'tenancynr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'client':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'docsource':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-        elif docfield == 'registered':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'branch':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docdate':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'forwarding':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'department':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'postcode':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'recipient':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'confidentiality':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'propertynr':
-            if process_name == '02_Posteingang':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            elif docfield == 'ownernr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'tenancynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
+            elif docfield == 'registered':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '03_Invoice_New':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'branch':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            elif process_name == '02_InitialScan':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+            elif docfield == 'docdate':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
-            else:
-                where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
-        elif docfield == 'separatorsheet':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'docid':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
-        elif docfield == 'archiveboxno':
-            where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-            params.append(f"%{docvalue}%")
+            elif docfield == 'forwarding':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'department':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'postcode':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'recipient':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'confidentiality':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'propertynr':
+                if process_name == '02_Posteingang':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '03_Invoice_New':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                elif process_name == '02_InitialScan':
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    params.append(f"%{docvalue}%")
+                else:
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
+            elif docfield == 'separatorsheet':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'docid':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
+            elif docfield == 'archiveboxno':
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
     conn_str = (
@@ -1304,23 +1684,21 @@ def _get_workitems_data(args):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         count_query = f"""
             SELECT COUNT(twi.ID)
             FROM t_WorkItems twi
             INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
             LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {where_sql}
         """
         cursor.execute(count_query, params)
         total_items = cursor.fetchone()[0] or 0
-        
+
         data_query = f"""
             WITH WorkitemCTE AS (
                 SELECT
-                    --tdi_barcode.StringValue AS Barcode, 
                     twi.ModifiedAt, twi.ID AS WorkItemID,
                     CASE
                         WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
@@ -1346,19 +1724,17 @@ def _get_workitems_data(args):
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
                 WHERE {where_sql}
             )
-            SELECT --Barcode,
+            SELECT 
              ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
             FROM WorkitemCTE WHERE rn = 1
             ORDER BY ModifiedAt DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
-        data_params = params + [offset, per_page] 
+        data_params = params + [offset, per_page]
         cursor.execute(data_query, data_params)
-        print(data_query,data_params)
         for row in cursor.fetchall():
             workitems_list.append({
                 'modifiedat': row.ModifiedAt,
@@ -1370,7 +1746,7 @@ def _get_workitems_data(args):
             })
     except Exception as e:
         app.logger.error(f"Database error in _get_workitems_data: {e}")
-        raise 
+        raise
     finally:
         if conn:
             conn.close()
@@ -1387,6 +1763,7 @@ def _get_workitems_data(args):
     }
 
 @app.route('/api/docfield_values')
+@require_permission('workitems.filter.documentfields')
 def api_docfield_values():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1434,13 +1811,13 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            else:  
+            else:
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
                         SELECT DocType COLLATE DATABASE_DEFAULT AS Val
@@ -1493,13 +1870,13 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
-            else:  
+            else:
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE Barcode is not null and Barcode <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
 
                         UNION ALL
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
@@ -1560,7 +1937,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'grossamount':
             sql = f"""
                 SELECT DISTINCT TOP 15 convert(float,GrossAmount) AS Val
@@ -1573,7 +1950,7 @@ def api_docfield_values():
                 params.append(f"{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'netamount':
             sql = f"""
                 SELECT DISTINCT TOP 15 convert(float,netamount) AS Val
@@ -1599,7 +1976,7 @@ def api_docfield_values():
                 params.append(f"{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'doccurrency':
             sql = f"""
                 SELECT DISTINCT TOP 15 DocCurrency COLLATE DATABASE_DEFAULT AS Val
@@ -1612,7 +1989,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'invoicenr':
             sql = f"""
                 SELECT DISTINCT TOP 15 InvoiceNR COLLATE DATABASE_DEFAULT AS Val
@@ -1630,7 +2007,7 @@ def api_docfield_values():
             sql = f"""
                 SELECT DISTINCT TOP 15 ISTEC AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                WHERE ISTEC is not null 
+                WHERE ISTEC is not null
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
             if q:
@@ -1638,7 +2015,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'esrreference':
             sql = f"""
                 SELECT DISTINCT TOP 15 ESR COLLATE DATABASE_DEFAULT AS Val
@@ -1651,7 +2028,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'ordernumber':
             sql = f"""
                 SELECT DISTINCT TOP 15 BestellNummer COLLATE DATABASE_DEFAULT AS Val
@@ -1677,7 +2054,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'docsource':
             sql = f"""
                 SELECT DISTINCT TOP 15 docsource COLLATE DATABASE_DEFAULT AS Val
@@ -1731,7 +2108,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            else:  
+            else:
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
@@ -1747,7 +2124,7 @@ def api_docfield_values():
                         and Export >= DATEADD(MONTH, -6, getdate())
 
                         UNION ALL
-                        
+
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
@@ -1759,7 +2136,7 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
-        
+
         elif field == 'tenancynr':
 
             if process == '02_Posteingang':
@@ -1788,14 +2165,14 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            else:  
+            else:
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
-                        
+
                         UNION ALL
 
                         SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
@@ -1822,7 +2199,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'branch':
             sql = f"""
                 SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
@@ -1854,7 +2231,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Nachsendung is not null and Nachsendung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())  
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
             """
             if q:
                 sql += " and Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -1874,7 +2251,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'postcode':
             sql = f"""
                 SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
@@ -1887,7 +2264,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'confidentiality':
             sql = f"""
                 SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
@@ -1900,7 +2277,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'recipient':
             sql = f"""
                 SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
@@ -1954,7 +2331,7 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-            else:  
+            else:
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
@@ -1981,7 +2358,7 @@ def api_docfield_values():
                     params.append(f"%{q}%")
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
-            
+
         elif field == 'separatorsheet':
             sql = f"""
                 SELECT DISTINCT TOP 15 trennblatt COLLATE DATABASE_DEFAULT AS Val
@@ -1994,7 +2371,7 @@ def api_docfield_values():
                 params.append(f"%{q}%")
             sql += " ORDER BY Val"
             cur.execute(sql, params)
-        
+
         elif field == 'docid':
             sql = f"""
                 SELECT DISTINCT TOP 15 ID COLLATE DATABASE_DEFAULT AS Val
@@ -2035,6 +2412,7 @@ def api_docfield_values():
             conn.close()
 
 @app.route("/api/workitems")
+@require_permission('workitems.view')
 def api_workitems():
     if 'username' not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -2048,6 +2426,7 @@ def api_workitems():
         return jsonify({"error": "An internal error occurred"}), 500
 
 @app.route("/workitems")
+@require_permission('workitems.view')
 def workitems_overview():
     try:
         if 'username' not in session:
@@ -2055,35 +2434,64 @@ def workitems_overview():
 
         logged_in_user = session.get('username')
         userid = session.get('userid')
-        scope = session.get('scope')
-        access = session.get('access')
 
         data = _get_workitems_data(request.args)
-        
+
         workitems_list = data['workitems']
         pagination = data['pagination']
-        
-        search_term = request.args.get('search', '').strip()
-        status = request.args.get('status', '')
-        tag_filter = request.args.get('tag', '').strip()
-        start_date_str = request.args.get('startDate', '')
-        end_date_str = request.args.get('endDate', '')
+
+        search_term_perm = has_permission('workitems.filter.workitemid')
+        search_term = request.args.get('search', '').strip() if search_term_perm else None
+
+        status_perm = has_permission('workitems.filter.status')
+        status = request.args.get('status', '') if status_perm else None
+
+        tag_filter_perm = has_permission('workitems.filter.tag')
+        tag_filter = request.args.get('tag', '').strip() if tag_filter_perm else None
+
+        datetime_perm = has_permission('workitems.filter.datetime')
+        start_date_str = request.args.get('startDate', '') if datetime_perm else None
+        end_date_str = request.args.get('endDate', '') if datetime_perm else None
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-        priority = request.args.get('priority', '')
-        assigned_user = request.args.get('assignedUser', '')
+
+        priority_perm = has_permission('workitems.filter.priority')
+        priority = request.args.get('priority', '') if priority_perm else None
+
+        assigned_user_perm = has_permission('workitems.filter.assignedUser')
+        assigned_user = request.args.get('assignedUser', '') if assigned_user_perm else None
+        
+        perms = session.get('permissions', [])
+        prefix = "workitems.filter.process.privera."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
+
         process_name = request.args.get('processFilterWorkitemOverview', 'all')
-        
-        docfields = request.args.getlist('docfield')
-        docvalues = request.args.getlist('docvalue')
-        
-        portal_users = get_all_portal_users(access)
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
+
+        docFieldsValues_perm = has_permission('workitems.filter.documentfields')
+        docfields = request.args.getlist('docfield') if docFieldsValues_perm else None
+        docvalues = request.args.getlist('docvalue') if docFieldsValues_perm else None
+
+        details_view_perm = has_permission('workitems.details.view')
+        details_images_perm = has_permission('workitems.details.view.images')
+        details_audit_perm = has_permission('workitems.details.view.audit')
+        details_fields_perm = has_permission('workitems.details.view.fields')
+
+        details_set_priority_perm = has_permission('workitems.details.set.priority')
+        details_add_tag_perm = has_permission('workitems.details.add.tag')
+        details_assign_users_perm = has_permission('workitems.details.assign.users')
+        details_add_comment_perm = has_permission('workitems.details.add.comment')
+
+        protal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
-        return render_template("workitems_overview.html", 
+        return render_template("workitems_overview.html",
             logged_in_user=logged_in_user,
             userid=userid,
-            scope=scope,
-            access=access,
             process_name=process_name,
             workitems=workitems_list,
             current_page=pagination['currentPage'],
@@ -2091,20 +2499,38 @@ def workitems_overview():
             total_items=pagination['totalItems'],
             search=search_term,
             status=status,
-            tag=tag_filter, 
+            tag=tag_filter,
             startDate=start_date,
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            portal_users=portal_users,
+            protal_assignedUsers_filter=protal_assignedUsers_filter,
             docfield=docfields[0] if docfields else '',
             docvalue=docvalues[0] if docvalues else '',
+            pageV=pageVisability(),
+            allowed_processes=allowed_processes,
+            search_term_perm=search_term_perm,
+            status_perm=status_perm,
+            tag_filter_perm=tag_filter_perm,
+            datetime_perm=datetime_perm,
+            priority_perm=priority_perm,
+            assigned_user_perm=assigned_user_perm,
+            docFieldsValues_perm=docFieldsValues_perm,
+            details_view_perm=details_view_perm,
+            details_images_perm=details_images_perm,
+            details_audit_perm=details_audit_perm,
+            details_fields_perm=details_fields_perm,
+            details_set_priority_perm=details_set_priority_perm,
+            details_add_tag_perm=details_add_tag_perm,
+            details_assign_users_perm=details_assign_users_perm,
+            details_add_comment_perm=details_add_comment_perm
         )
     except Exception as e:
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
-    
+
 @app.route('/import_workitems', methods=['POST'])
+@require_permission('workitems.import.workitem')
 def import_workitems():
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
@@ -2124,7 +2550,7 @@ def import_workitems():
         upload_folder = os.path.join(app.root_path, 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
-        
+
         try:
             file.save(file_path)
             log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename})
@@ -2140,7 +2566,7 @@ def import_workitems():
 def get_single_workitem(workitemid):
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
+
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
@@ -2150,21 +2576,19 @@ def get_single_workitem(workitemid):
         query = f"""
             WITH WorkitemCTE AS (
                 SELECT
-                    --tdi_barcode.StringValue AS Barcode,
                     twi.ID AS WorkItemID,
                     (
-                        SELECT 
+                        SELECT
                             t.TagID AS id,
                             t.TagName AS name,
                             t.TagColor AS color
                         FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
                         JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID 
+                        WHERE wt.WorkItemID = twi.ID
                         FOR JSON PATH
                     ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn 
+                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
                 FROM t_WorkItems twi
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 WHERE twi.ID = ?
             )
             SELECT WorkItemID, TagsJSON
@@ -2208,10 +2632,10 @@ def get_access_token():
 
     try:
         response = requests.post(url=url, headers=headers, data=body)
-        response.raise_for_status() 
+        response.raise_for_status()
         data = response.json()
-        
-        timeout = data.get('expires_in', 3000) - 60 
+
+        timeout = data.get('expires_in', 3000) - 60
         token = data['access_token']
         cache.set('octo_access_token', token, timeout=timeout)
         return token
@@ -2245,8 +2669,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     urls = []
     extension = []
     fields = {}
-    with open('data.json', 'w') as f:
-        json.dump(response.json(), f)
+    # with open('data.json', 'w') as f:
+    #     json.dump(response.json(), f)
     if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
         for element in response.json()['ChildDocuments']:
             for media in element['Media']:
@@ -2397,14 +2821,24 @@ def get_media(url):
     response = requests.get(url=url, headers=headers)
     return response.content
 
-cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300}) 
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 @app.route('/api/get_media_info/<int:workitem_id>')
 def api_get_media_info(workitem_id):
+    if not has_permission('workitems.details.view'):
+         return jsonify({"error": _("Not authorized")}), 403
     try:
+        can_view_images = has_permission('workitems.details.view.images')
+        can_view_fields = has_permission('workitems.details.view.fields')
+
         cached_info = cache.get(f"media_info_{workitem_id}")
         if cached_info:
-            return jsonify(cached_info)
+            response_data = cached_info.copy()
+            if not can_view_images:
+                response_data['media_count'] = 0
+            if not can_view_fields:
+                response_data['fields'] = {}
+            return jsonify(response_data)
 
         returndata = get_workitemdata_param(workitem_id)
         if not returndata:
@@ -2412,9 +2846,9 @@ def api_get_media_info(workitem_id):
 
         workitemdata, document_id = returndata
         extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
-        
+
         media_count = len(urls) if urls else 0
-        
+
         if media_count > 0:
             cache.set(f"media_data_{workitem_id}", {'extensions': extensions, 'urls': urls})
 
@@ -2423,14 +2857,22 @@ def api_get_media_info(workitem_id):
             "media_count": media_count,
             "fields": fields
         }
-        
+
         cache.set(f"media_info_{workitem_id}", response_data)
-        return jsonify(response_data)
+
+        filtered_response = response_data.copy()
+        if not can_view_images:
+             filtered_response['media_count'] = 0
+        if not can_view_fields:
+             filtered_response['fields'] = {}
+
+        return jsonify(filtered_response)
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
-    
+
 @app.route('/api/get_media_raw/<int:workitem_id>/<int:media_index>')
+@require_permission('workitems.details.view.images')
 def api_get_media_raw(workitem_id, media_index):
     try:
         media_data = cache.get(f"media_data_{workitem_id}")
@@ -2443,7 +2885,7 @@ def api_get_media_raw(workitem_id, media_index):
             extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
             media_data = {'extensions': extensions, 'urls': urls}
             cache.set(f"media_data_{workitem_id}", media_data)
-        
+
         extensions = media_data.get('extensions', [])
         urls = media_data.get('urls', [])
 
@@ -2452,8 +2894,7 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
-        
-        raw_media_bytes = get_media(target_url) 
+        raw_media_bytes = get_media(target_url)
 
         if target_extension == '.jpg':
             mimetype = 'image/jpeg'
@@ -2465,23 +2906,23 @@ def api_get_media_raw(workitem_id, media_index):
                 with Image.open(image_stream) as img:
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
-                    
+
                     buffer = io.BytesIO()
-                    img.save(buffer, format='JPEG', quality=85) 
+                    img.save(buffer, format='JPEG', quality=85)
                     buffer.seek(0)
-                    
+
                     return send_file(
                         buffer,
                         mimetype='image/jpeg',
-                        as_attachment=False 
+                        as_attachment=False
                     )
             except Exception as e:
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500
-            
+
         response = make_response(raw_media_bytes)
         response.headers.set('Content-Type', mimetype)
-        
+
         response.headers.set(
             'Cache-Control', 'public, max-age=3600'
         )
@@ -2490,17 +2931,17 @@ def api_get_media_raw(workitem_id, media_index):
         print(f"An error occurred: {e}")
         return Response(_("Internal Server Error"), status=500)
 
-@cache.memoize() 
+@cache.memoize()
 def get_activity_type_name(activity_instance_id: str) -> str:
     activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{activity_instance_id}'
-    access_token = get_access_token() 
+    access_token = get_access_token()
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
-    
+
     try:
         response = requests.get(url=activity_instances_url, headers=headers)
-        response.raise_for_status() 
+        response.raise_for_status()
         activity_instance_config = response.json()
         return activity_instance_config.get('ActivityTypeName', 'Unknown Activity')
     except requests.exceptions.RequestException as e:
@@ -2508,12 +2949,13 @@ def get_activity_type_name(activity_instance_id: str) -> str:
         return _("Error fetching activity instance")
 
 @app.route('/api/get_audithistory/<int:workitem_id>')
+@require_permission('workitems.details.view.audit') 
 def get_audithistory(workitem_id):
     try:
         audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
         access_token = get_access_token()
         headers = {"Authorization": f"Bearer {access_token}"}
-        
+
         response = requests.get(url=audit_url, headers=headers)
         response.raise_for_status()
         audits = response.json()
@@ -2526,17 +2968,17 @@ def get_audithistory(workitem_id):
 
         complete_array = []
         total_steps = len(unique_activities)
-        
+
         for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
-            activity_name = get_activity_type_name(activity_id) 
-            
+            activity_name = get_activity_type_name(activity_id)
+
             step_info = {
                 "Activity": activity_name,
                 "DateTime": time_stamp,
-                "Step": total_steps - i 
+                "Step": total_steps - i
             }
             complete_array.append(step_info)
-        
+
         return jsonify(complete_array)
 
     except requests.exceptions.RequestException as e:
@@ -2549,13 +2991,18 @@ def get_audithistory(workitem_id):
 def get_users_for_mentions():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
+
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("SELECT userID, username, fullname FROM Users WHERE access = ?", (session.get('access'),))
+        if has_permission('workitems.details.mention-assign.users.global'):
+            cursor.execute("SELECT userID, username, fullname FROM Users")
+        elif has_permission('workitems.details.mention.users.native'):
+            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN ('SYDC', ?)", session.get('organizationcode'))
+        elif has_permission('workitems.details.mention-assign.users.native-provider'):
+            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN (?)", session.get('organizationcode'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(users)
     except Exception as e:
@@ -2575,7 +3022,6 @@ def get_workitem_interactions(workitemid):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        current_user_access = session.get('access')
 
         sql_query = """
             SELECT c.CommentText, c.Timestamp, u.username, u.userID
@@ -2584,12 +3030,9 @@ def get_workitem_interactions(workitemid):
         """
         params = [workitemid]
 
-        if current_user_access == 'Unlimited':
-            sql_query += " WHERE c.WorkItemID = ?"
-        else:
-            sql_query += " WHERE c.WorkItemID = ? AND u.access = ?" 
-            params.append(current_user_access)
-        
+        # ---------------------------- access control here --------------------------- #
+        sql_query += " WHERE c.WorkItemID = ?"
+
         sql_query += " ORDER BY c.Timestamp ASC"
         cursor.execute(sql_query, params)
         comments_data = cursor.fetchall()
@@ -2612,15 +3055,15 @@ def get_workitem_interactions(workitemid):
                 'priority': 0,
                 'assigneduserid': 'None',
                 'comments': [],
-                'tags': [], 
+                'tags': [],
                 'message': _("No data found for this workitem.")
             }), 200
 
         priority = meta_row[0] if (meta_row and meta_row[0] is not None) else 0
-        assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else 'None' 
+        assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else 'None'
         tags = [{'id': trow.TagID, 'name': trow.TagName, 'color': trow.TagColor} for trow in tags_data] if tags_data else []
 
-        
+
         comments = []
         if comments_data:
             for crow in comments_data:
@@ -2634,7 +3077,7 @@ def get_workitem_interactions(workitemid):
             'priority': priority,
             'assigneduserid': assigneduserid,
             'comments': comments,
-            'tags': tags 
+            'tags': tags
         })
     except Exception as e:
         app.logger.error(f"Failed to fetch interactions for workitem {workitemid}: {e}")
@@ -2647,7 +3090,7 @@ def get_workitem_interactions(workitemid):
 def add_workitem_comment(workitemid):
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
+
     data = request.get_json()
     comment_text = data.get('commentText')
     if not comment_text:
@@ -2658,21 +3101,21 @@ def add_workitem_comment(workitemid):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            INSERT INTO Workitem_Comments (WorkItemID, UserID, CommentText) 
+            INSERT INTO Workitem_Comments (WorkItemID, UserID, CommentText)
             VALUES (?, ?, ?)
         """, (workitemid, session['userid'], comment_text))
-        
+
         cursor.execute("SELECT SCOPE_IDENTITY()")
         comment_id = cursor.fetchone()[0]
-        
+
         mentions = re.findall(r'@(\w+)', comment_text)
         if mentions:
             placeholders = ','.join('?' for _ in mentions)
             cursor.execute(f"SELECT userID, username FROM Users WHERE username IN ({placeholders})", mentions)
             mentioned_users = cursor.fetchall()
-            
+
             for user in mentioned_users:
                 cursor.execute("INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)", (comment_id, user.userID))
                 notification_link = url_for('workitems_overview', search=workitemid, _external=False)
@@ -2709,14 +3152,14 @@ def assign_workitem(workitemid):
         cursor.execute("""
             MERGE Workitem_Metadata AS target
             USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, AssignedUserID, UserID, UpdateTime)
-            ON target.WorkItemID = source.WorkItemID 
+            ON target.WorkItemID = source.WorkItemID
             WHEN MATCHED THEN
                 UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
             WHEN NOT MATCHED THEN
                 INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
                 VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
         """, (workitemid, assignedUserID, session['userid']))
-        
+
         conn.commit()
         log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=workitemid, details={'assignedUserID': assignedUserID})
         if assignedUserID != None and assignedUserID != session['userid']:
@@ -2757,7 +3200,7 @@ def set_workitem_priority(workitemid):
                 INSERT (WorkItemID, Priority, LastUpdatedByUserID, LastUpdatedAt)
                 VALUES (source.WorkItemID, source.Priority, source.UserID, source.UpdateTime);
         """, (workitemid, priority, session['userid']))
-        
+
         conn.commit()
         log_user_action('setWorkitemPriority', status='SUCCESS', resource_id=workitemid, details={'priority': priority})
         return jsonify({'success': True, 'message': _("Priority updated.")})
@@ -2773,7 +3216,7 @@ def set_workitem_priority(workitemid):
 def get_all_tags():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
+
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
@@ -2796,7 +3239,7 @@ def add_tag_to_workitem(workitemid):
 
     data = request.get_json()
     tag_name = data.get('tagName', '').strip()
-    tag_color = data.get('tagColor', '#6B7280') 
+    tag_color = data.get('tagColor', '#6B7280')
 
     if not tag_name:
         return jsonify({'success': False, 'message': _("Tag name cannot be empty.")}), 400
@@ -2809,15 +3252,15 @@ def add_tag_to_workitem(workitemid):
 
         cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
         tag = cursor.fetchone()
-        
+
         if tag:
             tag_id = tag.TagID
         else:
             cursor.execute("INSERT INTO Tags (TagName, TagColor, CreatedByUserID) OUTPUT INSERTED.TagID VALUES (?, ?, ?)",
                            (tag_name, tag_color, session['userid']))
             tag_id = cursor.fetchone().TagID
-        
-        cursor.execute("SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id)) 
+
+        cursor.execute("SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id))
         if cursor.fetchone():
             return jsonify({'success': False, 'message': _("Workitem already has this tag.")}), 409
 
@@ -2845,10 +3288,10 @@ def remove_tag_from_workitem(workitemid, tag_id):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id)) 
+
+        cursor.execute("DELETE FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id))
         conn.commit()
-        
+
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': _("Tag association not found.")}), 404
 
@@ -2864,21 +3307,36 @@ def remove_tag_from_workitem(workitemid, tag_id):
 # ---------------------- workitem collaboration apis end --------------------- #
 
 
-# -------------------------------- process board --------------------------------- #
+# -------------------------------- team board --------------------------------- #
 @app.route("/team-board")
+@require_permission('teamboard.view')
 def team_board():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
         
-        access = session.get('access')
-        
+        perms = session.get('permissions', [])
+        prefix = "teamboard.filter.process."
+        allowed_processes = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
         process_name = request.args.get('processFilterBoard', 'all')
-        priority = request.args.get('priority', '')
+        if process_name != 'all' and process_name not in allowed_processes:
+            process_name = 'all'
 
         placeholders, params = get_process_filter_and_params(process_name)
+        allowed_params = [
+            p for p in params
+            if has_permission(f'teamboard.filter.process.privera.{p}')
+        ]
+        placeholders = ", ".join(["?"] * len(allowed_params))
+        params = allowed_params
         params.append('Privera')
         
+        priority = request.args.get('priority', '')
+
         where_clauses = [
             f"tp.Name IN ({placeholders})",
             "tp.ClientName = ?",
@@ -2903,7 +3361,7 @@ def team_board():
             params.append(priority)
 
         where_sql = " AND ".join(where_clauses)
-        
+
         conn_str = (
             f'DRIVER={{SQL Server}};'
             f'SERVER={DB_SERVER_PRD},1433;'
@@ -2918,7 +3376,6 @@ def team_board():
         cursor.execute(f"""
             WITH BoardItems AS (
                 SELECT
-                    -- tdi_barcode.StringValue AS Barcode,
                     twi.id WorkitemID,
                     twi.ModifiedAt,
                     CASE
@@ -2943,11 +3400,10 @@ def team_board():
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                --INNER JOIN t_DocumentIndexes tdi_barcode ON twi.ID = tdi_barcode.WorkItemID
                 LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
-            SELECT --Barcode, 
+            SELECT --Barcode,
             WorkitemID,
             ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
             FROM BoardItems
@@ -2956,7 +3412,7 @@ def team_board():
         """
         ,params)
         
-        portal_users = get_all_portal_users(access)
+        portal_users = get_all_portal_users('teamboard', 'view.users')
         workitems_by_user = {user['userID']: [] for user in portal_users}
         workitems_by_user['Unassigned'] = []
 
@@ -2964,7 +3420,6 @@ def team_board():
             user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
             if user_id in workitems_by_user:
                 workitems_by_user[user_id].append({
-                    # 'barcode': row.Barcode,
                     'workitemid': row.WorkitemID,
                     'modifiedat': row.ModifiedAt,
                     'current_stage': row.CurrentStage,
@@ -2974,13 +3429,14 @@ def team_board():
 
         log_user_action('visitTeamBoard', status='SUCCESS', resource_id='teamBoard')
 
-        return render_template("team_board.html", 
+        return render_template("team_board.html",
             workitems_by_user=workitems_by_user,
             process_name=process_name,
             priority=priority,
             portal_users=portal_users,
             userid=session.get('userid'),
-            scope=session.get('scope')
+            pageV=pageVisability(),
+            allowed_processes=allowed_processes
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
@@ -2991,16 +3447,20 @@ def team_board():
 
 # --------------------------- workitem overview end -------------------------- #
 
-def get_all_portal_users(access):
+def get_all_portal_users(fromRequest, action):
     conn = None
     try:
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        if access != 'Unlimited':
-            cursor.execute("SELECT userID, fullname FROM Users WHERE access = ? ORDER BY fullname",access)  
-        else:
+
+        if has_permission(f'{fromRequest}.{action}.global'):
             cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
+        elif has_permission(f'{fromRequest}.{action}.native-provider'):
+            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?, 'SYDC') ORDER BY fullname", session.get('organizationcode'))
+        elif has_permission(f'{fromRequest}.{action}.native'):
+            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?) ORDER BY fullname", session.get('organizationcode'))
+
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return users
     except Exception as e:
@@ -3017,14 +3477,12 @@ def profile():
         if 'username' not in session:
             return redirect(url_for("login"))
         logged_in_user = session.get('username', 'Unknown')
-        scope = session.get('scope', 'Unknown')
-        subscription = session.get('subscription', 'Unknown')
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
         company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, scope=scope, fullname=fullname, email=email, company=company, subscription=subscription)
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, fullname=fullname, email=email, company=company, pageV=pageVisability())
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -3042,13 +3500,13 @@ def update_profile():
             company = request.form['company']
 
             if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
-                flash(_("Full name is not valid"), 'failure_updateProfile') 
+                flash(_("Full name is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
             if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
-                flash(_("Email Adress is not valid"), 'failure_updateProfile') 
+                flash(_("Email Adress is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
             if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
-                flash(_("Company name is not valid"), 'failure_updateProfile') 
+                flash(_("Company name is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
 
             conn_str = (
@@ -3061,13 +3519,13 @@ def update_profile():
             )
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
-            
+
             cursor.execute("""
                 UPDATE Users
                 SET fullname = ?, email = ?, company = ?
                 WHERE username = ?
             """, (fullname, email, company, username))
-            
+
             conn.commit()
             cursor.close()
             conn.close()
@@ -3099,42 +3557,42 @@ def update_profile():
                     app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
                     flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
                     return redirect(url_for("profile"))
-                
+
             log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
                 "fullname": fullname,
                 "email": email,
                 "company": company
             })
             create_notification(userid, _("Your profile was updated successfully."), link=url_for('profile'), icon='fa-user-pen')
-            flash(_("Profile updated successfully!"), 'success_updateProfile') 
+            flash(_("Profile updated successfully!"), 'success_updateProfile')
             return redirect(url_for("profile"))
     except Exception as e:
-        flash(_("Unexpected error"), 'failure_updateProfile') 
+        flash(_("Unexpected error"), 'failure_updateProfile')
         log_user_action(action_type='updateUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for("profile"))
 
-@app.route('/change_password',  methods=["POST", "GET"]) 
+@app.route('/change_password',  methods=["POST", "GET"])
 def change_password():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        
+
         if request.method == "POST":
             username = session['username']
             userid = session['userid']
 
-            currentPassword = request.form['currentPassword'] 
+            currentPassword = request.form['currentPassword']
             newPassword = request.form['newPassword']
             confirmPassword = request.form['confirmPassword']
 
             if newPassword != confirmPassword:
-                flash(_('New passwords do not match'), 'failure_changePW') 
-                return redirect(url_for("profile"))        
+                flash(_('New passwords do not match'), 'failure_changePW')
+                return redirect(url_for("profile"))
             if not newPassword or not confirmPassword or not currentPassword:
-                flash(_("All fields must be filled"), 'failure_changePW') 
+                flash(_("All fields must be filled"), 'failure_changePW')
                 return redirect("profile")
             if not re.search('^\S{8,200}$', newPassword):
-                flash(_("New password has to be atleast 8 characters long, with no whitespaces"), 'failure_changePW') 
+                flash(_("New password has to be atleast 8 characters long, with no whitespaces"), 'failure_changePW')
                 return redirect("profile")
             conn_str = (
                 f'DRIVER={{SQL Server}};'
@@ -3146,7 +3604,7 @@ def change_password():
             )
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
-            
+
             cursor.execute(
                 """
                     SELECT password FROM Users WHERE username = ?
@@ -3157,7 +3615,7 @@ def change_password():
 
 
             if isinstance(stored_hash, str):
-                stored_hash = stored_hash.encode('utf-8')    
+                stored_hash = stored_hash.encode('utf-8')
 
             if bcrypt.checkpw(currentPassword.encode('utf-8'), stored_hash):
                 bytes = newPassword.encode('utf-8')
@@ -3170,20 +3628,20 @@ def change_password():
                     SET password = ?
                     WHERE username = ?
                 """, (hash_str, username))
-                
+
                 conn.commit()
                 cursor.close()
                 conn.close()
 
                 create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
                 log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
-                flash(_("Password updated successfully!"), 'success_changePW') 
+                flash(_("Password updated successfully!"), 'success_changePW')
                 return redirect("profile")
             else:
-                flash(_("Current password is incorrect"), 'failure_changePW') 
+                flash(_("Current password is incorrect"), 'failure_changePW')
                 return redirect("profile")
     except Exception as e:
-        flash(_("Unexpected Error"), 'failure_changePW') 
+        flash(_("Unexpected Error"), 'failure_changePW')
         log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect("profile")
 
@@ -3208,30 +3666,32 @@ def inject_current_lang():
 
 # ---------------------------------- jdvance --------------------------------- #
 @app.route('/jdvance')
-@admin_required
 def jdvance():
     return render_template("jd/jdvance.html")
 # -------------------------------- jdvance end ------------------------------- #
 
 # ---------------------------------- reports --------------------------------- #
 
-# ---------------------------------------------------------------------------- #
-# --------------------------------- fix here --------------------------------- #
-# ---------------------------------------------------------------------------- #
 @app.route("/api/reports/processed_over_time")
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    start_str = request.args.get('startDate')   
-    end_str   = request.args.get('endDate')     
-    group_by  = (request.args.get('groupBy') or 'day').lower()  
+    start_str = request.args.get('startDate')
+    end_str   = request.args.get('endDate')
+    group_by  = (request.args.get('groupBy') or 'day').lower()
     statuses_q = request.args.get('statuses')
-    process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+
+    all_params = params + ['Privera']
 
     name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
     status_codes = None
@@ -3257,7 +3717,7 @@ def report_processed_over_time():
     elif group_by == 'month':
         group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
         order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    else:  
+    else:
         group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
         order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
 
@@ -3277,58 +3737,28 @@ def report_processed_over_time():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
-                group by CAST(ExportDate AS DATE)
-        """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
-                group by CONVERT(date, exportdatetime,104)
-        """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                where Export >= dateadd(day,-14,getdate())
-                group by cast(Export as date)
-        """)
-        else:
-            cursor.execute(f"""
-                SELECT
-                d,
-            SUM(cnt) AS c
-        FROM (
-            -- Invoices
-            SELECT
-                CAST(i.ExportDate AS date) AS d,
-                COUNT(DISTINCT i.wid) AS cnt
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-            WHERE i.ExportDate >= DATEADD(DAY, -14, GETDATE()) and GeloeschtAm is null
-            GROUP BY CAST(i.ExportDate AS date)
-
-            UNION ALL
-
-            select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-            where Export >= dateadd(day,-14,getdate())
-            group by cast(Export as date)
-
-            union all
-            -- Posteingang
-            SELECT
-                CONVERT(DATE,p.ExportDatetime,104) AS d,
-                COUNT(DISTINCT p.Workitemid) AS cnt
-            FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-            WHERE CONVERT(DATE,p.ExportDatetime,104) >= DATEADD(DAY, -14, GETDATE()) and DokumentGeloescht is null
-            GROUP BY CONVERT(DATE,p.ExportDatetime,104)
-        ) x
-        GROUP BY d;
-
-        """)
-        rows = cursor.fetchall()
-
+        rows = []
+        for param in params:
+            if param == '03_Invoice_New':
+                cursor.execute(f"""
+                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
+                    group by CAST(ExportDate AS DATE)
+            """)
+            elif param == '02_Posteingang':
+                cursor.execute(f"""
+                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
+                    group by CONVERT(date, exportdatetime,104)
+            """)
+            elif param == '02_InitialScan':
+                cursor.execute(f"""
+                    select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    where Export >= dateadd(day,-14,getdate())
+                    group by cast(Export as date)
+            """)
+            rows += cursor.fetchall()
+        rows.sort(key=lambda r: r.d)  
         labels = [row.d for row in rows]
         data = [row.c for row in rows]
         return jsonify({'labels': labels, 'data': data})
@@ -3346,12 +3776,18 @@ def report_status_distribution():
 
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')  
-    process_override = request.args.get('processFilterReports')
+    statuses_q = request.args.get('statuses')
+    process_name = session['process_name_dashboard']
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(process_name)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+    all_params = params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
     status_codes = [0,1,5]
@@ -3359,7 +3795,7 @@ def report_status_distribution():
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
     if not start_str and not end_str and set(status_codes)=={0,1,5}:
-        stats = get_absolute_dashboard_stats(process_name) 
+        stats = get_absolute_dashboard_stats(process_name)
         labels = ['Ready','In Progress','Done','Backlog']
         data = [
             stats.get('ReadyTotal',0),
@@ -3392,13 +3828,13 @@ def report_status_distribution():
         placeholders_status = ','.join(['?']*len(status_codes))
         cursor.execute(f"""
             WITH Mapped AS (
-              SELECT 
+              SELECT
                 CASE WHEN twi.Status = 0 THEN 'Ready'
                      WHEN twi.Status = 1 THEN 'In Progress'
                      WHEN twi.Status = 5 THEN 'Done'
                      ELSE 'Other' END as S
               FROM t_WorkItems twi
-              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
               LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
               WHERE tp.Name IN ({placeholders})
                 AND tp.ClientName = ?
@@ -3442,12 +3878,19 @@ def report_status_distribution():
 def report_kpi_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
-    
+
     conn = None
 
     placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
     all_params = params + ['Privera']
 
+    print(params)
     try:
         conn_str = (
             f'DRIVER={{SQL Server}};'
@@ -3459,86 +3902,51 @@ def report_kpi_stats():
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
-                where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
-            """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
-                where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-            """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                where cast(export as date) = cast(getdate() as date)
-            """)
-        else:
-            cursor.execute(f"""
-                SELECT
-                (SELECT COUNT(*)
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                WHERE CAST(i.ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null)
-                    + (SELECT COUNT(*)
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                WHERE CONVERT(DATE, p.ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-                        ) + 
-                        (
-            select count(WorkitemID)
-                from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                WHERE cast(Export as date) = CAST(GETDATE() AS DATE)
-            ) AS TotalCountToday;
-            """)
-        processed_today = cursor.fetchone()[0]
-        if session['process_name_dashboard'] == '03_Invoice_New':
-            cursor.execute(f"""
-                    select
-                        count(distinct i.wid)
-                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                        WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
-            """)
-        elif session['process_name_dashboard'] == '02_Posteingang':
-            cursor.execute(f"""
-                    select
-                    count(distinct P.WorkItemID)
-                    from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
-            """)
-        elif session['process_name_dashboard'] == '02_InitialScan':
-            cursor.execute(f"""
-                    select count(*)
-                    from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
-            """)
-        else:
-            cursor.execute(f"""
-                DECLARE @WeekStart DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0);
-                DECLARE @WeekEnd   DATETIME = DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+        processed_today = 0
+        processed_week = 0
+        for param in params:
+            if param == '03_Invoice_New':
+                cursor.execute(f"""
+                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select
+                            count(distinct i.wid)
+                            from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                            AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
+                """)
+                processed_week += cursor.fetchone()[0]
+            elif param == '02_Posteingang':
+                cursor.execute(f"""
+                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select
+                        count(distinct P.WorkItemID)  
+                        from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                        AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
+                """)
+                processed_week += cursor.fetchone()[0]
+            elif param == '02_InitialScan':
+                cursor.execute(f"""
+                    select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    where cast(export as date) = cast(getdate() as date)
+                """)
+                processed_today += cursor.fetchone()[0]
+                cursor.execute(f"""
+                        select count(*)
+                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                        AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
+                    """)
+                processed_week += cursor.fetchone()[0]
 
-                SELECT
-                    (SELECT COUNT(DISTINCT i.wid)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
-                    WHERE i.ExportDate >= @WeekStart
-                    AND i.ExportDate <  @WeekEnd and GeloeschtAm is null
-                    )
-                + (SELECT COUNT(DISTINCT p.WorkItemID)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
-                    WHERE CONVERT(DATE, p.ExportDatetime,104) >= @WeekStart
-                    AND CONVERT(DATE, p.ExportDatetime,104) <  @WeekEnd and DokumentGeloescht is null
-                    ) +
-                    (SELECT COUNT(n.WorkitemID)
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n
-                    WHERE n.Export >= @WeekStart
-                    AND n.Export <  @WeekEnd
-                    ) 
-                    AS TotalDistinctIdsThisWeek;
-            """)
-        processed_week = cursor.fetchone()[0]
-        
         cursor.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
@@ -3546,13 +3954,13 @@ def report_kpi_stats():
             WHERE p.Name IN ({placeholders}) AND p.ClientName = ? AND a.ActivityInstanceName = 'C+A';
         """,all_params)
         current_backlog = cursor.fetchone()[0]
-        
+
         return jsonify({
             'processed_today': processed_today,
             'processed_week': processed_week,
             'current_backlog': current_backlog
         })
-        
+
     except Exception as e:
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
@@ -3568,14 +3976,19 @@ def report_stage_breakdown():
     start_str = request.args.get('startDate')
     end_str   = request.args.get('endDate')
     statuses_q = request.args.get('statuses')
-    process_override = request.args.get('processFilterReports')
 
-    process_name = process_override or session.get('process_name_dashboard', 'all')
-    placeholders, proc_params = get_process_filter_and_params(process_name)
-    all_params = proc_params + ['Privera']
+    placeholders, params = get_process_filter_and_params(processName)
+    allowed_params = [
+        p for p in params
+        if has_permission(f'dashboard.filter.process.privera.{p}')
+    ]
+
+    placeholders = ", ".join(["?"] * len(allowed_params))
+    params = allowed_params
+    all_params = params + ['Privera']
 
     name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1]  
+    status_codes = [0,1]
     if statuses_q:
         status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
 
@@ -3601,7 +4014,7 @@ def report_stage_breakdown():
 
         placeholders_status = ','.join(['?']*len(status_codes))
         cursor.execute(f"""
-           SELECT 
+           SELECT
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
                     WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
@@ -3613,8 +4026,8 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END AS Activity,
                 COUNT(twi.ID) as ItemCount
-            FROM t_WorkItems twi 
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID 
+            FROM t_WorkItems twi
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders})
               AND tp.ClientName = ?
@@ -3635,7 +4048,7 @@ def report_stage_breakdown():
                 'Deletion Marker Scan Duplicate',
                 'Keine Dokumente nach TB P2'
                 )
-            GROUP BY 
+            GROUP BY
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
                     WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
@@ -3661,19 +4074,212 @@ def report_stage_breakdown():
             conn.close()
 # -------------------------------- reports end ------------------------------- #
 
-# ------------------------------- error handler ------------------------------ #
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template("handlers/404.html"), 404
+# -------------------------------- bexio ------------------------------------- #
 
-@app.errorhandler(500)
-def internalError(e):
-    return render_template("handlers/500.html"), 500
+def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None):
+    url = "https://api.bexio.com/2.0/kb_invoice/search"
+    accessToken = BEXIO_PAT
+    if not accessToken:
+        app.logger.error("BEXIO_PAT is not set.")
+        return []
 
-@app.errorhandler(403)
-def forbiddenPage(e):
-    return render_template('handlers/403.html'), 403
-# ----------------------------- error handler end ---------------------------- #
+    headers = {
+        'Accept': "application/json",
+        'Authorization': f"Bearer {accessToken}",
+    }
+
+    payload = [
+        {"field": "contact_id", "value": str(clientId), "criteria": "="},
+        {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
+        {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
+    ]
+
+    if search_nr:
+        payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        invoices = response.json()
+
+        if status:
+            status_map = {
+                'Paid': [9],
+                'Open': [8]
+            }
+            target_status_ids = status_map.get(status, [])
+            if target_status_ids:
+                invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
+
+        for inv in invoices:
+            inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
+            try:
+                inv['total'] = f"{float(inv['total']):.2f}"
+            except (ValueError, TypeError):
+                inv['total'] = "0.00"
+
+        return invoices
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Bexio API search failed: {e}")
+        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return []
+    except json.JSONDecodeError:
+        app.logger.error(f"Bexio API returned invalid JSON.")
+        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
+        return []
+
+def getBexioInvoicePDF(invoice_id):
+    url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}/pdf"
+    accessToken = BEXIO_PAT
+    if not accessToken:
+        app.logger.error("BEXIO_PAT is not set.")
+        return None, None
+
+    headers = {
+        'Accept': "application/json",
+        'Authorization': f"Bearer {accessToken}",
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        content = data.get('content')
+        name = data.get('name')
+
+        if not content or not name:
+            app.logger.error(f"Bexio API response for PDF {invoice_id} missing content or name.")
+            return None, None
+
+        return base64.b64decode(content), name
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Bexio API PDF fetch failed for {invoice_id}: {e}")
+        log_user_action('getBexioInvoicePDF', 'FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
+        return None, None
+
+def map_invoice_status(status_id):
+    if status_id == 9:
+        return {'text': _('Paid'), 'color': 'green'}
+    else:
+        return {'text': _('Open'), 'color': 'blue'}
+
+def getBexioClientId():
+    clientId = None
+    if has_permission('invoices.view.privera'):
+        clientId = BEXIO_PRIVERA_CLIENT_ID
+
+    return clientId
+# -------------------------------- bexio end --------------------------------- #
+
+
+# ---------------------------------- invoices ---------------------------------- #
+@app.route("/invoices")
+@require_permission('invoices.view')
+def invoices():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        logged_in_user = session.get('username', 'Unknown')
+        userid = session.get('userid', 'Unknown')
+
+        search_nr_perm = has_permission('invoices.filter.invoiceid')
+        search_nr = request.args.get('search', '') if search_nr_perm else None
+        status_perm = has_permission('invoices.filter.status')
+        status = request.args.get('status', '') if status_perm else None
+        date_perm = has_permission('invoices.filter.date')
+        dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if date_perm else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if date_perm else datetime.now().strftime('%Y-%m-%d')
+
+        log_user_action('visitInvoices', status='SUCCESS', resource_id='invoices')
+
+        return render_template("invoices.html",
+                               logged_in_user=logged_in_user,
+                               userid=userid,
+                               search=search_nr,
+                               status=status,
+                               dateFrom=dateFrom,
+                               dateTo=dateTo
+                               ,search_nr_perm=search_nr_perm
+                               ,status_perm=status_perm
+                               ,date_perm=date_perm
+                               ,pageV=pageVisability())
+    except Exception as e:
+        log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return render_template('500.html')
+
+@app.route("/api/invoices")
+@require_permission('invoices.view')
+def api_invoices():
+    try:
+        if 'username' not in session:
+            return jsonify({"error": _("Not authorized")}), 401
+
+        search_nr = request.args.get('search', '') if has_permission('invoices.filter.invoiceid') else None
+        status = request.args.get('status', '')  if has_permission('invoices.filter.status') else None
+        dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else datetime.now().strftime('%Y-%m-%d')
+
+        bexio_client_id = getBexioClientId()
+
+        if not bexio_client_id:
+            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')}")
+            return jsonify([])
+
+        invoices_list = searchBexioInvoices(
+            clientId=bexio_client_id,
+            dateFrom=dateFrom,
+            dateTo=dateTo,
+            search_nr=search_nr,
+            status=status
+        )
+
+
+        log_user_action('apiSearchInvoices', status='SUCCESS', resource_id='invoices', details={
+            "filter_search": search_nr,
+            "filter_status": status,
+            "filter_dateFrom": dateFrom,
+            "filter_dateTo": dateTo
+        })
+
+        return jsonify(invoices_list)
+
+    except Exception as e:
+        log_user_action('apiSearchInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({"error": "Failed to fetch invoices"}), 500
+
+@app.route("/invoice/<int:invoice_id>/pdf")
+@require_permission('invoices.download')
+def download_invoice_pdf(invoice_id):
+    if 'username' not in session:
+        return redirect(url_for("login"))
+
+    try:
+        pdf_content, pdf_name = getBexioInvoicePDF(invoice_id)
+
+        if pdf_content and pdf_name:
+            log_user_action('downloadBexioPDF', status='SUCCESS', resource_id=invoice_id)
+            return Response(
+                pdf_content,
+                mimetype='application/pdf',
+                headers={'Content-Disposition': f'attachment;filename={pdf_name}'}
+            )
+        else:
+            log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"error": "PDF content not found in Bexio."})
+            flash(_("Could not download PDF. File not found or API error."), 'error')
+            return redirect(url_for('invoices'))
+
+    except Exception as e:
+        log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
+        app.logger.error(f"Failed to download invoice PDF {invoice_id}: {e}")
+        flash(_("An unexpected error occurred while downloading the PDF."), 'error')
+        return redirect(url_for('invoices'))
+# -------------------------------- invoices end -------------------------------- #
+
+
+
 
 # ------------------------------- ONLY FOR IIS ------------------------------- #
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')

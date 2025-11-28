@@ -33,28 +33,25 @@
             <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
             <form method="GET" action="">
                 <select id="processFilterDashboard" name="processFilterDashboard"
-                    class="w-full custom-select cursor-pointer bg-gray-50 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
-                    onchange="this.form.submit()">
-                    <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
-                    <option value="02_Posteingang" {% if process_name=='02_Posteingang' %}selected{% endif %}>{{ _("Inbox") }}</option>
-                    <option value="03_Invoice_New" {% if process_name=='03_Invoice_New' %}selected{% endif %}>{{ _("Invoice") }}</option>
-                    <option value="02_InitialScan" {% if process_name=='02_InitialScan' %}selected{% endif %}>{{ _("Initial-scan") }}</option>
-                </select>
+                class="w-full custom-select cursor-pointer bg-gray-50 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
+                onchange="this.form.submit()">
+                <option value="all"
+                        {% if process_name == 'all' %}selected{% endif %}>
+                    {{ _("All Processes") }}
+                </option>
+
+                {% for proc in allowed_processes %}
+                    <option value="{{ proc }}"
+                            {% if process_name == proc %}selected{% endif %}>
+                        {{ _('process.' ~ proc) }} 
+                    </option>
+                {% endfor %}
+            </select>
+
             </form>
         </div>
-        <!-- <div class="flex items-center gap-4">
-            <div class="relative">
-                <input id="date-range-picker" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-64 p-2.5 pl-10" placeholder="Select Date Range">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-            </div>
-            <button id="apply-filters-btn" class="bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-indigo-700 transition duration-300">
-                {{ _("Apply") }}
-            </button>
-        </div> -->
     </div>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
             <div>
@@ -105,11 +102,11 @@
                   <p class="text-gray-500">{{ _("Loading timeline...") }}</p>
               </div>
           </div>
-          
+
       </div>
     </div>
   </main>
-  
+
   <footer class="bg-gray-50 mt-auto">
       <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
           &copy; 2025 nexora. {{ _("All rights reserved") }}.

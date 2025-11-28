@@ -401,13 +401,13 @@ msgstr "Alle Prozesse"
 
 #: templates/dashboard.html:39 templates/team_board.html:36
 #: templates/workitems_overview.html:76
-msgid "Inbox"
-msgstr "Posteingang"
+msgid "process.02_Posteingang"
+msgstr "Inbox"
 
 #: templates/dashboard.html:40 templates/hero.html:159
 #: templates/team_board.html:37 templates/workitems_overview.html:79
-msgid "Invoice"
-msgstr "Rechnung"
+msgid "process.03_Invoice_New"
+msgstr "Invoice"
 
 #: templates/dashboard.html:52
 msgid "Apply"
@@ -536,6 +536,9 @@ msgstr "Validierung"
 #: templates/hero.html:224
 msgid "Delivery"
 msgstr "Zustellung"
+
+msgid "process.02_InitialScan"
+msgstr "Initial-scan"
 
 #: templates/hero.html:230
 msgid "Initializing..."

@@ -1,0 +1,71 @@
+<script>
+        let currentPage = 1;
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        async function fetchLogs(page) {
+            currentPage = page;
+            const user = document.getElementById('filterUser').value;
+            const action = document.getElementById('filterAction').value;
+            const status = document.getElementById('filterStatus').value;
+            const start = document.getElementById('filterStart').value;
+            const end = document.getElementById('filterEnd').value;
+
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin"></i> {{ _("Loading...") }}</td></tr>`;
+
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    username: user,
+                    action_type: action,
+                    status: status,
+                    start_date: start,
+                    end_date: end
+                });
+
+                const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`);
+                const data = await res.json();
+
+                tbody.innerHTML = '';
+                if(data.logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center">{{ _("No logs found matching criteria.") }}</td></tr>`;
+                    return;
+                }
+
+                data.logs.forEach(log => {
+                    const statusClass = log.ActionStatus === 'SUCCESS' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+                    let details = log.Details || '';
+                    // formatting json details if valid
+                    try { if(details && details !== 'NULL') details = JSON.stringify(JSON.parse(details), null, 2); } catch(e){}
+
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">${new Date(log.Timestamp).toLocaleString()}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">${log.Username}</td>
+                        <td class="px-6 py-4">${log.ActionType}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-bold rounded ${statusClass}">${log.ActionStatus}</span></td>
+                        <td class="px-6 py-4 text-xs">${log.IPAddress}</td>
+                        <td class="px-6 py-4 text-xs font-mono text-gray-500 truncate max-w-xs" title="${details}">${details.substring(0, 50)}${details.length>50?'...':''}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Update Pagination
+                document.getElementById('pageInfo').innerText = `{{ _("Page") }} ${data.page} {{ _("of") }} ${data.pages} (${data.total} {{ _("total") }})`;
+                document.getElementById('prevBtn').disabled = data.page <= 1;
+                document.getElementById('nextBtn').disabled = data.page >= data.pages;
+
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">{{ _("Error loading logs.") }}</td></tr>`;
+            }
+        }
+
+        function changePage(delta) {
+            fetchLogs(currentPage + delta);
+        }
+
+        // Initial load
+        fetchLogs(1);
+    </script>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ _("Access Control - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+    
+    {% set active_page = 'admin_access' %}
+    {% include '_header.html' %}
+    
+<main class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('admin_dashboard') }}" class="text-gray-500 hover:text-indigo-600">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">{{ _("Permissions & Profiles") }}</h2>
+                    <p class="text-gray-600">{{ _("Manage access profiles, permissions and overrides") }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-6 border-b border-gray-200">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="accessTabs">
+                <li class="mr-2">
+                    <button class="inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg active" id="tab-overview-btn" onclick="switchTab('overview')">
+                        <i class="fas fa-table mr-2"></i>{{ _("User Overview") }}
+                    </button>
+                </li>
+                <li class="mr-2">
+                    <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="tab-profiles-btn" onclick="switchTab('profiles')">
+                        <i class="fas fa-id-badge mr-2"></i>{{ _("Access Profiles") }}
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div id="tab-overview" class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="font-semibold text-gray-700">{{ _("All Users & Permissions") }}</h3>
+                <div class="relative mb-4">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" id="overviewSearchInput" onkeyup="filterOverviewTable()" 
+                           class="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-indigo-500 focus:border-indigo-500" 
+                           placeholder="{{ _('Search...') }}">
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3">{{ _("User") }}</th>
+                            <th class="px-6 py-3">{{ _("Access Profile") }}</th>
+                            <th class="px-6 py-3 text-center">{{ _("Overrides") }}</th>
+                            <th class="px-6 py-3 text-right">{{ _("Actions") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overviewTableBody">
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center">{{ _("Loading users...") }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-profiles" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for profile in profiles %}
+            <div class="bg-white rounded-xl shadow p-6 border border-gray-100 relative">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">{{ profile.Name }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">{{ profile.Description }}</p>
+                    </div>
+                    <button onclick="editProfile('{{ profile.AccessID }}', '{{ profile.Name }}', '{{ profile.Description }}')" class="text-gray-400 hover:text-indigo-600">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <div id="editorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col transform scale-95 transition-transform duration-300">
+            
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="editorModalTitle" class="text-2xl font-bold text-gray-800"></h3>
+                <button onclick="closeEditorModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 p-6 flex flex-col overflow-hidden">
+                    <form id="permissionForm" class="flex flex-col h-full"> 
+                        <input type="hidden" id="editTargetId" name="targetId">
+                        <input type="hidden" id="editMode" name="mode">
+                    <div id="profileMetaFields" class="grid grid-cols-1 gap-4 mb-6 flex-shrink-0">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">{{ _("Profile Name") }}</label>
+                            <input type="text" id="profileName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">{{ _("Description") }}</label>
+                            <input type="text" id="profileDesc" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                        </div>
+                    </div>
+
+                        <div class="relative flex-1 overflow-y-auto shadow-md sm:rounded-lg border border-gray-200">
+                            <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">{{ _("Permission") }}</th>
+                                    <th scope="col" class="px-6 py-3 text-center w-24">{{ _("Inherit/None") }}</th>
+                                    <th scope="col" class="px-6 py-3 text-center w-24">{{ _("Deny") }}</th>
+                                    <th scope="col" class="px-6 py-3 text-center w-24">{{ _("Allow") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for perm in all_permissions %}
+                                <tr class="bg-white border-b hover:bg-gray-50 permission-row" data-perm-id="{{ perm.PermissionID }}">
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-gray-900">{{ perm.Code }}</div>
+                                        <div class="text-xs text-gray-500">{{ perm.Description }}</div>
+                                        {% if perm.PermissionID in [17, 18, 20, 9, 10, 11] %}
+                                        <div class="text-[10px] text-blue-600 font-bold mt-1">
+                                            * Required Group (Atleast 1 must be Active)
+                                        </div>
+                                        {% elif perm.PermissionID in [59, 60, 61, 56, 57, 58, 34, 35, 36] %}
+                                        <div class="text-[10px] text-blue-600 font-bold mt-1">
+                                            * Required Group (Exactly 1 must be Active)
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="radio" name="perm_{{ perm.PermissionID }}" value="None" class="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 focus:ring-gray-500" checked>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="radio" name="perm_{{ perm.PermissionID }}" value="D" class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <input type="radio" name="perm_{{ perm.PermissionID }}" value="A" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3 bg-gray-50">
+                <button onclick="closeEditorModal()" class="px-5 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">{{ _("Cancel") }}</button>
+                <button onclick="savePermissions()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow">{{ _("Save Changes") }}</button>
+            </div>
+        </div>
+    </div>
+
+    {% include 'js/admin/_accessControlJS.html' %}
+</body>
+</html>

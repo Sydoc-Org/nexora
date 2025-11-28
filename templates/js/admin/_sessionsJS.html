@@ -1,0 +1,53 @@
+<script>
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " {{ _('years ago') }}";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " {{ _('months ago') }}";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " {{ _('days ago') }}";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " {{ _('hours ago') }}";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " {{ _(' minutes ago') }}";
+            return Math.floor(seconds) + " {{ _('seconds ago') }}";
+        }
+
+        async function fetchActiveSessions() {
+            const sessionsBody = document.getElementById('active-sessions-body');
+            sessionsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin"></i></td></tr>`;
+            
+            try {
+                const response = await fetch(`${API_PREFIX}api/admin/active_sessions`);
+                if (!response.ok) throw new Error('Failed to fetch sessions');
+                const sessions = await response.json();
+
+                sessionsBody.innerHTML = '';
+                if (sessions.length === 0) {
+                    sessionsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 pt-4 text-center text-gray-500">{{ _("No active sessions found.") }}</td></tr>`;
+                    return;
+                }
+
+                sessions.forEach(session => {
+                    const row = document.createElement('tr');
+                    row.className = 'bg-white border-b hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-gray-900">${session.Username}</td>
+                        <td class="px-6 py-4 font-medium">${session.Userid}</td>
+                        <td class="px-6 py-4 text-gray-600">${session.IPAddress}</td>
+                        <td class="px-6 py-4 text-indigo-600 font-medium">${timeAgo(session.LastActivity + 'Z')}</td>
+                    `;
+                    sessionsBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching active sessions:", error);
+                sessionsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">{{ _("Could not load sessions.") }}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchActiveSessions);
+        setInterval(fetchActiveSessions, 30000); // Refresh every 30s
+    </script>
