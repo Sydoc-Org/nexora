@@ -247,7 +247,7 @@ def login():
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT userID, password, username, fullname, email, company, organizationcode FROM Users WHERE username = ?
+                SELECT userID, password, username, fullname, email, organizationcode FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -257,8 +257,7 @@ def login():
                 stored_username = user_record[2]
                 stored_fullname = user_record[3]
                 stored_email = user_record[4]
-                stored_company = user_record[5]
-                stored_organizationcode = user_record[6]
+                stored_organizationcode = user_record[5]
 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')
@@ -269,7 +268,6 @@ def login():
                     session['username'] = stored_username
                     session['fullname'] = stored_fullname
                     session['email'] = stored_email
-                    session['company'] = stored_company
                     session['uuid'] = uuid.uuid4()
                     session['permissions'] = load_permissions_for_user(str(stored_userid))
                     session['organizationcode'] = stored_organizationcode
@@ -385,6 +383,112 @@ def admin_dashboard():
                          logged_in_user=session.get('username'), 
                          userid=session.get('userid'), pageV=pageVisability())
 
+
+@app.route("/admin/organizations")
+@require_permission('admin.view')
+def admin_organizations_view():
+    conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+    conn = pyodbc.connect(conn_str)
+    cursor = conn.cursor()
+    cursor.execute("""
+        select organizationcode, organization from organizations 
+    """)
+    organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+    return render_template("admin/organizations.html",organizations=organizations, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+
+@app.route("/admin/organizations/add", methods=['POST'])
+@require_permission('admin.create.organization')
+def admin_add_organization():
+    data = request.get_json()
+    organization = data.get('organizationname')
+    userid = session['userid']
+
+    if not organization:
+        return jsonify({'success': False, 'message': _("All fields are required.")}), 400
+
+    organizationcode = (re.sub('[aeoui]','',organization)).upper()[0:4]
+    print(organization, organizationcode)
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization,))
+        conn.commit()
+
+        create_notification(userid, _("Organization created successfully.") , link=url_for('admin_organizations_view'), icon='fa-square-plus')
+        log_user_action('createNewOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement',details={'newOrganization': organization})
+        return jsonify({'success': True, 'message': _("Organization created successfully.")})
+    except pyodbc.IntegrityError:
+        log_user_action('createNewOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"adminError": "Organization already exists", 'newOrganization': organization})
+        return jsonify({'success': False, 'message': _("Organization already exists.")}), 409
+    except Exception as e:
+        app.logger.error(f"Error adding organization: {e}")
+        log_user_action('createNewOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/admin/organizations/edit/<organizationcode>", methods=['POST'])
+@require_permission('admin.edit.organization')
+def admin_edit_organization(organizationcode):
+    data = request.get_json()
+    organization = data.get('organizationname')
+    currentUserId = session['userid']
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("UPDATE organizations SET organization=? WHERE organizationcode=?",
+                        (organization, organizationcode))
+        conn.commit()
+        
+        create_notification(currentUserId, _("Organization updated successfully"), link=url_for('admin_organizations_view'), icon='fa-pen')
+        log_user_action('editOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement')
+        return jsonify({'success': True, 'message': _("Organization updated successfully.")})
+    except Exception as e:
+        app.logger.error(f"Error editing Organization {currentUserId}: {e}")
+        log_user_action('editOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/admin/organizations/delete/<organizationcode>", methods=['DELETE'])
+@require_permission('admin.delete.organization')
+def admin_delete_organization(organizationcode):
+    current_user = session.get('userid')
+
+    conn = None
+    try:
+        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM organizations WHERE organizationcode=?", (organizationcode,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            log_user_action('deleteOrganizationAdmin', status='FAILURE', details={'adminError': 'Organization not found'}, resource_id='visitOrganizationManagement')
+            return jsonify({'success': False, 'message': _("Organization not found.")}), 404
+
+        create_notification(current_user, _("Organization deleted successfully"), link=url_for('admin_organizations_view'), icon='fa-slash')
+        
+        log_user_action('deleteOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement')
+        return jsonify({'success': True, 'message': _("Organization deleted successfully.")})
+    except Exception as e:
+        app.logger.error(f"Error deleting Organization {organizationcode}: {e}")
+        log_user_action('deleteOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={'serverError': str(e)}, IsInternalError=1)
+        return jsonify({'success': False, 'message': _("An error occurred.")}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @app.route("/admin/users")
 @require_permission('admin.view')
 def admin_users():
@@ -394,12 +498,19 @@ def admin_users():
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT userID, username, fullname, email, company FROM Users
+            SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization FROM Users u
+            join accessprofile ap on ap.accessid = u.accessid
+            join organizations o on o.organizationcode = u.organizationcode 
             ORDER BY username
         """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        
-        return render_template("admin/userManagement.html", users=users, userid=session.get('userid'), logged_in_user=session.get('username'), pageV=pageVisability())
+        cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap")
+        accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        cursor.execute("SELECT organizationcode, organization FROM Organizations")
+        organizations =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        return render_template("admin/userManagement.html",organizations=organizations, accessprofiles=accessprofiles, users=users, userid=session.get('userid'), logged_in_user=session.get('username'), pageV=pageVisability())
     except Exception as e:
         app.logger.error(f"Failed to fetch users: {e}")
         return render_template('500.html')
@@ -490,10 +601,12 @@ def admin_add_user():
     password = data.get('password')
     fullname = data.get('fullname')
     email = data.get('email')
-    company = data.get('company')
+    organization = data.get('organization')
+    accessprofile = data.get('accessprofile')
     userid = session['userid']
 
-    if not all([username, password, fullname, email, company]):
+
+    if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -503,8 +616,13 @@ def admin_add_user():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, company) VALUES (?, ?, ?, ?, ?)",
-                       (username, hashed_password, fullname, email, company))
+        cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
+        accessid = cursor.fetchone()[0]
+        cursor.execute("select organizationcode from organizations where organization = ?", organization)
+        organizationcode = cursor.fetchone()[0]
+        print(accessid, organizationcode)
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (username, hashed_password, fullname, email, organizationcode, accessid))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
         log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username})
@@ -527,8 +645,9 @@ def admin_edit_user(user_id):
     username = data.get('username')
     fullname = data.get('fullname')
     email = data.get('email')
-    company = data.get('company')
     password = data.get('password')
+    organization = data.get('organization')
+    accessprofile = data.get('accessprofile')
     currentUserId = session['userid']
 
     conn = None
@@ -536,14 +655,18 @@ def admin_edit_user(user_id):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
+        cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
+        accessid = cursor.fetchone()[0]
+        cursor.execute("select organizationcode from organizations where organization = ?", organization)
+        organizationcode = cursor.fetchone()[0]
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=?, password=? WHERE userID=?",
-                           (username, fullname, email, company, hashed_password, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, password=?, organizationcode=?,accessid=? WHERE userID=?",
+                           (username, fullname, email, hashed_password, organizationcode,accessid, user_id))
         else:
-            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?, company=? WHERE userID=?",
-                           (username, fullname, email, company, user_id))
+            cursor.execute("UPDATE Users SET username=?, fullname=?, email=?,  organizationcode=?,accessid=? WHERE userID=?",
+                           (username, fullname, email, organizationcode, accessid, user_id))
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
@@ -1474,42 +1597,42 @@ def _get_workitems_data(args):
         where_clauses.append("twi.Status = ?")
         params.append(status_map[status])
     if tag_filter and has_permission('workitems.filter.tag'):
-        if has_permission('workitems.filter.tag.global'):
-            where_clauses.append(f"""
-                EXISTS (
-                    SELECT 1
-                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.workitemid = twi.id AND t.TagName like ?
-                )
-            """)
-            params.append(f"%{tag_filter}%")
-        elif has_permission('workitems.filter.tag.native-provider'):
-            where_clauses.append(f"""
-                EXISTS (
-                    SELECT 1
-                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
-                    WHERE wt.workitemid = twi.id AND t.TagName like ?
-                    AND u.organizationCode IN (?, 'SYDC')
-                )
-            """)
-            params.append(f"%{tag_filter}%")
-            params.append(session.get('organizationcode'))
-        elif has_permission('workitems.filter.tag.native'):
-            where_clauses.append(f"""
-                EXISTS (
-                    SELECT 1
-                    FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-                    JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
-                    WHERE wt.workitemid = twi.id AND t.TagName like ?
-                    AND u.organizationCode IN (?)
-                )
-            """)
-            params.append(f"%{tag_filter}%")
-            params.append(session.get('organizationcode'))
+        # if has_permission('workitems.filter.tag.global'):
+        where_clauses.append(f"""
+            EXISTS (
+                SELECT 1
+                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                WHERE wt.workitemid = twi.id AND t.TagName like ?
+            )
+        """)
+        params.append(f"%{tag_filter}%")
+        # elif has_permission('workitems.filter.tag.native-provider'):
+        #     where_clauses.append(f"""
+        #         EXISTS (
+        #             SELECT 1
+        #             FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+        #             WHERE wt.workitemid = twi.id AND t.TagName like ?
+        #             AND u.organizationCode IN (?, 'SYDC')
+        #         )
+        #     """)
+        #     params.append(f"%{tag_filter}%")
+        #     params.append(session.get('organizationcode'))
+        # elif has_permission('workitems.filter.tag.native'):
+        #     where_clauses.append(f"""
+        #         EXISTS (
+        #             SELECT 1
+        #             FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
+        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
+        #             WHERE wt.workitemid = twi.id AND t.TagName like ?
+        #             AND u.organizationCode IN (?)
+        #         )
+        #     """)
+        #     params.append(f"%{tag_filter}%")
+        #     params.append(session.get('organizationcode'))
 
 
     if search_term and has_permission('workitems.filter.workitemid'):
@@ -3480,9 +3603,8 @@ def profile():
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
-        company = session.get('company', 'Unknown')
         log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
-        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, fullname=fullname, email=email, company=company, pageV=pageVisability())
+        return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, fullname=fullname, email=email, pageV=pageVisability())
     except Exception as e:
         log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -3497,16 +3619,12 @@ def update_profile():
             username = session['username']
             fullname = request.form['fullName']
             email = request.form['email']
-            company = request.form['company']
 
             if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
                 flash(_("Full name is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
             if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
                 flash(_("Email Adress is not valid"), 'failure_updateProfile')
-                return redirect(url_for("profile"))
-            if not re.search("^\w[\w.\-#&\s]*$", company) or len(company) >= 50:
-                flash(_("Company name is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
 
             conn_str = (
@@ -3522,9 +3640,9 @@ def update_profile():
 
             cursor.execute("""
                 UPDATE Users
-                SET fullname = ?, email = ?, company = ?
+                SET fullname = ?, email = ?
                 WHERE username = ?
-            """, (fullname, email, company, username))
+            """, (fullname, email, username))
 
             conn.commit()
             cursor.close()
@@ -3532,7 +3650,6 @@ def update_profile():
 
             session['fullname'] = fullname
             session['email'] = email
-            session['company'] = company
 
             if 'file' in request.files and request.files['file'].filename != '':
                 f = request.files['file']
@@ -3561,7 +3678,6 @@ def update_profile():
             log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
                 "fullname": fullname,
                 "email": email,
-                "company": company
             })
             create_notification(userid, _("Your profile was updated successfully."), link=url_for('profile'), icon='fa-user-pen')
             flash(_("Profile updated successfully!"), 'success_updateProfile')

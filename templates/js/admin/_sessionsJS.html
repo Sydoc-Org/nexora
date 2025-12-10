@@ -1,20 +1,32 @@
 <script>
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
-        function timeAgo(date) {
-            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-            let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + " {{ _('years ago') }}";
-            interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + " {{ _('months ago') }}";
-            interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + " {{ _('days ago') }}";
-            interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + " {{ _('hours ago') }}";
-            interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + " {{ _(' minutes ago') }}";
-            return Math.floor(seconds) + " {{ _('seconds ago') }}";
-        }
+         function timeAgo(date) {
+                let seconds = Math.floor((new Date() - new Date(date)) / 1000);
+
+                if (seconds < 0) {
+                    seconds = 0;
+                }
+
+                let interval = seconds / 31536000;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("years ago") }}`;
+                
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("months ago") }}`;
+                
+                interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("days ago") }}`;
+                
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("hours ago") }}`;
+                
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("minutes ago") }}`;
+                
+                if (seconds < 5) return `{{ _("Just now") }}`;
+
+                return Math.floor(seconds) + ` {{ _("seconds ago") }}`;
+            }
 
         async function fetchActiveSessions() {
             const sessionsBody = document.getElementById('active-sessions-body');

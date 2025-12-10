@@ -48,11 +48,25 @@
                         required>
                 </div>
                 <div>
-                    <label for="company" class="block mb-1 text-sm font-medium">{{ _("Company") }}</label>
-                    <input type="text" id="company" name="company"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                        required>
+                <label for="accessprofile" class="block mb-1 text-sm font-medium">{{ _("Access Profile") }}</label>
+                 <select id="accessprofile" name="accessprofile" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" 
+                 required>
+                    {% for profile in accessprofiles %}
+                    <option value="{{ profile.profile }}">{{ profile.profile }}</option>
+                    {% endfor %}
+                </select>
                 </div>
+
+                <div>
+                <label for="organization" class="block mb-1 text-sm font-medium">{{ _("Organization") }}</label>
+                 <select id="organization" name="organization" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" 
+                 required>
+                    {% for organization in organizations %}
+                    <option value="{{ organization.organization }}">{{ organization.organization }}</option>
+                    {% endfor %}
+                </select>
+                </div>
+
                 <div>
                     <label for="password" class="block mb-1 text-sm font-medium">{{ _("Password") }}</label>
                     <input type="password" id="password" name="password"

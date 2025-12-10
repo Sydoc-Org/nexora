@@ -37,7 +37,8 @@
                             <th scope="col" class="px-6 py-3">{{ _("Username") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Full name") }}</th>
                             <th scope="col" class="px-6 py-3">{{ _("Email") }}</th>
-                            <th scope="col" class="px-6 py-3">{{ _("Company") }}</th>
+                            <th scope="col" class="px-6 py-3">{{ _("Access Profile") }}</th>
+                            <th scope="col" class="px-6 py-3">{{ _("Organization") }}</th>
                             <th scope="col" class="px-6 py-3 text-right">{{ _("Actions") }}</th>
                         </tr>
                     </thead>
@@ -47,7 +48,8 @@
                             <td class="px-6 py-4 font-medium text-gray-900">{{ user.username }}</td>
                             <td class="px-6 py-4">{{ user.fullname }}</td>
                             <td class="px-6 py-4">{{ user.email }}</td>
-                            <td class="px-6 py-4">{{ user.company }}</td>
+                            <td class="px-6 py-4">{{ user.accessprofile }}</td>
+                            <td class="px-6 py-4">{{ user.organization }}</td>
                             <td class="px-6 py-4 text-right">
                                 <button data-user='{{ user|tojson|safe }}' class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4">{{ _("Edit") }}</button>
                                 <button onclick="deleteUser('{{ user.userID }}')" class="font-medium text-red-600 hover:text-red-800">{{ _("Delete") }}</button>
