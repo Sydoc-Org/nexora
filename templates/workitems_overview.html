@@ -174,7 +174,7 @@
               <div class="relative mt-1">
                 <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10" {% if assigned_user_perm == False %} disabled {% endif %}>
                   <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
-                  {% for user in protal_assignedUsers_filter %}
+                  {% for user in portal_assignedUsers_filter %}
                   <option value="{{ user.userID }}" {% if assignedUser==user.userID|string %}selected{% endif %}>
                     {{ user.fullname }}
                   </option>
@@ -380,11 +380,11 @@
               <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
             </button>
           </form>
-          <button onclick="exportToCSV()" type="button"
+          <!-- <button onclick="exportToCSV()" type="button"
             class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
             <i class="fas fa-download mr-2"></i>{{ _("Export") }}
           </button>
-          <button type="submit" class="hidden" aria-hidden="true"></button>
+          <button type="submit" class="hidden" aria-hidden="true"></button> -->
         </div>
       </form>
 

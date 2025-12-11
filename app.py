@@ -75,9 +75,10 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = False #True for PROD
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
@@ -398,7 +399,7 @@ def admin_organizations_view():
     return render_template("admin/organizations.html",organizations=organizations, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/admin/organizations/add", methods=['POST'])
-@require_permission('admin.create.organization')
+@require_permission('admin.add.organization')
 def admin_add_organization():
     data = request.get_json()
     organization = data.get('organizationname')
@@ -621,7 +622,7 @@ def admin_add_user():
         cursor.execute("select organizationcode from organizations where organization = ?", organization)
         organizationcode = cursor.fetchone()[0]
         print(accessid, organizationcode)
-        cursor.execute("INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        cursor.execute("INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, organizationcode, accessid))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
@@ -693,7 +694,27 @@ def admin_delete_user(user_id):
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM Users WHERE userID=?", (user_id,))
+        cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?", (user_id,user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from userpermissionoverride where userid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from notifications where userid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from comment_mentions where mentioneduserid = ?", (user_id,))
+        cursor.commit()
+        
+        cursor.execute("delete from workitem_comments where userid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from users where userid = ?", (user_id,))
+        cursor.commit()
+
         conn.commit()
 
         if cursor.rowcount == 0:
@@ -1597,7 +1618,6 @@ def _get_workitems_data(args):
         where_clauses.append("twi.Status = ?")
         params.append(status_map[status])
     if tag_filter and has_permission('workitems.filter.tag'):
-        # if has_permission('workitems.filter.tag.global'):
         where_clauses.append(f"""
             EXISTS (
                 SELECT 1
@@ -1607,34 +1627,6 @@ def _get_workitems_data(args):
             )
         """)
         params.append(f"%{tag_filter}%")
-        # elif has_permission('workitems.filter.tag.native-provider'):
-        #     where_clauses.append(f"""
-        #         EXISTS (
-        #             SELECT 1
-        #             FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
-        #             WHERE wt.workitemid = twi.id AND t.TagName like ?
-        #             AND u.organizationCode IN (?, 'SYDC')
-        #         )
-        #     """)
-        #     params.append(f"%{tag_filter}%")
-        #     params.append(session.get('organizationcode'))
-        # elif has_permission('workitems.filter.tag.native'):
-        #     where_clauses.append(f"""
-        #         EXISTS (
-        #             SELECT 1
-        #             FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
-        #             JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Users u ON u.userID = t.CreatedByUserID
-        #             WHERE wt.workitemid = twi.id AND t.TagName like ?
-        #             AND u.organizationCode IN (?)
-        #         )
-        #     """)
-        #     params.append(f"%{tag_filter}%")
-        #     params.append(session.get('organizationcode'))
-
-
     if search_term and has_permission('workitems.filter.workitemid'):
         where_clauses.append("twi.id LIKE ?")
         params.append(f"%{search_term}%")
@@ -2610,7 +2602,7 @@ def workitems_overview():
         details_assign_users_perm = has_permission('workitems.details.assign.users')
         details_add_comment_perm = has_permission('workitems.details.add.comment')
 
-        protal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
+        portal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
         log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
             logged_in_user=logged_in_user,
@@ -2627,7 +2619,7 @@ def workitems_overview():
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            protal_assignedUsers_filter=protal_assignedUsers_filter,
+            portal_assignedUsers_filter=portal_assignedUsers_filter,
             docfield=docfields[0] if docfields else '',
             docvalue=docvalues[0] if docvalues else '',
             pageV=pageVisability(),
@@ -3120,12 +3112,16 @@ def get_users_for_mentions():
         conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-        if has_permission('workitems.details.mention-assign.users.global'):
-            cursor.execute("SELECT userID, username, fullname FROM Users")
-        elif has_permission('workitems.details.mention.users.native'):
-            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN ('SYDC', ?)", session.get('organizationcode'))
-        elif has_permission('workitems.details.mention-assign.users.native-provider'):
-            cursor.execute("SELECT userID, username, fullname FROM Users WHERE organizationcode IN (?)", session.get('organizationcode'))
+        if has_permission('workitems.details.add.comment'):
+            if has_permission('admin.view.allusers'):
+                cursor.execute("""
+                SELECT userID, username, fullname FROM Users
+                """)
+            else:
+                cursor.execute("""
+                SELECT userID, username, fullname FROM Users
+                WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
+                """, session.get('organizationcode'))
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(users)
     except Exception as e:
@@ -3535,7 +3531,7 @@ def team_board():
         """
         ,params)
         
-        portal_users = get_all_portal_users('teamboard', 'view.users')
+        portal_users = get_all_portal_users('teamboard', 'view')
         workitems_by_user = {user['userID']: [] for user in portal_users}
         workitems_by_user['Unassigned'] = []
 
@@ -3577,12 +3573,13 @@ def get_all_portal_users(fromRequest, action):
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
-        if has_permission(f'{fromRequest}.{action}.global'):
-            cursor.execute("SELECT userID, fullname FROM Users ORDER BY fullname")
-        elif has_permission(f'{fromRequest}.{action}.native-provider'):
-            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?, 'SYDC') ORDER BY fullname", session.get('organizationcode'))
-        elif has_permission(f'{fromRequest}.{action}.native'):
-            cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?) ORDER BY fullname", session.get('organizationcode'))
+        if has_permission(f'{fromRequest}.{action}'):
+            if has_permission('admin.view.allusers'):
+                cursor.execute("""
+                SELECT userID, fullname FROM Users
+                """)
+            else:
+                cursor.execute("SELECT userID, fullname FROM Users WHERE organizationCode in (?, 'SYDC') AND accessid not in (1,2) ORDER BY fullname", session.get('organizationcode'))
 
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return users
@@ -4093,7 +4090,7 @@ def report_stage_breakdown():
     end_str   = request.args.get('endDate')
     statuses_q = request.args.get('statuses')
 
-    placeholders, params = get_process_filter_and_params(processName)
+    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
     allowed_params = [
         p for p in params
         if has_permission(f'dashboard.filter.process.privera.{p}')

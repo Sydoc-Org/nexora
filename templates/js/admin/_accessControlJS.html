@@ -28,40 +28,51 @@
         document.getElementById(`tab-${tabName}-btn`).className = btnActiveClass;
     }
 
-    function openEditorModal(title, mode) {
-        currentMode = mode;
-        document.getElementById('editorModalTitle').innerText = title;
-        
-        document.querySelectorAll('input[type=radio][value=None]').forEach(r => r.checked = true);
+function openEditorModal(title, mode) {
+    currentMode = mode;
+    document.getElementById('editorModalTitle').innerText = title;
 
-            document.querySelectorAll('input[type=radio]').forEach(r => {
-            r.disabled = false;
-            if(r.parentElement) r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
-        });
+    const inheritHeader = document.querySelector('#editorModal thead th:nth-child(2)');
+    const inheritCells = document.querySelectorAll('#editorModal tbody td:nth-child(2)');
 
-        const modalBody = document.getElementById('editorModal');
-        modalBody.onchange = function(e) {
-            if (e.target.type === 'radio') {
-                updateSpecialConstraints(e.target);
-            }
-        };
+    if (mode === 'profile') {
+        if (inheritHeader) inheritHeader.style.display = 'none';
+        inheritCells.forEach(td => td.style.display = 'none');
 
-        updateSpecialConstraints();
+        document.querySelectorAll('#editorModal input[type=radio][value="D"]').forEach(r => r.checked = true);
+    } else {
+        if (inheritHeader) inheritHeader.style.display = ''; 
+        inheritCells.forEach(td => td.style.display = '');
 
-        if (mode === 'profile') {
-            profileMetaFields.classList.remove('hidden');
-        } else {
-            profileMetaFields.classList.add('hidden');
-        }
-
-        editorModal.classList.remove('hidden');
-        setTimeout(() => {
-            editorModal.classList.remove('opacity-0');
-            editorModal.querySelector('div.transform').classList.remove('scale-95');
-        }, 10);
+        document.querySelectorAll('#editorModal input[type=radio][value="None"]').forEach(r => r.checked = true);
     }
 
-    function closeEditorModal() {
+    document.querySelectorAll('#editorModal input[type=radio]').forEach(r => {
+        r.disabled = false;
+        if (r.parentElement) r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+    });
+
+    const modalBody = document.getElementById('editorModal');
+    modalBody.onchange = function(e) {
+        if (e.target.type === 'radio') {
+            updateSpecialConstraints(e.target);
+        }
+    };
+
+    updateSpecialConstraints();
+
+    if (mode === 'profile') {
+        profileMetaFields.classList.remove('hidden');
+    } else {
+        profileMetaFields.classList.add('hidden');
+    }
+
+    editorModal.classList.remove('hidden');
+    setTimeout(() => {
+        editorModal.classList.remove('opacity-0');
+        editorModal.querySelector('div.transform').classList.remove('scale-95');
+    }, 10);
+}        function closeEditorModal() {
         editorModal.classList.add('opacity-0');
         editorModal.querySelector('div.transform').classList.add('scale-95');
         setTimeout(() => editorModal.classList.add('hidden'), 300);
@@ -272,9 +283,6 @@
 const CONSTRAINT_CONFIG = [
     { 
         members: [17, 18, 20], 
-        // workitems.filter.process.privera.02_Posteingang
-        // workitems.filter.process.privera.03_Invoice_New
-        // workitems.filter.process.privera.02_InitialScan
         mode: 'AT_LEAST_ONE', 
         exceptions: [{ id: 16, value: 'D' }],
         fallback: 17
@@ -282,9 +290,6 @@ const CONSTRAINT_CONFIG = [
     },
     { 
         members: [9, 10, 11], 
-        // dashboard.filter.process.privera.02_Posteingang
-        // dashboard.filter.process.privera.03_Invoice_New
-        // dashboard.filter.process.privera.02_InitialScan
         mode: 'AT_LEAST_ONE', 
         exceptions: [{ id: 1, value: 'D' }],
         fallback: 9
@@ -292,56 +297,10 @@ const CONSTRAINT_CONFIG = [
     },
     { 
         members: [44, 43, 45], 
-        // teamboard.filter.process.privera.03_Invoice_New
-        // teamboard.filter.process.privera.02_Posteingang
-        // teamboard.filter.process.privera.02_InitialScan
         mode: 'AT_LEAST_ONE', 
         exceptions: [{ id: 42, value: 'D' }],
         fallback: 43
         // teamboard.view
-    },
-    {
-        members: [49, 48, 47],
-        // teamboard.view.users.native-provider
-        // teamboard.view.users.native
-        // teamboard.view.users.global
-        mode: 'EXACTLY_ONE',
-        exceptions: [{id: 42, value: 'D'}],
-        fallback: 48
-        // teamboard.view
-    },
-    {
-        members: [59, 60, 61],
-        // workitems.filter.tag.global
-        // workitems.filter.tag.native
-        // workitems.filter.tag.native-provider
-        mode: 'EXACTLY_ONE',
-        exceptions: [{ id: 16, value: 'D' }, {id: 22, value: 'D'}],
-        fallback: 60
-        // workitems.view
-        // workitems.filter.tag
-    },
-    {
-        members: [56, 57, 58],
-        // workitems.filter.assignedUser.global
-        // workitems.filter.assignedUser.native
-        // workitems.filter.assignedUser.native-provider
-        mode: 'EXACTLY_ONE',
-        exceptions: [{ id: 16, value: 'D' }, {id: 26, value: 'D'}],
-        fallback: 57
-        // workitems.view
-        // workitems.filter.assignedUser
-    },
-    {
-        members: [34, 35, 36],
-        // workitems.details.assign.users.global
-        // workitems.details.assign.users.native
-        // workitems.details.assign.users.native-provider
-        mode: 'EXACTLY_ONE',
-        exceptions: [{ id: 16, value: 'D' }, {id: 62, value: 'D'}],
-        fallback: 35
-        // workitems.view
-        // workitems.details.assign.users
     }
 ];
 function updateSpecialConstraints(triggerElement = null) {
@@ -360,15 +319,14 @@ function updateSpecialConstraints(triggerElement = null) {
             return; 
         }
 
-        
         let activeMemberIds = [];
         group.members.forEach(id => {
             const r = document.querySelector(`input[name="perm_${id}"][value="A"]`);
             if (r && r.checked) activeMemberIds.push(id);
         });
 
-        // 3. Fallback Logic: If 0 are active, force fallback
-        if (activeMemberIds.length === 0) {
+        
+        if (currentMode === 'profile' && activeMemberIds.length === 0) {
             const radioToCheck = document.querySelector(`input[name="perm_${group.fallback}"][value="A"]`);
             if (radioToCheck) {
                 radioToCheck.checked = true;
@@ -376,40 +334,37 @@ function updateSpecialConstraints(triggerElement = null) {
             }
         }
 
-        // 4. Exactly One Logic (Mutual Exclusion)
         if (group.mode === 'EXACTLY_ONE') {
             if (activeMemberIds.length > 1) {
-                // BUG FIX START: Check if the trigger belongs to THIS group
                 if (triggerElement && triggerElement.value === 'A') {
                     const clickedId = parseInt(triggerElement.name.replace('perm_', ''));
                     
-                    // Only apply 'clicked' logic if the clicked ID is actually in this group
                     if (group.members.includes(clickedId)) {
                         activeMemberIds.forEach(id => {
                             if (id !== clickedId) setPermissionNone(id);
                         });
                         activeMemberIds = [clickedId]; 
                     } else {
-                        // If trigger was from a different group, just keep the first found active member
-                        // to ensure consistency and fix the double-active state
                          for (let i = 1; i < activeMemberIds.length; i++) {
                             setPermissionNone(activeMemberIds[i]);
                         }
                         activeMemberIds = [activeMemberIds[0]];
                     }
                 } else {
-                    // Default/Load behavior: Keep first, disable others
                     for (let i = 1; i < activeMemberIds.length; i++) {
                         setPermissionNone(activeMemberIds[i]);
                     }
                     activeMemberIds = [activeMemberIds[0]];
                 }
-                // BUG FIX END
             }
         }
 
-        // 5. Locking Logic (Disable None/Deny buttons)
         group.members.forEach(id => {
+            if (currentMode === 'user') {
+                toggleRowInputs(id, false);
+                return;
+            }
+
             const allowRadio = document.querySelector(`input[name="perm_${id}"][value="A"]`);
             const isCurrentRowActive = allowRadio && allowRadio.checked;
 
@@ -431,8 +386,13 @@ function updateSpecialConstraints(triggerElement = null) {
     });
 }
 function setPermissionNone(id) {
-    const NoneRadio = document.querySelector(`input[name="perm_${id}"][value="None"]`);
-    if (NoneRadio) NoneRadio.checked = true;
+    if (currentMode === 'profile') {
+        const DenyRadio = document.querySelector(`input[name="perm_${id}"][value="D"]`);
+        if (DenyRadio) DenyRadio.checked = true;
+    } else {
+        const NoneRadio = document.querySelector(`input[name="perm_${id}"][value="None"]`);
+        if (NoneRadio) NoneRadio.checked = true;
+    }
 }
 
 function toggleRowInputs(id, shouldDisable) {
