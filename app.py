@@ -29,7 +29,8 @@ import qrcode
 from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 import magic  
-
+from sqlalchemy import create_engine, pool
+import urllib
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -100,9 +101,9 @@ csrf = CSRFProtect(app)
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
-DB_SERVER_DB_WEBPORTAL = os.environ.get("DB_SERVER_DB_WEBPORTAL")
-DB_SERVER_DB_STAT = os.environ.get("DB_SERVER_DB_STAT")
-DB_SERVER_DB_RUNTIME = os.environ.get("DB_SERVER_DB_RUNTIME")
+DB_NEXORA = os.environ.get("DB_NEXORA")
+DB_STATISTICS = os.environ.get("DB_STATISTICS")
+DB_OCTO_RUNTIME = os.environ.get("DB_OCTO_RUNTIME")
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
@@ -140,20 +141,49 @@ def index():
 
 # ------------------------------ app config end ------------------------------ #
 
+
+# ------------------------------ database connection ------------------------- #
+def getDBUrl(d):
+    params = urllib.parse.quote_plus(
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={d};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+    return f"mssql+pyodbc:///?odbc_connect={params}"
+
+engineOctoDB = create_engine(
+    getDBUrl(DB_OCTO_RUNTIME),
+    pool_size=10, 
+    max_overflow=20,
+    pool_timeout=30,  
+    pool_recycle=1800 
+)
+engineNexoraDB = create_engine(
+    getDBUrl(DB_NEXORA),
+    pool_size=10, 
+    max_overflow=20,
+    pool_timeout=30,  
+    pool_recycle=1800 
+)
+engineStatisticsDB = create_engine(
+    getDBUrl(DB_STATISTICS),
+    pool_size=10, 
+    max_overflow=20,
+    pool_timeout=30,  
+    pool_recycle=1800 
+)
+# ------------------------------ database connection end --------------------- #
+
+
 # ---------------------------------- logging --------------------------------- #
 def log_user_action(action_type, status, target_user_id=None, resource_id=None, details=None, IsInternalError=0):
     if 'username' not in session:
         return
     try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -202,15 +232,10 @@ def log_action():
 # ------------------------------- session login ------------------------------ #
 
 def load_permissions_for_user(user_id):
-    conn_str = (
-        f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;'
-        f'DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    with pyodbc.connect(conn_str) as conn:
-        cur = conn.cursor()
-        cur.execute("EXEC dbo.spGetUserPermissions ?", user_id)
-        perms = [row[0] for row in cur.fetchall()]
+    conn = engineNexoraDB.raw_connection()
+    cur = conn.cursor()
+    cur.execute("EXEC dbo.spGetUserPermissions ?", user_id)
+    perms = [row[0] for row in cur.fetchall()]
     return perms
 
 def has_permission(code: str) -> bool:
@@ -273,7 +298,7 @@ def init_2FA():
         totp = pyotp.TOTP(secret)
         if totp.verify(code):
             try:
-                conn = pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+                conn = engineNexoraDB.raw_connection()
                 cursor = conn.cursor()
                 
                 cursor.execute("""
@@ -309,7 +334,7 @@ def verify_2fa():
         code = request.form.get('code')
         user_id = session['pre_2fa_userid']
 
-        conn = pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TwoFASecret, username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
         row = cursor.fetchone()
@@ -354,15 +379,7 @@ def init_reset_password():
         if not re.search('^\S{8,200}$', new_password):
             return render_template("init_reset.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
 
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -420,15 +437,7 @@ def login():
             return render_template('index.html', error=_("Invalid credentials"))
 
         try:
-            conn_str = (
-                f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER_PRD},1433;'
-                f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-                f'UID={DB_UID};'
-                f'PWD={DB_PWD};'
-                f'TrustServerCertificate=yes;'
-            )
-            conn = pyodbc.connect(conn_str)
+            conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -476,8 +485,7 @@ def login():
 def create_notification(user_id, message, link=None, icon='fa-info-circle'):
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO Notifications (UserID, Message, Link, Icon)
@@ -497,8 +505,7 @@ def get_notifications():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -531,8 +538,7 @@ def mark_notifications_as_read():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         placeholders = ','.join(['?' for _ in notification_ids])
@@ -570,8 +576,7 @@ def admin_dashboard():
 @app.route("/admin/organizations")
 @require_permission('admin.view')
 def admin_organizations_view():
-    conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-    conn = pyodbc.connect(conn_str)
+    conn = engineNexoraDB.raw_connection()
     cursor = conn.cursor()
     cursor.execute("""
         select organizationcode, organization from organizations 
@@ -594,8 +599,7 @@ def admin_add_organization():
     print(organization, organizationcode)
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization,))
         conn.commit()
@@ -623,8 +627,7 @@ def admin_edit_organization(organizationcode):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
         cursor.execute("UPDATE organizations SET organization=? WHERE organizationcode=?",
@@ -649,8 +652,7 @@ def admin_delete_organization(organizationcode):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
         cursor.execute("DELETE FROM organizations WHERE organizationcode=?", (organizationcode,))
@@ -677,8 +679,7 @@ def admin_delete_organization(organizationcode):
 def admin_users():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization FROM Users u
@@ -741,8 +742,7 @@ def api_admin_logs_search():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
         # Get Total Count for Pagination
@@ -796,8 +796,7 @@ def admin_add_user():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
@@ -835,8 +834,7 @@ def admin_edit_user(user_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
@@ -873,8 +871,7 @@ def admin_delete_user(user_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
         cursor.commit()
@@ -919,8 +916,7 @@ def admin_delete_user(user_id):
 def admin_recent_logs():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT TOP 20 Timestamp, Username, ActionType, ActionStatus
@@ -941,8 +937,7 @@ def admin_recent_logs():
 def admin_active_sessions():
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
@@ -971,15 +966,14 @@ def admin_active_sessions():
 @require_permission('admin.view') 
 def admin_access_control():
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        with pyodbc.connect(conn_str) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
-            profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
-            all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
+        profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
+        all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
         return render_template("admin/accessControl.html", 
                              profiles=profiles, 
@@ -997,8 +991,7 @@ def get_users_admin_access_control():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
         query = """
@@ -1027,16 +1020,14 @@ def get_users_admin_access_control():
 @require_permission('admin.edit.user')
 def get_profile_details(access_id):
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        with pyodbc.connect(conn_str) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT PermissionID, Effect 
-                FROM AccessProfilePermission 
-                WHERE AccessID = ?
-            """, (access_id,))
-            assigned_perms = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-            
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT PermissionID, Effect 
+            FROM AccessProfilePermission 
+            WHERE AccessID = ?
+        """, (access_id,))
+        assigned_perms = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify({'success': True, 'permissions': assigned_perms})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -1054,23 +1045,19 @@ def save_access_profile():
         return jsonify({'success': False, 'message': _("Name is required")}), 400
 
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        with pyodbc.connect(conn_str) as conn:
-            cursor = conn.cursor()
-            
-            if access_id:
-                cursor.execute("UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?", (name, description, access_id))
-                cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
-            else:
-                cursor.execute("INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)", (name, description))
-                access_id = cursor.fetchone()[0]
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if access_id:
+            cursor.execute("UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?", (name, description, access_id))
+            cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
+        else:
+            cursor.execute("INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)", (name, description))
+            access_id = cursor.fetchone()[0]
 
-            if permissions:
-                params = [(access_id, p['PermissionID'], p['Effect']) for p in permissions]
-                cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
-
-            conn.commit()
-
+        if permissions:
+            params = [(access_id, p['PermissionID'], p['Effect']) for p in permissions]
+            cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+        conn.commit()
         session['permissions'] = load_permissions_for_user(session['userid'])
         log_user_action('saveAccessProfile', 'SUCCESS', resource_id=access_id, details={'name': name})
         return jsonify({'success': True, 'message': _("Profile saved successfully")})
@@ -1082,24 +1069,19 @@ def save_access_profile():
 @require_permission('admin.edit.user')
 def get_user_overrides(user_id):
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        with pyodbc.connect(conn_str) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT AccessID FROM Users WHERE UserID = ?", (user_id,))
-            row = cursor.fetchone()
-            if not row:
-                 return jsonify({'success': False, 'message': "User not found"}), 404
-            base_access_id = row[0]
-
-            cursor.execute("SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,))
-            overrides = {row.PermissionID: row.Effect for row in cursor.fetchall()}
-            
-            base_perms = {}
-            if base_access_id:
-                cursor.execute("SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?", (base_access_id,))
-                base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
-
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT AccessID FROM Users WHERE UserID = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+                return jsonify({'success': False, 'message': "User not found"}), 404
+        base_access_id = row[0]
+        cursor.execute("SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,))
+        overrides = {row.PermissionID: row.Effect for row in cursor.fetchall()}
+        base_perms = {}
+        if base_access_id:
+            cursor.execute("SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?", (base_access_id,))
+            base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
         return jsonify({
             'success': True, 
             'overrides': overrides, 
@@ -1119,18 +1101,16 @@ def save_user_overrides():
         return jsonify({'success': False, 'message': "User ID required"}), 400
 
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        with pyodbc.connect(conn_str) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("DELETE FROM UserPermissionOverride WHERE UserID=?", (user_id,))
-            
-            if overrides:
-                params = [(user_id, p['PermissionID'], p['Effect']) for p in overrides]
-                cursor.executemany("INSERT INTO UserPermissionOverride (UserID, PermissionID, Effect) VALUES (?, ?, ?)", params)
-            
-            conn.commit()
-
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM UserPermissionOverride WHERE UserID=?", (user_id,))
+        
+        if overrides:
+            params = [(user_id, p['PermissionID'], p['Effect']) for p in overrides]
+            cursor.executemany("INSERT INTO UserPermissionOverride (UserID, PermissionID, Effect) VALUES (?, ?, ?)", params)
+        
+        conn.commit()
         session['permissions'] = load_permissions_for_user(session['userid'])
         log_user_action('saveUserOverrides', 'SUCCESS', target_user_id=user_id)
         return jsonify({'success': True, 'message': _("Overrides updated successfully")})
@@ -1174,15 +1154,7 @@ def set_new_password():
         if not re.search('^\S{8,200}$', new_password):
             return render_template("reset_password.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
 
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1384,15 +1356,7 @@ def send_reset_email(email):
 @app.route('/request-password-reset', methods=['GET', 'POST'])
 def request_password_reset():
     request_email = request.form['email']
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
-        f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-        f'UID={DB_UID};'
-        f'PWD={DB_PWD};'
-        f'TrustServerCertificate=yes;'
-    )
-    conn = pyodbc.connect(conn_str)
+    conn = engineNexoraDB.raw_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email))
     rows = cursor.fetchone()
@@ -1434,15 +1398,7 @@ def get_absolute_dashboard_stats(processName="all"):
     params = allowed_params
     try:
         all_params = params + ['Privera'] + params + ['Privera']
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -1524,15 +1480,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
     params = allowed_params
     try:
         all_params = params + ['Privera']
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute(f"""
             WITH CTE AS (
@@ -1684,15 +1632,7 @@ def recent_activity():
     all_params = params + ['Privera']
 
     try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute(f"""
             WITH CTE AS (
@@ -1803,8 +1743,8 @@ def _get_workitems_data(args):
         where_clauses.append(f"""
             EXISTS (
                 SELECT 1
-                FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
                 WHERE wt.workitemid = twi.id AND t.TagName like ?
             )
         """)
@@ -1838,148 +1778,143 @@ def _get_workitems_data(args):
 
             if docfield == 'doctype':
                 if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
                     params.append(f"%{docvalue}%")
                 else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
             elif docfield == 'docbarcode':
                 if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                     params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
             elif docfield == 'crdno':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'crdname':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'bankpk':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'grossamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"{docvalue}%")
             elif docfield == 'netamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"{docvalue}%")
             elif docfield == 'vatamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"{docvalue}%")
             elif docfield == 'doccurrency':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'invoicenr':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'tec':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'esrreference':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'ordernumber':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'client':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'docsource':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'ownernr':
                 if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                     params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
             elif docfield == 'tenancynr':
                 if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                     params.extend([f"%{docvalue}%", f"%{docvalue}%"])
             elif docfield == 'registered':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'branch':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'docdate':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'forwarding':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'department':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'postcode':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'recipient':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'confidentiality':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'propertynr':
                 if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                     params.append(f"%{docvalue}%")
                 else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
+                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
                     params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
             elif docfield == 'separatorsheet':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'docid':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
             elif docfield == 'archiveboxno':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
+                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
 
     where_sql = " AND ".join(where_clauses)
-    conn_str = (
-        f'DRIVER={{SQL Server}};'
-        f'SERVER={DB_SERVER_PRD},1433;'
-        f'DATABASE={DB_SERVER_DB_RUNTIME};'
-        f'UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;'
-    )
+    
     workitems_list = []
     total_items = 0
     conn = None
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
         count_query = f"""
@@ -1987,7 +1922,7 @@ def _get_workitems_data(args):
             FROM t_WorkItems twi
             INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
+            LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {where_sql}
         """
         cursor.execute(count_query, params)
@@ -2012,8 +1947,8 @@ def _get_workitems_data(args):
                     wim.Priority,
                     (
                         SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
                         WHERE wt.WorkItemID = twi.ID
                         FOR JSON PATH
                     ) AS TagsJSON,
@@ -2021,7 +1956,7 @@ def _get_workitems_data(args):
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
+                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
                 WHERE {where_sql}
             )
             SELECT 
@@ -2071,13 +2006,7 @@ def api_docfield_values():
 
     conn = None
     try:
-        conn_str = (
-            f"DRIVER={{SQL Server}};"
-            f"SERVER={DB_SERVER_PRD},1433;"
-            f"DATABASE={DB_SERVER_DB_STAT};"
-            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineStatisticsDB.raw_connection()
         cur = conn.cursor()
 
         params = []
@@ -2085,7 +2014,7 @@ def api_docfield_values():
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                     WHERE Dokumenttyp is not null and Dokumenttyp <> ''
                     and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
@@ -2098,7 +2027,7 @@ def api_docfield_values():
             elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                     WHERE DocType is not null and DocType <> ''
                     and ImportTime >= DATEADD(day,-7,getdate())
                 """
@@ -2112,13 +2041,13 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                         WHERE Dokumenttyp is not null and Dokumenttyp <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT DocType COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                         WHERE DocType is not null and DocType <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
                     ) t
@@ -2133,7 +2062,7 @@ def api_docfield_values():
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                     WHERE Barcode is not null and Barcode <> ''
                     and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
@@ -2146,7 +2075,7 @@ def api_docfield_values():
             elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                     WHERE Barcode is not null and Barcode <> ''
                     and ImportTime >= DATEADD(day,-3,getdate())
                 """
@@ -2158,7 +2087,7 @@ def api_docfield_values():
             elif process == '02_InitialScan':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     WHERE Barcode is not null and Barcode <> ''
                     and Export >= DATEADD(MONTH, -6, getdate())
                 """
@@ -2171,20 +2100,20 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                         WHERE Barcode is not null and Barcode <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                         WHERE Barcode is not null and Barcode <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
 
                         UNION ALL
 
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                         WHERE Barcode is not null and Barcode <> ''
                         and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
@@ -2199,7 +2128,7 @@ def api_docfield_values():
         elif field == 'crdno':
             sql = f"""
                 SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE CRD_NR is not null and CRD_NR <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2212,7 +2141,7 @@ def api_docfield_values():
         elif field == 'crdname':
             sql = f"""
                 SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE CRD_NAME_1 is not null and CRD_NAME_1 <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2225,7 +2154,7 @@ def api_docfield_values():
         elif field == 'bankpk':
             sql = f"""
                 SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE bankpk is not null and bankpk <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2238,7 +2167,7 @@ def api_docfield_values():
         elif field == 'grossamount':
             sql = f"""
                 SELECT DISTINCT TOP 15 convert(float,GrossAmount) AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE grossamount is not null and grossamount <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2251,7 +2180,7 @@ def api_docfield_values():
         elif field == 'netamount':
             sql = f"""
                 SELECT DISTINCT TOP 15 convert(float,netamount) AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE netamount is not null and netamount <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2264,7 +2193,7 @@ def api_docfield_values():
         elif field == 'vatamount':
             sql = f"""
                 SELECT DISTINCT TOP 15 convert(float,vatamount) AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE vatamount is not null and vatamount <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2277,7 +2206,7 @@ def api_docfield_values():
         elif field == 'doccurrency':
             sql = f"""
                 SELECT DISTINCT TOP 15 DocCurrency COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE DocCurrency is not null and DocCurrency <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2290,7 +2219,7 @@ def api_docfield_values():
         elif field == 'invoicenr':
             sql = f"""
                 SELECT DISTINCT TOP 15 InvoiceNR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE InvoiceNR is not null and InvoiceNR <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2303,7 +2232,7 @@ def api_docfield_values():
         elif field == 'tec':
             sql = f"""
                 SELECT DISTINCT TOP 15 ISTEC AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE ISTEC is not null
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2316,7 +2245,7 @@ def api_docfield_values():
         elif field == 'esrreference':
             sql = f"""
                 SELECT DISTINCT TOP 15 ESR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE ESR is not null and ESR <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2329,7 +2258,7 @@ def api_docfield_values():
         elif field == 'ordernumber':
             sql = f"""
                 SELECT DISTINCT TOP 15 BestellNummer COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE BestellNummer is not null and BestellNummer <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2342,7 +2271,7 @@ def api_docfield_values():
         elif field == 'client':
             sql = f"""
                 SELECT DISTINCT TOP 15 Mandant COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE Mandant is not null and Mandant <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2355,7 +2284,7 @@ def api_docfield_values():
         elif field == 'docsource':
             sql = f"""
                 SELECT DISTINCT TOP 15 docsource COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                 WHERE docsource is not null and docsource <> ''
                 and ImportTime >= DATEADD(day,-3,getdate())
             """
@@ -2369,7 +2298,7 @@ def api_docfield_values():
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                     WHERE EigentuemerNr is not null and EigentuemerNr <> ''
                     and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
@@ -2382,7 +2311,7 @@ def api_docfield_values():
             elif process == '02_InitialScan':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
                     and Export >= DATEADD(MONTH, -6, getdate())
                 """
@@ -2395,7 +2324,7 @@ def api_docfield_values():
             elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                     WHERE EigentuemerNr is not null and EigentuemerNr <> ''
                     and ImportTime >= DATEADD(day,-3,getdate())
                 """
@@ -2409,21 +2338,21 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
 
                         SELECT Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                         WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
                         and Export >= DATEADD(MONTH, -6, getdate())
 
                         UNION ALL
 
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
                     ) t
@@ -2439,7 +2368,7 @@ def api_docfield_values():
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                     WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
                     and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
@@ -2452,7 +2381,7 @@ def api_docfield_values():
             elif process == '02_InitialScan':
                 sql = f"""
                     SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     WHERE ID_Miet is not null and ID_Miet <> ''
                     and Export >= DATEADD(MONTH, -6, getdate())
                 """
@@ -2466,14 +2395,14 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                         WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
 
                         SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                         WHERE ID_Miet is not null and ID_Miet <> ''
                         and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
@@ -2487,7 +2416,7 @@ def api_docfield_values():
         elif field == 'registered':
             sql = f"""
                 SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Einschreiben is not null and Einschreiben <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2500,7 +2429,7 @@ def api_docfield_values():
         elif field == 'branch':
             sql = f"""
                 SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Niederlassung is not null and Niederlassung <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2513,7 +2442,7 @@ def api_docfield_values():
         elif field == 'docdate':
             sql = f"""
                 SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Dokdatum is not null and Dokdatum <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2526,7 +2455,7 @@ def api_docfield_values():
         elif field == 'forwarding':
             sql = f"""
                 SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Nachsendung is not null and Nachsendung <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2539,7 +2468,7 @@ def api_docfield_values():
         elif field == 'department':
             sql = f"""
                 SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Abteilung is not null and Abteilung <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2552,7 +2481,7 @@ def api_docfield_values():
         elif field == 'postcode':
             sql = f"""
                 SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Sendungsbarcode is not null and Sendungsbarcode <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2565,7 +2494,7 @@ def api_docfield_values():
         elif field == 'confidentiality':
             sql = f"""
                 SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Vertraulichkeit is not null and Vertraulichkeit <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2578,7 +2507,7 @@ def api_docfield_values():
         elif field == 'recipient':
             sql = f"""
                 SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                 WHERE Empfaenger is not null and Empfaenger <> ''
                 and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
@@ -2592,7 +2521,7 @@ def api_docfield_values():
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                     WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                     and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
@@ -2605,7 +2534,7 @@ def api_docfield_values():
             elif process == '03_Invoice_New':
                 sql = f"""
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                     WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                     and ImportTime >= DATEADD(day,-3,getdate())
                 """
@@ -2618,7 +2547,7 @@ def api_docfield_values():
             elif process == '02_InitialScan':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
-                    FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
                     and Export >= DATEADD(MONTH, -6, getdate())
                 """
@@ -2632,20 +2561,20 @@ def api_docfield_values():
                 sql = f"""
                     SELECT DISTINCT TOP 15 Val FROM (
                         SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
                         and ImportTime >= DATEADD(day,-3,getdate())
 
                         union all
 
                         SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
-                        FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                         WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
                         and Export >= DATEADD(MONTH, -6, getdate())
                     ) t
@@ -2659,7 +2588,7 @@ def api_docfield_values():
         elif field == 'separatorsheet':
             sql = f"""
                 SELECT DISTINCT TOP 15 trennblatt COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                 WHERE trennblatt is not null and trennblatt <> ''
                 and Export >= DATEADD(MONTH, -6, getdate())
             """
@@ -2672,7 +2601,7 @@ def api_docfield_values():
         elif field == 'docid':
             sql = f"""
                 SELECT DISTINCT TOP 15 ID COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                 WHERE ID is not null and ID <> ''
                 and Export >= DATEADD(MONTH, -6, getdate())
             """
@@ -2685,7 +2614,7 @@ def api_docfield_values():
         elif field == 'archiveboxno':
             sql = f"""
                 SELECT DISTINCT TOP 15 ArchivBoxNummer AS Val
-                FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                 WHERE ArchivBoxNummer is not null and ArchivBoxNummer <> ''
                 and Export >= DATEADD(MONTH, -6, getdate())
             """
@@ -2894,8 +2823,7 @@ def get_single_workitem(workitemid):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
         query = f"""
@@ -2907,8 +2835,8 @@ def get_single_workitem(workitemid):
                             t.TagID AS id,
                             t.TagName AS name,
                             t.TagColor AS color
-                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
                         WHERE wt.WorkItemID = twi.ID
                         FOR JSON PATH
                     ) AS TagsJSON,
@@ -3319,8 +3247,7 @@ def get_users_for_mentions():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         if has_permission('workitems.details.add.comment'):
             if has_permission('admin.view.allusers'):
@@ -3348,8 +3275,7 @@ def get_workitem_interactions(workitemid):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         sql_query = """
@@ -3427,8 +3353,7 @@ def add_workitem_comment(workitemid):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -3474,8 +3399,7 @@ def assign_workitem(workitemid):
         assignedUserID = None
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -3515,8 +3439,7 @@ def set_workitem_priority(workitemid):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -3548,8 +3471,7 @@ def get_all_tags():
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
         tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
@@ -3575,8 +3497,7 @@ def add_tag_to_workitem(workitemid):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
@@ -3614,8 +3535,7 @@ def remove_tag_from_workitem(workitemid, tag_id):
 
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("DELETE FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id))
@@ -3691,15 +3611,7 @@ def team_board():
 
         where_sql = " AND ".join(where_clauses)
 
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(f"""
@@ -3720,8 +3632,8 @@ def team_board():
                     wim.AssignedUserID,
                     (
                         SELECT t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Tags wt
-                        JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Tags t ON wt.TagID = t.TagID
+                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
                         WHERE wt.workitemid = twi.id
                         FOR JSON PATH
                     ) AS TagsJSON,
@@ -3729,7 +3641,7 @@ def team_board():
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_SERVER_DB_WEBPORTAL}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
+                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
             SELECT --Barcode,
@@ -3779,8 +3691,7 @@ def team_board():
 def get_all_portal_users(fromRequest, action):
     conn = None
     try:
-        conn_str = (f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
-        conn = pyodbc.connect(conn_str)
+        conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
         if has_permission(f'{fromRequest}.{action}'):
@@ -3831,15 +3742,7 @@ def update_profile():
                 flash(_("Email Adress is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
 
-            conn_str = (
-                f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER_PRD},1433;'
-                f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-                f'UID={DB_UID};'
-                f'PWD={DB_PWD};'
-                f'TrustServerCertificate=yes;'
-            )
-            conn = pyodbc.connect(conn_str)
+            conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -3917,15 +3820,7 @@ def change_password():
             if not re.search('^\S{8,200}$', newPassword):
                 flash(_("New password has to be atleast 8 characters long, with no whitespaces"), 'failure_changePW')
                 return redirect(url_for('profile'))
-            conn_str = (
-                f'DRIVER={{SQL Server}};'
-                f'SERVER={DB_SERVER_PRD},1433;'
-                f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
-                f'UID={DB_UID};'
-                f'PWD={DB_PWD};'
-                f'TrustServerCertificate=yes;'
-            )
-            conn = pyodbc.connect(conn_str)
+            conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute(
@@ -4053,30 +3948,26 @@ def report_processed_over_time():
 
     conn = None
     try:
-        conn_str = (
-            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_STAT};"
-            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineStatisticsDB.raw_connection()
         cursor = conn.cursor()
 
         rows = []
         for param in params:
             if param == '03_Invoice_New':
                 cursor.execute(f"""
-                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraInvoice
                     where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
                     group by CAST(ExportDate AS DATE)
             """)
             elif param == '02_Posteingang':
                 cursor.execute(f"""
-                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraPosteingang
                     where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
                     group by CONVERT(date, exportdatetime,104)
             """)
             elif param == '02_InitialScan':
                 cursor.execute(f"""
-                    select cast(Export as date) d, count(WorkitemID) c from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    select cast(Export as date) d, count(WorkitemID) c from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     where Export >= dateadd(day,-14,getdate())
                     group by cast(Export as date)
             """)
@@ -4141,11 +4032,7 @@ def report_status_distribution():
 
     conn = None
     try:
-        conn_str = (
-            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
-            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
         placeholders_status = ','.join(['?']*len(status_codes))
@@ -4215,56 +4102,48 @@ def report_kpi_stats():
 
     print(params)
     try:
-        conn_str = (
-            f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
-            f'DATABASE={DB_SERVER_DB_RUNTIME};'
-            f'UID={DB_UID};'
-            f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         processed_today = 0
         processed_week = 0
         for param in params:
             if param == '03_Invoice_New':
                 cursor.execute(f"""
-                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
+                    select count(*) from [{DB_STATISTICS}].dbo.PriveraInvoice
                     where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
                 """)
                 processed_today += cursor.fetchone()[0]
                 cursor.execute(f"""
                         select
                             count(distinct i.wid)
-                            from [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice i
+                            from [{DB_STATISTICS}].dbo.PriveraInvoice i
                             WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
                             AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
                 """)
                 processed_week += cursor.fetchone()[0]
             elif param == '02_Posteingang':
                 cursor.execute(f"""
-                    select count(*) from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
+                    select count(*) from [{DB_STATISTICS}].dbo.PriveraPosteingang
                     where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
                 """)
                 processed_today += cursor.fetchone()[0]
                 cursor.execute(f"""
                         select
                         count(distinct P.WorkItemID)  
-                        from [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang p
+                        from [{DB_STATISTICS}].dbo.PriveraPosteingang p
                         WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
                         AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
                 """)
                 processed_week += cursor.fetchone()[0]
             elif param == '02_InitialScan':
                 cursor.execute(f"""
-                    select count(WorkitemID) from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                    select count(WorkitemID) from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                     where cast(export as date) = cast(getdate() as date)
                 """)
                 processed_today += cursor.fetchone()[0]
                 cursor.execute(f"""
                         select count(*)
-                        from [{DB_SERVER_DB_STAT}].dbo.PriveraInitialUndNeuzugaenge
+                        from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
                         WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
                         AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
                     """)
@@ -4328,11 +4207,7 @@ def report_stage_breakdown():
 
     conn = None
     try:
-        conn_str = (
-            f"DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_RUNTIME};"
-            f"UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;"
-        )
-        conn = pyodbc.connect(conn_str)
+        conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
         placeholders_status = ','.join(['?']*len(status_codes))
