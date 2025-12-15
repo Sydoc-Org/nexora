@@ -93,7 +93,10 @@ function openEditorModal(title, mode) {
         document.getElementById('profileDesc').value = desc;
 
         try {
-            const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`);
+            const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const data = await res.json();
             if(data.success) {
                 applyPermissionsToUI(data.permissions);
@@ -104,7 +107,10 @@ function openEditorModal(title, mode) {
 
     async function searchUsers() {
         const query = document.getElementById('userSearchInput').value;
-        const res = await fetch(`${API_PREFIX}api/admin/users`); 
+        const res = await fetch(`${API_PREFIX}api/admin/users`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }}); 
         const users = await res.json();
         
         const resultsContainer = document.getElementById('userSearchResults');
@@ -126,7 +132,10 @@ function openEditorModal(title, mode) {
         document.getElementById('editTargetId').value = userId;
 
         try {
-            const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`);
+            const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const data = await res.json();
             if(data.success) {
                 
@@ -181,7 +190,10 @@ function openEditorModal(title, mode) {
         try {
             const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                },
                 body: JSON.stringify(payload)
             });
             const result = await res.json();
@@ -205,7 +217,10 @@ function openEditorModal(title, mode) {
         const tableBody = document.getElementById('overviewTableBody');
         
         try {
-            const res = await fetch(`${API_PREFIX}api/admin/users`);
+            const res = await fetch(`${API_PREFIX}api/admin/users`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             if (!res.ok) throw new Error('Failed to load');
             
             allUsersData = await res.json();

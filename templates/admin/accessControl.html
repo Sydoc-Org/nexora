@@ -102,6 +102,7 @@
 
             <div class="flex-1 p-6 flex flex-col overflow-hidden">
                     <form id="permissionForm" class="flex flex-col h-full"> 
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" id="editTargetId" name="targetId">
                         <input type="hidden" id="editMode" name="mode">
                     <div id="profileMetaFields" class="grid grid-cols-1 gap-4 mb-6 flex-shrink-0">

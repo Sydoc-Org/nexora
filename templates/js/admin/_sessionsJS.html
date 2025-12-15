@@ -33,7 +33,10 @@
             sessionsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin"></i></td></tr>`;
             
             try {
-                const response = await fetch(`${API_PREFIX}api/admin/active_sessions`);
+                const response = await fetch(`${API_PREFIX}api/admin/active_sessions`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
                 if (!response.ok) throw new Error('Failed to fetch sessions');
                 const sessions = await response.json();
 
@@ -61,5 +64,5 @@
         }
 
         document.addEventListener('DOMContentLoaded', fetchActiveSessions);
-        setInterval(fetchActiveSessions, 30000); // Refresh every 30s
+        setInterval(fetchActiveSessions, 30000); 
     </script>

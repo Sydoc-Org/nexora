@@ -26,6 +26,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
 import pyotp
 import qrcode
+from flask_wtf.csrf import CSRFProtect
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -81,7 +82,7 @@ app.config['SESSION_COOKIE_SECURE'] = False #True for PROD
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-
+csrf = CSRFProtect(app)
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")

@@ -26,6 +26,7 @@
     </div>
 
     <form id="filterForm" method="GET" action="{{ url_for('team_board') }}" class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label for="processFilterBoard" class="block text-sm font-medium text-gray-700">{{ _("Process") }}</label>

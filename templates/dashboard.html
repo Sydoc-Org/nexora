@@ -3,7 +3,6 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Dashboard - nexora") }}</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -32,6 +31,7 @@
       <div class="flex items-center gap-3">
             <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
             <form method="GET" action="">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <select id="processFilterDashboard" name="processFilterDashboard"
                 class="w-full custom-select cursor-pointer bg-gray-50 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
                 onchange="this.form.submit()">

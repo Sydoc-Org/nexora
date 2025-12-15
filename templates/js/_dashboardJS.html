@@ -10,7 +10,7 @@
 
     let processedChart, statusChart;
     let dateRangePicker;
-
+    
     const chartFontColor = '#6b7280';
     const chartGridColor = '#f3f4f6';
     Chart.defaults.font.family = "'Inter', sans-serif";
@@ -38,7 +38,10 @@
 
     async function updateKpiStats() {
         try {
-            const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`);
+            const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const stats = await response.json();
             animateValue(document.getElementById("processed-today"), 0, stats.processed_today, 1500);
             animateValue(document.getElementById("processed-week"), 0, stats.processed_week, 1500);
@@ -51,7 +54,10 @@
     async function updateProcessedOverTimeChart(startDate, endDate) {
         try {
             const url = buildApiUrl('api/reports/processed_over_time', startDate, endDate);
-            const response = await fetch(url);
+            const response = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
@@ -71,7 +77,10 @@
     async function updateStatusDistributionChart(startDate, endDate) {
         try {
             const url = buildApiUrl('api/reports/status_distribution', startDate, endDate);
-            const response = await fetch(url);
+            const response = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const data = await response.json();
             const ctx = document.getElementById('statusDistributionChart').getContext('2d');
 
@@ -102,7 +111,10 @@
 
         try {
             const url = buildApiUrl('api/reports/stage_breakdown', startDate, endDate);
-            const response = await fetch(url);
+            const response = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
             const data = await response.json();
             
             container.innerHTML = '';
@@ -140,7 +152,10 @@
     async function updateDocumentTimeline() {
       const container = document.getElementById('document-timeline-container');
       try {
-        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`);
+        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
         const rows = await response.json();
         container.innerHTML = '';
         if (rows.length === 0) {
@@ -161,12 +176,15 @@
     async function updateRecentActivity() {
       const list = document.getElementById("recent-activity-list");
       try {
-        const response = await fetch(`${API_PREFIX}api/recent_activity`);
+        const response = await fetch(`${API_PREFIX}api/recent_activity`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
         const data = await response.json();
         list.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
             list.innerHTML = `<li class='text-gray-500'>{{ _("No recent activity.") }}</li>`; return;
-        }
+        } 
         data.forEach(act => {
             const li = document.createElement("li");
             li.className = "flex items-start space-x-3";

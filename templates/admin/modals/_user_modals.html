@@ -26,6 +26,7 @@
         class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300 ease-in-out">
         <h3 id="modalTitle" class="text-2xl font-bold mb-4">{{ _("Add new user") }}</h3>
         <form id="userForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" id="userId" name="userId">
             <div class="space-y-4">
                 <div>

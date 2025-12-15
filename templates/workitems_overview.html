@@ -65,6 +65,7 @@
 
       <form id="filterForm" method="GET" action="{{ url_for('workitems_overview') }}"
         class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label for="processFilterWorkitemOverview" class="block text-sm font-medium text-gray-700">{{ _("Process")
@@ -374,6 +375,7 @@
 
           <form id="importForm" action="{{ url_for('import_workitems') }}" method="post" enctype="multipart/form-data"
             class="inline-block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf">
             <button type="button" id="importBtn"
               class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
@@ -669,6 +671,7 @@
                           </div>
                           <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
                         <form class="comment-form" data-workitemid="{{ workitem.workitemid }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <label for="comment-text-{{ workitem.workitemid }}"
                                 class="text-sm font-medium text-gray-700">
                                 {{ _("Add Comment:") }}

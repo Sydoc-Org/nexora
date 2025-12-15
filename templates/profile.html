@@ -69,6 +69,8 @@
                     {% endwith %}
                     <form class="space-y-6" action="{{ url_for('update_profile') }}" method="post"
                         enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                         <div class="flex items-center space-x-5">
                             <img src="{{ url_for('static',filename='images/' + userid + '-Icon.png') }}"
                                 id="profilePictureNonHeader" class="h-10 w-10 rounded-full cursor-pointer"
@@ -117,6 +119,7 @@
                 <section id="password" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _("Change password") }}</h2>
                     <form action="{{ url_for('change_password') }}" method="POST" class="space-y-6 max-w-lg">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                         {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}

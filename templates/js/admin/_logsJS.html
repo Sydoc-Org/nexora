@@ -23,7 +23,10 @@
                     end_date: end
                 });
 
-                const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`);
+                const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
                 const data = await res.json();
 
                 tbody.innerHTML = '';
@@ -66,6 +69,6 @@
             fetchLogs(currentPage + delta);
         }
 
-        // Initial load
+        
         fetchLogs(1);
     </script>

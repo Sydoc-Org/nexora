@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ _('Initial Password Reset - nexora') }} </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -44,6 +44,7 @@
                         <div class="success-message">{{ message }}</div>
                         {% endif %}
                         <form id="resetForm" class="space-y-6" novalidate method="POST" action="{{ url_for('init_reset_password') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="mb-6">
                                 <label for="new-password" class="block text-gray-700 text-sm font-bold mb-2">{{ _("New password") }} </label>
                                 <div class="relative">

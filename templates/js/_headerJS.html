@@ -8,6 +8,8 @@
 
 <body>
     <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
         function defaultIcon() {
             document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
         }
@@ -49,7 +51,10 @@
 
             async function fetchNotifications() {
                 try {
-                    const response = await fetch("{{ url_for('get_notifications') }}");
+                    const response = await fetch("{{ url_for('get_notifications') }}", {headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken  
+                    }});
                     if (!response.ok) return;
 
                     const notifications = await response.json();
@@ -99,7 +104,7 @@
                 try {
                     await fetch("{{ url_for('mark_notifications_as_read') }}", {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json' , 'X-CSRFToken': csrfToken},
                         body: JSON.stringify({ ids: unreadNotificationIds })
                     });
                     unreadNotificationIds = [];

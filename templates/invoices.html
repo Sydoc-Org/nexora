@@ -25,6 +25,7 @@
     </div>
 
     <form id="filterForm" class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label for="invoiceSearch" class="block text-sm font-medium text-gray-700" >{{ _("Search Invoice #") }}</label>
