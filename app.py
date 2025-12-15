@@ -24,6 +24,8 @@ from functools import wraps
 import time
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
+import pyotp
+import qrcode
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -223,6 +225,173 @@ def pageVisability():
             'workitemsPagePerm':workitemsPagePerm, 'teamboardPagePerm': teamboardPagePerm,
             'invoicesPagePerm': invoicesPagePerm}
 
+@app.route('/init_2FA', methods=['GET', 'POST'])
+def init_2FA():
+    if 'pre_2fa_userid' not in session:
+        return redirect(url_for('login'))
+    user_id = session['pre_2fa_userid']
+
+    if request.method == 'GET':
+        secret = pyotp.random_base32()
+        
+        uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=session.get('pre_2fa_username', 'User'), 
+            issuer_name='nexora'
+        )
+        
+        img = qrcode.make(uri)
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
+        session['temp_2fa_secret'] = secret
+        return render_template('init_2FA.html', qr_code=qr_b64, secret=secret)
+
+    elif request.method == 'POST':
+        code = request.form.get('code')
+        secret = session.get('temp_2fa_secret')
+
+        if not code or not secret:
+            flash(_("Session expired, please try again"), "error")
+            return redirect(url_for('init_2FA'))
+
+        totp = pyotp.TOTP(secret)
+        if totp.verify(code):
+            try:
+                conn = pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    UPDATE Users 
+                    SET twoFA = 1, TwoFASecret = ? 
+                    WHERE userid = ?
+                """, (secret, user_id))
+                conn.commit()
+                
+                session.pop('temp_2fa_secret', None)
+                create_notification(user_id, _("2FA enabled successfully"), icon='fa-shield-halved')
+                return redirect(url_for('dashboard'))
+            except Exception as e:
+                app.logger.error(f"2FA Setup DB Error: {e}")
+                return render_template('init_2FA.html', error=_("Database error"))
+            finally:
+                if 'conn' in locals(): conn.close()
+        else:
+            flash(_("Invalid code. Please try again."), "error")
+            return redirect(url_for('init_2FA'))
+        
+
+
+@app.route('/verify_2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    if 'pre_2fa_userid' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'GET':
+        return render_template('verify_2fa.html') 
+
+    elif request.method == 'POST':
+        code = request.form.get('code')
+        user_id = session['pre_2fa_userid']
+
+        conn = pyodbc.connect(f'DRIVER={{SQL Server}};SERVER={DB_SERVER_PRD},1433;DATABASE={DB_SERVER_DB_WEBPORTAL};UID={DB_UID};PWD={DB_PWD};TrustServerCertificate=yes;')
+        cursor = conn.cursor()
+        cursor.execute("SELECT TwoFASecret, username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return redirect(url_for('login'))
+
+        secret, username, fullname, email, org_code = row
+
+        totp = pyotp.TOTP(secret)
+        if totp.verify(code):
+            session.clear() 
+            session['userid'] = user_id
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user(str(user_id))
+            
+            log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
+            return redirect(url_for('dashboard'))
+        else:
+            flash(_("Invalid code"), "error")
+            return render_template('verify_2fa.html')
+
+
+@app.route('/init_reset')
+def init_reset():
+    return render_template('init_reset.html')
+
+@app.route('/init_reset_password',methods=['POST', 'GET'])
+def init_reset_password():
+    try:
+        new_password = request.form['new-password']
+        confirm_password = request.form['confirm-password']
+        pre_auth_userid = session.get('pre_auth_userid')
+        if new_password != confirm_password:
+            return render_template("init_reset.html", error=_("Passwords do not match"))
+        if not new_password or not confirm_password:
+            return render_template("init_reset.html", error=_("All Fields must be filled"))
+        if not re.search('^\S{8,200}$', new_password):
+            return render_template("init_reset.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
+
+        conn_str = (
+            f'DRIVER={{SQL Server}};'
+            f'SERVER={DB_SERVER_PRD},1433;'
+            f'DATABASE={DB_SERVER_DB_WEBPORTAL};'
+            f'UID={DB_UID};'
+            f'PWD={DB_PWD};'
+            f'TrustServerCertificate=yes;'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+                SELECT password, twoFA, username FROM Users WHERE userid = ?
+            """, pre_auth_userid
+        )
+        row = cursor.fetchone()
+        stored_hash = row[0]
+        stored_2FA = row[1]
+        stored_username = row[2]
+
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode('utf-8')
+
+        if bcrypt.checkpw(new_password.encode('utf-8'), stored_hash):
+            return render_template("init_reset.html", error=_("New Password musn't be previously used password"))
+
+        bytes = new_password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hash = bcrypt.hashpw(bytes, salt)
+        hash_str = hash.decode('utf-8')
+
+        cursor.execute("""
+            UPDATE Users
+            SET password = ?, initReset = 1
+            WHERE userid = ?
+        """, (hash_str, pre_auth_userid))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        create_notification(pre_auth_userid, _("Initial Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
+        log_user_action(action_type='InitResetUserPassword', status='SUCCESS', resource_id='initResetPassword')
+        if not stored_2FA:
+            session['pre_2fa_userid'] = pre_auth_userid
+            session['pre_2fa_username'] = stored_username 
+            return redirect(url_for('init_2FA'))
+        else:
+            return redirect(url_for('login'))
+    except Exception as e:
+        log_user_action(action_type='InitResetUserPassword', status='FAILURE', resource_id='initResetPassword', details={"serverError": str(e)}, IsInternalError=1)
+        return
 
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -248,7 +417,7 @@ def login():
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT userID, password, username, fullname, email, organizationcode FROM Users WHERE username = ?
+                SELECT userid, password, username, initreset, twoFA FROM Users WHERE username = ?
             """, (UID_REQUEST,))
             user_record = cursor.fetchone()
 
@@ -256,28 +425,25 @@ def login():
                 stored_userid = user_record[0]
                 stored_hash = user_record[1]
                 stored_username = user_record[2]
-                stored_fullname = user_record[3]
-                stored_email = user_record[4]
-                stored_organizationcode = user_record[5]
+                stored_initReset = user_record[3]
+                stored_2FA = user_record[4]
 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode('utf-8')
 
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
-                    session.clear()
-                    session['userid'] = str(stored_userid)
-                    session['username'] = stored_username
-                    session['fullname'] = stored_fullname
-                    session['email'] = stored_email
-                    session['uuid'] = uuid.uuid4()
-                    session['permissions'] = load_permissions_for_user(str(stored_userid))
-                    session['organizationcode'] = stored_organizationcode
-
-                    if len(REMEMBER) > 0:
-                        session.permanent = True
-
-                    log_user_action(action_type='logUserIn', status='SUCCESS', resource_id='login')
-                    return redirect(url_for("dashboard"))
+                    if not stored_initReset:
+                        session['pre_auth_userid'] = str(stored_userid)
+                        return redirect(url_for("init_reset"))
+                    if not stored_2FA:
+                        session['pre_2fa_userid'] = str(stored_userid)
+                        session['pre_2fa_username'] = stored_username
+                        return redirect(url_for("init_2FA"))
+                    else:
+                        session.clear()
+                        session['pre_2fa_userid'] = str(stored_userid) 
+                        session['pre_2fa_username'] = stored_username 
+                        return redirect(url_for('verify_2fa'))
 
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
@@ -288,6 +454,7 @@ def login():
             return render_template('index.html', error=_("Login temporarily unavailable"))
 
     return render_template('index.html')
+
 # ----------------------------- session login end ---------------------------- #
 
 # ------------------------------- notifications ------------------------------ #
