@@ -27,6 +27,9 @@ from werkzeug.exceptions import HTTPException
 import pyotp
 import qrcode
 from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
+import magic  
+
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -83,6 +86,17 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
+# for PROD
+# csp = {
+#     'default-src': '\'self\'',
+#     'script-src': ['\'self\'', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com'],
+#     'style-src': ['\'self\'', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', '\'unsafe-inline\''],
+#     'font-src': ['\'self\'', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+#     'img-src': ['\'self\'', 'data:', 'https://cdn.tailwindcss.com'] 
+# }
+# Talisman(app, content_security_policy=csp)
+
+
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
@@ -1236,7 +1250,7 @@ def send_reset_email(email):
             "client_secret": GRAPH_CLIENT_SECRET
         }
         try:
-            response  = requests.post(uri, headers=headers, data=body)
+            response  = requests.post(uri, headers=headers, data=body, timeout=10)
             return response.json()['access_token']
         except Exception as e:
             print(e)
@@ -1355,7 +1369,7 @@ def send_reset_email(email):
             "saveToSentItems": True
         }
 
-        response = requests.post(uri, headers=headers, json=body)
+        response = requests.post(uri, headers=headers, json=body, timeout=10)
         response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
@@ -2073,7 +2087,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
                 if q:
                     sql += " AND Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2086,7 +2100,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraInvoice
                     WHERE DocType is not null and DocType <> ''
-                    and ImportTime >= DATEADD(day,-3,getdate())
+                    and ImportTime >= DATEADD(day,-7,getdate())
                 """
                 if q:
                     sql += " and DocType COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2100,7 +2114,7 @@ def api_docfield_values():
                         SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT DocType COLLATE DATABASE_DEFAULT AS Val
@@ -2115,13 +2129,13 @@ def api_docfield_values():
                 sql += " ORDER BY Val"
                 cur.execute(sql, params)
 
-        if field == 'docbarcode':
+        elif field == 'docbarcode':
             if process == '02_Posteingang':
                 sql = f"""
                     SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE Barcode is not null and Barcode <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
                 if q:
                     sql += " AND Barcode COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2159,7 +2173,7 @@ def api_docfield_values():
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE Barcode is not null and Barcode <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
@@ -2357,7 +2371,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
                 if q:
                     sql += " and EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2397,7 +2411,7 @@ def api_docfield_values():
                         SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
 
@@ -2427,7 +2441,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
                 if q:
                     sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2454,7 +2468,7 @@ def api_docfield_values():
                         SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
 
@@ -2475,7 +2489,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Einschreiben is not null and Einschreiben <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Einschreiben COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2488,7 +2502,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Niederlassung is not null and Niederlassung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Niederlassung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2501,7 +2515,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Dokdatum is not null and Dokdatum <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Dokdatum COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2514,7 +2528,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Nachsendung is not null and Nachsendung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2527,7 +2541,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Abteilung is not null and Abteilung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Abteilung COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2540,7 +2554,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Sendungsbarcode is not null and Sendungsbarcode <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2553,7 +2567,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Vertraulichkeit is not null and Vertraulichkeit <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2566,7 +2580,7 @@ def api_docfield_values():
                 SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                 WHERE Empfaenger is not null and Empfaenger <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
             """
             if q:
                 sql += " and Empfaenger COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2580,7 +2594,7 @@ def api_docfield_values():
                     SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                     FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                     WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
                 """
                 if q:
                     sql += " and LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
@@ -2620,7 +2634,7 @@ def api_docfield_values():
                         SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
                         FROM [{DB_SERVER_DB_STAT}].dbo.PriveraPosteingang
                         WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -3, getdate())
+                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
 
                         UNION ALL
                         SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
@@ -2685,6 +2699,7 @@ def api_docfield_values():
 
         rows = [r.Val for r in cur.fetchall() if r.Val]
         if field == 'tec': rows.insert(0, 0)
+        print(rows)
         return jsonify(rows)
 
     except Exception as e:
@@ -2812,6 +2827,30 @@ def workitems_overview():
         log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
+
+ALLOWED_MIME_TYPES = {
+    'pdf': ['application/pdf'],
+    'png': ['image/png'],
+    'jpg': ['image/jpeg'],
+    'jpeg': '[image/jpeg]'
+}
+
+def is_file_allowed(filename, file_stream):
+    if '.' not in filename:
+        return False
+    
+    ext = filename.rsplit('.', 1)[1].lower()
+    if ext not in ALLOWED_MIME_TYPES:
+        return False
+    header = file_stream.read(2048)
+    file_stream.seek(0) 
+    mime = magic.from_buffer(header, mime=True)
+    print(f"File: {filename}, Detected MIME: {mime}")
+    if mime in ALLOWED_MIME_TYPES[ext]:
+        return True
+    return False
+
+
 @app.route('/import_workitems', methods=['POST'])
 @require_permission('workitems.import.workitem')
 def import_workitems():
@@ -2828,7 +2867,7 @@ def import_workitems():
         flash(_("No file selected for uploading."), 'error')
         return redirect(url_for('workitems_overview'))
 
-    if file:
+    if file and is_file_allowed(file.filename, file.stream):
         filename = secure_filename(file.filename)
         upload_folder = os.path.join(app.root_path, 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
@@ -2842,6 +2881,9 @@ def import_workitems():
             app.logger.error(f"Error saving imported file: {e}")
             log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
             flash(_("An error occurred while saving the file."), 'error')
+    else:
+        log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={'securityError': 'Invalid file type or spoofed extension', 'filename': file.filename})
+        flash(_("Invalid file type. Please upload a valid PDF."), 'error')
 
     return redirect(url_for('workitems_overview'))
 
@@ -2914,7 +2956,7 @@ def get_access_token():
     }
 
     try:
-        response = requests.post(url=url, headers=headers, data=body)
+        response = requests.post(url=url, headers=headers, data=body, timeout=10)
         response.raise_for_status()
         data = response.json()
 
@@ -2933,7 +2975,7 @@ def get_workitemdata_param(workitem_id):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    response = requests.get(url=url, headers=headers)
+    response = requests.get(url=url, headers=headers, timeout=10)
     str_content = json.dumps(response.json())
     base64_bytes = base64.b64encode(str_content.encode('utf-8'))
     base64_string = base64_bytes.decode('utf-8')
@@ -2948,7 +2990,7 @@ def get_extensions_urls_fields(workitemdata, document_id):
         "Content-Type": "application/json",
         "workitemdata": workitemdata
     }
-    response = requests.get(url=url, headers=headers)
+    response = requests.get(url=url, headers=headers, timeout=10)
     urls = []
     extension = []
     fields = {}
@@ -3101,7 +3143,7 @@ def get_media(url):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    response = requests.get(url=url, headers=headers)
+    response = requests.get(url=url, headers=headers, timeout=10)
     return response.content
 
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
@@ -3223,7 +3265,7 @@ def get_activity_type_name(activity_instance_id: str) -> str:
     }
 
     try:
-        response = requests.get(url=activity_instances_url, headers=headers)
+        response = requests.get(url=activity_instances_url, headers=headers, timeout=10)
         response.raise_for_status()
         activity_instance_config = response.json()
         return activity_instance_config.get('ActivityTypeName', 'Unknown Activity')
@@ -3239,7 +3281,7 @@ def get_audithistory(workitem_id):
         access_token = get_access_token()
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        response = requests.get(url=audit_url, headers=headers)
+        response = requests.get(url=audit_url, headers=headers, timeout=10)
         response.raise_for_status()
         audits = response.json()
 
@@ -3785,9 +3827,6 @@ def update_profile():
             fullname = request.form['fullName']
             email = request.form['email']
 
-            if not re.search("(^[A-Za-z]{3,16})([ ]{0,1})([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})?([ ]{0,1})?([A-Za-z]{3,16})$", fullname) or len(fullname) >= 50:
-                flash(_("Full name is not valid"), 'failure_updateProfile')
-                return redirect(url_for("profile"))
             if not re.search("^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
                 flash(_("Email Adress is not valid"), 'failure_updateProfile')
                 return redirect(url_for("profile"))
@@ -3818,6 +3857,9 @@ def update_profile():
 
             if 'file' in request.files and request.files['file'].filename != '':
                 f = request.files['file']
+                if not is_file_allowed(f.filename, f.stream):
+                    flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
+                    return redirect(url_for("profile"))
                 try:
                     in_memory_file = io.BytesIO()
                     f.save(in_memory_file)
@@ -3868,13 +3910,13 @@ def change_password():
 
             if newPassword != confirmPassword:
                 flash(_('New passwords do not match'), 'failure_changePW')
-                return redirect(url_for("profile"))
+                return redirect(url_for('profile'))
             if not newPassword or not confirmPassword or not currentPassword:
                 flash(_("All fields must be filled"), 'failure_changePW')
-                return redirect("profile")
+                return redirect(url_for('profile'))
             if not re.search('^\S{8,200}$', newPassword):
                 flash(_("New password has to be atleast 8 characters long, with no whitespaces"), 'failure_changePW')
-                return redirect("profile")
+                return redirect(url_for('profile'))
             conn_str = (
                 f'DRIVER={{SQL Server}};'
                 f'SERVER={DB_SERVER_PRD},1433;'
@@ -3917,14 +3959,14 @@ def change_password():
                 create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
                 log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
                 flash(_("Password updated successfully!"), 'success_changePW')
-                return redirect("profile")
+                return redirect(url_for('profile'))
             else:
                 flash(_("Current password is incorrect"), 'failure_changePW')
-                return redirect("profile")
+                return redirect(url_for('profile'))
     except Exception as e:
         flash(_("Unexpected Error"), 'failure_changePW')
         log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
-        return redirect("profile")
+        return redirect(url_for('profile'))
 
 @app.route('/language/<lang>')
 def set_language(lang=None):
@@ -3934,11 +3976,11 @@ def set_language(lang=None):
         create_notification(userid, _("Language changed successfully!"), link=url_for('profile'), icon='fa-language')
         log_user_action(action_type='changeUserLanguage', status='SUCCESS', resource_id='profile', details={"new_language": lang})
         flash(_("Language changed successfully!"), 'success_setLanguage')
-        return redirect(request.referrer or url_for('index'))
+        return redirect(url_for('profile'))
     except Exception as e:
         flash(_("Unexpected Error"), 'failure_setLanguage')
         log_user_action(action_type='changeUserLanguage', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
-        return redirect(request.referrer or url_for('index'))
+        return redirect(url_for('profile'))
 
 @app.context_processor
 def inject_current_lang():
@@ -4379,7 +4421,7 @@ def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None)
         payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
 
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
         invoices = response.json()
 
@@ -4423,7 +4465,7 @@ def getBexioInvoicePDF(invoice_id):
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
         content = data.get('content')
