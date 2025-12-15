@@ -319,8 +319,7 @@ def init_2FA():
         else:
             flash(_("Invalid code. Please try again."), "error")
             return redirect(url_for('init_2FA'))
-        
-
+    
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
@@ -1569,7 +1568,7 @@ def dashboard():
             if perm.startswith(prefix)
         })
 
-        process_name = request.args.get('processFilterDashboard', 'all')
+        process_name = request.args.get('prcfD', 'all')
 
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
@@ -1701,7 +1700,7 @@ def _get_workitems_data(args):
     per_page = 40
     offset = (page - 1) * per_page
 
-    process_name = args.get('processFilterWorkitemOverview', 'all')
+    process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
     placeholders, params = get_process_filter_and_params(process_name)
     allowed_params = [
@@ -2696,7 +2695,7 @@ def workitems_overview():
             if perm.startswith(prefix)
         })
 
-        process_name = request.args.get('processFilterWorkitemOverview', 'all')
+        process_name = request.args.get('prcfW', 'all')
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
@@ -3571,7 +3570,7 @@ def team_board():
             for perm in perms
             if perm.startswith(prefix)
         })
-        process_name = request.args.get('processFilterBoard', 'all')
+        process_name = request.args.get('prcfB', 'all')
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
@@ -3884,6 +3883,7 @@ def inject_current_lang():
 
 # ---------------------------------- jdvance --------------------------------- #
 @app.route('/jdvance')
+@require_permission('jd.view')
 def jdvance():
     return render_template("jd/jdvance.html")
 # -------------------------------- jdvance end ------------------------------- #
