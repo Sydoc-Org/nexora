@@ -150,7 +150,6 @@ def getDBUrl(d):
             f'DATABASE={d};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
         )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
@@ -623,7 +622,13 @@ def admin_add_organization():
     if not organization:
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
-    organizationcode = (re.sub('[aeoui]','',organization)).upper()[0:4]
+    clean_name = re.sub(r'[^A-Z0-9]', '', organization.upper())
+
+    consonants = re.sub(r'[AEIOU]', '', clean_name)
+    vowels = re.sub(r'[^AEIOU]', '', clean_name)
+    code = (consonants + vowels)
+    organizationcode = code[:4].ljust(4, 'X')
+
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
@@ -2891,14 +2896,14 @@ def import_workitems():
         return redirect(url_for('workitems_overview'))
 
     if file and is_file_allowed(file.filename, file.stream):
-        filename = secure_filename(file.filename)
+        filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
         upload_folder = os.path.join(app.root_path, 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
 
         try:
             file.save(file_path)
-            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename})
+            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename, 'originalFilename': file.filename})
             flash(_("File '{}' successfully imported.").format(filename), 'success')
         except Exception as e:
             app.logger.error(f"Error saving imported file: {e}")
@@ -3273,7 +3278,7 @@ def api_get_media_raw(workitem_id, media_index):
         response.headers.set('Content-Type', mimetype)
 
         response.headers.set(
-            'Cache-Control', 'public, max-age=3600'
+            'Cache-Control', 'private, max-age=3600'
         )
         return response
     except Exception as e:
@@ -3788,7 +3793,8 @@ def team_board():
             portal_users=portal_users,
             userid=session.get('userid'),
             pageV=pageVisability(),
-            allowed_processes=allowed_processes
+            allowed_processes=allowed_processes,
+            logged_in_user=session.get('username')
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
@@ -4021,56 +4027,13 @@ def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    group_by  = (request.args.get('groupBy') or 'day').lower()
-    statuses_q = request.args.get('statuses')
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    _, params = get_process_filter_and_params(session['process_name_dashboard'])
     allowed_params = [
         p for p in params
         if has_permission(f'dashboard.filter.process.privera.{p}')
     ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
     params = allowed_params
 
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
-    status_codes = None
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
-    date_params = []
-    if start_str:
-        date_filter_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        if start_str:
-            date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
-            date_params.append(datetime.fromisoformat(end_str))
-        else:
-            date_filter_sql = "twi.ModifiedAt < ?"
-            date_params.append(datetime.fromisoformat(end_str))
-
-    if group_by == 'week':
-        group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
-        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    elif group_by == 'month':
-        group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
-        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    else:
-        group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
-        order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
-
-    status_sql = "(twi.Status = 5 or tai.ActivityInstanceName = 'Pause Process')"
-    status_params = []
-    if status_codes:
-        placeholders_status = ','.join(['?'] * len(status_codes))
-        status_sql = f"twi.Status IN ({placeholders_status})"
-        status_params = status_codes
 
     conn = None
     try:
