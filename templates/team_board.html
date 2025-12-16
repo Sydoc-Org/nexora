@@ -26,11 +26,12 @@
     </div>
 
     <form id="filterForm" method="GET" action="{{ url_for('team_board') }}" class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <label for="processFilterBoard" class="block text-sm font-medium text-gray-700">{{ _("Process") }}</label>
+          <label for="prcfB" class="block text-sm font-medium text-gray-700">{{ _("Process") }}</label>
           <div class="relative mt-1">
-            <select id="processFilterBoard" name="processFilterBoard" onchange="this.form.submit()"
+            <select id="prcfB" name="prcfB" onchange="this.form.submit()"
               class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300">
               <option value="all"
                         {% if process_name == 'all' %}selected{% endif %}>

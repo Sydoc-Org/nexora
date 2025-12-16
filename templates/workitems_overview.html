@@ -65,12 +65,13 @@
 
       <form id="filterForm" method="GET" action="{{ url_for('workitems_overview') }}"
         class="bg-white p-6 rounded-xl shadow-lg mb-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label for="processFilterWorkitemOverview" class="block text-sm font-medium text-gray-700">{{ _("Process")
+            <label for="prcfW" class="block text-sm font-medium text-gray-700">{{ _("Process")
               }}</label>
             <div class="relative mt-1">
-              <select id="processFilterWorkitemOverview" name="processFilterWorkitemOverview"
+              <select id="prcfW" name="prcfW"
                 class="w-full custom-select cursor-pointer bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300">
                 <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
                 {% for proc in allowed_processes %}
@@ -368,12 +369,13 @@
             class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
           </button>
-          <a href="{{ url_for('workitems_overview', processFilterWorkitemOverview=process_name) }}"
+          <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
             class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm font-medium text-center">{{
             _("Reset") }}</a>
 
           <form id="importForm" action="{{ url_for('import_workitems') }}" method="post" enctype="multipart/form-data"
             class="inline-block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf">
             <button type="button" id="importBtn"
               class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
@@ -669,6 +671,7 @@
                           </div>
                           <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
                         <form class="comment-form" data-workitemid="{{ workitem.workitemid }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <label for="comment-text-{{ workitem.workitemid }}"
                                 class="text-sm font-medium text-gray-700">
                                 {{ _("Add Comment:") }}
@@ -717,7 +720,7 @@
         {% if total_pages > 1 %}
         <div id="paginationControls" class="flex items-center gap-2">
           {% set query_params = {
-          'processFilterWorkitemOverview': process_name,
+          'prcfW': process_name,
           'search': search,
           'status': status,
           'startDate': startDate,

@@ -69,7 +69,10 @@
         window.history.pushState({path: newUrl}, '', newUrl);
 
         try {
-          const response = await fetch(`${API_PREFIX}api/invoices?${params.toString()}`);
+          const response = await fetch(`${API_PREFIX}api/invoices?${params.toString()}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken  
+                }});
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Network response was not ok');

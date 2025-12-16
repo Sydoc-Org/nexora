@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ _('Reset password - nexora') }} </title>
+    <title>{{ _('Initial Password Reset - nexora') }} </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -43,7 +43,7 @@
                         {% if message %}
                         <div class="success-message">{{ message }}</div>
                         {% endif %}
-                        <form id="resetForm" class="space-y-6" novalidate method="POST" action="{{ url_for('set_new_password') }}">
+                        <form id="resetForm" class="space-y-6" novalidate method="POST" action="{{ url_for('init_reset_password') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="mb-6">
                                 <label for="new-password" class="block text-gray-700 text-sm font-bold mb-2">{{ _("New password") }} </label>
@@ -70,7 +70,7 @@
 
                             <button type="submit"
                                 class="w-full bg-gradient-primary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition duration-300 mb-6">
-                                {{ _("Reset password") }} 
+                                {{ _("Continue") }} 
                             </button>
                         </form>
                         <div class="text-center" style="margin-top: 20px;">
