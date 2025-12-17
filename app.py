@@ -150,7 +150,6 @@ def getDBUrl(d):
             f'DATABASE={d};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
-            f'TrustServerCertificate=yes;'
         )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
@@ -236,11 +235,13 @@ def load_permissions_for_user(user_id):
     cur = conn.cursor()
     cur.execute("EXEC dbo.spGetUserPermissions ?", user_id)
     perms = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
     return perms
 
 def has_permission(code: str) -> bool:
     perms = set(session.get('permissions', []))
-    print('requestedcode:',code,code in perms, '\n\n')
+    # print('requestedcode:',code,code in perms, '\n\n')
     return code in perms
 
 def require_permission(code):
@@ -315,7 +316,11 @@ def init_2FA():
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
             finally:
-                if 'conn' in locals(): conn.close()
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+
         else:
             flash(_("Invalid code. Please try again."), "error")
             return redirect(url_for('init_2FA'))
@@ -337,7 +342,9 @@ def verify_2fa():
         cursor = conn.cursor()
         cursor.execute("SELECT TwoFASecret, username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
         row = cursor.fetchone()
-        
+        cursor.close()
+        conn.close()
+
         if not row:
             return redirect(url_for('login'))
 
@@ -359,6 +366,7 @@ def verify_2fa():
         else:
             flash(_("Invalid code"), "error")
             return render_template('verify_2fa.html')
+        
 
 
 @app.route('/init_reset')
@@ -467,7 +475,7 @@ def login():
                         session['pre_2fa_userid'] = str(stored_userid) 
                         session['pre_2fa_username'] = stored_username 
                         return redirect(url_for('verify_2fa'))
-
+           
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -475,6 +483,11 @@ def login():
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
             return render_template('index.html', error=_("Login temporarily unavailable"))
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
     return render_template('index.html')
 
@@ -494,6 +507,8 @@ def create_notification(user_id, message, link=None, icon='fa-info-circle'):
     except Exception as e:
         app.logger.error(f"Failed to create notification for UserID {user_id}: {e}")
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -521,6 +536,8 @@ def get_notifications():
         app.logger.error(f"API Error fetching notifications: {e}")
         return jsonify({"error": _("Could not fetch notifications")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -557,6 +574,8 @@ def mark_notifications_as_read():
         app.logger.error(f"API Error marking notifications as read: {e}")
         return jsonify({"error": _("Could not update notifications")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 # ----------------------------- notifications end ---------------------------- #
@@ -575,14 +594,23 @@ def admin_dashboard():
 @app.route("/admin/organizations")
 @require_permission('admin.view')
 def admin_organizations_view():
-    conn = engineNexoraDB.raw_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        select organizationcode, organization from organizations 
-    """)
-    organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            select organizationcode, organization from organizations 
+        """)
+        organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
-    return render_template("admin/organizations.html",organizations=organizations, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+        return render_template("admin/organizations.html",organizations=organizations, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Failed to fetch organizations: {e}")
+        return render_template('500.html')
+    finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
 @app.route("/admin/organizations/add", methods=['POST'])
 @require_permission('admin.add.organization')
@@ -594,8 +622,13 @@ def admin_add_organization():
     if not organization:
         return jsonify({'success': False, 'message': _("All fields are required.")}), 400
 
-    organizationcode = (re.sub('[aeoui]','',organization)).upper()[0:4]
-    print(organization, organizationcode)
+    clean_name = re.sub(r'[^A-Z0-9]', '', organization.upper())
+
+    consonants = re.sub(r'[AEIOU]', '', clean_name)
+    vowels = re.sub(r'[^AEIOU]', '', clean_name)
+    code = (consonants + vowels)
+    organizationcode = code[:4].ljust(4, 'X')
+
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
@@ -614,6 +647,8 @@ def admin_add_organization():
         log_user_action('createNewOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -641,6 +676,8 @@ def admin_edit_organization(organizationcode):
         log_user_action('editOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -670,6 +707,8 @@ def admin_delete_organization(organizationcode):
         log_user_action('deleteOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -698,7 +737,10 @@ def admin_users():
         app.logger.error(f"Failed to fetch users: {e}")
         return render_template('500.html')
     finally:
-        if conn: conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route("/admin/logs")
 @require_permission('admin.view')
@@ -744,7 +786,6 @@ def api_admin_logs_search():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
-        # Get Total Count for Pagination
         cursor.execute(f"SELECT COUNT(*) FROM User_Logs WHERE {where_clause}", params)
         total_count = cursor.fetchone()[0]
 
@@ -768,7 +809,10 @@ def api_admin_logs_search():
         app.logger.error(f"Log search error: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if conn: conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route("/admin/sessions")
 @require_permission('admin.view')
@@ -801,7 +845,6 @@ def admin_add_user():
         accessid = cursor.fetchone()[0]
         cursor.execute("select organizationcode from organizations where organization = ?", organization)
         organizationcode = cursor.fetchone()[0]
-        print(accessid, organizationcode)
         cursor.execute("INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, organizationcode, accessid))
         conn.commit()
@@ -816,6 +859,8 @@ def admin_add_user():
         log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -857,6 +902,8 @@ def admin_edit_user(user_id):
         log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -907,6 +954,8 @@ def admin_delete_user(user_id):
         log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, resource_id='visitUserManagement', details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -928,6 +977,8 @@ def admin_recent_logs():
         app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
         return jsonify({"error": _("Could not fetch logs")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -955,6 +1006,8 @@ def admin_active_sessions():
         app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
         return jsonify({"error": _("Could not fetch sessions")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -981,6 +1034,11 @@ def admin_access_control():
     except Exception as e:
         app.logger.error(f"Error loading access control: {e}")
         return render_template('500.html')
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/users')
 @require_permission('admin.view')
@@ -1012,6 +1070,8 @@ def get_users_admin_access_control():
         app.logger.error(f"Failed to fetch users for access control: {e}")
         return jsonify({"error": _("Could not fetch users")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
             
@@ -1030,6 +1090,11 @@ def get_profile_details(access_id):
         return jsonify({'success': True, 'permissions': assigned_perms})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route("/api/admin/access_profile/save", methods=['POST'])
 @require_permission('admin.edit.user')
@@ -1063,6 +1128,11 @@ def save_access_profile():
     except Exception as e:
         app.logger.error(f"Error saving profile: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route("/api/admin/user_overrides/<int:user_id>", methods=['GET'])
 @require_permission('admin.edit.user')
@@ -1088,6 +1158,11 @@ def get_user_overrides(user_id):
         })
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route("/api/admin/user_overrides/save", methods=['POST'])
 @require_permission('admin.edit.user')
@@ -1116,6 +1191,11 @@ def save_user_overrides():
     except Exception as e:
         app.logger.error(f"Error saving overrides: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # --------------------------- Access Control End ---------------------------- #
 
@@ -1183,8 +1263,6 @@ def set_new_password():
         """, (hash_str, email_for_password_reset))
 
         conn.commit()
-        cursor.close()
-        conn.close()
 
         create_notification(userid, _("Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
         log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
@@ -1192,6 +1270,11 @@ def set_new_password():
     except Exception as e:
         log_user_action(action_type='resetUserPassword', status='FAILURE', resource_id='resetPassword', details={"serverError": str(e)}, IsInternalError=1)
         return
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/reset_password/<token>')
 def reset_password(token):
@@ -1354,19 +1437,28 @@ def send_reset_email(email):
 @limiter.limit("5 per hour")
 @app.route('/request-password-reset', methods=['GET', 'POST'])
 def request_password_reset():
-    request_email = request.form['email']
-    conn = engineNexoraDB.raw_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email))
-    rows = cursor.fetchone()
+    try:
+        request_email = request.form['email']
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email))
+        rows = cursor.fetchone()
 
-    if rows:
-        sendreset = send_reset_email(request_email)
-        if sendreset:
-            return render_template("forgot_password.html", message=_("A password reset link has been sent to your email"))
-        else:
-            return render_template('forgot_password.html', error=_("Unexpected error occurred"))
-    return render_template('forgot_password.html', error=_("Invalid Email Address"))
+        if rows:
+            sendreset = send_reset_email(request_email)
+            if sendreset:
+                return render_template("forgot_password.html", message=_("A password reset link has been sent to your email"))
+            else:
+                return render_template('forgot_password.html', error=_("Unexpected error occurred"))
+        return render_template('forgot_password.html', error=_("Invalid Email Address"))
+    except Exception as e:
+        print(e)
+        return render_template('forgot_password.html', error=_("Unexpected error occurred"))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 # ---------------------------- forgot password end --------------------------- #
 
 # ------------------------------ process filter ------------------------------ #
@@ -1460,10 +1552,13 @@ def get_absolute_dashboard_stats(processName="all"):
         stats['InProgressTotal'] = rows[1][0]
         stats['DoneTotal'] = rows[2][0]
         stats['BacklogTotal'] = rows[3][0]
-        cursor.close()
-        conn.close()
     except Exception as e:
         print(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
     return stats
 
 def get_dashbord_preview_documents_stats(processName='all'):
@@ -1669,8 +1764,6 @@ def recent_activity():
         """
         ,all_params)
         activities = cursor.fetchall()
-        cursor.close()
-        conn.close()
 
         return jsonify([
             {
@@ -1683,6 +1776,11 @@ def recent_activity():
     except Exception as e:
         app.logger.error(f"Failed to fetch recent activity: {e}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
@@ -1979,6 +2077,8 @@ def _get_workitems_data(args):
         app.logger.error(f"Database error in _get_workitems_data: {e}")
         raise
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -2627,13 +2727,14 @@ def api_docfield_values():
 
         rows = [r.Val for r in cur.fetchall() if r.Val]
         if field == 'tec': rows.insert(0, 0)
-        print(rows)
         return jsonify(rows)
 
     except Exception as e:
         app.logger.error(f"/api/docfield_values error: {e}")
         return jsonify({"error": _("Could not fetch values")}), 500
     finally:
+        if cur:
+            cur.close()
         if conn:
             conn.close()
 
@@ -2773,7 +2874,6 @@ def is_file_allowed(filename, file_stream):
     header = file_stream.read(2048)
     file_stream.seek(0) 
     mime = magic.from_buffer(header, mime=True)
-    print(f"File: {filename}, Detected MIME: {mime}")
     if mime in ALLOWED_MIME_TYPES[ext]:
         return True
     return False
@@ -2796,14 +2896,14 @@ def import_workitems():
         return redirect(url_for('workitems_overview'))
 
     if file and is_file_allowed(file.filename, file.stream):
-        filename = secure_filename(file.filename)
+        filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
         upload_folder = os.path.join(app.root_path, 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
 
         try:
             file.save(file_path)
-            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename})
+            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename, 'originalFilename': file.filename})
             flash(_("File '{}' successfully imported.").format(filename), 'success')
         except Exception as e:
             app.logger.error(f"Error saving imported file: {e}")
@@ -2863,6 +2963,8 @@ def get_single_workitem(workitemid):
         app.logger.error(f"Failed to fetch single workitem {row.WorkItemID}: {e}")
         return jsonify({"error": _("Could not fetch workitem data")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3176,7 +3278,7 @@ def api_get_media_raw(workitem_id, media_index):
         response.headers.set('Content-Type', mimetype)
 
         response.headers.set(
-            'Cache-Control', 'public, max-age=3600'
+            'Cache-Control', 'private, max-age=3600'
         )
         return response
     except Exception as e:
@@ -3264,6 +3366,8 @@ def get_users_for_mentions():
         app.logger.error(f"Failed to fetch users for mentions: {e}")
         return jsonify({"error": _("Could not fetch users")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3284,7 +3388,6 @@ def get_workitem_interactions(workitemid):
         """
         params = [workitemid]
 
-        # ---------------------------- access control here --------------------------- #
         sql_query += " WHERE c.WorkItemID = ?"
 
         sql_query += " ORDER BY c.Timestamp ASC"
@@ -3337,6 +3440,8 @@ def get_workitem_interactions(workitemid):
         app.logger.error(f"Failed to fetch interactions for workitem {workitemid}: {e}")
         return jsonify({"error": _("Could not fetch interactions")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3382,6 +3487,8 @@ def add_workitem_comment(workitemid):
         log_user_action('addWorkitemComment', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3423,6 +3530,8 @@ def assign_workitem(workitemid):
         log_user_action('assignUserToWorkitem', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3460,6 +3569,8 @@ def set_workitem_priority(workitemid):
         log_user_action('setWorkitemPriority', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3479,6 +3590,8 @@ def get_all_tags():
         app.logger.error(f"Failed to fetch all tags: {e}")
         return jsonify({"error": _("Could not fetch tags")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3524,6 +3637,8 @@ def add_tag_to_workitem(workitemid):
         log_user_action('addWorkitemTag', status='FAILURE', resource_id=workitemid, details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3550,6 +3665,8 @@ def remove_tag_from_workitem(workitemid, tag_id):
         log_user_action('removeWorkitemTag', status='FAILURE', resource_id=workitemid, details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 # ---------------------- workitem collaboration apis end --------------------- #
@@ -3676,12 +3793,18 @@ def team_board():
             portal_users=portal_users,
             userid=session.get('userid'),
             pageV=pageVisability(),
-            allowed_processes=allowed_processes
+            allowed_processes=allowed_processes,
+            logged_in_user=session.get('username')
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
         log_user_action('visitTeamBoard', status='FAILURE', resource_id='teamBoard', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 # ------------------------------ process board end ------------------------------- #
 
 
@@ -3707,6 +3830,8 @@ def get_all_portal_users(fromRequest, action):
         app.logger.error(f"Failed to fetch all portal users: {e}")
         return []
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -3751,8 +3876,7 @@ def update_profile():
             """, (fullname, email, username))
 
             conn.commit()
-            cursor.close()
-            conn.close()
+            
 
             session['fullname'] = fullname
             session['email'] = email
@@ -3795,6 +3919,11 @@ def update_profile():
         flash(_("Unexpected error"), 'failure_updateProfile')
         log_user_action(action_type='updateUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for("profile"))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/change_password',  methods=["POST", "GET"])
 def change_password():
@@ -3847,8 +3976,6 @@ def change_password():
                 """, (hash_str, username))
 
                 conn.commit()
-                cursor.close()
-                conn.close()
 
                 create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
                 log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
@@ -3861,6 +3988,11 @@ def change_password():
         flash(_("Unexpected Error"), 'failure_changePW')
         log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for('profile'))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/language/<lang>')
 def set_language(lang=None):
@@ -3895,56 +4027,13 @@ def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    group_by  = (request.args.get('groupBy') or 'day').lower()
-    statuses_q = request.args.get('statuses')
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
+    _, params = get_process_filter_and_params(session['process_name_dashboard'])
     allowed_params = [
         p for p in params
         if has_permission(f'dashboard.filter.process.privera.{p}')
     ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
     params = allowed_params
 
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready': 0, 'in progress': 1, 'done': 5}
-    status_codes = None
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    date_filter_sql = "twi.ModifiedAt >= DATEADD(day, -30, GETDATE())"
-    date_params = []
-    if start_str:
-        date_filter_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        if start_str:
-            date_filter_sql = "twi.ModifiedAt >= ? AND twi.ModifiedAt < ?"
-            date_params.append(datetime.fromisoformat(end_str))
-        else:
-            date_filter_sql = "twi.ModifiedAt < ?"
-            date_params.append(datetime.fromisoformat(end_str))
-
-    if group_by == 'week':
-        group_key = "CONCAT(DATENAME(iso_week, DATEADD(HOUR,2,twi.ModifiedAt)), '/', DATEPART(year, DATEADD(HOUR,2,twi.ModifiedAt)))"
-        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    elif group_by == 'month':
-        group_key = "FORMAT(DATEADD(HOUR,2,twi.ModifiedAt), 'yyyy-MM')"
-        order_key = "MIN(CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE))"
-    else:
-        group_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
-        order_key = "CAST(DATEADD(HOUR,2,twi.ModifiedAt) AS DATE)"
-
-    status_sql = "(twi.Status = 5 or tai.ActivityInstanceName = 'Pause Process')"
-    status_params = []
-    if status_codes:
-        placeholders_status = ','.join(['?'] * len(status_codes))
-        status_sql = f"twi.Status IN ({placeholders_status})"
-        status_params = status_codes
 
     conn = None
     try:
@@ -3980,6 +4069,8 @@ def report_processed_over_time():
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -4081,6 +4172,8 @@ def report_status_distribution():
         app.logger.error(f"Failed to fetch status_distribution report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -4100,7 +4193,6 @@ def report_kpi_stats():
     params = allowed_params
     all_params = params + ['Privera']
 
-    print(params)
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
@@ -4167,6 +4259,8 @@ def report_kpi_stats():
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
@@ -4268,6 +4362,8 @@ def report_stage_breakdown():
         app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 # -------------------------------- reports end ------------------------------- #
