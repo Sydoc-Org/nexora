@@ -87,13 +87,40 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-# for PROD
+# Uncomment for PROD
 # csp = {
 #     'default-src': '\'self\'',
-#     'script-src': ['\'self\'', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com'],
-#     'style-src': ['\'self\'', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', '\'unsafe-inline\''],
-#     'font-src': ['\'self\'', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
-#     'img-src': ['\'self\'', 'data:', 'https://cdn.tailwindcss.com'] 
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
 # }
 # Talisman(app, content_security_policy=csp)
 
@@ -4575,9 +4602,9 @@ def download_invoice_pdf(invoice_id):
 
 
 
-# ------------------------------- ONLY FOR IIS ------------------------------- #
+# ------------------------------- ONLY FOR PROD -------------------------------- #
 #  app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
-# ----------------------------- ONLY FOR IIS end ----------------------------- #
+# ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ py -m venv venv #Creating a venv
 pip install Flask-Babel #install babel
 
 create file babel.cfg with:
-    [python: **.py]
+    [python: *.py]
     [jinja2: **/templates/**.html]
     encoding=utf-8
 

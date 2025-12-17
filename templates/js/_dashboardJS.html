@@ -218,24 +218,22 @@
         updateDocumentTimeline();
         updateRecentActivity();
 
-        document.getElementById('apply-filters-btn').addEventListener('click', () => {
-            const selectedDates = dateRangePicker.selectedDates;
-            if (selectedDates.length === 2) {
-                const startDate = selectedDates[0].toISOString().split('T')[0];
-                const endDate = selectedDates[1].toISOString().split('T')[0];
-                updateAllCharts(startDate, endDate);
-            } else {
-                updateAllCharts();
-            }
-        });
+        // document.getElementById('apply-filters-btn').addEventListener('click', () => {
+        //     const selectedDates = dateRangePicker.selectedDates;
+        //     if (selectedDates.length === 2) {
+        //         const startDate = selectedDates[0].toISOString().split('T')[0];
+        //         const endDate = selectedDates[1].toISOString().split('T')[0];
+        //         updateAllCharts(startDate, endDate);
+        //     } else {
+        //         updateAllCharts();
+        //     }
+        // });
         
         setInterval(() => {
-            if (dateRangePicker.selectedDates.length === 0) {
                 updateKpiStats();
                 updateAllCharts();
                 updateDocumentTimeline();
                 updateRecentActivity();
-            }
         }, 30000);
     });
   </script>
