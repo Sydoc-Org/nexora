@@ -1,180 +1,380 @@
 .workitem-image {
-  cursor: zoom-in;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-  border-radius: 0.5rem;
-}
+          cursor: pointer;
+          transition: transform 0.2s ease-in-out;
+      }
 
-.workitem-image:hover {
-  transform: scale(1.03);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-}
+      .workitem-image:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      }
 
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden; 
-  background-color: rgba(17, 24, 39, 0.9); 
-  backdrop-filter: blur(4px);
-  align-items: center;
-  justify-content: center;
-}
 
-.modal-content {
-  margin: auto;
-  display: block;
-  max-width: 90%;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 0.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+      .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; 
+        background-color: rgba(0, 0, 0, 0.85); 
+        align-items: center;
+        justify-content: center;
+      }
 
-@keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
+      .modal-content {
+        margin: auto;
+        display: block;
+        max-width: 90%;
+        max-height: 85vh; 
+        object-fit: contain; 
+        animation-name: zoom;
+        animation-duration: 0.4s;
+      }
 
-.modal-close {
-  position: absolute;
-  top: 20px;
-  right: 35px;
-  color: #9ca3af;
-  font-size: 2rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  z-index: 1001;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+      @keyframes zoom {
+        from {transform: scale(0.5)}
+        to {transform: scale(1)}
+      }
 
-body {
-  background-color: #f9fafb;
-}
+      .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        cursor: pointer;
+      }
 
-.details-row .details-content-wrapper {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.4s ease-in-out,
-              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0 1rem;
-  visibility: hidden;
-}
+      .modal-close:hover,
+      .modal-close:focus {
+        color: #bbb;
+        text-decoration: none;
+      }
+      body {
+        background-color: #f9fafb;
+      }
 
-.details-row.open .details-content-wrapper {
-  opacity: 1;
-  padding: 1.5rem 1rem;
-  visibility: visible;
-  transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.4s ease-in-out 0.1s, 
-              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0s;
-}
+      .glyphicon-chevron-down-custom span,
+      .glyphicon-chevron-up-custom span {
+        width: 10px;
+        height: 5px;
+        background-color: rgb(99, 99, 99);
+        display: inline-block;
+        transition: all 0.1s linear;
+        margin: 0;
+      }
 
-.indicator {
-    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-}
+      .glyphicon-chevron-down-custom .sp-1 {
+        transform: skewY(-40deg);
+        margin-right: -1.9px;
+      }
 
+      .glyphicon-chevron-down-custom .sp-2 {
+        transform: skewY(40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-1 {
+        transform: skewY(40deg);
+        margin-right: -1.9px;
+      }
+
+      .glyphicon-chevron-up-custom .sp-2 {
+        transform: skewY(-40deg);
+        margin-left: -1.9px;
+      }
+
+      .glyphicon {
+        top: -1px;
+      }
+
+      .input-flex-container {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 90%;
+        max-width: 1000px;
+        z-index: 0;
+        margin: 40px 0 60px;
+        /* Platz für Beschriftungen */
+        padding: 0 12.5px;
+        /* Abstand links/rechts */
+        box-sizing: border-box;
+      }
+
+      /* Durchgehende graue Linie hinter den Punkten */
+      .input-flex-container::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        /* halbe Punktbreite */
+        height: 7.5px;
+        width: var(--active-line-width, 0);
+        background-color: var(--active-line-color, #ccc);
+        z-index: -1;
+        transform: translateY(-50%);
+        transition: width 1s ease, background-color 0.3s ease;
+        border-radius: 2.5px;
+        margin-top: 15px;
+      }
+
+      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
+      .input-flex-container::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 12.5px;
+        height: 5px;
+        background-color: #2c3e50;
+        z-index: -1;
+        transform: translateY(-50%);
+        width: 0;
+        border-radius: 2.5px;
+        transition: width 0.3s ease;
+      }
+
+      /* Punkt Styles */
+      .input {
+        width: 35px;
+        height: 35px;
+        background-color: #aeb6bf;
+        /* Standard grau */
+        border-radius: 50%;
+        position: relative;
+        cursor: pointer;
+        z-index: 2;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      /* Aktive Punkte: dunkel */
+      .input.active {
+        background-color: #2c3e50;
+        margin-bottom: 20px;
+      }
+
+      /* Hover-Effekt für Punkte */
+      .input:hover {
+        background-color: #34495e;
+      }
+
+      /* Noch dunkler beim Hover aktiver Punkte */
+      .input.active:hover {
+        background-color: #1f2a38;
+      }
+
+      /* Status-Beschriftung über den Punkten (data-info) */
+      .input span::before {
+        content: attr(data-info);
+        position: absolute;
+        bottom: 100%;
+        /* direkt oberhalb des Punktes */
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: #2c3e50;
+        white-space: nowrap;
+        margin-bottom: 8px;
+        pointer-events: none;
+        user-select: none;
+        content: none;
+      }
+
+      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
+      .input span::after {
+        content: none;
+      }
+
+      /* Container für Datum und Uhrzeit unter dem Punkt */
+      .input span {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 12px;
+        color: #333;
+        margin-top: 0px;
+        /* Abstand vom Punkt nach unten */
+      }
+
+      /* Datum fett und etwas größer */
+      .input span .date {
+        font-weight: bold;
+        font-size: 13px;
+        color: #555555;
+        margin-top: 40px;
+      }
+
+      /* Uhrzeit kleiner und darunter */
+      .input span .time {
+        font-size: 12px;
+        color: #777777;
+        text-align: center;
+        user-select: none;
+        pointer-events: none;
+        margin-top: 0px;
+      }
+
+      .flex-parent {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: -30px;
+        margin-bottom: -35px;
+      }
+
+      .input.state-collected {
+        background-color: var(--color-purple-800);
+      }
+
+      .input.state-done {
+        background-color: var(--color-green-800);
+      }
+
+      .input.state-in-progress {
+        background-color: var(--color-yellow-800);
+      }
+
+      .input.state-ready {
+        background-color: var(--color-blue-800);
+      }
+
+      .input.state-demanded {
+        background-color: #ff7f50;
+      }
+
+      .label {
+        display: inline-block;
+        padding: 2px 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 12px;
+        user-select: none;
+        margin-bottom: 50px;
+        text-align: center;
+        min-width: 70px;
+      }
+
+      .ready-label {
+        background-color: #cce4ff;
+        color: #1a4db7;
+      }
+
+      .demanded-label {
+        background-color: #ffcdd2;
+        color: #b71c1c;
+      }
+
+      .inprogress-label {
+        background-color: #fff9c4;
+        color: #fbc02d;
+      }
+
+      .done-label {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+      }
+
+      .collected-label {
+        background-color: #e1bee7;
+        color: #6a1b9a;
+      }
+
+      .timeline-label {
+        text-align: center;
+      }
+
+.modal-prev,
+    .modal-next {
+      cursor: pointer;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #f1f1f1;
+      font-size: 40px;
+      font-weight: bold;
+      transition: 0.3s;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: transparent;
+    }
+
+    .modal-next {
+      right: 25px;
+    }
+
+    .modal-prev {
+      left: 25px;
+    }
+
+    .modal-prev:hover,
+    .modal-next:hover {
+      color: #bbb;
+    }
 .indicator.open {
   transform: rotate(180deg);
 }
 
+.details-row .details-content-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+  padding: 0 1rem; 
+  visibility: hidden;
+}
+
+.details-row.open .details-content-wrapper {
+  max-height: 2000px; 
+  padding: 1.5rem 1rem; 
+  visibility: visible;
+  transition: max-height 0.4s ease-in, padding 0.4s ease-in, visibility 0s;
+}
+
 .workitem-row {
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .workitem-row.hiding {
   opacity: 0;
   transform: scale(0.98);
 }
-
-.step-icon-wrapper {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.step-icon-wrapper.active {
-  border-color: #6366f1;
-  background-color: #eef2ff;
-  transform: scale(1.15);
-  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
-}
-
-.step-icon-wrapper.active i {
-  color: #4f46e5;
-  transition: color 0.3s ease;
-}
-
-.process-step p {
-    transition: color 0.3s ease, font-weight 0.3s ease;
-}
-
-.process-step p.active {
-  color: #111827;
-  font-weight: 700;
-  transform: translateY(-1px);
-}
-
-.step-icon-wrapper.completed {
-  border-color: #22c55e;
-  background-color: #f0fdf4;
-}
-
-.step-icon-wrapper.completed i {
-  color: #16a34a;
-}
-
 .custom-select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: none; /
 }
 
-.modal-prev,
-.modal-next {
-  cursor: pointer;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 2rem;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  user-select: none;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  /* background-color: rgba(0, 0, 0, 0.2); */
+.step-icon-wrapper {
+    transition: all 0.4s ease-in-out;
 }
-
-.modal-next { right: 25px; }
-.modal-prev { left: 25px; }
-
-.modal-prev:hover,
-.modal-next:hover {
-  color: #fff;
-  /* background-color: rgba(99, 102, 241, 0.6); */
-  transform: translateY(-50%) scale(1.1);
+.step-icon-wrapper.active {
+    border-color: #6366f1;
+    background-color: #eef2ff; 
+    transform: scale(1.1);
+}
+.step-icon-wrapper.active i {
+    color: #4f46e5; 
+}
+.process-step p.active {
+    color: #111827; 
+    font-weight: 700;
+}
+.step-icon-wrapper.completed {
+    border-color: #22c55e;
+    background-color: #f0fdf4; 
+}
+.step-icon-wrapper.completed i {
+    color: #16a34a; 
+}
+.process-step p.completed {
+    color: #374151;
 }
