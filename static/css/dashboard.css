@@ -1,121 +1,157 @@
 html {
-      overflow-y: scroll;
-    }
-
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: #f9fafb;
-    }
-
-    .progress-step {
-      display: flex;
-      align-items: center;
-      flex-grow: 1;
-      position: relative;
-    }
-
-    .progress-step:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      left: 18px;
-      top: 40px;
-      height: 2px;
-      width: calc(100% - 36px);
-      background-color: #e5e7eb;
-    }
-
-    .progress-step.completed:not(:last-child)::after {
-      background-color: #03020bff;
-    }
-
-    .progress-icon {
-      z-index: 10;
-    }
-
-    @keyframes rotate {
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    .animate-rotate {
-      animation: rotate 3s linear infinite;
-    }
-
-    @keyframes pulse-icon {
-
-      0%,
-      100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-
-      50% {
-        transform: scale(1.1);
-        opacity: 0.9;
-      }
-    }
-
-    .animate-pulse-icon {
-      animation: pulse-icon 2s ease-in-out infinite;
-    }
-.custom-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
 }
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f9fafb;
+}
+
+/* --- Progress Steps --- */
+.progress-step {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+.progress-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 40px;
+  height: 2px;
+  width: calc(100% - 36px);
+  background-color: #e5e7eb;
+  transition: background-color 0.6s ease; /* Smooth fill */
+}
+
+.progress-step.completed:not(:last-child)::after {
+  background-color: #4f46e5; /* Use indigo for better branding match */
+}
+
+.progress-icon {
+  z-index: 10;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- Animations --- */
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-rotate {
+  animation: rotate 2s linear infinite; /* Slightly faster for loading spinners */
+}
+
+@keyframes pulse-soft {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+  }
+}
+
+.animate-pulse-icon {
+  animation: pulse-soft 2s infinite;
+}
+
+/* --- Timeline --- */
 .timeline-item {
   display: flex;
   position: relative;
-  align-items: center; 
-  padding-left: 4.5rem; 
+  align-items: center;
+  padding-left: 4.5rem;
+  padding-bottom: 2rem; /* Spacing between items */
+  transition: transform 0.3s ease;
+}
+
+.timeline-item:hover {
+    transform: translateX(4px);
 }
 
 .timeline-connector {
   position: absolute;
-  left: 28px; 
-  top: 50%;   
-  height: 125%; 
+  left: 28px;
+  top: 56px; /* Start below the icon */
+  height: calc(100% - 56px); /* Connect to next icon */
   width: 2px;
   background-color: #e5e7eb;
 }
+
 .timeline-item:last-child .timeline-connector {
-  display: none; 
+  display: none;
 }
+
 .timeline-icon {
   position: absolute;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%); 
+  top: 0; /* Align top */
   display: flex;
   align-items: center;
   justify-content: center;
   width: 56px;
   height: 56px;
-  border-radius: 9999px;
+  border-radius: 50%;
   z-index: 10;
+  background-color: white;
+  border: 2px solid #e5e7eb;
+  transition: border-color 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+.timeline-item:hover .timeline-icon {
+    border-color: #6366f1;
+    transform: scale(1.1);
+}
+
+/* --- Flatpickr (Date Picker) Overrides --- */
 .flatpickr-calendar {
-    font-family: 'Inter', sans-serif;
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  font-family: 'Inter', sans-serif;
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  animation: zoomIn 0.2s ease-out; /* Slight pop on open */
 }
-.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-    background: #4f46e5;
-    border-color: #4f46e5;
+
+.flatpickr-day {
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
 }
+
+.flatpickr-day.selected, 
+.flatpickr-day.startRange, 
+.flatpickr-day.endRange {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+}
+
 .flatpickr-day:hover {
-    background: #eef2ff;
+  background: #eef2ff;
 }
+
 .flatpickr-months .flatpickr-month {
-    color: #111827;
-    fill: #111827;
+  color: #111827;
+  fill: #111827;
+  margin-bottom: 0.5rem;
 }
+
 .flatpickr-current-month .numInputWrapper {
-    color: #111827;
+  color: #111827;
 }
+
 span.flatpickr-weekday {
-    color: #4b5563;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.8rem;
 }

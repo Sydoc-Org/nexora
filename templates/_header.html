@@ -10,9 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/css/shepherd.css" crossorigin="anonymous"/>
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/js/shepherd.min.js" crossorigin="anonymous"></script>
+
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_tour.css') }}">
-  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
 <body>
@@ -71,11 +74,10 @@
                 </div>
 
                 <div class="flex items-center space-x-5">
-                    {% if active_page != 'admin_users' and active_page != 'profile' %}
+                    
                      <button id="help-tour-button" class="relative mr-2 cursor-pointer" title="{{ _('Start Tour') }}">
                         <i class="fas fa-question-circle text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
                     </button>
-                    {% endif %}
                     <div class="relative" id="notification-dropdown-container">
 
                         <button id="bell-button" class="relative mr-4 cursor-pointer">
@@ -119,9 +121,10 @@
                 </div>
             </div>
     </header>
-    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
-
+    
     {% include 'js/_headerJS.html' %}
+    {% include 'js/_tourJS.html' %}
+
 </body>
 
 </html>
