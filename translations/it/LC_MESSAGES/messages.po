@@ -482,6 +482,15 @@ msgstr "Ecco una panoramica in tempo reale dell'elaborazione dei documenti."
 msgid "All Processes"
 msgstr "Tutti i processi"
 
+msgid "process.02_Posteingang"
+msgstr "Posta in arrivo"
+
+msgid "process.03_Invoice_New"
+msgstr "Fattura"
+
+msgid "process.02_InitialScan"
+msgstr "Iniziale (Scan)"
+
 #: templates/dashboard.html:57
 msgid "Processed Today"
 msgstr "Elaborati oggi"

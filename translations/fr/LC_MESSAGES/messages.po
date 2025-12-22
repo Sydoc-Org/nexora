@@ -482,6 +482,15 @@ msgstr "Voici un aperçu en temps réel de votre activité de traitement de docu
 msgid "All Processes"
 msgstr "Tous les processus"
 
+msgid "process.02_Posteingang"
+msgstr "Boîte de réception"
+
+msgid "process.03_Invoice_New"
+msgstr "Facture"
+
+msgid "process.02_InitialScan"
+msgstr "Initiale (Scan)"
+
 #: templates/dashboard.html:57
 msgid "Processed Today"
 msgstr "Traités aujourd'hui"
