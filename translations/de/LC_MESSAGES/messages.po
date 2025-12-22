@@ -482,6 +482,15 @@ msgstr "Hier ist eine Echtzeit-Übersicht Ihrer Dokumentenverarbeitung."
 msgid "All Processes"
 msgstr "Alle Prozesse"
 
+msgid "process.02_Posteingang"
+msgstr "Posteingang"
+
+msgid "process.03_Invoice_New"
+msgstr "Rechnung"
+
+msgid "process.02_InitialScan"
+msgstr "Initial-Scan"
+
 #: templates/dashboard.html:57
 msgid "Processed Today"
 msgstr "Heute verarbeitet"
