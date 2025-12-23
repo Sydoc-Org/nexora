@@ -70,7 +70,7 @@
         <div class="team-column-header">
            <div class="flex items-center">
 
-             <img class="w-8 h-8 rounded-full object-cover mr-3" src="/static/images/{{ user.userID }}-Icon.png" onerror="this.src='/static/images/default-Icon.png'" alt="{{ user.fullname }}">
+             <img class="w-8 h-8 rounded-full object-cover mr-3" src="{{ get_user_icon_url(userid) }}" alt="{{ _('Profile Picture') }}">
             <h3 class="font-bold text-lg text-gray-700 truncate">
               {{ user.fullname }}
             </h3>

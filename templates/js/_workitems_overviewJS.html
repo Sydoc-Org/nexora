@@ -341,7 +341,7 @@ function renderTagsInDetails(workitemId, tags) {
                         commentEl.className = 'flex items-start gap-2.5';
                         const commentDate = new Date(comment.Timestamp).toLocaleString();
                         commentEl.innerHTML = `
-                            <img class="w-8 h-8 rounded-full" src="/static/images/${comment.userID}-Icon.png" onerror="this.src='/static/images/default-Icon.png'" alt="${comment.username} avatar">
+                            <img class="w-8 h-8 rounded-full" src="{{ get_user_icon_url(userid) }}" alt=" {{ _('Profile Picture') }}">
                             <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
                                 <div class="flex items-center space-x-2 rtl:space-x-reverse">
                                     <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
