@@ -4038,13 +4038,11 @@ def set_language(lang=None):
 def inject_current_lang():
     return {'current_lang': str(get_locale())}
 
-# In app.py
-
 @app.context_processor
 def utility_processor():
     def get_user_icon_url(user_id):
         if not user_id:
-            return url_for('static', filename='images/default-icon.png')
+            return url_for('static', filename='images/default-Icon.png')
         
         filename_lower = f"{user_id}-icon.png"
         path_lower = os.path.join(app.root_path, 'static', 'images', filename_lower)
@@ -4060,7 +4058,7 @@ def utility_processor():
             timestamp = int(os.path.getmtime(path_upper))
             return url_for('static', filename=f'images/{filename_upper}', v=timestamp)
             
-        return url_for('static', filename='images/default-icon.png')
+        return url_for('static', filename='images/default-Icon.png')
         
     return dict(get_user_icon_url=get_user_icon_url)
 # -------------------------------- profile end ------------------------------- #
