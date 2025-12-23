@@ -72,9 +72,10 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                         <div class="flex items-center space-x-5">
-                            <img src="{{ url_for('static',filename='images/' + userid + '-Icon.png') }}"
-                                id="profilePictureNonHeader" class="h-10 w-10 rounded-full cursor-pointer"
-                                onerror="defaultIconNonHeader()">
+                            <img src="{{ get_user_icon_url(userid) }}"
+                            id="profilePictureNonHeader" 
+                            class="h-10 w-10 rounded-full cursor-pointer" 
+                            alt="{{ _('Profile Picture') }}">
                             <div>
                                 <input id="file" type="file" name="file" accept=".jpg, .png"
                                     class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">

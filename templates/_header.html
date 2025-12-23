@@ -102,8 +102,10 @@
                     <div class="relative">
                         <el-dropdown>
                             <button class="flex items-center space-x-2 cursor-pointer">
-                                <img src="{{ url_for('static',filename='images/' + userid + '-Icon.png') }}"
-                                    id="profilePicture" class="h-10 w-10 rounded-full cursor-pointer" onerror="defaultIcon()">
+                                <img src="{{ get_user_icon_url(userid) }}"
+                                id="profilePicture" 
+                                class="h-10 w-10 rounded-full cursor-pointer" 
+                                alt="{{ _('Profile Picture') }}">
                                 <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">
                                     {{ logged_in_user }}</span>
                             </button>
