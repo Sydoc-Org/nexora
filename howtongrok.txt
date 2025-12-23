@@ -1,0 +1,1 @@
+ngrok http --domain=nexora.sydoc.ch --basic-auth="myuser:mypassword" 80
