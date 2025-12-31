@@ -82,46 +82,46 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -1823,25 +1823,45 @@ def _get_workitems_data(args):
     assigned_user = args.get('assignedUser', '')
     per_page = 40
     offset = (page - 1) * per_page
+    perms = session.get('permissions', [])
 
     process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
-    placeholders, params = get_process_filter_and_params(process_name)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'workitems.filter.process.privera.{p}')
-    ]
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
+    prefix = "workitems.filter.process."
+    process_params = []
+    client_params = []
+    if process_name == 'all':
+        unique_processes = set()
+        unique_clients = set()
+        for perm in perms:
+            if perm.startswith(prefix):
+                parts = perm.split('.')
+                client = parts[-2]
+                proc = parts[-1]
+                
+                unique_clients.add(client)
+                unique_processes.add(proc)
+        process_params = sorted(list(unique_processes))
+        client_params = sorted(list(unique_clients))
+    else:
+        if has_permission(f'{prefix}{process_name}'):
+            parts = process_name.split('.')
+            if len(parts) >= 2:
+                client_params = [parts[0]]
+                process_params = [parts[1]]
+    process_placeholders = ", ".join(["?"] * len(process_params))
+    client_placeholders = ", ".join(["?"] * len(client_params))
+    params = process_params + client_params
 
-    params.append('Privera')
-
+    print(params)
+    print(process_placeholders)
+    print(client_placeholders)
     docfields = args.getlist('docfield')
     docvalues = args.getlist('docvalue')
 
     where_clauses = [
-        f"tp.Name IN ({placeholders})",
-        "tp.ClientName = ?",
+        f"tp.Name IN ({process_placeholders})",
+        f"tp.ClientName IN ({client_placeholders})",
         "twi.Status <> 2",
         """tai.ActivityInstanceName not in (
                 --posteingang
@@ -2815,9 +2835,9 @@ def workitems_overview():
         assigned_user = request.args.get('assignedUser', '') if assigned_user_perm else None
         
         perms = session.get('permissions', [])
-        prefix = "workitems.filter.process.privera."
+        prefix = "workitems.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
@@ -4626,7 +4646,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

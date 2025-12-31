@@ -77,7 +77,8 @@
                 {% for proc in allowed_processes %}
                     <option value="{{ proc }}"
                             {% if process_name == proc %}selected{% endif %}>
-                        {{ _('process.' ~ proc) }} 
+                            {{ proc }}
+                        <!-- {{ _('process.' ~ proc) }}  -->
                     </option>
                 {% endfor %}
                 </select>
