@@ -82,7 +82,7 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-# app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
@@ -1810,6 +1810,41 @@ def recent_activity():
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
+def prepare_process_selection_sql(prefix,process_name):
+    try:
+        perms = session.get('permissions', [])
+        process_params = []
+        client_params = []
+        if process_name == 'all':
+            unique_processes = set()
+            unique_clients = set()
+            for perm in perms:
+                if perm.startswith(prefix):
+                    parts = perm.split('.')
+                    client = parts[-2]
+                    proc = parts[-1]
+                    
+                    unique_clients.add(client)
+                    unique_processes.add(proc)
+            process_params = sorted(list(unique_processes))
+            client_params = sorted(list(unique_clients))
+        else:
+            if has_permission(f'{prefix}{process_name}'):
+                parts = process_name.split('.')
+                if len(parts) >= 2:
+                    client_params = [parts[0]]
+                    process_params = [parts[1]]
+        process_placeholders = ", ".join(["?"] * len(process_params))
+        client_placeholders = ", ".join(["?"] * len(client_params))
+        params = process_params + client_params
+        print(params)
+        print(process_placeholders)
+        print(client_placeholders)
+        return params, process_placeholders, client_placeholders
+    except Exception as e:
+        app.logger.error(f"Failed to prepare process selection: {e}")
+        raise
+    
 def _get_workitems_data(args):
     page = args.get('page', 1, type=int)
     search_term = args.get('search', '').strip()
@@ -1823,39 +1858,13 @@ def _get_workitems_data(args):
     assigned_user = args.get('assignedUser', '')
     per_page = 40
     offset = (page - 1) * per_page
-    perms = session.get('permissions', [])
+    
 
     process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
     prefix = "workitems.filter.process."
-    process_params = []
-    client_params = []
-    if process_name == 'all':
-        unique_processes = set()
-        unique_clients = set()
-        for perm in perms:
-            if perm.startswith(prefix):
-                parts = perm.split('.')
-                client = parts[-2]
-                proc = parts[-1]
-                
-                unique_clients.add(client)
-                unique_processes.add(proc)
-        process_params = sorted(list(unique_processes))
-        client_params = sorted(list(unique_clients))
-    else:
-        if has_permission(f'{prefix}{process_name}'):
-            parts = process_name.split('.')
-            if len(parts) >= 2:
-                client_params = [parts[0]]
-                process_params = [parts[1]]
-    process_placeholders = ", ".join(["?"] * len(process_params))
-    client_placeholders = ", ".join(["?"] * len(client_params))
-    params = process_params + client_params
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
 
-    print(params)
-    print(process_placeholders)
-    print(client_placeholders)
     docfields = args.getlist('docfield')
     docvalues = args.getlist('docvalue')
 
@@ -1916,68 +1925,64 @@ def _get_workitems_data(args):
         for docfield, docvalue in zip(docfields, docvalues):
             docfield = (docfield or '').lower().strip()
             docvalue = (docvalue or '').strip()
+            conn_nex = engineNexoraDB.raw_connection()
+            cursor_nex = conn_nex.cursor()
+
             if not docvalue or not docfield:
                 continue
 
-            if docfield == 'doctype':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
+            target_config_col = f'col_{docfield}'
+
+            if target_config_col:
+                query = f"SELECT * FROM SearchConfig WHERE {target_config_col} IS NOT NULL"
+                sql_params = []
+                
+                if process_name != 'all':
+                    query += " AND ProcessName = ?"
+                    sql_params.append(process_name)
+                    
+                configs = cursor_nex.execute(query, sql_params).fetchall()
+                
+                generated_checks = []
+                
+                for config in configs:
+                    tbl = config.TableName
+                    alias = config.TableAlias
+                    join_cond = config.JoinCondition
+                    time_filter = config.TimeFilter
+                    db_column = getattr(config, target_config_col) 
+
+                    snippet = f"""
+                        EXISTS (
+                            SELECT 1 
+                            FROM [{DB_STATISTICS}].{tbl} {alias} 
+                            WHERE {join_cond} 
+                            AND {alias}.{db_column} COLLATE DATABASE_DEFAULT LIKE ? 
+                            AND {time_filter}
+                        )
+                    """
+                    print(snippet, docvalue)
+                    generated_checks.append(snippet)
                     params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'docbarcode':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'crdno':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'crdname':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'bankpk':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'grossamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'netamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'vatamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'doccurrency':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'invoicenr':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'tec':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'esrreference':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'ordernumber':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'client':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
+
+                if generated_checks:
+                    combined_clause = " OR ".join(generated_checks)
+                    where_clauses.append(f"({combined_clause})")
+
+            else:
+                pass
+            conn_nex.close()
+            cursor_nex.close()
+            
+            if docfield == 'sbg fdjuiseh':
+                pass
+            # continue here w adding column mappings:
+            # alter table SearchConfig add col_invoicenr VARCHAR(100)
+            # go
+            # update searchconfig set col_invoicenr = 'invoicenr' where tablealias = 'i'
+            # update searchconfig set col_invoicenr = 'invoicenr' where tablealias = 'e'
+            # SELECT *
+            #   FROM [nexora].[dbo].[SearchConfig]
             elif docfield == 'docsource':
                 where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
                 params.append(f"%{docvalue}%")
@@ -2149,154 +2154,57 @@ def api_docfield_values():
     field = (request.args.get('field', '') or '').lower().strip()
     q = (request.args.get('q', '') or '').strip()
 
+    target_col_name = f'col_{field}'
     conn = None
     try:
-        conn = engineStatisticsDB.raw_connection()
+        conn = engineNexoraDB.raw_connection()
         cur = conn.cursor()
 
-        params = []
-        if field == 'doctype':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " AND Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        query = f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL"
+        db_params = []
+        if process != 'all':
+            query += " AND ProcessName = ?"
+            db_params.append(process)
 
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE DocType is not null and DocType <> ''
-                    and ImportTime >= DATEADD(day,-7,getdate())
-                """
-                if q:
-                    sql += " and DocType COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        configs = cur.execute(query, db_params).fetchall()
 
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
+        if not configs:
+            return jsonify([])
 
-                        UNION ALL
-                        SELECT DocType COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE DocType is not null and DocType <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-                    ) t
-                """
-                if q:
-                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        union_parts = []
+        sql_params = []
 
-        elif field == 'docbarcode':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE Barcode is not null and Barcode <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " AND Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        for config in configs:
+            tbl = config.TableName
+            col_name = getattr(config, target_col_name)
+            time_filter = config.SuggestionTimeFilter
 
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE Barcode is not null and Barcode <> ''
-                    and ImportTime >= DATEADD(day,-3,getdate())
-                """
-                if q:
-                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-            elif process == '02_InitialScan':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Barcode is not null and Barcode <> ''
-                    and Export >= DATEADD(MONTH, -6, getdate())
-                """
-                if q:
-                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE Barcode is not null and Barcode <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE Barcode is not null and Barcode <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-
-                        UNION ALL
-
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Barcode is not null and Barcode <> ''
-                        and Export >= DATEADD(MONTH, -6, getdate())
-                    ) t
-                """
-                if q:
-                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-
-        elif field == 'crdno':
-            sql = f"""
-                SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE CRD_NR is not null and CRD_NR <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
+            part = f"""
+                SELECT {col_name} COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_STATISTICS}].{tbl}
+                WHERE {col_name} IS NOT NULL AND {col_name} <> ''
+                  AND {time_filter}
             """
             if q:
-                sql += " and CRD_NR COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
+                part += f" AND {col_name} COLLATE DATABASE_DEFAULT LIKE ?"
+                sql_params.append(f"%{q}%")
+            
+            union_parts.append(part)
+        full_union_sql = " UNION ALL ".join(union_parts)
+        final_sql = f"""
+            SELECT DISTINCT TOP 15 Val 
+            FROM (
+                {full_union_sql}
+            ) t
+            ORDER BY Val
+        """
+        cur.execute(final_sql, sql_params)
+        rows = cur.fetchall()
+        results = [row.Val for row in rows]
+        return jsonify(results)
+        
 
-        elif field == 'crdname':
-            sql = f"""
-                SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE CRD_NAME_1 is not null and CRD_NAME_1 <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'bankpk':
+        if field == 'bankpk':
             sql = f"""
                 SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_STATISTICS}].dbo.PriveraInvoice
