@@ -1507,6 +1507,19 @@ def request_password_reset():
             conn.close()
 # ---------------------------- forgot password end --------------------------- #
 
+def get_activityinstancesToIgnore():
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore')
+        rows = cursor.fetchall()
+        return ', '.join("'"+row.ActivityInstanceName+"'" for row in rows)
+    except Exception as e:
+        print(e)
+    finally:
+        if conn: conn.close()
+        if cursor: cursor.close()
+
 # ------------------------------ process filter ------------------------------ #
 def get_process_filter_and_params(process_name):
     if process_name == '02_Posteingang':
@@ -1533,12 +1546,13 @@ def get_absolute_dashboard_stats(processName="all"):
 
     placeholders = ", ".join(["?"] * len(allowed_params))
     params = allowed_params
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
+
     try:
         all_params = params + ['Privera'] + params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            f"""
+        query = f"""
             WITH AllStatuses
             AS (SELECT 0 AS StatusCode,
                     'Ready' AS StatusName
@@ -1559,20 +1573,7 @@ def get_absolute_dashboard_stats(processName="all"):
                         on p.id = a.ProcessID
                 WHERE p.Name IN ({placeholders})
                     AND p.ClientName = ?
-                    AND a.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+                    AND a.ActivityInstanceName not in ({activityinstancesToIgnore})
                 GROUP BY w.[Status]
             )
             SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
@@ -1591,8 +1592,8 @@ def get_absolute_dashboard_stats(processName="all"):
             WHERE p.Name IN ({placeholders})
                 AND p.ClientName = ?
                 AND a.ActivityInstanceName = 'C+A';
-            """, all_params
-        )
+            """
+        cursor.execute(query, all_params)
         rows = cursor.fetchall()
         stats['ReadyTotal'] = rows[0][0]
         stats['InProgressTotal'] = rows[1][0]
@@ -1618,11 +1619,13 @@ def get_dashbord_preview_documents_stats(processName='all'):
 
     placeholders = ", ".join(["?"] * len(allowed_params))
     params = allowed_params
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
+
     try:
         all_params = params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(f"""
+        query = f"""
             WITH CTE AS (
             SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt,
             CASE
@@ -1654,28 +1657,15 @@ def get_dashbord_preview_documents_stats(processName='all'):
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
             WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-            AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+            AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
         )
         SELECT DISTINCT TOP 20
         WorkItemID
         ,Activity FROM CTE
         WHERE
         CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            """, (all_params)
-        )
+        """
+        cursor.execute(query, (all_params))
         rows = cursor.fetchall()
     except Exception as e:
         print(e)
@@ -1770,12 +1760,13 @@ def recent_activity():
     placeholders = ", ".join(["?"] * len(allowed_params))
     params = allowed_params
     all_params = params + ['Privera']
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(f"""
-            WITH CTE AS (
+        query = f"""
+        WITH CTE AS (
                 SELECT
                     twi.ID WorkItemID,
                     DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt,
@@ -1788,18 +1779,7 @@ def recent_activity():
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
                 WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-                AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+                AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             )
             SELECT DISTINCT TOP ({limit})
                 CTE.WorkItemID,
@@ -1808,7 +1788,7 @@ def recent_activity():
             FROM CTE
             ORDER BY CTE.ModifiedAt DESC
         """
-        ,all_params)
+        cursor.execute(query,all_params)
         activities = cursor.fetchall()
 
         return jsonify([
@@ -1955,6 +1935,7 @@ def _get_workitems_data(args):
     assigned_user = args.get('assignedUser', '')
     per_page = 40
     offset = (page - 1) * per_page
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
     
 
     process_name = args.get('prcfW', 'all')
@@ -1969,21 +1950,9 @@ def _get_workitems_data(args):
         f"tp.Name IN ({process_placeholders})",
         f"tp.ClientName IN ({client_placeholders})",
         "twi.Status <> 2",
-        """tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-        )"""
+        f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
     ]
+    print(where_clauses)
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
     if status and status in status_map:
         where_clauses.append("twi.Status = ?")
@@ -3104,24 +3073,12 @@ def team_board():
         params.append('Privera')
         
         priority = request.args.get('priority', '')
+        activityinstancesToIgnore = get_activityinstancesToIgnore()
 
         where_clauses = [
             f"tp.Name IN ({placeholders})",
             "tp.ClientName = ?",
-            """tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )"""
+            f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
         ]
 
         if priority:
@@ -3552,9 +3509,10 @@ def report_status_distribution():
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
+        activityinstancesToIgnore = get_activityinstancesToIgnore()
 
         placeholders_status = ','.join(['?']*len(status_codes))
-        cursor.execute(f"""
+        query = f"""
             WITH Mapped AS (
               SELECT
                 CASE WHEN twi.Status = 0 THEN 'Ready'
@@ -3568,23 +3526,11 @@ def report_status_distribution():
                 AND tp.ClientName = ?
                 AND twi.Status IN ({placeholders_status})
                 AND {date_sql}
-                AND tai.ActivityInstanceName not in (
-                    --posteingang
-                    'Deletion Marker Privera Posteingang C+A',
-                    'Deletion Marker ohne PDF PP_END',
-                    'Deletion Marker ohne PDF PP_END_1',
-                    'Deletion Marker Privera Posteingang NoImages',
-                    --invoice
-                    'Deletion Marker MAIL Invalid or Empty',
-                    'Deletion Marker MAIL',
-                    'Deleted Documents',
-                    'Deletion Marker Posteingang2Invoice Parent',
-                    'Deletion Marker Scan Duplicate',
-                    'Keine Dokumente nach TB P2'
-                    )
+                AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             )
             SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
-        """, *(all_params + status_codes + date_params))
+        """
+        cursor.execute(query, *(all_params + status_codes + date_params))
         counts = {'Ready':0,'In Progress':0,'Done':0}
         for s,c in cursor.fetchall():
             counts[s] = c
@@ -3732,7 +3678,9 @@ def report_stage_breakdown():
         cursor = conn.cursor()
 
         placeholders_status = ','.join(['?']*len(status_codes))
-        cursor.execute(f"""
+        activityinstancesToIgnore = get_activityinstancesToIgnore()
+
+        query = f"""
            SELECT
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -3753,20 +3701,7 @@ def report_stage_breakdown():
               AND twi.Status IN ({placeholders_status})
               AND tai.ActivityInstanceName NOT LIKE '%Pause%'
               AND {date_sql}
-              AND tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             GROUP BY
                 CASE
                     WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
@@ -3779,7 +3714,8 @@ def report_stage_breakdown():
                     ELSE 'Processing'
                 END
             ORDER BY ItemCount DESC;
-        """, *(all_params + status_codes + date_params))
+        """
+        cursor.execute(query, *(all_params + status_codes + date_params))
 
         rows = cursor.fetchall()
         labels = [row.Activity for row in rows]
