@@ -1830,6 +1830,83 @@ def recent_activity():
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
+@app.route('/api/config/fields')
+def api_config_fields():
+    if 'username' not in session:
+        return jsonify({}), 401
+
+    labels_map = {
+        'doctype': _("Document Type"),
+        'docbarcode': _("Document Barcode"),
+        'ownernr': _("Owner no."),
+        'tenancynr': _("Tenancy no."),
+        'propertynr': _("Property no."),
+        'registered': _("Registered"),
+        'branch': _("Branch"),
+        'docdate': _("Document Date"),
+        'forwarding': _("Forwarding"),
+        'department': _("Department"),
+        'postcode': _("Postcode"),
+        'recipient': _("Recipient"),
+        'confidentiality': _("Confidentiality"),
+        'crdno': _("Creditor no."),
+        'crdname': _("Creditor Name"),
+        'bankpk': "Bank PK",
+        'grossamount': _("Gross Amount"),
+        'netamount': _("Net Amount"),
+        'vatamount': _("Vat Amount"),
+        'doccurrency': _("Document Currency"),
+        'invoicenr': _("Invoice no."),
+        'tec': "Tec",
+        'esrreference': "ESR Reference",
+        'ordernumber': _("Order no."),
+        'client': _("Client"),
+        'docsource': _("Document Source"),
+        'separatorsheet': _("Separator-sheet"),
+        'docid': _("Document ID"),
+        'archiveboxno': _("Archive-box No."),
+        'docno': _("Document No.")
+    }
+
+    search_options = {}
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
+        cols = [c[0] for c in cursor.description if c[0].startswith('col_')]
+        
+        query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
+        print(query)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            proc_name = row.ProcessName
+            fields = []
+            for i, col_name in enumerate(cols):
+                if row[i+1]: 
+                    field_key = col_name.replace('col_', '')
+                    if field_key in labels_map:
+                        fields.append({
+                            'value': field_key,
+                            'label': labels_map[field_key]
+                        })
+            fields.sort(key=lambda x: x['label'])
+            search_options[proc_name] = fields
+            
+    except Exception as e:
+        app.logger.error(f"Error fetching field config: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    return jsonify({
+        'search_options': search_options,
+        'labels': labels_map
+    })
+
 def prepare_process_selection_sql(prefix,process_name):
     try:
         perms = session.get('permissions', [])
@@ -2091,7 +2168,8 @@ def api_docfield_values():
     process = request.args.get('process', 'all')
     field = (request.args.get('field', '') or '').lower().strip()
     q = (request.args.get('q', '') or '').strip()
-
+    if not field:
+        return jsonify([]) 
     target_col_name = f'col_{field}'
     conn = None
     try:
