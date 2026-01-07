@@ -267,7 +267,6 @@ def load_permissions_for_user(user_id):
 
 def has_permission(code: str) -> bool:
     perms = set(session.get('permissions', []))
-    # print('requestedcode:',code,code in perms, '\n\n')
     return code in perms
 
 def require_permission(code):
@@ -1507,6 +1506,38 @@ def request_password_reset():
             conn.close()
 # ---------------------------- forgot password end --------------------------- #
 
+def prepare_process_selection_sql(prefix,process_name):
+    try:
+        perms = session.get('permissions', [])
+        process_params = []
+        client_params = []
+        if process_name == 'all':
+            unique_processes = set()
+            unique_clients = set()
+            for perm in perms:
+                if perm.startswith(prefix):
+                    parts = perm.split('.')
+                    client = parts[-2]
+                    proc = parts[-1]
+                    
+                    unique_clients.add(client)
+                    unique_processes.add(proc)
+            process_params = sorted(list(unique_processes))
+            client_params = sorted(list(unique_clients))
+        else:
+            if has_permission(f'{prefix}{process_name}'):
+                parts = process_name.split('.')
+                if len(parts) >= 2:
+                    client_params = [parts[0]]
+                    process_params = [parts[1]]
+        process_placeholders = ", ".join(["?"] * len(process_params))
+        client_placeholders = ", ".join(["?"] * len(client_params))
+        params = process_params + client_params
+        return params, process_placeholders, client_placeholders
+    except Exception as e:
+        app.logger.error(f"Failed to prepare process selection: {e}")
+        raise
+
 def get_activityinstancesToIgnore():
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1532,24 +1563,241 @@ def get_process_filter_and_params(process_name):
         return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
 # ---------------------------- process filter end ---------------------------- #
 
+def build_stat_query(proc):
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        query = 'SELECT TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName = ?'
+        cursor.execute(query, proc)
+        return cursor.fetchone()
+    except Exception as e:
+        print(e)
+    finally:
+        if conn: conn.close()
+        if cursor: cursor.close()
 # --------------------------------- dashboard -------------------------------- #
+
+@app.route("/api/reports/processed_over_time")
+def report_processed_over_time():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session['process_name_dashboard']
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+    
+    queries = []
+    ap = allowed_processes if process_name == 'all' else [process_name]
+
+    for proc in ap:
+        row = build_stat_query(proc)
+        buildStatQuery = "SELECT"
+        convert = True if 'convert' in str(row.ExportColumn).lower() else False
+        buildStatQuery += f" {row.ExportColumn} d, " if convert else f" CAST({row.ExportColumn} AS DATE) d, "
+
+        buildStatQuery += f"""
+        count(*) c FROM [{DB_STATISTICS}].{row.TableName}
+        WHERE {row.ExportColumn} >= dateadd(day,-14,getdate()) 
+        """
+        if row.additionalCondition:
+            buildStatQuery += f' {row.additionalCondition} '
+        buildStatQuery += f' group by {row.ExportColumn} ' if convert else f' group by CAST({row.ExportColumn} AS DATE)'
+        queries.append(buildStatQuery)
+
+    conn = None
+    try:
+        conn = engineStatisticsDB.raw_connection()
+        cursor = conn.cursor()
+
+        rows = []
+        for query in queries:
+            cursor.execute(query)
+            rows += cursor.fetchall()
+        rows.sort(key=lambda r: r.d)  
+        labels = [row.d for row in rows]
+        data = [row.c for row in rows]
+        return jsonify({'labels': labels, 'data': data})
+    except Exception as e:
+        app.logger.error(f"Failed to fetch processed_over_time report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route("/api/reports/status_distribution")
+def report_status_distribution():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    try:
+        process_name = session['process_name_dashboard']
+        stats_abs = get_absolute_dashboard_stats(process_name)
+
+        return jsonify({
+            'labels': ['Ready','In Progress','Done','Backlog'],
+            'data': [stats_abs.get('ReadyTotal',0), stats_abs.get('InProgressTotal',0), stats_abs.get('DoneTotal',0), stats_abs.get('BacklogTotal',0)]
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch status_distribution report: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reports/kpi_stats")
+def report_kpi_stats():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+
+    prefix = "dashboard.filter.process."
+    perms = session.get('permissions', [])
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session['process_name_dashboard']
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+
+    processed_today_queries = []
+    processed_week_queries = []
+    ap = allowed_processes if process_name == 'all' else [process_name]
+    for proc in ap:
+        row = build_stat_query(proc)
+        buildStatQuery_base = f"SELECT count(*) FROM [{DB_STATISTICS}].{row.TableName} WHERE "
+        convert = True if 'convert' in str(row.ExportColumn).lower() else False
+        buildStatQuery_today = buildStatQuery_base +  f' {row.ExportColumn} = CAST(GETDATE() AS DATE) ' if convert else buildStatQuery_base + f' CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) '
+        buildStatQuery_week = buildStatQuery_base + f"""
+            {row.ExportColumn} >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+            AND {row.ExportColumn} < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) 
+        """
+        if row.additionalCondition:
+            buildStatQuery_today += f' {row.additionalCondition} '
+            buildStatQuery_week += f' {row.additionalCondition} '
+        processed_today_queries.append(buildStatQuery_today)
+        processed_week_queries.append(buildStatQuery_week)
+
+    try:
+        conn = engineStatisticsDB.raw_connection()
+        cursor = conn.cursor()
+        processed_today = 0
+        processed_week = 0
+        
+        for i in range(len(processed_today_queries)):
+            cursor.execute(processed_today_queries[i])
+            processed_today += cursor.fetchone()[0]
+            cursor.execute(processed_week_queries[i])
+            processed_week += cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM t_WorkItems w
+            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.id = a.ProcessID
+            WHERE p.Name IN ({process_placeholders}) AND p.ClientName IN ({client_placeholders}) AND a.ActivityInstanceName = 'C+A';
+        """,params)
+        current_backlog = cursor.fetchone()[0]
+
+        return jsonify({
+            'processed_today': processed_today,
+            'processed_week': processed_week,
+            'current_backlog': current_backlog
+        })
+
+    except Exception as e:
+        app.logger.error(f"Failed to fetch kpi_stats report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route("/api/reports/stage_breakdown")
+def report_stage_breakdown():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    prefix = "dashboard.filter.process."
+    process_name = session['process_name_dashboard']
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
+
+    conn = None
+    try:
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+
+        query = f"""
+           SELECT
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END AS Activity,
+                COUNT(twi.ID) as ItemCount
+            FROM t_WorkItems twi
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE tp.Name IN ({process_placeholders})
+              AND tp.ClientName IN ({client_placeholders})
+              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+            GROUP BY
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END
+            ORDER BY ItemCount DESC;
+        """
+        cursor.execute(query, params)
+
+        rows = cursor.fetchall()
+        labels = [row.Activity for row in rows]
+        data = [row.ItemCount for row in rows]
+        return jsonify({'labels': labels, 'data': data})
+    except Exception as e:
+        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def get_absolute_dashboard_stats(processName="all"):
     stats = {}
     conn = None
 
-    placeholders, params = get_process_filter_and_params(processName)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
     activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     try:
-        all_params = params + ['Privera'] + params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         query = f"""
@@ -1571,8 +1819,8 @@ def get_absolute_dashboard_stats(processName="all"):
                         on a.id = w.ActivityInstanceID
                     LEFT JOIN t_Processes p
                         on p.id = a.ProcessID
-                WHERE p.Name IN ({placeholders})
-                    AND p.ClientName = ?
+                WHERE p.Name IN ({process_placeholders})
+                    AND p.ClientName IN ({client_placeholders})
                     AND a.ActivityInstanceName not in ({activityinstancesToIgnore})
                 GROUP BY w.[Status]
             )
@@ -1581,7 +1829,14 @@ def get_absolute_dashboard_stats(processName="all"):
             FROM AllStatuses s
                 LEFT JOIN ActualCounts ac
                     ON s.StatusCode = ac.Status
-            UNION ALL
+            """
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        stats['ReadyTotal'] = rows[0][0]
+        stats['InProgressTotal'] = rows[1][0]
+        stats['DoneTotal'] = rows[2][0]
+
+        query = f"""
             SELECT COUNT(*),
                 'Backlog'
             FROM t_WorkItems w
@@ -1589,16 +1844,13 @@ def get_absolute_dashboard_stats(processName="all"):
                     on a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p
                     on p.id = a.ProcessID
-            WHERE p.Name IN ({placeholders})
-                AND p.ClientName = ?
+            WHERE p.Name IN ({process_placeholders})
+                AND p.ClientName IN ({client_placeholders})
                 AND a.ActivityInstanceName = 'C+A';
-            """
-        cursor.execute(query, all_params)
-        rows = cursor.fetchall()
-        stats['ReadyTotal'] = rows[0][0]
-        stats['InProgressTotal'] = rows[1][0]
-        stats['DoneTotal'] = rows[2][0]
-        stats['BacklogTotal'] = rows[3][0]
+        """
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        stats['BacklogTotal'] = row[0]
     except Exception as e:
         print(e)
     finally:
@@ -1611,18 +1863,12 @@ def get_absolute_dashboard_stats(processName="all"):
 def get_dashbord_preview_documents_stats(processName='all'):
     stats = {}
     conn = None
-    placeholders, params = get_process_filter_and_params(processName)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
 
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
     activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     try:
-        all_params = params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         query = f"""
@@ -1656,7 +1902,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
+            WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
             AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
         )
         SELECT DISTINCT TOP 20
@@ -1665,7 +1911,7 @@ def get_dashbord_preview_documents_stats(processName='all'):
         WHERE
         CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
         """
-        cursor.execute(query, (all_params))
+        cursor.execute(query, (params))
         rows = cursor.fetchall()
     except Exception as e:
         print(e)
@@ -1694,13 +1940,12 @@ def dashboard():
 
         prefix = "dashboard.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
 
         process_name = request.args.get('prcfD', 'all')
-
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
@@ -1749,17 +1994,9 @@ def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
 
-    limit = request.args.get('limit', 10, type=int)
 
-    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'all'))
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=session.get('process_name_dashboard', 'all'))
     activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     try:
@@ -1778,17 +2015,17 @@ def recent_activity():
                 FROM t_WorkItems twi
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
+                WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
                 AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             )
-            SELECT DISTINCT TOP ({limit})
+            SELECT DISTINCT TOP 10
                 CTE.WorkItemID,
                 CTE.Status,
                 CTE.ModifiedAt
             FROM CTE
             ORDER BY CTE.ModifiedAt DESC
         """
-        cursor.execute(query,all_params)
+        cursor.execute(query,params)
         activities = cursor.fetchall()
 
         return jsonify([
@@ -1858,7 +2095,6 @@ def api_config_fields():
         cols = [c[0] for c in cursor.description if c[0].startswith('col_')]
         
         query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
-        print(query)
         cursor.execute(query)
         rows = cursor.fetchall()
         
@@ -1887,41 +2123,6 @@ def api_config_fields():
         'labels': labels_map
     })
 
-def prepare_process_selection_sql(prefix,process_name):
-    try:
-        perms = session.get('permissions', [])
-        process_params = []
-        client_params = []
-        if process_name == 'all':
-            unique_processes = set()
-            unique_clients = set()
-            for perm in perms:
-                if perm.startswith(prefix):
-                    parts = perm.split('.')
-                    client = parts[-2]
-                    proc = parts[-1]
-                    
-                    unique_clients.add(client)
-                    unique_processes.add(proc)
-            process_params = sorted(list(unique_processes))
-            client_params = sorted(list(unique_clients))
-        else:
-            if has_permission(f'{prefix}{process_name}'):
-                parts = process_name.split('.')
-                if len(parts) >= 2:
-                    client_params = [parts[0]]
-                    process_params = [parts[1]]
-        process_placeholders = ", ".join(["?"] * len(process_params))
-        client_placeholders = ", ".join(["?"] * len(client_params))
-        params = process_params + client_params
-        print(params)
-        print(process_placeholders)
-        print(client_placeholders)
-        return params, process_placeholders, client_placeholders
-    except Exception as e:
-        app.logger.error(f"Failed to prepare process selection: {e}")
-        raise
-    
 def _get_workitems_data(args):
     page = args.get('page', 1, type=int)
     search_term = args.get('search', '').strip()
@@ -1936,7 +2137,6 @@ def _get_workitems_data(args):
     per_page = 40
     offset = (page - 1) * per_page
     activityinstancesToIgnore = get_activityinstancesToIgnore()
-    
 
     process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
@@ -1952,7 +2152,6 @@ def _get_workitems_data(args):
         "twi.Status <> 2",
         f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
     ]
-    print(where_clauses)
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
     if status and status in status_map:
         where_clauses.append("twi.Status = ?")
@@ -2027,7 +2226,6 @@ def _get_workitems_data(args):
                             AND {time_filter}
                         )
                     """
-                    print(snippet, docvalue)
                     generated_checks.append(snippet)
                     params.append(f"%{docvalue}%")
 
@@ -3055,7 +3253,7 @@ def team_board():
         perms = session.get('permissions', [])
         prefix = "teamboard.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
@@ -3063,23 +3261,15 @@ def team_board():
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
-        placeholders, params = get_process_filter_and_params(process_name)
-        allowed_params = [
-            p for p in params
-            if has_permission(f'teamboard.filter.process.privera.{p}')
-        ]
-        placeholders = ", ".join(["?"] * len(allowed_params))
-        params = allowed_params
-        params.append('Privera')
-        
-        priority = request.args.get('priority', '')
+        params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
         activityinstancesToIgnore = get_activityinstancesToIgnore()
 
         where_clauses = [
-            f"tp.Name IN ({placeholders})",
-            "tp.ClientName = ?",
+            f"tp.Name IN ({process_placeholders})",
+            f"tp.ClientName IN ({client_placeholders})",
             f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
         ]
+        priority = request.args.get('priority', '')
 
         if priority:
             where_clauses.append("wim.Priority = ?")
@@ -3120,7 +3310,7 @@ def team_board():
                 LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
-            SELECT --Barcode,
+            SELECT
             WorkitemID,
             ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
             FROM BoardItems
@@ -3406,329 +3596,6 @@ def jdvance():
 
 # ---------------------------------- reports --------------------------------- #
 
-@app.route("/api/reports/processed_over_time")
-def report_processed_over_time():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-    params = allowed_params
-
-
-    conn = None
-    try:
-        conn = engineStatisticsDB.raw_connection()
-        cursor = conn.cursor()
-
-        rows = []
-        for param in params:
-            if param == '03_Invoice_New':
-                cursor.execute(f"""
-                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraInvoice
-                    where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
-                    group by CAST(ExportDate AS DATE)
-            """)
-            elif param == '02_Posteingang':
-                cursor.execute(f"""
-                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
-                    group by CONVERT(date, exportdatetime,104)
-            """)
-            elif param == '02_InitialScan':
-                cursor.execute(f"""
-                    select cast(Export as date) d, count(WorkitemID) c from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    where Export >= dateadd(day,-14,getdate())
-                    group by cast(Export as date)
-            """)
-            rows += cursor.fetchall()
-        rows.sort(key=lambda r: r.d)  
-        labels = [row.d for row in rows]
-        data = [row.c for row in rows]
-        return jsonify({'labels': labels, 'data': data})
-    except Exception as e:
-        app.logger.error(f"Failed to fetch processed_over_time report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/status_distribution")
-def report_status_distribution():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')
-    process_name = session['process_name_dashboard']
-
-    placeholders, params = get_process_filter_and_params(process_name)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1,5]
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    if not start_str and not end_str and set(status_codes)=={0,1,5}:
-        stats = get_absolute_dashboard_stats(process_name)
-        labels = ['Ready','In Progress','Done','Backlog']
-        data = [
-            stats.get('ReadyTotal',0),
-            stats.get('InProgressTotal',0),
-            stats.get('DoneTotal',0),
-            stats.get('BacklogTotal',0)
-        ]
-        return jsonify({'labels': labels, 'data': data})
-
-    date_sql = "1=1"
-    date_params = []
-    if start_str:
-        date_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
-        if not start_str:
-            date_params = []
-        date_params.append(datetime.fromisoformat(end_str))
-
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-        placeholders_status = ','.join(['?']*len(status_codes))
-        query = f"""
-            WITH Mapped AS (
-              SELECT
-                CASE WHEN twi.Status = 0 THEN 'Ready'
-                     WHEN twi.Status = 1 THEN 'In Progress'
-                     WHEN twi.Status = 5 THEN 'Done'
-                     ELSE 'Other' END as S
-              FROM t_WorkItems twi
-              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-              LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-              WHERE tp.Name IN ({placeholders})
-                AND tp.ClientName = ?
-                AND twi.Status IN ({placeholders_status})
-                AND {date_sql}
-                AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-            )
-            SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
-        """
-        cursor.execute(query, *(all_params + status_codes + date_params))
-        counts = {'Ready':0,'In Progress':0,'Done':0}
-        for s,c in cursor.fetchall():
-            counts[s] = c
-
-        stats_abs = get_absolute_dashboard_stats(process_name)
-
-        return jsonify({
-            'labels': ['Ready','In Progress','Done','Backlog'],
-            'data': [counts['Ready'], counts['In Progress'], counts['Done'], stats_abs.get('BacklogTotal',0)]
-        })
-    except Exception as e:
-        app.logger.error(f"Failed to fetch status_distribution report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/kpi_stats")
-def report_kpi_stats():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    conn = None
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        processed_today = 0
-        processed_week = 0
-        for param in params:
-            if param == '03_Invoice_New':
-                cursor.execute(f"""
-                    select count(*) from [{DB_STATISTICS}].dbo.PriveraInvoice
-                    where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select
-                            count(distinct i.wid)
-                            from [{DB_STATISTICS}].dbo.PriveraInvoice i
-                            WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                            AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
-                """)
-                processed_week += cursor.fetchone()[0]
-            elif param == '02_Posteingang':
-                cursor.execute(f"""
-                    select count(*) from [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select
-                        count(distinct P.WorkItemID)  
-                        from [{DB_STATISTICS}].dbo.PriveraPosteingang p
-                        WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
-                """)
-                processed_week += cursor.fetchone()[0]
-            elif param == '02_InitialScan':
-                cursor.execute(f"""
-                    select count(WorkitemID) from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    where cast(export as date) = cast(getdate() as date)
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select count(*)
-                        from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
-                    """)
-                processed_week += cursor.fetchone()[0]
-
-        cursor.execute(f"""
-            SELECT COUNT(*) FROM t_WorkItems w
-            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name IN ({placeholders}) AND p.ClientName = ? AND a.ActivityInstanceName = 'C+A';
-        """,all_params)
-        current_backlog = cursor.fetchone()[0]
-
-        return jsonify({
-            'processed_today': processed_today,
-            'processed_week': processed_week,
-            'current_backlog': current_backlog
-        })
-
-    except Exception as e:
-        app.logger.error(f"Failed to fetch kpi_stats report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/stage_breakdown")
-def report_stage_breakdown():
-    if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1]
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    date_sql = "1=1"
-    date_params = []
-    if start_str:
-        date_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
-        if not start_str:
-            date_params = []
-        date_params.append(datetime.fromisoformat(end_str))
-
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-
-        placeholders_status = ','.join(['?']*len(status_codes))
-        activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-        query = f"""
-           SELECT
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END AS Activity,
-                COUNT(twi.ID) as ItemCount
-            FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({placeholders})
-              AND tp.ClientName = ?
-              AND twi.Status IN ({placeholders_status})
-              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
-              AND {date_sql}
-              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-            GROUP BY
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END
-            ORDER BY ItemCount DESC;
-        """
-        cursor.execute(query, *(all_params + status_codes + date_params))
-
-        rows = cursor.fetchall()
-        labels = [row.Activity for row in rows]
-        data = [row.ItemCount for row in rows]
-        return jsonify({'labels': labels, 'data': data})
-    except Exception as e:
-        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 # -------------------------------- reports end ------------------------------- #
 
 # -------------------------------- bexio ------------------------------------- #
