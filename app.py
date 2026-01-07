@@ -140,8 +140,6 @@ OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
-BEXIO_PRIVERA_CLIENT_ID = os.environ.get("BEXIO_PRIVERA_CLIENT_ID")
-
 
 
 class PrefixMiddleware(object):
@@ -3594,15 +3592,39 @@ def jdvance():
     return render_template("jd/jdvance.html")
 # -------------------------------- jdvance end ------------------------------- #
 
-# ---------------------------------- reports --------------------------------- #
-
-# -------------------------------- reports end ------------------------------- #
-
 # -------------------------------- bexio ------------------------------------- #
+def get_allowed_client_details():
+    try:
+        perms = session.get('permissions', [])
+        prefix = "invoices.view."
+        allowed_names = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
-def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None):
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        clients = []
+        
+        for name in allowed_names:
+            cursor.execute('SELECT bexioClientId, ClientName FROM ClientInvoices WHERE ClientName = ?', (name,))
+            row = cursor.fetchone()
+            if row:
+                clients.append({'id': row[0], 'name': row[1]})
+        
+        return clients
+    except Exception as e:
+        app.logger.error(f"Error fetching client details: {e}")
+        return []
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None):
     url = "https://api.bexio.com/2.0/kb_invoice/search"
     accessToken = BEXIO_PAT
+    print(clientIds)
     if not accessToken:
         app.logger.error("BEXIO_PAT is not set.")
         return []
@@ -3611,47 +3633,48 @@ def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None)
         'Accept': "application/json",
         'Authorization': f"Bearer {accessToken}",
     }
+    all_invoices = []
+    for clientId in clientIds:
+        payload = [
+            {"field": "contact_id", "value": str(clientId), "criteria": "="},
+            {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
+            {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
+        ]
 
-    payload = [
-        {"field": "contact_id", "value": str(clientId), "criteria": "="},
-        {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
-        {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
-    ]
+        if search_nr:
+            payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
 
-    if search_nr:
-        payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response.raise_for_status()
+            invoices = response.json()
+            
+            if status:
+                status_map = {
+                    'Paid': [9],
+                    'Open': [8]
+                }
+                target_status_ids = status_map.get(status, [])
+                if target_status_ids:
+                    invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
 
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        response.raise_for_status()
-        invoices = response.json()
+            for inv in invoices:
+                inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
+                try:
+                    inv['total'] = f"{float(inv['total']):.2f}"
+                except (ValueError, TypeError):
+                    inv['total'] = "0.00"
+            all_invoices.extend(invoices)
 
-        if status:
-            status_map = {
-                'Paid': [9],
-                'Open': [8]
-            }
-            target_status_ids = status_map.get(status, [])
-            if target_status_ids:
-                invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
-
-        for inv in invoices:
-            inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
-            try:
-                inv['total'] = f"{float(inv['total']):.2f}"
-            except (ValueError, TypeError):
-                inv['total'] = "0.00"
-
-        return invoices
-
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Bexio API search failed: {e}")
-        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
-        return []
-    except json.JSONDecodeError:
-        app.logger.error(f"Bexio API returned invalid JSON.")
-        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
-        return []
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Bexio API search failed: {e}")
+            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+            return []
+        except json.JSONDecodeError:
+            app.logger.error(f"Bexio API returned invalid JSON.")
+            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
+            return []
+    return all_invoices
 
 def getBexioInvoicePDF(invoice_id):
     url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}/pdf"
@@ -3689,16 +3712,34 @@ def map_invoice_status(status_id):
     else:
         return {'text': _('Open'), 'color': 'blue'}
 
-def getBexioClientId():
-    clientId = None
-    if has_permission('invoices.view.privera'):
-        clientId = BEXIO_PRIVERA_CLIENT_ID
+def getBexioClientIds():
+    try:
+        perms = session.get('permissions', [])
+        prefix = "invoices.view."
+        allowed_client_invoice_views= sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
-    return clientId
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        clientIds = []
+        for aciv in allowed_client_invoice_views:
+            cursor.execute('SELECT bexioClientId FROM ClientInvoices WHERE ClientName = ?', aciv)
+            row = cursor.fetchone()
+            if row: clientIds.append(row[0])
+        return clientIds
+    except Exception as e:
+        print(e)
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 # -------------------------------- bexio end --------------------------------- #
 
 
 # ---------------------------------- invoices ---------------------------------- #
+
 @app.route("/invoices")
 @require_permission('invoices.view')
 def invoices():
@@ -3708,7 +3749,8 @@ def invoices():
 
         logged_in_user = session.get('username', 'Unknown')
         userid = session.get('userid', 'Unknown')
-
+        
+        clients = get_allowed_client_details()
         search_nr_perm = has_permission('invoices.filter.invoiceid')
         search_nr = request.args.get('search', '') if search_nr_perm else None
         status_perm = has_permission('invoices.filter.status')
@@ -3729,7 +3771,8 @@ def invoices():
                                ,search_nr_perm=search_nr_perm
                                ,status_perm=status_perm
                                ,date_perm=date_perm
-                               ,pageV=pageVisability())
+                               ,pageV=pageVisability(),
+                               clients=clients)
     except Exception as e:
         log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -3740,26 +3783,37 @@ def api_invoices():
     try:
         if 'username' not in session:
             return jsonify({"error": _("Not authorized")}), 401
-
+        
+        selected_client_id = request.args.get('client_id')
         search_nr = request.args.get('search', '') if has_permission('invoices.filter.invoiceid') else None
         status = request.args.get('status', '')  if has_permission('invoices.filter.status') else None
         dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
         dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else datetime.now().strftime('%Y-%m-%d')
 
-        bexio_client_id = getBexioClientId()
+        allowed_ids = getBexioClientIds()
+        target_ids = []
+        if selected_client_id:
+            try:
+                sel_id = int(selected_client_id)
+                if sel_id in allowed_ids:
+                    target_ids = [sel_id]
+                else:
+                    return jsonify([])
+            except ValueError:
+                target_ids = allowed_ids 
+        else:
+            target_ids = allowed_ids 
 
-        if not bexio_client_id:
-            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')}")
+        if not target_ids:
             return jsonify([])
 
         invoices_list = searchBexioInvoices(
-            clientId=bexio_client_id,
+            clientIds=target_ids,
             dateFrom=dateFrom,
             dateTo=dateTo,
             search_nr=search_nr,
             status=status
         )
-
 
         log_user_action('apiSearchInvoices', status='SUCCESS', resource_id='invoices', details={
             "filter_search": search_nr,
