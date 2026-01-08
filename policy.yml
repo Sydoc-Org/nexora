@@ -1,0 +1,8 @@
+on_http_request:
+  - name: "Block Bots and Crawlers"
+    expressions:
+      - "req.user_agent.name in ['Googlebot', 'Bingbot', 'ChatGPT-User', 'GPTBot', 'Bytespider']"
+    actions:
+      - type: deny
+        config:
+          status_code: 403

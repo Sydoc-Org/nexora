@@ -1,1 +1,1 @@
-ngrok http --domain=nexora.sydoc.ch --basic-auth="myuser:mypassword" 80
+ngrok http --url=nexora.sydoc.ch 80 --region=eu --traffic-policy-file="D:\sydoc\nexora\policy.yml"
