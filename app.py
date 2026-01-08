@@ -82,46 +82,46 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = False 
+app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+csp = {
+    'default-src': '\'self\'',
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://cdn.tailwindcss.com',   
+        'https://cdnjs.cloudflare.com',  
+        'https://cdn.jsdelivr.net'       
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://fonts.googleapis.com',  
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com',     
+        'https://cdnjs.cloudflare.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'blob:',                         
+        'https://cdn.tailwindcss.com'
+    ],
+    'connect-src': [
+        '\'self\'',                     
+        'https://cdn.tailwindcss.com',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ]
+}
+Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -465,26 +465,26 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        if UID_REQUEST == '123' and PWD_REQUEST == '123':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            username, fullname, email, org_code = row
+        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     username, fullname, email, org_code = row
 
-            session.clear() 
-            session['userid'] = "1019"
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['permissions'] = load_permissions_for_user("1019")
+        #     session.clear() 
+        #     session['userid'] = "1019"
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['permissions'] = load_permissions_for_user("1019")
             
-            log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
-            return redirect(url_for('dashboard'))
+        #     log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
+        #     return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
@@ -638,7 +638,7 @@ def admin_dashboard():
 
 
 @app.route("/admin/organizations")
-@require_permission('admin.view')
+@require_permission('admin.view.organizations')
 def admin_organizations_view():
     try:
         conn = engineNexoraDB.raw_connection()
@@ -759,7 +759,7 @@ def admin_delete_organization(organizationcode):
             conn.close()
 
 @app.route("/admin/users")
-@require_permission('admin.view')
+@require_permission('admin.view.users')
 def admin_users():
     conn = None
     try:
@@ -772,7 +772,19 @@ def admin_users():
             ORDER BY username
         """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap")
+
+        ap_query_base = "SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap "
+        cursor.execute(ap_query_base)
+        accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        ap_perm_true = []
+        for ap in accessprofiles:
+            if has_permission(f'admin.assign.user.accessprofile.{str(ap['profile']).lower()}'):
+                ap_perm_true.append(("'" + ap['profile'] + "'"))
+        print(ap_perm_true)
+        ap_query = ap_query_base +f" WHERE ap.Name IN ({', '.join(ap_perm_true)})"
+
+        cursor.execute(ap_query)
         accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
         cursor.execute("SELECT organizationcode, organization FROM Organizations")
@@ -789,12 +801,12 @@ def admin_users():
             conn.close()
 
 @app.route("/admin/logs")
-@require_permission('admin.view')
+@require_permission('admin.view.system.logs')
 def admin_logs_view():
     return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/api/admin/logs/search")
-@require_permission('admin.view')
+@require_permission('admin.view.system.logs')
 def api_admin_logs_search():
     username = request.args.get('username', '').strip()
     action_type = request.args.get('action_type', '').strip()
@@ -861,7 +873,7 @@ def api_admin_logs_search():
             conn.close()
 
 @app.route("/admin/sessions")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_sessions_view():
     return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
 
@@ -926,6 +938,11 @@ def admin_edit_user(user_id):
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission(f'admin.assign.user.accessprofile.{str(accessprofile).lower()}'):
+            app.logger.error(f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}")
+            log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"permissionError": f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"})
+            return jsonify({'success': False, 'message': _("Permission Denied for this action.")}), 403
+        
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
         cursor.execute("select organizationcode from organizations where organization = ?", organization)
@@ -1006,7 +1023,7 @@ def admin_delete_user(user_id):
             conn.close()
 
 @app.route("/api/admin/recent_logs")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_recent_logs():
     conn = None
     try:
@@ -1029,7 +1046,7 @@ def admin_recent_logs():
             conn.close()
 
 @app.route("/api/admin/active_sessions")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_active_sessions():
     conn = None
     try:
@@ -1057,11 +1074,9 @@ def admin_active_sessions():
         if conn:
             conn.close()
 
-
 # ----------------------------- Access Control ------------------------------ #
-
 @app.route("/admin/access_control")
-@require_permission('admin.view') 
+@require_permission('admin.view.accessprofiles.useroverrides') 
 def admin_access_control():
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1087,7 +1102,7 @@ def admin_access_control():
             conn.close()
 
 @app.route('/api/admin/users')
-@require_permission('admin.view')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_users_admin_access_control():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1122,7 +1137,7 @@ def get_users_admin_access_control():
             conn.close()
             
 @app.route("/api/admin/access_profile/<int:access_id>/details", methods=['GET'])
-@require_permission('admin.edit.user')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_profile_details(access_id):
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1143,7 +1158,7 @@ def get_profile_details(access_id):
             conn.close()
 
 @app.route("/api/admin/access_profile/save", methods=['POST'])
-@require_permission('admin.edit.user')
+@require_permission('admin.edit.accessprofile')
 def save_access_profile():
     data = request.get_json()
     access_id = data.get('accessId') 
@@ -1181,7 +1196,7 @@ def save_access_profile():
             conn.close()
 
 @app.route("/api/admin/user_overrides/<int:user_id>", methods=['GET'])
-@require_permission('admin.edit.user')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_user_overrides(user_id):
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1211,7 +1226,7 @@ def get_user_overrides(user_id):
             conn.close()
 
 @app.route("/api/admin/user_overrides/save", methods=['POST'])
-@require_permission('admin.edit.user')
+@require_permission('admin.edit.user.override')
 def save_user_overrides():
     data = request.get_json()
     user_id = data.get('userId')
@@ -2922,7 +2937,7 @@ def get_users_for_mentions():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         if has_permission('workitems.details.add.comment'):
-            if has_permission('admin.view.allusers'):
+            if has_permission('admin.interact.users.all'):
                 cursor.execute("""
                 SELECT userID, username, fullname FROM Users
                 """)
@@ -3368,7 +3383,7 @@ def get_all_portal_users(fromRequest, action):
         cursor = conn.cursor()
 
         if has_permission(f'{fromRequest}.{action}'):
-            if has_permission('admin.view.allusers'):
+            if has_permission('admin.interact.users.all'):
                 cursor.execute("""
                 SELECT userID, fullname FROM Users
                 """)
@@ -3863,7 +3878,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

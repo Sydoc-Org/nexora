@@ -1,74 +1,187 @@
 <script>
-        let currentPage = 1;
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    let currentPage = 1;
+    let fetchedLogsData = []; 
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
-        async function fetchLogs(page) {
-            currentPage = page;
-            const user = document.getElementById('filterUser').value;
-            const action = document.getElementById('filterAction').value;
-            const status = document.getElementById('filterStatus').value;
-            const start = document.getElementById('filterStart').value;
-            const end = document.getElementById('filterEnd').value;
+    async function fetchLogs(page) {
+        currentPage = page;
+        const user = document.getElementById('filterUser').value;
+        const action = document.getElementById('filterAction').value;
+        const status = document.getElementById('filterStatus').value;
+        const start = document.getElementById('filterStart').value;
+        const end = document.getElementById('filterEnd').value;
 
-            const tbody = document.getElementById('logsTableBody');
-            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin"></i> {{ _("Loading...") }}</td></tr>`;
+        const tbody = document.getElementById('logsTableBody');
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500"><i class="fas fa-circle-notch fa-spin text-indigo-500 mr-2"></i> {{ _("Loading logs...") }}</td></tr>`;
 
-            try {
-                const params = new URLSearchParams({
-                    page: page,
-                    username: user,
-                    action_type: action,
-                    status: status,
-                    start_date: start,
-                    end_date: end
-                });
+        try {
+            const params = new URLSearchParams({
+                page: page,
+                username: user,
+                action_type: action,
+                status: status,
+                start_date: start,
+                end_date: end
+            });
 
-                const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-                const data = await res.json();
+            const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken  
+                }
+            });
+            const data = await res.json();
 
-                tbody.innerHTML = '';
-                if(data.logs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center">{{ _("No logs found matching criteria.") }}</td></tr>`;
-                    return;
+            tbody.innerHTML = '';
+            fetchedLogsData = data.logs;
+
+            if (data.logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                <i class="fas fa-search text-3xl mb-3 opacity-50"></i>
+                                <span class="text-sm font-medium">{{ _("No logs found matching criteria.") }}</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                updatePagination(0, 1, 0);
+                return;
+            }
+
+            data.logs.forEach((log, index) => {
+                let statusBadge;
+                if(log.ActionStatus === 'SUCCESS') {
+                    statusBadge = `<span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"><i class="fas fa-check-circle mr-1.5"></i>Success</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"><i class="fas fa-exclamation-circle mr-1.5"></i>${log.ActionStatus}</span>`;
                 }
 
-                data.logs.forEach(log => {
-                    const statusClass = log.ActionStatus === 'SUCCESS' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
-                    let details = log.Details || '';
-                    // formatting json details if valid
-                    try { if(details && details !== 'NULL') details = JSON.stringify(JSON.parse(details), null, 2); } catch(e){}
+                let detailsPreview = log.Details || '';
+                let isJson = false;
+                try {
+                    const parsed = JSON.parse(detailsPreview);
+                    isJson = true;
+                    if(parsed && typeof parsed === 'object') {
+                        detailsPreview = JSON.stringify(parsed);
+                    }
+                } catch(e) {}
 
-                    const tr = document.createElement('tr');
-                    tr.className = "border-b hover:bg-gray-50";
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">${new Date(log.Timestamp).toLocaleString()}</td>
-                        <td class="px-6 py-4 font-medium text-gray-900">${log.Username}</td>
-                        <td class="px-6 py-4">${log.ActionType}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-bold rounded ${statusClass}">${log.ActionStatus}</span></td>
-                        <td class="px-6 py-4 text-xs">${log.IPAddress}</td>
-                        <td class="px-6 py-4 text-xs font-mono text-gray-500 truncate max-w-xs" title="${details}">${details.substring(0, 50)}${details.length>50?'...':''}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                const displayDetails = detailsPreview.length > 40 ? detailsPreview.substring(0, 40) + '...' : detailsPreview;
+                const dateObj = new Date(log.Timestamp);
+                const dateStr = dateObj.toLocaleDateString();
+                const timeStr = dateObj.toLocaleTimeString();
 
-                // Update Pagination
-                document.getElementById('pageInfo').innerText = `{{ _("Page") }} ${data.page} {{ _("of") }} ${data.pages} (${data.total} {{ _("total") }})`;
-                document.getElementById('prevBtn').disabled = data.page <= 1;
-                document.getElementById('nextBtn').disabled = data.page >= data.pages;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition duration-150 ease-in-out group";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
+                        <div class="font-medium text-gray-900">${dateStr}</div>
+                        <div class="text-gray-400">${timeStr}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs mr-2 font-bold">
+                                ${log.Username ? log.Username.charAt(0).toUpperCase() : '?'}
+                            </div>
+                            <span class="text-sm font-medium text-gray-900">${log.Username}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono text-xs">${log.ActionType}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">${log.IPAddress}</td>
+                    <td class="px-6 py-4 text-right whitespace-nowrap text-sm font-medium">
+                        <button onclick="openLogModal(${index})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded transition text-xs font-semibold">
+                            {{ _("View") }} <i class="fas fa-expand-alt ml-1"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">{{ _("Error loading logs.") }}</td></tr>`;
+            updatePagination(data.page, data.pages, data.total);
+
+        } catch(e) {
+            console.error(e);
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i> {{ _("Error loading logs.") }}</td></tr>`;
+        }
+    }
+
+    function updatePagination(page, pages, total) {
+        document.getElementById('pageInfo').innerText = `{{ _("Page") }} ${page} {{ _("of") }} ${pages} (${total} {{ _("total") }})`;
+        document.getElementById('prevBtn').disabled = page <= 1;
+        document.getElementById('nextBtn').disabled = page >= pages;
+    }
+
+    function changePage(delta) {
+        fetchLogs(currentPage + delta);
+    }
+
+    const modal = document.getElementById('logDetailsModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalPanel = document.getElementById('modalPanel');
+
+    function openLogModal(index) {
+        if (!fetchedLogsData[index]) return;
+        const log = fetchedLogsData[index];
+
+        document.getElementById('modalUser').textContent = log.Username;
+        document.getElementById('modalAction').textContent = log.ActionType;
+        document.getElementById('modalTime').textContent = new Date(log.Timestamp).toLocaleString();
+
+        const codeBlock = document.getElementById('modalCodeContent');
+        let formattedDetails = log.Details;
+
+        try {
+            if (log.Details && log.Details !== 'NULL') {
+                const jsonObj = JSON.parse(log.Details);
+                formattedDetails = JSON.stringify(jsonObj, null, 2); 
+            } else if (!log.Details || log.Details === 'NULL') {
+                formattedDetails = "{{ _('No additional details provided.') }}";
             }
+        } catch (e) {
+            formattedDetails = log.Details; 
         }
 
-        function changePage(delta) {
-            fetchLogs(currentPage + delta);
-        }
+        codeBlock.textContent = formattedDetails;
 
+        modal.classList.remove('hidden');
+        void modal.offsetWidth; 
         
-        fetchLogs(1);
-    </script>
+        modalBackdrop.classList.remove('opacity-0');
+        modalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+        modalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+    }
+
+    function closeLogModal() {
+        modalBackdrop.classList.add('opacity-0');
+        modalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+        modalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300); 
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('modalCodeContent').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            // Optional: Feedback, e.g., change button icon temporarily
+            const btn = document.querySelector('#modalPanel button i.fa-copy');
+            if(btn) {
+                btn.className = 'fas fa-check text-green-400';
+                setTimeout(() => btn.className = 'fas fa-copy', 2000);
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Escape" && !modal.classList.contains('hidden')) {
+            closeLogModal();
+        }
+    });
+
+    modalBackdrop.addEventListener('click', closeLogModal);
+
+    fetchLogs(1);
+</script>
