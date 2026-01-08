@@ -12,7 +12,10 @@
         let animationTimeouts = [];
         let mentionableUsers = [];
         let docValuesCache = [];
-
+        let fieldConfig = {
+            search_options: {},
+            labels: {}
+        };
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
 
@@ -469,7 +472,6 @@ function renderTagsInDetails(workitemId, tags) {
                     return;
                 }
 
-                // Load Collaboration Data
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
                     loadCollaborationData(workitemid); 
@@ -503,45 +505,13 @@ function renderTagsInDetails(workitemId, tags) {
 
                         if (fieldsContainer) {
                             if (Object.keys(fields).length > 0) {
-                                const fieldLabels = {
-                                    DocDate: '{{ _("Document Date") }}',
-                                    DocType: '{{ _("Document Type") }}',
-                                    DocBarcode: '{{ _("Document Barcode") }}',
-                                    OwnerNr: '{{ _("Owner no.") }}',
-                                    TenancyNr: '{{ _("Tenancy no.") }}',
-                                    Registered: "{{ _('Registered') }}",
-                                    PropertyNr: '{{ _("Property no.") }}',
-                                    PropertyName: '{{ _("Property Name") }}',
-                                    Branch: '{{ _("Branch") }}',
-                                    CrdName: '{{ _("Creditor Name") }}',
-                                    InvoiceNR: '{{ _("Invoice no.") }}',
-                                    CrdNo: '{{ _("Creditor no.") }}',
-                                    GrossAmount: '{{ _("Gross Amount") }}',
-                                    NetAmount: '{{ _("Net Amount") }}',
-                                    VatAmount: '{{ _("Vat Amount") }}',
-                                    Forwarding: "{{ _('Forwarding') }}",
-                                    Department: "{{ _('Department') }}",
-                                    Postcode: "{{ _('Postcode') }}",
-                                    IBAN: "IBAN",
-                                    Recipient: "{{ _('Recipient') }}",
-                                    Confidentiality: "{{ _('Confidentiality') }}",
-                                    BankPk: "Bank Pk",
-                                    DocCurrency: "{{ _('Document Currency') }}",
-                                    Tec: "Tec",
-                                    ESRReference: "ESR Reference",
-                                    OrderNumber: "{{ _('Order no.') }}",
-                                    Client: "{{ _('Client') }}",
-                                    DocSource: "{{ _('Document Source') }}",
-
-                                    SeparatorSheet: '{{ _("Separator-sheet") }}',
-                                    Registry: '{{ _("Registry") }}',
-                                    DocID: '{{ _("Document ID.") }}',
-                                    ArchiveBoxNo: '{{ _("Archive-box No.") }}'
-                                };
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                                
                                 for (const key in fields) {
                                     if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
-                                        const label = fieldLabels[key] || key;
+                                        const labelKey = key.toLowerCase();
+                                        const label = fieldConfig.labels[labelKey] || key; 
+                                        
                                         fieldsHtml += `
                                             <div class="py-2 flex justify-between items-center gap-4">
                                                 <dt class="text-gray-500 truncate">${label}</dt>
@@ -551,11 +521,11 @@ function renderTagsInDetails(workitemId, tags) {
                                 }
                                 fieldsHtml += '</dl>';
                                 fieldsContainer.innerHTML = fieldsHtml;
-                            } else {
+                            }
+                             else {
                                 fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                             }
                         }
-
                         if (imageContainer) {
                             imageContainer.dataset.loaded = 'true';
                             if (imageCount === 0) {
@@ -779,9 +749,13 @@ function renderTagsInDetails(workitemId, tags) {
             fetchMentionableUsers();
             fetchAllTags();
             fetchDocFieldValues();
+            fetchFieldConfig();
 
             const filterForm = document.getElementById('filterForm');
             const docFieldSel = document.getElementById('docFieldFilter');
+            if(docFieldSel) {
+                docFieldSel.setAttribute('data-selected', "{{ docfield or '' }}");
+            }
             const docValueInput = document.getElementById('docValueInput').blur();
             const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
             const advancedContainer = document.getElementById('advancedFilterContainer');
@@ -799,67 +773,53 @@ function renderTagsInDetails(workitemId, tags) {
                 });
             }
 
+            async function fetchFieldConfig() {
+                try {
+                    const res = await fetch(`${API_PREFIX}api/config/fields`, {
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    });
+                    if (!res.ok) throw new Error('Failed to fetch field config');
+                    
+                    const data = await res.json();
+                    fieldConfig = data;
 
+                    const process = document.getElementById('prcfW')?.value || 'all';
+                    document.querySelectorAll('.doc-filter-field').forEach(sel => {
+                        fillDocFieldSelect(sel, process);
+                    });
 
-            function getDocFieldOptions(process) {
-                if (process === '02_Posteingang') {
-                    return {
-                        order: ['doctype', 'docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'recipient', 'confidentiality'],
-                        labels: {
-                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}',ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
-                            propertynr: '{{ _("Property No.") }}', registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}',
-                            docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}', department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}'
-                            ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}'
-                        }
-                    };
+                } catch (e) {
+                    console.error("Error loading field config:", e);
                 }
-                if (process === '03_Invoice_New') {
-                    return {
-                        order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'propertynr', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
-                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource'
-                        ],
-                        labels: {
-                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
-                            bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', propertynr: '{{ _("Property no.") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
-                            invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
-                        }
-                    };
-                }
-                if (process === '02_InitialScan') {
-                    return {
-                        order: ['docbarcode', 'ownernr', 'tenancynr', 'propertynr', 'separatorsheet', 'docid', 'archiveboxno'],
-                        labels: {
-                            doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}',ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}',
-                            propertynr: '{{ _("Property No.") }}', separatorsheet: '{{ _("Separator-sheet") }}',
-                            docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
-                        }
-                    };
-                }
-                return {
-                    order: ['doctype', 'docbarcode', 'crdno', 'crdname', 'bankpk', 'ownernr', 'tenancynr', 'propertynr', 'registered', 'branch', 'docdate', 'forwarding', 'department', 'postcode', 'confidentiality', 'grossamount', 'netamount', 'vatamount', 'doccurrency', 
-                            ,'invoicenr', 'tec', 'esrreference', 'ordernumber', 'client', 'docsource',  'separatorsheet', 'docid', 'archiveboxno'],
-                    labels: {
-                        doctype: '{{ _("Document Type") }}', docbarcode: '{{ _("Document Barcode") }}', crdno: '{{ _("Creditor no.") }}', crdname: '{{ _("Creditor Name") }}',
-                        bankpk: 'Bank PK', ownernr: '{{ _("Owner no.") }}', tenancynr: '{{ _("Tenancy no.") }}', propertynr: '{{ _("Property no.") }}',
-                        registered: '{{ _("Registered") }}', branch: '{{ _("Branch") }}', docdate: '{{ _("Document Date") }}', forwarding: '{{ _("Forwarding") }}',
-                        department: '{{ _("Department") }}', postcode: '{{ _("Post Code no.") }}' ,recipient: '{{ _("Recipient") }}', confidentiality: '{{ _("Confidentiality") }}', grossamount: '{{ _("Gross Amount") }}', netamount: '{{ _("Net Amount") }}', vatamount: '{{ _("Vat Amount") }}', doccurrency: '{{ _("Document Currency") }}', 
-                            invoicenr: '{{ _("Invoice no.") }}', tec: 'Tec', esrreference: 'ESR Reference', ordernumber: '{{ _("Order no.") }}', client: '{{ _("Client") }}', docsource: '{{ _("Document Source") }}'
-                            , separatorsheet: '{{ _("Separator-sheet") }}',
-                            docid: '{{ _("Document ID.") }}', archiveboxno: '{{ _("Archive-box No.") }}'
-                    }
-                };
             }
 
             function fillDocFieldSelect(selectEl, process) {
-                const { order, labels } = getDocFieldOptions(process);
                 selectEl.innerHTML = '';
-                order.forEach(v => {
+                let fields = [];
+                
+                if (process === 'all') {
+                    const allFieldsMap = new Map();
+                    Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
+                    fields = Array.from(allFieldsMap.values()).sort((a,b) => a.label.localeCompare(b.label));
+                } else {
+                    fields = fieldConfig.search_options[process] || [];
+                }
+                const previousValue = selectEl.getAttribute('data-selected') || selectEl.value;
+                if (fields.length === 0) {
                     const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = labels[v] || v;
+                    opt.textContent = "{{ _('No fields available') }}";
                     selectEl.appendChild(opt);
-                });
+                } else {
+                    fields.forEach(field => {
+                        const opt = document.createElement('option');
+                        opt.value = field.value;
+                        opt.textContent = field.label;
+                        if (field.value === previousValue) opt.selected = true;
+                        selectEl.appendChild(opt);
+                    });
+                }
             }
+
 
             function addDocFilterRow() {
                 const tpl = document.getElementById('docFilterRowTemplate');

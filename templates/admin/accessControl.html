@@ -132,15 +132,6 @@
                                     <td class="px-6 py-4">
                                         <div class="font-medium text-gray-900">{{ perm.Code }}</div>
                                         <div class="text-xs text-gray-500">{{ perm.Description }}</div>
-                                        {% if perm.PermissionID in [17, 18, 20, 9, 10, 11] %}
-                                        <div class="text-[10px] text-blue-600 font-bold mt-1">
-                                            * Required Group (Atleast 1 must be Active)
-                                        </div>
-                                        {% elif perm.PermissionID in [59, 60, 61, 56, 57, 58, 34, 35, 36] %}
-                                        <div class="text-[10px] text-blue-600 font-bold mt-1">
-                                            * Required Group (Exactly 1 must be Active)
-                                        </div>
-                                        {% endif %}
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <input type="radio" name="perm_{{ perm.PermissionID }}" value="None" class="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 focus:ring-gray-500" checked>

@@ -140,8 +140,6 @@ OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
-BEXIO_PRIVERA_CLIENT_ID = os.environ.get("BEXIO_PRIVERA_CLIENT_ID")
-
 
 
 class PrefixMiddleware(object):
@@ -267,7 +265,6 @@ def load_permissions_for_user(user_id):
 
 def has_permission(code: str) -> bool:
     perms = set(session.get('permissions', []))
-    # print('requestedcode:',code,code in perms, '\n\n')
     return code in perms
 
 def require_permission(code):
@@ -337,7 +334,7 @@ def init_2FA():
                 
                 session.pop('temp_2fa_secret', None)
                 create_notification(user_id, _("2FA enabled successfully"), icon='fa-shield-halved')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('login'))
             except Exception as e:
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
@@ -350,7 +347,6 @@ def init_2FA():
         else:
             flash(_("Invalid code. Please try again."), "error")
             return redirect(url_for('init_2FA'))
-    
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
@@ -386,14 +382,18 @@ def verify_2fa():
             session['organizationcode'] = org_code
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
-            
+            pV = pageVisability()
             log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
-            return redirect(url_for('dashboard'))
+            if not pV['dashboardPagePerm']:
+                if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
+                elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
+                elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
+                elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
+                else: redirect(url_for('login')) 
+            return redirect(url_for('dashboard')) 
         else:
             flash(_("Invalid code"), "error")
             return render_template('verify_2fa.html')
-        
-
 
 @app.route('/init_reset')
 def init_reset():
@@ -464,7 +464,27 @@ def login():
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
-        REMEMBER = request.form.getlist('remember')
+        # DEV ONLY!!!
+        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     username, fullname, email, org_code = row
+
+        #     session.clear() 
+        #     session['userid'] = "1019"
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['permissions'] = load_permissions_for_user("1019")
+            
+        #     log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
+        #     return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
@@ -618,7 +638,7 @@ def admin_dashboard():
 
 
 @app.route("/admin/organizations")
-@require_permission('admin.view')
+@require_permission('admin.view.organizations')
 def admin_organizations_view():
     try:
         conn = engineNexoraDB.raw_connection()
@@ -654,7 +674,7 @@ def admin_add_organization():
     vowels = re.sub(r'[^AEIOU]', '', clean_name)
     code = (consonants + vowels)
     organizationcode = code[:4].ljust(4, 'X')
-
+    print(organizationcode,organization)
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
@@ -739,7 +759,7 @@ def admin_delete_organization(organizationcode):
             conn.close()
 
 @app.route("/admin/users")
-@require_permission('admin.view')
+@require_permission('admin.view.users')
 def admin_users():
     conn = None
     try:
@@ -752,7 +772,19 @@ def admin_users():
             ORDER BY username
         """)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap")
+
+        ap_query_base = "SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap "
+        cursor.execute(ap_query_base)
+        accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+
+        ap_perm_true = []
+        for ap in accessprofiles:
+            if has_permission(f'admin.assign.user.accessprofile.{str(ap['profile']).lower()}'):
+                ap_perm_true.append(("'" + ap['profile'] + "'"))
+        print(ap_perm_true)
+        ap_query = ap_query_base +f" WHERE ap.Name IN ({', '.join(ap_perm_true)})"
+
+        cursor.execute(ap_query)
         accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
         cursor.execute("SELECT organizationcode, organization FROM Organizations")
@@ -769,12 +801,12 @@ def admin_users():
             conn.close()
 
 @app.route("/admin/logs")
-@require_permission('admin.view')
+@require_permission('admin.view.system.logs')
 def admin_logs_view():
     return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
 
 @app.route("/api/admin/logs/search")
-@require_permission('admin.view')
+@require_permission('admin.view.system.logs')
 def api_admin_logs_search():
     username = request.args.get('username', '').strip()
     action_type = request.args.get('action_type', '').strip()
@@ -841,7 +873,7 @@ def api_admin_logs_search():
             conn.close()
 
 @app.route("/admin/sessions")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_sessions_view():
     return render_template("admin/sessions.html", logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
 
@@ -906,6 +938,11 @@ def admin_edit_user(user_id):
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission(f'admin.assign.user.accessprofile.{str(accessprofile).lower()}'):
+            app.logger.error(f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}")
+            log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"permissionError": f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"})
+            return jsonify({'success': False, 'message': _("Permission Denied for this action.")}), 403
+        
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
         cursor.execute("select organizationcode from organizations where organization = ?", organization)
@@ -986,7 +1023,7 @@ def admin_delete_user(user_id):
             conn.close()
 
 @app.route("/api/admin/recent_logs")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_recent_logs():
     conn = None
     try:
@@ -1009,7 +1046,7 @@ def admin_recent_logs():
             conn.close()
 
 @app.route("/api/admin/active_sessions")
-@require_permission('admin.view')
+@require_permission('admin.view.active.sessions')
 def admin_active_sessions():
     conn = None
     try:
@@ -1037,11 +1074,9 @@ def admin_active_sessions():
         if conn:
             conn.close()
 
-
 # ----------------------------- Access Control ------------------------------ #
-
 @app.route("/admin/access_control")
-@require_permission('admin.view') 
+@require_permission('admin.view.accessprofiles.useroverrides') 
 def admin_access_control():
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1067,7 +1102,7 @@ def admin_access_control():
             conn.close()
 
 @app.route('/api/admin/users')
-@require_permission('admin.view')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_users_admin_access_control():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1102,7 +1137,7 @@ def get_users_admin_access_control():
             conn.close()
             
 @app.route("/api/admin/access_profile/<int:access_id>/details", methods=['GET'])
-@require_permission('admin.edit.user')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_profile_details(access_id):
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1123,7 +1158,7 @@ def get_profile_details(access_id):
             conn.close()
 
 @app.route("/api/admin/access_profile/save", methods=['POST'])
-@require_permission('admin.edit.user')
+@require_permission('admin.edit.accessprofile')
 def save_access_profile():
     data = request.get_json()
     access_id = data.get('accessId') 
@@ -1161,7 +1196,7 @@ def save_access_profile():
             conn.close()
 
 @app.route("/api/admin/user_overrides/<int:user_id>", methods=['GET'])
-@require_permission('admin.edit.user')
+@require_permission('admin.view.accessprofiles.useroverrides')
 def get_user_overrides(user_id):
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1191,7 +1226,7 @@ def get_user_overrides(user_id):
             conn.close()
 
 @app.route("/api/admin/user_overrides/save", methods=['POST'])
-@require_permission('admin.edit.user')
+@require_permission('admin.edit.user.override')
 def save_user_overrides():
     data = request.get_json()
     user_id = data.get('userId')
@@ -1487,6 +1522,51 @@ def request_password_reset():
             conn.close()
 # ---------------------------- forgot password end --------------------------- #
 
+def prepare_process_selection_sql(prefix,process_name):
+    try:
+        perms = session.get('permissions', [])
+        process_params = []
+        client_params = []
+        if process_name == 'all':
+            unique_processes = set()
+            unique_clients = set()
+            for perm in perms:
+                if perm.startswith(prefix):
+                    parts = perm.split('.')
+                    client = parts[-2]
+                    proc = parts[-1]
+                    
+                    unique_clients.add(client)
+                    unique_processes.add(proc)
+            process_params = sorted(list(unique_processes))
+            client_params = sorted(list(unique_clients))
+        else:
+            if has_permission(f'{prefix}{process_name}'):
+                parts = process_name.split('.')
+                if len(parts) >= 2:
+                    client_params = [parts[0]]
+                    process_params = [parts[1]]
+        process_placeholders = ", ".join(["?"] * len(process_params))
+        client_placeholders = ", ".join(["?"] * len(client_params))
+        params = process_params + client_params
+        return params, process_placeholders, client_placeholders
+    except Exception as e:
+        app.logger.error(f"Failed to prepare process selection: {e}")
+        raise
+
+def get_activityinstancesToIgnore():
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore')
+        rows = cursor.fetchall()
+        return ', '.join("'"+row.ActivityInstanceName+"'" for row in rows)
+    except Exception as e:
+        print(e)
+    finally:
+        if conn: conn.close()
+        if cursor: cursor.close()
+
 # ------------------------------ process filter ------------------------------ #
 def get_process_filter_and_params(process_name):
     if process_name == '02_Posteingang':
@@ -1499,26 +1579,244 @@ def get_process_filter_and_params(process_name):
         return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
 # ---------------------------- process filter end ---------------------------- #
 
+def build_stat_query(proc):
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        query = 'SELECT TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName = ?'
+        cursor.execute(query, proc)
+        return cursor.fetchone()
+    except Exception as e:
+        print(e)
+    finally:
+        if conn: conn.close()
+        if cursor: cursor.close()
 # --------------------------------- dashboard -------------------------------- #
+
+@app.route("/api/reports/processed_over_time")
+def report_processed_over_time():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session['process_name_dashboard']
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+    
+    queries = []
+    ap = allowed_processes if process_name == 'all' else [process_name]
+
+    for proc in ap:
+        row = build_stat_query(proc)
+        buildStatQuery = "SELECT"
+        convert = True if 'convert' in str(row.ExportColumn).lower() else False
+        buildStatQuery += f" {row.ExportColumn} d, " if convert else f" CAST({row.ExportColumn} AS DATE) d, "
+
+        buildStatQuery += f"""
+        count(*) c FROM [{DB_STATISTICS}].{row.TableName}
+        WHERE {row.ExportColumn} >= dateadd(day,-14,getdate()) 
+        """
+        if row.additionalCondition:
+            buildStatQuery += f' {row.additionalCondition} '
+        buildStatQuery += f' group by {row.ExportColumn} ' if convert else f' group by CAST({row.ExportColumn} AS DATE)'
+        queries.append(buildStatQuery)
+
+    conn = None
+    try:
+        conn = engineStatisticsDB.raw_connection()
+        cursor = conn.cursor()
+
+        rows = []
+        for query in queries:
+            cursor.execute(query)
+            rows += cursor.fetchall()
+        rows.sort(key=lambda r: r.d)  
+        labels = [row.d for row in rows]
+        data = [row.c for row in rows]
+        return jsonify({'labels': labels, 'data': data})
+    except Exception as e:
+        app.logger.error(f"Failed to fetch processed_over_time report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route("/api/reports/status_distribution")
+def report_status_distribution():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    try:
+        process_name = session['process_name_dashboard']
+        stats_abs = get_absolute_dashboard_stats(process_name)
+
+        return jsonify({
+            'labels': ['Ready','In Progress','Done','Backlog'],
+            'data': [stats_abs.get('ReadyTotal',0), stats_abs.get('InProgressTotal',0), stats_abs.get('DoneTotal',0), stats_abs.get('BacklogTotal',0)]
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to fetch status_distribution report: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reports/kpi_stats")
+def report_kpi_stats():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+
+    prefix = "dashboard.filter.process."
+    perms = session.get('permissions', [])
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session['process_name_dashboard']
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+
+    processed_today_queries = []
+    processed_week_queries = []
+    ap = allowed_processes if process_name == 'all' else [process_name]
+    for proc in ap:
+        row = build_stat_query(proc)
+        buildStatQuery_base = f"SELECT count(*) FROM [{DB_STATISTICS}].{row.TableName} WHERE "
+        convert = True if 'convert' in str(row.ExportColumn).lower() else False
+        buildStatQuery_today = buildStatQuery_base +  f' {row.ExportColumn} = CAST(GETDATE() AS DATE) ' if convert else buildStatQuery_base + f' CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) '
+        buildStatQuery_week = buildStatQuery_base + f"""
+            {row.ExportColumn} >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+            AND {row.ExportColumn} < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) 
+        """
+        if row.additionalCondition:
+            buildStatQuery_today += f' {row.additionalCondition} '
+            buildStatQuery_week += f' {row.additionalCondition} '
+        processed_today_queries.append(buildStatQuery_today)
+        processed_week_queries.append(buildStatQuery_week)
+
+    try:
+        conn = engineStatisticsDB.raw_connection()
+        cursor = conn.cursor()
+        processed_today = 0
+        processed_week = 0
+        
+        for i in range(len(processed_today_queries)):
+            cursor.execute(processed_today_queries[i])
+            processed_today += cursor.fetchone()[0]
+            cursor.execute(processed_week_queries[i])
+            processed_week += cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM t_WorkItems w
+            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+            LEFT JOIN t_Processes p on p.id = a.ProcessID
+            WHERE p.Name IN ({process_placeholders}) AND p.ClientName IN ({client_placeholders}) AND a.ActivityInstanceName = 'C+A';
+        """,params)
+        current_backlog = cursor.fetchone()[0]
+
+        return jsonify({
+            'processed_today': processed_today,
+            'processed_week': processed_week,
+            'current_backlog': current_backlog
+        })
+
+    except Exception as e:
+        app.logger.error(f"Failed to fetch kpi_stats report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route("/api/reports/stage_breakdown")
+def report_stage_breakdown():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    
+    prefix = "dashboard.filter.process."
+    process_name = session['process_name_dashboard']
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
+
+    conn = None
+    try:
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+
+        query = f"""
+           SELECT
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END AS Activity,
+                COUNT(twi.ID) as ItemCount
+            FROM t_WorkItems twi
+            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE tp.Name IN ({process_placeholders})
+              AND tp.ClientName IN ({client_placeholders})
+              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
+              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+            GROUP BY
+                CASE
+                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
+                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
+                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
+                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
+                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
+                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
+                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
+                    ELSE 'Processing'
+                END
+            ORDER BY ItemCount DESC;
+        """
+        cursor.execute(query, params)
+
+        rows = cursor.fetchall()
+        labels = [row.Activity for row in rows]
+        data = [row.ItemCount for row in rows]
+        return jsonify({'labels': labels, 'data': data})
+    except Exception as e:
+        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def get_absolute_dashboard_stats(processName="all"):
     stats = {}
     conn = None
 
-    placeholders, params = get_process_filter_and_params(processName)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
 
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
     try:
-        all_params = params + ['Privera'] + params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            f"""
+        query = f"""
             WITH AllStatuses
             AS (SELECT 0 AS StatusCode,
                     'Ready' AS StatusName
@@ -1537,22 +1835,9 @@ def get_absolute_dashboard_stats(processName="all"):
                         on a.id = w.ActivityInstanceID
                     LEFT JOIN t_Processes p
                         on p.id = a.ProcessID
-                WHERE p.Name IN ({placeholders})
-                    AND p.ClientName = ?
-                    AND a.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+                WHERE p.Name IN ({process_placeholders})
+                    AND p.ClientName IN ({client_placeholders})
+                    AND a.ActivityInstanceName not in ({activityinstancesToIgnore})
                 GROUP BY w.[Status]
             )
             SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
@@ -1560,7 +1845,14 @@ def get_absolute_dashboard_stats(processName="all"):
             FROM AllStatuses s
                 LEFT JOIN ActualCounts ac
                     ON s.StatusCode = ac.Status
-            UNION ALL
+            """
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        stats['ReadyTotal'] = rows[0][0]
+        stats['InProgressTotal'] = rows[1][0]
+        stats['DoneTotal'] = rows[2][0]
+
+        query = f"""
             SELECT COUNT(*),
                 'Backlog'
             FROM t_WorkItems w
@@ -1568,16 +1860,13 @@ def get_absolute_dashboard_stats(processName="all"):
                     on a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p
                     on p.id = a.ProcessID
-            WHERE p.Name IN ({placeholders})
-                AND p.ClientName = ?
+            WHERE p.Name IN ({process_placeholders})
+                AND p.ClientName IN ({client_placeholders})
                 AND a.ActivityInstanceName = 'C+A';
-            """, all_params
-        )
-        rows = cursor.fetchall()
-        stats['ReadyTotal'] = rows[0][0]
-        stats['InProgressTotal'] = rows[1][0]
-        stats['DoneTotal'] = rows[2][0]
-        stats['BacklogTotal'] = rows[3][0]
+        """
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        stats['BacklogTotal'] = row[0]
     except Exception as e:
         print(e)
     finally:
@@ -1590,19 +1879,15 @@ def get_absolute_dashboard_stats(processName="all"):
 def get_dashbord_preview_documents_stats(processName='all'):
     stats = {}
     conn = None
-    placeholders, params = get_process_filter_and_params(processName)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
 
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
+
     try:
-        all_params = params + ['Privera']
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(f"""
+        query = f"""
             WITH CTE AS (
             SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt,
             CASE
@@ -1633,29 +1918,16 @@ def get_dashbord_preview_documents_stats(processName='all'):
             FROM t_WorkItems twi
             LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-            AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+            WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
+            AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
         )
         SELECT DISTINCT TOP 20
         WorkItemID
         ,Activity FROM CTE
         WHERE
         CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-            """, (all_params)
-        )
+        """
+        cursor.execute(query, (params))
         rows = cursor.fetchall()
     except Exception as e:
         print(e)
@@ -1684,13 +1956,12 @@ def dashboard():
 
         prefix = "dashboard.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
 
         process_name = request.args.get('prcfD', 'all')
-
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
@@ -1739,23 +2010,16 @@ def recent_activity():
     if 'username' not in session:
         return jsonify({"error": _("Not logged in")}), 401
 
-    limit = request.args.get('limit', 10, type=int)
 
-    placeholders, params = get_process_filter_and_params(session.get('process_name_dashboard', 'all'))
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
+    prefix = "dashboard.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=session.get('process_name_dashboard', 'all'))
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(f"""
-            WITH CTE AS (
+        query = f"""
+        WITH CTE AS (
                 SELECT
                     twi.ID WorkItemID,
                     DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt,
@@ -1767,28 +2031,17 @@ def recent_activity():
                 FROM t_WorkItems twi
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE tp.Name IN ({placeholders}) AND tp.ClientName = ?
-                AND twi.Status <> 2 AND tai.ActivityInstanceName not in (
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
+                WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
+                AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             )
-            SELECT DISTINCT TOP ({limit})
+            SELECT DISTINCT TOP 10
                 CTE.WorkItemID,
                 CTE.Status,
                 CTE.ModifiedAt
             FROM CTE
             ORDER BY CTE.ModifiedAt DESC
         """
-        ,all_params)
+        cursor.execute(query,params)
         activities = cursor.fetchall()
 
         return jsonify([
@@ -1810,6 +2063,82 @@ def recent_activity():
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
+@app.route('/api/config/fields')
+def api_config_fields():
+    if 'username' not in session:
+        return jsonify({}), 401
+
+    labels_map = {
+        'doctype': _("Document Type"),
+        'docbarcode': _("Document Barcode"),
+        'ownernr': _("Owner no."),
+        'tenancynr': _("Tenancy no."),
+        'propertynr': _("Property no."),
+        'registered': _("Registered"),
+        'branch': _("Branch"),
+        'docdate': _("Document Date"),
+        'forwarding': _("Forwarding"),
+        'department': _("Department"),
+        'postcode': _("Postcode"),
+        'recipient': _("Recipient"),
+        'confidentiality': _("Confidentiality"),
+        'crdno': _("Creditor no."),
+        'crdname': _("Creditor Name"),
+        'bankpk': "Bank PK",
+        'grossamount': _("Gross Amount"),
+        'netamount': _("Net Amount"),
+        'vatamount': _("Vat Amount"),
+        'doccurrency': _("Document Currency"),
+        'invoicenr': _("Invoice no."),
+        'tec': "Tec",
+        'esrreference': "ESR Reference",
+        'ordernumber': _("Order no."),
+        'client': _("Client"),
+        'docsource': _("Document Source"),
+        'separatorsheet': _("Separator-sheet"),
+        'docid': _("Document ID"),
+        'archiveboxno': _("Archive-box No."),
+        'docno': _("Document No.")
+    }
+
+    search_options = {}
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
+        cols = [c[0] for c in cursor.description if c[0].startswith('col_')]
+        
+        query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            proc_name = row.ProcessName
+            fields = []
+            for i, col_name in enumerate(cols):
+                if row[i+1]: 
+                    field_key = col_name.replace('col_', '')
+                    if field_key in labels_map:
+                        fields.append({
+                            'value': field_key,
+                            'label': labels_map[field_key]
+                        })
+            fields.sort(key=lambda x: x['label'])
+            search_options[proc_name] = fields
+            
+    except Exception as e:
+        app.logger.error(f"Error fetching field config: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    return jsonify({
+        'search_options': search_options,
+        'labels': labels_map
+    })
+
 def _get_workitems_data(args):
     page = args.get('page', 1, type=int)
     search_term = args.get('search', '').strip()
@@ -1823,40 +2152,21 @@ def _get_workitems_data(args):
     assigned_user = args.get('assignedUser', '')
     per_page = 40
     offset = (page - 1) * per_page
+    activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
-    placeholders, params = get_process_filter_and_params(process_name)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'workitems.filter.process.privera.{p}')
-    ]
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-
-    params.append('Privera')
+    prefix = "workitems.filter.process."
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
 
     docfields = args.getlist('docfield')
     docvalues = args.getlist('docvalue')
 
     where_clauses = [
-        f"tp.Name IN ({placeholders})",
-        "tp.ClientName = ?",
+        f"tp.Name IN ({process_placeholders})",
+        f"tp.ClientName IN ({client_placeholders})",
         "twi.Status <> 2",
-        """tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-        )"""
+        f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
     ]
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
     if status and status in status_map:
@@ -1896,141 +2206,54 @@ def _get_workitems_data(args):
         for docfield, docvalue in zip(docfields, docvalues):
             docfield = (docfield or '').lower().strip()
             docvalue = (docvalue or '').strip()
+            conn_nex = engineNexoraDB.raw_connection()
+            cursor_nex = conn_nex.cursor()
+
             if not docvalue or not docfield:
                 continue
 
-            if docfield == 'doctype':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) ")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.DocType COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'docbarcode':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.barcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.barcode COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Barcode LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'crdno':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.CRD_NR COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'crdname':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'bankpk':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND BankPK COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'grossamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND GrossAmount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'netamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND netamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'vatamount':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND vatamount COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"{docvalue}%")
-            elif docfield == 'doccurrency':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND doccurrency COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'invoicenr':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND invoicenr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'tec':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND istec LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'esrreference':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND esr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'ordernumber':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND bestellnummer COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'client':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND mandant COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'docsource':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND docsource COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'ownernr':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ? AND i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'tenancynr':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID_Miet LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%"])
-            elif docfield == 'registered':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Einschreiben COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'branch':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Niederlassung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'docdate':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Dokdatum COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'forwarding':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Nachsendung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'department':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Abteilung COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'postcode':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'recipient':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Empfaenger COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'confidentiality':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'propertynr':
-                if process_name == '02_Posteingang':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '03_Invoice_New':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                elif process_name == '02_InitialScan':
-                    where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                    params.append(f"%{docvalue}%")
-                else:
-                    where_clauses.append(f"(EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraPosteingang p WHERE p.WorkitemID = twi.id AND p.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? AND CONVERT(DATE, ImportDatetime, 104) > DATEADD(MONTH,-6,GETDATE())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInvoice i WHERE i.wid = twi.id AND i.LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ? and i.ImportTime > dateadd(MONTH,-6,getdate())) OR EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Liegenschaftsnummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate())))")
-                    params.extend([f"%{docvalue}%", f"%{docvalue}%",f"%{docvalue}%"])
-            elif docfield == 'separatorsheet':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.Trennblatt LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'docid':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ID LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
-            elif docfield == 'archiveboxno':
-                where_clauses.append(f"EXISTS (SELECT 1 FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge n WHERE n.WorkitemID - 5100000000 = twi.id AND n.ArchivBoxNummer LIKE ? and n.Export > dateadd(MONTH,-6,getdate()))")
-                params.append(f"%{docvalue}%")
+            target_config_col = f'col_{docfield}'
 
+            if target_config_col:
+                query = f"SELECT * FROM SearchConfig WHERE {target_config_col} IS NOT NULL"
+                sql_params = []
+                
+                if process_name != 'all':
+                    query += " AND ProcessName = ?"
+                    sql_params.append(process_name)
+                    
+                configs = cursor_nex.execute(query, sql_params).fetchall()
+                
+                generated_checks = []
+                
+                for config in configs:
+                    tbl = config.TableName
+                    alias = config.TableAlias
+                    join_cond = config.JoinCondition
+                    time_filter = config.TimeFilter
+                    db_column = getattr(config, target_config_col) 
+
+                    snippet = f"""
+                        EXISTS (
+                            SELECT 1 
+                            FROM [{DB_STATISTICS}].{tbl} {alias} 
+                            WHERE {join_cond} 
+                            AND {alias}.{db_column} COLLATE DATABASE_DEFAULT LIKE ? 
+                            AND {time_filter}
+                        )
+                    """
+                    generated_checks.append(snippet)
+                    params.append(f"%{docvalue}%")
+
+                if generated_checks:
+                    combined_clause = " OR ".join(generated_checks)
+                    where_clauses.append(f"({combined_clause})")
+
+            else:
+                pass
+            conn_nex.close()
+            cursor_nex.close()
+            
     where_sql = " AND ".join(where_clauses)
     
     workitems_list = []
@@ -2128,633 +2351,56 @@ def api_docfield_values():
     process = request.args.get('process', 'all')
     field = (request.args.get('field', '') or '').lower().strip()
     q = (request.args.get('q', '') or '').strip()
-
+    if not field:
+        return jsonify([]) 
+    target_col_name = f'col_{field}'
     conn = None
     try:
-        conn = engineStatisticsDB.raw_connection()
+        conn = engineNexoraDB.raw_connection()
         cur = conn.cursor()
 
-        params = []
-        if field == 'doctype':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " AND Dokumenttyp COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        query = f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL"
+        db_params = []
+        if process != 'all':
+            query += " AND ProcessName = ?"
+            db_params.append(process)
 
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 DocType COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE DocType is not null and DocType <> ''
-                    and ImportTime >= DATEADD(day,-7,getdate())
-                """
-                if q:
-                    sql += " and DocType COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
+        configs = cur.execute(query, db_params).fetchall()
 
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT Dokumenttyp COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE Dokumenttyp is not null and Dokumenttyp <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-                        SELECT DocType COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE DocType is not null and DocType <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-                    ) t
-                """
-                if q:
-                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-        elif field == 'docbarcode':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE Barcode is not null and Barcode <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " AND Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE Barcode is not null and Barcode <> ''
-                    and ImportTime >= DATEADD(day,-3,getdate())
-                """
-                if q:
-                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-            elif process == '02_InitialScan':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Barcode COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Barcode is not null and Barcode <> ''
-                    and Export >= DATEADD(MONTH, -6, getdate())
-                """
-                if q:
-                    sql += " and Barcode COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE Barcode is not null and Barcode <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE Barcode is not null and Barcode <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-
-                        UNION ALL
-
-                        SELECT Barcode COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Barcode is not null and Barcode <> ''
-                        and Export >= DATEADD(MONTH, -6, getdate())
-                    ) t
-                """
-                if q:
-                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-
-        elif field == 'crdno':
-            sql = f"""
-                SELECT DISTINCT TOP 15 CRD_NR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE CRD_NR is not null and CRD_NR <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and CRD_NR COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'crdname':
-            sql = f"""
-                SELECT DISTINCT TOP 15 CRD_NAME_1 COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE CRD_NAME_1 is not null and CRD_NAME_1 <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and CRD_NAME_1 COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'bankpk':
-            sql = f"""
-                SELECT DISTINCT TOP 15 bankpk COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE bankpk is not null and bankpk <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and bankpk COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'grossamount':
-            sql = f"""
-                SELECT DISTINCT TOP 15 convert(float,GrossAmount) AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE grossamount is not null and grossamount <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and grossamount COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'netamount':
-            sql = f"""
-                SELECT DISTINCT TOP 15 convert(float,netamount) AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE netamount is not null and netamount <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and netamount COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'vatamount':
-            sql = f"""
-                SELECT DISTINCT TOP 15 convert(float,vatamount) AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE vatamount is not null and vatamount <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and vatamount COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'doccurrency':
-            sql = f"""
-                SELECT DISTINCT TOP 15 DocCurrency COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE DocCurrency is not null and DocCurrency <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and DocCurrency COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'invoicenr':
-            sql = f"""
-                SELECT DISTINCT TOP 15 InvoiceNR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE InvoiceNR is not null and InvoiceNR <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and InvoiceNR COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'tec':
-            sql = f"""
-                SELECT DISTINCT TOP 15 ISTEC AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE ISTEC is not null
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and ISTEC LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'esrreference':
-            sql = f"""
-                SELECT DISTINCT TOP 15 ESR COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE ESR is not null and ESR <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and ESR COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'ordernumber':
-            sql = f"""
-                SELECT DISTINCT TOP 15 BestellNummer COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE BestellNummer is not null and BestellNummer <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and BestellNummer COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'client':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Mandant COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE Mandant is not null and Mandant <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and Mandant COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'docsource':
-            sql = f"""
-                SELECT DISTINCT TOP 15 docsource COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                WHERE docsource is not null and docsource <> ''
-                and ImportTime >= DATEADD(day,-3,getdate())
-            """
-            if q:
-                sql += " and docsource COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'ownernr':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " and EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '02_InitialScan':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
-                    and Export >= DATEADD(MONTH, -6, getdate())
-                """
-                if q:
-                    sql += " and Eigentuemernummer COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                    and ImportTime >= DATEADD(day,-3,getdate())
-                """
-                if q:
-                    sql += " and EigentuemerNr COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-
-                        SELECT Eigentuemernummer COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Eigentuemernummer is not null and Eigentuemernummer <> ''
-                        and Export >= DATEADD(MONTH, -6, getdate())
-
-                        UNION ALL
-
-                        SELECT EigentuemerNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE EigentuemerNr is not null and EigentuemerNr <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-                    ) t
-                """
-                if q:
-                    sql += " where Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-        elif field == 'tenancynr':
-
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " AND MietverhaeltnisNr COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '02_InitialScan':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE ID_Miet is not null and ID_Miet <> ''
-                    and Export >= DATEADD(MONTH, -6, getdate())
-                """
-                if q:
-                    sql += " and ID_Miet COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT DISTINCT TOP 15 MietverhaeltnisNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE MietverhaeltnisNr is not null and MietverhaeltnisNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-
-                        SELECT DISTINCT TOP 15 ID_Miet COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE ID_Miet is not null and ID_Miet <> ''
-                        and Export >= DATEADD(MONTH, -6, getdate())
-                    ) t
-                """
-                if q:
-                    sql += " where Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-        elif field == 'registered':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Einschreiben COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Einschreiben is not null and Einschreiben <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Einschreiben COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'branch':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Niederlassung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Niederlassung is not null and Niederlassung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Niederlassung COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'docdate':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Dokdatum COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Dokdatum is not null and Dokdatum <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Dokdatum COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'forwarding':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Nachsendung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Nachsendung is not null and Nachsendung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Nachsendung COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'department':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Abteilung COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Abteilung is not null and Abteilung <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Abteilung COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'postcode':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Sendungsbarcode COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Sendungsbarcode is not null and Sendungsbarcode <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Sendungsbarcode COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'confidentiality':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Vertraulichkeit COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Vertraulichkeit is not null and Vertraulichkeit <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Vertraulichkeit COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'recipient':
-            sql = f"""
-                SELECT DISTINCT TOP 15 Empfaenger COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                WHERE Empfaenger is not null and Empfaenger <> ''
-                and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-            """
-            if q:
-                sql += " and Empfaenger COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'propertynr':
-            if process == '02_Posteingang':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                    and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-                """
-                if q:
-                    sql += " and LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '03_Invoice_New':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                    WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                    and ImportTime >= DATEADD(day,-3,getdate())
-                """
-                if q:
-                    sql += " and LiegenschaftsNr COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            elif process == '02_InitialScan':
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
-                    FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
-                    and Export >= DATEADD(MONTH, -6, getdate())
-                """
-                if q:
-                    sql += " and Liegenschaftsnummer LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-            else:
-                sql = f"""
-                    SELECT DISTINCT TOP 15 Val FROM (
-                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraPosteingang
-                        WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                        and convert(date, ImportDatetime, 104) >= DATEADD(day, -7, getdate())
-
-                        UNION ALL
-                        SELECT DISTINCT TOP 15 LiegenschaftsNr COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInvoice
-                        WHERE LiegenschaftsNr is not null and LiegenschaftsNr <> ''
-                        and ImportTime >= DATEADD(day,-3,getdate())
-
-                        union all
-
-                        SELECT DISTINCT TOP 15 Liegenschaftsnummer AS Val
-                        FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Liegenschaftsnummer is not null and Liegenschaftsnummer <> ''
-                        and Export >= DATEADD(MONTH, -6, getdate())
-                    ) t
-                """
-                if q:
-                    sql += " WHERE Val COLLATE DATABASE_DEFAULT LIKE ?"
-                    params.append(f"%{q}%")
-                sql += " ORDER BY Val"
-                cur.execute(sql, params)
-
-        elif field == 'separatorsheet':
-            sql = f"""
-                SELECT DISTINCT TOP 15 trennblatt COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                WHERE trennblatt is not null and trennblatt <> ''
-                and Export >= DATEADD(MONTH, -6, getdate())
-            """
-            if q:
-                sql += " and trennblatt COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'docid':
-            sql = f"""
-                SELECT DISTINCT TOP 15 ID COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                WHERE ID is not null and ID <> ''
-                and Export >= DATEADD(MONTH, -6, getdate())
-            """
-            if q:
-                sql += " and ID COLLATE DATABASE_DEFAULT LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-
-        elif field == 'archiveboxno':
-            sql = f"""
-                SELECT DISTINCT TOP 15 ArchivBoxNummer AS Val
-                FROM [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                WHERE ArchivBoxNummer is not null and ArchivBoxNummer <> ''
-                and Export >= DATEADD(MONTH, -6, getdate())
-            """
-            if q:
-                sql += " and ArchivBoxNummer LIKE ?"
-                params.append(f"%{q}%")
-            sql += " ORDER BY Val"
-            cur.execute(sql, params)
-        else:
+        if not configs:
             return jsonify([])
 
-        rows = [r.Val for r in cur.fetchall() if r.Val]
-        if field == 'tec': rows.insert(0, 0)
-        return jsonify(rows)
+        union_parts = []
+        sql_params = []
 
+        for config in configs:
+            tbl = config.TableName
+            col_name = getattr(config, target_col_name)
+            time_filter = config.SuggestionTimeFilter
+
+            part = f"""
+                SELECT {col_name} COLLATE DATABASE_DEFAULT AS Val
+                FROM [{DB_STATISTICS}].{tbl}
+                WHERE {col_name} IS NOT NULL AND {col_name} <> ''
+                  AND {time_filter}
+            """
+            if q:
+                part += f" AND {col_name} COLLATE DATABASE_DEFAULT LIKE ?"
+                sql_params.append(f"%{q}%")
+            
+            union_parts.append(part)
+        full_union_sql = " UNION ALL ".join(union_parts)
+        final_sql = f"""
+            SELECT DISTINCT TOP 15 Val 
+            FROM (
+                {full_union_sql}
+            ) t
+            ORDER BY Val
+        """
+        cur.execute(final_sql, sql_params)
+        rows = cur.fetchall()
+        results = [row.Val for row in rows]
+        return jsonify(results)
     except Exception as e:
         app.logger.error(f"/api/docfield_values error: {e}")
         return jsonify({"error": _("Could not fetch values")}), 500
@@ -2815,9 +2461,9 @@ def workitems_overview():
         assigned_user = request.args.get('assignedUser', '') if assigned_user_perm else None
         
         perms = session.get('permissions', [])
-        prefix = "workitems.filter.process.privera."
+        prefix = "workitems.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
@@ -3037,6 +2683,29 @@ def get_workitemdata_param(workitem_id):
 
     return base64_string, response.json()['DocumentID']
 
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
+
+@cache.cached(timeout=3600, key_prefix='index_field_mappings')
+def get_index_field_mappings():
+    mapping = {}
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT SourceFieldName, TargetKey FROM IndexFieldMappings")
+        for row in cursor.fetchall():
+            mapping[row.SourceFieldName] = row.TargetKey
+            
+    except Exception as e:
+        app.logger.error(f"Failed to load IndexFieldMappings: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+            
+    return mapping
+
 def get_extensions_urls_fields(workitemdata, document_id):
     url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
     access_token = get_access_token()
@@ -3045,152 +2714,44 @@ def get_extensions_urls_fields(workitemdata, document_id):
         "Content-Type": "application/json",
         "workitemdata": workitemdata
     }
-    response = requests.get(url=url, headers=headers, timeout=10)
+    
+    try:
+        response = requests.get(url=url, headers=headers, timeout=10)
+        response.raise_for_status()
+        doc_json = response.json()
+    except Exception as e:
+        app.logger.error(f"Error fetching document details: {e}")
+        return [], [], {}
+
     urls = []
-    extension = []
+    extensions = []
     fields = {}
-    # with open('data.json', 'w') as f:
-    #     json.dump(response.json(), f)
-    if response.json()['DocumentType'] == 'Batch' and response.json()['ChildDocuments'] != None:
-        for element in response.json()['ChildDocuments']:
-            for media in element['Media']:
-                if str(media['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-                    urls.append(media['Url'])
-                    extension.append(media['Extension'])
-            for field in element['IndexFields']:
-                match field['Name']:
-                    case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
-                        fields['DocType'] = field["FieldValue"]['Text']
-                    case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and field["FieldValue"]['Text'] != None:
-                        fields['DocBarcode'] = field["FieldValue"]['Text']
-                    case 'Deckblatt':
-                        fields['SeparatorSheet'] = field["FieldValue"]['Text']
-                    case 'register':
-                        fields['Registry'] = field["FieldValue"]['Text']
-                    case 'doc_id':
-                        fields['DocID'] = field["FieldValue"]['Text']
-                    case 'ArchivBoxNummer':
-                        fields['ArchiveBoxNo'] = field["FieldValue"]['Text']
-                    case 'exp_eigNr' | 'eigentuemer' if 'OwnerNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
-                        fields['OwnerNr'] = field["FieldValue"]['Text']
-                    case 'exp_mietNr' | 'mietverhaeltnis' if 'TenancyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
-                        fields['TenancyNr'] = field["FieldValue"]['Text']
-                    case 'exp_liegNr' | 'LiegenschaftID' | 'liegenschaft' if 'PropertyNr' not in fields.keys() and field["FieldValue"]['Text'] != None:
-                        fields['PropertyNr'] = field["FieldValue"]['Text']
-                    case 'exp_einschreiben':
-                        fields['Registered'] = field["FieldValue"]['Text']
-                    case 'exp_niederlassung':
-                        fields['Branch'] = field["FieldValue"]['Text']
-                    case 'exp_dokDatum':
-                        fields['DocDate'] = field["FieldValue"]['Text']
-                    case 'exp_nachSend':
-                        fields['Forwarding'] = field["FieldValue"]['Text']
-                    case 'exp_abteilung':
-                        fields['Department'] = field["FieldValue"]['Text']
-                    case 'exp_einschreibenBC':
-                        fields['Postcode'] = field["FieldValue"]['Text']
-                    case 'exp_iban' | 'IBAN':
-                        fields['IBAN'] = field["FieldValue"]['Text']
-                    case 'exp_intEmpf':
-                        fields['Recipient'] = field["FieldValue"]['Text']
-                    case 'exp_vertraulich':
-                        fields['Confidentiality'] = field["FieldValue"]['Text']
-                    case 'CrdName1':
-                        fields['CrdName'] = field["FieldValue"]['Text']
-                    case 'BankPk':
-                        fields['BankPk'] = field["FieldValue"]['Text']
-                    case 'GrossAmount':
-                        fields['GrossAmount'] = field["FieldValue"]['Text']
-                    case 'NetAmount':
-                        fields['NetAmount'] = field["FieldValue"]['Text']
-                    case 'VatAmount':
-                        fields['VatAmount'] = field["FieldValue"]['Text']
-                    case 'DocCurrency':
-                        fields['DocCurrency'] = field["FieldValue"]['Text']
-                    case 'DocNo':
-                        fields['InvoiceNR'] = field["FieldValue"]['Text']
-                    case 'ISTEC':
-                        fields['Tec'] = field["FieldValue"]['Text']
-                    case 'SPC_Reference':
-                        fields['ESRReference'] = field["FieldValue"]['Text']
-                    case 'ReferenceKey':
-                        fields['OrderNumber'] = field["FieldValue"]['Text']
-                    case 'RptCompCode':
-                        fields['Client'] = field["FieldValue"]['Text']
-                    case 'DocSource':
-                        fields['DocSource'] = field["FieldValue"]['Text']
-                    case 'CrdNo':
-                        fields['CrdNo'] = field["FieldValue"]['Text']
+    
+    field_mapping = get_index_field_mappings()
+
+    items_to_process = []
+    if doc_json.get('DocumentType') == 'Batch' and doc_json.get('ChildDocuments'):
+        items_to_process = doc_json['ChildDocuments']
     else:
-        for element in response.json()['Media']:
-            if str(element['Extension']).lower() in ('.jpg', '.jpeg', '.png', '.tif'):
-                urls.append(element['Url'])
-                extension.append(element['Extension'])
-        for element in response.json()['IndexFields']:
-            match element['Name']:
-                case 'exp_dokTyp' | 'DocType' if 'DocType' not in fields.keys():
-                    fields['DocType'] = element["FieldValue"]['Text']
-                case 'DocBarcode' | 'Barcode' if 'DocBarcode' not in fields.keys() and element["FieldValue"]['Text'] != None:
-                    fields['DocBarcode'] = element["FieldValue"]['Text']
-                case 'Deckblatt':
-                    fields['SeparatorSheet'] = element["FieldValue"]['Text']
-                case 'register':
-                    fields['Registry'] = element["FieldValue"]['Text']
-                case 'doc_id':
-                    fields['DocID'] = element["FieldValue"]['Text']
-                case 'ArchivBoxNummer':
-                    fields['ArchiveBoxNo'] = element["FieldValue"]['Text']
-                case 'exp_eigNr' | 'eigentuemer' if 'OwnerNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
-                    fields['OwnerNr'] = element["FieldValue"]['Text']
-                case 'exp_mietNr' | 'mietverhaeltnis' if 'TenancyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
-                    fields['TenancyNr'] = element["FieldValue"]['Text']
-                case 'exp_liegNr' | 'LiegenschaftID' | 'liegenschaft' if 'PropertyNr' not in fields.keys() and element["FieldValue"]['Text'] != None:
-                    fields['PropertyNr'] = element["FieldValue"]['Text']
-                case 'exp_einschreiben':
-                    fields['Registered'] = element["FieldValue"]['Text']
-                case 'exp_niederlassung':
-                    fields['Branch'] = element["FieldValue"]['Text']
-                case 'exp_dokDatum':
-                    fields['DocDate'] = element["FieldValue"]['Text']
-                case 'exp_nachSend':
-                    fields['Forwarding'] = element["FieldValue"]['Text']
-                case 'exp_abteilung':
-                    fields['Department'] = element["FieldValue"]['Text']
-                case 'exp_einschreibenBC':
-                    fields['Postcode'] = element["FieldValue"]['Text']
-                case 'exp_iban' | 'IBAN':
-                    fields['IBAN'] = element["FieldValue"]['Text']
-                case 'exp_intEmpf':
-                    fields['Recipient'] = element["FieldValue"]['Text']
-                case 'exp_vertraulich':
-                    fields['Confidentiality'] = element["FieldValue"]['Text']
-                case 'CrdName1':
-                    fields['CrdName'] = element["FieldValue"]['Text']
-                case 'BankPk':
-                    fields['BankPk'] = element["FieldValue"]['Text']
-                case 'GrossAmount':
-                    fields['GrossAmount'] = element["FieldValue"]['Text']
-                case 'NetAmount':
-                    fields['NetAmount'] = element["FieldValue"]['Text']
-                case 'VatAmount':
-                    fields['VatAmount'] = element["FieldValue"]['Text']
-                case 'DocCurrency':
-                    fields['DocCurrency'] = element["FieldValue"]['Text']
-                case 'DocNo':
-                    fields['InvoiceNR'] = element["FieldValue"]['Text']
-                case 'ISTEC':
-                    fields['Tec'] = element["FieldValue"]['Text']
-                case 'SPC_Reference':
-                    fields['ESRReference'] = element["FieldValue"]['Text']
-                case 'ReferenceKey':
-                    fields['OrderNumber'] = element["FieldValue"]['Text']
-                case 'RptCompCode':
-                    fields['Client'] = element["FieldValue"]['Text']
-                case 'DocSource':
-                    fields['DocSource'] = element["FieldValue"]['Text']
-                case 'CrdNo':
-                    fields['CrdNo'] = element["FieldValue"]['Text']
-    return extension, urls, fields
+        items_to_process = [doc_json]
+
+    for item in items_to_process:
+        media_list = item.get('Media') or []
+        for media in media_list:
+            ext = str(media.get('Extension', '')).lower()
+            if ext in ('.jpg', '.jpeg', '.png', '.tif'):
+                urls.append(media['Url'])
+                extensions.append(ext)
+
+        index_fields = item.get('IndexFields') or []
+        for field_obj in index_fields:
+            source_name = field_obj.get('Name')
+            if source_name in field_mapping:
+                target_key = field_mapping[source_name]
+                field_value = field_obj.get('FieldValue', {}).get('Text')
+                if target_key not in fields and field_value is not None:
+                    fields[target_key] = field_value
+    return extensions, urls, fields
 
 def get_media(url):
     access_token = get_access_token()
@@ -3201,7 +2762,6 @@ def get_media(url):
     response = requests.get(url=url, headers=headers, timeout=10)
     return response.content
 
-cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 @app.route('/api/get_media_info/<int:workitem_id>')
 def api_get_media_info(workitem_id):
@@ -3377,7 +2937,7 @@ def get_users_for_mentions():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         if has_permission('workitems.details.add.comment'):
-            if has_permission('admin.view.allusers'):
+            if has_permission('admin.interact.users.all'):
                 cursor.execute("""
                 SELECT userID, username, fullname FROM Users
                 """)
@@ -3709,7 +3269,7 @@ def team_board():
         perms = session.get('permissions', [])
         prefix = "teamboard.filter.process."
         allowed_processes = sorted({
-            perm.split('.')[-1]
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
             for perm in perms
             if perm.startswith(prefix)
         })
@@ -3717,35 +3277,15 @@ def team_board():
         if process_name != 'all' and process_name not in allowed_processes:
             process_name = 'all'
 
-        placeholders, params = get_process_filter_and_params(process_name)
-        allowed_params = [
-            p for p in params
-            if has_permission(f'teamboard.filter.process.privera.{p}')
-        ]
-        placeholders = ", ".join(["?"] * len(allowed_params))
-        params = allowed_params
-        params.append('Privera')
-        
-        priority = request.args.get('priority', '')
+        params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+        activityinstancesToIgnore = get_activityinstancesToIgnore()
 
         where_clauses = [
-            f"tp.Name IN ({placeholders})",
-            "tp.ClientName = ?",
-            """tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )"""
+            f"tp.Name IN ({process_placeholders})",
+            f"tp.ClientName IN ({client_placeholders})",
+            f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
         ]
+        priority = request.args.get('priority', '')
 
         if priority:
             where_clauses.append("wim.Priority = ?")
@@ -3786,7 +3326,7 @@ def team_board():
                 LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {where_sql}
             )
-            SELECT --Barcode,
+            SELECT
             WorkitemID,
             ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
             FROM BoardItems
@@ -3843,7 +3383,7 @@ def get_all_portal_users(fromRequest, action):
         cursor = conn.cursor()
 
         if has_permission(f'{fromRequest}.{action}'):
-            if has_permission('admin.view.allusers'):
+            if has_permission('admin.interact.users.all'):
                 cursor.execute("""
                 SELECT userID, fullname FROM Users
                 """)
@@ -4070,359 +3610,39 @@ def jdvance():
     return render_template("jd/jdvance.html")
 # -------------------------------- jdvance end ------------------------------- #
 
-# ---------------------------------- reports --------------------------------- #
-
-@app.route("/api/reports/processed_over_time")
-def report_processed_over_time():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-    params = allowed_params
-
-
-    conn = None
-    try:
-        conn = engineStatisticsDB.raw_connection()
-        cursor = conn.cursor()
-
-        rows = []
-        for param in params:
-            if param == '03_Invoice_New':
-                cursor.execute(f"""
-                    select CAST(ExportDate AS DATE) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraInvoice
-                    where ExportDate >= dateadd(day,-14,getdate()) and GeloeschtAm is null
-                    group by CAST(ExportDate AS DATE)
-            """)
-            elif param == '02_Posteingang':
-                cursor.execute(f"""
-                    select CONVERT(date, exportdatetime,104) d,count(*) c from [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    where CONVERT(date, exportdatetime,104) >= dateadd(day,-14,getdate()) and DokumentGeloescht is null
-                    group by CONVERT(date, exportdatetime,104)
-            """)
-            elif param == '02_InitialScan':
-                cursor.execute(f"""
-                    select cast(Export as date) d, count(WorkitemID) c from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    where Export >= dateadd(day,-14,getdate())
-                    group by cast(Export as date)
-            """)
-            rows += cursor.fetchall()
-        rows.sort(key=lambda r: r.d)  
-        labels = [row.d for row in rows]
-        data = [row.c for row in rows]
-        return jsonify({'labels': labels, 'data': data})
-    except Exception as e:
-        app.logger.error(f"Failed to fetch processed_over_time report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/status_distribution")
-def report_status_distribution():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')
-    process_name = session['process_name_dashboard']
-
-    placeholders, params = get_process_filter_and_params(process_name)
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1,5]
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    if not start_str and not end_str and set(status_codes)=={0,1,5}:
-        stats = get_absolute_dashboard_stats(process_name)
-        labels = ['Ready','In Progress','Done','Backlog']
-        data = [
-            stats.get('ReadyTotal',0),
-            stats.get('InProgressTotal',0),
-            stats.get('DoneTotal',0),
-            stats.get('BacklogTotal',0)
-        ]
-        return jsonify({'labels': labels, 'data': data})
-
-    date_sql = "1=1"
-    date_params = []
-    if start_str:
-        date_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
-        if not start_str:
-            date_params = []
-        date_params.append(datetime.fromisoformat(end_str))
-
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-
-        placeholders_status = ','.join(['?']*len(status_codes))
-        cursor.execute(f"""
-            WITH Mapped AS (
-              SELECT
-                CASE WHEN twi.Status = 0 THEN 'Ready'
-                     WHEN twi.Status = 1 THEN 'In Progress'
-                     WHEN twi.Status = 5 THEN 'Done'
-                     ELSE 'Other' END as S
-              FROM t_WorkItems twi
-              LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-              LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-              WHERE tp.Name IN ({placeholders})
-                AND tp.ClientName = ?
-                AND twi.Status IN ({placeholders_status})
-                AND {date_sql}
-                AND tai.ActivityInstanceName not in (
-                    --posteingang
-                    'Deletion Marker Privera Posteingang C+A',
-                    'Deletion Marker ohne PDF PP_END',
-                    'Deletion Marker ohne PDF PP_END_1',
-                    'Deletion Marker Privera Posteingang NoImages',
-                    --invoice
-                    'Deletion Marker MAIL Invalid or Empty',
-                    'Deletion Marker MAIL',
-                    'Deleted Documents',
-                    'Deletion Marker Posteingang2Invoice Parent',
-                    'Deletion Marker Scan Duplicate',
-                    'Keine Dokumente nach TB P2'
-                    )
-            )
-            SELECT S, COUNT(*) Cnt FROM Mapped WHERE S <> 'Other' GROUP BY S;
-        """, *(all_params + status_codes + date_params))
-        counts = {'Ready':0,'In Progress':0,'Done':0}
-        for s,c in cursor.fetchall():
-            counts[s] = c
-
-        stats_abs = get_absolute_dashboard_stats(process_name)
-
-        return jsonify({
-            'labels': ['Ready','In Progress','Done','Backlog'],
-            'data': [counts['Ready'], counts['In Progress'], counts['Done'], stats_abs.get('BacklogTotal',0)]
-        })
-    except Exception as e:
-        app.logger.error(f"Failed to fetch status_distribution report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/kpi_stats")
-def report_kpi_stats():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    conn = None
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        processed_today = 0
-        processed_week = 0
-        for param in params:
-            if param == '03_Invoice_New':
-                cursor.execute(f"""
-                    select count(*) from [{DB_STATISTICS}].dbo.PriveraInvoice
-                    where CAST(ExportDate AS DATE) = CAST(GETDATE() AS DATE) and GeloeschtAm is null
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select
-                            count(distinct i.wid)
-                            from [{DB_STATISTICS}].dbo.PriveraInvoice i
-                            WHERE i.ExportDate >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                            AND i.ExportDate < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and GeloeschtAm is null;
-                """)
-                processed_week += cursor.fetchone()[0]
-            elif param == '02_Posteingang':
-                cursor.execute(f"""
-                    select count(*) from [{DB_STATISTICS}].dbo.PriveraPosteingang
-                    where CONVERT(DATE, ExportDatetime,104) = CAST(GETDATE() AS DATE) and DokumentGeloescht is null
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select
-                        count(distinct P.WorkItemID)  
-                        from [{DB_STATISTICS}].dbo.PriveraPosteingang p
-                        WHERE CONVERT(DATE, p.ExportDatetime,104) >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND CONVERT(DATE, p.ExportDatetime,104) < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) and DokumentGeloescht is null;
-                """)
-                processed_week += cursor.fetchone()[0]
-            elif param == '02_InitialScan':
-                cursor.execute(f"""
-                    select count(WorkitemID) from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                    where cast(export as date) = cast(getdate() as date)
-                """)
-                processed_today += cursor.fetchone()[0]
-                cursor.execute(f"""
-                        select count(*)
-                        from [{DB_STATISTICS}].dbo.PriveraInitialUndNeuzugaenge
-                        WHERE Export >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                        AND Export < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0);
-                    """)
-                processed_week += cursor.fetchone()[0]
-
-        cursor.execute(f"""
-            SELECT COUNT(*) FROM t_WorkItems w
-            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name IN ({placeholders}) AND p.ClientName = ? AND a.ActivityInstanceName = 'C+A';
-        """,all_params)
-        current_backlog = cursor.fetchone()[0]
-
-        return jsonify({
-            'processed_today': processed_today,
-            'processed_week': processed_week,
-            'current_backlog': current_backlog
-        })
-
-    except Exception as e:
-        app.logger.error(f"Failed to fetch kpi_stats report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-@app.route("/api/reports/stage_breakdown")
-def report_stage_breakdown():
-    if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-
-    start_str = request.args.get('startDate')
-    end_str   = request.args.get('endDate')
-    statuses_q = request.args.get('statuses')
-
-    placeholders, params = get_process_filter_and_params(session['process_name_dashboard'])
-    allowed_params = [
-        p for p in params
-        if has_permission(f'dashboard.filter.process.privera.{p}')
-    ]
-
-    placeholders = ", ".join(["?"] * len(allowed_params))
-    params = allowed_params
-    all_params = params + ['Privera']
-
-    name_to_code = {'ready':0,'in progress':1,'done':5}
-    status_codes = [0,1]
-    if statuses_q:
-        status_codes = [name_to_code[s.strip().lower()] for s in statuses_q.split(',') if s.strip().lower() in name_to_code]
-
-    date_sql = "1=1"
-    date_params = []
-    if start_str:
-        date_sql = "twi.ModifiedAt >= ?"
-        date_params.append(datetime.fromisoformat(start_str))
-    if end_str:
-        date_sql = ("twi.ModifiedAt >= ? AND twi.ModifiedAt < ?") if start_str else "twi.ModifiedAt < ?"
-        if not start_str:
-            date_params = []
-        date_params.append(datetime.fromisoformat(end_str))
-
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-
-        placeholders_status = ','.join(['?']*len(status_codes))
-        cursor.execute(f"""
-           SELECT
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END AS Activity,
-                COUNT(twi.ID) as ItemCount
-            FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({placeholders})
-              AND tp.ClientName = ?
-              AND twi.Status IN ({placeholders_status})
-              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
-              AND {date_sql}
-              AND tai.ActivityInstanceName not in (
-                --posteingang
-                'Deletion Marker Privera Posteingang C+A',
-                 'Deletion Marker ohne PDF PP_END',
-                 'Deletion Marker ohne PDF PP_END_1',
-                'Deletion Marker Privera Posteingang NoImages',
-                --invoice
-                 'Deletion Marker MAIL Invalid or Empty',
-                 'Deletion Marker MAIL',
-                 'Deleted Documents',
-                 'Deletion Marker Posteingang2Invoice Parent',
-                'Deletion Marker Scan Duplicate',
-                'Keine Dokumente nach TB P2'
-                )
-            GROUP BY
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END
-            ORDER BY ItemCount DESC;
-        """, *(all_params + status_codes + date_params))
-
-        rows = cursor.fetchall()
-        labels = [row.Activity for row in rows]
-        data = [row.ItemCount for row in rows]
-        return jsonify({'labels': labels, 'data': data})
-    except Exception as e:
-        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-# -------------------------------- reports end ------------------------------- #
-
 # -------------------------------- bexio ------------------------------------- #
+def get_allowed_client_details():
+    try:
+        perms = session.get('permissions', [])
+        prefix = "invoices.view."
+        allowed_names = sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
-def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None):
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        clients = []
+        
+        for name in allowed_names:
+            cursor.execute('SELECT bexioClientId, ClientName FROM ClientInvoices WHERE ClientName = ?', (name,))
+            row = cursor.fetchone()
+            if row:
+                clients.append({'id': row[0], 'name': row[1]})
+        
+        return clients
+    except Exception as e:
+        app.logger.error(f"Error fetching client details: {e}")
+        return []
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None):
     url = "https://api.bexio.com/2.0/kb_invoice/search"
     accessToken = BEXIO_PAT
+    print(clientIds)
     if not accessToken:
         app.logger.error("BEXIO_PAT is not set.")
         return []
@@ -4431,47 +3651,48 @@ def searchBexioInvoices(clientId, dateFrom, dateTo, search_nr=None, status=None)
         'Accept': "application/json",
         'Authorization': f"Bearer {accessToken}",
     }
+    all_invoices = []
+    for clientId in clientIds:
+        payload = [
+            {"field": "contact_id", "value": str(clientId), "criteria": "="},
+            {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
+            {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
+        ]
 
-    payload = [
-        {"field": "contact_id", "value": str(clientId), "criteria": "="},
-        {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
-        {"field": "is_valid_to", "value": dateTo, "criteria": "<="}
-    ]
+        if search_nr:
+            payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
 
-    if search_nr:
-        payload.append({"field": "document_nr", "value": f"%{search_nr}%", "criteria": "LIKE"})
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response.raise_for_status()
+            invoices = response.json()
+            
+            if status:
+                status_map = {
+                    'Paid': [9],
+                    'Open': [8]
+                }
+                target_status_ids = status_map.get(status, [])
+                if target_status_ids:
+                    invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
 
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        response.raise_for_status()
-        invoices = response.json()
+            for inv in invoices:
+                inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
+                try:
+                    inv['total'] = f"{float(inv['total']):.2f}"
+                except (ValueError, TypeError):
+                    inv['total'] = "0.00"
+            all_invoices.extend(invoices)
 
-        if status:
-            status_map = {
-                'Paid': [9],
-                'Open': [8]
-            }
-            target_status_ids = status_map.get(status, [])
-            if target_status_ids:
-                invoices = [inv for inv in invoices if inv.get('kb_item_status_id') in target_status_ids]
-
-        for inv in invoices:
-            inv['status_info'] = map_invoice_status(inv.get('kb_item_status_id'))
-            try:
-                inv['total'] = f"{float(inv['total']):.2f}"
-            except (ValueError, TypeError):
-                inv['total'] = "0.00"
-
-        return invoices
-
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Bexio API search failed: {e}")
-        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
-        return []
-    except json.JSONDecodeError:
-        app.logger.error(f"Bexio API returned invalid JSON.")
-        log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
-        return []
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Bexio API search failed: {e}")
+            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
+            return []
+        except json.JSONDecodeError:
+            app.logger.error(f"Bexio API returned invalid JSON.")
+            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
+            return []
+    return all_invoices
 
 def getBexioInvoicePDF(invoice_id):
     url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}/pdf"
@@ -4509,16 +3730,34 @@ def map_invoice_status(status_id):
     else:
         return {'text': _('Open'), 'color': 'blue'}
 
-def getBexioClientId():
-    clientId = None
-    if has_permission('invoices.view.privera'):
-        clientId = BEXIO_PRIVERA_CLIENT_ID
+def getBexioClientIds():
+    try:
+        perms = session.get('permissions', [])
+        prefix = "invoices.view."
+        allowed_client_invoice_views= sorted({
+            perm.split('.')[-1]
+            for perm in perms
+            if perm.startswith(prefix)
+        })
 
-    return clientId
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        clientIds = []
+        for aciv in allowed_client_invoice_views:
+            cursor.execute('SELECT bexioClientId FROM ClientInvoices WHERE ClientName = ?', aciv)
+            row = cursor.fetchone()
+            if row: clientIds.append(row[0])
+        return clientIds
+    except Exception as e:
+        print(e)
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 # -------------------------------- bexio end --------------------------------- #
 
 
 # ---------------------------------- invoices ---------------------------------- #
+
 @app.route("/invoices")
 @require_permission('invoices.view')
 def invoices():
@@ -4528,7 +3767,8 @@ def invoices():
 
         logged_in_user = session.get('username', 'Unknown')
         userid = session.get('userid', 'Unknown')
-
+        
+        clients = get_allowed_client_details()
         search_nr_perm = has_permission('invoices.filter.invoiceid')
         search_nr = request.args.get('search', '') if search_nr_perm else None
         status_perm = has_permission('invoices.filter.status')
@@ -4549,7 +3789,8 @@ def invoices():
                                ,search_nr_perm=search_nr_perm
                                ,status_perm=status_perm
                                ,date_perm=date_perm
-                               ,pageV=pageVisability())
+                               ,pageV=pageVisability(),
+                               clients=clients)
     except Exception as e:
         log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
@@ -4560,26 +3801,37 @@ def api_invoices():
     try:
         if 'username' not in session:
             return jsonify({"error": _("Not authorized")}), 401
-
+        
+        selected_client_id = request.args.get('client_id')
         search_nr = request.args.get('search', '') if has_permission('invoices.filter.invoiceid') else None
         status = request.args.get('status', '')  if has_permission('invoices.filter.status') else None
         dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
         dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if has_permission('invoices.filter.date') else datetime.now().strftime('%Y-%m-%d')
 
-        bexio_client_id = getBexioClientId()
+        allowed_ids = getBexioClientIds()
+        target_ids = []
+        if selected_client_id:
+            try:
+                sel_id = int(selected_client_id)
+                if sel_id in allowed_ids:
+                    target_ids = [sel_id]
+                else:
+                    return jsonify([])
+            except ValueError:
+                target_ids = allowed_ids 
+        else:
+            target_ids = allowed_ids 
 
-        if not bexio_client_id:
-            app.logger.warn(f"No Bexio Client ID found for user {session.get('username')}")
+        if not target_ids:
             return jsonify([])
 
         invoices_list = searchBexioInvoices(
-            clientId=bexio_client_id,
+            clientIds=target_ids,
             dateFrom=dateFrom,
             dateTo=dateTo,
             search_nr=search_nr,
             status=status
         )
-
 
         log_user_action('apiSearchInvoices', status='SUCCESS', resource_id='invoices', details={
             "filter_search": search_nr,

@@ -28,16 +28,19 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label for="invoiceSearch" class="block text-sm font-medium text-gray-700" >{{ _("Search Invoice #") }}</label>
-          <div class="relative mt-1">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-              <i class="fas fa-search"></i>
-            </span>
-            <input type="text" id="invoiceSearch" name="search" value="{{ search or '' }}"  {% if search_nr_perm == False %} disabled {% endif %}
-              class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter invoice number...">
-          </div>
-        </div>
+        <label for="clientFilter" class="block text-sm font-medium text-gray-700">
+          {{ _("Client") }}
+        </label>
+        <select id="clientFilter" name="client_id" 
+          class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">{{ _("All Clients") }}</option>
+          {% for client in clients %}
+            <option value="{{ client.id }}" {% if request.args.get('client_id')|int == client.id %}selected{% endif %}>
+              {{ client.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
         <div>
             <label for="dateFrom" class="block text-sm font-medium text-gray-700">
