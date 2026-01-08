@@ -334,7 +334,7 @@ def init_2FA():
                 
                 session.pop('temp_2fa_secret', None)
                 create_notification(user_id, _("2FA enabled successfully"), icon='fa-shield-halved')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('login'))
             except Exception as e:
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
@@ -347,7 +347,6 @@ def init_2FA():
         else:
             flash(_("Invalid code. Please try again."), "error")
             return redirect(url_for('init_2FA'))
-    
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
@@ -383,14 +382,18 @@ def verify_2fa():
             session['organizationcode'] = org_code
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
-            
+            pV = pageVisability()
             log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
-            return redirect(url_for('dashboard'))
+            if not pV['dashboardPagePerm']:
+                if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
+                elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
+                elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
+                elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
+                else: redirect(url_for('login')) 
+            return redirect(url_for('dashboard')) 
         else:
             flash(_("Invalid code"), "error")
             return render_template('verify_2fa.html')
-        
-
 
 @app.route('/init_reset')
 def init_reset():
@@ -671,7 +674,7 @@ def admin_add_organization():
     vowels = re.sub(r'[^AEIOU]', '', clean_name)
     code = (consonants + vowels)
     organizationcode = code[:4].ljust(4, 'X')
-
+    print(organizationcode,organization)
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()

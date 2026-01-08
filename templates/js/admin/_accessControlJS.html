@@ -28,51 +28,178 @@
         document.getElementById(`tab-${tabName}-btn`).className = btnActiveClass;
     }
 
-function openEditorModal(title, mode) {
-    currentMode = mode;
-    document.getElementById('editorModalTitle').innerText = title;
 
-    const inheritHeader = document.querySelector('#editorModal thead th:nth-child(2)');
-    const inheritCells = document.querySelectorAll('#editorModal tbody td:nth-child(2)');
+    function setupAutoPermissionLogic() {
+        const table = document.querySelector('#permissionForm table');
+        if (!table) return;
 
-    if (mode === 'profile') {
-        if (inheritHeader) inheritHeader.style.display = 'none';
-        inheritCells.forEach(td => td.style.display = 'none');
+        if (table.dataset.hasAutoPermListener) return;
 
-        document.querySelectorAll('#editorModal input[type=radio][value="D"]').forEach(r => r.checked = true);
-    } else {
-        if (inheritHeader) inheritHeader.style.display = ''; 
-        inheritCells.forEach(td => td.style.display = '');
-
-        document.querySelectorAll('#editorModal input[type=radio][value="None"]').forEach(r => r.checked = true);
+        table.addEventListener('change', (e) => {
+            if (e.target.type === 'radio') {
+                const row = e.target.closest('tr');
+                if (row) {
+                    const isValid = validateViewActivation(row, e.target);
+                    if (isValid) {
+                        syncParentChildPermissions(row);
+                    }
+                }
+            }
+        });
+        table.dataset.hasAutoPermListener = 'true';
     }
 
-    document.querySelectorAll('#editorModal input[type=radio]').forEach(r => {
-        r.disabled = false;
-        if (r.parentElement) r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
-    });
+    function validateViewActivation(changedRow, targetInput) {
+        if (targetInput.value !== 'A') return true;
 
-    const modalBody = document.getElementById('editorModal');
-    modalBody.onchange = function(e) {
-        if (e.target.type === 'radio') {
-            updateSpecialConstraints(e.target);
+        const codeDiv = changedRow.querySelector('.font-medium');
+        if (!codeDiv) return true;
+
+        const code = codeDiv.innerText.trim();
+        const match = code.match(/^(\w+)\.view$/);
+        if (!match) return true; 
+
+        const pagePrefix = match[1]; 
+        
+        const allRows = document.querySelectorAll('.permission-row');
+        let hasProcessFilters = false;
+        let anyProcessAllowed = false;
+
+        allRows.forEach(row => {
+            const rowCode = row.querySelector('.font-medium').innerText.trim();
+            const permId = row.dataset.permId;
+            
+            if (rowCode.startsWith(`${pagePrefix}.filter.process.`)) {
+                hasProcessFilters = true;
+                const allowRadio = row.querySelector(`input[name="perm_${permId}"][value="A"]`);
+                if (allowRadio && allowRadio.checked) {
+                    anyProcessAllowed = true;
+                }
+            }
+        });
+
+        if (hasProcessFilters && !anyProcessAllowed) {
+            const denyRadio = changedRow.querySelector(`input[value="D"]`);
+            if (denyRadio) denyRadio.checked = true;
+
+            showNotification(`{{ _("Cannot activate") }} ${code}. {{ _("Please enable at least one process filter first.") }}`, 'error');
+            return false;
         }
-    };
 
-    updateSpecialConstraints();
-
-    if (mode === 'profile') {
-        profileMetaFields.classList.remove('hidden');
-    } else {
-        profileMetaFields.classList.add('hidden');
+        return true; 
     }
 
-    editorModal.classList.remove('hidden');
-    setTimeout(() => {
-        editorModal.classList.remove('opacity-0');
-        editorModal.querySelector('div.transform').classList.remove('scale-95');
-    }, 10);
-}        function closeEditorModal() {
+    function syncParentChildPermissions(changedRow) {
+        const codeDiv = changedRow.querySelector('.font-medium');
+        if (!codeDiv) return;
+        
+        const code = codeDiv.innerText.trim();
+        const match = code.match(/^(\w+)\.filter\.process\./);
+        
+        if (!match) return; 
+
+        const pagePrefix = match[1]; 
+        const targetViewCode = `${pagePrefix}.view`;
+
+        const allRows = document.querySelectorAll('.permission-row');
+        let viewRow = null;
+        let anySiblingAllowed = false;
+        let allSiblingsDenied = true;
+        let hasSiblings = false;
+
+        allRows.forEach(row => {
+            const rowCode = row.querySelector('.font-medium').innerText.trim();
+            const permId = row.dataset.permId;
+
+            if (rowCode === targetViewCode) {
+                viewRow = row;
+            }
+
+            if (rowCode.startsWith(`${pagePrefix}.filter.process.`)) {
+                hasSiblings = true;
+                
+                const allowRadio = row.querySelector(`input[name="perm_${permId}"][value="A"]`);
+                const denyRadio = row.querySelector(`input[name="perm_${permId}"][value="D"]`);
+
+                if (allowRadio && allowRadio.checked) anySiblingAllowed = true;
+                if (denyRadio && !denyRadio.checked) allSiblingsDenied = false;
+            }
+        });
+
+        if (!viewRow || !hasSiblings) return;
+
+        const viewPermId = viewRow.dataset.permId;
+        const viewAllowRadio = viewRow.querySelector(`input[name="perm_${viewPermId}"][value="A"]`);
+        const viewDenyRadio = viewRow.querySelector(`input[name="perm_${viewPermId}"][value="D"]`);
+
+        if (anySiblingAllowed) {
+            if (viewAllowRadio && !viewAllowRadio.checked) {
+                viewAllowRadio.checked = true;
+                flashRow(viewRow, 'green');
+                showNotification(`{{ _("Automatically enabled") }} ${targetViewCode}`, 'success');
+            }
+        }
+        else if (allSiblingsDenied) {
+            if (viewDenyRadio && !viewDenyRadio.checked) {
+                viewDenyRadio.checked = true;
+                flashRow(viewRow, 'red');
+                showNotification(`{{ _("Automatically denied") }} ${targetViewCode} {{ _("because all processes are denied.") }}`, 'success');
+            }
+        }
+    }
+
+    function flashRow(row, colorName) {
+        const bgClass = colorName === 'green' ? 'bg-green-50' : 'bg-red-50';
+        row.classList.add(bgClass);
+        setTimeout(() => row.classList.remove(bgClass), 1000);
+    }
+
+
+    function openEditorModal(title, mode) {
+        currentMode = mode;
+        document.getElementById('editorModalTitle').innerText = title;
+
+        const inheritHeader = document.querySelector('#editorModal thead th:nth-child(2)');
+        const inheritCells = document.querySelectorAll('#editorModal tbody td:nth-child(2)');
+
+        if (mode === 'profile') {
+            if (inheritHeader) inheritHeader.style.display = 'none';
+            inheritCells.forEach(td => td.style.display = 'none');
+
+            document.querySelectorAll('#editorModal input[type=radio][value="D"]').forEach(r => {
+                 if(!r.checked && !document.querySelector(`input[name="${r.name}"][value="A"]`).checked) {
+                     r.checked = true;
+                 }
+            });
+        } else {
+            if (inheritHeader) inheritHeader.style.display = ''; 
+            inheritCells.forEach(td => td.style.display = '');
+
+            document.querySelectorAll('#editorModal input[type=radio][value="None"]').forEach(r => r.checked = true);
+        }
+
+        document.querySelectorAll('#editorModal input[type=radio]').forEach(r => {
+            r.disabled = false;
+            if (r.parentElement) r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+        });
+
+        const modalBody = document.getElementById('editorModal');
+        if (mode === 'profile') {
+            profileMetaFields.classList.remove('hidden');
+        } else {
+            profileMetaFields.classList.add('hidden');
+        }
+
+        setupAutoPermissionLogic();
+        
+        editorModal.classList.remove('hidden');
+        setTimeout(() => {
+            editorModal.classList.remove('opacity-0');
+            editorModal.querySelector('div.transform').classList.remove('scale-95');
+        }, 10);
+    }        
+    
+    function closeEditorModal() {
         editorModal.classList.add('opacity-0');
         editorModal.querySelector('div.transform').classList.add('scale-95');
         setTimeout(() => editorModal.classList.add('hidden'), 300);
@@ -154,7 +281,6 @@ function openEditorModal(title, mode) {
                 const radio = document.querySelector(`input[name="perm_${p.PermissionID}"][value="${p.Effect}"]`);
                 if (radio) radio.checked = true;
             });
-        updateSpecialConstraints();
     }
 
     async function savePermissions() {
@@ -295,111 +421,7 @@ function openEditorModal(title, mode) {
         renderUserList(filtered);
     }
 
-const CONSTRAINT_CONFIG = [
-    { 
-        members: [17, 18, 20], 
-        mode: 'AT_LEAST_ONE', 
-        exceptions: [{ id: 16, value: 'D' }],
-        fallback: 17
-        // workitems.view
-    },
-    { 
-        members: [9, 10, 11], 
-        mode: 'AT_LEAST_ONE', 
-        exceptions: [{ id: 1, value: 'D' }],
-        fallback: 9
-        // dashboard.view
-    },
-    { 
-        members: [44, 43, 45], 
-        mode: 'AT_LEAST_ONE', 
-        exceptions: [{ id: 42, value: 'D' }],
-        fallback: 43
-        // teamboard.view
-    }
-];
-function updateSpecialConstraints(triggerElement = null) {
-    CONSTRAINT_CONFIG.forEach(group => {
-        let isExceptionActive = false;
 
-        if (group.exceptions && group.exceptions.length > 0) {
-            isExceptionActive = group.exceptions.some(ex => {
-                const radio = document.querySelector(`input[name="perm_${ex.id}"][value="${ex.value}"]`);
-                return radio && radio.checked;
-            });
-        }
-
-        if (isExceptionActive) {
-            group.members.forEach(id => toggleRowInputs(id, false)); 
-            return; 
-        }
-
-        let activeMemberIds = [];
-        group.members.forEach(id => {
-            const r = document.querySelector(`input[name="perm_${id}"][value="A"]`);
-            if (r && r.checked) activeMemberIds.push(id);
-        });
-
-        
-        if (currentMode === 'profile' && activeMemberIds.length === 0) {
-            const radioToCheck = document.querySelector(`input[name="perm_${group.fallback}"][value="A"]`);
-            if (radioToCheck) {
-                radioToCheck.checked = true;
-                activeMemberIds.push(group.fallback); 
-            }
-        }
-
-        if (group.mode === 'EXACTLY_ONE') {
-            if (activeMemberIds.length > 1) {
-                if (triggerElement && triggerElement.value === 'A') {
-                    const clickedId = parseInt(triggerElement.name.replace('perm_', ''));
-                    
-                    if (group.members.includes(clickedId)) {
-                        activeMemberIds.forEach(id => {
-                            if (id !== clickedId) setPermissionNone(id);
-                        });
-                        activeMemberIds = [clickedId]; 
-                    } else {
-                         for (let i = 1; i < activeMemberIds.length; i++) {
-                            setPermissionNone(activeMemberIds[i]);
-                        }
-                        activeMemberIds = [activeMemberIds[0]];
-                    }
-                } else {
-                    for (let i = 1; i < activeMemberIds.length; i++) {
-                        setPermissionNone(activeMemberIds[i]);
-                    }
-                    activeMemberIds = [activeMemberIds[0]];
-                }
-            }
-        }
-
-        group.members.forEach(id => {
-            if (currentMode === 'user') {
-                toggleRowInputs(id, false);
-                return;
-            }
-
-            const allowRadio = document.querySelector(`input[name="perm_${id}"][value="A"]`);
-            const isCurrentRowActive = allowRadio && allowRadio.checked;
-
-            if (group.mode === 'AT_LEAST_ONE') {
-                if (isCurrentRowActive && activeMemberIds.length === 1) {
-                    toggleRowInputs(id, true); 
-                } else {
-                    toggleRowInputs(id, false);
-                }
-            } 
-            else if (group.mode === 'EXACTLY_ONE') {
-                if (isCurrentRowActive) {
-                    toggleRowInputs(id, true);
-                } else {
-                    toggleRowInputs(id, false);
-                }
-            }
-        });
-    });
-}
 function setPermissionNone(id) {
     if (currentMode === 'profile') {
         const DenyRadio = document.querySelector(`input[name="perm_${id}"][value="D"]`);
