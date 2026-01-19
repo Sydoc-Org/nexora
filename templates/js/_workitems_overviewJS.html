@@ -350,7 +350,7 @@ function renderTagsInDetails(workitemId, tags) {
                                     <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
                                     <span class="text-sm font-normal text-gray-500">${commentDate}</span>
                                 </div>
-                                <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
+                                <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+\.\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
                             </div>`;
                         commentsContainer.appendChild(commentEl);
                     });

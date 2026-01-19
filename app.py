@@ -82,46 +82,46 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -2242,7 +2242,7 @@ def _get_workitems_data(args):
         where_clauses.append("twi.ModifiedAt < ?")
         params.append(end_date)
     if priority and has_permission('workitems.filter.priority'):
-        where_clauses.append("wim.Priority = ?")
+        where_clauses.append("ISNULL(wim.Priority, 0) = ?")
         params.append(priority)
     if assigned_user and has_permission('workitems.filter.assignedUser'):
         if assigned_user == 'None' or assigned_user == 'Unassigned':
@@ -3935,7 +3935,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

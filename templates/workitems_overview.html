@@ -173,6 +173,7 @@
               </label>
               <div class="relative mt-1">
                 <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10" {% if assigned_user_perm == False %} disabled {% endif %}>
+                  <option value="">{{ _("All Users") }}</option>
                   <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
                   {% for user in portal_assignedUsers_filter %}
                   <option value="{{ user.userID }}" {% if assignedUser==user.userID|string %}selected{% endif %}>
