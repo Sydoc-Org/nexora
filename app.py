@@ -2282,12 +2282,14 @@ def _get_workitems_data(args):
                     time_filter = config.TimeFilter
                     db_column = getattr(config, target_config_col) 
 
+                    safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+
                     snippet = f"""
                         EXISTS (
                             SELECT 1 
                             FROM [{DB_STATISTICS}].{tbl} {alias} 
                             WHERE {join_cond} 
-                            AND {alias}.{db_column} COLLATE DATABASE_DEFAULT LIKE ? 
+                            AND {safe_col} COLLATE DATABASE_DEFAULT LIKE ? 
                             AND {time_filter}
                         )
                     """
@@ -2402,6 +2404,7 @@ def api_docfield_values():
     q = (request.args.get('q', '') or '').strip()
     if not field:
         return jsonify([]) 
+    
     target_col_name = f'col_{field}'
     conn = None
     try:
@@ -2427,18 +2430,23 @@ def api_docfield_values():
             col_name = getattr(config, target_col_name)
             time_filter = config.SuggestionTimeFilter
 
+            safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
+
             part = f"""
-                SELECT {col_name} COLLATE DATABASE_DEFAULT AS Val
+                SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_STATISTICS}].{tbl}
-                WHERE {col_name} IS NOT NULL AND {col_name} <> ''
+                WHERE {col_name} IS NOT NULL 
+                  AND {safe_col} <> '' -- Compare as string to avoid implicit int conversion (0 != '')
                   AND {time_filter}
             """
             if q:
-                part += f" AND {col_name} COLLATE DATABASE_DEFAULT LIKE ?"
+                part += f" AND {safe_col} COLLATE DATABASE_DEFAULT LIKE ?"
                 sql_params.append(f"%{q}%")
             
             union_parts.append(part)
+        
         full_union_sql = " UNION ALL ".join(union_parts)
+        
         final_sql = f"""
             SELECT DISTINCT TOP 15 Val 
             FROM (
@@ -2450,6 +2458,7 @@ def api_docfield_values():
         rows = cur.fetchall()
         results = [row.Val for row in rows]
         return jsonify(results)
+
     except Exception as e:
         app.logger.error(f"/api/docfield_values error: {e}")
         return jsonify({"error": _("Could not fetch values")}), 500

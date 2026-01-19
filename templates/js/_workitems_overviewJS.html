@@ -1205,24 +1205,26 @@ function renderTagsInDetails(workitemId, tags) {
                               </div>
                                 <div id="collaboration-tools-${workitem.workitemid}" class="flex flex-col">
                                     <div class="mb-4">
-                                  <label for="priority-select-${workitem.workitemid}"
-                                    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                                  <select id="priority-select-${workitem.workitemid}" {% if details_set_priority_perm == False  %} disabled {% endif %}
-                                    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="0">{{ _("None") }}</option>
-                                    <option value="1">{{ _("Low") }}</option>
-                                    <option value="2">{{ _("Medium") }}</option>
-                                    <option value="3">{{ _("High") }}</option>
-                                  </select>
-                                </div>
-                                <div class="mb-4">
-                                  <label for="assign-select-${workitem.workitemid}"
-                                    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                                  <select id="assign-select-${workitem.workitemid}" {% if details_assign_users_perm == False  %} disabled {% endif %}
-                                    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="None">{{ _("None") }}</option>
-                                  </select>
-                                </div>
+  <label for="priority-select-${workitem.workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+  <select id="priority-select-${workitem.workitemid}" 
+    data-workitemid="${workitem.workitemid}"  {% if details_set_priority_perm == False  %} disabled {% endif %}
+    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="0">{{ _("None") }}</option>
+    <option value="1">{{ _("Low") }}</option>
+    <option value="2">{{ _("Medium") }}</option>
+    <option value="3">{{ _("High") }}</option>
+  </select>
+</div>
+<div class="mb-4">
+  <label for="assign-select-${workitem.workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+  <select id="assign-select-${workitem.workitemid}" 
+    data-workitemid="${workitem.workitemid}"  {% if details_assign_users_perm == False  %} disabled {% endif %}
+    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="None">{{ _("None") }}</option>
+  </select>
+</div>
 
 
                         <div class="mb-4">
