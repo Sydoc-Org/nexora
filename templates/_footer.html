@@ -1,5 +1,63 @@
-<footer class="bg-white mt-auto">
-    <div class="container mx-auto px-6 py-6 text-center text-gray-500 text-sm">
-        &copy; 2025 nexora. {{ _("All rights reserved") }}.
+<footer class="bg-white dark:bg-gray-900 pt-6">
+    <div class="container p-6 mx-auto">
+        <div class="lg:flex">
+            <div class="w-full -mx-6 lg:w-2/5">
+                <div class="px-6">
+                    <a href="https://sydoc.ch/">
+                        <img class="w-auto h-16" src="{{ url_for('static', filename='images/sydoc-logo.jpg') }}" alt="">
+                    </a>
+
+                    <p class="max-w-sm mt-2 text-gray-500 dark:text-gray-400">
+                        {{ _('nexora is a client portal powered by sydoc.') }} <br>
+                             {{ _('sydoc is your outsourcing partner for digitisation and data & information capture.') }}</p>
+
+                    <div class="flex mt-6 -mx-2">
+                        <a href="https://www.linkedin.com/company/sydoc-ag/about/"
+                            class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400"
+                            aria-label="linkedin">
+                            <i class="fa-brands fa-linkedin"></i>                       
+                         </a>
+                    
+                        <a href="https://sydoc.ch/"
+                            class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400"
+                            aria-label="Facebook">
+                            <i class="fa-solid fa-globe"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 lg:mt-0 lg:flex-1">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div>
+                        <h3 class="text-gray-700 uppercase dark:text-white">{{ _('About') }}</h3>
+                        <a href="https://sydoc.ch/ueber-sydoc/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Company') }}</a>
+                        <a href="https://sydoc.ch/ueber-sydoc/team/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Team') }}</a>
+                        <a href="https://sydoc.ch/ueber-sydoc/news/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('News') }}</a>
+                        <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Client magazine') }}</a>
+                    </div>
+
+                    <div>
+                        <h3 class="text-gray-700 uppercase dark:text-white">{{ _('Products') }}</h3>
+                        <a href="https://sydoc.ch/dokumente-scannen/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Scan documents') }}</a>
+                        <a href="https://sydoc.ch/digitaler-posteingang/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Digital Inbox') }}</a>
+                        <a href="https://sydoc.ch/rechnungsverarbeitung/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Process Invoices') }}</a>
+                        <a href="https://sydoc.ch/cloud-loesungen/" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">{{ _('Cloud Solutions') }}</a>
+                    </div>
+
+                    <div>
+                        <h3 class="text-gray-700 uppercase dark:text-white">{{ _('Contact') }}</h3>
+                        <span class="block mt-2 text-sm text-gray-600 dark:text-gray-400">+41 41 798 10 98</span>
+                        <a href="mailto:info@sydoc.ch" class="block mt-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">info@sydoc.ch</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="h-px my-6 bg-gray-200 border-none dark:bg-gray-700">
+
+        <div>
+            <p class="text-center text-gray-500 dark:text-gray-400">© nexora - {{ _('All rights reserved') }}</p>
+        </div>
     </div>
 </footer>

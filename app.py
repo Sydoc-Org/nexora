@@ -82,46 +82,46 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -1592,8 +1592,13 @@ def build_stat_query(proc):
         if conn: conn.close()
         if cursor: cursor.close()
 # --------------------------------- dashboard -------------------------------- #
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
+
+def make_cache_key(*args, **kwargs):
+    return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
 
 @app.route("/api/reports/processed_over_time")
+@cache.cached(timeout=300, key_prefix=make_cache_key)
 def report_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1605,49 +1610,72 @@ def report_processed_over_time():
         for perm in perms
         if perm.startswith(prefix)
     })
-    process_name = session['process_name_dashboard']
-    if process_name != 'all' and process_name not in allowed_processes:
-        process_name = 'all'
+    process_name = session.get('process_name_dashboard', 'all')
     
-    queries = []
-    ap = allowed_processes if process_name == 'all' else [process_name]
-
-    for proc in ap:
-        row = build_stat_query(proc)
-        buildStatQuery = "SELECT"
-        convert = True if 'convert' in str(row.ExportColumn).lower() else False
-        buildStatQuery += f" {row.ExportColumn} d, " if convert else f" CAST({row.ExportColumn} AS DATE) d, "
-
-        buildStatQuery += f"""
-        count(*) c FROM [{DB_STATISTICS}].{row.TableName}
-        WHERE {row.ExportColumn} >= dateadd(day,-14,getdate()) 
-        """
-        if row.additionalCondition:
-            buildStatQuery += f' {row.additionalCondition} '
-        buildStatQuery += f' group by {row.ExportColumn} ' if convert else f' group by CAST({row.ExportColumn} AS DATE)'
-        queries.append(buildStatQuery)
+    target_processes = allowed_processes if process_name == 'all' else [process_name]
+    
+    if not target_processes:
+        return jsonify({'labels': [], 'data': []})
 
     conn = None
     try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        placeholders = ','.join(['?'] * len(target_processes))
+        config_query = f"""
+            SELECT ProcessName, TableName, ExportColumn, additionalCondition 
+            FROM Statconfig 
+            WHERE ProcessName IN ({placeholders})
+        """
+        cursor.execute(config_query, target_processes)
+        configs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not configs:
+            return jsonify({'labels': [], 'data': []})
+
+        sub_queries = []
+        for row in configs:
+            convert = 'convert' in str(row.ExportColumn).lower()
+            date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
+            
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            
+            sub_q = f"""
+                SELECT {date_col} as d, COUNT(*) as c 
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
+                GROUP BY {date_col}
+            """
+            sub_queries.append(sub_q)
+
+        full_query = f"""
+            SELECT d, SUM(c) as total_count 
+            FROM (
+                {' UNION ALL '.join(sub_queries)}
+            ) as combined_data
+            GROUP BY d
+            ORDER BY d
+        """
+
         conn = engineStatisticsDB.raw_connection()
         cursor = conn.cursor()
+        cursor.execute(full_query)
+        rows = cursor.fetchall()
 
-        rows = []
-        for query in queries:
-            cursor.execute(query)
-            rows += cursor.fetchall()
-        rows.sort(key=lambda r: r.d)  
         labels = [row.d for row in rows]
-        data = [row.c for row in rows]
+        data = [row.total_count for row in rows]
+        
         return jsonify({'labels': labels, 'data': data})
+
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route("/api/reports/status_distribution")
 def report_status_distribution():
@@ -1670,7 +1698,6 @@ def report_kpi_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-
     prefix = "dashboard.filter.process."
     perms = session.get('permissions', [])
     allowed_processes = sorted({
@@ -1678,54 +1705,77 @@ def report_kpi_stats():
         for perm in perms
         if perm.startswith(prefix)
     })
-    process_name = session['process_name_dashboard']
-    if process_name != 'all' and process_name not in allowed_processes:
-        process_name = 'all'
+    process_name = session.get('process_name_dashboard', 'all')
+    
+    target_processes = allowed_processes if process_name == 'all' else [process_name]
 
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+    if not target_processes:
+         return jsonify({'processed_today': 0, 'processed_week': 0, 'current_backlog': 0})
 
-    processed_today_queries = []
-    processed_week_queries = []
-    ap = allowed_processes if process_name == 'all' else [process_name]
-    for proc in ap:
-        row = build_stat_query(proc)
-        buildStatQuery_base = f"SELECT count(*) FROM [{DB_STATISTICS}].{row.TableName} WHERE "
-        convert = True if 'convert' in str(row.ExportColumn).lower() else False
-        buildStatQuery_today = buildStatQuery_base +  f' {row.ExportColumn} = CAST(GETDATE() AS DATE) ' if convert else buildStatQuery_base + f' CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) '
-        buildStatQuery_week = buildStatQuery_base + f"""
-            {row.ExportColumn} >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-            AND {row.ExportColumn} < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0) 
-        """
-        if row.additionalCondition:
-            buildStatQuery_today += f' {row.additionalCondition} '
-            buildStatQuery_week += f' {row.additionalCondition} '
-        processed_today_queries.append(buildStatQuery_today)
-        processed_week_queries.append(buildStatQuery_week)
+    processed_today = 0
+    processed_week = 0
+    current_backlog = 0
 
+    conn_nex = None
+    conn_stat = None
+    conn_octo = None
+    
     try:
-        conn = engineStatisticsDB.raw_connection()
-        cursor = conn.cursor()
-        processed_today = 0
-        processed_week = 0
+        conn_nex = engineNexoraDB.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ','.join(['?'] * len(target_processes))
         
-        for i in range(len(processed_today_queries)):
-            cursor.execute(processed_today_queries[i])
-            processed_today += cursor.fetchone()[0]
-            cursor.execute(processed_week_queries[i])
-            processed_week += cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
+        cursor_nex.execute(f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})", target_processes)
+        configs = cursor_nex.fetchall()
+        cursor_nex.close()
+        conn_nex.close()
 
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
+        if configs:
+            sub_queries = []
+            for row in configs:
+                convert = 'convert' in str(row.ExportColumn).lower()
+                col = row.ExportColumn
+                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                
+                sub_q = f"""
+                    SELECT 
+                        SUM(CASE WHEN { ('CAST('+col+' AS DATE)' if not convert else col) } = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCount,
+                        COUNT(*) as WeekCount
+                    FROM [{DB_STATISTICS}].{row.TableName}
+                    WHERE {col} >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
+                    AND {col} < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0)
+                    {condition}
+                """
+                sub_queries.append(sub_q)
 
-        cursor.execute(f"""
+            full_stat_query = f"""
+                SELECT SUM(TodayCount), SUM(WeekCount) 
+                FROM (
+                    {' UNION ALL '.join(sub_queries)}
+                ) as combined
+            """
+            
+            conn_stat = engineStatisticsDB.raw_connection()
+            cursor_stat = conn_stat.cursor()
+            cursor_stat.execute(full_stat_query)
+            row = cursor_stat.fetchone()
+            if row:
+                processed_today = row[0] or 0
+                processed_week = row[1] or 0
+            cursor_stat.close()
+            conn_stat.close()
+
+        params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix, process_name=process_name)
+        
+        conn_octo = engineOctoDB.raw_connection()
+        cursor_octo = conn_octo.cursor()
+        cursor_octo.execute(f"""
             SELECT COUNT(*) FROM t_WorkItems w
             LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
             LEFT JOIN t_Processes p on p.id = a.ProcessID
             WHERE p.Name IN ({process_placeholders}) AND p.ClientName IN ({client_placeholders}) AND a.ActivityInstanceName = 'C+A';
-        """,params)
-        current_backlog = cursor.fetchone()[0]
+        """, params)
+        current_backlog = cursor_octo.fetchone()[0]
 
         return jsonify({
             'processed_today': processed_today,
@@ -1737,10 +1787,9 @@ def report_kpi_stats():
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if conn_nex: conn_nex.close()
+        if conn_stat: conn_stat.close()
+        if conn_octo: conn_octo.close()
 
 @app.route("/api/reports/stage_breakdown")
 def report_stage_breakdown():
@@ -2683,7 +2732,6 @@ def get_workitemdata_param(workitem_id):
 
     return base64_string, response.json()['DocumentID']
 
-cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 @cache.cached(timeout=3600, key_prefix='index_field_mappings')
 def get_index_field_mappings():
@@ -3878,7 +3926,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
