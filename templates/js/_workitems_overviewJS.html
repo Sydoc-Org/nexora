@@ -824,8 +824,10 @@
                     console.error("Error loading field config:", e);
                 }
             }
-
+            
             function fillDocFieldSelect(selectEl, process) {
+                const previousValue = selectEl.value || selectEl.getAttribute('data-selected');
+
                 selectEl.innerHTML = '';
                 let fields = [];
                 
@@ -836,7 +838,7 @@
                 } else {
                     fields = fieldConfig.search_options[process] || [];
                 }
-                const previousValue = selectEl.getAttribute('data-selected') || selectEl.value;
+                
                 if (fields.length === 0) {
                     const opt = document.createElement('option');
                     opt.textContent = "{{ _('No fields available') }}";
@@ -846,6 +848,7 @@
                         const opt = document.createElement('option');
                         opt.value = field.value;
                         opt.textContent = field.label;
+                        // Re-select if the value matches the one we captured
                         if (field.value === previousValue) opt.selected = true;
                         selectEl.appendChild(opt);
                     });

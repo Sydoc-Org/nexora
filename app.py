@@ -467,26 +467,26 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user("1019")
             
-        #     log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
-        #     return redirect(url_for('dashboard'))
+            log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
+            return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
