@@ -16,6 +16,8 @@
             search_options: {},
             labels: {}
         };
+        let pendingImportFile = null;
+
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
 
@@ -138,58 +140,6 @@
             });
         }
 
-        function exportToCSV() {
-            try {
-                let csv = [];
-                const table = document.getElementById("workitemsTable");
-                const rows = table.querySelectorAll(
-                    'tr:not([style*="display: none"]):not(.details-row)'
-                );
-
-                const headers = Array.from(rows[0].cells)
-                    .slice(0, -1)
-                    .map((cell) => cell.textContent.trim());
-                csv.push(headers.join(";"));
-
-                for (let i = 1; i < rows.length; i++) {
-                    const row = Array.from(rows[i].cells)
-                        .slice(0, -1)
-                        .map((cell) => {
-                            let text = cell.textContent.trim();
-                            if (/[;\n"]/.test(text)) {
-                                text = `"${text.replace(/"/g, '""')}"`;
-                            }
-                            return text;
-                        });
-                    csv.push(row.join(";"));
-                }
-
-                const csvString = csv.join("\n");
-                const blob = new Blob([csvString], {
-                    type: "text/csv"
-                });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `workitems_${new Date().toISOString().split("T")[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-
-                logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
-                    searchInput: getCurrentFilterOrSearch().search || "none",
-                    filteredFor: getCurrentFilterOrSearch().status || "All",
-                }), "SUCCESS", 0);
-            } catch (err) {
-                logAction("exportWorkitemsCSV", 'workitemOverview', JSON.stringify({
-                    error: err,
-                    searchInput: getCurrentFilterOrSearch().search || "none",
-                    filteredFor: getCurrentFilterOrSearch().status || "All",
-                }), "FAILURE", 1);
-            }
-        }
-
         function getCurrentFilterOrSearch() {
             const statusFilter = document.getElementById("statusFilter");
             const searchInput = document.getElementById("searchInput");
@@ -271,19 +221,18 @@
             }
         }
 
-function renderTagsInDetails(workitemId, tags) {
-    const container = document.getElementById(`tags-container-${workitemId}`);
-    if (!container) return;
-    container.innerHTML = tags.map(tag => `
-        <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
-            ${tag.name}
-            <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}">
-                <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
-            </button>
-        </span>
-    `).join('');
-}
-
+        function renderTagsInDetails(workitemId, tags) {
+            const container = document.getElementById(`tags-container-${workitemId}`);
+            if (!container) return;
+            container.innerHTML = tags.map(tag => `
+                <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
+                    ${tag.name}
+                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}">
+                        <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
 
         async function refreshWorkitemUI(workitemId) {
         try {
@@ -437,7 +386,6 @@ function renderTagsInDetails(workitemId, tags) {
                 container.appendChild(loadMoreBtn);
             }
         }
-
 
         async function toggleDetailsAndLoadImages(event) {
             try {
@@ -745,6 +693,93 @@ function renderTagsInDetails(workitemId, tags) {
             }
         }
 
+        function openImportModal(file) {
+            if (!file || file.type !== 'application/pdf') {
+                alert('{{ _("Please drop a valid PDF file.") }}');
+                return;
+            }
+            pendingImportFile = file;
+            
+            const modal = document.getElementById('importProcessModal');
+            const nameDisplay = document.getElementById('importFileNameDisplay');
+            const select = document.getElementById('importProcessSelect');
+            const errorMsg = document.getElementById('importErrorMsg');
+
+            if (modal && nameDisplay && select) {
+                nameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                select.value = ""; // Reset selection
+                errorMsg.classList.add('hidden');
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importProcessModal');
+            if (modal) modal.classList.add('hidden');
+            pendingImportFile = null;
+            // Reset file input so change event fires again if same file selected
+            const importFileInput = document.getElementById('importFile');
+            if(importFileInput) importFileInput.value = '';
+        }
+
+        // Updated Upload Function accepting Process Name
+        function uploadFile(file, processName) {
+            if (!file || !processName) return;
+
+            const importBtn = document.getElementById('importBtn');
+            const modalBtn = document.getElementById('confirmImportBtn');
+            const formData = new FormData();
+            formData.append('importFile', file);
+            formData.append('processName', processName); // Send process name
+
+            // UI Loading State
+            if (importBtn) {
+                importBtn.disabled = true;
+                importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
+            }
+            if (modalBtn) {
+                modalBtn.disabled = true;
+                modalBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>`;
+            }
+
+            fetch(`${API_PREFIX}import_workitems`, {
+                headers: {'X-CSRFToken': csrfToken},
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    showNotification('Import successful');
+                } else {
+                    console.error('Import failed. The server did not redirect.');
+                    showNotification(`{{ _("Import failed. The server did not redirect.") }}`, 'error');
+                    resetImportUI();
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred during the file import:', error);
+                showNotification('An error occurred during the file import', 'error');
+                resetImportUI();
+            })
+            .finally(() => {
+                closeImportModal();
+            });
+        }
+
+        function resetImportUI() {
+            const importBtn = document.getElementById('importBtn');
+            const modalBtn = document.getElementById('confirmImportBtn');
+            if (importBtn) {
+                importBtn.disabled = false;
+                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+            }
+            if (modalBtn) {
+                modalBtn.disabled = false;
+                modalBtn.innerHTML = `{{ _("Import File") }}`;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             fetchMentionableUsers();
             fetchAllTags();
@@ -819,7 +854,6 @@ function renderTagsInDetails(workitemId, tags) {
                     });
                 }
             }
-
 
             function addDocFilterRow() {
                 const tpl = document.getElementById('docFilterRowTemplate');
@@ -935,7 +969,6 @@ function renderTagsInDetails(workitemId, tags) {
                 _rowDebounce = setTimeout(() => fetchRowSuggestions(row, q), 300);
             }
 
-
             function uploadFile(file) {
                 if (!file || file.type !== 'application/pdf') {
                     alert('{{ _("Please drop a valid PDF file.") }}');
@@ -975,15 +1008,18 @@ function renderTagsInDetails(workitemId, tags) {
                         showNotification('An error occurred during the file import', '');
                     });
             }
+            
+            
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
+            
             if (importBtn && importFileInput) {
                 importBtn.addEventListener('click', () => {
                     importFileInput.click();
                 });
                 importFileInput.addEventListener('change', () => {
                     if (importFileInput.files.length > 0) {
-                        uploadFile(importFileInput.files[0]);
+                        openImportModal(importFileInput.files[0]);
                     }
                 });
             }
@@ -1010,9 +1046,28 @@ function renderTagsInDetails(workitemId, tags) {
                     dragCounter = 0;
                     dropZoneOverlay.classList.add('hidden');
                     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                        uploadFile(e.dataTransfer.files[0]);
+                        openImportModal(e.dataTransfer.files[0]);
                         e.dataTransfer.clearData();
                     }
+                });
+            }
+            const modalCancelBtn = document.getElementById('cancelImportBtn');
+            const modalConfirmBtn = document.getElementById('confirmImportBtn');
+            const importSelect = document.getElementById('importProcessSelect');
+            const errorMsg = document.getElementById('importErrorMsg');
+
+            if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeImportModal);
+            
+            if (modalConfirmBtn) {
+                modalConfirmBtn.addEventListener('click', () => {
+                    if (!pendingImportFile) return;
+                    
+                    const selectedProcess = importSelect.value;
+                    if (!selectedProcess) {
+                        errorMsg.classList.remove('hidden');
+                        return;
+                    }
+                    uploadFile(pendingImportFile, selectedProcess);
                 });
             }
             const processSel = document.getElementById('prcfW');
@@ -1346,9 +1401,6 @@ function renderTagsInDetails(workitemId, tags) {
                     console.error("Remove tag error:", error);
                 }
             }
-
-
-
 
             function renderPagination(pagination) {
                 const {

@@ -36,6 +36,9 @@ import urllib
 app = Flask(__name__)
 load_dotenv()
 
+
+UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
@@ -2620,21 +2623,39 @@ def import_workitems():
         return redirect(url_for('workitems_overview'))
 
     file = request.files['importFile']
+    process_name = request.form.get('processName') # Get selected process
 
     if file.filename == '':
         flash(_("No file selected for uploading."), 'error')
         return redirect(url_for('workitems_overview'))
 
+    if not process_name:
+        flash(_("No target process selected."), 'error')
+        return redirect(url_for('workitems_overview'))
+
+    perms = session.get('permissions', [])
+    prefix = "workitems.filter.process."
+    allowed_processes = {
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    }
+    
+    if process_name not in allowed_processes:
+        log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={'securityError': 'User attempted to import to unauthorized process', 'process': process_name})
+        flash(_("You do not have permission to import to this process."), 'error')
+        return redirect(url_for('workitems_overview'))
+
     if file and is_file_allowed(file.filename, file.stream):
-        filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
-        upload_folder = os.path.join(app.root_path, 'uploads')
-        os.makedirs(upload_folder, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4()}_{process_name}_{filename}" 
+        
+        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
 
         try:
             file.save(file_path)
-            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': filename, 'originalFilename': file.filename})
-            flash(_("File '{}' successfully imported.").format(filename), 'success')
+            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': unique_filename, 'originalFilename': file.filename, 'targetProcess': process_name})
+            flash(_("File '{}' successfully imported into {}.").format(filename, process_name), 'success')
         except Exception as e:
             app.logger.error(f"Error saving imported file: {e}")
             log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
