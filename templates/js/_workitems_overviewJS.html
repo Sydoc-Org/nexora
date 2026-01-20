@@ -707,7 +707,7 @@
 
             if (modal && nameDisplay && select) {
                 nameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                select.value = ""; // Reset selection
+                select.value = ""; 
                 errorMsg.classList.add('hidden');
                 modal.classList.remove('hidden');
             }
@@ -717,12 +717,10 @@
             const modal = document.getElementById('importProcessModal');
             if (modal) modal.classList.add('hidden');
             pendingImportFile = null;
-            // Reset file input so change event fires again if same file selected
             const importFileInput = document.getElementById('importFile');
             if(importFileInput) importFileInput.value = '';
         }
 
-        // Updated Upload Function accepting Process Name
         function uploadFile(file, processName) {
             if (!file || !processName) return;
 
@@ -730,9 +728,8 @@
             const modalBtn = document.getElementById('confirmImportBtn');
             const formData = new FormData();
             formData.append('importFile', file);
-            formData.append('processName', processName); // Send process name
+            formData.append('processName', processName);
 
-            // UI Loading State
             if (importBtn) {
                 importBtn.disabled = true;
                 importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
@@ -969,46 +966,6 @@
                 _rowDebounce = setTimeout(() => fetchRowSuggestions(row, q), 300);
             }
 
-            function uploadFile(file) {
-                if (!file || file.type !== 'application/pdf') {
-                    alert('{{ _("Please drop a valid PDF file.") }}');
-                    return;
-                }
-                const importBtn = document.getElementById('importBtn');
-                const formData = new FormData();
-                formData.append('importFile', file);
-                if (importBtn) {
-                    importBtn.disabled = true;
-                    importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
-                }
-                fetch(`${API_PREFIX}import_workitems`, {
-                    headers: {'X-CSRFToken': csrfToken},
-                    method: 'POST',
-                    body: formData,
-                })
-                    .then(response => {
-                        if (response.redirected) {
-                            window.location.href = response.url;
-                            showNotification('Import successful');
-                        } else {
-                            console.error('Import failed. The server did not redirect.');
-                            showNotification(`{{ _("Import failed. The server did not redirect.") }}`, '');
-                            if (importBtn) {
-                                importBtn.disabled = false;
-                                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('An error occurred during the file import:', error);
-                        if (importBtn) {
-                            importBtn.disabled = false;
-                            importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
-                        }
-                        showNotification('An error occurred during the file import', '');
-                    });
-            }
-            
             
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
@@ -1047,9 +1004,13 @@
                     dropZoneOverlay.classList.add('hidden');
                     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                         openImportModal(e.dataTransfer.files[0]);
-                        e.dataTransfer.clearData();
+                        // e.dataTransfer.clearData();
                     }
                 });
+            }
+            
+               if (dropZoneOverlay) {
+                 window.removeEventListener('drop', () => {});
             }
             const modalCancelBtn = document.getElementById('cancelImportBtn');
             const modalConfirmBtn = document.getElementById('confirmImportBtn');

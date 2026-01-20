@@ -37,8 +37,7 @@ app = Flask(__name__)
 load_dotenv()
 
 
-UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
@@ -2623,7 +2622,7 @@ def import_workitems():
         return redirect(url_for('workitems_overview'))
 
     file = request.files['importFile']
-    process_name = request.form.get('processName') # Get selected process
+    process_name = request.form.get('processName') 
 
     if file.filename == '':
         flash(_("No file selected for uploading."), 'error')
@@ -2648,9 +2647,15 @@ def import_workitems():
 
     if file and is_file_allowed(file.filename, file.stream):
         filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4()}_{process_name}_{filename}" 
+        unique_filename = f"{uuid.uuid4()}_{filename}" 
         
-        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        PROCESS_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, process_name.replace('.', '_'))
+        os.makedirs(PROCESS_UPLOAD_FOLDER, exist_ok=True)
+
+        file_path = os.path.join(PROCESS_UPLOAD_FOLDER, unique_filename)
 
         try:
             file.save(file_path)
