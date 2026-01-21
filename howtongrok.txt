@@ -1,1 +1,6 @@
-ngrok http --url=nexora.sydoc.ch 80 --region=eu --traffic-policy-file="D:\sydoc\nexora\policy.yml"
+Run Manually on SYAPP01 (dir "D:\sydoc\tools\ngrok"):
+    ngrok start --config="D:\sydoc\nexora\ngrok.yml" --all
+
+Install and Run via Service (administrator):
+    ngrok service install --config="D:\sydoc\nexora\ngrok.yml"
+    ngrok service start

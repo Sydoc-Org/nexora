@@ -1,0 +1,18 @@
+version: 2
+region: eu                         
+
+tunnels:
+  nexora-app:                      
+    proto: http
+    addr: 80                       
+    hostname: nexora.sydoc.ch      
+    
+    policy:
+      on_http_request:
+        - name: "Block Bots and Crawlers"
+          expressions:
+            - "req.user_agent.name in ['Googlebot', 'Bingbot', 'ChatGPT-User', 'GPTBot', 'Bytespider']"
+          actions:
+            - type: deny
+              config:
+                status_code: 403

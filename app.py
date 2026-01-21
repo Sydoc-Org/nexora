@@ -36,8 +36,6 @@ import urllib
 app = Flask(__name__)
 load_dotenv()
 
-
-
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
@@ -84,7 +82,7 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-# app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
@@ -3964,8 +3962,6 @@ def download_invoice_pdf(invoice_id):
         flash(_("An unexpected error occurred while downloading the PDF."), 'error')
         return redirect(url_for('invoices'))
 # -------------------------------- invoices end -------------------------------- #
-
-
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
