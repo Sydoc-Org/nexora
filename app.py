@@ -76,8 +76,7 @@ babel = Babel(app, locale_selector=get_locale, timezone_selector=get_timezone)
 
 limiter = Limiter(
     key_func=get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"]
+    app=app
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
@@ -2980,7 +2979,8 @@ def get_audithistory(workitem_id):
         response = requests.get(url=audit_url, headers=headers, timeout=10)
         response.raise_for_status()
         audits = response.json()
-
+        if not audits or not isinstance(audits, dict):
+            return jsonify([])
         unique_activities = {}
         for audit in audits.get('Audits', []):
             activity_id = audit.get('ActivityInstanceID')

@@ -81,7 +81,6 @@
             try {
                 const process = document.getElementById('prcfW')?.value || 'all';
                 const field = document.getElementById('docFieldFilter')?.value;
-                console.log(process, field)
                 const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
                 const res = await fetch(url, {headers: {
                 'Content-Type': 'application/json',
@@ -212,9 +211,7 @@
                     });
                     historyContainer.appendChild(timeline);
                 }
-
                 historyContainer.dataset.loaded = 'true';
-
             } catch (error) {
                 console.error('Failed to load history:', error);
                 historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
@@ -280,7 +277,6 @@
                 }});
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
-                console.log(data)
                 prioritySelector.value = data.priority;
                 assignSelector.value = data.assigneduserid;
                 renderTagsInDetails(workitemId, data.tags)

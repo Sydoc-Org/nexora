@@ -36,6 +36,10 @@
         return url;
     }
 
+    let proccessedTodayLoadInit = 0;
+    let processedWeekLoadInit = 0;
+    let currentBacklogLoadInit = 0;
+
     async function updateKpiStats() {
         try {
             const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`, {headers: {
@@ -43,9 +47,12 @@
                 'X-CSRFToken': csrfToken  
                 }});
             const stats = await response.json();
-            animateValue(document.getElementById("processed-today"), 0, stats.processed_today, 1500);
-            animateValue(document.getElementById("processed-week"), 0, stats.processed_week, 1500);
-            animateValue(document.getElementById("current-backlog"), 0, stats.current_backlog, 1500);
+            animateValue(document.getElementById("processed-today"), proccessedTodayLoadInit, stats.processed_today, 1500);
+            animateValue(document.getElementById("processed-week"), processedWeekLoadInit, stats.processed_week, 1500);
+            animateValue(document.getElementById("current-backlog"), currentBacklogLoadInit, stats.current_backlog, 1500);
+            proccessedTodayLoadInit = stats.processed_today;
+            processedWeekLoadInit = stats.processed_week;
+            currentBacklogLoadInit = stats.current_backlog;
         } catch (error) {
             console.error("Failed to update KPI stats:", error);
         }
