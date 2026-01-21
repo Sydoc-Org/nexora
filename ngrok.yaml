@@ -1,15 +1,16 @@
-version: 2
-region: eu                         
+version: 3
 
-tunnels:
-  nexora-app:                      
-    proto: http
-    addr: 80                       
-    hostname: nexora.sydoc.ch      
-    
-    policy:
+agent:
+  authtoken: 
+
+endpoints:
+  - name: nexora-app
+    url: https://nexora.sydoc.ch
+    upstream:
+      url: 80
+    traffic_policy:
       on_http_request:
-        - name: "Block Bots and Crawlers"
+        - name: "Block Bots"
           expressions:
             - "req.user_agent.name in ['Googlebot', 'Bingbot', 'ChatGPT-User', 'GPTBot', 'Bytespider']"
           actions:

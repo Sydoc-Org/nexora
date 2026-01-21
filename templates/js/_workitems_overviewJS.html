@@ -368,7 +368,7 @@
             }
 
             const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
-            const batchSize = 3;
+            const batchSize = 7;
             const endIndex = Math.min(loadedCount + batchSize, totalImages);
 
             for (let i = loadedCount; i < endIndex; i++) {
