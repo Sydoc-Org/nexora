@@ -81,46 +81,46 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-# app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+csp = {
+    'default-src': '\'self\'',
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://cdn.tailwindcss.com',   
+        'https://cdnjs.cloudflare.com',  
+        'https://cdn.jsdelivr.net'       
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://fonts.googleapis.com',  
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com',     
+        'https://cdnjs.cloudflare.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'blob:',                         
+        'https://cdn.tailwindcss.com'
+    ],
+    'connect-src': [
+        '\'self\'',                     
+        'https://cdn.tailwindcss.com',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ]
+}
+Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -464,26 +464,26 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        if UID_REQUEST == '123' and PWD_REQUEST == '123':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            username, fullname, email, org_code = row
+        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     username, fullname, email, org_code = row
 
-            session.clear() 
-            session['userid'] = "1019"
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['permissions'] = load_permissions_for_user("1019")
+        #     session.clear() 
+        #     session['userid'] = "1019"
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['permissions'] = load_permissions_for_user("1019")
             
-            log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
-            return redirect(url_for('dashboard'))
+        #     log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
+        #     return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
@@ -3983,7 +3983,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
