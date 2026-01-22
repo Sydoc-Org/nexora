@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-21 09:49+0100\n"
+"POT-Creation-Date: 2026-01-22 13:00+0100\n"
 "PO-Revision-Date: 2025-12-18 12:24+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,206 +18,206 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:319
+#: app.py:318
 msgid "Session expired, please try again"
 msgstr "Sitzung abgelaufen, bitte versuchen Sie es erneut"
 
-#: app.py:336
+#: app.py:335
 msgid "2FA enabled successfully"
 msgstr "2FA erfolgreich aktiviert"
 
-#: app.py:340
+#: app.py:339
 msgid "Database error"
 msgstr "Datenbankfehler"
 
-#: app.py:348
+#: app.py:347
 msgid "Invalid code. Please try again."
 msgstr "Ungültiger Code. Bitte versuchen Sie es erneut."
 
-#: app.py:395
+#: app.py:394
 msgid "Invalid code"
 msgstr "Ungültiger Code"
 
-#: app.py:409 app.py:1291
+#: app.py:408 app.py:1290
 msgid "Passwords do not match"
 msgstr "Passwörter stimmen nicht überein"
 
-#: app.py:411 app.py:1293
+#: app.py:410 app.py:1292
 msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: app.py:413 app.py:1295 app.py:3604
+#: app.py:412 app.py:1294 app.py:3622
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 8 Zeichen lang sein und darf keine "
 "Leerzeichen enthalten"
 
-#: app.py:432 app.py:1313
+#: app.py:431 app.py:1312
 msgid "New Password musn't be previously used password"
 msgstr ""
 "Das neue Passwort darf nicht einem bereits verwendeten Passwort "
 "entsprechen"
 
-#: app.py:449
+#: app.py:448
 msgid "Initial Password changed successfully"
 msgstr "Initialpasswort erfolgreich geändert"
 
-#: app.py:490 app.py:526
+#: app.py:489 app.py:525
 msgid "Invalid credentials"
 msgstr "Ungültige Zugangsdaten"
 
-#: app.py:531
+#: app.py:530
 msgid "Login temporarily unavailable"
 msgstr "Login vorübergehend nicht verfügbar"
 
-#: app.py:564 app.py:593
+#: app.py:563 app.py:592
 msgid "Not authenticated"
 msgstr "Nicht authentifiziert"
 
-#: app.py:583
+#: app.py:582
 msgid "Could not fetch notifications"
 msgstr "Benachrichtigungen konnten nicht geladen werden"
 
-#: app.py:599
+#: app.py:598
 msgid "Invalid payload"
 msgstr "Ungültige Nutzlast (Payload)"
 
-#: app.py:618
+#: app.py:617
 msgid "Notifications marked as read."
 msgstr "Benachrichtigungen als gelesen markiert."
 
-#: app.py:621
+#: app.py:620
 msgid "Could not update notifications"
 msgstr "Benachrichtigungen konnten nicht aktualisiert werden"
 
-#: app.py:669 app.py:894
+#: app.py:668 app.py:893
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
-#: app.py:685 app.py:687
+#: app.py:684 app.py:686
 msgid "Organization created successfully."
 msgstr "Organisation erfolgreich erstellt."
 
-#: app.py:690
+#: app.py:689
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: app.py:694 app.py:918 app.py:3155 app.py:3198 app.py:3237 app.py:3305
-#: app.py:3333
+#: app.py:693 app.py:917 app.py:3173 app.py:3216 app.py:3255 app.py:3323
+#: app.py:3351
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: app.py:717
+#: app.py:716
 msgid "Organization updated successfully"
 msgstr "Organisation erfolgreich aktualisiert"
 
-#: app.py:719
+#: app.py:718
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: app.py:723 app.py:754 app.py:966 app.py:1018
+#: app.py:722 app.py:753 app.py:965 app.py:1017
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
-#: app.py:745
+#: app.py:744
 msgid "Organization not found."
 msgstr "Organisation nicht gefunden."
 
-#: app.py:747
+#: app.py:746
 msgid "Organization deleted successfully"
 msgstr "Organisation erfolgreich gelöscht"
 
-#: app.py:750
+#: app.py:749
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: app.py:909 app.py:911
+#: app.py:908 app.py:910
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: app.py:914
+#: app.py:913
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail existiert bereits."
 
-#: app.py:944
+#: app.py:943
 msgid "Permission Denied for this action."
 msgstr "Sie haben keine Berechtigung, diese Aktion auszuführen."
 
-#: app.py:960
+#: app.py:959
 msgid "User updated successfully"
 msgstr "Benutzer erfolgreich aktualisiert"
 
-#: app.py:962
+#: app.py:961
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: app.py:979
+#: app.py:978
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: app.py:1010
+#: app.py:1009
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: app.py:1012
+#: app.py:1011
 msgid "User deleted successfully"
 msgstr "Benutzer erfolgreich gelöscht"
 
-#: app.py:1014
+#: app.py:1013
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: app.py:1041
+#: app.py:1040
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht geladen werden"
 
-#: app.py:1070
+#: app.py:1069
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht geladen werden"
 
-#: app.py:1108 app.py:1604 app.py:1683 app.py:1699 app.py:2052 app.py:2400
-#: app.py:2675 app.py:2850 app.py:3014 app.py:3044 app.py:3118 app.py:3165
-#: app.py:3208 app.py:3247 app.py:3268 app.py:3315 app.py:3892
+#: app.py:1107 app.py:1603 app.py:1682 app.py:1698 app.py:2051 app.py:2417
+#: app.py:2692 app.py:2867 app.py:3032 app.py:3062 app.py:3136 app.py:3183
+#: app.py:3226 app.py:3265 app.py:3286 app.py:3333 app.py:3914
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: app.py:1132 app.py:3034
+#: app.py:1131 app.py:3052
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht geladen werden"
 
-#: app.py:1170
+#: app.py:1169
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: app.py:1188
+#: app.py:1187
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: app.py:1251
+#: app.py:1250
 msgid "Overrides updated successfully"
 msgstr "Ausnahmeregelungen (Overrides) erfolgreich aktualisiert"
 
-#: app.py:1328
+#: app.py:1327
 msgid "Password changed successfully"
 msgstr "Passwort erfolgreich geändert"
 
-#: app.py:1330
+#: app.py:1329
 msgid "Password changed"
 msgstr "Passwort geändert"
 
-#: app.py:1382
+#: app.py:1381
 msgid "nexora Password Reset Request"
 msgstr "nexora Passwort-Rücksetzanfrage"
 
-#: app.py:1424
+#: app.py:1423
 msgid "Password Reset Request"
 msgstr "Passwort-Rücksetzanfrage"
 
-#: app.py:1427
+#: app.py:1426
 msgid "Hello,"
 msgstr "Hallo,"
 
-#: app.py:1430
+#: app.py:1429
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -225,11 +225,11 @@ msgstr ""
 "Wir haben eine Anfrage zum Zurücksetzen Ihres Passworts erhalten. Sie "
 "können Ihr Passwort über die untenstehende Schaltfläche zurücksetzen."
 
-#: app.py:1440
+#: app.py:1439
 msgid "Reset Your Password"
 msgstr "Passwort zurücksetzen"
 
-#: app.py:1450
+#: app.py:1449
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -237,323 +237,324 @@ msgstr ""
 "Wenn Sie keine Rücksetzung des Passworts angefordert haben, ignorieren "
 "Sie bitte diese E-Mail. Der Link ist 15 Minuten lang gültig."
 
-#: app.py:1453
+#: app.py:1452
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Vielen Dank,<br>Ihr Sydoc Team"
 
-#: app.py:1511
+#: app.py:1510
 msgid "A password reset link has been sent to your email"
 msgstr ""
 "Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail-Adresse "
 "gesendet"
 
-#: app.py:1513 app.py:1517
+#: app.py:1512 app.py:1516
 msgid "Unexpected error occurred"
 msgstr "Unerwarteter Fehler aufgetreten"
 
-#: app.py:1514
+#: app.py:1513
 msgid "Invalid Email Address"
 msgstr "Ungültige E-Mail-Adresse"
 
-#: app.py:2060
+#: app.py:2059
 msgid "Not logged in"
 msgstr "Nicht eingeloggt"
 
-#: app.py:2121
+#: app.py:2120
 msgid "Document Type"
 msgstr "Dokumenttyp"
 
-#: app.py:2122
+#: app.py:2121
 msgid "Document Barcode"
 msgstr "Dokument-Barcode"
 
-#: app.py:2123
+#: app.py:2122
 msgid "Owner no."
 msgstr "Besitzer-Nr."
 
-#: app.py:2124
+#: app.py:2123
 msgid "Tenancy no."
 msgstr "Mietverhältnis-Nr."
 
-#: app.py:2125
+#: app.py:2124
 msgid "Property no."
 msgstr "Liegenschaft-Nr."
 
-#: app.py:2126
+#: app.py:2125
 msgid "Registered"
 msgstr "Eingeschrieben"
 
-#: app.py:2127
+#: app.py:2126
 msgid "Branch"
 msgstr "Niederlassung"
 
-#: app.py:2128
+#: app.py:2127
 msgid "Document Date"
 msgstr "Belegdatum"
 
-#: app.py:2129
+#: app.py:2128
 msgid "Forwarding"
 msgstr "Nachsendung"
 
-#: app.py:2130
+#: app.py:2129
 msgid "Department"
 msgstr "Abteilung"
 
-#: app.py:2131
+#: app.py:2130
 msgid "Postcode"
 msgstr "Postleitzahl"
 
-#: app.py:2132
+#: app.py:2131
 msgid "Recipient"
 msgstr "Empfänger"
 
-#: app.py:2133
+#: app.py:2132
 msgid "Confidentiality"
 msgstr "Vertraulichkeit"
 
-#: app.py:2134
+#: app.py:2133
 msgid "Creditor no."
 msgstr "Kreditor Nr."
 
-#: app.py:2135
+#: app.py:2134
 msgid "Creditor Name"
 msgstr "Kreditor Name"
 
-#: app.py:2137
+#: app.py:2136
 msgid "Gross Amount"
 msgstr "Bruttobetrag"
 
-#: app.py:2138
+#: app.py:2137
 msgid "Net Amount"
 msgstr "Nettobetrag"
 
-#: app.py:2139
+#: app.py:2138
 msgid "Vat Amount"
 msgstr "MwSt.-Betrag"
 
-#: app.py:2140
+#: app.py:2139
 msgid "Document Currency"
 msgstr "Belegwährung"
 
-#: app.py:2141
+#: app.py:2140
 msgid "Invoice no."
 msgstr "Rechnung Nr."
 
-#: app.py:2144
+#: app.py:2143
 msgid "Order no."
 msgstr "Bestell Nr."
 
-#: app.py:2145 templates/invoices.html:32
+#: app.py:2144 templates/invoices.html:32
 msgid "Client"
 msgstr "Mandant"
 
-#: app.py:2146
+#: app.py:2145
 msgid "Document Source"
 msgstr "Belegquelle"
 
-#: app.py:2147
+#: app.py:2146
 msgid "Separator-sheet"
 msgstr "Trennblatt"
 
-#: app.py:2148
+#: app.py:2147
 msgid "Document ID"
 msgstr "Dokument-ID"
 
-#: app.py:2149
+#: app.py:2148
 msgid "Archive-box No."
 msgstr "Archivbox-Nr."
 
-#: app.py:2150
+#: app.py:2149
 msgid "Document No."
 msgstr "Dokument-Nr."
 
-#: app.py:2464
+#: app.py:2481
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht geladen werden"
 
-#: app.py:2619
+#: app.py:2636
 msgid "No file part in the request."
 msgstr "Kein Datei-Teil in der Anfrage vorhanden."
 
-#: app.py:2626
+#: app.py:2643
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: app.py:2630
+#: app.py:2647
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: app.py:2643
+#: app.py:2660
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, diese Aktion auszuführen."
 
-#: app.py:2661
+#: app.py:2678
+#, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: app.py:2665
+#: app.py:2682
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: app.py:2668
+#: app.py:2685
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie eine gültige PDF-Datei hoch."
 
-#: app.py:2718
+#: app.py:2735
 msgid "Could not fetch workitem data"
 msgstr "Arbeitselement-Daten konnten nicht geladen werden"
 
-#: app.py:2866 app.py:2903
+#: app.py:2883 app.py:2920
 msgid "Workitem not found"
 msgstr "Arbeitselement nicht gefunden"
 
-#: app.py:2893 app.py:2953
+#: app.py:2910 app.py:2970
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: app.py:2914
+#: app.py:2931
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: app.py:2942
+#: app.py:2959
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: app.py:2970
+#: app.py:2987
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
-#: app.py:3006
+#: app.py:3024
 msgid "Failed to fetch audit history"
 msgstr "Audit-Historie konnte nicht geladen werden"
 
-#: app.py:3008
+#: app.py:3026
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: app.py:3083
+#: app.py:3101
 msgid "No data found for this workitem."
 msgstr "Keine Daten für dieses Arbeitselement gefunden."
 
-#: app.py:3108
+#: app.py:3126
 msgid "Could not fetch interactions"
 msgstr "Interaktionen konnten nicht geladen werden"
 
-#: app.py:3123
+#: app.py:3141
 msgid "Comment cannot be empty."
 msgstr "Kommentar darf nicht leer sein."
 
-#: app.py:3151
+#: app.py:3169
 msgid "Comment added."
 msgstr "Kommentar hinzugefügt."
 
-#: app.py:3170
+#: app.py:3188
 msgid "Invalid assignment."
 msgstr "Ungültige Zuweisung."
 
-#: app.py:3193
+#: app.py:3211
 msgid "assigned you on workitem"
 msgstr "hat Ihnen ein Arbeitselement zugewiesen"
 
-#: app.py:3194
+#: app.py:3212
 msgid "Assignment updated."
 msgstr "Zuweisung aktualisiert."
 
-#: app.py:3213
+#: app.py:3231
 msgid "Invalid priority level."
 msgstr "Ungültige Prioritätsstufe."
 
-#: app.py:3233
+#: app.py:3251
 msgid "Priority updated."
 msgstr "Priorität aktualisiert."
 
-#: app.py:3258
+#: app.py:3276
 msgid "Could not fetch tags"
 msgstr "Tags konnten nicht geladen werden"
 
-#: app.py:3275
+#: app.py:3293
 msgid "Tag name cannot be empty."
 msgstr "Tag-Name darf nicht leer sein."
 
-#: app.py:3294
+#: app.py:3312
 msgid "Workitem already has this tag."
 msgstr "Arbeitselement hat diesen Tag bereits."
 
-#: app.py:3300
+#: app.py:3318
 msgid "Tag added successfully."
 msgstr "Tag erfolgreich hinzugefügt."
 
-#: app.py:3326
+#: app.py:3344
 msgid "Tag association not found."
 msgstr "Tag-Verknüpfung nicht gefunden."
 
-#: app.py:3329
+#: app.py:3347
 msgid "Tag removed successfully."
 msgstr "Tag erfolgreich entfernt."
 
-#: app.py:3516
+#: app.py:3534
 msgid "Email Adress is not valid"
 msgstr "E-Mail-Adresse ist ungültig"
 
-#: app.py:3523
+#: app.py:3541
 msgid "Email Adress is already in use"
 msgstr "E-Mail-Adresse ist bereits vergeben"
 
-#: app.py:3542 app.py:3563
+#: app.py:3560 app.py:3581
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Ungültiges Dateiformat. Bitte laden Sie ein gültiges Bild hoch."
 
-#: app.py:3570
+#: app.py:3588
 msgid "Your profile was updated successfully."
 msgstr "Ihr Profil wurde erfolgreich aktualisiert."
 
-#: app.py:3571
+#: app.py:3589
 msgid "Profile updated successfully!"
 msgstr "Profil erfolgreich aktualisiert!"
 
-#: app.py:3574
+#: app.py:3592
 msgid "Unexpected error"
 msgstr "Unerwarteter Fehler"
 
-#: app.py:3598
+#: app.py:3616
 msgid "New passwords do not match"
 msgstr "Neue Passwörter stimmen nicht überein"
 
-#: app.py:3601
+#: app.py:3619
 msgid "All fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt sein"
 
-#: app.py:3635 app.py:3637
+#: app.py:3653 app.py:3655
 msgid "Password updated successfully!"
 msgstr "Passwort erfolgreich aktualisiert!"
 
-#: app.py:3640
+#: app.py:3658
 msgid "Current password is incorrect"
 msgstr "Aktuelles Passwort ist falsch"
 
-#: app.py:3643 app.py:3662
+#: app.py:3661 app.py:3680
 msgid "Unexpected Error"
 msgstr "Unerwarteter Fehler"
 
-#: app.py:3657 app.py:3659
+#: app.py:3675 app.py:3677
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
-#: app.py:3818 templates/invoices.html:71
+#: app.py:3840 templates/invoices.html:71
 msgid "Paid"
 msgstr "Bezahlt"
 
-#: app.py:3820 templates/invoices.html:72
+#: app.py:3842 templates/invoices.html:72
 msgid "Open"
 msgstr "Offen"
 
-#: app.py:3956
+#: app.py:3978
 msgid "Could not download PDF. File not found or API error."
 msgstr ""
 "PDF konnte nicht heruntergeladen werden. Datei nicht gefunden oder API-"
 "Fehler."
 
-#: app.py:3962
+#: app.py:3984
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Ein unerwarteter Fehler ist beim Herunterladen der PDF aufgetreten."
 
@@ -593,7 +594,7 @@ msgstr "Benachrichtigungen"
 msgid "Loading..."
 msgstr "Lädt..."
 
-#: templates/_header.html:108 templates/js/_workitems_overviewJS.html:296
+#: templates/_header.html:108 templates/js/_workitems_overviewJS.html:293
 #: templates/profile.html:78 templates/team_board.html:73
 msgid "Profile Picture"
 msgstr "Profilbild"
@@ -605,6 +606,10 @@ msgstr "Ihr Profil"
 #: templates/_header.html:119 templates/profile.html:46
 msgid "Sign out"
 msgstr "Abmelden"
+
+#: templates/_nexoraVersion.html:4
+msgid "All rights reserved."
+msgstr "Alle Rechte vorbehalten"
 
 #: templates/_small_footer.html:9
 msgid "About sydoc"
@@ -629,10 +634,6 @@ msgstr "Kontakt"
 #: templates/_small_footer.html:28
 msgid "Help"
 msgstr "Hilfe"
-
-#: templates/_small_footer.html:31
-msgid "All rights reserved."
-msgstr "Alle Rechte vorbehalten"
 
 #: templates/dashboard.html:6
 msgid "Dashboard - nexora"
@@ -762,7 +763,7 @@ msgstr ""
 "Unser automatisiertes System übernimmt jeden Schritt mit Präzision und "
 "Sicherheit. Verfolgen Sie die Verarbeitung eines Dokuments in Echtzeit."
 
-#: templates/hero.html:115 templates/js/_workitems_overviewJS.html:772
+#: templates/hero.html:115 templates/js/_workitems_overviewJS.html:769
 #: templates/workitems_overview.html:280
 msgid "Import"
 msgstr "Import"
@@ -1165,23 +1166,23 @@ msgstr "Priorität"
 msgid "All Priorities"
 msgstr "Alle Prioritäten"
 
-#: templates/js/_workitems_overviewJS.html:1235 templates/team_board.html:55
+#: templates/js/_workitems_overviewJS.html:1232 templates/team_board.html:55
 #: templates/workitems_overview.html:160 templates/workitems_overview.html:505
 msgid "High"
 msgstr "Hoch"
 
-#: templates/js/_workitems_overviewJS.html:1234 templates/team_board.html:56
+#: templates/js/_workitems_overviewJS.html:1231 templates/team_board.html:56
 #: templates/workitems_overview.html:161 templates/workitems_overview.html:504
 msgid "Medium"
 msgstr "Mittel"
 
-#: templates/js/_workitems_overviewJS.html:1233 templates/team_board.html:57
+#: templates/js/_workitems_overviewJS.html:1230 templates/team_board.html:57
 #: templates/workitems_overview.html:162 templates/workitems_overview.html:503
 msgid "Low"
 msgstr "Niedrig"
 
-#: templates/js/_workitems_overviewJS.html:1232
-#: templates/js/_workitems_overviewJS.html:1244 templates/team_board.html:58
+#: templates/js/_workitems_overviewJS.html:1229
+#: templates/js/_workitems_overviewJS.html:1241 templates/team_board.html:58
 #: templates/workitems_overview.html:502 templates/workitems_overview.html:514
 msgid "None"
 msgstr "Keine"
@@ -1190,20 +1191,20 @@ msgstr "Keine"
 msgid "Reset Filters"
 msgstr "Filter zurücksetzen"
 
-#: templates/js/_workitems_overviewJS.html:666
-#: templates/js/_workitems_overviewJS.html:1103 templates/team_board.html:100
+#: templates/js/_workitems_overviewJS.html:663
+#: templates/js/_workitems_overviewJS.html:1100 templates/team_board.html:100
 #: templates/workitems_overview.html:365
 msgid "High Priority"
 msgstr "Hohe Priorität"
 
-#: templates/js/_workitems_overviewJS.html:667
-#: templates/js/_workitems_overviewJS.html:1104 templates/team_board.html:102
+#: templates/js/_workitems_overviewJS.html:664
+#: templates/js/_workitems_overviewJS.html:1101 templates/team_board.html:102
 #: templates/workitems_overview.html:367
 msgid "Medium Priority"
 msgstr "Mittlere Priorität"
 
-#: templates/js/_workitems_overviewJS.html:668
-#: templates/js/_workitems_overviewJS.html:1105 templates/team_board.html:104
+#: templates/js/_workitems_overviewJS.html:665
+#: templates/js/_workitems_overviewJS.html:1102 templates/team_board.html:104
 #: templates/workitems_overview.html:369
 msgid "Low Priority"
 msgstr "Niedrige Priorität"
@@ -1240,6 +1241,10 @@ msgstr "PDF-Datei hier ablegen, um sie zu importieren"
 msgid "Workitems overview"
 msgstr "Übersicht Arbeitselemente"
 
+#: templates/workitems_overview.html:55
+#, fuzzy
+msgid "List of all workitems"
+msgstr "Lade Arbeitselemente..."
 
 #: templates/workitems_overview.html:59
 msgid "Total items found:"
@@ -1285,7 +1290,7 @@ msgstr "Filter hinzufügen"
 msgid "Advanced"
 msgstr "Erweitert"
 
-#: templates/js/_dashboardJS.html:192 templates/js/_dashboardJS.html:194
+#: templates/js/_dashboardJS.html:199 templates/js/_dashboardJS.html:201
 #: templates/workitems_overview.html:299
 msgid "Workitem"
 msgstr "Arbeitselement"
@@ -1302,92 +1307,92 @@ msgstr "Tag"
 msgid "Insufficient permissions"
 msgstr "Unzureichende Berechtigungen"
 
-#: templates/js/_workitems_overviewJS.html:1171
+#: templates/js/_workitems_overviewJS.html:1168
 #: templates/workitems_overview.html:442
 msgid "Click toggle button again to load media"
 msgstr "Umschaltfläche erneut klicken, um Medien zu laden"
 
-#: templates/js/_workitems_overviewJS.html:1178
+#: templates/js/_workitems_overviewJS.html:1175
 #: templates/workitems_overview.html:449
 msgid "Media preview restricted"
 msgstr "Medienvorschau eingeschränkt"
 
-#: templates/js/_workitems_overviewJS.html:1185
+#: templates/js/_workitems_overviewJS.html:1182
 #: templates/workitems_overview.html:456
 msgid "History"
 msgstr "Historie"
 
-#: templates/js/_workitems_overviewJS.html:1189
+#: templates/js/_workitems_overviewJS.html:1186
 #: templates/workitems_overview.html:460
 msgid "Loading history..."
 msgstr "Historie wird geladen..."
 
-#: templates/js/_workitems_overviewJS.html:1193
+#: templates/js/_workitems_overviewJS.html:1190
 #: templates/workitems_overview.html:464
 msgid "Audit history restricted"
 msgstr "Audit-Historie eingeschränkt"
 
-#: templates/js/_tourJS.html:152 templates/js/_workitems_overviewJS.html:1201
+#: templates/js/_tourJS.html:152 templates/js/_workitems_overviewJS.html:1198
 #: templates/workitems_overview.html:472
 msgid "Document Details"
 msgstr "Dokumentendetails"
 
-#: templates/js/_workitems_overviewJS.html:1205
+#: templates/js/_workitems_overviewJS.html:1202
 #: templates/workitems_overview.html:476
 msgid "Loading details..."
 msgstr "Details werden geladen..."
 
-#: templates/js/_workitems_overviewJS.html:1209
+#: templates/js/_workitems_overviewJS.html:1206
 #: templates/workitems_overview.html:480
 msgid "Document fields restricted"
 msgstr "Dokumentenfelder eingeschränkt"
 
-#: templates/js/_workitems_overviewJS.html:1217
+#: templates/js/_workitems_overviewJS.html:1214
 #: templates/workitems_overview.html:487
 msgid "Collaboration"
 msgstr "Zusammenarbeit"
 
-#: templates/js/_workitems_overviewJS.html:1222
+#: templates/js/_workitems_overviewJS.html:1219
 #: templates/workitems_overview.html:492
 msgid "Loading comments..."
 msgstr "Kommentare werden geladen..."
 
-#: templates/js/_workitems_overviewJS.html:1228
+#: templates/js/_workitems_overviewJS.html:1225
 #: templates/workitems_overview.html:498
 msgid "Set Priority:"
 msgstr "Priorität festlegen:"
 
-#: templates/js/_workitems_overviewJS.html:1240
+#: templates/js/_workitems_overviewJS.html:1237
 #: templates/workitems_overview.html:510
 msgid "Assigned to:"
 msgstr "Zugewiesen an:"
 
-#: templates/js/_workitems_overviewJS.html:1250
+#: templates/js/_workitems_overviewJS.html:1247
 #: templates/workitems_overview.html:518
 msgid "Tags"
 msgstr "Tags"
 
-#: templates/js/_workitems_overviewJS.html:1253
+#: templates/js/_workitems_overviewJS.html:1250
 #: templates/workitems_overview.html:521
 msgid "Add a tag..."
 msgstr "Tag hinzufügen..."
 
-#: templates/js/_workitems_overviewJS.html:1271
+#: templates/js/_workitems_overviewJS.html:1268
 #: templates/workitems_overview.html:539
 msgid "Add Comment:"
 msgstr "Kommentar hinzufügen:"
 
-#: templates/js/_workitems_overviewJS.html:1274
+#: templates/js/_workitems_overviewJS.html:1271
 #: templates/workitems_overview.html:544
 msgid "Add a comment... Tag with @username"
 msgstr "Kommentar hinzufügen... @Benutzername zum Markieren verwenden"
 
-#: templates/js/_workitems_overviewJS.html:1278
+#: templates/js/_workitems_overviewJS.html:1275
 #: templates/workitems_overview.html:552
 msgid "Post Comment"
 msgstr "Kommentar posten"
 
-#: templates/js/_workitems_overviewJS.html:1091
+#: templates/js/_workitems_overviewJS.html:1088
 #: templates/workitems_overview.html:565
 msgid "No workitems found for the selected criteria."
 msgstr "Keine Arbeitselemente für die gewählten Kriterien gefunden."
@@ -1405,12 +1410,12 @@ msgstr "von"
 msgid "results"
 msgstr "Ergebnissen"
 
-#: templates/admin/logs.html:117 templates/js/_workitems_overviewJS.html:1391
+#: templates/admin/logs.html:117 templates/js/_workitems_overviewJS.html:1388
 #: templates/workitems_overview.html:599
 msgid "Previous"
 msgstr "Vorherige"
 
-#: templates/js/_workitems_overviewJS.html:1394
+#: templates/js/_workitems_overviewJS.html:1391
 #: templates/js/admin/_logsJS.html:111 templates/workitems_overview.html:603
 msgid "Page"
 msgstr "Seite"
@@ -1445,7 +1450,7 @@ msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: templates/js/_workitems_overviewJS.html:776
+#: templates/js/_workitems_overviewJS.html:773
 #: templates/workitems_overview.html:647
 msgid "Import File"
 msgstr "Import Datei"
@@ -1770,6 +1775,11 @@ msgstr "Berechtigungsfehler"
 msgid "You do not have sufficient Permission to access this Page"
 msgstr "Sie haben keine Berechtigung auf diese Seite."
 
+#: templates/handlers/403.html:31 templates/handlers/404.html:31
+#: templates/handlers/500.html:31
+msgid "Take me home"
+msgstr "Bring mich nach Hause"
+
 #: templates/handlers/403.html:45 templates/handlers/404.html:45
 #: templates/handlers/500.html:45
 msgid "Documentation"
@@ -1778,6 +1788,11 @@ msgstr "Dokumentation"
 #: templates/handlers/403.html:47
 msgid "What does an 403 Error mean?"
 msgstr "Was bedeutet ein 403-Fehler?"
+
+#: templates/handlers/403.html:50 templates/handlers/404.html:50
+#: templates/handlers/500.html:50
+msgid "Read documentation"
+msgstr "Lese die Dokumentation"
 
 #: templates/handlers/403.html:65 templates/handlers/404.html:65
 #: templates/handlers/500.html:65
@@ -1788,6 +1803,12 @@ msgstr "Unser Kundenmagazin"
 #: templates/handlers/500.html:67
 msgid "Read the latest edition on our website."
 msgstr "Lesen Sie die neueste Ausgabe auf unserer Website."
+
+#: templates/handlers/403.html:70 templates/handlers/404.html:70
+#: templates/handlers/500.html:70
+#, fuzzy
+msgid "Read latest edition"
+msgstr "Lesen Sie die neueste Ausgabe"
 
 #: templates/handlers/403.html:85 templates/handlers/404.html:85
 #: templates/handlers/500.html:85
@@ -1827,75 +1848,75 @@ msgstr "Hoppla! Etwas ist schiefgelaufen."
 msgid "What does an 500 Error mean?"
 msgstr "Was bedeutet ein 500-Fehler?"
 
-#: templates/js/_dashboardJS.html:72
+#: templates/js/_dashboardJS.html:79
 msgid "Documents Processed"
 msgstr "Verarbeitete Dokumente"
 
-#: templates/js/_dashboardJS.html:123
+#: templates/js/_dashboardJS.html:130
 msgid "No documents are currently in progress."
 msgstr "Aktuell sind keine Dokumente in Bearbeitung."
 
-#: templates/js/_dashboardJS.html:148
+#: templates/js/_dashboardJS.html:155
 msgid "Could not load data."
 msgstr "Daten konnten nicht geladen werden."
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In Validation"
 msgstr "In Validierung"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In Export"
 msgstr "In Export"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In Import"
 msgstr "In Import"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In Extraction"
 msgstr "In Extraktion"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In OCR"
 msgstr "In OCR"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "In DB Saving"
 msgstr "In Speicherung"
 
-#: templates/js/_dashboardJS.html:151
+#: templates/js/_dashboardJS.html:158
 msgid "Processing"
 msgstr "Verarbeitung"
 
-#: templates/js/_dashboardJS.html:162
+#: templates/js/_dashboardJS.html:169
 msgid "No active documents."
 msgstr "Keine aktiven Dokumente."
 
-#: templates/js/_dashboardJS.html:170
+#: templates/js/_dashboardJS.html:177
 msgid "Current Stage:"
 msgstr "Aktuelle Phase:"
 
-#: templates/js/_dashboardJS.html:186
+#: templates/js/_dashboardJS.html:193
 msgid "No recent activity."
 msgstr "Keine kürzlichen Aktivitäten."
 
-#: templates/js/_dashboardJS.html:192
+#: templates/js/_dashboardJS.html:199
 msgid "is ready"
 msgstr "ist bereit"
 
-#: templates/js/_dashboardJS.html:193
+#: templates/js/_dashboardJS.html:200
 msgid "Processing for Workitem"
 msgstr "Verarbeitung für Arbeitselement"
 
-#: templates/js/_dashboardJS.html:193
+#: templates/js/_dashboardJS.html:200
 msgid "started."
 msgstr "gestartet."
 
-#: templates/js/_dashboardJS.html:194
+#: templates/js/_dashboardJS.html:201
 msgid "finished processing."
 msgstr "Verarbeitung abgeschlossen."
 
-#: templates/js/_dashboardJS.html:195
+#: templates/js/_dashboardJS.html:202
 msgid "Unknown status for"
 msgstr "Unbekannter Status für"
 
@@ -2209,79 +2230,79 @@ msgstr ""
 "Ihre gefilterten Rechnungen erscheinen hier. Sie können Beträge einsehen "
 "und PDFs herunterladen."
 
-#: templates/js/_workitems_overviewJS.html:169
+#: templates/js/_workitems_overviewJS.html:168
 msgid "Restricted"
 msgstr "Eingeschränkt"
 
-#: templates/js/_workitems_overviewJS.html:180
+#: templates/js/_workitems_overviewJS.html:179
 msgid "No history available for this item"
 msgstr "Keine Historie für dieses Element verfügbar"
 
-#: templates/js/_workitems_overviewJS.html:220
+#: templates/js/_workitems_overviewJS.html:217
 msgid "Could not load history"
 msgstr "Historie konnte nicht geladen werden"
 
-#: templates/js/_workitems_overviewJS.html:289
+#: templates/js/_workitems_overviewJS.html:286
 msgid "No comments yet."
 msgstr "Noch keine Kommentare."
 
-#: templates/js/_workitems_overviewJS.html:310
+#: templates/js/_workitems_overviewJS.html:307
 msgid "Could not load comments."
 msgstr "Kommentare konnten nicht geladen werden."
 
-#: templates/js/_workitems_overviewJS.html:383
+#: templates/js/_workitems_overviewJS.html:380
 msgid "Load more"
 msgstr "Mehr laden"
 
-#: templates/js/_workitems_overviewJS.html:436
+#: templates/js/_workitems_overviewJS.html:433
 msgid "Checking for media..."
 msgstr "Prüfe auf Medien..."
 
-#: templates/js/_workitems_overviewJS.html:474
+#: templates/js/_workitems_overviewJS.html:471
 msgid "No additional details found."
 msgstr "Keine weiteren Details gefunden."
 
-#: templates/js/_workitems_overviewJS.html:480
+#: templates/js/_workitems_overviewJS.html:477
 msgid "No media found for this workitem."
 msgstr "Keine Medien für dieses Arbeitselement gefunden."
 
-#: templates/js/_workitems_overviewJS.html:495
+#: templates/js/_workitems_overviewJS.html:492
 msgid "Could not load media."
 msgstr "Medien konnten nicht geladen werden."
 
-#: templates/js/_workitems_overviewJS.html:531
+#: templates/js/_workitems_overviewJS.html:528
 msgid "Media"
 msgstr "Medien"
 
-#: templates/js/_workitems_overviewJS.html:531
+#: templates/js/_workitems_overviewJS.html:528
 msgid "for workitem "
 msgstr "für Arbeitselement "
 
-#: templates/js/_workitems_overviewJS.html:546
+#: templates/js/_workitems_overviewJS.html:543
 msgid "Failed to load image "
 msgstr "Bild konnte nicht geladen werden "
 
-#: templates/js/_workitems_overviewJS.html:698
+#: templates/js/_workitems_overviewJS.html:695
 msgid "Please drop a valid PDF file."
 msgstr "Bitte legen Sie eine gültige PDF-Datei ab."
 
-#: templates/js/_workitems_overviewJS.html:735
+#: templates/js/_workitems_overviewJS.html:732
 msgid "Importing..."
 msgstr "Importiere..."
 
-#: templates/js/_workitems_overviewJS.html:753
+#: templates/js/_workitems_overviewJS.html:750
 msgid "Import failed. The server did not redirect."
 msgstr "Import fehlgeschlagen. Der Server hat nicht weitergeleitet."
 
-#: templates/js/_workitems_overviewJS.html:844
+#: templates/js/_workitems_overviewJS.html:841
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overviewJS.html:1058
+#: templates/js/_workitems_overviewJS.html:1055
 msgid "Loading workitems..."
 msgstr "Lade Arbeitselemente..."
 
-#: templates/js/_workitems_overviewJS.html:1082
+#: templates/js/_workitems_overviewJS.html:1079
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte erneut versuchen."
 
@@ -2504,3 +2525,4 @@ msgstr ""
 
 #~ msgid "Registry"
 #~ msgstr "Register"
+
