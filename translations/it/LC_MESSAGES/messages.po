@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-22 13:00+0100\n"
+"POT-Creation-Date: 2026-01-26 12:42+0100\n"
 "PO-Revision-Date: 2025-12-18 12:24+0100\n"
 "Last-Translator: Gemini\n"
 "Language: it\n"
@@ -18,202 +18,202 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:318
+#: app.py:328
 msgid "Session expired, please try again"
 msgstr "Sessione scaduta, riprova"
 
-#: app.py:335
+#: app.py:345
 msgid "2FA enabled successfully"
 msgstr "2FA abilitato con successo"
 
-#: app.py:339
+#: app.py:349
 msgid "Database error"
 msgstr "Errore del database"
 
-#: app.py:347
+#: app.py:357
 msgid "Invalid code. Please try again."
 msgstr "Codice non valido. Riprova."
 
-#: app.py:394
+#: app.py:404
 msgid "Invalid code"
 msgstr "Codice non valido"
 
-#: app.py:408 app.py:1290
+#: app.py:418 app.py:1300
 msgid "Passwords do not match"
 msgstr "Le password non corrispondono"
 
-#: app.py:410 app.py:1292
+#: app.py:420 app.py:1302
 msgid "All Fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: app.py:412 app.py:1294 app.py:3622
+#: app.py:422 app.py:1304 app.py:3625
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "La nuova password deve contenere almeno 8 caratteri e nessuno spazio"
 
-#: app.py:431 app.py:1312
+#: app.py:441 app.py:1322
 msgid "New Password musn't be previously used password"
 msgstr "La nuova password non deve essere stata usata in precedenza"
 
-#: app.py:448
+#: app.py:458
 msgid "Initial Password changed successfully"
 msgstr "Password iniziale modificata con successo"
 
-#: app.py:489 app.py:525
+#: app.py:499 app.py:535
 msgid "Invalid credentials"
 msgstr "Credenziali non valide"
 
-#: app.py:530
+#: app.py:540
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: app.py:563 app.py:592
+#: app.py:573 app.py:602
 msgid "Not authenticated"
 msgstr "Non autenticato"
 
-#: app.py:582
+#: app.py:592
 msgid "Could not fetch notifications"
 msgstr "Impossibile recuperare le notifiche"
 
-#: app.py:598
+#: app.py:608
 msgid "Invalid payload"
 msgstr "Payload non valido"
 
-#: app.py:617
+#: app.py:627
 msgid "Notifications marked as read."
 msgstr "Notifiche segnate come lette."
 
-#: app.py:620
+#: app.py:630
 msgid "Could not update notifications"
 msgstr "Impossibile aggiornare le notifiche"
 
-#: app.py:668 app.py:893
+#: app.py:678 app.py:903
 msgid "All fields are required."
 msgstr "Tutti i campi sono obbligatori."
 
-#: app.py:684 app.py:686
+#: app.py:694 app.py:696
 msgid "Organization created successfully."
 msgstr "Organizzazione creata con successo."
 
-#: app.py:689
+#: app.py:699
 msgid "Organization already exists."
 msgstr "L'organizzazione esiste già."
 
-#: app.py:693 app.py:917 app.py:3173 app.py:3216 app.py:3255 app.py:3323
-#: app.py:3351
+#: app.py:703 app.py:927 app.py:3176 app.py:3219 app.py:3258 app.py:3326
+#: app.py:3354
 msgid "An unexpected error occurred."
 msgstr "Si è verificato un errore imprevisto."
 
-#: app.py:716
+#: app.py:726
 msgid "Organization updated successfully"
 msgstr "Organizzazione aggiornata con successo"
 
-#: app.py:718
+#: app.py:728
 msgid "Organization updated successfully."
 msgstr "L'organizzazione è stata aggiornata con successo."
 
-#: app.py:722 app.py:753 app.py:965 app.py:1017
+#: app.py:732 app.py:763 app.py:975 app.py:1027
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
 
-#: app.py:744
+#: app.py:754
 msgid "Organization not found."
 msgstr "Organizzazione non trovata."
 
-#: app.py:746
+#: app.py:756
 msgid "Organization deleted successfully"
 msgstr "Organizzazione eliminata con successo"
 
-#: app.py:749
+#: app.py:759
 msgid "Organization deleted successfully."
 msgstr "L'organizzazione è stata eliminata con successo."
 
-#: app.py:908 app.py:910
+#: app.py:918 app.py:920
 msgid "User created successfully."
 msgstr "Utente creato con successo."
 
-#: app.py:913
+#: app.py:923
 msgid "Username or email already exists."
 msgstr "Nome utente o email già esistenti."
 
-#: app.py:943
+#: app.py:953
 msgid "Permission Denied for this action."
 msgstr "Autorizzazione negata per questa azione"
 
-#: app.py:959
+#: app.py:969
 msgid "User updated successfully"
 msgstr "Utente aggiornato con successo"
 
-#: app.py:961
+#: app.py:971
 msgid "User updated successfully."
 msgstr "L'utente è stato aggiornato con successo."
 
-#: app.py:978
+#: app.py:988
 msgid "You cannot delete your own account."
 msgstr "Non puoi eliminare il tuo account."
 
-#: app.py:1009
+#: app.py:1019
 msgid "User not found."
 msgstr "Utente non trovato."
 
-#: app.py:1011
+#: app.py:1021
 msgid "User deleted successfully"
 msgstr "Utente eliminato con successo"
 
-#: app.py:1013
+#: app.py:1023
 msgid "User deleted successfully."
 msgstr "L'utente è stato eliminato con successo."
 
-#: app.py:1040
+#: app.py:1050
 msgid "Could not fetch logs"
 msgstr "Impossibile recuperare i log"
 
-#: app.py:1069
+#: app.py:1079
 msgid "Could not fetch sessions"
 msgstr "Impossibile recuperare le sessioni"
 
-#: app.py:1107 app.py:1603 app.py:1682 app.py:1698 app.py:2051 app.py:2417
-#: app.py:2692 app.py:2867 app.py:3032 app.py:3062 app.py:3136 app.py:3183
-#: app.py:3226 app.py:3265 app.py:3286 app.py:3333 app.py:3914
+#: app.py:1117 app.py:1613 app.py:1692 app.py:1708 app.py:2061 app.py:2419
+#: app.py:2694 app.py:2869 app.py:3034 app.py:3064 app.py:3139 app.py:3186
+#: app.py:3229 app.py:3268 app.py:3289 app.py:3336 app.py:3913
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
-#: app.py:1131 app.py:3052
+#: app.py:1141 app.py:3054
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: app.py:1169
+#: app.py:1179
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: app.py:1187
+#: app.py:1197
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: app.py:1250
+#: app.py:1260
 msgid "Overrides updated successfully"
 msgstr "Eccezioni aggiornate con successo"
 
-#: app.py:1327
+#: app.py:1337
 msgid "Password changed successfully"
 msgstr "Password cambiata con successo"
 
-#: app.py:1329
+#: app.py:1339
 msgid "Password changed"
 msgstr "Password cambiata"
 
-#: app.py:1381
+#: app.py:1391
 msgid "nexora Password Reset Request"
 msgstr "Richiesta di ripristino password nexora"
 
-#: app.py:1423
+#: app.py:1433
 msgid "Password Reset Request"
 msgstr "Richiesta di ripristino password"
 
-#: app.py:1426
+#: app.py:1436
 msgid "Hello,"
 msgstr "Ciao,"
 
-#: app.py:1429
+#: app.py:1439
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -221,11 +221,11 @@ msgstr ""
 "Abbiamo ricevuto una richiesta per reimpostare la password del tuo "
 "account. Puoi reimpostarla cliccando sul pulsante qui sotto."
 
-#: app.py:1439
+#: app.py:1449
 msgid "Reset Your Password"
 msgstr "Reimposta la tua password"
 
-#: app.py:1449
+#: app.py:1459
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -233,320 +233,212 @@ msgstr ""
 "Se non hai richiesto il ripristino della password, ignora questa email. "
 "Il link è valido per 15 minuti."
 
-#: app.py:1452
+#: app.py:1462
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Grazie,<br>Il team Sydoc"
 
-#: app.py:1510
+#: app.py:1520
 msgid "A password reset link has been sent to your email"
 msgstr "Un link di ripristino password è stato inviato alla tua email"
 
-#: app.py:1512 app.py:1516
+#: app.py:1522 app.py:1526
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: app.py:1513
+#: app.py:1523
 msgid "Invalid Email Address"
 msgstr "Indirizzo email non valido"
 
-#: app.py:2059
+#: app.py:2069
 msgid "Not logged in"
 msgstr "Accesso non effettuato"
 
-#: app.py:2120
-msgid "Document Type"
-msgstr "Tipo documento"
-
-#: app.py:2121
-msgid "Document Barcode"
-msgstr "Barcode documento"
-
-#: app.py:2122
-msgid "Owner no."
-msgstr "N. proprietario"
-
-#: app.py:2123
-msgid "Tenancy no."
-msgstr "N. locazione"
-
-#: app.py:2124
-msgid "Property no."
-msgstr "N. proprietà"
-
-#: app.py:2125
-msgid "Registered"
-msgstr "Registrato"
-
-#: app.py:2126
-msgid "Branch"
-msgstr "Sede/Filiale"
-
-#: app.py:2127
-msgid "Document Date"
-msgstr "Data documento"
-
-#: app.py:2128
-msgid "Forwarding"
-msgstr "Inoltro"
-
-#: app.py:2129
-msgid "Department"
-msgstr "Dipartimento"
-
-#: app.py:2130
-msgid "Postcode"
-msgstr "CAP"
-
-#: app.py:2131
-msgid "Recipient"
-msgstr "Destinatario"
-
-#: app.py:2132
-msgid "Confidentiality"
-msgstr "Riservatezza"
-
-#: app.py:2133
-msgid "Creditor no."
-msgstr "N. Creditore"
-
-#: app.py:2134
-msgid "Creditor Name"
-msgstr "Nome Creditore"
-
-#: app.py:2136
-msgid "Gross Amount"
-msgstr "Importo Lordo"
-
-#: app.py:2137
-msgid "Net Amount"
-msgstr "Importo Netto"
-
-#: app.py:2138
-msgid "Vat Amount"
-msgstr "Importo IVA"
-
-#: app.py:2139
-msgid "Document Currency"
-msgstr "Valuta documento"
-
-#: app.py:2140
-msgid "Invoice no."
-msgstr "N. Fattura"
-
-#: app.py:2143
-msgid "Order no."
-msgstr "N. Ordine"
-
-#: app.py:2144 templates/invoices.html:32
-msgid "Client"
-msgstr "Cliente"
-
-#: app.py:2145
-msgid "Document Source"
-msgstr "Origine documento"
-
-#: app.py:2146
-msgid "Separator-sheet"
-msgstr "Foglio separatore"
-
-#: app.py:2147
-msgid "Document ID"
-msgstr "ID Documento"
-
-#: app.py:2148
-msgid "Archive-box No."
-msgstr "N. Scatola archivio"
-
-#: app.py:2149
-msgid "Document No."
-msgstr "N. Documento"
-
-#: app.py:2481
+#: app.py:2483
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
 
-#: app.py:2636
+#: app.py:2638
 msgid "No file part in the request."
 msgstr "Nessun file presente nella richiesta."
 
-#: app.py:2643
+#: app.py:2645
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: app.py:2647
+#: app.py:2649
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: app.py:2660
+#: app.py:2662
 msgid "You do not have permission to import to this process."
 msgstr "Non hai il permesso di importare in questo processo."
 
-#: app.py:2678
+#: app.py:2680
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: app.py:2682
+#: app.py:2684
 msgid "An error occurred while saving the file."
 msgstr "Errore durante il salvataggio del file."
 
-#: app.py:2685
+#: app.py:2687
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: app.py:2735
+#: app.py:2737
 msgid "Could not fetch workitem data"
 msgstr "Impossibile recuperare i dati dell'elemento"
 
-#: app.py:2883 app.py:2920
+#: app.py:2885 app.py:2922
 msgid "Workitem not found"
 msgstr "Elemento non trovato"
 
-#: app.py:2910 app.py:2970
+#: app.py:2912 app.py:2972
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: app.py:2931
+#: app.py:2933
 msgid "Media index out of bounds"
 msgstr "Indice media fuori dai limiti"
 
-#: app.py:2959
+#: app.py:2961
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF fallita"
 
-#: app.py:2987
+#: app.py:2989
 msgid "Error fetching activity instance"
 msgstr "Errore nel recupero dell'istanza dell'attività"
 
-#: app.py:3024
+#: app.py:3026
 msgid "Failed to fetch audit history"
 msgstr "Impossibile recuperare la cronologia degli audit"
 
-#: app.py:3026
+#: app.py:3028
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: app.py:3101
+#: app.py:3103
 msgid "No data found for this workitem."
 msgstr "Nessun dato trovato per questo elemento."
 
-#: app.py:3126
+#: app.py:3129
 msgid "Could not fetch interactions"
 msgstr "Impossibile recuperare le interazioni"
 
-#: app.py:3141
+#: app.py:3144
 msgid "Comment cannot be empty."
 msgstr "Il campo commento non può essere vuoto."
 
-#: app.py:3169
+#: app.py:3172
 msgid "Comment added."
 msgstr "Commento aggiunto."
 
-#: app.py:3188
+#: app.py:3191
 msgid "Invalid assignment."
 msgstr "Assegnazione non valida."
 
-#: app.py:3211
+#: app.py:3214
 msgid "assigned you on workitem"
 msgstr "ti ha assegnato un elemento"
 
-#: app.py:3212
+#: app.py:3215
 msgid "Assignment updated."
 msgstr "Assegnazione aggiornata."
 
-#: app.py:3231
+#: app.py:3234
 msgid "Invalid priority level."
 msgstr "Livello di priorità non valido."
 
-#: app.py:3251
+#: app.py:3254
 msgid "Priority updated."
 msgstr "Priorità aggiornata."
 
-#: app.py:3276
+#: app.py:3279
 msgid "Could not fetch tags"
 msgstr "Impossibile recuperare i tag"
 
-#: app.py:3293
+#: app.py:3296
 msgid "Tag name cannot be empty."
 msgstr "Il nome del tag non può essere vuoto."
 
-#: app.py:3312
+#: app.py:3315
 msgid "Workitem already has this tag."
 msgstr "L'elemento ha già questo tag."
 
-#: app.py:3318
+#: app.py:3321
 msgid "Tag added successfully."
 msgstr "Tag aggiunto con successo."
 
-#: app.py:3344
+#: app.py:3347
 msgid "Tag association not found."
 msgstr "Associazione del tag non trovata."
 
-#: app.py:3347
+#: app.py:3350
 msgid "Tag removed successfully."
 msgstr "Tag rimosso con successo."
 
-#: app.py:3534
+#: app.py:3537
 msgid "Email Adress is not valid"
 msgstr "Indirizzo email non valido"
 
-#: app.py:3541
+#: app.py:3544
 msgid "Email Adress is already in use"
 msgstr "L'indirizzo e-mail è già in uso"
 
-#: app.py:3560 app.py:3581
+#: app.py:3563 app.py:3584
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Formato file non valido. Carica un'immagine valida."
 
-#: app.py:3588
+#: app.py:3591
 msgid "Your profile was updated successfully."
 msgstr "Il tuo profilo è stato aggiornato con successo."
 
-#: app.py:3589
+#: app.py:3592
 msgid "Profile updated successfully!"
 msgstr "Profilo aggiornato con successo!"
 
-#: app.py:3592
+#: app.py:3595
 msgid "Unexpected error"
 msgstr "Errore imprevisto"
 
-#: app.py:3616
+#: app.py:3619
 msgid "New passwords do not match"
 msgstr "Le nuove password non corrispondono"
 
-#: app.py:3619
+#: app.py:3622
 msgid "All fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: app.py:3653 app.py:3655
+#: app.py:3656 app.py:3658
 msgid "Password updated successfully!"
 msgstr "Password aggiornata con successo!"
 
-#: app.py:3658
+#: app.py:3661
 msgid "Current password is incorrect"
 msgstr "La password attuale non è corretta"
 
-#: app.py:3661 app.py:3680
+#: app.py:3664 app.py:3683
 msgid "Unexpected Error"
 msgstr "Errore imprevisto"
 
-#: app.py:3675 app.py:3677
+#: app.py:3678 app.py:3680
 msgid "Language changed successfully!"
 msgstr "Lingua cambiata con successo!"
 
-#: app.py:3840 templates/invoices.html:71
+#: app.py:3839 templates/invoices.html:71
 msgid "Paid"
 msgstr "Pagato"
 
-#: app.py:3842 templates/invoices.html:72
+#: app.py:3841 templates/invoices.html:72
 msgid "Open"
 msgstr "Aperto"
 
-#: app.py:3978
+#: app.py:3977
 msgid "Could not download PDF. File not found or API error."
 msgstr "Impossibile scaricare il PDF. File non trovato o errore API."
 
-#: app.py:3984
+#: app.py:3983
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Si è verificato un errore imprevisto durante il download del PDF."
 
@@ -608,8 +500,9 @@ msgid "About sydoc"
 msgstr "Informazioni su sydoc"
 
 #: templates/_small_footer.html:13
+#, fuzzy
 msgid "Client magazine"
-msgstr "Rivista clienti"
+msgstr "La nostra rivista clienti"
 
 #: templates/_small_footer.html:17
 msgid "Team"
@@ -1022,6 +915,11 @@ msgstr "Le mie fatture"
 msgid "Search and filter your past invoices for our services."
 msgstr "Cerca e filtra le fatture passate per i nostri servizi."
 
+#: templates/invoices.html:32
+#, fuzzy
+msgid "Client"
+msgstr "Tutti i clienti"
+
 #: templates/invoices.html:36
 msgid "All Clients"
 msgstr "Tutti i clienti"
@@ -1109,6 +1007,10 @@ msgstr "Password attuale"
 #: templates/profile.html:189
 msgid "Change language"
 msgstr "Cambia lingua"
+
+#: templates/profile.html:203
+msgid "Disclaimer: Translations may not be 100&#x25; correct"
+msgstr "Disclaimer: Le traduzioni potrebbero non essere corrette al 100&#x25; "
 
 #: templates/reset_password.html:7
 msgid "Reset password - nexora"
@@ -2388,15 +2290,6 @@ msgstr "Sei sicuro di voler eliminare questo utente? L'azione è irreversibile."
 #~ msgid "Doctype"
 #~ msgstr "Tipo documento"
 
-#~ msgid "Owner No."
-#~ msgstr "N. Proprietario"
-
-#~ msgid "Tenancy No."
-#~ msgstr "N. Locazione"
-
-#~ msgid "Property No."
-#~ msgstr "N. Proprietà"
-
 #~ msgid "Post Code no."
 #~ msgstr "CAP"
 
@@ -2454,4 +2347,13 @@ msgstr "Sei sicuro di voler eliminare questo utente? L'azione è irreversibile."
 
 #~ msgid "Registry"
 #~ msgstr "Registro"
+
+#~ msgid "Recipient"
+#~ msgstr "Destinatario"
+
+#~ msgid "Vat Amount"
+#~ msgstr "Importo IVA"
+
+#~ msgid "Document Source"
+#~ msgstr "Origine documento"
 
