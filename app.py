@@ -2126,8 +2126,15 @@ def api_config_fields():
     if 'username' not in session:
         return jsonify({}), 401
 
+    perms = session.get('permissions', [])
+    prefix = "workitems.filter.process."
+    allowed_processes = {
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    }
+
     current_lang = str(get_locale())
-    
     lang_column_map = {
         'de': 'GermanLabel',
         'fr': 'FrenchLabel',
@@ -2144,12 +2151,12 @@ def api_config_fields():
         cursor = conn.cursor()
         
         try:
-            cursor.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM DocField_Labels")
+            cursor.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
             for row in cursor.fetchall():
                 translated_label = getattr(row, target_column) or row.EnglishLabel
                 db_labels_map[row.FieldKey] = translated_label
         except Exception:
-            pass
+            pass 
         
         cursor.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cursor.description if c[0].startswith('col_')]
@@ -2160,11 +2167,14 @@ def api_config_fields():
         
         for row in rows:
             proc_name = row.ProcessName
+
+            if proc_name not in allowed_processes:
+                continue
+
             fields = []
             for i, col_name in enumerate(cols):
-                if row[i+1]: 
+                if row[i+1]:
                     field_key = col_name.replace('col_', '')
-                    
                     nice_label = db_labels_map.get(field_key, field_key.replace('_', ' ').title())
 
                     fields.append({
@@ -2277,10 +2287,10 @@ def _get_workitems_data(args):
             if not docvalue or not docfield:
                 continue
 
+            target_config_col = f'col_{docfield}'
+
             if target_config_col not in valid_db_columns:
                 continue
-
-            target_config_col = f'col_{docfield}'
 
             if target_config_col:
                 query = f"SELECT * FROM SearchConfig WHERE {target_config_col} IS NOT NULL"
