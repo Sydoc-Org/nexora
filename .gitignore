@@ -141,6 +141,7 @@ celerybeat.pid
 
 uploads/
 session/
+logs/
 
 # Environments
 .env
