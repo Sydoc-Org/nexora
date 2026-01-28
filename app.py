@@ -234,20 +234,20 @@ def log_every_request(response):
         os.makedirs(LOGS_HOUR_FOLDER, exist_ok=True)
 
         with open(f'{LOGS_HOUR_FOLDER}/nexora_logs.csv', 'a', newline='') as csvfile:
-            fieldnames = ['sessionID', 'ipAddress', 'userID', 'username', 'method', 'path', 'statusCode', 'args', 'duration']
+            fieldnames = ['SessionID', 'RequestIpAddress', 'UserID', 'Username', 'HttpRequestMethod', 'Path', 'HttpResponseCode', 'Args', 'durationSeconds']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if csvfile.tell() == 0:
                 writer.writeheader()
             writer.writerow({
-                'sessionID': session.get('uuid'),
-                'ipAddress': get_ip(),
-                'userID': session.get('userid'),
-                'username': session.get('username'),
-                'method': request.method,
-                'path': request.path,
-                'statusCode': response.status_code,
-                'args': request.args.to_dict(),
-                'duration': round(duration, 4),
+                'SessionID': session.get('uuid'),
+                'RequestIpAddress': get_ip(),
+                'UserID': session.get('userid'),
+                'Username': session.get('username'),
+                'HttpRequestMethod': request.method,
+                'Path': request.path,
+                'HttpResponseCode': response.status_code,
+                'Args': request.args.to_dict(),
+                'durationSeconds': round(duration, 4),
             })
     except Exception as e:
         app.logger.error(f"Logging failed: {e}")
@@ -797,7 +797,9 @@ def admin_logs_view():
 @require_permission('admin.view.system.logs')
 def api_admin_logs_search():
     username = request.args.get('username', '').strip()
-    action_type = request.args.get('action_type', '').strip()
+    method = request.args.get('method', '').strip()
+    path = request.args.get('path', '').strip()
+    
     status = request.args.get('status', '').strip()
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
@@ -812,12 +814,20 @@ def api_admin_logs_search():
     if username:
         query_parts.append("Username LIKE ?")
         params.append(f"%{username}%")
-    if action_type:
-        query_parts.append("ActionType LIKE ?")
-        params.append(f"%{action_type}%")
-    if status:
-        query_parts.append("ActionStatus = ?")
-        params.append(status)
+    
+    if method:
+        query_parts.append("HttpRequestMethod = ?")
+        params.append(method)
+    
+    if path:
+        query_parts.append("Path LIKE ?")
+        params.append(f"%{path}%")
+
+    if status == 'SUCCESS':
+        query_parts.append("HttpResponseCode BETWEEN 200 AND 299")
+    elif status == 'FAILURE':
+        query_parts.append("HttpResponseCode >= 400")
+
     if start_date:
         query_parts.append("Timestamp >= ?")
         params.append(start_date)
@@ -832,18 +842,32 @@ def api_admin_logs_search():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
-        cursor.execute(f"SELECT COUNT(*) FROM logs WHERE {where_clause}", params)
+        cursor.execute(f"SELECT COUNT(*) FROM Logs WHERE {where_clause}", params)
         total_count = cursor.fetchone()[0]
 
         sql = f"""
-            SELECT LogID, Timestamp, Username, ActionType, ActionStatus, Details, IPAddress 
-            FROM User_Logs 
+            SELECT LogID, Timestamp, Username, HttpRequestMethod, Path, 
+                   HttpResponseCode, Args, RequestIpAddress, durationSeconds
+            FROM Logs 
             WHERE {where_clause}
             ORDER BY Timestamp DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
         cursor.execute(sql, params + [offset, per_page])
-        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        
+        logs = []
+        for row in cursor.fetchall():
+            logs.append({
+                'LogID': row.LogID,
+                'Timestamp': row.Timestamp,
+                'Username': row.Username,
+                'HttpRequestMethod': row.HttpRequestMethod,
+                'Path': row.Path,
+                'HttpResponseCode': row.HttpResponseCode,
+                'Args': row.Args,
+                'RequestIpAddress': row.RequestIpAddress,
+                'durationSeconds': row.durationSeconds
+            })
 
         return jsonify({
             "logs": logs,
@@ -1008,20 +1032,24 @@ def admin_recent_logs():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT TOP 20 Timestamp, Username, ActionType, ActionStatus
-            FROM User_Logs
+            SELECT TOP 20 Timestamp, Username, HttpRequestMethod, Path, HttpResponseCode
+            FROM Logs
             ORDER BY Timestamp DESC
         """)
-        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        logs = []
+        for row in cursor.fetchall():
+            logs.append({
+                'Timestamp': row.Timestamp,
+                'Username': row.Username,
+                'ActionType': f"{row.HttpRequestMethod} {row.Path}", 
+                'ActionStatus': 'SUCCESS' if 200 <= row.HttpResponseCode < 300 else 'FAILURE'
+            })
         return jsonify(logs)
     except Exception as e:
-        app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
+        app.logger.error(f"Failed to fetch recent logs: {e}")
         return jsonify({"error": _("Could not fetch logs")}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 @app.route("/api/admin/active_sessions")
 @require_permission('admin.view.active.sessions')
@@ -1034,24 +1062,20 @@ def admin_active_sessions():
             SELECT
 				Username,
 				Userid,
-                IPAddress,
+                RequestIpAddress as IPAddress,
                 MAX(Timestamp) as LastActivity
-            FROM User_Logs
+            FROM Logs
             WHERE Timestamp >= DATEADD(minute, -30, getdate())
-            GROUP BY SessionID, Username, IPAddress, Userid
+            GROUP BY SessionID, Username, RequestIpAddress, Userid
             ORDER BY LastActivity DESC
         """)
         sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(sessions)
     except Exception as e:
-        app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
+        app.logger.error(f"Failed to fetch active sessions: {e}")
         return jsonify({"error": _("Could not fetch sessions")}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
+        if conn: conn.close()
 # ----------------------------- Access Control ------------------------------ #
 @app.route("/admin/access_control")
 @require_permission('admin.view.accessprofiles.useroverrides') 

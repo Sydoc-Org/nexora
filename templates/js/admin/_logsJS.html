@@ -6,7 +6,9 @@
     async function fetchLogs(page) {
         currentPage = page;
         const user = document.getElementById('filterUser').value;
-        const action = document.getElementById('filterAction').value;
+        const method = document.getElementById('filterMethod').value;
+        const path = document.getElementById('filterPath').value;
+        
         const status = document.getElementById('filterStatus').value;
         const start = document.getElementById('filterStart').value;
         const end = document.getElementById('filterEnd').value;
@@ -18,7 +20,8 @@
             const params = new URLSearchParams({
                 page: page,
                 username: user,
-                action_type: action,
+                method: method,   
+                path: path,       
                 status: status,
                 start_date: start,
                 end_date: end
@@ -51,23 +54,19 @@
 
             data.logs.forEach((log, index) => {
                 let statusBadge;
-                if(log.ActionStatus === 'SUCCESS') {
-                    statusBadge = `<span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"><i class="fas fa-check-circle mr-1.5"></i>Success</span>`;
+                const statusCode = parseInt(log.HttpResponseCode);
+                
+                // Determine badge based on HTTP Status Code
+                if(statusCode >= 200 && statusCode < 300) {
+                    statusBadge = `<span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"><i class="fas fa-check-circle mr-1.5"></i>${statusCode} OK</span>`;
+                } else if (statusCode >= 400 && statusCode < 500) {
+                    statusBadge = `<span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20"><i class="fas fa-exclamation-triangle mr-1.5"></i>${statusCode} Warn</span>`;
                 } else {
-                    statusBadge = `<span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"><i class="fas fa-exclamation-circle mr-1.5"></i>${log.ActionStatus}</span>`;
+                    statusBadge = `<span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10"><i class="fas fa-bomb mr-1.5"></i>${statusCode} Error</span>`;
                 }
 
-                let detailsPreview = log.Details || '';
-                let isJson = false;
-                try {
-                    const parsed = JSON.parse(detailsPreview);
-                    isJson = true;
-                    if(parsed && typeof parsed === 'object') {
-                        detailsPreview = JSON.stringify(parsed);
-                    }
-                } catch(e) {}
+                const methodColor = getMethodColor(log.HttpRequestMethod);
 
-                const displayDetails = detailsPreview.length > 40 ? detailsPreview.substring(0, 40) + '...' : detailsPreview;
                 const dateObj = new Date(log.Timestamp);
                 const dateStr = dateObj.toLocaleDateString();
                 const timeStr = dateObj.toLocaleTimeString();
@@ -84,12 +83,15 @@
                             <div class="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs mr-2 font-bold">
                                 ${log.Username ? log.Username.charAt(0).toUpperCase() : '?'}
                             </div>
-                            <span class="text-sm font-medium text-gray-900">${log.Username}</span>
+                            <span class="text-sm font-medium text-gray-900">${log.Username || 'Anonymous'}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono text-xs">${log.ActionType}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono text-xs">
+                        <span class="${methodColor} font-bold mr-2">${log.HttpRequestMethod}</span>
+                        <span class="text-gray-600" title="${log.Path}">${log.Path.length > 30 ? log.Path.substring(0,30)+'...' : log.Path}</span>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">${log.IPAddress}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">${log.RequestIpAddress}</td>
                     <td class="px-6 py-4 text-right whitespace-nowrap text-sm font-medium">
                         <button onclick="openLogModal(${index})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded transition text-xs font-semibold">
                             {{ _("View") }} <i class="fas fa-expand-alt ml-1"></i>
@@ -104,6 +106,16 @@
         } catch(e) {
             console.error(e);
             tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i> {{ _("Error loading logs.") }}</td></tr>`;
+        }
+    }
+
+    function getMethodColor(method) {
+        switch(method) {
+            case 'GET': return 'text-blue-600';
+            case 'POST': return 'text-green-600';
+            case 'PUT': return 'text-yellow-600';
+            case 'DELETE': return 'text-red-600';
+            default: return 'text-gray-600';
         }
     }
 
@@ -125,22 +137,25 @@
         if (!fetchedLogsData[index]) return;
         const log = fetchedLogsData[index];
 
-        document.getElementById('modalUser').textContent = log.Username;
-        document.getElementById('modalAction').textContent = log.ActionType;
+        document.getElementById('modalUser').textContent = log.Username || 'Anonymous';
+        document.getElementById('modalAction').textContent = `${log.HttpRequestMethod} ${log.Path}`;
         document.getElementById('modalTime').textContent = new Date(log.Timestamp).toLocaleString();
+        
+        const durationText = log.durationSeconds ? ` (${log.durationSeconds}s)` : '';
+        document.getElementById('modalTime').textContent += durationText;
 
         const codeBlock = document.getElementById('modalCodeContent');
-        let formattedDetails = log.Details;
+        let formattedDetails = log.Args;
 
         try {
-            if (log.Details && log.Details !== 'NULL') {
-                const jsonObj = JSON.parse(log.Details);
+            if (log.Args && log.Args !== 'NULL') {
+                const jsonObj = JSON.parse(log.Args);
                 formattedDetails = JSON.stringify(jsonObj, null, 2); 
-            } else if (!log.Details || log.Details === 'NULL') {
-                formattedDetails = "{{ _('No additional details provided.') }}";
+            } else {
+                formattedDetails = "{{ _('No arguments provided.') }}";
             }
         } catch (e) {
-            formattedDetails = log.Details; 
+            formattedDetails = log.Args || "{{ _('No arguments provided.') }}"; 
         }
 
         codeBlock.textContent = formattedDetails;
@@ -166,7 +181,6 @@
     function copyToClipboard() {
         const text = document.getElementById('modalCodeContent').textContent;
         navigator.clipboard.writeText(text).then(() => {
-            // Optional: Feedback, e.g., change button icon temporarily
             const btn = document.querySelector('#modalPanel button i.fa-copy');
             if(btn) {
                 btn.className = 'fas fa-check text-green-400';

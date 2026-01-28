@@ -46,7 +46,7 @@
                 <p class="text-sm text-gray-500 mt-2">{{ _("Manage access profiles, role-based permissions, and individual user overrides.") }}</p>
             </a>
 
-            <a href="{{ url_for('admin_logs_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6 disabled">
+            <a href="{{ url_for('admin_logs_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6 "> <!--disabled--> 
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-orange-100 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition">
                         <i class="fas fa-clipboard-list fa-2x"></i>
@@ -54,11 +54,11 @@
                     <i class="fas fa-arrow-right text-gray-300 group-hover:text-orange-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">{{ _("System Logs") }}</h3>
-                <!-- <p class="text-sm text-gray-500 mt-2">{{ _("Deep dive into system activity. Filter by user, date, action type, and status.") }}</p> -->
-                <p class="text-sm text-gray-500 mt-2">{{ _("Temporarily disabled") }}</p>
+                <p class="text-sm text-gray-500 mt-2">{{ _("Deep dive into system activity. Filter by user, date, action type, and status.") }}</p>
+                <!-- <p class="text-sm text-gray-500 mt-2">{{ _("Temporarily disabled") }}</p> -->
             </a>
 
-            <a href="{{ url_for('admin_sessions_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6 disabled">
+            <a href="{{ url_for('admin_sessions_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6 "> <!--disabled--> 
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-green-100 rounded-lg text-green-600 group-hover:bg-green-600 group-hover:text-white transition">
                         <i class="fas fa-signal fa-2x"></i>
@@ -66,8 +66,8 @@
                     <i class="fas fa-arrow-right text-gray-300 group-hover:text-green-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">{{ _("Active Sessions") }}</h3>
-                <!-- <p class="text-sm text-gray-500 mt-2">{{ _("View users currently logged in or active within the last 30 minutes.") }}</p> -->
-                <p class="text-sm text-gray-500 mt-2">{{ _("Temporarily disabled") }}</p>
+                <p class="text-sm text-gray-500 mt-2">{{ _("View users currently logged in or active within the last 30 minutes.") }}</p>
+                <!-- <p class="text-sm text-gray-500 mt-2">{{ _("Temporarily disabled") }}</p> -->
             </a>
 
              <a href="{{ url_for('admin_organizations_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
