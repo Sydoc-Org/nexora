@@ -109,23 +109,6 @@
             });
         }
 
-        function logAction(actionType, resourceId, details, status, IsInternalError) {
-            fetch(`${API_PREFIX}log_action`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    'X-CSRFToken': csrfToken  
-                },
-                body: JSON.stringify({
-                    action_type: actionType,
-                    resource_id: resourceId,
-                    details: details,
-                    status: status,
-                    IsInternalError: IsInternalError
-                }),
-            }).catch((err) => console.error("Logging failed:", err));
-        }
-
         function closeAllDetails() {
             document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
                 detailsRow.classList.remove('open');
@@ -484,10 +467,8 @@
                             }
                         }
 
-                        logAction('toggleDetails', 'workitemOverview', null, 'SUCCESS', 0);
                     } catch (error) {
                         console.error('Error loading media info:', error);
-                        logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1);
                         if(imageContainer) {
                              imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
                              imageContainer.dataset.loaded = 'true';
@@ -495,7 +476,7 @@
                     }
                 }
             } catch (error) {
-                logAction('toggleDetails', 'workitemOverview', error, "FAILURE", 1)
+                // pass
             }
         }
 

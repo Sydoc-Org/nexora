@@ -33,65 +33,82 @@
                 </div>
             </div>
         </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-                
-                <div>
-                    <label for="filterUser" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Username") }}</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                            <i class="fas fa-user text-sm"></i>
-                        </div>
-                        <input type="text" id="filterUser" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
-                    </div>
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 items-end">
+        
+        <div>
+            <label for="filterUser" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Username") }}</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
+                    <i class="fas fa-user text-sm"></i>
                 </div>
+                <input type="text" id="filterUser" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
+            </div>
+        </div>
 
-                <div>
-                    <label for="filterAction" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Action") }}</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                            <i class="fas fa-bolt text-sm"></i>
-                        </div>
-                        <input type="text" id="filterAction" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
-                    </div>
+        <div>
+            <label for="filterMethod" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Method") }}</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
+                    <i class="fas fa-code-branch text-sm"></i>
                 </div>
-
-                <div>
-                    <label for="filterStatus" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Status") }}</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                            <i class="fas fa-info-circle text-sm"></i>
-                        </div>
-                        <select id="filterStatus" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm appearance-none cursor-pointer">
-                            <option value="">{{ _("All") }}</option>
-                            <option value="SUCCESS">{{ _("Success") }}</option>
-                            <option value="FAILURE">{{ _("Failure") }}</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="filterStart" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Start Date") }}</label>
-                    <input type="date" id="filterStart" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
-                </div>
-
-                <div>
-                    <label for="filterEnd" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("End Date") }}</label>
-                    <input type="date" id="filterEnd" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
-                </div>
-
-                <div>
-                    <button onclick="fetchLogs(1)" class="h-10 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-2 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <i class="fas fa-search"></i> {{ _("Filter") }}
-                    </button>
+                <select id="filterMethod" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm appearance-none cursor-pointer">
+                    <option value="">{{ _("All") }}</option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <i class="fas fa-chevron-down text-xs"></i>
                 </div>
             </div>
         </div>
 
+        <div>
+            <label for="filterPath" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Path") }}</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
+                    <i class="fas fa-link text-sm"></i>
+                </div>
+                <input type="text" id="filterPath" placeholder="/api/..." class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
+            </div>
+        </div>
+
+        <div>
+            <label for="filterStatus" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Status") }}</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
+                    <i class="fas fa-info-circle text-sm"></i>
+                </div>
+                <select id="filterStatus" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm appearance-none cursor-pointer">
+                    <option value="">{{ _("All") }}</option>
+                    <option value="SUCCESS">{{ _("Success (2xx)") }}</option>
+                    <option value="FAILURE">{{ _("Failure (4xx/5xx)") }}</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label for="filterStart" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Start Date") }}</label>
+            <input type="date" id="filterStart" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
+        </div>
+
+        <div>
+            <label for="filterEnd" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("End Date") }}</label>
+            <input type="date" id="filterEnd" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
+        </div>
+
+        <div>
+            <button onclick="fetchLogs(1)" class="h-10 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-2 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fas fa-search"></i> {{ _("Filter") }}
+            </button>
+        </div>
+    </div>
+</div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">

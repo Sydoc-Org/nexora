@@ -31,7 +31,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 import magic  
 from sqlalchemy import create_engine, pool
-import urllib
+import urllib, csv
 
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
@@ -209,56 +209,50 @@ engineStatisticsDB = create_engine(
 )
 # ------------------------------ database connection end --------------------- #
 
-
 # ---------------------------------- logging --------------------------------- #
-def log_user_action(action_type, status, target_user_id=None, resource_id=None, details=None, IsInternalError=0):
-    if 'username' not in session:
-        return
+def get_ip():
+    if request.headers.getlist("X-Forwarded-For"):
+        return request.headers.getlist("X-Forwarded-For")[0].split(',')[0]
+    else:
+        return request.remote_addr or 'Unknown'
+    
+@app.before_request
+def start_timer():
+    request.start_time = time.time()
+
+@app.after_request
+def log_every_request(response):
+    if request.path.startswith('/static'):
+        return response
+    duration = time.time() - request.start_time if hasattr(request, 'start_time') else 0
+
     try:
-        conn = engineNexoraDB.raw_connection()
-        cursor = conn.cursor()
+        LOGS_FOLDER = os.path.join(app.root_path, 'logs')
+        os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-        cursor.execute("""
-            INSERT INTO User_Logs
-            (SessionID, UserID, Username, ActionType, ActionStatus, TargetUserID, TargetResourceID, Details, IPAddress, UserAgent, IsInternalError)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            session.get('uuid'),
-            session.get('userid'),
-            session.get('username'),
-            action_type,
-            str(status),
-            target_user_id,
-            resource_id,
-            json.dumps(details) if details else None,
-            request.remote_addr,
-            request.headers.get('User-Agent', ''),
-            IsInternalError
-        ))
+        LOGS_HOUR_FOLDER = os.path.join(LOGS_FOLDER, datetime.now().strftime("%Y%m%d%H"))
+        os.makedirs(LOGS_HOUR_FOLDER, exist_ok=True)
 
-        conn.commit()
+        with open(f'{LOGS_HOUR_FOLDER}/nexora_logs.csv', 'a', newline='') as csvfile:
+            fieldnames = ['SessionID', 'RequestIpAddress', 'UserID', 'Username', 'HttpRequestMethod', 'Path', 'HttpResponseCode', 'Args', 'durationSeconds']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            if csvfile.tell() == 0:
+                writer.writeheader()
+            writer.writerow({
+                'SessionID': session.get('uuid'),
+                'RequestIpAddress': get_ip(),
+                'UserID': session.get('userid'),
+                'Username': session.get('username'),
+                'HttpRequestMethod': request.method,
+                'Path': request.path,
+                'HttpResponseCode': response.status_code,
+                'Args': request.args.to_dict(),
+                'durationSeconds': round(duration, 4),
+            })
     except Exception as e:
-        app.logger.error(f"Failed to log user action '{action_type}': {e}")
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
+        app.logger.error(f"Logging failed: {e}")
+    return response
 
-@app.route("/log_action", methods=['POST'])
-def log_action():
-    if 'username' not in session:
-        return jsonify({'error': 'not authenticated'}), 401
-
-    data = request.get_json()
-    log_user_action(action_type=(data.get('action_type')),
-                    resource_id=(data.get('resource_id')),
-                    status=(data.get('status')),
-                    details=(data.get('details')),
-                    IsInternalError=(data.get('IsInternalError'))
-                    )
-
-    return jsonify({'success': True})
 # -------------------------------- logging end ------------------------------- #
 
 # ------------------------------- session login ------------------------------ #
@@ -392,7 +386,6 @@ def verify_2fa():
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
             pV = pageVisability()
-            log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
             if not pV['dashboardPagePerm']:
                 if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
                 elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
@@ -456,7 +449,6 @@ def init_reset_password():
         conn.close()
 
         create_notification(pre_auth_userid, _("Initial Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
-        log_user_action(action_type='InitResetUserPassword', status='SUCCESS', resource_id='initResetPassword')
         if not stored_2FA:
             session['pre_2fa_userid'] = pre_auth_userid
             session['pre_2fa_username'] = stored_username 
@@ -464,7 +456,6 @@ def init_reset_password():
         else:
             return redirect(url_for('login'))
     except Exception as e:
-        log_user_action(action_type='InitResetUserPassword', status='FAILURE', resource_id='initResetPassword', details={"serverError": str(e)}, IsInternalError=1)
         return
 
 @app.route("/login", methods=["GET", "POST"])
@@ -492,10 +483,8 @@ def login():
         #     session['uuid'] = uuid.uuid4()
         #     session['permissions'] = load_permissions_for_user("1019")
             
-        #     log_user_action(action_type='logUserIn_2FA', status='SUCCESS', resource_id='login')
         #     return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
-            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
 
         try:
@@ -531,11 +520,9 @@ def login():
                         session['pre_2fa_username'] = stored_username 
                         return redirect(url_for('verify_2fa'))
            
-            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"clientError": "Invalid credentials"})
             return render_template('index.html', error=_("Invalid credentials"))
 
         except Exception as e:
-            log_user_action(action_type='logUserIn', status='FAILURE', resource_id='login', details={"serverError": str(e)}, IsInternalError=1)
             app.logger.error(f"Database error during login: {e}")
             return render_template('index.html', error=_("Login temporarily unavailable"))
         finally:
@@ -683,7 +670,6 @@ def admin_add_organization():
     vowels = re.sub(r'[^AEIOU]', '', clean_name)
     code = (consonants + vowels)
     organizationcode = code[:4].ljust(4, 'X')
-    print(organizationcode,organization)
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
@@ -692,14 +678,11 @@ def admin_add_organization():
         conn.commit()
 
         create_notification(userid, _("Organization created successfully.") , link=url_for('admin_organizations_view'), icon='fa-square-plus')
-        log_user_action('createNewOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement',details={'newOrganization': organization})
         return jsonify({'success': True, 'message': _("Organization created successfully.")})
     except pyodbc.IntegrityError:
-        log_user_action('createNewOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"adminError": "Organization already exists", 'newOrganization': organization})
         return jsonify({'success': False, 'message': _("Organization already exists.")}), 409
     except Exception as e:
         app.logger.error(f"Error adding organization: {e}")
-        log_user_action('createNewOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -724,11 +707,9 @@ def admin_edit_organization(organizationcode):
         conn.commit()
         
         create_notification(currentUserId, _("Organization updated successfully"), link=url_for('admin_organizations_view'), icon='fa-pen')
-        log_user_action('editOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement')
         return jsonify({'success': True, 'message': _("Organization updated successfully.")})
     except Exception as e:
         app.logger.error(f"Error editing Organization {currentUserId}: {e}")
-        log_user_action('editOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if cursor:
@@ -750,16 +731,13 @@ def admin_delete_organization(organizationcode):
         conn.commit()
 
         if cursor.rowcount == 0:
-            log_user_action('deleteOrganizationAdmin', status='FAILURE', details={'adminError': 'Organization not found'}, resource_id='visitOrganizationManagement')
             return jsonify({'success': False, 'message': _("Organization not found.")}), 404
 
         create_notification(current_user, _("Organization deleted successfully"), link=url_for('admin_organizations_view'), icon='fa-slash')
         
-        log_user_action('deleteOrganizationAdmin', status='SUCCESS', resource_id='visitOrganizationManagement')
         return jsonify({'success': True, 'message': _("Organization deleted successfully.")})
     except Exception as e:
         app.logger.error(f"Error deleting Organization {organizationcode}: {e}")
-        log_user_action('deleteOrganizationAdmin', status='FAILURE', resource_id='visitOrganizationManagement', details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if cursor:
@@ -818,7 +796,9 @@ def admin_logs_view():
 @require_permission('admin.view.system.logs')
 def api_admin_logs_search():
     username = request.args.get('username', '').strip()
-    action_type = request.args.get('action_type', '').strip()
+    method = request.args.get('method', '').strip()
+    path = request.args.get('path', '').strip()
+    
     status = request.args.get('status', '').strip()
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
@@ -833,12 +813,20 @@ def api_admin_logs_search():
     if username:
         query_parts.append("Username LIKE ?")
         params.append(f"%{username}%")
-    if action_type:
-        query_parts.append("ActionType LIKE ?")
-        params.append(f"%{action_type}%")
-    if status:
-        query_parts.append("ActionStatus = ?")
-        params.append(status)
+    
+    if method:
+        query_parts.append("HttpRequestMethod = ?")
+        params.append(method)
+    
+    if path:
+        query_parts.append("Path LIKE ?")
+        params.append(f"%{path}%")
+
+    if status == 'SUCCESS':
+        query_parts.append("HttpResponseCode BETWEEN 200 AND 299")
+    elif status == 'FAILURE':
+        query_parts.append("HttpResponseCode >= 400")
+
     if start_date:
         query_parts.append("Timestamp >= ?")
         params.append(start_date)
@@ -853,18 +841,32 @@ def api_admin_logs_search():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         
-        cursor.execute(f"SELECT COUNT(*) FROM User_Logs WHERE {where_clause}", params)
+        cursor.execute(f"SELECT COUNT(*) FROM Logs WHERE {where_clause}", params)
         total_count = cursor.fetchone()[0]
 
         sql = f"""
-            SELECT LogID, Timestamp, Username, ActionType, ActionStatus, Details, IPAddress 
-            FROM User_Logs 
+            SELECT LogID, Timestamp, Username, HttpRequestMethod, Path, 
+                   HttpResponseCode, Args, RequestIpAddress, durationSeconds
+            FROM Logs 
             WHERE {where_clause}
             ORDER BY Timestamp DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
         cursor.execute(sql, params + [offset, per_page])
-        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        
+        logs = []
+        for row in cursor.fetchall():
+            logs.append({
+                'LogID': row.LogID,
+                'Timestamp': row.Timestamp,
+                'Username': row.Username,
+                'HttpRequestMethod': row.HttpRequestMethod,
+                'Path': row.Path,
+                'HttpResponseCode': row.HttpResponseCode,
+                'Args': row.Args,
+                'RequestIpAddress': row.RequestIpAddress,
+                'durationSeconds': row.durationSeconds
+            })
 
         return jsonify({
             "logs": logs,
@@ -916,14 +918,11 @@ def admin_add_user():
                        (username, hashed_password, fullname, email, organizationcode, accessid))
         conn.commit()
         create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
-        log_user_action('createNewUserAdmin', status='SUCCESS', resource_id='visitUserManagement',details={'newUsername': username})
         return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
-        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"adminError": "Username or email already exists", 'newUsername': username})
         return jsonify({'success': False, 'message': _("Username or email already exists.")}), 409
     except Exception as e:
         app.logger.error(f"Error adding user: {e}")
-        log_user_action('createNewUserAdmin', status='FAILURE', resource_id='visitUserManagement', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -949,7 +948,6 @@ def admin_edit_user(user_id):
         cursor = conn.cursor()
         if not has_permission(f'admin.assign.user.accessprofile.{str(accessprofile).lower()}'):
             app.logger.error(f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}")
-            log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"permissionError": f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"})
             return jsonify({'success': False, 'message': _("Permission Denied for this action.")}), 403
         
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
@@ -967,11 +965,9 @@ def admin_edit_user(user_id):
         conn.commit()
 
         create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
-        log_user_action('editUserAdmin', status='SUCCESS', resource_id='visitUserManagement', target_user_id=user_id)
         return jsonify({'success': True, 'message': _("User updated successfully.")})
     except Exception as e:
         app.logger.error(f"Error editing user {user_id}: {e}")
-        log_user_action('editUserAdmin', status='FAILURE', resource_id='visitUserManagement', target_user_id=user_id, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if cursor:
@@ -984,7 +980,6 @@ def admin_edit_user(user_id):
 def admin_delete_user(user_id):
     current_user = session.get('userid')
     if str(user_id) == current_user:
-        log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'Self-delete attempt'}, resource_id='visitUserManagement')
         return jsonify({'success': False, 'message': _("You cannot delete your own account.")}), 403
 
     conn = None
@@ -1015,15 +1010,12 @@ def admin_delete_user(user_id):
         conn.commit()
 
         if cursor.rowcount == 0:
-            log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, details={'adminError': 'User not found'}, resource_id='visitUserManagement')
             return jsonify({'success': False, 'message': _("User not found.")}), 404
 
         create_notification(current_user, _("User deleted successfully"), link=url_for('admin_users'), icon='fa-user-slash')
-        log_user_action('deleteUserAdmin', status='SUCCESS', target_user_id=user_id, resource_id='visitUserManagement')
         return jsonify({'success': True, 'message': _("User deleted successfully.")})
     except Exception as e:
         app.logger.error(f"Error deleting user {user_id}: {e}")
-        log_user_action('deleteUserAdmin', status='FAILURE', target_user_id=user_id, resource_id='visitUserManagement', details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
     finally:
         if cursor:
@@ -1039,20 +1031,24 @@ def admin_recent_logs():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT TOP 20 Timestamp, Username, ActionType, ActionStatus
-            FROM User_Logs
+            SELECT TOP 20 Timestamp, Username, HttpRequestMethod, Path, HttpResponseCode
+            FROM Logs
             ORDER BY Timestamp DESC
         """)
-        logs = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        logs = []
+        for row in cursor.fetchall():
+            logs.append({
+                'Timestamp': row.Timestamp,
+                'Username': row.Username,
+                'ActionType': f"{row.HttpRequestMethod} {row.Path}", 
+                'ActionStatus': 'SUCCESS' if 200 <= row.HttpResponseCode < 300 else 'FAILURE'
+            })
         return jsonify(logs)
     except Exception as e:
-        app.logger.error(f"Failed to fetch recent logs for admin panel: {e}")
+        app.logger.error(f"Failed to fetch recent logs: {e}")
         return jsonify({"error": _("Could not fetch logs")}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 @app.route("/api/admin/active_sessions")
 @require_permission('admin.view.active.sessions')
@@ -1065,24 +1061,20 @@ def admin_active_sessions():
             SELECT
 				Username,
 				Userid,
-                IPAddress,
+                RequestIpAddress as IPAddress,
                 MAX(Timestamp) as LastActivity
-            FROM User_Logs
+            FROM Logs
             WHERE Timestamp >= DATEADD(minute, -30, getdate())
-            GROUP BY SessionID, Username, IPAddress, Userid
+            GROUP BY SessionID, Username, RequestIpAddress, Userid
             ORDER BY LastActivity DESC
         """)
         sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(sessions)
     except Exception as e:
-        app.logger.error(f"Failed to fetch active sessions for admin panel: {e}")
+        app.logger.error(f"Failed to fetch active sessions: {e}")
         return jsonify({"error": _("Could not fetch sessions")}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
+        if conn: conn.close()
 # ----------------------------- Access Control ------------------------------ #
 @app.route("/admin/access_control")
 @require_permission('admin.view.accessprofiles.useroverrides') 
@@ -1193,7 +1185,6 @@ def save_access_profile():
             cursor.executemany("INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)", params)
         conn.commit()
         session['permissions'] = load_permissions_for_user(session['userid'])
-        log_user_action('saveAccessProfile', 'SUCCESS', resource_id=access_id, details={'name': name})
         return jsonify({'success': True, 'message': _("Profile saved successfully")})
     except Exception as e:
         app.logger.error(f"Error saving profile: {e}")
@@ -1256,7 +1247,6 @@ def save_user_overrides():
         
         conn.commit()
         session['permissions'] = load_permissions_for_user(session['userid'])
-        log_user_action('saveUserOverrides', 'SUCCESS', target_user_id=user_id)
         return jsonify({'success': True, 'message': _("Overrides updated successfully")})
     except Exception as e:
         app.logger.error(f"Error saving overrides: {e}")
@@ -1278,10 +1268,8 @@ def logout():
         session.pop('username', None)
         session.pop('uuid', None)
         session.pop('userid', None)
-        log_user_action('logUserOut', status='SUCCESS', resource_id='logout')
         return redirect(url_for("index"))
     except Exception as e:
-        log_user_action('logUserOut', status='FAILURE', resource_id='logout', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 # -------------------------------- logout end -------------------------------- #
 
@@ -1335,10 +1323,8 @@ def set_new_password():
         conn.commit()
 
         create_notification(userid, _("Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
-        log_user_action(action_type='resetUserPassword', status='SUCCESS', resource_id='resetPassword')
         return render_template("reset_password.html", message=_("Password changed"))
     except Exception as e:
-        log_user_action(action_type='resetUserPassword', status='FAILURE', resource_id='resetPassword', details={"serverError": str(e)}, IsInternalError=1)
         return
     finally:
         if cursor:
@@ -2026,12 +2012,6 @@ def dashboard():
         session['process_name_dashboard'] = process_name
         absolute_stats = get_absolute_dashboard_stats(process_name)
 
-        log_user_action(
-            action_type='visitDashboard',
-            status='SUCCESS',
-            resource_id='dashboard'
-        )
-
         return render_template(
             "dashboard.html",
             logged_in_user=logged_in_user,
@@ -2045,13 +2025,6 @@ def dashboard():
             pageV=pageVisability()
         )
     except Exception as e:
-        log_user_action(
-            action_type='visitDashboard',
-            status='FAILURE',
-            resource_id='dashboard',
-            details={"serverError": str(e)},
-            IsInternalError=1
-        )
         return render_template('500.html')
 
 
@@ -2228,8 +2201,26 @@ def _get_workitems_data(args):
 
     process_name = args.get('prcfW', 'all')
     session['process_name_workitemOverview'] = process_name
+    
     prefix = "workitems.filter.process."
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+    perms = session.get('permissions', [])
+    
+    allowed_processes_set = set()
+    for perm in perms:
+        if perm.startswith(prefix):
+            parts = perm.split('.')
+            if len(parts) >= 2:
+                allowed_processes_set.add(f"{parts[-2]}.{parts[-1]}")
+
+    target_processes = []
+    if process_name == 'all':
+        target_processes = list(allowed_processes_set)
+    else:
+        if process_name in allowed_processes_set:
+            target_processes = [process_name]
+
+    # Prepare main query params
+    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix, process_name=process_name)
 
     docfields = args.getlist('docfield')
     docvalues = args.getlist('docvalue')
@@ -2240,10 +2231,12 @@ def _get_workitems_data(args):
         "twi.Status <> 2",
         f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
     ]
+    
     status_map = {'Ready': 0, 'In Progress': 1, 'Done': 5}
     if status and status in status_map:
         where_clauses.append("twi.Status = ?")
         params.append(status_map[status])
+        
     if tag_filter and has_permission('workitems.filter.tag'):
         where_clauses.append(f"""
             EXISTS (
@@ -2254,6 +2247,7 @@ def _get_workitems_data(args):
             )
         """)
         params.append(f"%{tag_filter}%")
+        
     if search_term and has_permission('workitems.filter.workitemid'):
         where_clauses.append("twi.id LIKE ?")
         params.append(f"%{search_term}%")
@@ -2274,33 +2268,35 @@ def _get_workitems_data(args):
             where_clauses.append("wim.AssignedUserID = ?")
             params.append(assigned_user)
 
-    if has_permission('workitems.filter.documentfields'):
-
+    if has_permission('workitems.filter.documentfields') and target_processes:
         valid_db_columns = get_valid_search_columns()
-
-        for docfield, docvalue in zip(docfields, docvalues):
-            docfield = (docfield or '').lower().strip()
-            docvalue = (docvalue or '').strip()
+        
+        # Open connection once for all field checks
+        conn_nex = None
+        try:
             conn_nex = engineNexoraDB.raw_connection()
             cursor_nex = conn_nex.cursor()
+            
+            for docfield, docvalue in zip(docfields, docvalues):
+                docfield = (docfield or '').lower().strip()
+                docvalue = (docvalue or '').strip()
 
-            if not docvalue or not docfield:
-                continue
+                if not docvalue or not docfield:
+                    continue
 
-            target_config_col = f'col_{docfield}'
+                target_config_col = f'col_{docfield}'
+                if target_config_col not in valid_db_columns:
+                    continue
 
-            if target_config_col not in valid_db_columns:
-                continue
-
-            if target_config_col:
-                query = f"SELECT * FROM SearchConfig WHERE {target_config_col} IS NOT NULL"
-                sql_params = []
+                placeholders = ','.join(['?'] * len(target_processes))
+                query = f"""
+                    SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
+                    FROM SearchConfig 
+                    WHERE {target_config_col} IS NOT NULL 
+                    AND ProcessName IN ({placeholders})
+                """
                 
-                if process_name != 'all':
-                    query += " AND ProcessName = ?"
-                    sql_params.append(process_name)
-                    
-                configs = cursor_nex.execute(query, sql_params).fetchall()
+                configs = cursor_nex.execute(query, target_processes).fetchall()
                 
                 generated_checks = []
                 
@@ -2323,16 +2319,18 @@ def _get_workitems_data(args):
                         )
                     """
                     generated_checks.append(snippet)
+                    # Add param for this specific EXISTS clause
                     params.append(f"%{docvalue}%")
 
                 if generated_checks:
                     combined_clause = " OR ".join(generated_checks)
                     where_clauses.append(f"({combined_clause})")
-
-            else:
-                pass
-            conn_nex.close()
-            cursor_nex.close()
+                    
+        except Exception as e:
+            app.logger.error(f"Error in docfield optimization block: {e}")
+        finally:
+            if cursor_nex: cursor_nex.close()
+            if conn_nex: conn_nex.close()
             
     where_sql = " AND ".join(where_clauses)
     
@@ -2465,7 +2463,7 @@ def api_docfield_values():
                 SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
                 FROM [{DB_STATISTICS}].{tbl}
                 WHERE {col_name} IS NOT NULL 
-                  AND {safe_col} <> '' -- Compare as string to avoid implicit int conversion (0 != '')
+                  AND {safe_col} <> ''
                   AND {time_filter}
             """
             if q:
@@ -2504,10 +2502,8 @@ def api_workitems():
         return jsonify({"error": "Not authorized"}), 401
     try:
         data = _get_workitems_data(request.args)
-        log_user_action('apiVisitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return jsonify(data)
     except Exception as e:
-        log_user_action('apiVisitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         app.logger.error(f"API error in workitems overview: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
 
@@ -2574,7 +2570,6 @@ def workitems_overview():
         details_add_comment_perm = has_permission('workitems.details.add.comment')
 
         portal_assignedUsers_filter = get_all_portal_users('workitems', 'filter.assignedUser')
-        log_user_action('visitWorkitemOverview', status='SUCCESS', resource_id='workitemOverview')
         return render_template("workitems_overview.html",
             logged_in_user=logged_in_user,
             userid=userid,
@@ -2612,7 +2607,6 @@ def workitems_overview():
             details_add_comment_perm=details_add_comment_perm
         )
     except Exception as e:
-        log_user_action('visitWorkitemOverview', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
 
@@ -2668,7 +2662,6 @@ def import_workitems():
     }
     
     if process_name not in allowed_processes:
-        log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={'securityError': 'User attempted to import to unauthorized process', 'process': process_name})
         flash(_("You do not have permission to import to this process."), 'error')
         return redirect(url_for('workitems_overview'))
 
@@ -2686,14 +2679,11 @@ def import_workitems():
 
         try:
             file.save(file_path)
-            log_user_action('importWorkitems', status='SUCCESS', resource_id='workitemOverview', details={'filename': unique_filename, 'originalFilename': file.filename, 'targetProcess': process_name})
             flash(_("File '{}' successfully imported into {}.").format(filename, process_name), 'success')
         except Exception as e:
             app.logger.error(f"Error saving imported file: {e}")
-            log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={"serverError": str(e)}, IsInternalError=1)
             flash(_("An error occurred while saving the file."), 'error')
     else:
-        log_user_action('importWorkitems', status='FAILURE', resource_id='workitemOverview', details={'securityError': 'Invalid file type or spoofed extension', 'filename': file.filename})
         flash(_("Invalid file type. Please upload a valid PDF."), 'error')
 
     return redirect(url_for('workitems_overview'))
@@ -3178,11 +3168,9 @@ def add_workitem_comment(workitemid):
                 create_notification(user.userID, f"{session['username']} mentioned you on workitem {workitemid}", link=notification_link, icon='fa-at')
 
         conn.commit()
-        log_user_action('addWorkitemComment', status='SUCCESS', resource_id=workitemid)
         return jsonify({'success': True, 'message': _("Comment added.")})
     except Exception as e:
         app.logger.error(f"Error adding comment for workitem {workitemid}: {e}")
-        log_user_action('addWorkitemComment', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -3218,14 +3206,12 @@ def assign_workitem(workitemid):
         """, (workitemid, assignedUserID, session['userid']))
 
         conn.commit()
-        log_user_action('assignUserToWorkitem', status='SUCCESS', resource_id=workitemid, details={'assignedUserID': assignedUserID})
         if assignedUserID != None and assignedUserID != session['userid']:
             notification_link = url_for('workitems_overview', search=workitemid, _external=False)
             create_notification(assignedUserID, f"{session['username']} {_('assigned you on workitem')} {workitemid}", link=notification_link, icon='fa-people-carry-box')
         return jsonify({'success': True, 'message': _("Assignment updated.")})
     except Exception as e:
         app.logger.error(f"Error setting assignment for workitem {workitemid}: {e}")
-        log_user_action('assignUserToWorkitem', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -3260,11 +3246,9 @@ def set_workitem_priority(workitemid):
         """, (workitemid, priority, session['userid']))
 
         conn.commit()
-        log_user_action('setWorkitemPriority', status='SUCCESS', resource_id=workitemid, details={'priority': priority})
         return jsonify({'success': True, 'message': _("Priority updated.")})
     except Exception as e:
         app.logger.error(f"Error setting priority for workitem {workitemid}: {e}")
-        log_user_action('setWorkitemPriority', status='FAILURE', resource_id=workitemid, details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -3327,12 +3311,10 @@ def add_tag_to_workitem(workitemid):
         cursor.execute("INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id))
         conn.commit()
 
-        log_user_action('addWorkitemTag', status='SUCCESS', resource_id=workitemid, details={'tagName': tag_name})
         return jsonify({'success': True, 'message': _("Tag added successfully."), 'tag': {'TagID': tag_id, 'TagName': tag_name, 'TagColor': tag_color}})
 
     except Exception as e:
         app.logger.error(f"Error adding tag to workitem {workitemid}: {e}")
-        log_user_action('addWorkitemTag', status='FAILURE', resource_id=workitemid, details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -3356,11 +3338,9 @@ def remove_tag_from_workitem(workitemid, tag_id):
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': _("Tag association not found.")}), 404
 
-        log_user_action('removeWorkitemTag', status='SUCCESS', resource_id=workitemid, details={'tagId': tag_id})
         return jsonify({'success': True, 'message': _("Tag removed successfully.")})
     except Exception as e:
         app.logger.error(f"Error removing tag {tag_id} from workitem {workitemid}: {e}")
-        log_user_action('removeWorkitemTag', status='FAILURE', resource_id=workitemid, details={'serverError': str(e)}, IsInternalError=1)
         return jsonify({'success': False, 'message': _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -3462,7 +3442,6 @@ def team_board():
                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
                 })
 
-        log_user_action('visitTeamBoard', status='SUCCESS', resource_id='teamBoard')
 
         return render_template("team_board.html",
             workitems_by_user=workitems_by_user,
@@ -3476,7 +3455,6 @@ def team_board():
         )
     except Exception as e:
         app.logger.error(f"Error loading team board: {e}")
-        log_user_action('visitTeamBoard', status='FAILURE', resource_id='teamBoard', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
     finally:
         if cursor:
@@ -3523,10 +3501,8 @@ def profile():
         userid = session.get('userid', 'Unknown')
         fullname = session.get('fullname', 'Unknown')
         email = session.get('email', 'Unknown')
-        log_user_action('visitUserProfile', status='SUCCESS', resource_id='profile')
         return render_template("profile.html", userid=userid, logged_in_user=logged_in_user, fullname=fullname, email=email, pageV=pageVisability())
     except Exception as e:
-        log_user_action('visitUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
 @app.route("/update_profile", methods=["POST", "GET"])
@@ -3593,17 +3569,11 @@ def update_profile():
                     app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
                     flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
                     return redirect(url_for("profile"))
-
-            log_user_action(action_type='updateUserProfile', status='SUCCESS', resource_id='profile', details={
-                "fullname": fullname,
-                "email": email,
-            })
             create_notification(userid, _("Your profile was updated successfully."), link=url_for('profile'), icon='fa-user-pen')
             flash(_("Profile updated successfully!"), 'success_updateProfile')
             return redirect(url_for("profile"))
     except Exception as e:
         flash(_("Unexpected error"), 'failure_updateProfile')
-        log_user_action(action_type='updateUserProfile', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for("profile"))
     finally:
         if cursor:
@@ -3664,7 +3634,6 @@ def change_password():
                 conn.commit()
 
                 create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
-                log_user_action(action_type='changeUserPassword', status='SUCCESS', resource_id='profile')
                 flash(_("Password updated successfully!"), 'success_changePW')
                 return redirect(url_for('profile'))
             else:
@@ -3672,7 +3641,6 @@ def change_password():
                 return redirect(url_for('profile'))
     except Exception as e:
         flash(_("Unexpected Error"), 'failure_changePW')
-        log_user_action(action_type='changeUserPassword', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for('profile'))
     finally:
         if cursor:
@@ -3686,12 +3654,10 @@ def set_language(lang=None):
         userid = session['userid']
         session['locale'] = lang
         create_notification(userid, _("Language changed successfully!"), link=url_for('profile'), icon='fa-language')
-        log_user_action(action_type='changeUserLanguage', status='SUCCESS', resource_id='profile', details={"new_language": lang})
         flash(_("Language changed successfully!"), 'success_setLanguage')
         return redirect(url_for('profile'))
     except Exception as e:
         flash(_("Unexpected Error"), 'failure_setLanguage')
-        log_user_action(action_type='changeUserLanguage', status='FAILURE', resource_id='profile', details={"serverError": str(e)}, IsInternalError=1)
         return redirect(url_for('profile'))
 
 @app.context_processor
@@ -3806,11 +3772,9 @@ def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None
 
         except requests.exceptions.RequestException as e:
             app.logger.error(f"Bexio API search failed: {e}")
-            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
             return []
         except json.JSONDecodeError:
             app.logger.error(f"Bexio API returned invalid JSON.")
-            log_user_action('searchBexioInvoices', 'FAILURE', resource_id='invoices', details={"serverError": "Bexio API returned invalid JSON"}, IsInternalError=1)
             return []
     return all_invoices
 
@@ -3841,7 +3805,6 @@ def getBexioInvoicePDF(invoice_id):
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Bexio API PDF fetch failed for {invoice_id}: {e}")
-        log_user_action('getBexioInvoicePDF', 'FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
         return None, None
 
 def map_invoice_status(status_id):
@@ -3897,7 +3860,6 @@ def invoices():
         dateFrom = request.args.get('dateFrom',(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')) if date_perm else (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
         dateTo = request.args.get('dateTo',datetime.now().strftime('%Y-%m-%d')) if date_perm else datetime.now().strftime('%Y-%m-%d')
 
-        log_user_action('visitInvoices', status='SUCCESS', resource_id='invoices')
 
         return render_template("invoices.html",
                                logged_in_user=logged_in_user,
@@ -3912,7 +3874,6 @@ def invoices():
                                ,pageV=pageVisability(),
                                clients=clients)
     except Exception as e:
-        log_user_action('visitInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return render_template('500.html')
 
 @app.route("/api/invoices")
@@ -3952,18 +3913,9 @@ def api_invoices():
             search_nr=search_nr,
             status=status
         )
-
-        log_user_action('apiSearchInvoices', status='SUCCESS', resource_id='invoices', details={
-            "filter_search": search_nr,
-            "filter_status": status,
-            "filter_dateFrom": dateFrom,
-            "filter_dateTo": dateTo
-        })
-
         return jsonify(invoices_list)
 
     except Exception as e:
-        log_user_action('apiSearchInvoices', status='FAILURE', resource_id='invoices', details={"serverError": str(e)}, IsInternalError=1)
         return jsonify({"error": "Failed to fetch invoices"}), 500
 
 @app.route("/invoice/<int:invoice_id>/pdf")
@@ -3976,19 +3928,16 @@ def download_invoice_pdf(invoice_id):
         pdf_content, pdf_name = getBexioInvoicePDF(invoice_id)
 
         if pdf_content and pdf_name:
-            log_user_action('downloadBexioPDF', status='SUCCESS', resource_id=invoice_id)
             return Response(
                 pdf_content,
                 mimetype='application/pdf',
                 headers={'Content-Disposition': f'attachment;filename={pdf_name}'}
             )
         else:
-            log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"error": "PDF content not found in Bexio."})
             flash(_("Could not download PDF. File not found or API error."), 'error')
             return redirect(url_for('invoices'))
 
     except Exception as e:
-        log_user_action('downloadBexioPDF', status='FAILURE', resource_id=invoice_id, details={"serverError": str(e)}, IsInternalError=1)
         app.logger.error(f"Failed to download invoice PDF {invoice_id}: {e}")
         flash(_("An unexpected error occurred while downloading the PDF."), 'error')
         return redirect(url_for('invoices'))
