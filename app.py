@@ -82,55 +82,55 @@ limiter = Limiter(
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-# app.config['SESSION_COOKIE_SECURE'] = True 
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# app.config['SESSION_TYPE'] = 'filesystem'  
-# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-# app.config['SESSION_PERMANENT'] = True
-# app.config['SESSION_USE_SIGNER'] = True    
+app.config['SESSION_TYPE'] = 'filesystem'  
+app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True    
 
-# Session(app)
+Session(app)
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'base-uri': '\'self\'',         
-#     'object-src': '\'none\'',       
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+csp = {
+    'default-src': '\'self\'',
+    'base-uri': '\'self\'',         
+    'object-src': '\'none\'',       
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://cdn.tailwindcss.com',   
+        'https://cdnjs.cloudflare.com',  
+        'https://cdn.jsdelivr.net'       
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://fonts.googleapis.com',  
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com',     
+        'https://cdnjs.cloudflare.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'blob:',                         
+        'https://cdn.tailwindcss.com'
+    ],
+    'connect-src': [
+        '\'self\'',                     
+        'https://cdn.tailwindcss.com',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ]
+}
+Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -670,7 +670,6 @@ def admin_add_organization():
     vowels = re.sub(r'[^AEIOU]', '', clean_name)
     code = (consonants + vowels)
     organizationcode = code[:4].ljust(4, 'X')
-    print(organizationcode,organization)
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
@@ -3946,7 +3945,7 @@ def download_invoice_pdf(invoice_id):
 
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
