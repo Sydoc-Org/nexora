@@ -230,7 +230,7 @@ def log_every_request(response):
         LOGS_FOLDER = os.path.join(app.root_path, 'logs')
         os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-        LOGS_HOUR_FOLDER = os.path.join(LOGS_FOLDER, datetime.now().strftime("%d/%m/%Y%H"))
+        LOGS_HOUR_FOLDER = os.path.join(LOGS_FOLDER, datetime.now().strftime("%Y%m%d%H"))
         os.makedirs(LOGS_HOUR_FOLDER, exist_ok=True)
 
         with open(f'{LOGS_HOUR_FOLDER}/nexora_logs.csv', 'a', newline='') as csvfile:
