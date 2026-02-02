@@ -101,13 +101,10 @@
         max-width: 1000px;
         z-index: 0;
         margin: 40px 0 60px;
-        /* Platz für Beschriftungen */
         padding: 0 12.5px;
-        /* Abstand links/rechts */
         box-sizing: border-box;
       }
 
-      /* Durchgehende graue Linie hinter den Punkten */
       .input-flex-container::before {
         content: "";
         position: absolute;
@@ -124,7 +121,6 @@
         margin-top: 15px;
       }
 
-      /* Dunkle Linie bis zum letzten aktiven Punkt (Breite wird per JS gesetzt) */
       .input-flex-container::after {
         content: "";
         position: absolute;
@@ -144,7 +140,6 @@
         width: 35px;
         height: 35px;
         background-color: #aeb6bf;
-        /* Standard grau */
         border-radius: 50%;
         position: relative;
         cursor: pointer;
@@ -154,23 +149,18 @@
         margin-bottom: 20px;
       }
 
-      /* Aktive Punkte: dunkel */
       .input.active {
         background-color: #2c3e50;
         margin-bottom: 20px;
       }
 
-      /* Hover-Effekt für Punkte */
       .input:hover {
         background-color: #34495e;
       }
 
-      /* Noch dunkler beim Hover aktiver Punkte */
       .input.active:hover {
         background-color: #1f2a38;
       }
-
-      /* Status-Beschriftung über den Punkten (data-info) */
       .input span::before {
         content: attr(data-info);
         position: absolute;
@@ -187,12 +177,10 @@
         content: none;
       }
 
-      /* Deaktiviere Pseudo-Element für Datum (wir verwenden echtes HTML) */
       .input span::after {
         content: none;
       }
 
-      /* Container für Datum und Uhrzeit unter dem Punkt */
       .input span {
         position: relative;
         display: flex;
@@ -201,10 +189,8 @@
         font-size: 12px;
         color: #333;
         margin-top: 0px;
-        /* Abstand vom Punkt nach unten */
       }
 
-      /* Datum fett und etwas größer */
       .input span .date {
         font-weight: bold;
         font-size: 13px;
@@ -212,7 +198,6 @@
         margin-top: 40px;
       }
 
-      /* Uhrzeit kleiner und darunter */
       .input span .time {
         font-size: 12px;
         color: #777777;
@@ -377,4 +362,53 @@
 }
 .process-step p.completed {
     color: #374151;
+}
+
+#workitemsTable thead th {
+    background-color: #fcfdfe;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1.25rem 1.5rem;
+}
+
+.workitem-row {
+    border-bottom: 1px solid #f8fafc;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workitem-row:hover {
+    background-color: #fbfcfe !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+}
+
+.step-icon-wrapper {
+    width: 3.5rem;
+    height: 3.5rem;
+    border: 3px solid #f1f5f9;
+    box-shadow: 0 0 0 4px white; 
+}
+
+.step-icon-wrapper.active {
+    border-color: #e0e7ff;
+    background-color: #4f46e5;
+    transform: scale(1.15);
+}
+
+.step-icon-wrapper.active i {
+    color: white;
+}
+
+.step-icon-wrapper.completed {
+    background-color: #ecfdf5;
+    border-color: #10b981;
+}
+
+.details-content-wrapper {
+    background-color: #f8fafc; 
+}
+
+.details-content-wrapper > div {
+    border-radius: 1.5rem;
+    border: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
 }

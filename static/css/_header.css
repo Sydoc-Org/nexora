@@ -2,3 +2,29 @@ body {
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb;
         }
+
+
+#notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+#notification-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+#notification-list::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+}
+
+.notification-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+.notification-item:hover {
+    border-left-color: #4f46e5;
+    background-color: #f9fafb;
+}
+
+.backdrop-blur-md {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}

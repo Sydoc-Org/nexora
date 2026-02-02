@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
 
-
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -10,123 +9,117 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/css/shepherd.css" crossorigin="anonymous"/>
-    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/js/shepherd.min.js" crossorigin="anonymous"></script>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/css/shepherd.css"
+        crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/js/shepherd.min.js"
+        crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_tour.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
 <body>
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    {% include 'nexoraLogo/_nexoraLogo.html' %}
-                </div>
 
-                <div class="flex items-center space-x-5">
-                    <nav class="hidden md:flex space-x-6">
-                        {% if pageV.adminPagePerm == True %}
-                        <a href="{{ url_for('admin_dashboard') }}"
-                            class="{% if active_page == 'adminOverview' or 
-                            active_page == 'userManagement' or
-                            active_page == 'admin_logs' or 
-                            active_page == 'admin_sessions' or 
-                            active_page == 'admin_access' or
-                            active_page == 'organizations'
-                            %}
-                              text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
-                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-user-tie mr-2"></i>{{ _("Admin Management") }}
+
+    <header class="sticky top-1 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="flex h-20 items-center justify-between">
+                <div class="flex items-center gap-8">
+                    <div class="flex-shrink-0">
+                        {% include 'nexoraLogo/_nexoraLogo.html' %}
+                    </div>
+
+                    <nav class="hidden items-center gap-1 lg:flex">
+                        {% set nav_items = [
+                        {'perm': pageV.adminPagePerm, 'url': url_for('admin_dashboard'), 'label': _('Admin'), 'active':
+                        active_page in ['adminOverview', 'userManagement', 'organizations']},
+                        {'perm': pageV.chatPagePerm, 'url': url_for('chat_page'), 'label': _('Chat'), 'active':
+                        active_page == 'chat'},
+                        {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'), 'label': _('Dashboard'),
+                        'active': active_page == 'dashboard'},
+                        {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'), 'label': _('Workitems'),
+                        'active': active_page == 'workitems_overview'},
+                        {'perm': pageV.teamboardPagePerm, 'url': url_for('team_board'), 'label': _('Team Board'),
+                        'active': active_page == 'teamboard'},
+                        {'perm': pageV.invoicesPagePerm, 'url': url_for('invoices'), 'label': _('Invoices'), 'active':
+                        active_page == 'invoices'}
+                        ] %}
+
+                        {% for item in nav_items %}
+                        {% if item.perm %}
+                        <a href="{{ item.url }}"
+                            class="relative px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md
+                           {{ 'text-indigo-600 bg-indigo-50/50' if item.active else 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50' }}">
+                            {{ item.label }}
                         </a>
                         {% endif %}
-                        {% if pageV.dashboardPagePerm == True %}
-                        <a href="{{ url_for('dashboard') }}"
-                            class="{% if active_page == 'dashboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
-                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-tachometer-alt mr-2"></i>{{ _("Dashboard") }}
-                        </a>
-                        {% endif %}
-                        {% if pageV.workitemsPagePerm == True %}
-                        <a href="{{ url_for('workitems_overview') }}"
-                            class="{% if active_page == 'workitems_overview' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
-                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-list mr-2"></i>{{ _("Workitems") }}
-                        </a>
-                        {% endif %}
-                        {% if pageV.teamboardPagePerm == True %}
-                        <a href="{{ url_for('team_board') }}"
-                            class="{% if active_page == 'teamboard' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
-                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-people-group mr-2"></i>{{ _("Team Board") }}
-                        </a>
-                        {% endif %}
-                        {% if pageV.invoicesPagePerm == True %}
-                        <a href="{{ url_for('invoices') }}"
-                            class="{% if active_page == 'invoices' %} text-white font-semibold bg-indigo-600 px-4 py-2 rounded-full shadow-md
-                            {% else %} text-gray-600 hover:text-indigo-600 transition px-4 py-2 rounded-full {% endif %}">
-                            <i class="fas fa-file-invoice-dollar mr-2"></i>{{ _("Invoices") }}
-                        </a>
-                        {% endif %}
+                        {% endfor %}
                     </nav>
                 </div>
 
-                <div class="flex items-center space-x-5">
-                    
-                     <button id="help-tour-button" class="relative mr-2 cursor-pointer" title="{{ _('Start Tour') }}">
-                        <i class="fas fa-question-circle text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
-                    </button>
-                    <div class="relative" id="notification-dropdown-container">
-
-                        <button id="bell-button" class="relative mr-4 cursor-pointer">
-                            <i class="fas fa-bell text-2xl text-gray-500 hover:text-indigo-600 transition"></i>
-                            <span id="notification-count"
-                                class="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hidden">
-                                0
-                            </span>
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <div class="flex items-center border-r border-gray-200 pr-4 gap-1">
+                        <button id="help-tour-button" class="group p-2 rounded-full hover:bg-gray-100 transition-all"
+                            title="{{ _('Start Tour') }}">
+                            <i class="fas fa-question-circle text-lg text-gray-400 group-hover:text-indigo-600"></i>
                         </button>
-                        <div id="notification-panel"
-                            class="absolute right-0 mt-2 w-80 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none hidden"
-                            role="menu" aria-orientation="vertical" aria-labelledby="bell-button" tabindex="-1">
-                            <div class="px-4 py-3 border-b">
-                                <p class="text-sm font-semibold text-gray-800">{{ _("Notifications") }}</p>
-                            </div>
-                            <div id="notification-list" class="py-1 max-h-96 overflow-y-auto">
-                                <p class="px-4 py-3 text-sm text-gray-500">{{ _("Loading...") }}</p>
+
+                        <div class="relative" id="notification-dropdown-container">
+                            <button id="bell-button"
+                                class="group p-2 rounded-full hover:bg-gray-100 transition-all relative">
+                                <i class="fas fa-bell text-lg text-gray-400 group-hover:text-indigo-600"></i>
+                                <span id="notification-count"
+                                    class="hidden absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                                </span>
+                            </button>
+
+                            <div id="notification-panel"
+                                class="absolute right-0 mt-3 w-80 origin-top-right rounded-xl bg-white shadow-2xl ring-1 ring-black/5 hidden overflow-hidden transition-all">
+                                <div class="bg-gray-50/50 px-4 py-3 border-b flex justify-between items-center">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-gray-500">
+                                        {{ _("Notifications") }}</span>
+                                    <span
+                                        class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">NEW</span>
+                                </div>
+                                <div id="notification-list" class="py-1 max-h-[400px] overflow-y-auto">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="relative">
-                        <el-dropdown>
-                            <button class="flex items-center space-x-2 cursor-pointer">
-                                <img src="{{ get_user_icon_url(userid) }}"
-                                id="profilePicture" 
-                                class="h-10 w-10 rounded-full cursor-pointer" 
-                                alt="{{ _('Profile Picture') }}">
-                                <span class="hidden lg:inline font-semibold text-gray-700 cursor-pointer">
-                                    {{ logged_in_user }}</span>
-                            </button>
-                            <el-menu anchor="bottom end" popover
-                                class="w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 transition transition-discrete [--anchor-gap:--spacing(2)] focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in">
-                                <a href="{{ url_for('profile') }}"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">
-                                    {{ _("Your profile") }}</a>
-                                <a href="{{ url_for('logout') }}"
-                                    class="block px-4 py-2 text-sm text-gray-700 focus:bg-gray-100 focus:outline-hidden">
-                                    {{ _("Sign out") }}</a>
-                            </el-menu>
-                        </el-dropdown>
-                    </div>
+                    <el-dropdown>
+                        <button class="flex items-center gap-3 pl-2 group transition-all">
+                            <div class="relative">
+                                <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
+                                    class="h-9 w-9 rounded-full object-cover ring-2 ring-transparent group-hover:ring-indigo-100 transition-all"
+                                    alt="{{ _('Profile Picture') }}">
+                                <div
+                                    class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500">
+                                </div>
+                            </div>
+                            <div class="hidden lg:flex flex-col items-start leading-tight">
+                                <span class="text-sm font-semibold text-gray-700">{{ logged_in_user }}</span>
+                                <span class="text-[11px] text-gray-400">{{ _("Online") }}</span>
+                            </div>
+                        </button>
+                        <el-menu anchor="bottom end" popover
+                            class="w-48 rounded-lg bg-white p-1 shadow-xl border border-gray-100 mt-2">
+                            <a href="{{ url_for('profile') }}"
+                                class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors">
+                                <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
+                            </a>
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <a href="{{ url_for('logout') }}"
+                                class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors">
+                                <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
+                            </a>
+                        </el-menu>
+                    </el-dropdown>
                 </div>
             </div>
+        </div>
     </header>
-    
     {% include 'js/_headerJS.html' %}
     {% include 'js/_tourJS.html' %}
-
 </body>
 
 </html>
