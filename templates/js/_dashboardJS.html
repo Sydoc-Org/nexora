@@ -236,12 +236,16 @@
         //     }
         // });
         
+
         setInterval(() => {
-                updateKpiStats();
-                updateAllCharts();
-                updateDocumentTimeline();
-                updateRecentActivity();
+            updateKpiStats();
+            updateDocumentTimeline();
         }, 30000);
+
+        setInterval(() => {
+            updateAllCharts();
+            updateRecentActivity();
+        }, 180000);
     });
   </script>
 </body>
