@@ -16,7 +16,7 @@
             search_options: {},
             labels: {}
         };
-        let pendingImportFile = null;
+        let pendingImportFiles = [];
 
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
@@ -671,12 +671,15 @@
             }
         }
 
-        function openImportModal(file) {
-            if (!file || file.type !== 'application/pdf') {
-                alert('{{ _("Please drop a valid PDF file.") }}');
+        function openImportModal(files) {
+            const fileArray = Array.from(files).filter(f => f.type === 'application/pdf');
+            
+            if (fileArray.length === 0) {
+                showNotification('{{ _("Please select valid PDF files.") }}', 'error');
                 return;
             }
-            pendingImportFile = file;
+
+            pendingImportFiles = fileArray;
             
             const modal = document.getElementById('importProcessModal');
             const nameDisplay = document.getElementById('importFileNameDisplay');
@@ -684,7 +687,10 @@
             const errorMsg = document.getElementById('importErrorMsg');
 
             if (modal && nameDisplay && select) {
-                nameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                nameDisplay.textContent = pendingImportFiles.length > 1 
+                    ? `${pendingImportFiles.length} {{ _("files selected") }}` 
+                    : `${pendingImportFiles[0].name}`;
+                    
                 select.value = ""; 
                 errorMsg.classList.add('hidden');
                 modal.classList.remove('hidden');
@@ -699,61 +705,70 @@
             if(importFileInput) importFileInput.value = '';
         }
 
-        function uploadFile(file, processName) {
-            if (!file || !processName) return;
+async function uploadBatchFiles(files, processName) {
+    if (!files || files.length === 0 || !processName) return;
 
-            const importBtn = document.getElementById('importBtn');
-            const modalBtn = document.getElementById('confirmImportBtn');
-            const formData = new FormData();
-            formData.append('importFile', file);
-            formData.append('processName', processName);
+    const importBtn = document.getElementById('importBtn');
+    const modalBtn = document.getElementById('confirmImportBtn');
+    
+    if (importBtn) importBtn.disabled = true;
+    if (modalBtn) {
+        modalBtn.disabled = true;
+        modalBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>`;
+    }
 
-            if (importBtn) {
-                importBtn.disabled = true;
-                importBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Importing...") }}`;
-            }
-            if (modalBtn) {
-                modalBtn.disabled = true;
-                modalBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>`;
-            }
+    let successCount = 0;
+    let failCount = 0;
 
-            fetch(`${API_PREFIX}import_workitems`, {
+    for (const file of files) {
+        const formData = new FormData();
+        formData.append('importFile', file);
+        formData.append('processName', processName);
+
+        try {
+            const response = await fetch(`${API_PREFIX}import_workitems`, {
                 headers: {'X-CSRFToken': csrfToken},
                 method: 'POST',
                 body: formData,
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                    showNotification('Import successful');
-                } else {
-                    console.error('Import failed. The server did not redirect.');
-                    showNotification(`{{ _("Import failed. The server did not redirect.") }}`, 'error');
-                    resetImportUI();
-                }
-            })
-            .catch(error => {
-                console.error('An error occurred during the file import:', error);
-                showNotification('An error occurred during the file import', 'error');
-                resetImportUI();
-            })
-            .finally(() => {
-                closeImportModal();
             });
-        }
 
-        function resetImportUI() {
-            const importBtn = document.getElementById('importBtn');
-            const modalBtn = document.getElementById('confirmImportBtn');
-            if (importBtn) {
-                importBtn.disabled = false;
-                importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+            if (response.ok || response.redirected) {
+                successCount++;
+            } else {
+                failCount++;
             }
-            if (modalBtn) {
-                modalBtn.disabled = false;
-                modalBtn.innerHTML = `{{ _("Import File") }}`;
-            }
+        } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            failCount++;
         }
+    }
+
+    if (successCount > 0) {
+        showNotification(`Successfully imported ${successCount} files.`);
+        setTimeout(() => window.location.reload(), 1500);
+    }
+    
+    if (failCount > 0) {
+        showNotification(`Failed to import ${failCount} files.`, 'error');
+        resetImportUI();
+    }
+
+    closeImportModal();
+}
+
+
+    function resetImportUI() {
+        const importBtn = document.getElementById('importBtn');
+        const modalBtn = document.getElementById('confirmImportBtn');
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+        }
+        if (modalBtn) {
+            modalBtn.disabled = false;
+            modalBtn.innerHTML = `{{ _("Import File") }}`;
+        }
+    }
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchMentionableUsers();
@@ -950,14 +965,16 @@
             
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
-            
+
             if (importBtn && importFileInput) {
                 importBtn.addEventListener('click', () => {
+                    importFileInput.value = ''; 
                     importFileInput.click();
                 });
+
                 importFileInput.addEventListener('change', () => {
-                    if (importFileInput.files.length > 0) {
-                        openImportModal(importFileInput.files[0]);
+                    if (importFileInput.files && importFileInput.files.length > 0) {
+                        openImportModal(importFileInput.files);
                     }
                 });
             }
@@ -982,10 +999,11 @@
                 window.addEventListener('drop', (e) => {
                     e.preventDefault();
                     dragCounter = 0;
-                    dropZoneOverlay.classList.add('hidden');
+                    const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+                    if (dropZoneOverlay) dropZoneOverlay.classList.add('hidden');
+                    
                     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                        openImportModal(e.dataTransfer.files[0]);
-                        // e.dataTransfer.clearData();
+                        openImportModal(e.dataTransfer.files); 
                     }
                 });
             }
@@ -1001,17 +1019,17 @@
             if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeImportModal);
             
             if (modalConfirmBtn) {
-                modalConfirmBtn.addEventListener('click', () => {
-                    if (!pendingImportFile) return;
-                    
-                    const selectedProcess = importSelect.value;
-                    if (!selectedProcess) {
-                        errorMsg.classList.remove('hidden');
-                        return;
-                    }
-                    uploadFile(pendingImportFile, selectedProcess);
-                });
-            }
+    modalConfirmBtn.addEventListener('click', () => {
+        if (pendingImportFiles.length === 0) return;
+        
+        const selectedProcess = importSelect.value;
+        if (!selectedProcess) {
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+        uploadBatchFiles(pendingImportFiles, selectedProcess);
+    });
+}
             const processSel = document.getElementById('prcfW');
             if (processSel) {
                 processSel.addEventListener('change', () => {
