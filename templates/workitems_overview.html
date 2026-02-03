@@ -274,12 +274,12 @@
             _("Reset") }}</a>
 
           <div class="inline-block">
-            <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf">
-            <button type="button" id="importBtn"
-              class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
-              <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
-            </button>
-          </div>
+          <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple>
+          <button type="button" id="importBtn"
+            class="bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">
+            <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
+          </button>
+        </div>
         </div>
       </form>
 
@@ -615,11 +615,11 @@
     </main>
 
     <div id="importProcessModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100">
-          <h3 class="text-lg font-bold text-gray-800">{{ _("Select Target Process") }}</h3>
-          <p class="text-sm text-gray-500 mt-1" id="importFileNameDisplay"></p>
-        </div>
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-100">
+      <h3 class="text-lg font-bold text-gray-800">{{ _("Batch Import") }}</h3>
+      <p class="text-sm text-gray-500 mt-1" id="importFileNameDisplay"></p>
+    </div>
         
         <div class="p-6">
           <label for="importProcessSelect" class="block text-sm font-medium text-gray-700 mb-2">

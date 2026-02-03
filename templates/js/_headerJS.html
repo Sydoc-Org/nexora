@@ -43,7 +43,6 @@
                 interval = seconds / 60;
                 if (interval > 1) return Math.floor(interval) + ` {{ _("minutes ago") }}`;
                 
-                // Optional: Return "Just now" if it's very recent
                 if (seconds < 5) return `{{ _("Just now") }}`;
 
                 return Math.floor(seconds) + ` {{ _("seconds ago") }}`;
@@ -71,8 +70,10 @@
                 if (notifications.length > 0) {
                     notificationCountBadge.textContent = notifications.length;
                     notificationCountBadge.classList.remove('hidden');
+                    notificationCountBadge.classList.add('flex');
                 } else {
                     notificationCountBadge.classList.add('hidden');
+                    notificationCountBadge.classList.remove('flex');
                 }
 
                 notificationList.innerHTML = '';

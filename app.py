@@ -288,9 +288,10 @@ def pageVisability():
     workitemsPagePerm = has_permission('workitems.view')
     teamboardPagePerm = has_permission('teamboard.view')
     invoicesPagePerm = has_permission('invoices.view')
+    chatPagePerm = has_permission('chat.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
             'workitemsPagePerm':workitemsPagePerm, 'teamboardPagePerm': teamboardPagePerm,
-            'invoicesPagePerm': invoicesPagePerm}
+            'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -482,6 +483,25 @@ def login():
         #     session['organizationcode'] = org_code
         #     session['uuid'] = uuid.uuid4()
         #     session['permissions'] = load_permissions_for_user("1019")
+            
+        #     return redirect(url_for('dashboard'))
+        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code = row
+
+        #     session.clear() 
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['permissions'] = load_permissions_for_user(userid)
             
         #     return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
@@ -1002,6 +1022,12 @@ def admin_delete_user(user_id):
         cursor.commit()
         
         cursor.execute("delete from workitem_comments where userid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from Chat_Messages where senderid = ?", (user_id,))
+        cursor.commit()
+
+        cursor.execute("delete from Chat_Participants where UserID = ?", (user_id,))
         cursor.commit()
 
         cursor.execute("delete from users where userid = ?", (user_id,))
@@ -2219,7 +2245,6 @@ def _get_workitems_data(args):
         if process_name in allowed_processes_set:
             target_processes = [process_name]
 
-    # Prepare main query params
     params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix, process_name=process_name)
 
     docfields = args.getlist('docfield')
@@ -2319,7 +2344,6 @@ def _get_workitems_data(args):
                         )
                     """
                     generated_checks.append(snippet)
-                    # Add param for this specific EXISTS clause
                     params.append(f"%{docvalue}%")
 
                 if generated_checks:
@@ -2614,7 +2638,7 @@ ALLOWED_MIME_TYPES = {
     'pdf': ['application/pdf'],
     'png': ['image/png'],
     'jpg': ['image/jpeg'],
-    'jpeg': '[image/jpeg]'
+    'jpeg': ['image/jpeg']
 }
 
 def is_file_allowed(filename, file_stream):
@@ -3152,21 +3176,20 @@ def add_workitem_comment(workitemid):
             INSERT INTO Workitem_Comments (WorkItemID, UserID, CommentText)
             VALUES (?, ?, ?)
         """, (workitemid, session['userid'], comment_text))
+        conn.commit()
 
-        cursor.execute("SELECT SCOPE_IDENTITY()")
+        cursor.execute("SELECT TOP 1 CommentID FROM Workitem_Comments ORDER BY CommentID DESC")
         comment_id = cursor.fetchone()[0]
 
-        mentions = re.findall(r'@(\w+)', comment_text)
+        mentions = re.findall(r'@(\w+\.\w+)', comment_text)
         if mentions:
             placeholders = ','.join('?' for _ in mentions)
             cursor.execute(f"SELECT userID, username FROM Users WHERE username IN ({placeholders})", mentions)
             mentioned_users = cursor.fetchall()
-
             for user in mentioned_users:
                 cursor.execute("INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)", (comment_id, user.userID))
                 notification_link = url_for('workitems_overview', search=workitemid, _external=False)
                 create_notification(user.userID, f"{session['username']} mentioned you on workitem {workitemid}", link=notification_link, icon='fa-at')
-
         conn.commit()
         return jsonify({'success': True, 'message': _("Comment added.")})
     except Exception as e:
@@ -3728,7 +3751,6 @@ def get_allowed_client_details():
 def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None):
     url = "https://api.bexio.com/2.0/kb_invoice/search"
     accessToken = BEXIO_PAT
-    print(clientIds)
     if not accessToken:
         app.logger.error("BEXIO_PAT is not set.")
         return []
@@ -3942,7 +3964,234 @@ def download_invoice_pdf(invoice_id):
         flash(_("An unexpected error occurred while downloading the PDF."), 'error')
         return redirect(url_for('invoices'))
 # -------------------------------- invoices end -------------------------------- #
+    
 
+@app.route("/chat")
+@require_permission('chat.view')
+def chat_page():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    
+    portal_users = get_all_portal_users('chat', 'view')
+    current_user_id = session.get('userid')
+    
+    available_users = [u for u in portal_users if str(u['userID']) != str(current_user_id)]
+    return render_template("chat.html", 
+                         logged_in_user=session.get('username'),
+                         userid=current_user_id,
+                         available_users=available_users,
+                         pageV=pageVisability())
+
+@app.route("/api/chat/conversations")
+@require_permission('chat.view')
+def get_conversations():
+    if 'userid' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+        
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT 
+                c.ConversationID,
+                u.fullname AS OtherUserName,
+                u.userID AS OtherUserID,
+                c.LastMessageAt,
+                (SELECT TOP 1 MessageText FROM Chat_Messages m WHERE m.ConversationID = c.ConversationID ORDER BY Timestamp DESC) as LastMessage,
+                (SELECT COUNT(*) FROM Chat_Messages m WHERE m.ConversationID = c.ConversationID AND m.IsRead = 0 AND m.SenderID <> ?) as UnreadCount
+            FROM Chat_Conversations c
+            JOIN Chat_Participants cp1 ON c.ConversationID = cp1.ConversationID
+            JOIN Chat_Participants cp2 ON c.ConversationID = cp2.ConversationID
+            JOIN Users u ON cp2.UserID = u.userID
+            WHERE cp1.UserID = ? AND cp2.UserID <> ?
+            ORDER BY c.LastMessageAt DESC
+        """
+        userid = session['userid']
+        cursor.execute(query, (userid, userid, userid))
+        
+        conversations = []
+        for row in cursor.fetchall():
+            conversations.append({
+                'id': row.ConversationID,
+                'name': row.OtherUserName,
+                'other_user_id': row.OtherUserID,
+                'last_message': row.LastMessage or _('No messages yet'),
+                'last_time': row.LastMessageAt.strftime('%Y-%m-%d %H:%M'),
+                'unread': row.UnreadCount,
+                'avatar': resolve_user_icon_url(row.OtherUserID)
+            })
+            
+        return jsonify(conversations)
+    except Exception as e:
+        app.logger.error(f"Error fetching conversations: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/chat/start/<int:target_user_id>", methods=['POST'])
+@require_permission('chat.view')
+def start_conversation(target_user_id):
+    current_user_id = session['userid']
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        check_query = """
+            SELECT cp1.ConversationID 
+            FROM Chat_Participants cp1
+            JOIN Chat_Participants cp2 ON cp1.ConversationID = cp2.ConversationID
+            WHERE cp1.UserID = ? AND cp2.UserID = ?
+        """
+        cursor.execute(check_query, (current_user_id, target_user_id))
+        row = cursor.fetchone()
+
+        if row:
+            return jsonify({'success': True, 'conversation_id': row[0]})
+            
+        cursor.execute("INSERT INTO Chat_Conversations (CreatedAt) OUTPUT INSERTED.ConversationID VALUES (GETDATE())")
+        new_conv_id = cursor.fetchone()[0]
+        
+        cursor.execute("INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)", (new_conv_id, current_user_id))
+        cursor.execute("INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)", (new_conv_id, target_user_id))
+        
+        conn.commit()
+        return jsonify({'success': True, 'conversation_id': new_conv_id})
+    except Exception as e:
+        app.logger.error(f"Error creating conversation: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@app.route("/api/chat/<int:conversation_id>/messages")
+@require_permission('chat.view')
+def get_chat_messages(conversation_id):
+    userid = session['userid']
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?", (conversation_id, userid))
+        if not cursor.fetchone():
+            return jsonify({"error": "Unauthorized"}), 403
+
+        cursor.execute("UPDATE Chat_Messages SET IsRead = 1 WHERE ConversationID = ? AND SenderID <> ?", (conversation_id, userid))
+        conn.commit()
+
+        query = """
+            SELECT m.MessageID, m.SenderID, m.MessageText, m.Timestamp, u.username
+            FROM Chat_Messages m
+            JOIN Users u ON m.SenderID = u.userID
+            WHERE m.ConversationID = ?
+            ORDER BY m.Timestamp ASC
+        """
+        cursor.execute(query, (conversation_id,))
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'id': row.MessageID,
+                'is_me': str(row.SenderID) == str(userid),
+                'text': row.MessageText,
+                'sender': row.username,
+                'time': row.Timestamp.strftime('%H:%M'),
+                'avatar': resolve_user_icon_url(row.SenderID)
+            })
+            
+        return jsonify(messages)
+    except Exception as e:
+        app.logger.error(f"Error fetching messages: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@app.route("/api/chat/<int:conversation_id>/send", methods=['POST'])
+@require_permission('chat.view')
+def send_chat_message(conversation_id):
+    data = request.get_json()
+    message_text = data.get('message')
+    userid = session['userid']
+    
+    if not message_text:
+        return jsonify({'success': False}), 400
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?", (conversation_id, userid))
+        if not cursor.fetchone():
+            return jsonify({"error": "Unauthorized"}), 403
+
+        cursor.execute("""
+            INSERT INTO Chat_Messages (ConversationID, SenderID, MessageText) 
+            VALUES (?, ?, ?)
+        """, (conversation_id, userid, message_text))
+        
+        cursor.execute("UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?", (conversation_id,))
+        
+        cursor.execute("SELECT UserID FROM Chat_Participants WHERE ConversationID = ? AND UserID <> ?", (conversation_id, userid))
+        other_user = cursor.fetchone()
+        if other_user:
+             workitem_match = re.search(r'/(\d+)', message_text)
+             if workitem_match:
+                 notif_msg = f"{session['username']} mentioned workitem {workitem_match.group(1)} in chat"
+             else:
+                 notif_msg = f"New message from {session['username']}"
+
+             notification_link = url_for('chat_page', _external=False)
+             create_notification(other_user.UserID, notif_msg, link=notification_link, icon='fa-comments')
+
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error sending message: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@app.route("/api/chat/<int:conversation_id>/upload", methods=['POST'])
+@require_permission('chat.view')
+def upload_chat_file(conversation_id):
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file'}), 400
+    
+    file = request.files['file']
+    userid = session['userid']
+
+    if file and is_file_allowed(file.filename, file.stream):
+        filename = secure_filename(file.filename)
+        unique_filename = f"chat_{uuid.uuid4().hex}_{filename}"
+        
+        upload_path = os.path.join(app.root_path, 'static', 'uploads', 'chat')
+        os.makedirs(upload_path, exist_ok=True)
+        
+        file.save(os.path.join(upload_path, unique_filename))
+        
+        file_url = url_for('static', filename=f'uploads/chat/{unique_filename}')
+        message_text = f"FILE:{filename}|{file_url}"
+ 
+        try:
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO Chat_Messages (ConversationID, SenderID, MessageText) 
+                VALUES (?, ?, ?)
+            """, (conversation_id, userid, message_text))
+            cursor.execute("UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?", (conversation_id,))
+            conn.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+        finally:
+            if conn: conn.close()
+    
+    return jsonify({'success': False, 'message': 'Invalid file type'}), 400
 
 # ------------------------------- ONLY FOR PROD -------------------------------- #
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
