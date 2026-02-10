@@ -176,10 +176,10 @@ def index():
 
 
 # ------------------------------ database connection ------------------------- #
-def getDBUrl(d):
+def getDBUrl(d, s=DB_SERVER_PRD):
     params = urllib.parse.quote_plus(
             f'DRIVER={{SQL Server}};'
-            f'SERVER={DB_SERVER_PRD},1433;'
+            f'SERVER={s},1433;'
             f'DATABASE={d};'
             f'UID={DB_UID};'
             f'PWD={DB_PWD};'
@@ -207,6 +207,7 @@ engineStatisticsDB = create_engine(
     pool_timeout=30,  
     pool_recycle=1800 
 )
+
 # ------------------------------ database connection end --------------------- #
 
 # ---------------------------------- logging --------------------------------- #
@@ -1358,6 +1359,8 @@ def set_new_password():
         if conn:
             conn.close()
 
+
+
 @app.route('/reset_password/<token>')
 def reset_password(token):
     try:
@@ -1371,7 +1374,7 @@ def send_reset_email(email):
         token = s.dumps(email, salt='password-reset-salt')
         link = url_for('reset_password', token=token, _external=True)
         return link
-
+    
     def get_access_token():
         uri = f'https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token'
         headers = {
@@ -1398,6 +1401,19 @@ def send_reset_email(email):
     }
     link = get_link()
     try:
+        FONT_FAMILY = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
+        CONTAINER_STYLE = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
+        BUTTON_STYLE = (
+            "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
+            "text-decoration: none; border-radius: 8px; font-weight: bold; "
+            "display: inline-block; mso-padding-alt: 12px 24px;"
+        )
+        LINK_STYLE = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
+        TEXT_STYLE = "color: #4b5563; line-height: 1.6; font-size: 16px;"
+
+        LOGO_URL = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif" 
+        LOGO_BANNER_URL = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
+
         body = {
             "message": {
                 "subject": _("nexora Password Reset Request"),
@@ -1405,93 +1421,75 @@ def send_reset_email(email):
                     "contentType": "HTML",
                     "content": f"""
                             <!DOCTYPE html>
-                            <html lang="en">
-                            <head>
-                                <meta charset="UTF-8">
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                <meta http-equiv="X-UA-Compatible" content="ie=edge">
-                                <title>Password Reset Request</title>
-                                <style>
-                                    body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
-                                    table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
-                                    img {{ -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }}
-                                    table {{ border-collapse: collapse !important; }}
-                                    body {{ height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; font-family: Arial, sans-serif; }}
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Nexora Update</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f3f4f6; {FONT_FAMILY}">
+        
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
+            <tr>
+                <td align="center">
+                    
+                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="{CONTAINER_STYLE} border-radius: 8px;">
+                        
+                        <tr>
+                            <td align="center" style="padding-bottom: 20px;">
+                                <a href="https://sydoc.ch"><img src="{LOGO_URL}" alt="Sydoc Logo" width="600" style="display: block;"></a>
+                            </td>
+                        </tr>
 
-                                    @media screen and (max-width: 600px) {{
-                                        .email-container {{
-                                            width: 100% !important;
-                                            max-width: 100% !important;
-                                            margin: auto !important;
-                                        }}
-                                    }}
-                                </style>
-                            </head>
-                            <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                    <tr>
-                                        <td align="center" style="background-color: #f4f4f4;">
-                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;" class="email-container">
-                                                <tr>
-                                                    <td align="center" style="padding: 10px 0 10px 0; background-color: #ffffff;">
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="background-color: #ffffff;">
-                                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                                            <tr>
-                                                                <td style="padding: 20px 30px 40px 30px; text-align: left;">
-                                                                    <h1 style="margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #333333;">
-                                                                        {_("Password Reset Request")}
-                                                                    </h1>
-                                                                    <p style="margin: 20px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        {_("Hello,")}
-                                                                    </p>
-                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
-                                                                    </p>
+                        <tr>
+                            <td align="center" style="padding-bottom: 60px;">
+                                <a href="https://sydoc.ch/ueber-sydoc/news/" style="{LINK_STYLE}">News</a>
+                                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{LINK_STYLE}">Magazin</a>
+                                <a href="https://sydoc.ch/ueber-sydoc/team/" style="{LINK_STYLE}">Team</a>
+                                <a href="mailto:support.helpdesk@sydoc.ch" style="{LINK_STYLE}">Support</a>
+                            </td>
+                        </tr>
 
-                                                                    <table border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 30px; margin-bottom: 30px;">
-                                                                        <tr>
-                                                                            <td align="center">
-                                                                                <table border="0" cellspacing="0" cellpadding="0">
-                                                                                    <tr>
-                                                                                        <td align="center" style="border-radius: 5px; background-color: #3b82f6;">
-                                                                                            <a href="{link}" target="_blank" style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 5px; padding: 15px 25px; border: 1px solid #4338ca; display: inline-block;">
-                                                                                                {_("Reset Your Password")}
-                                                                                            </a>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                </table>
-                                                                            </td>
-                                                                        </tr>
-                                                                    </table>
+                        <tr>
+                            <td style="padding: 0 10px;">
+                                <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
+                                <p style="{TEXT_STYLE}">
+                                    {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
+                                   {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
+                                </p>
+                                <p style="{TEXT_STYLE}">
+                                    {_("Thanks,<br>The Sydoc Team")}
+                                </p>
+                            </td>
+                        </tr>
 
-                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
-                                                                    </p>
-                                                                    <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #555555;">
-                                                                        {_("Thanks,<br>The Sydoc Team")}
-                                                                    </p>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="padding: 20px 30px; background-color: #eeeeee; text-align: center;">
-                                                        <p style="margin: 0; font-family: Arial, sans-serif; font-size: 12px; color: #888888;">
-                                                            &copy; 2025 Sydoc AG. All rights reserved.<br>
-                                                            Mühlegasse 18, 6340 Baar
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </body>
-                            </html>
+                        <tr>
+                            <td align="left" style="padding: 10px 10px 30px;">
+                                <a href="{link}" style="{BUTTON_STYLE}">
+                                    {_("Reset Your Password")}
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
+                                <a href="https://sydoc.ch"><img src="{LOGO_BANNER_URL}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
+                        </tr>
+
+                        <tr>
+                            <td align="center" style="padding-top: 15px;">
+                                <p style="font-size: 12px; color: #9ca3af;">
+                                    © 2026 Alle Rechte vorbehalten
+                                </p>
+                            </td>
+                        </tr>
+
+                    </table>
+                    
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
                     """
                 },
                 "toRecipients": [
@@ -2691,7 +2689,7 @@ def import_workitems():
 
     if file and is_file_allowed(file.filename, file.stream):
         filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4()}_{filename}" 
+        unique_filename = f"{uuid.uuid4()}_{session.get('username')}_{filename}" 
         
         UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
