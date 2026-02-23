@@ -81,64 +81,67 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
 DB_PWD = os.environ.get("DB_PWD")
 DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
+DB_SERVER_PRD_MOBSCAN = os.environ.get("DB_SERVER_PRD_MOBSCAN")
 DB_NEXORA = os.environ.get("DB_NEXORA")
 DB_STATISTICS = os.environ.get("DB_STATISTICS")
+DB_STATISTICS_MOBSCAN = f"[{DB_SERVER_PRD_MOBSCAN}].{DB_STATISTICS}"
 DB_OCTO_RUNTIME = os.environ.get("DB_OCTO_RUNTIME")
+DB_OCTO_RUNTIME_MOBSCAN = f"[{DB_SERVER_PRD_MOBSCAN}].{DB_OCTO_RUNTIME}"
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
@@ -467,44 +470,44 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user("1019")
             
-        #     return redirect(url_for('dashboard'))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code = row
+            return redirect(url_for('dashboard'))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user(userid)
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user(userid)
             
-        #     return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -1598,6 +1601,36 @@ def get_process_filter_and_params(process_name):
         return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
 # ---------------------------- process filter end ---------------------------- #
 
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
+
+
+
+def get_mobscan_clients():
+    cache_key = 'mobscan_client_list'
+    clients = cache.get(cache_key)
+    if clients is not None:
+        return clients
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT processName FROM mobscnClients")
+        clients = [row[0] for row in cursor.fetchall()]
+        cache.set(cache_key, clients, timeout=3600) 
+        return clients
+    except Exception as e:
+        app.logger.error(f"Failed to fetch Mobscan clients: {e}")
+        return []
+    finally:
+        if conn: conn.close()
+
+def get_db_prefix(client_name):
+    mobscan_clients = get_mobscan_clients()
+    if client_name in mobscan_clients:
+        return f"[{DB_SERVER_PRD_MOBSCAN}].[{DB_OCTO_RUNTIME}]"
+    return f"[{DB_OCTO_RUNTIME}]"
+
 def build_stat_query(proc):
     try:
         conn = engineNexoraDB.raw_connection()
@@ -1611,7 +1644,6 @@ def build_stat_query(proc):
         if conn: conn.close()
         if cursor: cursor.close()
 # --------------------------------- dashboard -------------------------------- #
-cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
@@ -4191,8 +4223,79 @@ def upload_chat_file(conversation_id):
     
     return jsonify({'success': False, 'message': 'Invalid file type'}), 400
 
+
+# ----------------------------- Generali Evaluation -------------------------- #
+
+@app.route("/generali")
+@require_permission('generali.view')
+def generali_evaluation():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali.html", 
+                             logged_in_user=session.get('username'), 
+                             userid=session.get('userid'), 
+                             pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Evaluation: {e}")
+        return render_template('handlers/500.html'), 500
+
+@app.route("/api/generali/stats")
+@require_permission('generali.view')
+def api_generali_stats():
+    try:
+        conn = engineStatisticsDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as TotalDocs,
+                SUM(CASE WHEN NK1 = 1 THEN 1 ELSE 0 END) as NK1_Success,
+                SUM(CASE WHEN NK2 = 1 THEN 1 ELSE 0 END) as NK2_Success,
+                AVG(DATEDIFF(MINUTE, ImportDateTime, ExportDateTime)) as AvgProcessingTime
+            FROM generali
+        """)
+        kpi_row = cursor.fetchone()
+        kpis = {
+            "total_docs": kpi_row[0],
+            "nk1_rate": round((kpi_row[1] / kpi_row[0]) * 100, 1) if kpi_row[0] > 0 else 0,
+            "nk2_rate": round((kpi_row[2] / kpi_row[0]) * 100, 1) if kpi_row[0] > 0 else 0,
+            "avg_time": kpi_row[3] or 0
+        }
+
+        cursor.execute("""
+            SELECT CAST(ImportDateTime AS DATE) as d, COUNT(*) as c 
+            FROM generali
+            WHERE ImportDateTime >= DATEADD(day, -14, GETDATE())
+            GROUP BY CAST(ImportDateTime AS DATE)
+            ORDER BY d
+        """)
+        trend_rows = cursor.fetchall()
+        trend_data = {"labels": [str(r[0]) for r in trend_rows], "values": [r[1] for r in trend_rows]}
+
+        cursor.execute("""
+            SELECT DocumentType, COUNT(*) as c 
+            FROM generali 
+            GROUP BY DocumentType 
+            ORDER BY DocumentType
+        """)
+        dist_rows = cursor.fetchall()
+        dist_data = {"labels": [f"Type {r[0]}" for r in dist_rows], "values": [r[1] for r in dist_rows]}
+
+        return jsonify({
+            "success": True,
+            "kpis": kpis,
+            "trend": trend_data,
+            "distribution": dist_data
+        })
+    except Exception as e:
+        app.logger.error(f"Generali API Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn: conn.close()
+
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
