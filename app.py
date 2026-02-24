@@ -1648,7 +1648,11 @@ def build_stat_query(proc):
 def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
 
-@app.route("/api/reports/processed_over_time")
+
+
+
+
+@app.route("/api/dashboard/processed_over_time")
 @cache.cached(timeout=300, key_prefix=make_cache_key)
 def report_processed_over_time():
     if 'username' not in session:
@@ -1728,23 +1732,7 @@ def report_processed_over_time():
         if cursor: cursor.close()
         if conn: conn.close()
 
-@app.route("/api/reports/status_distribution")
-def report_status_distribution():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-    try:
-        process_name = session['process_name_dashboard']
-        stats_abs = get_absolute_dashboard_stats(process_name)
-
-        return jsonify({
-            'labels': ['Ready','In Progress','Done','Backlog'],
-            'data': [stats_abs.get('ReadyTotal',0), stats_abs.get('InProgressTotal',0), stats_abs.get('DoneTotal',0), stats_abs.get('BacklogTotal',0)]
-        })
-    except Exception as e:
-        app.logger.error(f"Failed to fetch status_distribution report: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/reports/kpi_stats")
+@app.route("/api/dashboard/kpi_stats")
 def report_kpi_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1761,9 +1749,10 @@ def report_kpi_stats():
     target_processes = allowed_processes if process_name == 'all' else [process_name]
 
     if not target_processes:
-         return jsonify({'processed_today': 0, 'processed_week': 0, 'current_backlog': 0})
+         return jsonify({'processed_today': 0, 'processed_week': 0, 'current_backlog': 0, 'imported_today': 0})
 
     processed_today = 0
+    imported_today = 0
     processed_week = 0
     current_backlog = 0
 
@@ -1776,7 +1765,7 @@ def report_kpi_stats():
         cursor_nex = conn_nex.cursor()
         placeholders = ','.join(['?'] * len(target_processes))
         
-        cursor_nex.execute(f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})", target_processes)
+        cursor_nex.execute(f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})", target_processes)
         configs = cursor_nex.fetchall()
         cursor_nex.close()
         conn_nex.close()
@@ -1784,27 +1773,27 @@ def report_kpi_stats():
         if configs:
             sub_queries = []
             for row in configs:
-                convert = 'convert' in str(row.ExportColumn).lower()
-                col = row.ExportColumn
+                colExport = row.ExportColumn
+                colImport = row.ImportColumn
                 condition = f" {row.additionalCondition}" if row.additionalCondition else ""
                 
                 sub_q = f"""
                     SELECT 
-                        SUM(CASE WHEN { ('CAST('+col+' AS DATE)' if not convert else col) } = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCount,
-                        COUNT(*) as WeekCount
+                        SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
+                        SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
                     FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE {col} >= DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()), 0)
-                    AND {col} < DATEADD(WEEK, DATEDIFF(WEEK, 0, GETDATE()) + 1, 0)
+                    WHERE CAST({colImport} as date) = cast(GETDATE() as date)
                     {condition}
                 """
                 sub_queries.append(sub_q)
 
             full_stat_query = f"""
-                SELECT SUM(TodayCount), SUM(WeekCount) 
+                SELECT SUM(TodayCountExport), SUM(TodayCountExportImport) 
                 FROM (
                     {' UNION ALL '.join(sub_queries)}
                 ) as combined
             """
+            print(full_stat_query)
             
             conn_stat = engineStatisticsDB.raw_connection()
             cursor_stat = conn_stat.cursor()
@@ -1812,7 +1801,7 @@ def report_kpi_stats():
             row = cursor_stat.fetchone()
             if row:
                 processed_today = row[0] or 0
-                processed_week = row[1] or 0
+                imported_today = row[1] or 0
             cursor_stat.close()
             conn_stat.close()
 
@@ -1830,7 +1819,7 @@ def report_kpi_stats():
 
         return jsonify({
             'processed_today': processed_today,
-            'processed_week': processed_week,
+            'imported_today': imported_today,
             'current_backlog': current_backlog
         })
 
@@ -1841,207 +1830,6 @@ def report_kpi_stats():
         if conn_nex: conn_nex.close()
         if conn_stat: conn_stat.close()
         if conn_octo: conn_octo.close()
-
-@app.route("/api/reports/stage_breakdown")
-def report_stage_breakdown():
-    if 'username' not in session:
-        return jsonify({"error": "Not authorized"}), 401
-    
-    prefix = "dashboard.filter.process."
-    process_name = session['process_name_dashboard']
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
-    activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-
-        query = f"""
-           SELECT
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END AS Activity,
-                COUNT(twi.ID) as ItemCount
-            FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({process_placeholders})
-              AND tp.ClientName IN ({client_placeholders})
-              AND tai.ActivityInstanceName NOT LIKE '%Pause%'
-              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-            GROUP BY
-                CASE
-                    WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'In Validation'
-                    WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'In Export'
-                    WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'In Import'
-                    WHEN tai.ActivityInstanceName LIKE '%Extract%' THEN 'In Extraction'
-                    WHEN tai.ActivityInstanceName LIKE '%OCR%' THEN 'In OCR'
-                    WHEN tai.ActivityInstanceName LIKE '%Statistik%' THEN 'DB Saving'
-                    WHEN tai.ActivityInstanceName LIKE '%Collect%' THEN 'Collecting'
-                    ELSE 'Processing'
-                END
-            ORDER BY ItemCount DESC;
-        """
-        cursor.execute(query, params)
-
-        rows = cursor.fetchall()
-        labels = [row.Activity for row in rows]
-        data = [row.ItemCount for row in rows]
-        return jsonify({'labels': labels, 'data': data})
-    except Exception as e:
-        app.logger.error(f"Failed to fetch stage_breakdown report: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-def get_absolute_dashboard_stats(processName="all"):
-    stats = {}
-    conn = None
-
-    prefix = "dashboard.filter.process."
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
-    activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        query = f"""
-            WITH AllStatuses
-            AS (SELECT 0 AS StatusCode,
-                    'Ready' AS StatusName
-                UNION ALL
-                SELECT 1,
-                    'In Progress'
-                UNION ALL
-                SELECT 5,
-                    'Done'
-            ),
-                ActualCounts
-            AS (SELECT COUNT(w.id) as WorkitemCount,
-                    w.[Status]
-                FROM t_WorkItems w
-                    LEFT JOIN t_ActivityInstances a
-                        on a.id = w.ActivityInstanceID
-                    LEFT JOIN t_Processes p
-                        on p.id = a.ProcessID
-                WHERE p.Name IN ({process_placeholders})
-                    AND p.ClientName IN ({client_placeholders})
-                    AND a.ActivityInstanceName not in ({activityinstancesToIgnore})
-                GROUP BY w.[Status]
-            )
-            SELECT ISNULL(ac.WorkitemCount, 0) AS WorkitemCount,
-                s.StatusName AS Status
-            FROM AllStatuses s
-                LEFT JOIN ActualCounts ac
-                    ON s.StatusCode = ac.Status
-            """
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        stats['ReadyTotal'] = rows[0][0]
-        stats['InProgressTotal'] = rows[1][0]
-        stats['DoneTotal'] = rows[2][0]
-
-        query = f"""
-            SELECT COUNT(*),
-                'Backlog'
-            FROM t_WorkItems w
-                LEFT JOIN t_ActivityInstances a
-                    on a.id = w.ActivityInstanceID
-                LEFT JOIN t_Processes p
-                    on p.id = a.ProcessID
-            WHERE p.Name IN ({process_placeholders})
-                AND p.ClientName IN ({client_placeholders})
-                AND a.ActivityInstanceName = 'C+A';
-        """
-        cursor.execute(query, params)
-        row = cursor.fetchone()
-        stats['BacklogTotal'] = row[0]
-    except Exception as e:
-        print(e)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-    return stats
-
-def get_dashbord_preview_documents_stats(processName='all'):
-    stats = {}
-    conn = None
-
-    prefix = "dashboard.filter.process."
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=processName)
-    activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        query = f"""
-            WITH CTE AS (
-            SELECT twi.ID WorkItemID, DATEADD(HOUR, 2, twi.ModifiedAt) ModifiedAt,
-            CASE
-                WHEN twi.Status = 0 THEN 'Ready'
-                WHEN twi.Status = 5 THEN 'Done'
-                ELSE 'In Progress'
-            END AS Status,
-            CASE
-                    WHEN tai.ActivityInstanceName like '%C+A%' THEN
-                        'InValidation'
-                    WHEN tai.ActivityInstanceName like '%Export%'
-                        OR tai.ActivityInstanceName like '%Exp%' THEN
-                        'InExport'
-                    WHEN tai.ActivityInstanceName like '%Import%'
-                        OR tai.ActivityInstanceName like '%Imp%' THEN
-                        'InImport'
-                    WHEN tai.ActivityInstanceName like '%Extract%' THEN
-                        'InExtraction'
-                    WHEN tai.ActivityInstanceName like '%OCR%' THEN
-                        'InOCR'
-                    WHEN tai.ActivityInstanceName like '%Statistik%' THEN
-                        'InDBSaving'
-                    WHEN tai.ActivityInstanceName like '%Collect%' THEN
-                        'InDBSaving'
-                    ELSE
-                        'Processing'
-                END AS Activity
-            FROM t_WorkItems twi
-            LEFT JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            LEFT JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
-            AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-        )
-        SELECT DISTINCT TOP 20
-        WorkItemID
-        ,Activity FROM CTE
-        WHERE
-        CAST(CTE.ModifiedAt AS DATE) = CAST(GETDATE() AS DATE)
-        """
-        cursor.execute(query, (params))
-        rows = cursor.fetchall()
-    except Exception as e:
-        print(e)
-    finally:
-        cursor.close()
-        conn.close()
-
-    return jsonify([
-            {
-                "WorkItemID": row[0],
-                "Activity": row[1]
-            }
-            for row in rows
-        ])
 
 @app.route("/dashboard")
 @require_permission('dashboard.view')
@@ -2066,87 +1854,17 @@ def dashboard():
             process_name = 'all'
 
         session['process_name_dashboard'] = process_name
-        absolute_stats = get_absolute_dashboard_stats(process_name)
 
         return render_template(
             "dashboard.html",
             logged_in_user=logged_in_user,
             userid=userid,
-            ReadyTotal=absolute_stats['ReadyTotal'],
-            InProgressTotal=absolute_stats['InProgressTotal'],
-            DoneTotal=absolute_stats['DoneTotal'],
-            BacklogTotal=absolute_stats['BacklogTotal'],
             process_name=process_name,
             allowed_processes=allowed_processes,  
             pageV=pageVisability()
         )
     except Exception as e:
         return render_template('500.html')
-
-
-@app.route("/api/dashboard_stats_document_preview")
-def dashboard_stats_document_preview():
-    if 'username' not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-    process_name = session['process_name_dashboard']
-    stats = get_dashbord_preview_documents_stats(process_name)
-    return stats
-
-@app.route('/api/recent_activity')
-def recent_activity():
-    if 'username' not in session:
-        return jsonify({"error": _("Not logged in")}), 401
-
-
-    prefix = "dashboard.filter.process."
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=session.get('process_name_dashboard', 'all'))
-    activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        query = f"""
-        WITH CTE AS (
-                SELECT
-                    twi.ID WorkItemID,
-                    DATEADD(HOUR, 2, twi.ModifiedAt) AS ModifiedAt,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready'
-                        WHEN twi.Status = 5 THEN 'Done'
-                        ELSE 'In Progress'
-                    END AS Status
-                FROM t_WorkItems twi
-                JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE tp.Name IN ({process_placeholders}) AND tp.ClientName IN ({client_placeholders})
-                AND twi.Status <> 2 AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-            )
-            SELECT DISTINCT TOP 10
-                CTE.WorkItemID,
-                CTE.Status,
-                CTE.ModifiedAt
-            FROM CTE
-            ORDER BY CTE.ModifiedAt DESC
-        """
-        cursor.execute(query,params)
-        activities = cursor.fetchall()
-
-        return jsonify([
-            {
-                "state": row.Status,
-                "datetime": row.ModifiedAt.strftime('%Y-%m-%d %H:%M:%S'),
-                "workitemid": row.WorkItemID
-            }
-            for row in activities
-        ])
-    except Exception as e:
-        app.logger.error(f"Failed to fetch recent activity: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
@@ -2326,7 +2044,6 @@ def _get_workitems_data(args):
     if has_permission('workitems.filter.documentfields') and target_processes:
         valid_db_columns = get_valid_search_columns()
         
-        # Open connection once for all field checks
         conn_nex = None
         try:
             conn_nex = engineNexoraDB.raw_connection()
@@ -2876,7 +2593,8 @@ def get_extensions_urls_fields(workitemdata, document_id):
     except Exception as e:
         app.logger.error(f"Error fetching document details: {e}")
         return [], [], {}
-
+    # with open('data.json', 'w') as f:
+    #     json.dump(doc_json, f)
     urls = []
     extensions = []
     fields = {}
@@ -4294,6 +4012,55 @@ def api_generali_stats():
     finally:
         if conn: conn.close()
 
+
+@app.route("/api/dashboard/recent_activity")
+@require_permission('dashboard.view')
+def api_recent_activity():
+    conn = None
+    try:
+        prefix = "dashboard.filter.process."
+        process_name = session.get('process_name_dashboard', 'all')
+        
+        params, process_placeholders, client_placeholders = prepare_process_selection_sql(
+            prefix=prefix, 
+            process_name=process_name
+        )
+        
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+        activityinstancesToIgnore = get_activityinstancesToIgnore()
+        query = f"""
+            SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
+            FROM t_WorkItems twi
+            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE twi.Status <> 2
+              AND tp.Name IN ({process_placeholders}) 
+              AND tp.ClientName IN ({client_placeholders})
+              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+            ORDER BY twi.ModifiedAt DESC
+        """
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        activity = []
+        for row in rows:
+            workitemdata, doc_id = get_workitemdata_param(row.ID)
+            _, _, fields = get_extensions_urls_fields(workitemdata, doc_id)
+            fields = {k: v for k, v in fields.items() if v}
+            activity.append({
+                "id": row.ID,
+                "time": row.ModifiedAt.strftime('%H:%M'),
+                "process": row.ProcessName,
+                "fields": fields 
+            })
+
+        return jsonify(activity)
+    except Exception as e:
+        app.logger.error(f"Activity feed error: {e}")
+        return jsonify([])
+    finally:
+        if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- #
 # app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #

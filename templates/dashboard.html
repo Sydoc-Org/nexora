@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>{{ _("Dashboard - nexora") }}</title>
+  <title>{{ _("Dashboard - nexora") }} </title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -13,102 +13,97 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
-<body class="text-gray-800">
+<body class="bg-gray-50 text-gray-800">
   {% set active_page = 'dashboard' %} {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <h2 class="text-3xl font-bold text-gray-800 mb-1">
-        {{ _("Welcome back") }}, {{ logged_in_user }}! 👋
-      </h2>
-      <p class="text-gray-600">
-        {{ _("Here's a real-time overview of your document processing activity.") }}
-      </p>
+    <div class="mb-8 flex justify-between items-end">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-1">
+          {{ _("Welcome back") }}, {{ logged_in_user }}! 👋
+        </h2>
+        <p class="text-gray-500 font-medium">
+          {{ _("Here's a real-time overview of your document processing activity.") }}
+        </p>
+      </div>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-lg border border-gray-200 mb-8 flex flex-wrap items-center justify-between gap-4">
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-wrap items-center gap-6">
       <div class="flex items-center gap-3">
-            <i class="fa-solid fa-filter text-indigo-500 text-lg px-2"></i>
-            <form method="GET" action="">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <select id="prcfD" name="prcfD"
-                class="w-full custom-select cursor-pointer bg-gray-50 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all duration-300"
-                onchange="this.form.submit()">
-                <option value="all"
-                        {% if process_name == 'all' %}selected{% endif %}>
-                    {{ _("All Processes") }}
-                </option>
+        <label for="prcfD" class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Process") }}</label>
+        <form method="GET" action="" id="filterForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <select id="prcfD" name="prcfD"
+            class="bg-gray-50 border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all"
+            onchange="this.form.submit()">
+            <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
+            {% for proc in allowed_processes %}
+            <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>{{ proc }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
 
-                {% for proc in allowed_processes %}
-                    <option value="{{ proc }}"
-                            {% if process_name == proc %}selected{% endif %}>
-                        {{ proc }} 
-                    </option>
-                {% endfor %}
-            </select>
 
-            </form>
-        </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-500">{{ _("Processed Today") }}</p>
-                <p class="text-3xl font-bold text-gray-800" id="processed-today">0</p>
-            </div>
-            <div class="bg-blue-100 text-blue-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-calendar-day"></i></div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Imported Today") }}</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="imported-today">0</p>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-500">{{ _("Processed This Week") }}</p>
-                <p class="text-3xl font-bold text-gray-800" id="processed-week">0</p>
-            </div>
-            <div class="bg-green-100 text-green-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-calendar-week"></i></div>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-500">{{ _("Current Backlog") }}</p>
-                <p class="text-3xl font-bold text-gray-800" id="current-backlog">0</p>
-            </div>
-            <div class="bg-purple-100 text-purple-600 h-12 w-12 flex items-center justify-center rounded-full"><i class="fas fa-layer-group"></i></div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 flex flex-col gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Documents Processed Over Time") }}</h3>
-            <div class="h-80"><canvas id="processedOverTimeChart"></canvas></div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Status Distribution") }}</h3>
-                <div class="h-64 flex items-center justify-center"><canvas id="statusDistributionChart"></canvas></div>
-            </div>
-             <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Recent Activity") }}</h3>
-            <ul id="recent-activity-list" class="space-y-4 max-h-[250px] overflow-y-auto pr-2">
-              <li class="text-gray-500">{{ _("Loading...") }}</li>
-            </ul>
-          </div>
+        <div class="h-12 w-12 bg-fuchsia-50 text-fuchsia-500 flex items-center justify-center rounded-xl">
+          <i class="fas fa-file-arrow-down text-xl"></i>
         </div>
       </div>
-      <div class="lg:col-span-1 flex flex-col gap-6">
-          <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200 h-full">
-              <h3 class="text-xl font-bold text-gray-800 mb-4">{{ _("Active Document Timeline") }}</h3>
-              <div id="document-timeline-container" class="space-y-6 max-h-[700px] overflow-y-auto pr-2">
-                  <p class="text-gray-500">{{ _("Loading timeline...") }}</p>
-              </div>
-          </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Processed Today") }}</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="processed-today">0</p>
+        </div>
+        <div class="h-12 w-12 bg-blue-50 text-blue-500 flex items-center justify-center rounded-xl">
+          <i class="fas fa-file-arrow-up text-xl"></i>
+        </div>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Current Backlog") }}</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="current-backlog">0</p>
+        </div>
+        <div class="h-12 w-12 bg-amber-50 text-amber-500 flex items-center justify-center rounded-xl">
+          <i class="fas fa-layer-group text-xl"></i>
+        </div>
+      </div>
+    </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-indigo-500"></i>
+            {{ _("Documents Processed Over Time") }}
+          </h3>
+          <div class="h-80"><canvas id="processedOverTimeChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-1">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
+          <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-amber-500"></i>
+            {{ _("Recent Validations") }}
+          </h3>
+          <div id="activity-feed" class="space-y-4">
+            <p class="text-gray-400 text-sm italic">{{ _("Loading latest activity...") }}</p>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
-      {% include '_small_footer.html' %}
-
-
+  {% include '_small_footer.html' %}
   {% include 'js/_dashboardJS.html' %}
 </body>
+
 </html>

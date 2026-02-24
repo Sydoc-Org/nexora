@@ -1,20 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-  <script>
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+<script>
+
+    
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/"; 
 
     let processedChart, statusChart;
     let dateRangePicker;
     
-    const chartFontColor = '#6b7280';
-    const chartGridColor = '#f3f4f6';
     Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = chartFontColor;
+    Chart.defaults.color = '#6b7280'; 
+
+    function shuffleObject(obj) {
+        const entries = Object.entries(obj);
+        for (let i = entries.length - 1; i > 0; i--) {
+            const j = 
+                Math.floor(Math.random() * (i + 1));
+            [entries[i], entries[j]] = 
+                [entries[j], entries[i]];
+        }
+        return Object.fromEntries(entries);
+    }
+
+    async function updateActivityFeed() {
+        try {
+            const response = await fetch(`${API_PREFIX}api/dashboard/recent_activity`);
+            const activities = await response.json();
+            const container = document.getElementById('activity-feed');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-400">No recent activity</p>`;
+                return;
+            }
+            container.innerHTML = activities.map(act => {
+                const fieldBadges = Object.entries(shuffleObject(act.fields))
+                    .slice(0, 3) 
+                    .map(([key, val]) => `
+                        <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md border border-gray-200">
+                            <strong>${key}:</strong> ${val}
+                        </span>
+                    `).join('');
+
+                return `
+                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer" 
+                        onclick="window.location.href='/workitems?search=${act.id}'">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-indigo-600">ID: ${act.id}</span>
+                            <span class="text-[10px] text-gray-400">${act.time}</span>
+                        </div>
+                        <p class="text-xs text-gray-700 mb-2">Validated in <strong>${act.process}</strong></p>
+                        <div class="flex flex-wrap gap-1">
+                            ${fieldBadges}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error("Activity feed update failed:", error);
+        }
+    }
+
 
     function animateValue(element, start, end, duration) {
         if (!element) return;
@@ -26,49 +69,47 @@
             if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
-    }
+    } 
     
-    function buildApiUrl(endpoint, startDate, endDate) {
+    function buildApiUrl(endpoint) {
         let url = `${API_PREFIX}${endpoint}`;
-        if (startDate && endDate) {
-            url += `?startDate=${startDate}&endDate=${endDate}`;
-        }
         return url;
-    }
+    } 
 
     let proccessedTodayLoadInit = 0;
-    let processedWeekLoadInit = 0;
     let currentBacklogLoadInit = 0;
+    let importedTodayLoadInit = 0;
 
     async function updateKpiStats() {
         try {
-            const response = await fetch(`${API_PREFIX}api/reports/kpi_stats`, {headers: {
+            const response = await fetch(`${API_PREFIX}api/dashboard/kpi_stats`, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken  
                 }});
             const stats = await response.json();
+            animateValue(document.getElementById("imported-today"), importedTodayLoadInit, stats.imported_today, 1500);
             animateValue(document.getElementById("processed-today"), proccessedTodayLoadInit, stats.processed_today, 1500);
-            animateValue(document.getElementById("processed-week"), processedWeekLoadInit, stats.processed_week, 1500);
             animateValue(document.getElementById("current-backlog"), currentBacklogLoadInit, stats.current_backlog, 1500);
+            importedTodayLoadInit = stats.imported_today;
             proccessedTodayLoadInit = stats.processed_today;
-            processedWeekLoadInit = stats.processed_week;
             currentBacklogLoadInit = stats.current_backlog;
         } catch (error) {
             console.error("Failed to update KPI stats:", error);
         }
-    }
+    } 
 
-    async function updateProcessedOverTimeChart(startDate, endDate) {
+    async function updateProcessedOverTimeChart() {
         try {
-            const url = buildApiUrl('api/reports/processed_over_time', startDate, endDate);
+            const url = buildApiUrl('api/dashboard/processed_over_time');
             const response = await fetch(url, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken  
                 }});
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
+            
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
             gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
 
             if (processedChart) {
@@ -76,177 +117,45 @@
                 processedChart.data.datasets[0].data = data.data;
                 processedChart.update();
             } else {
-                processedChart = new Chart(ctx, { type: 'line', data: { labels: data.labels, datasets: [{ label: '{{ _("Documents Processed") }}', data: data.data, fill: true, backgroundColor: gradient, borderColor: '#4F46E5', borderWidth: 2, pointBackgroundColor: '#4F46E5', tension: 0.4, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: chartGridColor } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+                processedChart = new Chart(ctx, { 
+                    type: 'line', 
+                    data: { 
+                        labels: data.labels, 
+                        datasets: [{ 
+                            label: '{{ _("Documents Processed") }}', 
+                            data: data.data, 
+                            fill: true, 
+                            backgroundColor: gradient, 
+                            borderColor: '#4F46E5', 
+                            borderWidth: 3, 
+                            pointBackgroundColor: '#4F46E5', 
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            tension: 0.4, 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        scales: { 
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } }, 
+                            x: { grid: { display: false } } 
+                        }, 
+                        plugins: { legend: { display: false } } 
+                    } 
+                });
             }
         } catch (error) { console.error("Failed to update processed chart:", error); }
-    }
-
-    async function updateStatusDistributionChart(startDate, endDate) {
-        try {
-            const url = buildApiUrl('api/reports/status_distribution', startDate, endDate);
-            const response = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-            const data = await response.json();
-            const ctx = document.getElementById('statusDistributionChart').getContext('2d');
-
-            if (statusChart) {
-                statusChart.data.labels = data.labels;
-                statusChart.data.datasets[0].data = data.data;
-                statusChart.update();
-            } else {
-                statusChart = new Chart(ctx, { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6'], borderColor: '#ffffff', borderWidth: 4, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } } } } });
-            }
-        } catch (error) { console.error("Failed to update status chart:", error); }
-    }
+    } 
     
-    async function updateStageBreakdownChart(startDate, endDate) {
-        const container = document.getElementById('stage-breakdown-container');
-        if (!container) return;
-
-        const stageDetails = {
-            'In Validation': { icon: 'fa-magnifying-glass', color: 'violet' },
-            'In Export': { icon: 'fa-file-export', color: 'green' },
-            'In Import': { icon: 'fa-file-import', color: 'sky' },
-            'In Extraction': { icon: 'fa-wand-magic-sparkles', color: 'blue' },
-            'In OCR': { icon: 'fa-file-lines', color: 'orange' },
-            'DB Saving': { icon: 'fa-database', color: 'red' },
-            'Collecting': { icon: 'fa-box-archive', color: 'yellow' },
-            'Processing': { icon: 'fa-cogs', color: 'gray' }
-        };
-
-        try {
-            const url = buildApiUrl('api/reports/stage_breakdown', startDate, endDate);
-            const response = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-            const data = await response.json();
-            
-            container.innerHTML = '';
-
-            if (!data.labels || data.labels.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">{{ _("No documents are currently in progress.") }}</div>`;
-                return;
-            }
-
-            data.labels.forEach((label, index) => {
-                const count = data.data[index];
-                const details = stageDetails[label] || stageDetails['Processing'];
-                
-                const card = document.createElement('div');
-                card.className = `bg-${details.color}-50 border-2 border-${details.color}-200 text-${details.color}-800 p-4 rounded-xl flex items-center gap-4`;
-                
-                card.innerHTML = `
-                    <div class="text-2xl">
-                        <i class="fas ${details.icon}"></i>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold">${count}</div>
-                        <div class="text-sm font-medium text-${details.color}-600">${label}</div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-
-        } catch (error) {
-            console.error("Failed to update stage breakdown:", error);
-            container.innerHTML = `<div class="col-span-full text-center text-red-500 py-10">{{ _("Could not load data.") }}</div>`;
-        }
-    }
-    const activityDetails = { 'InValidation': { icon: 'fa-solid fa-laptop-file', color: 'violet', text: `{{ _("In Validation") }}` }, 'InExport': { icon: 'fa-solid fa-file-export', color: 'green', text: `{{ _("In Export") }}` }, 'InImport': { icon: 'fa-solid fa-file-import', color: 'red', text: `{{ _("In Import") }}` }, 'InExtraction': { icon: 'fa-solid fa-file-waveform', color: 'blue', text: `{{ _("In Extraction") }}` }, 'InOCR': { icon: 'fa-solid fa-file-lines', color: 'sky', text: `{{ _("In OCR") }}` }, 'InDBSaving': { icon: 'fa-solid fa-database', color: 'orange', text: `{{ _("In DB Saving") }}` }, 'Processing': { icon: 'fa-solid fa-list-check', color: 'yellow', text: `{{ _("Processing") }}` } };
-    async function updateDocumentTimeline() {
-      const container = document.getElementById('document-timeline-container');
-      try {
-        const response = await fetch(`${API_PREFIX}api/dashboard_stats_document_preview`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-        const rows = await response.json();
-        container.innerHTML = '';
-        if (rows.length === 0) {
-          container.innerHTML = `<p class="text-gray-500 text-center p-4">{{ _("No active documents.") }}</p>`;
-          return;
-        }
-        rows.forEach(row => {
-          const details = activityDetails[row.Activity] || activityDetails.Processing;
-          const color = details.color;
-          const item = document.createElement('div');
-          item.className = 'timeline-item py-1';
-          item.innerHTML = `<div class="timeline-connector"></div><div class="timeline-icon bg-${color}-100 text-${color}-600"><i class="${details.icon} text-2xl"></i></div><div class="flex-grow"><h4 class="font-bold text-gray-800">Workitem ${row.WorkItemID}</h4><p class="text-sm text-gray-500">{{ _("Current Stage:") }} <span class="font-semibold text-${color}-700">${details.text}</span></p></div>`;
-          container.appendChild(item);
-        });
-      } catch (error) { console.error("Failed to update document timeline:", error); }
-    }
-    
-    async function updateRecentActivity() {
-      const list = document.getElementById("recent-activity-list");
-      try {
-        const response = await fetch(`${API_PREFIX}api/recent_activity`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-        const data = await response.json();
-        list.innerHTML = "";
-        if (!Array.isArray(data) || data.length === 0) {
-            list.innerHTML = `<li class='text-gray-500'>{{ _("No recent activity.") }}</li>`; return;
-        } 
-        data.forEach(act => {
-            const li = document.createElement("li");
-            li.className = "flex items-start space-x-3";
-            let icon = "", msg = "";
-            if (act.state === "Ready") { icon = `<div class="h-6 w-6 shrink-0 bg-blue-100 text-blue-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-hourglass-start text-xs"></i></div>`; msg = `{{ _("Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("is ready") }}`; }
-            else if (act.state === "In Progress") { icon = `<div class="h-6 w-6 shrink-0 bg-yellow-100 text-yellow-600 flex items-center justify-center rounded-full mt-1"><i class="fa-solid fa-spinner text-xs"></i></div>`; msg = `{{ _("Processing for Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("started.") }}`; }
-            else if (act.state === "Done") { icon = `<div class="h-6 w-6 shrink-0 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-full mt-1"><i class="fas fa-check-circle text-xs"></i></div>`; msg = `{{ _("Workitem") }} <span class="font-bold">${act.workitemid}</span> {{ _("finished processing.") }}`; }
-            else { icon = `<div class="h-6 w-6 shrink-0 bg-gray-300 text-gray-700 flex items-center justify-center rounded-full mt-1"><i class="fas fa-question text-xs"></i></div>`; msg = `{{ _("Unknown status for") }} <span class="font-bold">${act.workitemid}</span>.`; }
-            li.innerHTML = `${icon}<div><p class="text-sm font-medium text-gray-800">${msg}</p><p class="text-xs text-gray-500">${act.datetime}</p></div>`;
-            list.appendChild(li);
-        });
-      } catch(error) { console.error("Error fetching recent activity:", error); }
-    };
-    
-    function updateAllCharts(startDate = null, endDate = null) {
-        updateProcessedOverTimeChart(startDate, endDate);
-        updateStatusDistributionChart(startDate, endDate);
-        updateStageBreakdownChart(startDate, endDate);
-    }
 
     document.addEventListener('DOMContentLoaded', () => {
-        dateRangePicker = flatpickr("#date-range-picker", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            altInput: true,
-            altFormat: "M j, Y",
-        });
-
-        updateKpiStats();
-        updateAllCharts(); 
-        updateDocumentTimeline();
-        updateRecentActivity();
-
-        // document.getElementById('apply-filters-btn').addEventListener('click', () => {
-        //     const selectedDates = dateRangePicker.selectedDates;
-        //     if (selectedDates.length === 2) {
-        //         const startDate = selectedDates[0].toISOString().split('T')[0];
-        //         const endDate = selectedDates[1].toISOString().split('T')[0];
-        //         updateAllCharts(startDate, endDate);
-        //     } else {
-        //         updateAllCharts();
-        //     }
-        // });
-        
-
+        updateKpiStats(); 
+        updateProcessedOverTimeChart();
+        updateActivityFeed();
+        setInterval(updateActivityFeed, 60000); 
         setInterval(() => {
             updateKpiStats();
-            updateDocumentTimeline();
-        }, 30000);
-
-        setInterval(() => {
-            updateAllCharts();
-            updateRecentActivity();
-        }, 180000);
+        }, 30000); 
     });
-  </script>
-</body>
-</html>
+</script>
