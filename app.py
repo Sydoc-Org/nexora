@@ -290,11 +290,12 @@ def pageVisability():
     adminPagePerm = has_permission('admin.view')
     dashboardPagePerm = has_permission('dashboard.view')
     workitemsPagePerm = has_permission('workitems.view')
-    teamboardPagePerm = has_permission('teamboard.view')
+    # teamboardPagePerm = has_permission('teamboard.view')
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
-            'workitemsPagePerm':workitemsPagePerm, 'teamboardPagePerm': teamboardPagePerm,
+            'workitemsPagePerm':workitemsPagePerm,
+            #   'teamboardPagePerm': teamboardPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
@@ -393,7 +394,7 @@ def verify_2fa():
             pV = pageVisability()
             if not pV['dashboardPagePerm']:
                 if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
-                elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
+                # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
                 elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
                 elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
                 else: redirect(url_for('login')) 
@@ -3277,116 +3278,116 @@ def remove_tag_from_workitem(workitemid, tag_id):
 
 
 # -------------------------------- team board --------------------------------- #
-@app.route("/team-board")
-@require_permission('teamboard.view')
-def team_board():
-    try:
-        if 'username' not in session:
-            return redirect(url_for("login"))
+# @app.route("/team-board")
+# @require_permission('teamboard.view')
+# def team_board():
+#     try:
+#         if 'username' not in session:
+#             return redirect(url_for("login"))
         
-        perms = session.get('permissions', [])
-        prefix = "teamboard.filter.process."
-        allowed_processes = sorted({
-            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        })
-        process_name = request.args.get('prcfB', 'all')
-        if process_name != 'all' and process_name not in allowed_processes:
-            process_name = 'all'
+#         perms = session.get('permissions', [])
+#         prefix = "teamboard.filter.process."
+#         allowed_processes = sorted({
+#             (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+#             for perm in perms
+#             if perm.startswith(prefix)
+#         })
+#         process_name = request.args.get('prcfB', 'all')
+#         if process_name != 'all' and process_name not in allowed_processes:
+#             process_name = 'all'
 
-        params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
-        activityinstancesToIgnore = get_activityinstancesToIgnore()
+#         params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
+#         activityinstancesToIgnore = get_activityinstancesToIgnore()
 
-        where_clauses = [
-            f"tp.Name IN ({process_placeholders})",
-            f"tp.ClientName IN ({client_placeholders})",
-            f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
-        ]
-        priority = request.args.get('priority', '')
+#         where_clauses = [
+#             f"tp.Name IN ({process_placeholders})",
+#             f"tp.ClientName IN ({client_placeholders})",
+#             f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
+#         ]
+#         priority = request.args.get('priority', '')
 
-        if priority:
-            where_clauses.append("wim.Priority = ?")
-            params.append(priority)
+#         if priority:
+#             where_clauses.append("wim.Priority = ?")
+#             params.append(priority)
 
-        where_sql = " AND ".join(where_clauses)
+#         where_sql = " AND ".join(where_clauses)
 
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
+#         conn = engineOctoDB.raw_connection()
+#         cursor = conn.cursor()
 
-        cursor.execute(f"""
-            WITH BoardItems AS (
-                SELECT
-                    twi.id WorkitemID,
-                    twi.ModifiedAt,
-                    CASE
-                        WHEN twi.Status = 5 THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
-                        ELSE 'Extraction'
-                    END AS CurrentStage,
-                    wim.Priority,
-                    wim.AssignedUserID,
-                    (
-                        SELECT t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.workitemid = twi.id
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.id ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-                WHERE {where_sql}
-            )
-            SELECT
-            WorkitemID,
-            ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
-            FROM BoardItems
-            WHERE rn = 1
-            ORDER BY Priority DESC, ModifiedAt ASC;
-        """
-        ,params)
+#         cursor.execute(f"""
+#             WITH BoardItems AS (
+#                 SELECT
+#                     twi.id WorkitemID,
+#                     twi.ModifiedAt,
+#                     CASE
+#                         WHEN twi.Status = 5 THEN 'Delivery'
+#                         WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+#                         WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+#                         WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+#                         WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+#                         WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+#                         ELSE 'Extraction'
+#                     END AS CurrentStage,
+#                     wim.Priority,
+#                     wim.AssignedUserID,
+#                     (
+#                         SELECT t.TagName AS name, t.TagColor AS color
+#                         FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+#                         JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
+#                         WHERE wt.workitemid = twi.id
+#                         FOR JSON PATH
+#                     ) AS TagsJSON,
+#                     ROW_NUMBER() OVER(PARTITION BY twi.id ORDER BY twi.ModifiedAt DESC) as rn
+#                 FROM t_WorkItems twi
+#                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+#                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+#                 LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
+#                 WHERE {where_sql}
+#             )
+#             SELECT
+#             WorkitemID,
+#             ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
+#             FROM BoardItems
+#             WHERE rn = 1
+#             ORDER BY Priority DESC, ModifiedAt ASC;
+#         """
+#         ,params)
         
-        portal_users = get_all_portal_users('teamboard', 'view')
-        workitems_by_user = {user['userID']: [] for user in portal_users}
-        workitems_by_user['Unassigned'] = []
+#         portal_users = get_all_portal_users('teamboard', 'view')
+#         workitems_by_user = {user['userID']: [] for user in portal_users}
+#         workitems_by_user['Unassigned'] = []
 
-        for row in cursor.fetchall():
-            user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
-            if user_id in workitems_by_user:
-                workitems_by_user[user_id].append({
-                    'workitemid': row.WorkitemID,
-                    'modifiedat': row.ModifiedAt,
-                    'current_stage': row.CurrentStage,
-                    'priority': row.Priority or 0,
-                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
-                })
+#         for row in cursor.fetchall():
+#             user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
+#             if user_id in workitems_by_user:
+#                 workitems_by_user[user_id].append({
+#                     'workitemid': row.WorkitemID,
+#                     'modifiedat': row.ModifiedAt,
+#                     'current_stage': row.CurrentStage,
+#                     'priority': row.Priority or 0,
+#                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
+#                 })
 
 
-        return render_template("team_board.html",
-            workitems_by_user=workitems_by_user,
-            process_name=process_name,
-            priority=priority,
-            portal_users=portal_users,
-            userid=session.get('userid'),
-            pageV=pageVisability(),
-            allowed_processes=allowed_processes,
-            logged_in_user=session.get('username')
-        )
-    except Exception as e:
-        app.logger.error(f"Error loading team board: {e}")
-        return render_template('500.html')
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+#         return render_template("team_board.html",
+#             workitems_by_user=workitems_by_user,
+#             process_name=process_name,
+#             priority=priority,
+#             portal_users=portal_users,
+#             userid=session.get('userid'),
+#             pageV=pageVisability(),
+#             allowed_processes=allowed_processes,
+#             logged_in_user=session.get('username')
+#         )
+#     except Exception as e:
+#         app.logger.error(f"Error loading team board: {e}")
+#         return render_template('500.html')
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             conn.close()
 # ------------------------------ process board end ------------------------------- #
 
 
