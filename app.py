@@ -792,7 +792,6 @@ def admin_users():
         for ap in accessprofiles:
             if has_permission(f'admin.assign.user.accessprofile.{str(ap['profile']).lower()}'):
                 ap_perm_true.append(("'" + ap['profile'] + "'"))
-        print(ap_perm_true)
         ap_query = ap_query_base +f" WHERE ap.Name IN ({', '.join(ap_perm_true)})"
 
         cursor.execute(ap_query)
@@ -1654,7 +1653,7 @@ def make_cache_key(*args, **kwargs):
 
 @app.route("/api/dashboard/processed_over_time")
 @cache.cached(timeout=300, key_prefix=make_cache_key)
-def report_processed_over_time():
+def dashboard_processed_over_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
     
@@ -1733,7 +1732,7 @@ def report_processed_over_time():
         if conn: conn.close()
 
 @app.route("/api/dashboard/kpi_stats")
-def report_kpi_stats():
+def dashboard_kpi_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
@@ -1793,7 +1792,6 @@ def report_kpi_stats():
                     {' UNION ALL '.join(sub_queries)}
                 ) as combined
             """
-            print(full_stat_query)
             
             conn_stat = engineStatisticsDB.raw_connection()
             cursor_stat = conn_stat.cursor()
@@ -1830,6 +1828,163 @@ def report_kpi_stats():
         if conn_nex: conn_nex.close()
         if conn_stat: conn_stat.close()
         if conn_octo: conn_octo.close()
+
+@app.route("/api/dashboard/hourly_stats")
+def dashboard_hourly_stats():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    prefix = "dashboard.filter.process."
+    perms = session.get('permissions', [])
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session.get('process_name_dashboard', 'all')
+    target_processes = allowed_processes if process_name == 'all' else [process_name]
+
+    if not target_processes:
+        return jsonify({'labels': [f"{h:02d}:00" for h in range(24)], 'data': [0] * 24})
+
+    conn_nex = None
+    conn_stat = None
+    cursor_nex = None
+    cursor_stat = None
+    try:
+        conn_nex = engineNexoraDB.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ','.join(['?'] * len(target_processes))
+        cursor_nex.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes
+        )
+        configs = cursor_nex.fetchall()
+
+        if not configs:
+            return jsonify({'labels': [f"{h:02d}:00" for h in range(24)], 'data': [0] * 24})
+
+        sub_queries = []
+        for row in configs:
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
+                GROUP BY DATEPART(hour, {row.ExportColumn})
+            """)
+
+        full_query = f"""
+            SELECT h, SUM(c) as total
+            FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            GROUP BY h
+            ORDER BY h
+        """
+
+        conn_stat = engineStatisticsDB.raw_connection()
+        cursor_stat = conn_stat.cursor()
+        cursor_stat.execute(full_query)
+        rows = cursor_stat.fetchall()
+
+        hourly = {row.h: row.total for row in rows}
+        return jsonify({
+            'labels': [f"{h:02d}:00" for h in range(24)],
+            'data': [hourly.get(h, 0) for h in range(24)]
+        })
+
+    except Exception as e:
+        app.logger.error(f"Failed to fetch hourly_stats: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor_nex: cursor_nex.close()
+        if cursor_stat: cursor_stat.close()
+        if conn_nex: conn_nex.close()
+        if conn_stat: conn_stat.close()
+
+
+@app.route("/api/dashboard/avg_processing_time")
+def dashboard_avg_processing_time():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    prefix = "dashboard.filter.process."
+    perms = session.get('permissions', [])
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = session.get('process_name_dashboard', 'all')
+    target_processes = allowed_processes if process_name == 'all' else [process_name]
+
+    if not target_processes:
+        return jsonify({'avg_minutes': None, 'avg_display': '—'})
+
+    conn_nex = None
+    conn_stat = None
+    cursor_nex = None
+    cursor_stat = None
+    try:
+        conn_nex = engineNexoraDB.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ','.join(['?'] * len(target_processes))
+        cursor_nex.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes
+        )
+        configs = cursor_nex.fetchall()
+
+        sub_queries = []
+        for row in configs:
+            if not row.ImportColumn:
+                continue
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
+                AND {row.ImportColumn} IS NOT NULL
+                AND {row.ExportColumn} > {row.ImportColumn}
+                {condition}
+            """)
+
+        if not sub_queries:
+            return jsonify({'avg_minutes': None, 'avg_display': '—'})
+
+        full_query = f"""
+            SELECT AVG(avg_sec) as overall_avg
+            FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            WHERE avg_sec IS NOT NULL
+        """
+
+        conn_stat = engineStatisticsDB.raw_connection()
+        cursor_stat = conn_stat.cursor()
+        cursor_stat.execute(full_query)
+        row = cursor_stat.fetchone()
+        avg_sec = row[0] if row and row[0] is not None else None
+
+        if avg_sec is None:
+            return jsonify({'avg_minutes': None, 'avg_display': '—'})
+
+        avg_minutes = avg_sec / 60
+        if avg_minutes < 1:
+            display = f"{int(avg_sec)}s"
+        elif avg_minutes < 60:
+            display = f"{avg_minutes:.0f}min"
+        else:
+            display = f"{avg_minutes / 60:.1f}h"
+
+        return jsonify({'avg_minutes': round(avg_minutes, 1), 'avg_display': display})
+
+    except Exception as e:
+        app.logger.error(f"Failed to fetch avg_processing_time: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor_nex: cursor_nex.close()
+        if cursor_stat: cursor_stat.close()
+        if conn_nex: conn_nex.close()
+        if conn_stat: conn_stat.close()
+
 
 @app.route("/dashboard")
 @require_permission('dashboard.view')

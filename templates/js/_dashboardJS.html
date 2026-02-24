@@ -3,7 +3,7 @@
     
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/"; 
 
-    let processedChart, statusChart;
+    let processedChart, statusChart, hourlyChart;
     let dateRangePicker;
     
     Chart.defaults.font.family = "'Inter', sans-serif";
@@ -59,17 +59,17 @@
     }
 
 
-    function animateValue(element, start, end, duration) {
+    function animateValue(element, start, end, duration, suffix = '') {
         if (!element) return;
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            element.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+            element.innerText = Math.floor(progress * (end - start) + start).toLocaleString() + suffix;
             if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
-    } 
+    }
     
     function buildApiUrl(endpoint) {
         let url = `${API_PREFIX}${endpoint}`;
@@ -79,6 +79,7 @@
     let proccessedTodayLoadInit = 0;
     let currentBacklogLoadInit = 0;
     let importedTodayLoadInit = 0;
+    let avgproctimeLoadInit = 0;
 
     async function updateKpiStats() {
         try {
@@ -87,12 +88,26 @@
                 'X-CSRFToken': csrfToken  
                 }});
             const stats = await response.json();
+
+            const apt_response = await fetch(`${API_PREFIX}api/dashboard/avg_processing_time`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }});
+            const apt = await apt_response.json();
+            const re = /h|min|s/g;
+            let avg_display = apt.avg_display;
+            let measurement = avg_display.match(re);
+            let avg_number = avg_display.replace(re, "");
+            const avg_el = document.getElementById("avg-processing-time")
+            console.log(measurement[0],avg_number);
             animateValue(document.getElementById("imported-today"), importedTodayLoadInit, stats.imported_today, 1500);
             animateValue(document.getElementById("processed-today"), proccessedTodayLoadInit, stats.processed_today, 1500);
             animateValue(document.getElementById("current-backlog"), currentBacklogLoadInit, stats.current_backlog, 1500);
+            animateValue(avg_el, avgproctimeLoadInit, avg_number, 1500, measurement[0]);
             importedTodayLoadInit = stats.imported_today;
             proccessedTodayLoadInit = stats.processed_today;
             currentBacklogLoadInit = stats.current_backlog;
+            avgproctimeLoadInit = avg_number;
         } catch (error) {
             console.error("Failed to update KPI stats:", error);
         }
@@ -148,14 +163,63 @@
         } catch (error) { console.error("Failed to update processed chart:", error); }
     } 
     
+    async function updateHourlyChart() {
+        try {
+            const response = await fetch(`${API_PREFIX}api/dashboard/hourly_stats`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }});
+            const data = await response.json();
+            const labels = data.labels.slice(6, 18);
+            const chartData = data.data.slice(6, 18);
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+
+            if (hourlyChart) {
+                hourlyChart.data.labels = labels;
+                hourlyChart.data.datasets[0].data = chartData;
+                hourlyChart.update();
+            } else {
+                hourlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '{{ _("Documents Processed") }}',
+                            data: chartData,
+                            backgroundColor: 'rgba(20, 184, 166, 0.15)',
+                            borderColor: '#14b8a6',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Failed to update hourly chart:", error);
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
-        updateKpiStats(); 
+        updateKpiStats();
+        // updateAvgProcessingTime();
         updateProcessedOverTimeChart();
+        updateHourlyChart();
         updateActivityFeed();
-        setInterval(updateActivityFeed, 60000); 
+        setInterval(updateActivityFeed, 60000);
         setInterval(() => {
             updateKpiStats();
-        }, 30000); 
+            // updateAvgProcessingTime();
+            updateHourlyChart();
+        }, 30000);
     });
 </script>
