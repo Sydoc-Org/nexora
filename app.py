@@ -142,6 +142,7 @@ DB_STATISTICS = os.environ.get("DB_STATISTICS")
 DB_STATISTICS_MOBSCAN = f"[{DB_SERVER_PRD_MOBSCAN}].{DB_STATISTICS}"
 DB_OCTO_RUNTIME = os.environ.get("DB_OCTO_RUNTIME")
 DB_OCTO_RUNTIME_MOBSCAN = f"[{DB_SERVER_PRD_MOBSCAN}].{DB_OCTO_RUNTIME}"
+RUNTIME_TBL_MOBSCAN = f"[{DB_SERVER_PRD_MOBSCAN}].[{DB_OCTO_RUNTIME}].[dbo]."
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
@@ -150,9 +151,12 @@ GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
+OCTO_CLIENT_SECRET_MOBSCN = os.environ.get("OCTO_CLIENT_SECRET_MOBSCN")
+OCTO_CLIENT_ID_MOBSCN = os.environ.get("OCTO_CLIENT_ID_MOBSCN")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
-
+OCTO_DOMAIN = os.environ.get("OCTO_DOMAIN")
+OCTO_DOMAIN_MOBSCN = os.environ.get("OCTO_DOMAIN_MOBSCN")
 
 class PrefixMiddleware(object):
     def __init__(self, app, prefix=''):
@@ -205,10 +209,17 @@ engineNexoraDB = create_engine(
 )
 engineStatisticsDB = create_engine(
     getDBUrl(DB_STATISTICS),
-    pool_size=10, 
+    pool_size=10,
     max_overflow=20,
-    pool_timeout=30,  
-    pool_recycle=1800 
+    pool_timeout=30,
+    pool_recycle=1800
+)
+engineStatisticsDBMobscan = create_engine(
+    getDBUrl(DB_STATISTICS, DB_SERVER_PRD_MOBSCAN),
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800
 )
 
 # ------------------------------ database connection end --------------------- #
@@ -1625,11 +1636,20 @@ def get_mobscan_clients():
     finally:
         if conn: conn.close()
 
-def get_db_prefix(client_name):
-    mobscan_clients = get_mobscan_clients()
-    if client_name in mobscan_clients:
-        return f"[{DB_SERVER_PRD_MOBSCAN}].[{DB_OCTO_RUNTIME}]"
-    return f"[{DB_OCTO_RUNTIME}]"
+def split_processes_by_server(process_list):
+    mobscan_set = set(get_mobscan_clients())
+    regular = [p for p in process_list if p not in mobscan_set]
+    mobscan = [p for p in process_list if p in mobscan_set]
+    return regular, mobscan
+
+def get_params_from_process_list(process_list):
+    proc_params = sorted({p.split('.')[-1] for p in process_list if '.' in p})
+    cli_params  = sorted({p.split('.')[0]  for p in process_list if '.' in p})
+    return (
+        proc_params + cli_params,
+        ", ".join(["?"] * len(proc_params)),
+        ", ".join(["?"] * len(cli_params))
+    )
 
 def build_stat_query(proc):
     try:
@@ -1691,45 +1711,55 @@ def dashboard_processed_over_time():
         if not configs:
             return jsonify({'labels': [], 'data': []})
 
-        sub_queries = []
-        for row in configs:
-            convert = 'convert' in str(row.ExportColumn).lower()
-            date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
-            
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-            
-            sub_q = f"""
-                SELECT {date_col} as d, COUNT(*) as c 
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
-                GROUP BY {date_col}
+        mobscan_set = set(get_mobscan_clients())
+        regular_configs = [r for r in configs if r.ProcessName not in mobscan_set]
+        mobscan_configs  = [r for r in configs if r.ProcessName in mobscan_set]
+
+        def build_pot_sub_queries(cfg_rows):
+            sub_qs = []
+            for row in cfg_rows:
+                convert = 'convert' in str(row.ExportColumn).lower()
+                date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
+                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                sub_qs.append(f"""
+                    SELECT {date_col} as d, COUNT(*) as c
+                    FROM [{DB_STATISTICS}].{row.TableName}
+                    WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
+                    GROUP BY {date_col}
+                """)
+            return sub_qs
+
+        counts = {} 
+
+        for engine, cfg_group in [
+            (engineStatisticsDB, regular_configs),
+            (engineStatisticsDBMobscan, mobscan_configs),
+        ]:
+            sub_queries = build_pot_sub_queries(cfg_group)
+            if not sub_queries:
+                continue
+            full_query = f"""
+                SELECT d, SUM(c) as total_count
+                FROM ({' UNION ALL '.join(sub_queries)}) as combined_data
+                GROUP BY d
+                ORDER BY d
             """
-            sub_queries.append(sub_q)
+            conn = engine.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute(full_query)
+            for row in cursor.fetchall():
+                counts[row.d] = counts.get(row.d, 0) + row.total_count
+            cursor.close()
+            conn.close()
+            conn = None
 
-        full_query = f"""
-            SELECT d, SUM(c) as total_count 
-            FROM (
-                {' UNION ALL '.join(sub_queries)}
-            ) as combined_data
-            GROUP BY d
-            ORDER BY d
-        """
-
-        conn = engineStatisticsDB.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(full_query)
-        rows = cursor.fetchall()
-
-        labels = [row.d for row in rows]
-        data = [row.total_count for row in rows]
-        
-        return jsonify({'labels': labels, 'data': data})
+        sorted_dates = sorted(counts.keys())
+        return jsonify({'labels': sorted_dates, 'data': [counts[d] for d in sorted_dates]})
 
     except Exception as e:
         app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor: cursor.close()
         if conn: conn.close()
 
 @app.route("/api/dashboard/kpi_stats")
@@ -1753,7 +1783,6 @@ def dashboard_kpi_stats():
 
     processed_today = 0
     imported_today = 0
-    processed_week = 0
     current_backlog = 0
 
     conn_nex = None
@@ -1767,54 +1796,67 @@ def dashboard_kpi_stats():
         
         cursor_nex.execute(f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})", target_processes)
         configs = cursor_nex.fetchall()
-        cursor_nex.close()
-        conn_nex.close()
 
         if configs:
-            sub_queries = []
-            for row in configs:
-                colExport = row.ExportColumn
-                colImport = row.ImportColumn
-                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                
-                sub_q = f"""
-                    SELECT 
-                        SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
-                        SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
-                    FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE CAST({colImport} as date) = cast(GETDATE() as date)
-                    {condition}
+            mobscan_set = set(get_mobscan_clients())
+            regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
+            mobscan_cfgs  = [r for r in configs if r.ProcessName in mobscan_set]
+
+            def build_kpi_sub_queries(cfg_rows):
+                sub_qs = []
+                for row in cfg_rows:
+                    colExport = row.ExportColumn
+                    colImport = row.ImportColumn
+                    condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                    sub_qs.append(f"""
+                        SELECT
+                            SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
+                            SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
+                        FROM [{DB_STATISTICS}].{row.TableName}
+                        WHERE CAST({colImport} as date) = cast(GETDATE() as date)
+                        {condition}
+                    """)
+                return sub_qs
+
+            for engine, cfg_group in [
+                (engineStatisticsDB, regular_cfgs),
+                (engineStatisticsDBMobscan, mobscan_cfgs),
+            ]:
+                sub_queries = build_kpi_sub_queries(cfg_group)
+                if not sub_queries:
+                    continue
+                full_stat_query = f"""
+                    SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
+                    FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 """
-                sub_queries.append(sub_q)
+                conn_stat = engine.raw_connection()
+                cursor_stat = conn_stat.cursor()
+                cursor_stat.execute(full_stat_query)
+                row = cursor_stat.fetchone()
+                if row:
+                    processed_today += row[0] or 0
+                    imported_today  += row[1] or 0
+                conn_stat = None
 
-            full_stat_query = f"""
-                SELECT SUM(TodayCountExport), SUM(TodayCountExportImport) 
-                FROM (
-                    {' UNION ALL '.join(sub_queries)}
-                ) as combined
-            """
-            
-            conn_stat = engineStatisticsDB.raw_connection()
-            cursor_stat = conn_stat.cursor()
-            cursor_stat.execute(full_stat_query)
-            row = cursor_stat.fetchone()
-            if row:
-                processed_today = row[0] or 0
-                imported_today = row[1] or 0
-            cursor_stat.close()
-            conn_stat.close()
+        regular_procs, mobscan_procs = split_processes_by_server(target_processes)
 
-        params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix, process_name=process_name)
-        
         conn_octo = engineOctoDB.raw_connection()
         cursor_octo = conn_octo.cursor()
-        cursor_octo.execute(f"""
-            SELECT COUNT(*) FROM t_WorkItems w
-            LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-            LEFT JOIN t_Processes p on p.id = a.ProcessID
-            WHERE p.Name IN ({process_placeholders}) AND p.ClientName IN ({client_placeholders}) AND a.ActivityInstanceName = 'C+A';
-        """, params)
-        current_backlog = cursor_octo.fetchone()[0]
+
+        for tbl_prefix, procs in [
+            ("", regular_procs),
+            (RUNTIME_TBL_MOBSCAN, mobscan_procs),
+        ]:
+            if not procs:
+                continue
+            p_params, p_ph, c_ph = get_params_from_process_list(procs)
+            cursor_octo.execute(f"""
+                SELECT COUNT(*) FROM {tbl_prefix}t_WorkItems w
+                LEFT JOIN {tbl_prefix}t_ActivityInstances a on a.id = w.ActivityInstanceID
+                LEFT JOIN {tbl_prefix}t_Processes p on p.id = a.ProcessID
+                WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND a.ActivityInstanceName = 'C+A';
+            """, p_params)
+            current_backlog += cursor_octo.fetchone()[0]
 
         return jsonify({
             'processed_today': processed_today,
@@ -1826,6 +1868,9 @@ def dashboard_kpi_stats():
         app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
+        if cursor_nex: cursor_nex.close()
+        if cursor_stat: cursor_stat.close()
+        if cursor_octo: cursor_octo.close()
         if conn_nex: conn_nex.close()
         if conn_stat: conn_stat.close()
         if conn_octo: conn_octo.close()
@@ -1865,29 +1910,43 @@ def dashboard_hourly_stats():
         if not configs:
             return jsonify({'labels': [f"{h:02d}:00" for h in range(24)], 'data': [0] * 24})
 
-        sub_queries = []
-        for row in configs:
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-            sub_queries.append(f"""
-                SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
-                GROUP BY DATEPART(hour, {row.ExportColumn})
-            """)
+        mobscan_set = set(get_mobscan_clients())
+        regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
+        mobscan_cfgs  = [r for r in configs if r.ProcessName in mobscan_set]
 
-        full_query = f"""
-            SELECT h, SUM(c) as total
-            FROM ({' UNION ALL '.join(sub_queries)}) as combined
-            GROUP BY h
-            ORDER BY h
-        """
+        def build_hourly_sub_queries(cfg_rows):
+            sub_qs = []
+            for row in cfg_rows:
+                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                sub_qs.append(f"""
+                    SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
+                    FROM [{DB_STATISTICS}].{row.TableName}
+                    WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
+                    GROUP BY DATEPART(hour, {row.ExportColumn})
+                """)
+            return sub_qs
 
-        conn_stat = engineStatisticsDB.raw_connection()
-        cursor_stat = conn_stat.cursor()
-        cursor_stat.execute(full_query)
-        rows = cursor_stat.fetchall()
+        hourly = {}
 
-        hourly = {row.h: row.total for row in rows}
+        for engine, cfg_group in [
+            (engineStatisticsDB, regular_cfgs),
+            (engineStatisticsDBMobscan, mobscan_cfgs),
+        ]:
+            sub_queries = build_hourly_sub_queries(cfg_group)
+            if not sub_queries:
+                continue
+            full_query = f"""
+                SELECT h, SUM(c) as total
+                FROM ({' UNION ALL '.join(sub_queries)}) as combined
+                GROUP BY h
+                ORDER BY h
+            """
+            conn_stat = engine.raw_connection()
+            cursor_stat = conn_stat.cursor()
+            cursor_stat.execute(full_query)
+            for row in cursor_stat.fetchall():
+                hourly[row.h] = hourly.get(row.h, 0) + row.total
+
         return jsonify({
             'labels': [f"{h:02d}:00" for h in range(24)],
             'data': [hourly.get(h, 0) for h in range(24)]
@@ -1935,37 +1994,51 @@ def dashboard_avg_processing_time():
         )
         configs = cursor_nex.fetchall()
 
-        sub_queries = []
-        for row in configs:
-            if not row.ImportColumn:
+        mobscan_set = set(get_mobscan_clients())
+        regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
+        mobscan_cfgs  = [r for r in configs if r.ProcessName in mobscan_set]
+
+        def build_avg_sub_queries(cfg_rows):
+            sub_qs = []
+            for row in cfg_rows:
+                if not row.ImportColumn:
+                    continue
+                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                sub_qs.append(f"""
+                    SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
+                    FROM [{DB_STATISTICS}].{row.TableName}
+                    WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
+                    AND {row.ImportColumn} IS NOT NULL
+                    AND {row.ExportColumn} > {row.ImportColumn}
+                    {condition}
+                """)
+            return sub_qs
+
+        avg_values = []
+
+        for engine, cfg_group in [
+            (engineStatisticsDB, regular_cfgs),
+            (engineStatisticsDBMobscan, mobscan_cfgs),
+        ]:
+            sub_queries = build_avg_sub_queries(cfg_group)
+            if not sub_queries:
                 continue
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-            sub_queries.append(f"""
-                SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
-                AND {row.ImportColumn} IS NOT NULL
-                AND {row.ExportColumn} > {row.ImportColumn}
-                {condition}
-            """)
+            full_query = f"""
+                SELECT AVG(avg_sec) as overall_avg
+                FROM ({' UNION ALL '.join(sub_queries)}) as combined
+                WHERE avg_sec IS NOT NULL
+            """
+            conn_stat = engine.raw_connection()
+            cursor_stat = conn_stat.cursor()
+            cursor_stat.execute(full_query)
+            row = cursor_stat.fetchone()
+            if row and row[0] is not None:
+                avg_values.append(row[0])
 
-        if not sub_queries:
+        if not avg_values:
             return jsonify({'avg_minutes': None, 'avg_display': '—'})
 
-        full_query = f"""
-            SELECT AVG(avg_sec) as overall_avg
-            FROM ({' UNION ALL '.join(sub_queries)}) as combined
-            WHERE avg_sec IS NOT NULL
-        """
-
-        conn_stat = engineStatisticsDB.raw_connection()
-        cursor_stat = conn_stat.cursor()
-        cursor_stat.execute(full_query)
-        row = cursor_stat.fetchone()
-        avg_sec = row[0] if row and row[0] is not None else None
-
-        if avg_sec is None:
-            return jsonify({'avg_minutes': None, 'avg_display': '—'})
+        avg_sec = sum(avg_values) / len(avg_values)
 
         avg_minutes = avg_sec / 60
         if avg_minutes < 1:
@@ -2197,14 +2270,20 @@ def _get_workitems_data(args):
             where_clauses.append("wim.AssignedUserID = ?")
             params.append(assigned_user)
 
+    regular_extra_clauses = []
+    regular_extra_params = []
+    mobscan_extra_clauses = []
+    mobscan_extra_params = []
+
     if has_permission('workitems.filter.documentfields') and target_processes:
         valid_db_columns = get_valid_search_columns()
-        
+        mobscan_set_docfield = set(get_mobscan_clients())
+
         conn_nex = None
         try:
             conn_nex = engineNexoraDB.raw_connection()
             cursor_nex = conn_nex.cursor()
-            
+
             for docfield, docvalue in zip(docfields, docvalues):
                 docfield = (docfield or '').lower().strip()
                 docvalue = (docvalue or '').strip()
@@ -2218,49 +2297,90 @@ def _get_workitems_data(args):
 
                 placeholders = ','.join(['?'] * len(target_processes))
                 query = f"""
-                    SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
-                    FROM SearchConfig 
-                    WHERE {target_config_col} IS NOT NULL 
+                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
+                    FROM SearchConfig
+                    WHERE {target_config_col} IS NOT NULL
                     AND ProcessName IN ({placeholders})
                 """
-                
                 configs = cursor_nex.execute(query, target_processes).fetchall()
-                
-                generated_checks = []
-                
-                for config in configs:
-                    tbl = config.TableName
-                    alias = config.TableAlias
-                    join_cond = config.JoinCondition
-                    time_filter = config.TimeFilter
-                    db_column = getattr(config, target_config_col) 
 
-                    safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                reg_cfgs = [c for c in configs if c.ProcessName not in mobscan_set_docfield]
+                mob_cfgs = [c for c in configs if c.ProcessName in mobscan_set_docfield]
 
-                    snippet = f"""
-                        EXISTS (
-                            SELECT 1 
-                            FROM [{DB_STATISTICS}].{tbl} {alias} 
-                            WHERE {join_cond} 
-                            AND {safe_col} COLLATE DATABASE_DEFAULT LIKE ? 
+                for stat_engine, cfgs, extra_clauses, extra_params in [
+                    (engineStatisticsDB,        reg_cfgs, regular_extra_clauses, regular_extra_params),
+                    (engineStatisticsDBMobscan, mob_cfgs, mobscan_extra_clauses, mobscan_extra_params),
+                ]:
+                    if not cfgs:
+                        continue
+
+                    id_parts = []
+                    id_params = []
+                    for config in cfgs:
+                        tbl       = config.TableName
+                        alias     = config.TableAlias
+                        db_column = getattr(config, target_config_col)
+                        time_filter = config.TimeFilter
+                        safe_col  = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+
+                        id_col = None
+                        for part in re.split(r'\s*=\s*', (config.JoinCondition or '').strip()):
+                            if re.match(rf'^{re.escape(alias)}\.\w+$', part.strip(), re.IGNORECASE):
+                                id_col = part.strip()
+                                break
+
+                        if not id_col:
+                            app.logger.warning(f"Could not extract ID col from JoinCondition: {config.JoinCondition}")
+                            continue
+
+                        id_parts.append(f"""
+                            SELECT DISTINCT {id_col} AS id
+                            FROM {tbl} {alias}
+                            WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
                             AND {time_filter}
-                        )
-                    """
-                    generated_checks.append(snippet)
-                    params.append(f"%{docvalue}%")
+                        """)
+                        id_params.append(f"%{docvalue}%")
 
-                if generated_checks:
-                    combined_clause = " OR ".join(generated_checks)
-                    where_clauses.append(f"({combined_clause})")
-                    
+                    if not id_parts:
+                        continue
+
+                    stat_conn = None
+                    try:
+                        stat_conn = stat_engine.raw_connection()
+                        stat_cur  = stat_conn.cursor()
+                        union_sql = " UNION ALL ".join(id_parts)
+                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                        matching_ids = [row[0] for row in stat_cur.fetchall()]
+                    except Exception as e:
+                        app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                        matching_ids = None
+                    finally:
+                        if stat_conn:
+                            stat_conn.close()
+
+                    if matching_ids is None:
+                        continue  # skip this filter on error; don't restrict results
+                    if not matching_ids:
+                        extra_clauses.append("1=0")
+                    else:
+                        ph = ','.join(['?'] * len(matching_ids))
+                        extra_clauses.append(f"twi.ID IN ({ph})")
+                        extra_params.extend(matching_ids)
+
         except Exception as e:
-            app.logger.error(f"Error in docfield optimization block: {e}")
+            app.logger.error(f"Error in docfield pre-fetch block: {e}")
         finally:
             if cursor_nex: cursor_nex.close()
             if conn_nex: conn_nex.close()
             
-    where_sql = " AND ".join(where_clauses)
-    
+    # Split params into process/client part and common (filter) part so we can
+    # re-apply the same common filters for each server group independently.
+    n_pc_params = process_placeholders.count('?') + client_placeholders.count('?')
+    common_params = list(params[n_pc_params:])
+    common_where_clauses_part = where_clauses[2:]  # clauses after tp.Name / tp.ClientName
+
+    regular_procs, mobscan_procs = split_processes_by_server(target_processes)
+
     workitems_list = []
     total_items = 0
     conn = None
@@ -2268,65 +2388,94 @@ def _get_workitems_data(args):
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
 
-        count_query = f"""
-            SELECT COUNT(twi.ID)
-            FROM t_WorkItems twi
-            INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-            WHERE {where_sql}
-        """
-        cursor.execute(count_query, params)
-        total_items = cursor.fetchone()[0] or 0
-
-        data_query = f"""
-            WITH WorkitemCTE AS (
-                SELECT
-                    twi.ModifiedAt, twi.ID AS WorkItemID,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
-                    END AS Status,
-                    CASE
-                        WHEN twi.Status = 5 THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
-                        ELSE 'Extraction'
-                    END AS CurrentStage,
-                    wim.Priority,
-                    (
-                        SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
-                WHERE {where_sql}
+        # --- count pass ---
+        for tbl_prefix, procs, extra_cls, extra_pms in [
+            ("",                 regular_procs, regular_extra_clauses, regular_extra_params),
+            (RUNTIME_TBL_MOBSCAN, mobscan_procs, mobscan_extra_clauses, mobscan_extra_params),
+        ]:
+            if not procs:
+                continue
+            grp_pc, grp_proc_ph, grp_cli_ph = get_params_from_process_list(procs)
+            grp_where = " AND ".join(
+                [f"tp.Name IN ({grp_proc_ph})", f"tp.ClientName IN ({grp_cli_ph})"]
+                + common_where_clauses_part
+                + extra_cls
             )
-            SELECT 
-             ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
-            FROM WorkitemCTE WHERE rn = 1
-            ORDER BY ModifiedAt DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """
-        data_params = params + [offset, per_page]
-        cursor.execute(data_query, data_params)
-        for row in cursor.fetchall():
-            workitems_list.append({
-                'modifiedat': row.ModifiedAt,
-                'workitemid': row.WorkItemID,
-                'status': row.Status,
-                'current_stage': row.CurrentStage,
-                'priority': row.Priority or 0,
-                'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
-            })
+            grp_params = grp_pc + common_params + extra_pms
+            cursor.execute(f"""
+                SELECT COUNT(twi.ID)
+                FROM {tbl_prefix}t_WorkItems twi
+                INNER JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
+                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
+                WHERE {grp_where}
+            """, grp_params)
+            total_items += cursor.fetchone()[0] or 0
+
+        # --- data pass ---
+        for tbl_prefix, procs, extra_cls, extra_pms in [
+            ("",                 regular_procs, regular_extra_clauses, regular_extra_params),
+            (RUNTIME_TBL_MOBSCAN, mobscan_procs, mobscan_extra_clauses, mobscan_extra_params),
+        ]:
+            if not procs:
+                continue
+            grp_pc, grp_proc_ph, grp_cli_ph = get_params_from_process_list(procs)
+            grp_where = " AND ".join(
+                [f"tp.Name IN ({grp_proc_ph})", f"tp.ClientName IN ({grp_cli_ph})"]
+                + common_where_clauses_part
+                + extra_cls
+            )
+            grp_params = grp_pc + common_params + extra_pms
+            cursor.execute(f"""
+                WITH WorkitemCTE AS (
+                    SELECT
+                        twi.ModifiedAt, twi.ID AS WorkItemID,
+                        CASE
+                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
+                        END AS Status,
+                        CASE
+                            WHEN twi.Status = 5 THEN 'Delivery'
+                            WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                            WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                            WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                            WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                            WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                            ELSE 'Extraction'
+                        END AS CurrentStage,
+                        wim.Priority,
+                        (
+                            SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
+                            FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                            JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
+                            WHERE wt.WorkItemID = twi.ID
+                            FOR JSON PATH
+                        ) AS TagsJSON,
+                        ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
+                    FROM {tbl_prefix}t_WorkItems twi
+                    INNER JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                    INNER JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
+                    LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
+                    WHERE {grp_where}
+                )
+                SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
+                FROM WorkitemCTE WHERE rn = 1
+                ORDER BY ModifiedAt DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            """, grp_params + [offset, per_page])
+            for row in cursor.fetchall():
+                workitems_list.append({
+                    'modifiedat': row.ModifiedAt,
+                    'workitemid': row.WorkItemID,
+                    'status': row.Status,
+                    'current_stage': row.CurrentStage,
+                    'priority': row.Priority or 0,
+                    'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
+                })
+
+        # Merge results from both servers, re-sort and trim to one page
+        workitems_list.sort(key=lambda x: x['modifiedat'], reverse=True)
+        workitems_list = workitems_list[:per_page]
+
     except Exception as e:
         app.logger.error(f"Database error in _get_workitems_data: {e}")
         raise
@@ -2376,41 +2525,62 @@ def api_docfield_values():
         if not configs:
             return jsonify([])
 
-        union_parts = []
-        sql_params = []
+        mobscan_set = set(get_mobscan_clients())
+        regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
+        mobscan_cfgs  = [c for c in configs if c.ProcessName in mobscan_set]
 
-        for config in configs:
-            tbl = config.TableName
-            col_name = getattr(config, target_col_name)
-            time_filter = config.SuggestionTimeFilter
+        cache_key = f'docfield_vals_{process}_{field}'
+        all_vals = cache.get(cache_key)
 
-            safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
+        if all_vals is None:
+            def build_union(cfg_rows):
+                parts = []
+                for config in cfg_rows:
+                    tbl = config.TableName
+                    col_name = getattr(config, target_col_name)
+                    time_filter = config.SuggestionTimeFilter
+                    safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
+                    parts.append(f"""
+                        SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
+                        FROM [{DB_STATISTICS}].{tbl}
+                        WHERE {col_name} IS NOT NULL
+                          AND {safe_col} <> ''
+                          AND {time_filter}
+                    """)
+                return parts
 
-            part = f"""
-                SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
-                FROM [{DB_STATISTICS}].{tbl}
-                WHERE {col_name} IS NOT NULL 
-                  AND {safe_col} <> ''
-                  AND {time_filter}
-            """
-            if q:
-                part += f" AND {safe_col} COLLATE DATABASE_DEFAULT LIKE ?"
-                sql_params.append(f"%{q}%")
-            
-            union_parts.append(part)
-        
-        full_union_sql = " UNION ALL ".join(union_parts)
-        
-        final_sql = f"""
-            SELECT DISTINCT TOP 15 Val 
-            FROM (
-                {full_union_sql}
-            ) t
-            ORDER BY Val
-        """
-        cur.execute(final_sql, sql_params)
-        rows = cur.fetchall()
-        results = [row.Val for row in rows]
+            raw_vals = []
+            stat_conn = None
+            try:
+                for engine, cfg_group in [
+                    (engineStatisticsDB, regular_cfgs),
+                    (engineStatisticsDBMobscan, mobscan_cfgs),
+                ]:
+                    parts = build_union(cfg_group)
+                    if not parts:
+                        continue
+                    full_union_sql = " UNION ALL ".join(parts)
+                    final_sql = f"""
+                        SELECT DISTINCT TOP 500 Val
+                        FROM ({full_union_sql}) t
+                        ORDER BY Val
+                    """
+                    stat_conn = engine.raw_connection()
+                    stat_cur = stat_conn.cursor()
+                    stat_cur.execute(final_sql)
+                    raw_vals.extend(row.Val for row in stat_cur.fetchall())
+                    stat_cur.close()
+                    stat_conn.close()
+                    stat_conn = None
+            finally:
+                if stat_conn:
+                    stat_conn.close()
+
+            all_vals = sorted(set(raw_vals))
+            cache.set(cache_key, all_vals, timeout=600)
+
+        q_lower = q.lower()
+        results = [v for v in all_vals if not q or q_lower in v.lower()][:15]
         return jsonify(results)
 
     except Exception as e:
@@ -2668,20 +2838,27 @@ def get_single_workitem(workitemid):
         if conn:
             conn.close()
 
-def get_access_token():
-    token = cache.get('octo_access_token')
+def get_access_token(domain=None):
+    if domain is None:
+        domain = OCTO_DOMAIN
+    cache_key = f'octo_access_token_{domain}'
+    token = cache.get(cache_key)
     if token:
         return token
 
-    url = 'https://prd-dps.sydoc.ch/auth/connect/token'
+    is_mobscn = domain == OCTO_DOMAIN_MOBSCN
+    client_id     = OCTO_CLIENT_ID_MOBSCN     if is_mobscn else OCTO_CLIENT_ID
+    client_secret = OCTO_CLIENT_SECRET_MOBSCN  if is_mobscn else OCTO_CLIENT_SECRET
+
+    url = f'https://{domain}/auth/connect/token'
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded"
     }
     body = {
         "grant_type": OCTO_GRANT_TYPE,
-        "client_id": OCTO_CLIENT_ID,
-        "client_secret": OCTO_CLIENT_SECRET
+        "client_id": client_id,
+        "client_secret": client_secret
     }
 
     try:
@@ -2691,15 +2868,55 @@ def get_access_token():
 
         timeout = data.get('expires_in', 3000) - 60
         token = data['access_token']
-        cache.set('octo_access_token', token, timeout=timeout)
+        cache.set(cache_key, token, timeout=timeout)
         return token
     except requests.exceptions.RequestException as e:
         print(f"Error fetching access token: {e}")
         return None
 
-def get_workitemdata_param(workitem_id):
-    url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load'
-    access_token = get_access_token()
+def get_domain_for_workitem(workitem_id):
+    """Return OCTO_DOMAIN or OCTO_DOMAIN_MOBSCN based on which server owns the workitem."""
+    cache_key = f'workitem_domain_{workitem_id}'
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    mobscan_set = set(get_mobscan_clients())
+    conn = None
+    try:
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 1 tp.ClientName + '.' + tp.Name
+            FROM t_WorkItems twi
+            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE twi.ID = ?
+        """, workitem_id)
+        row = cursor.fetchone()
+        if row and row[0] in mobscan_set:
+            domain = OCTO_DOMAIN_MOBSCN
+        elif row:
+            domain = OCTO_DOMAIN
+        else:
+            # Not found in regular OctoDB — check MOBSCAN via linked server
+            cursor.execute(f"""
+                SELECT TOP 1 1 FROM {RUNTIME_TBL_MOBSCAN}t_WorkItems WHERE ID = ?
+            """, workitem_id)
+            domain = OCTO_DOMAIN_MOBSCN if cursor.fetchone() else OCTO_DOMAIN
+        cache.set(cache_key, domain, timeout=3600)
+        return domain
+    except Exception as e:
+        app.logger.error(f"Failed to determine domain for workitem {workitem_id}: {e}")
+        return OCTO_DOMAIN
+    finally:
+        if conn: conn.close()
+
+def get_workitemdata_param(workitem_id, domain=None):
+    if domain is None:
+        domain = OCTO_DOMAIN
+    url = f'https://{domain}/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load'
+    access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -2733,9 +2950,11 @@ def get_index_field_mappings():
             
     return mapping
 
-def get_extensions_urls_fields(workitemdata, document_id):
-    url = f'https://prd-dps.sydoc.ch/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
-    access_token = get_access_token()
+def get_extensions_urls_fields(workitemdata, document_id, domain=None):
+    if domain is None:
+        domain = OCTO_DOMAIN
+    url = f'https://{domain}/api/documentservice/api/v2.1/documentService/thin/Document/{document_id}?WithExtensions=false&WithDocumentStructure=true&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true'
+    access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -2781,8 +3000,10 @@ def get_extensions_urls_fields(workitemdata, document_id):
                     fields[target_key] = field_value
     return extensions, urls, fields
 
-def get_media(url):
-    access_token = get_access_token()
+def get_media(url, domain=None):
+    if domain is None:
+        domain = OCTO_DOMAIN
+    access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -2808,12 +3029,13 @@ def api_get_media_info(workitem_id):
                 response_data['fields'] = {}
             return jsonify(response_data)
 
-        returndata = get_workitemdata_param(workitem_id)
+        domain = get_domain_for_workitem(workitem_id)
+        returndata = get_workitemdata_param(workitem_id, domain)
         if not returndata:
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
+        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
 
         media_count = len(urls) if urls else 0
 
@@ -2843,14 +3065,15 @@ def api_get_media_info(workitem_id):
 @require_permission('workitems.details.view.images')
 def api_get_media_raw(workitem_id, media_index):
     try:
+        domain = get_domain_for_workitem(workitem_id)
         media_data = cache.get(f"media_data_{workitem_id}")
         if not media_data:
-            returndata = get_workitemdata_param(workitem_id)
+            returndata = get_workitemdata_param(workitem_id, domain)
             if not returndata:
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id)
+            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
             media_data = {'extensions': extensions, 'urls': urls}
             cache.set(f"media_data_{workitem_id}", media_data)
 
@@ -2862,7 +3085,7 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
-        raw_media_bytes = get_media(target_url)
+        raw_media_bytes = get_media(target_url, domain)
 
         if target_extension == '.jpg':
             mimetype = 'image/jpeg'
@@ -2900,9 +3123,11 @@ def api_get_media_raw(workitem_id, media_index):
         return Response(_("Internal Server Error"), status=500)
 
 @cache.memoize()
-def get_activity_type_name(activity_instance_id: str) -> str:
-    activity_instances_url = f'https://prd-dps.sydoc.ch/api/configurationservice/api/v2.1/configservice/ActivityInstances/{activity_instance_id}'
-    access_token = get_access_token()
+def get_activity_type_name(activity_instance_id: str, domain: str = None) -> str:
+    if domain is None:
+        domain = OCTO_DOMAIN
+    activity_instances_url = f'https://{domain}/api/configurationservice/api/v2.1/configservice/ActivityInstances/{activity_instance_id}'
+    access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
@@ -2920,8 +3145,9 @@ def get_activity_type_name(activity_instance_id: str) -> str:
 @require_permission('workitems.details.view.audit') 
 def get_audithistory(workitem_id):
     try:
-        audit_url = f'https://prd-dps.sydoc.ch/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
-        access_token = get_access_token()
+        domain = get_domain_for_workitem(workitem_id)
+        audit_url = f'https://{domain}/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
+        access_token = get_access_token(domain)
         headers = {"Authorization": f"Bearer {access_token}"}
 
         response = requests.get(url=audit_url, headers=headers, timeout=10)
@@ -2939,7 +3165,7 @@ def get_audithistory(workitem_id):
         total_steps = len(unique_activities)
 
         for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
-            activity_name = get_activity_type_name(activity_id)
+            activity_name = get_activity_type_name(activity_id, domain)
 
             step_info = {
                 "Activity": activity_name,
@@ -4176,39 +4402,59 @@ def api_recent_activity():
     try:
         prefix = "dashboard.filter.process."
         process_name = session.get('process_name_dashboard', 'all')
-        
-        params, process_placeholders, client_placeholders = prepare_process_selection_sql(
-            prefix=prefix, 
-            process_name=process_name
+
+        perms = session.get('permissions', [])
+        allowed_processes = sorted({
+            (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+            for perm in perms if perm.startswith(prefix)
+        })
+        target_processes = allowed_processes if process_name == 'all' else (
+            [process_name] if process_name in allowed_processes else []
         )
-        
+
+        if not target_processes:
+            return jsonify([])
+
+        regular_procs, mobscan_procs = split_processes_by_server(target_processes)
+
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         activityinstancesToIgnore = get_activityinstancesToIgnore()
-        query = f"""
-            SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
-            FROM t_WorkItems twi
-            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE twi.Status <> 2
-              AND tp.Name IN ({process_placeholders}) 
-              AND tp.ClientName IN ({client_placeholders})
-              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-            ORDER BY twi.ModifiedAt DESC
-        """
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        
+
+        raw_rows = []  # list of (row, domain)
+        for tbl_prefix, procs, domain in [
+            ("", regular_procs, OCTO_DOMAIN),
+            (RUNTIME_TBL_MOBSCAN, mobscan_procs, OCTO_DOMAIN_MOBSCN),
+        ]:
+            if not procs:
+                continue
+            p_params, p_ph, c_ph = get_params_from_process_list(procs)
+            query = f"""
+                SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
+                FROM {tbl_prefix}t_WorkItems twi
+                JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
+                WHERE twi.Status <> 2
+                  AND tp.Name IN ({p_ph})
+                  AND tp.ClientName IN ({c_ph})
+                  AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+                ORDER BY twi.ModifiedAt DESC
+            """
+            cursor.execute(query, p_params)
+            raw_rows.extend((row, domain) for row in cursor.fetchall())
+
+        raw_rows.sort(key=lambda x: x[0].ModifiedAt, reverse=True)
+
         activity = []
-        for row in rows:
-            workitemdata, doc_id = get_workitemdata_param(row.ID)
-            _, _, fields = get_extensions_urls_fields(workitemdata, doc_id)
+        for row, domain in raw_rows[:3]:
+            workitemdata, doc_id = get_workitemdata_param(row.ID, domain)
+            _, _, fields = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
             activity.append({
                 "id": row.ID,
                 "time": row.ModifiedAt.strftime('%H:%M'),
                 "process": row.ProcessName,
-                "fields": fields 
+                "fields": fields
             })
 
         return jsonify(activity)
