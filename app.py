@@ -351,10 +351,33 @@ def init_2FA():
                     WHERE userid = ?
                 """, (secret, user_id))
                 conn.commit()
-                
+
+                cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
+                row = cursor.fetchone()
+
+                if not row:
+                    return redirect(url_for('login'))
+
+                username, fullname, email, org_code = row
                 session.pop('temp_2fa_secret', None)
                 create_notification(user_id, _("2FA enabled successfully"), icon='fa-shield-halved')
-                return redirect(url_for('login'))
+
+                session.clear() 
+                session['userid'] = user_id
+                session['username'] = username
+                session['fullname'] = fullname
+                session['email'] = email
+                session['organizationcode'] = org_code
+                session['uuid'] = uuid.uuid4()
+                session['permissions'] = load_permissions_for_user(str(user_id))
+                pV = pageVisability()
+                if not pV['dashboardPagePerm']:
+                    if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
+                    # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
+                    elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
+                    elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
+                    else: return redirect(url_for('login')) 
+                return redirect(url_for('dashboard')) 
             except Exception as e:
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
@@ -408,7 +431,7 @@ def verify_2fa():
                 # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
                 elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
                 elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
-                else: redirect(url_for('login')) 
+                else: return redirect(url_for('login')) 
             return redirect(url_for('dashboard')) 
         else:
             flash(_("Invalid code"), "error")
