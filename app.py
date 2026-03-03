@@ -2089,6 +2089,7 @@ def dashboard():
         logged_in_user = session.get('username', 'Unknown')
         userid = session.get('userid', 'Unknown')
         perms = session.get('permissions', [])
+        fullname = session.get('fullname')
 
         prefix = "dashboard.filter.process."
         allowed_processes = sorted({
@@ -2109,7 +2110,8 @@ def dashboard():
             userid=userid,
             process_name=process_name,
             allowed_processes=allowed_processes,  
-            pageV=pageVisability()
+            pageV=pageVisability(),
+            fullname=fullname
         )
     except Exception as e:
         return render_template('500.html')

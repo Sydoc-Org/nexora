@@ -55,6 +55,7 @@
         text-decoration: none;
       }
       body {
+        font-family: "Inter", sans-serif;
         background-color: #f9fafb;
       }
 
@@ -365,9 +366,9 @@
 }
 
 #workitemsTable thead th {
-    background-color: #fcfdfe;
+    background-color: #f9fafb;
     border-bottom: 1px solid #f1f5f9;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.5rem;
 }
 
 .workitem-row {
@@ -404,11 +405,11 @@
 }
 
 .details-content-wrapper {
-    background-color: #f8fafc; 
+    background-color: #f8fafc;
 }
 
 .details-content-wrapper > div {
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     border: none;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+    box-shadow: none;
 }
