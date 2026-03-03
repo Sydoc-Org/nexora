@@ -1,0 +1,53 @@
+<div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center transform scale-95 transition-transform duration-300 ease-in-out">
+        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <i class="fas fa-exclamation-triangle fa-lg text-red-600"></i>
+        </div>
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4" id="confirmTitle">{{ _("Delete process") }}</h3>
+        <div class="mt-2">
+            <p class="text-sm text-gray-500" id="confirmMessage">
+            </p>
+        </div>
+        <div class="mt-6 flex justify-center space-x-4">
+            <button id="cancelBtn" type="button" class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md">
+                {{ _("Cancel") }}
+            </button>
+            <button id="confirmBtn" type="button" class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+                {{ _("Confirm") }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="processModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out"
+    onclick="closeModal(event)">
+    <div
+        class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300 ease-in-out">
+        <h3 id="modalTitle" class="text-2xl font-bold mb-4">{{ _("Add a new process") }}</h3>
+        <form id="processForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+             <input type="hidden" id="processcode" name="processcode">
+            <div class="space-y-4">
+                <div>
+                    <label for="clientname" class="block mb-1 text-sm font-medium">{{ _("Client Name") }}</label>
+                    <input type="text" id="clientname" name="clientname"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        disabled>
+                </div>
+                <div>
+                     <label for="processname" class="block mb-1 text-sm font-medium">{{ _("Process Name") }}</label>
+                    <input type="text" id="processname" name="processname"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        disabled>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button type="button" onclick="closeModal()"
+                    class="text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2">{{ _("Cancel") }}</button>
+                <button type="submit"
+                    class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">{{ _("Save process") }}</button>
+            </div>
+        </form>
+    </div>
+</div>

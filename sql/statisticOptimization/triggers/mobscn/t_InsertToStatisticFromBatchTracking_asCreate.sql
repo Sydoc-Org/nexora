@@ -7,7 +7,7 @@ after INSERT
 as BEGIN
     set NOCOUNT on;
 
-    INSERT Into SYDOC_Statistik.dbo.BankWIR
+    INSERT Into SYDOC_Statistik.dbo.MOBSCN_CLIENT
         (
         WorkItemID,
         PID,

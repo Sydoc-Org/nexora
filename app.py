@@ -668,6 +668,24 @@ def admin_dashboard():
                          logged_in_user=session.get('username'), 
                          userid=session.get('userid'), pageV=pageVisability())
 
+@app.route("/admin/mobscn_processmanagement")
+@require_permission('admin.view.mobscn.processmanagement')
+def admin_mobscn_processmanagement():
+    try:
+        conn = engineOctoDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            select ClientName, Name from [VM-SQLS-MOBSCAN].RuntimeDatabase.dbo.t_Processes where name <> 'System'
+        """)
+        rows = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        return render_template("admin/mobscn_processmanagement.html", rows=rows, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Failed to fetch mobscn_processmanagement: {e}")
+        return render_template('500.html')
+    finally:
+            if cursor: cursor.close()
+            if conn: conn.close()
+
 
 @app.route("/admin/organizations")
 @require_permission('admin.view.organizations')
@@ -1615,7 +1633,6 @@ def get_process_filter_and_params(process_name):
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 
-
 def get_mobscan_clients():
     cache_key = 'mobscan_client_list'
     clients = cache.get(cache_key)
@@ -1634,6 +1651,7 @@ def get_mobscan_clients():
         app.logger.error(f"Failed to fetch Mobscan clients: {e}")
         return []
     finally:
+        if cursor: cursor.close()
         if conn: conn.close()
 
 def split_processes_by_server(process_list):
@@ -1854,7 +1872,8 @@ def dashboard_kpi_stats():
                 SELECT COUNT(*) FROM {tbl_prefix}t_WorkItems w
                 LEFT JOIN {tbl_prefix}t_ActivityInstances a on a.id = w.ActivityInstanceID
                 LEFT JOIN {tbl_prefix}t_Processes p on p.id = a.ProcessID
-                WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND a.ActivityInstanceName = 'C+A';
+                LEFT JOIN {tbl_prefix}t_ActivityTypes act on act.id = a.ActivityTypeID
+                WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND act.Name = 'C+A';
             """, p_params)
             current_backlog += cursor_octo.fetchone()[0]
 
@@ -2439,7 +2458,7 @@ def _get_workitems_data(args):
                             WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
                             WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
                             WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                            WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
+                            WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
                             ELSE 'Extraction'
                         END AS CurrentStage,
                         wim.Priority,

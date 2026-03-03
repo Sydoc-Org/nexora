@@ -31,7 +31,7 @@
                     <nav class="hidden items-center gap-1 lg:flex">
                         {% set nav_items = [
                         {'perm': pageV.adminPagePerm, 'url': url_for('admin_dashboard'), 'label': _('Admin'), 'active':
-                        active_page in ['adminOverview', 'userManagement', 'organizations']},
+                        active_page in ['adminOverview', 'userManagement', 'organizations', 'mobscan_management']},
                         {'perm': pageV.chatPagePerm, 'url': url_for('chat_page'), 'label': _('Chat'), 'active':
                         active_page == 'chat'},
                         {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'), 'label': _('Dashboard'),
