@@ -31,18 +31,17 @@
                     <nav class="hidden items-center gap-1 lg:flex">
                         {% set nav_items = [
                         {'perm': pageV.adminPagePerm, 'url': url_for('admin_dashboard'), 'label': _('Admin'), 'active':
-                        active_page in ['adminOverview', 'userManagement', 'organizations']},
+                        active_page in ['adminOverview', 'userManagement', 'organizations', 'mobscan_management']},
                         {'perm': pageV.chatPagePerm, 'url': url_for('chat_page'), 'label': _('Chat'), 'active':
                         active_page == 'chat'},
                         {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'), 'label': _('Dashboard'),
                         'active': active_page == 'dashboard'},
                         {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'), 'label': _('Workitems'),
                         'active': active_page == 'workitems_overview'},
-                        {'perm': pageV.teamboardPagePerm, 'url': url_for('team_board'), 'label': _('Team Board'),
-                        'active': active_page == 'teamboard'},
                         {'perm': pageV.invoicesPagePerm, 'url': url_for('invoices'), 'label': _('Invoices'), 'active':
                         active_page == 'invoices'}
                         ] %}
+                        <!-- {'perm': pageV.teamboardPagePerm, 'url': url_for('team_board'), 'label': _('Team Board'), 'active': active_page == 'teamboard'}, -->
 
                         {% for item in nav_items %}
                         {% if item.perm %}
@@ -58,10 +57,10 @@
 
                 <div class="flex items-center gap-2 sm:gap-4">
                     <div class="flex items-center border-r border-gray-200 pr-4 gap-1">
-                        <button id="help-tour-button" class="group p-2 rounded-full hover:bg-gray-100 transition-all"
+                        <!-- <button id="help-tour-button" class="group p-2 rounded-full hover:bg-gray-100 transition-all"
                             title="{{ _('Start Tour') }}">
                             <i class="fas fa-question-circle text-lg text-gray-400 group-hover:text-indigo-600"></i>
-                        </button>
+                        </button> -->
 
                         <div class="relative" id="notification-dropdown-container">
                             <button id="bell-button"

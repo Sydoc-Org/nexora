@@ -1090,10 +1090,10 @@ async function uploadBatchFiles(files, processName) {
 
                 workitems.forEach(workitem => {
                     const statusBadge = {
-                        'Ready': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ready</span>',
-                        'In Progress': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>',
-                        'Done': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Done</span>',
-                    }[workitem.status] || `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${workitem.status}</span>`;
+                        'Ready': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
+                        'In Progress': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 tracking-wide">In Progress</span>',
+                        'Done': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
+                    }[workitem.status] || `<span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 tracking-wide">${workitem.status}</span>`;
 
                     let priorityIcon = '';
                     if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
@@ -1104,7 +1104,7 @@ async function uploadBatchFiles(files, processName) {
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
                         <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div> </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
@@ -1120,8 +1120,8 @@ async function uploadBatchFiles(files, processName) {
                       <td colspan="6">
                         <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
 
-                            <div id="timeline-container-${workitem.workitemid}" 
-                                class="relative bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200"
+                            <div id="timeline-container-${workitem.workitemid}"
+                                class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100"
                                 data-current-stage="${workitem.current_stage}"
                                 data-status="${workitem.status}">
                                 <div class="relative flex justify-between items-center">
@@ -1162,13 +1162,13 @@ async function uploadBatchFiles(files, processName) {
           
                       {% if details_images_perm %}
                       <div id="image-container-${workitem.workitemid}"
-                        class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed rounded-lg bg-white">
+                        class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
                         <p class="text-gray-500 text-center px-2">
                           {{ _("Click toggle button again to load media") }}
                         </p>
                       </div>
                       {% else %}
-                      <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-200 rounded-lg bg-gray-50">
+                      <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50">
                         <div class="text-center">
                             <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
                             <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
@@ -1176,8 +1176,8 @@ async function uploadBatchFiles(files, processName) {
                       </div>
                       {% endif %}
 
-                      <div class="flex-1 flex flex-col bg-white rounded-lg p-4 overflow-hidden">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                      <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
+                        <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
                           {{ _('History') }}
                         </h4>
                         {% if details_audit_perm %}
@@ -1192,8 +1192,8 @@ async function uploadBatchFiles(files, processName) {
                       </div>
                     </div>
 
-                      <div class="flex flex-col bg-white rounded-lg p-4 h-[50rem] overflow-y-auto">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                      <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
                       {{ _('Document Details') }}
                     </h4>
                     {% if details_fields_perm %}
@@ -1209,8 +1209,8 @@ async function uploadBatchFiles(files, processName) {
                     </div>
 
 
-                          <div class="flex-1 flex flex-col bg-white rounded-lg p-4">
-                            <h4 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">{{ _('Collaboration') }}</h4>
+                          <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div class="flex flex-col">
                                 <div id="comments-container-${workitem.workitemid}"
@@ -1243,7 +1243,7 @@ async function uploadBatchFiles(files, processName) {
 
 
                         <div class="mb-4">
-                          <label class="text-sm font-medium text-gray-700">{{ _("Tags") }}</label>
+                          <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
                           <div class="flex items-center gap-2">
                             <input type="text" id="tag-input-${workitem.workitemid}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
                               class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
@@ -1379,18 +1379,18 @@ async function uploadBatchFiles(files, processName) {
 
                 if (totalPages <= 1) return;
 
-                const prevDisabled = currentPage === 1 ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
-                const nextDisabled = currentPage === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50';
+                const prevDisabled = currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+                const nextDisabled = currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
 
                 const paginationHtml = `
-                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${prevDisabled}">
-                    <i class="fas fa-chevron-left mr-1"></i> {{ _("Previous") }}
+                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${prevDisabled}">
+                    <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
                 </a>
-                <span class="text-sm text-gray-600">
-                    {{ _("Page") }} ${currentPage} of ${totalPages}
+                <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">
+                    ${currentPage} / ${totalPages}
                 </span>
-                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-3 py-1 border rounded-lg text-sm transition-colors ${nextDisabled}">
-                    Next <i class="fas fa-chevron-right ml-1"></i>
+                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${nextDisabled}">
+                    {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
                 </a>
             `;
                 controlsContainer.innerHTML = paginationHtml;

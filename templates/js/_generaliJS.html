@@ -1,0 +1,42 @@
+ <script>
+    async function loadStats() {
+        const response = await fetch('/api/generali/stats');
+        const data = await response.json();
+        if (!data.success) return;
+
+        document.getElementById('kpi-total').innerText = data.kpis.total_docs.toLocaleString();
+        document.getElementById('kpi-nk1').innerText = data.kpis.nk1_rate + '%';
+        document.getElementById('kpi-nk2').innerText = data.kpis.nk2_rate + '%';
+        document.getElementById('kpi-time').innerText = data.kpis.avg_time;
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: data.trend.labels,
+                datasets: [{
+                    label: 'Processed Documents',
+                    data: data.trend.values,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        new Chart(document.getElementById('distChart'), {
+            type: 'doughnut',
+            data: {
+                labels: data.distribution.labels,
+                datasets: [{
+                    data: data.distribution.values,
+                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f43f5e']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStats);
+  </script>
