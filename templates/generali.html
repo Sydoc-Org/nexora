@@ -2,52 +2,127 @@
 <html lang="{{ get_locale }}">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Generali Evaluation - nexora") }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/dashboard.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 <body class="bg-gray-50 text-gray-800">
   {% set active_page = 'generali' %} {% include '_header.html' %}
 
   <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ _("Generali Data Evaluation") }}</h2>
-      <p class="text-gray-600">{{ _("Generali Analysis.") }}</p>
+
+    <!-- Page Header -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-800 mb-1">{{ _("Generali Data Evaluation") }}</h2>
+        <p class="text-gray-500 font-medium">{{ _("Analytics dashboard for document processing") }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('generali_documents') }}"
+           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+          <i class="fas fa-table-list"></i>{{ _("Document List") }}
+        </a>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">{{ _("Total Documents") }}</p>
-            <p class="text-3xl font-bold text-indigo-600" id="kpi-total">0</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">{{ _("NK1 Success Rate") }}</p>
-            <p class="text-3xl font-bold text-emerald-500" id="kpi-nk1">0%</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">{{ _("NK2 Success Rate") }}</p>
-            <p class="text-3xl font-bold text-amber-500" id="kpi-nk2">0%</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">{{ _("Avg. Process Time") }}</p>
-            <p class="text-3xl font-bold text-blue-500"><span id="kpi-time">0</span> min</p>
-        </div>
+    <!-- Date Range Filter -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-end gap-4">
+      <div>
+        <label for="filterStartDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From") }}</label>
+        <input type="datetime-local" id="filterStartDate"
+               class="h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+      <div>
+        <label for="filterEndDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To") }}</label>
+        <input type="datetime-local" id="filterEndDate"
+               class="h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+      <button id="applyDateFilter"
+              class="h-10 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+        <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
+      </button>
+      <button id="resetDateFilter"
+              class="h-10 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+        {{ _("Reset") }}
+      </button>
+      <div id="statsLoader" class="hidden ml-2">
+        <i class="fas fa-spinner fa-spin text-indigo-500 text-lg"></i>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 class="text-lg font-bold mb-4"><i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Processing Volume Trend") }}</h3>
-            <div class="h-80"><canvas id="trendChart"></canvas></div>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 class="text-lg font-bold mb-4"><i class="fas fa-chart-pie mr-2 text-indigo-500"></i>{{ _("Document Type Distribution") }}</h3>
-            <div class="h-80"><canvas id="distChart"></canvas></div>
-        </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Documents") }}</p>
+        <p class="text-3xl font-bold text-indigo-600" id="kpi-total">—</p>
+      </div>
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK1 Pass Rate") }}</p>
+        <p class="text-3xl font-bold text-emerald-500" id="kpi-nk1">—</p>
+      </div>
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK2 Pass Rate") }}</p>
+        <p class="text-3xl font-bold text-amber-500" id="kpi-nk2">—</p>
+      </div>
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Avg Daily Documents") }}</p>
+        <p class="text-3xl font-bold text-purple-500" id="kpi-avg">—</p>
+      </div>
     </div>
+
+    <!-- Charts Row 1 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Daily Processing Volume") }}
+        </h3>
+        <div class="h-64"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-chart-pie mr-2 text-indigo-500"></i>{{ _("Document Type Distribution") }}
+        </h3>
+        <div class="h-64"><canvas id="doctypeChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-users mr-2 text-indigo-500"></i>{{ _("Recipient Distribution") }}
+        </h3>
+        <div class="h-64"><canvas id="empfaengerChart"></canvas></div>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-shield-check mr-2 text-indigo-500"></i>{{ _("NK1 / NK2 Quality Control") }}
+        </h3>
+        <div class="h-64"><canvas id="nkChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts Row 3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-language mr-2 text-indigo-500"></i>{{ _("Language Distribution") }}
+        </h3>
+        <div class="h-64"><canvas id="languageChart"></canvas></div>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <i class="fas fa-inbox mr-2 text-indigo-500"></i>{{ _("Entry Channel") }}
+        </h3>
+        <div class="h-64"><canvas id="channelChart"></canvas></div>
+      </div>
+    </div>
+
   </main>
 
   {% include 'js/_generaliJS.html' %}
-
 </body>
 </html>

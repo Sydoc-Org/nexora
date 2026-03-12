@@ -83,16 +83,11 @@
 
     async function updateKpiStats() {
         try {
-            const response = await fetch(`${API_PREFIX}api/dashboard/kpi_stats`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
+            const [response, apt_response] = await Promise.all([
+                fetch(`${API_PREFIX}api/dashboard/kpi_stats`, {headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}}),
+                fetch(`${API_PREFIX}api/dashboard/avg_processing_time`, {headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}})
+            ]);
             const stats = await response.json();
-
-            const apt_response = await fetch(`${API_PREFIX}api/dashboard/avg_processing_time`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }});
             const apt = await apt_response.json();
             const re = /h|min|s/g;
             let avg_display = apt.avg_display;
