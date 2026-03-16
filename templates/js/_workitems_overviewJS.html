@@ -968,11 +968,21 @@ async function uploadBatchFiles(files, processName) {
     }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Init combobox interaction for existing doc field rows
+            document.querySelectorAll('.doc-field-combobox').forEach(initDocFieldCombobox);
+
             fetchPageInitData().then(() => {
                 const process = document.getElementById('prcfW')?.value || 'all';
-                document.querySelectorAll('.doc-filter-field').forEach(sel => fillDocFieldSelect(sel, process));
+                document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, process));
             });
             fetchDocFieldValues();
+
+            // Load initial workitems client-side (read page from URL to support direct links)
+            const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+            fetchAndUpdateWorkitems(_initPage);
+
+            // Prevent full-page form submit fallback
+            document.getElementById('filterForm')?.addEventListener('submit', e => e.preventDefault());
 
             const filterForm = document.getElementById('filterForm');
             const docFieldSel = document.getElementById('docFieldFilter');
@@ -1006,8 +1016,8 @@ async function uploadBatchFiles(files, processName) {
                     fieldConfig = data;
 
                     const process = document.getElementById('prcfW')?.value || 'all';
-                    document.querySelectorAll('.doc-filter-field').forEach(sel => {
-                        fillDocFieldSelect(sel, process);
+                    document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => {
+                        fillDocFieldSelect(hiddenInput, process);
                     });
 
                 } catch (e) {
@@ -1015,34 +1025,88 @@ async function uploadBatchFiles(files, processName) {
                 }
             }
             
-            function fillDocFieldSelect(selectEl, process) {
-                const previousValue = selectEl.value || selectEl.getAttribute('data-selected');
-
-                selectEl.innerHTML = '';
+            function fillDocFieldSelect(hiddenInput, process) {
+                const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
                 let fields = [];
-                
+
                 if (process === 'all') {
                     const allFieldsMap = new Map();
                     Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
-                    fields = Array.from(allFieldsMap.values()).sort((a,b) => a.label.localeCompare(b.label));
+                    fields = Array.from(allFieldsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
                 } else {
                     fields = fieldConfig.search_options[process] || [];
                 }
-                
+
+                hiddenInput._docFieldOptions = fields;
+
+                const wrapper = hiddenInput.closest('.doc-field-combobox');
+                const searchInput = wrapper?.querySelector('.doc-filter-field-search');
+
                 if (fields.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.textContent = "{{ _('No fields available') }}";
-                    selectEl.appendChild(opt);
-                } else {
-                    fields.forEach(field => {
-                        const opt = document.createElement('option');
-                        opt.value = field.value;
-                        opt.textContent = field.label;
-                        // Re-select if the value matches the one we captured
-                        if (field.value === previousValue) opt.selected = true;
-                        selectEl.appendChild(opt);
-                    });
+                    hiddenInput.value = '';
+                    if (searchInput) { searchInput.value = ''; searchInput.placeholder = "{{ _('No fields available') }}"; }
+                    return;
                 }
+
+                const match = fields.find(f => f.value === selectedValue);
+                const selected = match || fields[0];
+                hiddenInput.value = selected.value;
+            }
+
+            function initDocFieldCombobox(wrapper) {
+                const searchInput = wrapper.querySelector('.doc-filter-field-search');
+                const hiddenInput = wrapper.querySelector('.doc-filter-field');
+                const dropdown = wrapper.querySelector('.doc-field-dropdown');
+                if (!searchInput || !hiddenInput || !dropdown) return;
+
+                function renderDropdown(query) {
+                    const options = hiddenInput._docFieldOptions || [];
+                    const q = (query || '').toLowerCase().trim();
+                    const filtered = q
+                        ? options.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
+                        : options;
+                    dropdown.innerHTML = '';
+                    if (filtered.length === 0) {
+                        const div = document.createElement('div');
+                        div.className = 'px-4 py-2 text-sm text-gray-500 italic';
+                        div.textContent = 'No results';
+                        dropdown.appendChild(div);
+                    } else {
+                        filtered.forEach(f => {
+                            const div = document.createElement('div');
+                            const isSelected = f.value === hiddenInput.value;
+                            div.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50' +
+                                (isSelected ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-700');
+                            div.textContent = f.label;
+                            div.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                hiddenInput.value = f.value;
+                                hiddenInput._userSelected = true;
+                                searchInput.value = f.label;
+                                dropdown.classList.add('hidden');
+                                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            dropdown.appendChild(div);
+                        });
+                    }
+                    dropdown.classList.remove('hidden');
+                }
+
+                searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        dropdown.classList.add('hidden');
+                        if (hiddenInput._userSelected) {
+                            // Restore the selected field's label
+                            const opts = hiddenInput._docFieldOptions || [];
+                            const current = opts.find(f => f.value === hiddenInput.value);
+                            if (current) searchInput.value = current.label;
+                        } else {
+                            searchInput.value = '';
+                        }
+                    }, 150);
+                });
             }
 
             function addDocFilterRow() {
@@ -1051,8 +1115,10 @@ async function uploadBatchFiles(files, processName) {
                 const process = document.getElementById('prcfW')?.value || 'all';
                 if (!tpl || !container) return;
                 const node = tpl.content.firstElementChild.cloneNode(true);
-                const select = node.querySelector('.doc-filter-field');
-                fillDocFieldSelect(select, process);
+                const hiddenInput = node.querySelector('.doc-filter-field');
+                fillDocFieldSelect(hiddenInput, process);
+                const combo = node.querySelector('.doc-field-combobox');
+                if (combo) initDocFieldCombobox(combo);
                 container.appendChild(node);
             }
 
@@ -1115,7 +1181,7 @@ async function uploadBatchFiles(files, processName) {
                 const procSel = document.getElementById('prcfW');
                 if (procSel) {
                     procSel.addEventListener('change', () => {
-                        container.querySelectorAll('.doc-filter-field').forEach(sel => fillDocFieldSelect(sel, procSel.value));
+                        container.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, procSel.value));
                     });
                 }
             })();
@@ -1236,9 +1302,13 @@ async function uploadBatchFiles(files, processName) {
             async function fetchAndUpdateWorkitems(page = 1) {
                 const tbody = document.getElementById('workitemsTbody');
                 const filterForm = document.getElementById('filterForm');
-                const formData = new FormData(filterForm);
-                formData.set('page', page);
-                const params = new URLSearchParams(formData);
+                const params = new URLSearchParams();
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    params.append(el.name, el.value);
+                }
+                params.set('page', page);
                 const url = `${API_PREFIX}api/workitems?${params.toString()}`;
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);

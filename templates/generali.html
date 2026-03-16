@@ -54,18 +54,22 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Documents") }}</p>
         <p class="text-3xl font-bold text-indigo-600" id="kpi-total">—</p>
       </div>
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK1 Pass Rate") }}</p>
-        <p class="text-3xl font-bold text-emerald-500" id="kpi-nk1">—</p>
+        <p class="text-3xl font-bold" id="kpi-nk1">—</p>
       </div>
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK2 Pass Rate") }}</p>
-        <p class="text-3xl font-bold text-amber-500" id="kpi-nk2">—</p>
+        <p class="text-3xl font-bold" id="kpi-nk2">—</p>
+      </div>
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK1 & NK2 Pass Rate") }}</p>
+        <p class="text-3xl font-bold text-amber-500" id="kpi-nk1_nk2">—</p>
       </div>
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Avg Daily Documents") }}</p>
@@ -73,7 +77,6 @@
       </div>
     </div>
 
-    <!-- Charts Row 1 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">

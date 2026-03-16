@@ -45,15 +45,22 @@
             if (!data.success) { console.error(data.error); return; }
 
             document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
-            document.getElementById('kpi-nk1').textContent = data.kpis.nk1_rate + '%';
-            document.getElementById('kpi-nk2').textContent = data.kpis.nk2_rate + '%';
+            
+            const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
+            const setRate = (id, rate) => {
+                const el = document.getElementById(id);
+                el.textContent = rate + '%';
+                el.className = el.className.replace(/text-(emerald|amber|red)-500/g, '') + ' ' + rateColor(rate);
+            };
+            setRate('kpi-nk1', data.kpis.nk1_rate);
+            setRate('kpi-nk2', data.kpis.nk2_rate);
+            setRate('kpi-nk1_nk2', data.kpis.nk1_nk2_rate);
             document.getElementById('kpi-avg').textContent = data.kpis.avg_daily.toLocaleString();
 
             destroyCharts();
 
             const chartDefaults = { responsive: true, maintainAspectRatio: false };
 
-            // Trend chart
             charts.trend = new Chart(document.getElementById('trendChart'), {
                 type: 'line',
                 data: {
@@ -72,7 +79,6 @@
                 options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
             });
 
-            // Doc type doughnut
             charts.doctype = new Chart(document.getElementById('doctypeChart'), {
                 type: 'doughnut',
                 data: {
@@ -82,7 +88,6 @@
                 options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
 
-            // Empfänger bar (horizontal)
             charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
                 type: 'bar',
                 data: {
@@ -102,7 +107,6 @@
                 }
             });
 
-            // NK stacked bar
             const nkLabels = [...new Set(data.nk.map(r => r.nk1))];
             const nk2Values = [...new Set(data.nk.map(r => r.nk2))];
             const nkDatasets = nk2Values.map((nk2val, i) => ({
@@ -124,7 +128,6 @@
                 }
             });
 
-            // Language doughnut
             charts.language = new Chart(document.getElementById('languageChart'), {
                 type: 'doughnut',
                 data: {
@@ -134,7 +137,6 @@
                 options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
 
-            // Channel bar
             charts.channel = new Chart(document.getElementById('channelChart'), {
                 type: 'bar',
                 data: {

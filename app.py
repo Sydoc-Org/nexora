@@ -2339,6 +2339,7 @@ def _get_workitems_data(args):
     regular_extra_params = []
     mobscan_extra_clauses = []
     mobscan_extra_params = []
+    _docfield_temp_tables = []  # [(temp_name, [ids])] for large ID sets
 
     if has_permission('workitems.filter.documentfields') and target_processes:
         valid_db_columns = get_valid_search_columns()
@@ -2427,6 +2428,11 @@ def _get_workitems_data(args):
                         continue  # skip this filter on error; don't restrict results
                     if not matching_ids:
                         extra_clauses.append("1=0")
+                    elif len(matching_ids) > 500:
+                        # Avoid SQL Server's 2100-param limit by using a temp table
+                        temp_name = f"#docf{len(_docfield_temp_tables)}"
+                        _docfield_temp_tables.append((temp_name, matching_ids))
+                        extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
                     else:
                         ph = ','.join(['?'] * len(matching_ids))
                         extra_clauses.append(f"twi.ID IN ({ph})")
@@ -2452,6 +2458,16 @@ def _get_workitems_data(args):
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
+
+        # Create temp tables for large docfield ID sets (avoids 2100-param limit)
+        for temp_name, ids in _docfield_temp_tables:
+            cursor.execute(f"CREATE TABLE {temp_name} (id NVARCHAR(255))")
+            for i in range(0, len(ids), 1000):
+                batch = ids[i:i + 1000]
+                cursor.execute(
+                    f"INSERT INTO {temp_name}(id) VALUES {','.join(['(?)'] * len(batch))}",
+                    batch
+                )
 
         # --- count pass ---
         for tbl_prefix, procs, extra_cls, extra_pms in [
@@ -2679,11 +2695,6 @@ def workitems_overview():
         logged_in_user = session.get('username')
         userid = session.get('userid')
 
-        data = _get_workitems_data(request.args)
-
-        workitems_list = data['workitems']
-        pagination = data['pagination']
-
         search_term_perm = has_permission('workitems.filter.workitemid')
         search_term = request.args.get('search', '').strip() if search_term_perm else None
 
@@ -2736,10 +2747,6 @@ def workitems_overview():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
-            workitems=workitems_list,
-            current_page=pagination['currentPage'],
-            total_pages=pagination['totalPages'],
-            total_items=pagination['totalItems'],
             search=search_term,
             status=status,
             tag=tag_filter,
@@ -3251,7 +3258,7 @@ def get_audithistory(workitem_id):
     except Exception as e:
         return jsonify({"error": f"{_('An unexpected error occurred')}: {e}"}), 500
 
-# ------------------------ workitem collaboration apis ----------------------- #
+# ------------------------ workitem collaboration apis s----------------------- #
 @app.route('/api/users')
 def get_users_for_mentions():
     if 'username' not in session:
@@ -4523,8 +4530,8 @@ def upload_chat_file(conversation_id):
 
 # ----------------------------- Generali Evaluation -------------------------- #
 
-@app.route("/generali")
-@require_permission('generali.view')
+@app.route("/generali-dashboard")
+@require_permission('generali.dashboard.view')
 def generali_evaluation():
     try:
         if 'username' not in session:
@@ -4538,7 +4545,7 @@ def generali_evaluation():
         return render_template('handlers/500.html'), 500
 
 @app.route("/generali/documents")
-@require_permission('generali.view')
+@require_permission('generali.view.documentlist')
 def generali_documents():
     try:
         if 'username' not in session:
@@ -4552,7 +4559,7 @@ def generali_documents():
         return render_template('handlers/500.html'), 500
 
 @app.route("/api/generali/stats")
-@require_permission('generali.view')
+@require_permission('generali.dashboard.view')
 def api_generali_stats():
     conn = None
     try:
@@ -4576,7 +4583,8 @@ def api_generali_stats():
             SELECT
                 COUNT(*) as TotalDocs,
                 SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_Pass,
-                SUM(CASE WHEN DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK2_Pass
+                SUM(CASE WHEN DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK2_Pass,
+                SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' AND DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_NK2_Pass
             FROM [dbo].[v_ReportJobJoinDefinitions]
             WHERE 1=1 {date_filter}
         """, date_params)
@@ -4586,6 +4594,7 @@ def api_generali_stats():
             "total_docs": total,
             "nk1_rate": round((kpi_row[1] / total) * 100, 1) if total > 0 else 0,
             "nk2_rate": round((kpi_row[2] / total) * 100, 1) if total > 0 else 0,
+            "nk1_nk2_rate": round((kpi_row[3] / total) * 100, 1) if total > 0 else 0,
             "avg_daily": round(total / 30, 1) if total > 0 else 0,
         }
 
@@ -4672,7 +4681,7 @@ def api_generali_stats():
             conn.close()
 
 @app.route("/api/generali/filter_options")
-@require_permission('generali.view')
+@require_permission('generali.view.documentlist')
 def api_generali_filter_options():
     conn = None
     try:
@@ -4699,7 +4708,7 @@ def api_generali_filter_options():
             conn.close()
 
 @app.route("/api/generali/documents")
-@require_permission('generali.view')
+@require_permission('generali.view.documentlist')
 def api_generali_documents():
     conn = None
     try:
@@ -4834,7 +4843,7 @@ def api_generali_documents():
             conn.close()
 
 @app.route("/api/generali/documents/<path:doc_id>")
-@require_permission('generali.view')
+@require_permission('generali.view.documentlist')
 def api_generali_document_detail(doc_id):
     conn = None
     try:
