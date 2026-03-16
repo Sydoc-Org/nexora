@@ -305,6 +305,19 @@ def require_permission(code):
         return wrapper
     return decorator
 
+def startpage_redirect_to(pV):
+    permToFunction = {
+        'dashboardPagePerm': 'dashboard',
+        'workitemsPagePerm': 'workitems_overview',
+        'invoicesPagePerm': 'invoices',
+        'adminPagePerm': 'admin_dashboard',
+        'chatPagePerm': 'chat_page',
+        'generaliPagePerm': 'generali_evaluation'
+    }
+    for pTF in permToFunction:
+        if pV[pTF]: return permToFunction[pTF]
+    return 'login'
+
 def pageVisability():
     adminPagePerm = has_permission('admin.view')
     dashboardPagePerm = has_permission('dashboard.view')
@@ -312,10 +325,12 @@ def pageVisability():
     # teamboardPagePerm = has_permission('teamboard.view')
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
+    generaliPagePerm = has_permission('generali.dashboard.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
             'workitemsPagePerm':workitemsPagePerm,
             #   'teamboardPagePerm': teamboardPagePerm,
-            'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm}
+            'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
+            'generaliPagePerm': generaliPagePerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -379,13 +394,7 @@ def init_2FA():
                 session['uuid'] = uuid.uuid4()
                 session['permissions'] = load_permissions_for_user(str(user_id))
                 pV = pageVisability()
-                if not pV['dashboardPagePerm']:
-                    if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
-                    # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
-                    elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
-                    elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
-                    else: return redirect(url_for('login')) 
-                return redirect(url_for('dashboard')) 
+                return redirect(url_for(startpage_redirect_to(pV)))
             except Exception as e:
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
@@ -434,13 +443,7 @@ def verify_2fa():
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
             pV = pageVisability()
-            if not pV['dashboardPagePerm']:
-                if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
-                # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
-                elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
-                elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
-                else: return redirect(url_for('login')) 
-            return redirect(url_for('dashboard')) 
+            return redirect(url_for(startpage_redirect_to(pV)))
         else:
             flash(_("Invalid code"), "error")
             return render_template('verify_2fa.html')

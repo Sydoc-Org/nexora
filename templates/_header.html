@@ -39,7 +39,9 @@
                         {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'), 'label': _('Workitems'),
                         'active': active_page == 'workitems_overview'},
                         {'perm': pageV.invoicesPagePerm, 'url': url_for('invoices'), 'label': _('Invoices'), 'active':
-                        active_page == 'invoices'}
+                        active_page == 'invoices'},
+                        {'perm': pageV.generaliPagePerm, 'url': url_for('generali_evaluation'), 'label': 'Generali', 'active':
+                        active_page == 'generali'}
                         ] %}
                         <!-- {'perm': pageV.teamboardPagePerm, 'url': url_for('team_board'), 'label': _('Team Board'), 'active': active_page == 'teamboard'}, -->
 
