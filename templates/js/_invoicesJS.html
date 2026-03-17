@@ -4,19 +4,47 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-      
+
       const filterForm = document.getElementById('filterForm');
       const tableBody = document.getElementById('invoicesTbody');
+      let allLoadedInvoices = [];
 
-    
+      function exportInvoicesCSV(invoices) {
+        if (!invoices || invoices.length === 0) return;
+        const headers = ['Invoice #', 'Date', 'Amount (CHF)', 'Status'];
+        const lines = invoices.map(inv => [
+          inv.document_nr,
+          inv.is_valid_from,
+          inv.total,
+          inv.status_info.text
+        ].map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+        const csv  = [headers.join(','), ...lines].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), {
+          href: url,
+          download: `invoices_${new Date().toISOString().slice(0,10)}.csv`
+        });
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+      }
+
       const renderInvoiceTable = (invoices) => {
-        tableBody.innerHTML = ''; 
+        tableBody.innerHTML = '';
+        allLoadedInvoices = invoices || [];
 
         if (!invoices || invoices.length === 0) {
           tableBody.innerHTML = `
             <tr>
-              <td colspan="5" class="text-center py-10 text-gray-500">
-                {{ _("No invoices found matching your criteria.") }}
+              <td colspan="5" class="py-16 text-center">
+                <div class="inline-flex flex-col items-center gap-3">
+                  <div class="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-file-invoice text-2xl text-gray-400"></i>
+                  </div>
+                  <p class="font-semibold text-gray-700">{{ _("No invoices found") }}</p>
+                  <p class="text-sm text-gray-400">{{ _("Try adjusting your filters or date range.") }}</p>
+                </div>
               </td>
             </tr>`;
           return;
@@ -92,9 +120,14 @@
       };
 
       filterForm.addEventListener('input', (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         fetchInvoices();
       });
+
+      const exportBtn = document.getElementById('exportInvoicesCsvBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => exportInvoicesCSV(allLoadedInvoices));
+      }
 
       fetchInvoices();
     });

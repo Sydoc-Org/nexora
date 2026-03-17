@@ -293,6 +293,11 @@
             class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center">{{
             _("Reset") }}</a>
 
+          <button type="button" id="exportCsvBtn"
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
+          </button>
+
           <div class="inline-block">
             <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple>
             <button type="button" id="importBtn"
@@ -312,8 +317,13 @@
           <table class="w-full" id="workitemsTable">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th scope="col" class="px-4 py-4 w-10 text-center">
+                  <input type="checkbox" id="selectAllCheckbox"
+                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    title="{{ _('Select all') }}">
+                </th>
                 <th scope="col" class="sortable-header px-6 py-4 whitespace-nowrap text-center cursor-pointer"
-                  data-column-index="0">
+                  data-column-index="1">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Workitem") }}
@@ -321,7 +331,7 @@
                     <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
                   </div>
                 </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="1">
+                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="2">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Status") }}
@@ -329,7 +339,7 @@
                     <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
                   </div>
                 </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="2">
+                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="3">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Last movement at") }}
@@ -354,13 +364,28 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200" id="workitemsTbody">
               <tr>
-                <td colspan="6" class="text-center py-20">
+                <td colspan="7" class="text-center py-20">
                   <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Bulk action bar (shown when rows are selected) -->
+      <div id="bulk-action-bar"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
+        <span class="text-sm font-semibold" id="bulk-selected-count">0 {{ _("selected") }}</span>
+        <div class="w-px h-4 bg-white/20"></div>
+        <button type="button" id="bulkExportBtn"
+          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+          <i class="fas fa-download text-xs"></i> {{ _("Export CSV") }}
+        </button>
+        <button type="button" id="bulkDeselectBtn"
+          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+          <i class="fas fa-times text-xs"></i> {{ _("Deselect") }}
+        </button>
       </div>
 
       <div id="paginationContainer" class="mt-6 flex items-center justify-between">

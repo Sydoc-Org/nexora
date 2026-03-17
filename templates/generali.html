@@ -29,16 +29,15 @@
       </div>
     </div>
 
-    <!-- Date Range Filter -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-end gap-4">
       <div>
         <label for="filterStartDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From") }}</label>
-        <input type="datetime-local" id="filterStartDate"
+        <input type="datetime-local" id="filterStartDate" step="1"
                class="h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
       </div>
       <div>
         <label for="filterEndDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To") }}</label>
-        <input type="datetime-local" id="filterEndDate"
+        <input type="datetime-local" id="filterEndDate" step="1"
                class="h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
       </div>
       <button id="applyDateFilter"

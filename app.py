@@ -4597,8 +4597,7 @@ def api_generali_stats():
             "total_docs": total,
             "nk1_rate": round((kpi_row[1] / total) * 100, 1) if total > 0 else 0,
             "nk2_rate": round((kpi_row[2] / total) * 100, 1) if total > 0 else 0,
-            "nk1_nk2_rate": round((kpi_row[3] / total) * 100, 1) if total > 0 else 0,
-            "avg_daily": round(total / 30, 1) if total > 0 else 0,
+            "nk1_nk2_rate": round((kpi_row[3] / total) * 100, 1) if total > 0 else 0
         }
 
         trend_where = "1=1" + date_filter if date_filter else "DOC_DateCreated >= DATEADD(day, -30, GETDATE())"
@@ -4611,7 +4610,9 @@ def api_generali_stats():
         """, date_params)
         trend_rows = cursor.fetchall()
         trend_data = {"labels": [str(r[0]) for r in trend_rows], "values": [r[1] for r in trend_rows]}
-
+        
+        kpis['avg_daily'] = round(total / len(trend_rows), 1) if total > 0 else 0
+        
         cursor.execute(f"""
             SELECT ISNULL(DOC_DOKUMENTENTYP, 'Unknown') as t, COUNT(*) as c
             FROM [dbo].[v_ReportJobJoinDefinitions]
@@ -4665,7 +4666,7 @@ def api_generali_stats():
         rows = cursor.fetchall()
 
         nk_data = [{"nk1": r[0], "nk2": r[1], "count": r[2]} for r in rows]
-
+        print(nk_data)
         return jsonify({
             "success": True,
             "kpis": kpis,

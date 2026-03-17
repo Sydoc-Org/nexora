@@ -1347,20 +1347,80 @@ async function uploadBatchFiles(files, processName) {
                 }
             }
 
+            // ---- Bulk selection state ----
+            let selectedWorkitemIds = new Set();
+            let allRenderedWorkitems = [];
+
+            function updateBulkBar() {
+                const bar   = document.getElementById('bulk-action-bar');
+                const count = document.getElementById('bulk-selected-count');
+                if (!bar) return;
+                if (selectedWorkitemIds.size > 0) {
+                    bar.classList.remove('hidden');
+                    count.textContent = `${selectedWorkitemIds.size} {{ _("selected") }}`;
+                } else {
+                    bar.classList.add('hidden');
+                }
+                const selectAll = document.getElementById('selectAllCheckbox');
+                if (selectAll) {
+                    const rows = document.querySelectorAll('.row-checkbox');
+                    selectAll.checked = rows.length > 0 && [...rows].every(cb => cb.checked);
+                    selectAll.indeterminate = selectedWorkitemIds.size > 0 && selectedWorkitemIds.size < rows.length;
+                }
+            }
+
+            function exportWorkitemsCSV(ids) {
+                const rows = ids.size > 0
+                    ? allRenderedWorkitems.filter(w => ids.has(String(w.workitemid)))
+                    : allRenderedWorkitems;
+                if (rows.length === 0) return;
+                const headers = ['Workitem ID', 'Status', 'Last Movement At', 'Priority', 'Tags'];
+                const priorityLabel = { 3: 'High', 2: 'Medium', 1: 'Low' };
+                const lines = rows.map(w => [
+                    w.workitemid,
+                    w.status,
+                    w.modifiedat ? new Date(w.modifiedat).toISOString().slice(0,19).replace('T',' ') : '',
+                    priorityLabel[w.priority] || '',
+                    (w.tags || []).map(t => t.name).join('; ')
+                ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+                const csv  = [headers.join(','), ...lines].join('\r\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url  = URL.createObjectURL(blob);
+                const a    = Object.assign(document.createElement('a'), {
+                    href: url,
+                    download: `workitems_${new Date().toISOString().slice(0,10)}.csv`
+                });
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+            }
+
             function renderTable(workitems) {
                 const tbody = document.getElementById('workitemsTbody');
                 tbody.innerHTML = '';
+                allRenderedWorkitems = workitems;
+                selectedWorkitemIds.clear();
+                updateBulkBar();
 
                 if (workitems.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">{{ _("No workitems found for the selected criteria.") }}</td></tr>`;
+                    tbody.innerHTML = `
+                        <tr><td colspan="7" class="py-16 text-center">
+                            <div class="inline-flex flex-col items-center gap-3">
+                                <div class="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                                </div>
+                                <p class="font-semibold text-gray-700">{{ _("No workitems found") }}</p>
+                                <p class="text-sm text-gray-400">{{ _("Try adjusting your filters or resetting the search.") }}</p>
+                            </div>
+                        </td></tr>`;
                     return;
                 }
 
                 workitems.forEach(workitem => {
                     const statusBadge = {
-                        'Ready': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
+                        'Ready':       '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
                         'In Progress': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 tracking-wide">In Progress</span>',
-                        'Done': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
+                        'Done':        '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
                     }[workitem.status] || `<span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 tracking-wide">${workitem.status}</span>`;
 
                     let priorityIcon = '';
@@ -1370,14 +1430,18 @@ async function uploadBatchFiles(files, processName) {
 
                     const rowHtml = `
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
-                        <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div> </td>
+                        <td class="px-4 py-4 text-center w-10">
+                            <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                data-id="${workitem.workitemid}">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
                         </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
                                 data-workitemid="${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
@@ -1386,9 +1450,18 @@ async function uploadBatchFiles(files, processName) {
                     </tr>
                     <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
                         data-status="${workitem.status}"
-                        data-current-stage="${workitem.current_stage || ''}"><td colspan="6"></td></tr>
+                        data-current-stage="${workitem.current_stage || ''}"><td colspan="7"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
+                });
+
+                // Attach checkbox listeners after rows are inserted
+                tbody.querySelectorAll('.row-checkbox').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        if (cb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                        updateBulkBar();
+                    });
                 });
             }
 
@@ -1535,7 +1608,7 @@ async function uploadBatchFiles(files, processName) {
                     const bText = bCell.textContent.trim();
 
                     let comparison = 0;
-                    if (columnIndex === 2) {
+                    if (columnIndex === 3) {
                         const parseDate = (str) => {
                             const [datePart, timePart] = str.split(' - ');
                             const [day, month, year] = datePart.split('. ');
@@ -1559,11 +1632,11 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
 
-                headers.forEach((header, index) => {
+                headers.forEach((header) => {
                     const icon = header.querySelector('i');
                     if (icon) {
                         icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
-                        if (index === columnIndex) {
+                        if (parseInt(header.dataset.columnIndex, 10) === columnIndex) {
                             icon.classList.remove('fa-sort');
                             icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
                             icon.classList.add('text-indigo-600');
@@ -1742,6 +1815,41 @@ async function uploadBatchFiles(files, processName) {
                     }
                 }
             });
+
+            // ---- Select-all checkbox ----
+            const selectAllCb = document.getElementById('selectAllCheckbox');
+            if (selectAllCb) {
+                selectAllCb.addEventListener('change', () => {
+                    const checkboxes = document.querySelectorAll('.row-checkbox');
+                    checkboxes.forEach(cb => {
+                        cb.checked = selectAllCb.checked;
+                        if (selectAllCb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                    });
+                    updateBulkBar();
+                });
+            }
+
+            // ---- Bulk bar buttons ----
+            const bulkExportBtn   = document.getElementById('bulkExportBtn');
+            const bulkDeselectBtn = document.getElementById('bulkDeselectBtn');
+            const exportCsvBtn    = document.getElementById('exportCsvBtn');
+
+            if (bulkExportBtn) {
+                bulkExportBtn.addEventListener('click', () => exportWorkitemsCSV(selectedWorkitemIds));
+            }
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.addEventListener('click', () => {
+                    selectedWorkitemIds.clear();
+                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                    const sAll = document.getElementById('selectAllCheckbox');
+                    if (sAll) { sAll.checked = false; sAll.indeterminate = false; }
+                    updateBulkBar();
+                });
+            }
+            if (exportCsvBtn) {
+                exportCsvBtn.addEventListener('click', () => exportWorkitemsCSV(new Set()));
+            }
         });
     </script>
 </body>

@@ -51,7 +51,9 @@
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
         <div>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Imported Today") }}</p>
-          <p class="text-3xl font-extrabold text-gray-900" id="imported-today">0</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="imported-today">
+            <span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span>
+          </p>
         </div>
         <div class="h-12 w-12 bg-fuchsia-50 text-fuchsia-500 flex items-center justify-center rounded-xl">
           <i class="fas fa-file-arrow-down text-xl"></i>
@@ -60,7 +62,9 @@
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
         <div>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Processed Today") }}</p>
-          <p class="text-3xl font-extrabold text-gray-900" id="processed-today">0</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="processed-today">
+            <span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span>
+          </p>
         </div>
         <div class="h-12 w-12 bg-blue-50 text-blue-500 flex items-center justify-center rounded-xl">
           <i class="fas fa-file-arrow-up text-xl"></i>
@@ -69,7 +73,9 @@
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
         <div>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Current Backlog") }}</p>
-          <p class="text-3xl font-extrabold text-gray-900" id="current-backlog">0</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="current-backlog">
+            <span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span>
+          </p>
         </div>
         <div class="h-12 w-12 bg-amber-50 text-amber-500 flex items-center justify-center rounded-xl">
           <i class="fas fa-layer-group text-xl"></i>
@@ -78,7 +84,9 @@
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
         <div>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Avg. Processing Time") }}</p>
-          <p class="text-3xl font-extrabold text-gray-900" id="avg-processing-time">—</p>
+          <p class="text-3xl font-extrabold text-gray-900" id="avg-processing-time">
+            <span class="skeleton-shimmer block w-20 h-8 rounded-lg"></span>
+          </p>
         </div>
         <div class="h-12 w-12 bg-teal-50 text-teal-500 flex items-center justify-center rounded-xl">
           <i class="fas fa-stopwatch text-xl"></i>
@@ -103,8 +111,11 @@
             <i class="fa-solid fa-bolt text-amber-500"></i>
             {{ _("Recent Validations") }}
           </h3>
-          <div id="activity-feed" class="space-y-4">
-            <p class="text-gray-400 text-sm italic">{{ _("Loading latest activity...") }}</p>
+          <div id="activity-feed" class="space-y-3">
+            <!-- Skeleton rows while loading -->
+            <div class="skeleton-shimmer h-20 rounded-xl"></div>
+            <div class="skeleton-shimmer h-20 rounded-xl"></div>
+            <div class="skeleton-shimmer h-16 rounded-xl"></div>
           </div>
         </div>
       </div>
