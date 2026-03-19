@@ -28,11 +28,13 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-        <label for="clientFilter" class="block text-sm font-medium text-gray-700">
+        <label for="clientFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
           {{ _("Client") }}
         </label>
+            <div class="relative mt-1">
         <select id="clientFilter" name="client_id" 
-          class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
+        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10">
           <option value="">{{ _("All Clients") }}</option>
           {% for client in clients %}
             <option value="{{ client.id }}" {% if request.args.get('client_id')|int == client.id %}selected{% endif %}>
@@ -40,10 +42,15 @@
             </option>
           {% endfor %}
         </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </div>
+        </div>
+
       </div>
 
         <div>
-            <label for="dateFrom" class="block text-sm font-medium text-gray-700">
+            <label for="dateFrom" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
               {{ _("From Date") }}
             </label>
             <div class="relative mt-1">
@@ -53,7 +60,7 @@
           </div>
 
           <div class="min-w-0">
-            <label for="dateTo" class="block text-sm font-medium text-gray-700">
+            <label for="dateTo" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
               {{ _("To Date") }}
             </label>
             <div class="relative mt-1"> 
@@ -63,21 +70,30 @@
           </div>
 
         <div>
-          <label for="statusFilter" class="block text-sm font-medium text-gray-700">{{ _("Status") }}</label>
-          
+          <label for="statusFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Status") }}</label>
+            <div class="relative mt-1">
           <select id="statusFilter" name="status" {% if status_perm == False %} disabled {% endif %}
-            class="w-full mt-1 px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
+        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10">
             <option value="">{{ _("All Statuses") }}</option>
             <option value="Paid" {% if status == 'Paid' %}selected{% endif %}>{{ _("Paid") }}</option>
             <option value="Open" {% if status == 'Open' %}selected{% endif %}>{{ _("Open") }}</option>
           </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
         </div>
 
       </div>
        <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
           <a href="{{ url_for('invoices') }}"
-            class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm font-medium text-center">{{
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center">{{
             _("Reset") }}</a>
+          <button type="button" id="exportInvoicesCsvBtn"
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
+          </button>
         </div>
     </form>
     

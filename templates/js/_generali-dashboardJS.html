@@ -1,0 +1,195 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+    const PALETTE = ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f43f5e','#84cc16','#f97316','#0ea5e9'];
+    const NK_COLORS = {
+        'keineNachkontrolle': '#10b981',
+        'inNachkontrolleverarbeitet': '#f59e0b',
+        'Nichtdefiniert': '#9ca3af',
+    };
+
+    let charts = {};
+
+    function destroyCharts() {
+        Object.values(charts).forEach(c => { if (c) c.destroy(); });
+        charts = {};
+    }
+
+    function getDateRange() {
+        const start = document.getElementById('filterStartDate').value;
+        const end = document.getElementById('filterEndDate').value;
+        const params = new URLSearchParams();
+        if (start) params.set('startDate', start);
+        if (end) params.set('endDate', end);
+        return params.toString();
+    }
+
+    function setDefaultDates() {
+        const now = new Date();
+        const past = new Date();
+        past.setDate(now.getDate() - 30);
+        const fmt = d => d.toISOString().slice(0, 19);
+        document.getElementById('filterStartDate').value = fmt(past);
+        document.getElementById('filterEndDate').value = fmt(now);
+    }
+
+    async function loadStats() {
+        const loader = document.getElementById('statsLoader');
+        loader.classList.remove('hidden');
+        try {
+            const qs = getDateRange();
+            const response = await fetch(`${API_PREFIX}api/generali/stats${qs ? '?' + qs : ''}`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+            if (!data.success) { console.error(data.error); return; }
+
+            document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
+            
+            const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
+            const setRate = (id, rate) => {
+                const el = document.getElementById(id);
+                el.textContent = rate + '%';
+                el.className = el.className.replace(/text-(emerald|amber|red)-500/g, '') + ' ' + rateColor(rate);
+            };
+            setRate('kpi-nk1', data.kpis.nk1_rate);
+            setRate('kpi-nk2', data.kpis.nk2_rate);
+            setRate('kpi-nk1_nk2', data.kpis.nk1_nk2_rate);
+            document.getElementById('kpi-avg').textContent = data.kpis.avg_daily.toLocaleString();
+
+            destroyCharts();
+
+            const chartDefaults = { responsive: true, maintainAspectRatio: false };
+
+            charts.trend = new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.trend.labels,
+                    datasets: [{
+                        label: '{{ _("Documents") }}',
+                        data: data.trend.values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79,70,229,0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#4f46e5',
+                    }]
+                },
+                options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            charts.doctype = new Chart(document.getElementById('doctypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.doctype.labels,
+                    datasets: [{ data: data.doctype.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+            });
+
+            charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.empfaenger.labels,
+                    datasets: [{
+                        label: '{{ _("Documents") }}',
+                        data: data.empfaenger.values,
+                        backgroundColor: PALETTE,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+            // Aggregate NK1 and NK2 counts per status value independently
+            const nkStatuses = [...new Set([...data.nk.map(r => r.nk1), ...data.nk.map(r => r.nk2)])];
+            const nk1Totals = nkStatuses.map(s => data.nk.filter(r => r.nk1 === s).reduce((sum, r) => sum + r.count, 0));
+            const nk2Totals = nkStatuses.map(s => data.nk.filter(r => r.nk2 === s).reduce((sum, r) => sum + r.count, 0));
+            charts.nk = new Chart(document.getElementById('nkChart'), {
+                type: 'bar',
+                data: {
+                    labels: nkStatuses,
+                    datasets: [
+                        {
+                            label: 'NK1',
+                            data: nk1Totals,
+                            backgroundColor: '#a955f7',
+                            borderRadius: 5,
+                        },
+                        {
+                            label: 'NK2',
+                            data: nk2Totals,
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 5,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items[0].label,
+                                label: item => ` ${item.dataset.label}: ${item.raw.toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: false },
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+
+            charts.language = new Chart(document.getElementById('languageChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.language.labels,
+                    datasets: [{ data: data.language.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+            });
+
+            charts.channel = new Chart(document.getElementById('channelChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.channel.labels,
+                    datasets: [{
+                        label: '{{ _("Documents") }}',
+                        data: data.channel.values,
+                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'],
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+        } catch (e) {
+            console.error('Failed to load Generali stats:', e);
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setDefaultDates();
+        loadStats();
+
+        document.getElementById('applyDateFilter').addEventListener('click', loadStats);
+        document.getElementById('resetDateFilter').addEventListener('click', () => {
+            setDefaultDates();
+            loadStats();
+        });
+    });
+</script>

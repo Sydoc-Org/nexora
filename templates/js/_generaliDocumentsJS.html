@@ -1,0 +1,376 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+    let currentPage = 1;
+    let currentGroupBy = '';
+    let sortBy = 'DOC_DateCreated';
+    let sortDir = 'DESC';
+    let detailCache = {};
+    let _searchDebounce;
+
+    // ----------------------------- NK badge ----------------------------- //
+    function nkBadge(val) {
+        if (!val) return '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-500">—</span>';
+        if (val === 'keineNachkontrolle')
+            return '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">&#10003; keine NK</span>';
+        if (val === 'inNachkontrolleverarbeitet')
+            return '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700">&#9679; NK</span>';
+        return `<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-500">${val}</span>`;
+    }
+
+    function channelBadge(val) {
+        if (!val) return '—';
+        const cls = val.includes('EARLY') ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700';
+        return `<span class="px-2 py-0.5 text-xs font-semibold rounded-full ${cls}">${val}</span>`;
+    }
+
+    // ----------------------------- fetch helpers ----------------------------- //
+    function buildParams(page) {
+        const form = document.getElementById('filterForm');
+        const fd = new FormData(form);
+        const p = new URLSearchParams();
+        for (const [k, v] of fd.entries()) {
+            if (k === 'csrf_token') continue;
+            if (v) p.set(k, v);
+        }
+        p.set('page', page);
+        p.set('sortBy', sortBy);
+        p.set('sortDir', sortDir);
+        return p;
+    }
+
+    async function fetchDocuments(page = 1) {
+        currentPage = page;
+        const tbody = document.getElementById('genDocTbody');
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-16"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></td></tr>`;
+
+        const params = buildParams(page);
+        const url = `${API_PREFIX}api/generali/documents?${params.toString()}`;
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+
+        try {
+            const res = await fetch(url, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            currentGroupBy = data.group_by || '';
+            renderTable(data.documents);
+            renderPagination(data.pagination);
+        } catch (e) {
+            console.error('Failed to fetch documents:', e);
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+        }
+    }
+
+    // ----------------------------- render table ----------------------------- //
+    function renderTable(docs) {
+        const tbody = document.getElementById('genDocTbody');
+        tbody.innerHTML = '';
+
+        if (!docs.length) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-500">{{ _("No documents found for the selected criteria.") }}</td></tr>`;
+            return;
+        }
+
+        let lastGroupVal = null;
+
+        docs.forEach(doc => {
+            // Group header row
+            if (currentGroupBy) {
+                const colKey = currentGroupBy.toLowerCase().replace('doc_', 'doc_');
+                const apiKey = {
+                    'DOC_DOKUMENTENTYP': 'doc_dokumententyp',
+                    'DOC_EMPFAENGER': 'doc_empfaenger',
+                    'DOC_SPRACHE': 'doc_sprache',
+                    'DOC_EINGANGSKANAL': 'doc_eingangskanal',
+                    'DOC_KOMMUNIKATION': 'doc_kommunikation',
+                }[currentGroupBy] || '';
+                const groupVal = apiKey ? (doc[apiKey] || '—') : '—';
+                if (groupVal !== lastGroupVal) {
+                    lastGroupVal = groupVal;
+                    const groupRow = document.createElement('tr');
+                    groupRow.className = 'bg-indigo-50 border-t-2 border-indigo-200';
+                    groupRow.innerHTML = `<td colspan="9" class="px-4 py-2">
+                        <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+                            <i class="fas fa-layer-group mr-2"></i>${groupVal}
+                        </span>
+                    </td>`;
+                    tbody.appendChild(groupRow);
+                }
+            }
+
+            const dateStr = doc.doc_datecreated
+                ? new Date(doc.doc_datecreated).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                : '—';
+
+            const docRow = document.createElement('tr');
+            docRow.className = 'hover:bg-gray-50 transition-colors duration-150 gen-doc-row';
+            docRow.id = `gen-row-${doc.doc_id}`;
+            docRow.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700">${dateStr}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${doc.doc_dokumententyp || '—'}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">${doc.doc_empfaenger || '—'}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">${channelBadge(doc.doc_eingangskanal)}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-600">${doc.doc_sprache || '—'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium text-gray-800">
+                    ${doc.doc_betrag ? doc.doc_betrag + ' ' + (doc.doc_waehrung || '') : '—'}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk1)}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk2)}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                    <button class="gen-detail-btn text-indigo-600 hover:text-indigo-900" data-docid="${doc.doc_id}" aria-label="Toggle details">
+                        <i class="indicator fas fa-chevron-down text-sm"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(docRow);
+
+            // Detail row (hidden)
+            const detailRow = document.createElement('tr');
+            detailRow.id = `gen-detail-${doc.doc_id}`;
+            detailRow.className = 'details-row';
+            detailRow.hidden = true;
+            detailRow.innerHTML = `<td colspan="9"><div class="details-content-wrapper p-4 bg-gray-50" id="gen-detail-content-${doc.doc_id}">
+                <p class="text-gray-400 italic text-sm">{{ _("Loading…") }}</p>
+            </div></td>`;
+            tbody.appendChild(detailRow);
+        });
+    }
+
+    // ----------------------------- detail view ----------------------------- //
+    function renderDetailCard(doc) {
+        const sections = [
+            {
+                title: '{{ _("Identification") }}', icon: 'fa-id-card',
+                fields: ['CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID', 'DOC_DOKUMENT_ID', 'DOC_DOSSIER_NR', 'DOC_REFERENZNUMMER']
+            },
+            {
+                title: '{{ _("Dates") }}', icon: 'fa-calendar',
+                fields: ['DOC_DateCreated', 'DOC_SCANDATUM', 'DOC_SCANDATUM_INITIAL', 'DOC_BELEGDATUM', 'DOC_GEBURTSDATUM']
+            },
+            {
+                title: '{{ _("Classification") }}', icon: 'fa-tag',
+                fields: ['DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_EMPFAENGERADRESSE', 'DOC_SPRACHE', 'DOC_KOMMUNIKATION', 'DOC_RICHTUNG', 'DOC_EINGANGSKANAL', 'DOC_DOKUMENTENSTATUS', 'DOC_NOTIFIKATIONSSTATUS', 'DOC_VERTRAULICHKEIT', 'DOC_DOKUMENTENORDER', 'DOC_DOKUMENT_URL']
+            },
+            {
+                title: '{{ _("Partners & Numbers") }}', icon: 'fa-hashtag',
+                fields: ['DOC_PARTNER_NR_SYRIUS', 'DOC_PARTNER_NR_GAV', 'DOC_PARTNER_NR_GPV', 'DOC_PARTNER_NR_RGI', 'DOC_ANTRAG_NR', 'DOC_ANTRAG_NR_MULTI', 'DOC_POLICEN_NR', 'DOC_POLICEN_NR_MULTI', 'DOC_SCHADEN_NR', 'DOC_VERFAHREN_NR', 'DOC_PERSONAL_NR', 'DOC_KONTONUMMER', 'DOC_KREDITOREN_NR', 'DOC_OFFERTEN_NR', 'DOC_BUCHUNGSKREIS_NR', 'DOC_FORMULAR_NR']
+            },
+            {
+                title: '{{ _("Financial") }}', icon: 'fa-coins',
+                fields: ['DOC_BETRAG', 'DOC_WAEHRUNG', 'DOC_ANZAHL', 'DOC_GESCHAEFTSART', 'DOC_PRODUKT_CODE']
+            },
+            {
+                title: '{{ _("Scan & Origin") }}', icon: 'fa-scanner',
+                fields: ['DOC_SCANORT', 'DOC_SCANUSER', 'DOC_INITIAL_USER', 'DOC_ORIGIN', 'DOC_INTERFACE_LINK', 'DOC_EINGANGSKANAL']
+            },
+            {
+                title: '{{ _("Content & Contact") }}', icon: 'fa-file-lines',
+                fields: ['DOC_BEZEICHNUNG', 'DOC_BEMERKUNG', 'DOC_KONTAKTPERSON', 'DOC_PENDING', 'DOC_COUVERTDOCCOUNT', 'DOC_VERTRAGSNUMMER', 'DOC_VERTRAGSPARTNER', 'DOC_FONDSNAME']
+            },
+            {
+                title: '{{ _("Quality Control") }}', icon: 'fa-shield-halved',
+                fields: ['DOC_NK1', 'DOC_NK2']
+            },
+            {
+                title: '{{ _("SAP / ALF") }}', icon: 'fa-database',
+                fields: ['DOC_SAPDocId', 'DOC_SAPDocDate', 'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_SAPContType', 'DOC_SAPComps', 'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified', 'DOC_ALFdpages', 'DOC_ALFpages', 'DOC_PageSize', 'DOC_BARCODENR']
+            },
+        ];
+
+        let html = '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">';
+        sections.forEach(sec => {
+            const rows = sec.fields
+                .filter(f => doc[f] !== null && doc[f] !== undefined && doc[f] !== '')
+                .map(f => {
+                    let val = doc[f];
+                    if (f === 'DOC_NK1' || f === 'DOC_NK2') val = nkBadge(val);
+                    else if (f === 'DOC_EINGANGSKANAL') val = channelBadge(val);
+                    else val = `<span class="text-gray-800">${val}</span>`;
+                    return `<div class="flex justify-between items-start gap-2 py-1.5 border-b border-gray-100 last:border-0">
+                        <dt class="text-xs text-gray-400 shrink-0 max-w-[45%] truncate" title="${f}">${f.replace('DOC_', '')}</dt>
+                        <dd class="text-xs font-medium text-right break-all">${val}</dd>
+                    </div>`;
+                });
+            if (!rows.length) return;
+            html += `<div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <h5 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas ${sec.icon} text-indigo-400"></i>${sec.title}
+                </h5>
+                <dl>${rows.join('')}</dl>
+            </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    async function toggleDetail(docId) {
+        const detailRow = document.getElementById(`gen-detail-${docId}`);
+        const mainRow = document.getElementById(`gen-row-${docId}`);
+        const chevron = mainRow ? mainRow.querySelector('.indicator') : null;
+        if (!detailRow) return;
+
+        const isHidden = detailRow.hidden;
+
+        if (isHidden) {
+            detailRow.hidden = false;
+            setTimeout(() => detailRow.classList.add('open'), 10);
+            if (chevron) chevron.classList.add('open');
+
+            if (!detailCache[docId]) {
+                const contentEl = document.getElementById(`gen-detail-content-${docId}`);
+                try {
+                    const res = await fetch(`${API_PREFIX}api/generali/documents/${encodeURIComponent(docId)}`, {
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error);
+                    detailCache[docId] = data.document;
+                    contentEl.innerHTML = renderDetailCard(data.document);
+                } catch (e) {
+                    if (contentEl) contentEl.innerHTML = `<p class="text-red-500 text-sm">{{ _("Could not load details.") }}</p>`;
+                }
+            } else {
+                document.getElementById(`gen-detail-content-${docId}`).innerHTML = renderDetailCard(detailCache[docId]);
+            }
+        } else {
+            detailRow.classList.remove('open');
+            if (chevron) chevron.classList.remove('open');
+            detailRow.addEventListener('transitionend', () => { detailRow.hidden = true; }, { once: true });
+        }
+    }
+
+    // ----------------------------- pagination ----------------------------- //
+    function renderPagination(pag) {
+        const { currentPage: cp, totalPages, totalItems, perPage } = pag;
+        const from = (cp - 1) * perPage + (totalItems > 0 ? 1 : 0);
+        const to = Math.min(cp * perPage, totalItems);
+        document.getElementById('showingCount').textContent = `${from}–${to}`;
+        document.getElementById('totalCount').textContent = totalItems.toLocaleString();
+        document.getElementById('totalItemsCount').textContent = totalItems.toLocaleString();
+
+        const ctrl = document.getElementById('paginationControls');
+        ctrl.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        const prevCls = cp === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+        const nextCls = cp === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+        ctrl.innerHTML = `
+            <a href="#" data-page="${cp - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${prevCls}">
+                <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
+            </a>
+            <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">${cp} / ${totalPages}</span>
+            <a href="#" data-page="${cp + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${nextCls}">
+                {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
+            </a>`;
+    }
+
+    // ----------------------------- filter options ----------------------------- //
+    async function fetchFilterOptions() {
+        try {
+            const res = await fetch(`${API_PREFIX}api/generali/filter_options`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) return;
+            const opts = data.options;
+            const map = {
+                'filterDocType': opts.doctype,
+                'filterEmpfaenger': opts.empfaenger,
+                'filterSprache': opts.sprache,
+                'filterNK1': opts.nk1,
+                'filterNK2': opts.nk2,
+                'filterKanal': opts.eingangskanal,
+                'filterKomm': opts.kommunikation,
+            };
+            for (const [id, values] of Object.entries(map)) {
+                const sel = document.getElementById(id);
+                if (!sel || !values) continue;
+                values.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    sel.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.error('Failed to fetch filter options:', e);
+        }
+    }
+
+    // ----------------------------- sort ----------------------------- //
+    function updateSortIcons() {
+        document.querySelectorAll('.sortable-header').forEach(th => {
+            const icon = th.querySelector('i');
+            if (!icon) return;
+            const col = th.dataset.col;
+            if (col === sortBy) {
+                icon.className = `fas ${sortDir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down'} text-indigo-600 text-xs`;
+            } else {
+                icon.className = 'fas fa-sort text-gray-400 text-xs';
+            }
+        });
+    }
+
+    // ----------------------------- DOMContentLoaded ----------------------------- //
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchFilterOptions().then(() => fetchDocuments(1));
+
+        // Advanced toggle
+        const toggleBtn = document.getElementById('toggleAdvancedBtn');
+        const advancedPanel = document.getElementById('advancedFilterContainer');
+        if (toggleBtn && advancedPanel) {
+            toggleBtn.addEventListener('click', () => advancedPanel.classList.toggle('hidden'));
+        }
+
+        // Sort headers
+        document.querySelector('#genDocTable thead').addEventListener('click', e => {
+            const th = e.target.closest('.sortable-header');
+            if (!th) return;
+            const col = th.dataset.col;
+            if (sortBy === col) {
+                sortDir = sortDir === 'ASC' ? 'DESC' : 'ASC';
+            } else {
+                sortBy = col;
+                sortDir = 'DESC';
+            }
+            updateSortIcons();
+            fetchDocuments(1);
+        });
+
+        // Filter selects auto-submit
+        ['filterDocType', 'filterEmpfaenger', 'filterSprache', 'filterNK1', 'filterNK2', 'filterKanal', 'filterKomm', 'filterGroupBy', 'filterStartDate', 'filterEndDate'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => fetchDocuments(1));
+        });
+
+        // Debounced search
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(_searchDebounce);
+                _searchDebounce = setTimeout(() => fetchDocuments(1), 350);
+            });
+        }
+
+        // Pagination clicks
+        document.getElementById('paginationContainer').addEventListener('click', e => {
+            const link = e.target.closest('.pagination-link');
+            if (!link) return;
+            e.preventDefault();
+            const page = parseInt(link.dataset.page, 10);
+            if (page > 0) fetchDocuments(page);
+        });
+
+        // Row detail toggle (delegated)
+        document.getElementById('genDocTbody').addEventListener('click', e => {
+            const btn = e.target.closest('.gen-detail-btn');
+            if (btn) toggleDetail(btn.dataset.docid);
+        });
+    });
+</script>

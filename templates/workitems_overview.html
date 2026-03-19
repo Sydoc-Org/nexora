@@ -57,8 +57,7 @@
           <div class="flex items-center space-x-4">
             <div class="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2">
               <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Total") }}</span>
-              <span class="text-s font-bold text-indigo-600 uppercase tracking-widest" id="totalItemsCount">{{
-                total_items }}</span>
+              <span class="text-s font-bold text-indigo-600 uppercase tracking-widest" id="totalItemsCount">—</span>
             </div>
           </div>
         </div>
@@ -207,17 +206,21 @@
               </div>
               <div id="docFiltersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">
                 <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <div class="relative doc-field-combobox">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
                       <i class="fa-regular fa-rectangle-list"></i>
                     </span>
-                    <select id="docFieldFilter" name="docfield" {% if docFieldsValues_perm==False %} disabled {% endif
-                      %} class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field">
-                      <option value="">{{ _("Loading...") }}</option>
-                    </select>
-                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                    <input type="text" autocomplete="off" id="docFieldSearch"
+                      {% if docFieldsValues_perm==False %} disabled {% endif %}
+                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
+                      placeholder="{{ _('Search field…') }}" />
+                    <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field"
+                      {% if docFieldsValues_perm==False %} disabled {% endif %}
+                      value="{{ docfield or '' }}" style="display:none" readonly tabindex="-1" />
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </span>
+                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
                   </div>
 
                   <div class="relative">
@@ -236,16 +239,19 @@
 
               <template id="docFilterRowTemplate">
                 <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <div class="relative doc-field-combobox">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
                       <i class="fa-regular fa-rectangle-list"></i>
                     </span>
-                    <select name="docfield" class="{{ input_base }} pl-10 appearance-none pr-10 doc-filter-field">
-                      <option value="">{{ _("Loading...") }}</option>
-                    </select>
-                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                    <input type="text" autocomplete="off"
+                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
+                      placeholder="{{ _('Search field…') }}" />
+                    <input type="text" name="docfield" class="doc-filter-field"
+                      style="display:none" readonly tabindex="-1" />
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </span>
+                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
                   </div>
 
                   <div class="relative flex items-center gap-2">
@@ -287,6 +293,11 @@
             class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center">{{
             _("Reset") }}</a>
 
+          <button type="button" id="exportCsvBtn"
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
+          </button>
+
           <div class="inline-block">
             <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple>
             <button type="button" id="importBtn"
@@ -306,8 +317,13 @@
           <table class="w-full" id="workitemsTable">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th scope="col" class="px-4 py-4 w-10 text-center">
+                  <input type="checkbox" id="selectAllCheckbox"
+                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    title="{{ _('Select all') }}">
+                </th>
                 <th scope="col" class="sortable-header px-6 py-4 whitespace-nowrap text-center cursor-pointer"
-                  data-column-index="0">
+                  data-column-index="1">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Workitem") }}
@@ -315,7 +331,7 @@
                     <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
                   </div>
                 </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="1">
+                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="2">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Status") }}
@@ -323,7 +339,7 @@
                     <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
                   </div>
                 </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="2">
+                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="3">
                   <div class="flex items-center gap-2 text-center justify-center">
                     <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {{ _("Last movement at") }}
@@ -347,298 +363,40 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200" id="workitemsTbody">
-              {% for workitem in workitems %}
-              <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row"
-                data-status="{{ workitem.status }}" id="row-{{ workitem.workitemid }}">
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <div class="font-medium text-gray-900">{{ workitem.workitemid }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  {% if workitem.status == "Ready" %}
-                  <span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">{{
-                    workitem.status }}</span>
-                  {% elif workitem.status == "In Progress" %}
-                  <span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 tracking-wide">{{
-                    workitem.status }}</span>
-                  {% elif workitem.status == "Done" %}
-                  <span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">{{
-                    workitem.status }}</span>
-                  {% else %}
-                  <span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 tracking-wide">{{
-                    workitem.status }}</span>
-                  {% endif %}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <div class="text-sm text-gray-900">{{ workitem.modifiedat.strftime('%Y-%m-%d %H:%M:%S') }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center justify-center"
-                  id="priority-indicator-{{ workitem.workitemid }}">
-                  {% if workitem.priority == 3 %}
-                  <span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>
-                  {% elif workitem.priority == 2 %}
-                  <span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>
-                  {% elif workitem.priority == 1 %}
-                  <span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>
-                  {% endif %}
-                </td>
-                <td class="px-6 py-4 text-center justify-center md:flex-wrap-reverse"
-                  id="tags-preview-{{ workitem.workitemid }}">
-                  {% for tag in workitem.tags %}
-                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style="background-color: {{ tag.color | safe }}20;  color: {{ tag.color | safe }};">
-                    {{ tag.name }}
-                  </span>
-                  {% endfor %}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  {% if details_view_perm %}
-                  <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
-                    data-workitemid="{{ workitem.workitemid }}" aria-expanded="false"
-                    aria-controls="details-row-{{ workitem.workitemid }}"
-                    aria-label="Toggle details for workitem {{ workitem.workitemid }}"
-                    id="chevron-{{ workitem.workitemid }}">
-                    <i class="indicator fas fa-chevron-down"></i>
-                  </button>
-                  {% else %}
-                  <span class="text-gray-400 cursor-not-allowed" title="{{ _('Insufficient permissions') }}">
-                    <i class="fas fa-lock"></i>
-                  </span>
-                  {% endif %}
-                </td>
-              </tr>
-              <tr id="details-row-{{ workitem.workitemid }}" class="details-row" hidden>
-                <td colspan="6">
-                  <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
-                    <div id="timeline-container-{{ workitem.workitemid }}"
-                      class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100"
-                      data-current-stage="{{ workitem.current_stage }}" data-status="{{ workitem.status }}">
-                      <div class="relative flex justify-between items-center">
-                        <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full"
-                          style="left: 28px; right: 28px;"></div>
-                        <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full"
-                          style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;">
-                        </div>
-                        <div class="process-step z-10 flex flex-col items-center text-center">
-                          <div
-                            class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                            <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
-                          </div>
-                          <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
-                        </div>
-                        <div class="process-step z-10 flex flex-col items-center text-center">
-                          <div
-                            class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                            <i class="fas fa-gears text-xl text-gray-400"></i>
-                          </div>
-                          <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
-                        </div>
-                        <div class="process-step z-10 flex flex-col items-center text-center">
-                          <div
-                            class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                            <i class="fas fa-shield-halved text-xl text-gray-400"></i>
-                          </div>
-                          <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
-                        </div>
-                        <div class="process-step z-10 flex flex-col items-center text-center">
-                          <div
-                            class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                            <i class="fas fa-paper-plane text-xl text-gray-400"></i>
-                          </div>
-                          <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                      <div class="flex flex-col gap-6 h-[50rem]">
-                        {% if details_images_perm %}
-                        <div id="image-container-{{ workitem.workitemid }}"
-                          class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
-                          <p class="text-gray-500 text-center px-2">
-                            {{ _("Click toggle button again to load media") }}
-                          </p>
-                        </div>
-                        {% else %}
-                        <div
-                          class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50">
-                          <div class="text-center">
-                            <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
-                            <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
-                          </div>
-                        </div>
-                        {% endif %}
-
-                        <div
-                          class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
-                          <h4
-                            class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
-                            {{ _('History') }}
-                          </h4>
-                          {% if details_audit_perm %}
-                          <div id="history-container-{{ workitem.workitemid }}" class="flex-grow overflow-y-auto pr-2">
-                            <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
-                          </div>
-                          {% else %}
-                          <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
-                            <p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}
-                            </p>
-                          </div>
-                          {% endif %}
-                        </div>
-                      </div>
-
-                      <div
-                        class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
-                        <h4
-                          class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
-                          {{ _('Document Details') }}
-                        </h4>
-                        {% if details_fields_perm %}
-                        <div id="fields-container-{{ workitem.workitemid }}" class="flex-grow pr-2">
-                          <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
-                        </div>
-                        {% else %}
-                        <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
-                          <p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields
-                            restricted") }}</p>
-                        </div>
-                        {% endif %}
-                      </div>
-                    </div>
-
-                    <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                      <h4
-                        class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
-                        {{ _('Collaboration') }}</h4>
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="flex flex-col">
-                          <div id="comments-container-{{ workitem.workitemid }}"
-                            class="flex-grow space-y-3 overflow-y-auto p-2 bg-gray-50 rounded h-80">
-                            <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
-                          </div>
-                        </div>
-                        <div id="collaboration-tools-{{ workitem.workitemid }}" class="flex flex-col">
-                          <div class="mb-4">
-                            <label for="priority-select-{{ workitem.workitemid }}"
-                              class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                            <select id="priority-select-{{ workitem.workitemid }}" {% if
-                              details_set_priority_perm==False %} disabled {% endif %}
-                              data-workitemid="{{ workitem.workitemid }}"
-                              class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                              <option value="0">{{ _("None") }}</option>
-                              <option value="1">{{ _("Low") }}</option>
-                              <option value="2">{{ _("Medium") }}</option>
-                              <option value="3">{{ _("High") }}</option>
-                            </select>
-                          </div>
-                          <div class="mb-4">
-                            <label for="assign-select-{{ workitem.workitemid }}"
-                              class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                            <select id="assign-select-{{ workitem.workitemid }}" {% if details_assign_users_perm==False
-                              %} disabled {% endif %} data-workitemid="{{ workitem.workitemid }}"
-                              class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                              <option value="None">{{ _("None") }}</option>
-                            </select>
-                          </div>
-                          <div class="mb-4">
-                            <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
-                            <div class="flex items-center gap-2">
-                              <input type="text" id="tag-input-{{ workitem.workitemid }}" list="taglist" {% if
-                                details_add_tag_perm==False %} disabled {% endif %}
-                                class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
-                              <input type="color" id="tag-color-{{ workitem.workitemid }}" {% if
-                                details_add_tag_perm==False %} disabled {% endif %}
-                                class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
-                              <button type="button" {% if details_add_tag_perm==False %} disabled {% endif %}
-                                class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
-                                data-workitemid="{{ workitem.workitemid }}">
-                                <i class="fas fa-plus"></i>
-                              </button>
-                            </div>
-                            <div id="tags-container-{{ workitem.workitemid }}"
-                              class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
-                            </div>
-                          </div>
-                          <div class="relative mt-auto pt-8" id="comment-form-wrapper-{{ workitem.workitemid }}">
-                            <form class="comment-form" data-workitemid="{{ workitem.workitemid }}">
-                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                              <label for="comment-text-{{ workitem.workitemid }}"
-                                class="text-sm font-medium text-gray-700">
-                                {{ _("Add Comment:") }}
-                              </label>
-                              <div class="relative">
-                                <textarea name="commentText" id="comment-text-{{ workitem.workitemid }}" {% if
-                                  details_add_comment_perm==False %} disabled {% endif %}
-                                  class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
-                                  autocomplete="off"></textarea>
-                                <div
-                                  class="mention-autocomplete-list absolute bottom-[calc(100%+0.4rem)] left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto hidden">
-                                </div>
-                              </div>
-                              <button type="submit" {% if details_add_comment_perm==False %} disabled {% endif %}
-                                class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
-                                {{ _("Post Comment") }}
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-              {% else %}
               <tr>
-                <td colspan="6" class="text-center py-10 text-gray-500">
-                  {{ _("No workitems found for the selected criteria.") }}
+                <td colspan="7" class="text-center py-20">
+                  <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
                 </td>
               </tr>
-              {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
 
+      <!-- Bulk action bar (shown when rows are selected) -->
+      <div id="bulk-action-bar"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
+        <span class="text-sm font-semibold" id="bulk-selected-count">0 {{ _("selected") }}</span>
+        <div class="w-px h-4 bg-white/20"></div>
+        <button type="button" id="bulkExportBtn"
+          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+          <i class="fas fa-download text-xs"></i> {{ _("Export CSV") }}
+        </button>
+        <button type="button" id="bulkDeselectBtn"
+          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+          <i class="fas fa-times text-xs"></i> {{ _("Deselect") }}
+        </button>
+      </div>
+
       <div id="paginationContainer" class="mt-6 flex items-center justify-between">
         <div class="text-sm text-gray-500 font-medium">
-          {{ _("Showing") }} <span class="font-semibold text-gray-700" id="showingCount">{{ ((current_page - 1) * 40) +
-            1 if workitems else 0 }}-{{ ((current_page - 1) * 40) + workitems|length }}</span> {{ _("of") }} <span
-            class="font-semibold text-gray-700" id="totalCount">{{ total_items }}</span> {{ _("results") }}
+          {{ _("Showing") }}
+          <span class="font-semibold text-gray-700" id="showingCount">—</span>
+          {{ _("of") }}
+          <span class="font-semibold text-gray-700" id="totalCount">—</span>
+          {{ _("results") }}
         </div>
-
-        {% if total_pages > 1 %}
-        <div id="paginationControls" class="flex items-center gap-2">
-          {% set query_params = {
-          'prcfW': process_name,
-          'search': search,
-          'status': status,
-          'startDate': startDate,
-          'endDate': endDate,
-          'tag': tag,
-          'priority': priority,
-          'assignedUser': assignedUser,
-          'docfield': docfield,
-          'docvalue': docvalue
-          } %}
-
-          <a href="{{ url_for('workitems_overview', page=current_page - 1, **query_params) if current_page > 1 else '#' }}"
-            data-page="{{ current_page - 1 }}"
-            class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 {{ 'opacity-40 cursor-not-allowed' if current_page == 1 else 'hover:bg-gray-50 hover:border-gray-300' }}">
-            <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
-          </a>
-
-          <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">
-            {{ current_page }} / {{ total_pages }}
-          </span>
-
-          <a href="{{ url_for('workitems_overview', page=current_page + 1, **query_params) if current_page < total_pages else '#' }}"
-            data-page="{{ current_page + 1 }}"
-            class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 {{ 'opacity-40 cursor-not-allowed' if current_page == total_pages else 'hover:bg-gray-50 hover:border-gray-300' }}">
-            {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
-          </a>
-        </div>
-        {% endif %}
+        <div id="paginationControls" class="flex items-center gap-2"></div>
       </div>
 
     </main>

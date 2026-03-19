@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -19,104 +22,127 @@
 
 <body>
 
+    <!-- ========== LEFT SIDEBAR ========== -->
+    <aside id="nexora-sidebar">
 
-    <header class="sticky top-1 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
-        <div class="container mx-auto px-4 sm:px-6">
-            <div class="flex h-20 items-center justify-between">
-                <div class="flex items-center gap-8">
-                    <div class="flex-shrink-0">
-                        {% include 'nexoraLogo/_nexoraLogo.html' %}
-                    </div>
+        <!-- Logo -->
+        <div class="sidebar-logo-area">
+            {% include 'nexoraLogo/_nexoraLogo.html' %}
+        </div>
 
-                    <nav class="hidden items-center gap-1 lg:flex">
-                        {% set nav_items = [
-                        {'perm': pageV.adminPagePerm, 'url': url_for('admin_dashboard'), 'label': _('Admin'), 'active':
-                        active_page in ['adminOverview', 'userManagement', 'organizations', 'mobscan_management']},
-                        {'perm': pageV.chatPagePerm, 'url': url_for('chat_page'), 'label': _('Chat'), 'active':
-                        active_page == 'chat'},
-                        {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'), 'label': _('Dashboard'),
-                        'active': active_page == 'dashboard'},
-                        {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'), 'label': _('Workitems'),
-                        'active': active_page == 'workitems_overview'},
-                        {'perm': pageV.invoicesPagePerm, 'url': url_for('invoices'), 'label': _('Invoices'), 'active':
-                        active_page == 'invoices'}
-                        ] %}
-                        <!-- {'perm': pageV.teamboardPagePerm, 'url': url_for('team_board'), 'label': _('Team Board'), 'active': active_page == 'teamboard'}, -->
+        <!-- Nav items -->
+        <nav class="sidebar-nav">
+            {% set nav_items = [
+                {'perm': pageV.adminPagePerm,     'url': url_for('admin_dashboard'),     'icon': 'fa-shield-halved',       'label': _('Admin'),     'active': active_page in ['adminOverview','userManagement','organizations','mobscan_management']},
+                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),      'active': active_page == 'chat'},
+                {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
+                {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},
+                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'), 'active': active_page == 'invoices'},
+            ] %}
 
-                        {% for item in nav_items %}
-                        {% if item.perm %}
-                        <a href="{{ item.url }}"
-                            class="relative px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md
-                           {{ 'text-indigo-600 bg-indigo-50/50' if item.active else 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50' }}">
-                            {{ item.label }}
-                        </a>
-                        {% endif %}
-                        {% endfor %}
-                    </nav>
-                </div>
+            {% for item in nav_items %}
+            {% if item.perm %}
+            <a href="{{ item.url }}"
+                class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}">
+                <i class="fas {{ item.icon }} sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ item.label }}</span>
+            </a>
+            {% endif %}
+            {% endfor %}
 
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <div class="flex items-center border-r border-gray-200 pr-4 gap-1">
-                        <!-- <button id="help-tour-button" class="group p-2 rounded-full hover:bg-gray-100 transition-all"
-                            title="{{ _('Start Tour') }}">
-                            <i class="fas fa-question-circle text-lg text-gray-400 group-hover:text-indigo-600"></i>
-                        </button> -->
-
-                        <div class="relative" id="notification-dropdown-container">
-                            <button id="bell-button"
-                                class="group p-2 rounded-full hover:bg-gray-100 transition-all relative">
-                                <i class="fas fa-bell text-lg text-gray-400 group-hover:text-indigo-600"></i>
-                                <span id="notification-count"
-                                    class="hidden absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
-                                </span>
-                            </button>
-
-                            <div id="notification-panel"
-                                class="absolute right-0 mt-3 w-80 origin-top-right rounded-xl bg-white shadow-2xl ring-1 ring-black/5 hidden overflow-hidden transition-all">
-                                <div class="bg-gray-50/50 px-4 py-3 border-b flex justify-between items-center">
-                                    <span class="text-xs font-bold uppercase tracking-wider text-gray-500">
-                                        {{ _("Notifications") }}</span>
-                                    <span
-                                        class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">NEW</span>
-                                </div>
-                                <div id="notification-list" class="py-1 max-h-[400px] overflow-y-auto">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <el-dropdown>
-                        <button class="flex items-center gap-3 pl-2 group transition-all">
-                            <div class="relative">
-                                <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
-                                    class="h-9 w-9 rounded-full object-cover ring-2 ring-transparent group-hover:ring-indigo-100 transition-all"
-                                    alt="{{ _('Profile Picture') }}">
-                                <div
-                                    class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500">
-                                </div>
-                            </div>
-                            <div class="hidden lg:flex flex-col items-start leading-tight">
-                                <span class="text-sm font-semibold text-gray-700">{{ logged_in_user }}</span>
-                                <span class="text-[11px] text-gray-400">{{ _("Online") }}</span>
-                            </div>
-                        </button>
-                        <el-menu anchor="bottom end" popover
-                            class="w-48 rounded-lg bg-white p-1 shadow-xl border border-gray-100 mt-2">
-                            <a href="{{ url_for('profile') }}"
-                                class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors">
-                                <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
-                            </a>
-                            <div class="my-1 border-t border-gray-100"></div>
-                            <a href="{{ url_for('logout') }}"
-                                class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors">
-                                <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
-                            </a>
-                        </el-menu>
-                    </el-dropdown>
+            {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm %}
+            {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting'] %}
+            <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader">
+                    <i class="fas fa-building-columns sidebar-nav-icon"></i>
+                    <span class="sidebar-label" style="flex:1">Generali</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    {% if pageV.generaliPagePerm %}
+                    <a href="{{ url_for('generali_evaluation') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_dashboard' else '' }}">
+                        <i class="fas fa-chart-line sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Dashboard') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if pageV.generaliDocumentsPerm %}
+                    <a href="{{ url_for('generali_documents') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_documents' else '' }}">
+                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Document List') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if pageV.generaliReportingPerm %}
+                    <a href="{{ url_for('generali_reporting') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_reporting' else '' }}">
+                        <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Reporting') }}</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
+        </nav>
+
+        <!-- Bottom actions -->
+        <div class="sidebar-bottom">
+
+            <!-- Notifications -->
+            <div class="sidebar-notif-wrapper" id="notification-dropdown-container">
+                <button id="bell-button" class="sidebar-nav-item">
+                    <div class="sidebar-nav-icon sidebar-notif-icon-wrap">
+                        <i class="fas fa-bell"></i>
+                        <span id="notification-count" class="sidebar-notif-badge hidden"></span>
+                    </div>
+                    <span class="sidebar-label">{{ _("Notifications") }}</span>
+                </button>
+
+                <div id="notification-panel"
+                    class="sidebar-notif-panel hidden">
+                    <div class="sidebar-notif-panel-header">
+                        <span>{{ _("Notifications") }}</span>
+                        <span class="sidebar-notif-new-badge">NEW</span>
+                    </div>
+                    <div id="notification-list" class="sidebar-notif-list"></div>
+                </div>
+            </div>
+
+            <!-- Dark mode toggle -->
+            <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}">
+                <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>
+                <span class="sidebar-label" id="dark-mode-label">{{ _("Dark Mode") }}</span>
+            </button>
+
+            <!-- Profile dropdown -->
+            <el-dropdown>
+                <button class="sidebar-nav-item sidebar-profile-btn">
+                    <div class="sidebar-nav-icon sidebar-avatar-wrap">
+                        <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
+                            class="sidebar-avatar" alt="{{ _('Profile Picture') }}"
+                            onerror="defaultIcon()">
+                        <div class="sidebar-online-dot"></div>
+                    </div>
+                    <span class="sidebar-label sidebar-username">{{ logged_in_user }}</span>
+                </button>
+                <el-menu anchor="right end" popover
+                    class="w-48 rounded-lg bg-white p-1 shadow-xl border border-gray-100 ml-2">
+                    <a href="{{ url_for('profile') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
+                    </a>
+                    <div class="my-1 border-t border-gray-100"></div>
+                    <a href="{{ url_for('logout') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors">
+                        <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
+                    </a>
+                </el-menu>
+            </el-dropdown>
+
         </div>
-    </header>
+    </aside>
+    <!-- ========== END SIDEBAR ========== -->
+
     {% include 'js/_headerJS.html' %}
     {% include 'js/_tourJS.html' %}
 </body>

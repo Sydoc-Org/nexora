@@ -367,6 +367,166 @@
             }
         }
 
+        function buildDetailContent(workitemid, status, currentStage) {
+            return `
+              <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+
+                  <div id="timeline-container-${workitemid}"
+                      class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100"
+                      data-current-stage="${currentStage}"
+                      data-status="${status}">
+                      <div class="relative flex justify-between items-center">
+                          <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+                          <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-gears text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-shield-halved text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-paper-plane text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
+                          </div>
+                      </div>
+                  </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                 <div class="flex flex-col gap-6 h-[50rem]">
+
+                  {% if details_images_perm %}
+                  <div id="image-container-${workitemid}"
+                    class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
+                    <p class="text-gray-500 text-center px-2">
+                      {{ _("Click toggle button again to load media") }}
+                    </p>
+                  </div>
+                  {% else %}
+                  <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50">
+                    <div class="text-center">
+                        <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
+                      {{ _('History') }}
+                    </h4>
+                    {% if details_audit_perm %}
+                    <div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2">
+                      <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
+                    </div>
+                    {% else %}
+                    <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                        <p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                  <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
+                  {{ _('Document Details') }}
+                </h4>
+                {% if details_fields_perm %}
+                <div id="fields-container-${workitemid}" class="flex-grow pr-2">
+                  <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
+                </div>
+                {% else %}
+                <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                  <p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p>
+                </div>
+                {% endif %}
+              </div>
+                </div>
+
+                      <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                        <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div class="flex flex-col">
+                            <div id="comments-container-${workitemid}"
+                              class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60">
+                              <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                            </div>
+                          </div>
+                            <div id="collaboration-tools-${workitemid}" class="flex flex-col">
+                                <div class="mb-4">
+  <label for="priority-select-${workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+  <select id="priority-select-${workitemid}"
+    data-workitemid="${workitemid}"  {% if details_set_priority_perm == False  %} disabled {% endif %}
+    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="0">{{ _("None") }}</option>
+    <option value="1">{{ _("Low") }}</option>
+    <option value="2">{{ _("Medium") }}</option>
+    <option value="3">{{ _("High") }}</option>
+  </select>
+</div>
+<div class="mb-4">
+  <label for="assign-select-${workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+  <select id="assign-select-${workitemid}"
+    data-workitemid="${workitemid}"  {% if details_assign_users_perm == False  %} disabled {% endif %}
+    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="None">{{ _("None") }}</option>
+  </select>
+</div>
+
+                    <div class="mb-4">
+                      <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
+                      <div class="flex items-center gap-2">
+                        <input type="text" id="tag-input-${workitemid}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
+                        <input type="color" id="tag-color-${workitemid}" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
+                        <button type="button" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
+                           data-workitemid="${workitemid}">
+                          <i class="fas fa-plus"></i>
+                        </button>
+                      </div>
+                      <div id="tags-container-${workitemid}"
+                        class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
+                      </div>
+                    </div>
+
+                            <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitemid}">
+                              <form class="comment-form" data-workitemid="${workitemid}">
+                                 <label for="comment-text-${workitemid}"
+                          class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
+                                <textarea name="commentText" id="comment-text-${workitemid}" {% if details_add_comment_perm == False  %} disabled {% endif %}
+                                class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                  placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
+                                  autocomplete="off"></textarea>
+                                <button type="submit" {% if details_add_comment_perm == False  %} disabled {% endif %}
+                                  class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                                  _("Post Comment") }}</button>
+                              </form>
+                              <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+            `;
+        }
+
         async function toggleDetailsAndLoadImages(event) {
             try {
                 const button = event.currentTarget;
@@ -374,6 +534,16 @@
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
                 
                 if (!detailsRow) return;
+
+                if (detailsRow.dataset.initialized !== 'true') {
+                    const td = detailsRow.querySelector('td');
+                    td.innerHTML = buildDetailContent(
+                        workitemid,
+                        detailsRow.dataset.status || '',
+                        detailsRow.dataset.currentStage || ''
+                    );
+                    detailsRow.dataset.initialized = 'true';
+                }
 
                 const chevron = button.querySelector('.indicator');
                 const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
@@ -757,6 +927,33 @@ async function uploadBatchFiles(files, processName) {
 }
 
 
+        async function fetchPageInitData() {
+            try {
+                const res = await fetch(`${API_PREFIX}api/workitems_page_init`, {
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                if (!res.ok) throw new Error('page init failed');
+                const data = await res.json();
+
+                mentionableUsers = data.users || [];
+                fieldConfig = data.field_config || { search_options: {}, labels: {} };
+
+                const allTags = data.tags || [];
+                const datalist = document.getElementById('taglist');
+                if (datalist) {
+                    datalist.innerHTML = '';
+                    allTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag.TagName;
+                        datalist.appendChild(option);
+                    });
+                }
+
+            } catch (e) {
+                console.error('Failed to fetch page init data:', e);
+            }
+        }
+
     function resetImportUI() {
         const importBtn = document.getElementById('importBtn');
         const modalBtn = document.getElementById('confirmImportBtn');
@@ -771,27 +968,37 @@ async function uploadBatchFiles(files, processName) {
     }
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetchMentionableUsers();
-            fetchAllTags();
+            // Init combobox interaction for existing doc field rows
+            document.querySelectorAll('.doc-field-combobox').forEach(initDocFieldCombobox);
+
+            fetchPageInitData().then(() => {
+                const process = document.getElementById('prcfW')?.value || 'all';
+                document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, process));
+            });
             fetchDocFieldValues();
-            fetchFieldConfig();
+
+            // Load initial workitems client-side (read page from URL to support direct links)
+            const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+            fetchAndUpdateWorkitems(_initPage);
+
+            // Prevent full-page form submit fallback
+            document.getElementById('filterForm')?.addEventListener('submit', e => e.preventDefault());
 
             const filterForm = document.getElementById('filterForm');
             const docFieldSel = document.getElementById('docFieldFilter');
             if(docFieldSel) {
                 docFieldSel.setAttribute('data-selected', "{{ docfield or '' }}");
             }
-            const docValueInput = document.getElementById('docValueInput').blur();
+            document.getElementById('docValueInput').blur();
             const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
             const advancedContainer = document.getElementById('advancedFilterContainer');
 
-            if (docValueInput) {
-                let debounceTimer;
-                const debounce = (callback, time) => {
-                    window.clearTimeout(debounceTimer);
-                    debounceTimer = window.setTimeout(callback, time);
-                };
+            let _mainSearchDebounce;
+            function debounceSearch(fn) {
+                clearTimeout(_mainSearchDebounce);
+                _mainSearchDebounce = setTimeout(fn, 300);
             }
+
             if (toggleBtn && advancedContainer) {
                 toggleBtn.addEventListener('click', () => {
                     advancedContainer.classList.toggle('hidden');
@@ -809,8 +1016,8 @@ async function uploadBatchFiles(files, processName) {
                     fieldConfig = data;
 
                     const process = document.getElementById('prcfW')?.value || 'all';
-                    document.querySelectorAll('.doc-filter-field').forEach(sel => {
-                        fillDocFieldSelect(sel, process);
+                    document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => {
+                        fillDocFieldSelect(hiddenInput, process);
                     });
 
                 } catch (e) {
@@ -818,34 +1025,88 @@ async function uploadBatchFiles(files, processName) {
                 }
             }
             
-            function fillDocFieldSelect(selectEl, process) {
-                const previousValue = selectEl.value || selectEl.getAttribute('data-selected');
-
-                selectEl.innerHTML = '';
+            function fillDocFieldSelect(hiddenInput, process) {
+                const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
                 let fields = [];
-                
+
                 if (process === 'all') {
                     const allFieldsMap = new Map();
                     Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
-                    fields = Array.from(allFieldsMap.values()).sort((a,b) => a.label.localeCompare(b.label));
+                    fields = Array.from(allFieldsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
                 } else {
                     fields = fieldConfig.search_options[process] || [];
                 }
-                
+
+                hiddenInput._docFieldOptions = fields;
+
+                const wrapper = hiddenInput.closest('.doc-field-combobox');
+                const searchInput = wrapper?.querySelector('.doc-filter-field-search');
+
                 if (fields.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.textContent = "{{ _('No fields available') }}";
-                    selectEl.appendChild(opt);
-                } else {
-                    fields.forEach(field => {
-                        const opt = document.createElement('option');
-                        opt.value = field.value;
-                        opt.textContent = field.label;
-                        // Re-select if the value matches the one we captured
-                        if (field.value === previousValue) opt.selected = true;
-                        selectEl.appendChild(opt);
-                    });
+                    hiddenInput.value = '';
+                    if (searchInput) { searchInput.value = ''; searchInput.placeholder = "{{ _('No fields available') }}"; }
+                    return;
                 }
+
+                const match = fields.find(f => f.value === selectedValue);
+                const selected = match || fields[0];
+                hiddenInput.value = selected.value;
+            }
+
+            function initDocFieldCombobox(wrapper) {
+                const searchInput = wrapper.querySelector('.doc-filter-field-search');
+                const hiddenInput = wrapper.querySelector('.doc-filter-field');
+                const dropdown = wrapper.querySelector('.doc-field-dropdown');
+                if (!searchInput || !hiddenInput || !dropdown) return;
+
+                function renderDropdown(query) {
+                    const options = hiddenInput._docFieldOptions || [];
+                    const q = (query || '').toLowerCase().trim();
+                    const filtered = q
+                        ? options.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
+                        : options;
+                    dropdown.innerHTML = '';
+                    if (filtered.length === 0) {
+                        const div = document.createElement('div');
+                        div.className = 'px-4 py-2 text-sm text-gray-500 italic';
+                        div.textContent = 'No results';
+                        dropdown.appendChild(div);
+                    } else {
+                        filtered.forEach(f => {
+                            const div = document.createElement('div');
+                            const isSelected = f.value === hiddenInput.value;
+                            div.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50' +
+                                (isSelected ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-700');
+                            div.textContent = f.label;
+                            div.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                hiddenInput.value = f.value;
+                                hiddenInput._userSelected = true;
+                                searchInput.value = f.label;
+                                dropdown.classList.add('hidden');
+                                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            dropdown.appendChild(div);
+                        });
+                    }
+                    dropdown.classList.remove('hidden');
+                }
+
+                searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        dropdown.classList.add('hidden');
+                        if (hiddenInput._userSelected) {
+                            // Restore the selected field's label
+                            const opts = hiddenInput._docFieldOptions || [];
+                            const current = opts.find(f => f.value === hiddenInput.value);
+                            if (current) searchInput.value = current.label;
+                        } else {
+                            searchInput.value = '';
+                        }
+                    }, 150);
+                });
             }
 
             function addDocFilterRow() {
@@ -854,8 +1115,10 @@ async function uploadBatchFiles(files, processName) {
                 const process = document.getElementById('prcfW')?.value || 'all';
                 if (!tpl || !container) return;
                 const node = tpl.content.firstElementChild.cloneNode(true);
-                const select = node.querySelector('.doc-filter-field');
-                fillDocFieldSelect(select, process);
+                const hiddenInput = node.querySelector('.doc-filter-field');
+                fillDocFieldSelect(hiddenInput, process);
+                const combo = node.querySelector('.doc-field-combobox');
+                if (combo) initDocFieldCombobox(combo);
                 container.appendChild(node);
             }
 
@@ -918,7 +1181,7 @@ async function uploadBatchFiles(files, processName) {
                 const procSel = document.getElementById('prcfW');
                 if (procSel) {
                     procSel.addEventListener('change', () => {
-                        container.querySelectorAll('.doc-filter-field').forEach(sel => fillDocFieldSelect(sel, procSel.value));
+                        container.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, procSel.value));
                     });
                 }
             })();
@@ -1039,9 +1302,13 @@ async function uploadBatchFiles(files, processName) {
             async function fetchAndUpdateWorkitems(page = 1) {
                 const tbody = document.getElementById('workitemsTbody');
                 const filterForm = document.getElementById('filterForm');
-                const formData = new FormData(filterForm);
-                formData.set('page', page);
-                const params = new URLSearchParams(formData);
+                const params = new URLSearchParams();
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    params.append(el.name, el.value);
+                }
+                params.set('page', page);
                 const url = `${API_PREFIX}api/workitems?${params.toString()}`;
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
@@ -1079,20 +1346,81 @@ async function uploadBatchFiles(files, processName) {
                     }
                 }
             }
+
+            // ---- Bulk selection state ----
+            let selectedWorkitemIds = new Set();
+            let allRenderedWorkitems = [];
+
+            function updateBulkBar() {
+                const bar   = document.getElementById('bulk-action-bar');
+                const count = document.getElementById('bulk-selected-count');
+                if (!bar) return;
+                if (selectedWorkitemIds.size > 0) {
+                    bar.classList.remove('hidden');
+                    count.textContent = `${selectedWorkitemIds.size} {{ _("selected") }}`;
+                } else {
+                    bar.classList.add('hidden');
+                }
+                const selectAll = document.getElementById('selectAllCheckbox');
+                if (selectAll) {
+                    const rows = document.querySelectorAll('.row-checkbox');
+                    selectAll.checked = rows.length > 0 && [...rows].every(cb => cb.checked);
+                    selectAll.indeterminate = selectedWorkitemIds.size > 0 && selectedWorkitemIds.size < rows.length;
+                }
+            }
+
+            function exportWorkitemsCSV(ids) {
+                const rows = ids.size > 0
+                    ? allRenderedWorkitems.filter(w => ids.has(String(w.workitemid)))
+                    : allRenderedWorkitems;
+                if (rows.length === 0) return;
+                const headers = ['Workitem ID', 'Status', 'Last Movement At', 'Priority', 'Tags'];
+                const priorityLabel = { 3: 'High', 2: 'Medium', 1: 'Low' };
+                const lines = rows.map(w => [
+                    w.workitemid,
+                    w.status,
+                    w.modifiedat ? new Date(w.modifiedat).toISOString().slice(0,19).replace('T',' ') : '',
+                    priorityLabel[w.priority] || '',
+                    (w.tags || []).map(t => t.name).join('; ')
+                ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+                const csv  = [headers.join(','), ...lines].join('\r\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url  = URL.createObjectURL(blob);
+                const a    = Object.assign(document.createElement('a'), {
+                    href: url,
+                    download: `workitems_${new Date().toISOString().slice(0,10)}.csv`
+                });
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+            }
+
             function renderTable(workitems) {
                 const tbody = document.getElementById('workitemsTbody');
                 tbody.innerHTML = '';
+                allRenderedWorkitems = workitems;
+                selectedWorkitemIds.clear();
+                updateBulkBar();
 
                 if (workitems.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">{{ _("No workitems found for the selected criteria.") }}</td></tr>`;
+                    tbody.innerHTML = `
+                        <tr><td colspan="7" class="py-16 text-center">
+                            <div class="inline-flex flex-col items-center gap-3">
+                                <div class="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                                </div>
+                                <p class="font-semibold text-gray-700">{{ _("No workitems found") }}</p>
+                                <p class="text-sm text-gray-400">{{ _("Try adjusting your filters or resetting the search.") }}</p>
+                            </div>
+                        </td></tr>`;
                     return;
                 }
 
                 workitems.forEach(workitem => {
                     const statusBadge = {
-                        'Ready': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
+                        'Ready':       '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
                         'In Progress': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 tracking-wide">In Progress</span>',
-                        'Done': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
+                        'Done':        '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
                     }[workitem.status] || `<span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 tracking-wide">${workitem.status}</span>`;
 
                     let priorityIcon = '';
@@ -1102,187 +1430,38 @@ async function uploadBatchFiles(files, processName) {
 
                     const rowHtml = `
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
-                        <td class="px-6 py-4 whitespace-nowrap text-center"> <div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div> </td>
+                        <td class="px-4 py-4 text-center w-10">
+                            <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                data-id="${workitem.workitemid}">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
                         </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
                                 data-workitemid="${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
                             </button>
                         </td>
                     </tr>
-                    <tr id="details-row-${workitem.workitemid}" class="details-row" hidden>
-                      <td colspan="6">
-                        <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
-
-                            <div id="timeline-container-${workitem.workitemid}"
-                                class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100"
-                                data-current-stage="${workitem.current_stage}"
-                                data-status="${workitem.status}">
-                                <div class="relative flex justify-between items-center">
-                                    
-                                    <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
-                                    <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
-
-                                    <div class="process-step z-10 flex flex-col items-center text-center">
-                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                                            <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
-                                        </div>
-                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
-                                    </div>
-                                    <div class="process-step z-10 flex flex-col items-center text-center">
-                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                                            <i class="fas fa-gears text-xl text-gray-400"></i>
-                                        </div>
-                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
-                                    </div>
-                                    <div class="process-step z-10 flex flex-col items-center text-center">
-                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                                            <i class="fas fa-shield-halved text-xl text-gray-400"></i>
-                                        </div>
-                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
-                                    </div>
-                                    <div class="process-step z-10 flex flex-col items-center text-center">
-                                        <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
-                                            <i class="fas fa-paper-plane text-xl text-gray-400"></i>
-                                        </div>
-                                        <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                       <div class="flex flex-col gap-6 h-[50rem]">
-          
-                      {% if details_images_perm %}
-                      <div id="image-container-${workitem.workitemid}"
-                        class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
-                        <p class="text-gray-500 text-center px-2">
-                          {{ _("Click toggle button again to load media") }}
-                        </p>
-                      </div>
-                      {% else %}
-                      <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50">
-                        <div class="text-center">
-                            <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
-                            <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
-                        </div>
-                      </div>
-                      {% endif %}
-
-                      <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
-                        <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
-                          {{ _('History') }}
-                        </h4>
-                        {% if details_audit_perm %}
-                        <div id="history-container-${workitem.workitemid}" class="flex-grow overflow-y-auto pr-2">
-                          <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
-                        </div>
-                        {% else %}
-                        <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
-                            <p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p>
-                        </div>
-                        {% endif %}
-                      </div>
-                    </div>
-
-                      <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
-                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
-                      {{ _('Document Details') }}
-                    </h4>
-                    {% if details_fields_perm %}
-                    <div id="fields-container-${workitem.workitemid}" class="flex-grow pr-2">
-                      <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
-                    </div>
-                    {% else %}
-                    <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
-                      <p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p>
-                    </div>
-                    {% endif %}
-                  </div>
-                    </div>
-
-
-                          <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div class="flex flex-col">
-                                <div id="comments-container-${workitem.workitemid}"
-                                  class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60">
-                                  <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
-                                </div>
-                              </div>
-                                <div id="collaboration-tools-${workitem.workitemid}" class="flex flex-col">
-                                    <div class="mb-4">
-  <label for="priority-select-${workitem.workitemid}"
-    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-  <select id="priority-select-${workitem.workitemid}" 
-    data-workitemid="${workitem.workitemid}"  {% if details_set_priority_perm == False  %} disabled {% endif %}
-    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-    <option value="0">{{ _("None") }}</option>
-    <option value="1">{{ _("Low") }}</option>
-    <option value="2">{{ _("Medium") }}</option>
-    <option value="3">{{ _("High") }}</option>
-  </select>
-</div>
-<div class="mb-4">
-  <label for="assign-select-${workitem.workitemid}"
-    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-  <select id="assign-select-${workitem.workitemid}" 
-    data-workitemid="${workitem.workitemid}"  {% if details_assign_users_perm == False  %} disabled {% endif %}
-    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-    <option value="None">{{ _("None") }}</option>
-  </select>
-</div>
-
-
-                        <div class="mb-4">
-                          <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
-                          <div class="flex items-center gap-2">
-                            <input type="text" id="tag-input-${workitem.workitemid}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
-                              class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
-                            <input type="color" id="tag-color-${workitem.workitemid}" {% if details_add_tag_perm == False  %} disabled {% endif %}
-                              class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
-                            <button type="button" {% if details_add_tag_perm == False  %} disabled {% endif %}
-                              class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
-                               data-workitemid="${workitem.workitemid}">
-                              <i class="fas fa-plus"></i>
-                            </button>
-                          </div>
-                          <div id="tags-container-${workitem.workitemid}"
-                            class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
-                          </div>
-                        </div>
-
-
-                                <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitem.workitemid}">
-                                  <form class="comment-form" data-workitemid="${workitem.workitemid}">
-                                     <label for="comment-text-${workitem.workitemid}"
-                              class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
-                                    <textarea name="commentText" id="comment-text-${workitem.workitemid}" {% if details_add_comment_perm == False  %} disabled {% endif %}
-                                    class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                      placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
-                                      autocomplete="off"></textarea>
-                                    <button type="submit" {% if details_add_comment_perm == False  %} disabled {% endif %}
-                                      class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
-                                      _("Post Comment") }}</button>
-                                  </form>
-                                  <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
+                    <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
+                        data-status="${workitem.status}"
+                        data-current-stage="${workitem.current_stage || ''}"><td colspan="7"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
+                });
+
+                // Attach checkbox listeners after rows are inserted
+                tbody.querySelectorAll('.row-checkbox').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        if (cb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                        updateBulkBar();
+                    });
                 });
             }
 
@@ -1429,7 +1608,7 @@ async function uploadBatchFiles(files, processName) {
                     const bText = bCell.textContent.trim();
 
                     let comparison = 0;
-                    if (columnIndex === 2) {
+                    if (columnIndex === 3) {
                         const parseDate = (str) => {
                             const [datePart, timePart] = str.split(' - ');
                             const [day, month, year] = datePart.split('. ');
@@ -1453,11 +1632,11 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
 
-                headers.forEach((header, index) => {
+                headers.forEach((header) => {
                     const icon = header.querySelector('i');
                     if (icon) {
                         icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
-                        if (index === columnIndex) {
+                        if (parseInt(header.dataset.columnIndex, 10) === columnIndex) {
                             icon.classList.remove('fa-sort');
                             icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
                             icon.classList.add('text-indigo-600');
@@ -1487,10 +1666,10 @@ async function uploadBatchFiles(files, processName) {
                 if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
             });
             const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.addEventListener('input', () => fetchAndUpdateWorkitems());
+            if (searchInput) searchInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
 
             const tagFilterInput = document.getElementById('tagFilterInput');
-            if (tagFilterInput) tagFilterInput.addEventListener('input', () => fetchAndUpdateWorkitems());
+            if (tagFilterInput) tagFilterInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
 
             const paginationContainer = document.getElementById('paginationContainer');
             if (paginationContainer) {
@@ -1636,6 +1815,41 @@ async function uploadBatchFiles(files, processName) {
                     }
                 }
             });
+
+            // ---- Select-all checkbox ----
+            const selectAllCb = document.getElementById('selectAllCheckbox');
+            if (selectAllCb) {
+                selectAllCb.addEventListener('change', () => {
+                    const checkboxes = document.querySelectorAll('.row-checkbox');
+                    checkboxes.forEach(cb => {
+                        cb.checked = selectAllCb.checked;
+                        if (selectAllCb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                    });
+                    updateBulkBar();
+                });
+            }
+
+            // ---- Bulk bar buttons ----
+            const bulkExportBtn   = document.getElementById('bulkExportBtn');
+            const bulkDeselectBtn = document.getElementById('bulkDeselectBtn');
+            const exportCsvBtn    = document.getElementById('exportCsvBtn');
+
+            if (bulkExportBtn) {
+                bulkExportBtn.addEventListener('click', () => exportWorkitemsCSV(selectedWorkitemIds));
+            }
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.addEventListener('click', () => {
+                    selectedWorkitemIds.clear();
+                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                    const sAll = document.getElementById('selectAllCheckbox');
+                    if (sAll) { sAll.checked = false; sAll.indeterminate = false; }
+                    updateBulkBar();
+                });
+            }
+            if (exportCsvBtn) {
+                exportCsvBtn.addEventListener('click', () => exportWorkitemsCSV(new Set()));
+            }
         });
     </script>
 </body>

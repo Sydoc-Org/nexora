@@ -1,0 +1,393 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const canEdit = document.getElementById('reportingTable').dataset.canEdit === 'true';
+    const colSpan = canEdit ? 6 : 5;
+
+    let currentPage = 1;
+
+    const CATEGORIES = {
+        'export_post':       '{{ _("Export physical post (till 12:00)") }}',
+        'export_post_scan':  '{{ _("Export physical post with scanning (till 12:00)") }}'
+    };
+    //'provision_archive': '{{ _("Provision of the original from the interim and long-term archives (till 12:00 next day)") }}'
+
+    function ontimeBadge(ontime) {
+        if (ontime) {
+            return '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">&#10003; {{ _("On Time") }}</span>';
+        }
+        return '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-600">&#10007; {{ _("Late") }}</span>';
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        return dateStr.split('T')[0];
+    }
+
+    function formatDateTime(dtStr) {
+        if (!dtStr) return '—';
+        return dtStr.replace('T', ' ').substring(0, 16);
+    }
+
+    // ----------------------------- fetch ----------------------------- //
+    function buildParams(page) {
+        const p = new URLSearchParams();
+        const start = document.getElementById('filterStartDate').value;
+        const end   = document.getElementById('filterEndDate').value;
+        const cat   = document.getElementById('filterCategory').value;
+        if (start) p.set('startDate', start);
+        if (end)   p.set('endDate', end);
+        if (cat)   p.set('category', cat);
+        p.set('page', page);
+        return p;
+    }
+
+    async function fetchRecords(page = 1) {
+        currentPage = page;
+        const tbody = document.getElementById('reportingTbody');
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></td></tr>`;
+
+        const params = buildParams(page);
+        try {
+            const res = await fetch(`${API_PREFIX}api/generali/reporting?${params.toString()}`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            renderTable(data.records);
+            renderPagination(data.pagination);
+        } catch (e) {
+            console.error('Failed to fetch reporting records:', e);
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+        }
+    }
+
+    // ----------------------------- render table ----------------------------- //
+    function renderTable(records) {
+        const tbody = document.getElementById('reportingTbody');
+        tbody.innerHTML = '';
+
+        if (!records.length) {
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-gray-500">{{ _("No records found for the selected criteria.") }}</td></tr>`;
+            return;
+        }
+
+        document.getElementById('showingCount').textContent = records.length;
+
+        records.forEach(r => {
+            const catLabel = CATEGORIES[r.category] || r.category;
+            const actionsCell = canEdit ? `
+                <td class="px-4 py-3 text-center">
+                    <button class="toggle-ontime-btn text-xs font-semibold px-3 py-1.5 rounded-lg border transition
+                        ${r.ontime ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}"
+                        data-date="${r.reportForDate}"
+                        data-userid="${r.reportByUserID}"
+                        data-category="${r.category}"
+                        data-ontime="${r.ontime}">
+                        ${r.ontime ? '{{ _("Mark Late") }}' : '{{ _("Mark On Time") }}'}
+                    </button>
+                </td>` : '';
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 transition-colors';
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${formatDate(r.reportForDate)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname || r.username || '#' + r.reportByUserID}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
+                <td class="px-4 py-3 text-center" id="ontime-cell-${r.reportForDate}-${r.reportByUserID}-${r.category}">${ontimeBadge(r.ontime)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
+                ${actionsCell}
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // edit toggle handlers
+        if (canEdit) {
+            tbody.querySelectorAll('.toggle-ontime-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleToggle(btn));
+            });
+        }
+    }
+
+    // ----------------------------- pagination ----------------------------- //
+    function renderPagination(pagination) {
+        const { page, total_pages, total_records, per_page } = pagination;
+        document.getElementById('totalCount').textContent = total_records;
+        document.getElementById('showingCount').textContent =
+            Math.min(per_page, total_records - (page - 1) * per_page);
+
+        const ctrl = document.getElementById('paginationControls');
+        ctrl.innerHTML = '';
+
+        if (total_pages <= 1) return;
+
+        const btn = (label, p, disabled) => {
+            const el = document.createElement('button');
+            el.textContent = label;
+            el.disabled = disabled;
+            el.className = `px-3 py-1.5 rounded-lg text-sm font-semibold border transition
+                ${disabled ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`;
+            if (!disabled) el.addEventListener('click', () => fetchRecords(p));
+            return el;
+        };
+
+        ctrl.appendChild(btn('‹ {{ _("Prev") }}', page - 1, page <= 1));
+
+        const pageInfo = document.createElement('span');
+        pageInfo.className = 'px-3 py-1.5 text-sm text-gray-500 font-medium';
+        pageInfo.textContent = `{{ _("Page") }} ${page} / ${total_pages}`;
+        ctrl.appendChild(pageInfo);
+
+        ctrl.appendChild(btn('{{ _("Next") }} ›', page + 1, page >= total_pages));
+    }
+
+    // ----------------------------- toggle ontime ----------------------------- //
+    async function handleToggle(btn) {
+        const date     = btn.dataset.date;
+        const userId   = parseInt(btn.dataset.userid);
+        const category = btn.dataset.category;
+        const newVal   = btn.dataset.ontime !== 'true'; // flip
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch(`${API_PREFIX}api/generali/reporting`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ reportForDate: date, userId, category, ontime: newVal })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+
+            // update badge in-place
+            const cellId = `ontime-cell-${date}-${userId}-${category}`;
+            document.getElementById(cellId).innerHTML = ontimeBadge(newVal);
+            btn.dataset.ontime = String(newVal);
+            btn.disabled = false;
+            btn.className = `toggle-ontime-btn text-xs font-semibold px-3 py-1.5 rounded-lg border transition
+                ${newVal ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`;
+            btn.textContent = newVal ? '{{ _("Mark Late") }}' : '{{ _("Mark On Time") }}';
+        } catch (e) {
+            console.error('Toggle failed:', e);
+            btn.disabled = false;
+            btn.textContent = '{{ _("Error") }}';
+        }
+    }
+
+    // ----------------------------- modal ----------------------------- //
+    const modal      = document.getElementById('addReportModal');
+    const openBtn    = document.getElementById('openAddModalBtn');
+    const closeBtn   = document.getElementById('closeModalBtn');
+    const cancelBtn  = document.getElementById('cancelModalBtn');
+    const submitBtn  = document.getElementById('submitReportBtn');
+    const modalError = document.getElementById('modalError');
+
+    const ALL_CATEGORIES = [
+        { value: 'export_post',       label: '{{ _("Export physical post (till 12:00)") }}' },
+        { value: 'export_post_scan',  label: '{{ _("Export physical post with scanning (till 12:00)") }}' }
+    ];
+    //{ value: 'provision_archive', label: '{{ _("Provision of the original from the interim and long-term archives (till 12:00 next day)") }}' }
+
+    function getToday() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function isDatePast(dateVal) {
+        return dateVal < getToday();
+    }
+
+    function ontimeButtonHtml(ontime, disabled) {
+        const cls = ontime
+            ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
+            : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
+        const label = ontime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        return `<button type="button" class="${cls}" data-ontime="${ontime}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+    }
+
+    function buildEntryRow(isPast) {
+        const row = document.createElement('div');
+        row.className = 'entry-row flex items-center gap-2';
+
+        const catOptions = ALL_CATEGORIES.map(c =>
+            `<option value="${c.value}">${c.label}</option>`
+        ).join('');
+
+        row.innerHTML = `
+            <div class="relative flex-1 min-w-0">
+                <select class="entry-category block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
+                    <option value="">{{ _("Select category…") }}</option>
+                    ${catOptions}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+            ${ontimeButtonHtml(!isPast, isPast)}
+            <button type="button" class="entry-remove-btn flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        `;
+
+        row.querySelector('.entry-ontime-btn').addEventListener('click', function () {
+            if (this.disabled) return;
+            const newVal = this.dataset.ontime !== 'true';
+            this.dataset.ontime = String(newVal);
+            this.className = newVal
+                ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
+                : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
+            this.innerHTML = newVal ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        });
+
+        row.querySelector('.entry-remove-btn').addEventListener('click', function () {
+            if (document.querySelectorAll('#entryRows .entry-row').length <= 1) return;
+            row.remove();
+            syncRowControls();
+        });
+
+        row.querySelector('.entry-category').addEventListener('change', syncRowControls);
+
+        return row;
+    }
+
+    function syncRowControls() {
+        const rows   = document.querySelectorAll('#entryRows .entry-row');
+        const used   = Array.from(rows).map(r => r.querySelector('.entry-category').value).filter(Boolean);
+        const isPast = isDatePast(document.getElementById('modalDate').value || getToday());
+
+        rows.forEach(row => {
+            const sel = row.querySelector('.entry-category');
+            const own = sel.value;
+
+            // grey out already-chosen categories in other rows
+            ALL_CATEGORIES.forEach(cat => {
+                const opt = sel.querySelector(`option[value="${cat.value}"]`);
+                if (opt) opt.disabled = cat.value !== own && used.includes(cat.value);
+            });
+
+            // show/hide remove button
+            row.querySelector('.entry-remove-btn').style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+        });
+
+        // show/hide "Add another" button
+        const addBtn = document.getElementById('addEntryRowBtn');
+        if (addBtn) addBtn.style.display = used.length >= ALL_CATEGORIES.length ? 'none' : '';
+    }
+
+    function addEntryRow() {
+        const isPast = isDatePast(document.getElementById('modalDate').value || getToday());
+        document.getElementById('entryRows').appendChild(buildEntryRow(isPast));
+        syncRowControls();
+    }
+
+    function openModal() {
+        const today     = getToday();
+        const dateInput = document.getElementById('modalDate');
+        dateInput.value = today;
+        dateInput.max   = today;
+        document.getElementById('entryRows').innerHTML = '';
+        addEntryRow();
+        if (modalError) { modalError.classList.add('hidden'); modalError.textContent = ''; }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // when date changes, enforce past-date rule on all existing rows
+    const modalDateInput = document.getElementById('modalDate');
+    if (modalDateInput) {
+        modalDateInput.addEventListener('change', () => {
+            const isPast = isDatePast(modalDateInput.value);
+            document.querySelectorAll('#entryRows .entry-row').forEach(row => {
+                const btn = row.querySelector('.entry-ontime-btn');
+                if (isPast) {
+                    btn.dataset.ontime = 'false';
+                    btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
+                    btn.innerHTML = '&#10007; {{ _("Late") }}';
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+
+    if (openBtn)   openBtn.addEventListener('click', openModal);
+    if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal)     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    const addEntryRowBtn = document.getElementById('addEntryRowBtn');
+    if (addEntryRowBtn) addEntryRowBtn.addEventListener('click', addEntryRow);
+
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            const reportForDate = document.getElementById('modalDate').value;
+            if (!reportForDate) { showModalError('{{ _("Please select a date.") }}'); return; }
+
+            const rows = document.querySelectorAll('#entryRows .entry-row');
+            const entries = [];
+            for (const row of rows) {
+                const category = row.querySelector('.entry-category').value;
+                if (!category) { showModalError('{{ _("Please select a category for each entry.") }}'); return; }
+                const ontime = row.querySelector('.entry-ontime-btn').dataset.ontime === 'true';
+                entries.push({ category, ontime });
+            }
+
+            const cats = entries.map(e => e.category);
+            if (new Set(cats).size !== cats.length) {
+                showModalError('{{ _("Duplicate categories in submission.") }}');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Submitting…") }}';
+
+            const errors = [];
+            for (const entry of entries) {
+                try {
+                    const res = await fetch(`${API_PREFIX}api/generali/reporting`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ reportForDate, ...entry })
+                    });
+                    const data = await res.json();
+                    if (!data.success) errors.push(data.error || entry.category);
+                } catch (e) {
+                    errors.push(`{{ _("Network error for") }} ${entry.category}`);
+                }
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '{{ _("Submit") }}';
+
+            if (errors.length) {
+                showModalError(errors.join(' · '));
+            } else {
+                closeModal();
+                fetchRecords(1);
+            }
+        });
+    }
+
+    function showModalError(msg) {
+        if (!modalError) return;
+        modalError.textContent = msg;
+        modalError.classList.remove('hidden');
+    }
+
+    // ----------------------------- filter ----------------------------- //
+    document.getElementById('applyFilterBtn').addEventListener('click', () => fetchRecords(1));
+    document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value   = '';
+        document.getElementById('filterCategory').value  = '';
+        fetchRecords(1);
+    });
+
+    // ----------------------------- init ----------------------------- //
+    fetchRecords(1);
+</script>

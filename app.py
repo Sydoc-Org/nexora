@@ -221,6 +221,14 @@ engineStatisticsDBMobscan = create_engine(
     pool_timeout=30,
     pool_recycle=1800
 )
+DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
+engineGeneraliDB = create_engine(
+    getDBUrl(DB_GENERALI),
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 
 # ------------------------------ database connection end --------------------- #
 
@@ -297,6 +305,19 @@ def require_permission(code):
         return wrapper
     return decorator
 
+def startpage_redirect_to(pV):
+    permToFunction = {
+        'dashboardPagePerm': 'dashboard',
+        'workitemsPagePerm': 'workitems_overview',
+        'invoicesPagePerm': 'invoices',
+        'adminPagePerm': 'admin_dashboard',
+        'chatPagePerm': 'chat_page',
+        'generaliPagePerm': 'generali_evaluation'
+    }
+    for pTF in permToFunction:
+        if pV[pTF]: return permToFunction[pTF]
+    return 'login'
+
 def pageVisability():
     adminPagePerm = has_permission('admin.view')
     dashboardPagePerm = has_permission('dashboard.view')
@@ -304,10 +325,16 @@ def pageVisability():
     # teamboardPagePerm = has_permission('teamboard.view')
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
-    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
+    generaliPagePerm = has_permission('generali.dashboard.view')
+    generaliDocumentsPerm = has_permission('generali.view.documentlist')
+    generaliReportingPerm = has_permission('generali.reporting.view')
+    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             #   'teamboardPagePerm': teamboardPagePerm,
-            'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm}
+            'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
+            'generaliPagePerm': generaliPagePerm,
+            'generaliDocumentsPerm': generaliDocumentsPerm,
+            'generaliReportingPerm': generaliReportingPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -371,13 +398,7 @@ def init_2FA():
                 session['uuid'] = uuid.uuid4()
                 session['permissions'] = load_permissions_for_user(str(user_id))
                 pV = pageVisability()
-                if not pV['dashboardPagePerm']:
-                    if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
-                    # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
-                    elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
-                    elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
-                    else: return redirect(url_for('login')) 
-                return redirect(url_for('dashboard')) 
+                return redirect(url_for(startpage_redirect_to(pV)))
             except Exception as e:
                 app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template('init_2FA.html', error=_("Database error"))
@@ -426,13 +447,7 @@ def verify_2fa():
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
             pV = pageVisability()
-            if not pV['dashboardPagePerm']:
-                if pV['workitemsPagePerm']: return redirect(url_for('workitems_overview')) 
-                # elif pV['teamboardPagePerm']: return redirect(url_for('team_board')) 
-                elif pV['invoicesPagePerm']: return redirect(url_for('invoices')) 
-                elif pV['adminPagePerm']: return redirect(url_for('admin_dashboard')) 
-                else: return redirect(url_for('login')) 
-            return redirect(url_for('dashboard')) 
+            return redirect(url_for(startpage_redirect_to(pV)))
         else:
             flash(_("Invalid code"), "error")
             return render_template('verify_2fa.html')
@@ -822,6 +837,25 @@ def admin_delete_organization(organizationcode):
         if conn:
             conn.close()
 
+@app.route("/api/admin/organizations/list")
+@require_permission('admin.view.organizations')
+def api_admin_organizations_list():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT organizationcode, organization FROM organizations ORDER BY organization")
+        orgs = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(orgs)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch organizations list: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 @app.route("/admin/users")
 @require_permission('admin.view.users')
 def admin_users():
@@ -1104,6 +1138,31 @@ def admin_delete_user(user_id):
             cursor.close()
         if conn:
             conn.close()
+
+@app.route("/api/admin/users/list")
+@require_permission('admin.view.users')
+def api_admin_users_list():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization
+            FROM Users u
+            JOIN accessprofile ap ON ap.accessid = u.accessid
+            JOIN organizations o ON o.organizationcode = u.organizationcode
+            ORDER BY username
+        """)
+        users = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users list: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route("/api/admin/recent_logs")
 @require_permission('admin.view.active.sessions')
@@ -1629,29 +1688,24 @@ def prepare_process_selection_sql(prefix,process_name):
         raise
 
 def get_activityinstancesToIgnore():
+    cached = cache.get('activity_instances_ignore')
+    if cached is not None:
+        return cached
+    conn = None
+    cursor = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore')
         rows = cursor.fetchall()
-        return ', '.join("'"+row.ActivityInstanceName+"'" for row in rows)
+        result = ', '.join("'"+row.ActivityInstanceName+"'" for row in rows)
+        cache.set('activity_instances_ignore', result, timeout=3600)
+        return result
     except Exception as e:
         print(e)
     finally:
-        if conn: conn.close()
         if cursor: cursor.close()
-
-# ------------------------------ process filter ------------------------------ #
-def get_process_filter_and_params(process_name):
-    if process_name == '02_Posteingang':
-        return "?", ["02_Posteingang"]
-    elif process_name == '02_InitialScan':
-        return "?", ["02_InitialScan"]
-    elif process_name == '03_Invoice_New':
-        return "?", ["03_Invoice_New"]
-    else:
-        return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
-# ---------------------------- process filter end ---------------------------- #
+        if conn: conn.close()
 
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
@@ -1804,6 +1858,7 @@ def dashboard_processed_over_time():
         if conn: conn.close()
 
 @app.route("/api/dashboard/kpi_stats")
+@cache.cached(timeout=60, key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
 def dashboard_kpi_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1918,6 +1973,7 @@ def dashboard_kpi_stats():
         if conn_octo: conn_octo.close()
 
 @app.route("/api/dashboard/hourly_stats")
+@cache.cached(timeout=120, key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
 def dashboard_hourly_stats():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2005,6 +2061,7 @@ def dashboard_hourly_stats():
 
 
 @app.route("/api/dashboard/avg_processing_time")
+@cache.cached(timeout=300, key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
 def dashboard_avg_processing_time():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2132,12 +2189,30 @@ def dashboard():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
-            allowed_processes=allowed_processes,  
+            allowed_processes=allowed_processes,
             pageV=pageVisability(),
             fullname=fullname
         )
     except Exception as e:
         return render_template('500.html')
+
+@app.route("/api/dashboard/set_filter", methods=["POST"])
+@require_permission('dashboard.view')
+def dashboard_set_filter():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = request.json.get('process_name', 'all')
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+    session['process_name_dashboard'] = process_name
+    return jsonify({"ok": True, "process_name": process_name})
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
@@ -2155,6 +2230,10 @@ def api_config_fields():
     }
 
     current_lang = str(get_locale())
+    _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    cached = cache.get(_cache_key)
+    if cached is not None:
+        return jsonify(cached)
     lang_column_map = {
         'de': 'GermanLabel',
         'fr': 'FrenchLabel',
@@ -2210,10 +2289,9 @@ def api_config_fields():
         if conn:
             conn.close()
 
-    return jsonify({
-        'search_options': search_options,
-        'labels': db_labels_map 
-    })
+    result = {'search_options': search_options, 'labels': db_labels_map}
+    cache.set(_cache_key, result, timeout=3600)
+    return jsonify(result)
 
 @cache.cached(timeout=3600, key_prefix='search_config_columns')
 def get_valid_search_columns():
@@ -2318,6 +2396,7 @@ def _get_workitems_data(args):
     regular_extra_params = []
     mobscan_extra_clauses = []
     mobscan_extra_params = []
+    _docfield_temp_tables = []  # [(temp_name, [ids])] for large ID sets
 
     if has_permission('workitems.filter.documentfields') and target_processes:
         valid_db_columns = get_valid_search_columns()
@@ -2406,6 +2485,11 @@ def _get_workitems_data(args):
                         continue  # skip this filter on error; don't restrict results
                     if not matching_ids:
                         extra_clauses.append("1=0")
+                    elif len(matching_ids) > 500:
+                        # Avoid SQL Server's 2100-param limit by using a temp table
+                        temp_name = f"#docf{len(_docfield_temp_tables)}"
+                        _docfield_temp_tables.append((temp_name, matching_ids))
+                        extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
                     else:
                         ph = ','.join(['?'] * len(matching_ids))
                         extra_clauses.append(f"twi.ID IN ({ph})")
@@ -2431,6 +2515,16 @@ def _get_workitems_data(args):
     try:
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
+
+        # Create temp tables for large docfield ID sets (avoids 2100-param limit)
+        for temp_name, ids in _docfield_temp_tables:
+            cursor.execute(f"CREATE TABLE {temp_name} (id NVARCHAR(255))")
+            for i in range(0, len(ids), 1000):
+                batch = ids[i:i + 1000]
+                cursor.execute(
+                    f"INSERT INTO {temp_name}(id) VALUES {','.join(['(?)'] * len(batch))}",
+                    batch
+                )
 
         # --- count pass ---
         for tbl_prefix, procs, extra_cls, extra_pms in [
@@ -2658,11 +2752,6 @@ def workitems_overview():
         logged_in_user = session.get('username')
         userid = session.get('userid')
 
-        data = _get_workitems_data(request.args)
-
-        workitems_list = data['workitems']
-        pagination = data['pagination']
-
         search_term_perm = has_permission('workitems.filter.workitemid')
         search_term = request.args.get('search', '').strip() if search_term_perm else None
 
@@ -2715,10 +2804,6 @@ def workitems_overview():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
-            workitems=workitems_list,
-            current_page=pagination['currentPage'],
-            total_pages=pagination['totalPages'],
-            total_items=pagination['totalItems'],
             search=search_term,
             status=status,
             tag=tag_filter,
@@ -2919,7 +3004,6 @@ def get_access_token(domain=None):
         return None
 
 def get_domain_for_workitem(workitem_id):
-    """Return OCTO_DOMAIN or OCTO_DOMAIN_MOBSCN based on which server owns the workitem."""
     cache_key = f'workitem_domain_{workitem_id}'
     cached = cache.get(cache_key)
     if cached:
@@ -2943,7 +3027,6 @@ def get_domain_for_workitem(workitem_id):
         elif row:
             domain = OCTO_DOMAIN
         else:
-            # Not found in regular OctoDB — check MOBSCAN via linked server
             cursor.execute(f"""
                 SELECT TOP 1 1 FROM {RUNTIME_TBL_MOBSCAN}t_WorkItems WHERE ID = ?
             """, workitem_id)
@@ -3129,38 +3212,39 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
-        raw_media_bytes = get_media(target_url, domain)
 
-        if target_extension == '.jpg':
-            mimetype = 'image/jpeg'
-        elif target_extension == '.png':
-            mimetype = 'image/png'
-        elif target_extension == '.tif':
+        if target_extension == '.tif':
+            _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
+            cached_jpeg = cache.get(_tif_cache_key)
+            if cached_jpeg is not None:
+                return send_file(io.BytesIO(cached_jpeg), mimetype='image/jpeg', as_attachment=False)
+
+            raw_media_bytes = get_media(target_url, domain)
             try:
                 image_stream = io.BytesIO(raw_media_bytes)
                 with Image.open(image_stream) as img:
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
-
                     buffer = io.BytesIO()
                     img.save(buffer, format='JPEG', quality=85)
-                    buffer.seek(0)
-
-                    return send_file(
-                        buffer,
-                        mimetype='image/jpeg',
-                        as_attachment=False
-                    )
+                    jpeg_bytes = buffer.getvalue()
+                    cache.set(_tif_cache_key, jpeg_bytes, timeout=3600)
+                    return send_file(io.BytesIO(jpeg_bytes), mimetype='image/jpeg', as_attachment=False)
             except Exception as e:
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500
 
+        raw_media_bytes = get_media(target_url, domain)
+        if target_extension == '.jpg':
+            mimetype = 'image/jpeg'
+        elif target_extension == '.png':
+            mimetype = 'image/png'
+        else:
+            mimetype = 'application/octet-stream'
+
         response = make_response(raw_media_bytes)
         response.headers.set('Content-Type', mimetype)
-
-        response.headers.set(
-            'Cache-Control', 'private, max-age=3600'
-        )
+        response.headers.set('Cache-Control', 'private, max-age=3600')
         return response
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -3186,8 +3270,13 @@ def get_activity_type_name(activity_instance_id: str, domain: str = None) -> str
         return _("Error fetching activity instance")
 
 @app.route('/api/get_audithistory/<int:workitem_id>')
-@require_permission('workitems.details.view.audit') 
+@require_permission('workitems.details.view.audit')
 def get_audithistory(workitem_id):
+    _cache_key = f"audithistory_{workitem_id}"
+    cached = cache.get(_cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
     try:
         domain = get_domain_for_workitem(workitem_id)
         audit_url = f'https://{domain}/api/processservice/api/v2.1/processService/WorkItemAudits?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true'
@@ -3218,25 +3307,33 @@ def get_audithistory(workitem_id):
             }
             complete_array.append(step_info)
 
+        cache.set(_cache_key, complete_array, timeout=1800)
         return jsonify(complete_array)
 
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"{_("Failed to fetch audit history")}: {e}"}), 500
+        return jsonify({"error": f"{_('Failed to fetch audit history')}: {e}"}), 500
     except Exception as e:
-        return jsonify({"error": f"{_("An unexpected error occurred")}: {e}"}), 500
+        return jsonify({"error": f"{_('An unexpected error occurred')}: {e}"}), 500
 
-# ------------------------ workitem collaboration apis ----------------------- #
+# ------------------------ workitem collaboration apis s----------------------- #
 @app.route('/api/users')
 def get_users_for_mentions():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
+
+    _all_users = has_permission('admin.interact.users.all')
+    _org = session.get('organizationcode', '')
+    _cache_key = f"users_mentions_{'all' if _all_users else _org}"
+    cached = cache.get(_cache_key)
+    if cached is not None:
+        return jsonify(cached)
 
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         if has_permission('workitems.details.add.comment'):
-            if has_permission('admin.interact.users.all'):
+            if _all_users:
                 cursor.execute("""
                 SELECT userID, username, fullname FROM Users
                 """)
@@ -3244,8 +3341,9 @@ def get_users_for_mentions():
                 cursor.execute("""
                 SELECT userID, username, fullname FROM Users
                 WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                """, session.get('organizationcode'))
+                """, _org)
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        cache.set(_cache_key, users, timeout=900)
         return jsonify(users)
     except Exception as e:
         app.logger.error(f"Failed to fetch users for mentions: {e}")
@@ -3260,6 +3358,11 @@ def get_users_for_mentions():
 def get_workitem_interactions(workitemid):
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
+
+    _cache_key = f"interactions_{workitemid}"
+    cached = cache.get(_cache_key)
+    if cached is not None:
+        return jsonify(cached)
 
     conn = None
     try:
@@ -3316,12 +3419,14 @@ def get_workitem_interactions(workitemid):
                     'userID': crow.userID,
                     'userIcon': resolve_user_icon_url(crow.userID)
                 })
-        return jsonify({
+        result = {
             'priority': priority,
             'assigneduserid': assigneduserid,
             'comments': comments,
             'tags': tags
-        })
+        }
+        cache.set(_cache_key, result, timeout=600)
+        return jsonify(result)
     except Exception as e:
         app.logger.error(f"Failed to fetch interactions for workitem {workitemid}: {e}")
         return jsonify({"error": _("Could not fetch interactions")}), 500
@@ -3365,6 +3470,7 @@ def add_workitem_comment(workitemid):
                 notification_link = url_for('workitems_overview', search=workitemid, _external=False)
                 create_notification(user.userID, f"{session['username']} mentioned you on workitem {workitemid}", link=notification_link, icon='fa-at')
         conn.commit()
+        cache.delete(f"interactions_{workitemid}")
         return jsonify({'success': True, 'message': _("Comment added.")})
     except Exception as e:
         app.logger.error(f"Error adding comment for workitem {workitemid}: {e}")
@@ -3403,6 +3509,7 @@ def assign_workitem(workitemid):
         """, (workitemid, assignedUserID, session['userid']))
 
         conn.commit()
+        cache.delete(f"interactions_{workitemid}")
         if assignedUserID != None and assignedUserID != session['userid']:
             notification_link = url_for('workitems_overview', search=workitemid, _external=False)
             create_notification(assignedUserID, f"{session['username']} {_('assigned you on workitem')} {workitemid}", link=notification_link, icon='fa-people-carry-box')
@@ -3443,6 +3550,7 @@ def set_workitem_priority(workitemid):
         """, (workitemid, priority, session['userid']))
 
         conn.commit()
+        cache.delete(f"interactions_{workitemid}")
         return jsonify({'success': True, 'message': _("Priority updated.")})
     except Exception as e:
         app.logger.error(f"Error setting priority for workitem {workitemid}: {e}")
@@ -3458,12 +3566,17 @@ def get_all_tags():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
+    cached = cache.get('all_tags')
+    if cached is not None:
+        return jsonify(cached)
+
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
         tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        cache.set('all_tags', tags, timeout=1800)
         return jsonify(tags)
     except Exception as e:
         app.logger.error(f"Failed to fetch all tags: {e}")
@@ -3473,6 +3586,106 @@ def get_all_tags():
             cursor.close()
         if conn:
             conn.close()
+
+@app.route('/api/workitems_page_init')
+def api_workitems_page_init():
+    if 'username' not in session:
+        return jsonify({}), 401
+
+    # Tags
+    tags = cache.get('all_tags')
+    if tags is None:
+        conn = None
+        try:
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
+            tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            cache.set('all_tags', tags, timeout=1800)
+        except Exception as e:
+            app.logger.error(f"page_init: failed to fetch tags: {e}")
+            tags = []
+        finally:
+            if conn: conn.close()
+
+    # Users
+    _all_users = has_permission('admin.interact.users.all')
+    _org = session.get('organizationcode', '')
+    _users_key = f"users_mentions_{'all' if _all_users else _org}"
+    users = cache.get(_users_key)
+    if users is None:
+        conn = None
+        try:
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            if has_permission('workitems.details.add.comment'):
+                if _all_users:
+                    cursor.execute("SELECT userID, username, fullname FROM Users")
+                else:
+                    cursor.execute("""
+                        SELECT userID, username, fullname FROM Users
+                        WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
+                    """, _org)
+                users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            else:
+                users = []
+            cache.set(_users_key, users, timeout=900)
+        except Exception as e:
+            app.logger.error(f"page_init: failed to fetch users: {e}")
+            users = []
+        finally:
+            if conn: conn.close()
+
+    perms = session.get('permissions', [])
+    prefix = "workitems.filter.process."
+    allowed_processes = {
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms if perm.startswith(prefix)
+    }
+    current_lang = str(get_locale())
+    _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    field_config = cache.get(_fields_key)
+    if field_config is None:
+        lang_column_map = {'de': 'GermanLabel', 'fr': 'FrenchLabel', 'it': 'ItalianLabel', 'en': 'EnglishLabel'}
+        target_column = lang_column_map.get(current_lang, 'EnglishLabel')
+        search_options = {}
+        db_labels_map = {}
+        conn = None
+        try:
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
+                for row in cursor.fetchall():
+                    translated_label = getattr(row, target_column) or row.EnglishLabel
+                    db_labels_map[row.FieldKey] = translated_label
+            except Exception:
+                pass
+            cursor.execute("SELECT TOP 0 * FROM SearchConfig")
+            cols = [c[0] for c in cursor.description if c[0].startswith('col_')]
+            query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                proc_name = row.ProcessName
+                if proc_name not in allowed_processes:
+                    continue
+                fields = []
+                for i, col_name in enumerate(cols):
+                    if row[i+1]:
+                        field_key = col_name.replace('col_', '')
+                        nice_label = db_labels_map.get(field_key, field_key.replace('_', ' ').title())
+                        fields.append({'value': field_key, 'label': nice_label})
+                fields.sort(key=lambda x: x['label'])
+                search_options[proc_name] = fields
+        except Exception as e:
+            app.logger.error(f"page_init: failed to fetch field config: {e}")
+        finally:
+            if conn: conn.close()
+        field_config = {'search_options': search_options, 'labels': db_labels_map}
+        cache.set(_fields_key, field_config, timeout=3600)
+
+    return jsonify({'tags': tags, 'users': users, 'field_config': field_config})
+
 
 @app.route('/api/workitem/<int:workitemid>/tags', methods=['POST'])
 def add_tag_to_workitem(workitemid):
@@ -3507,6 +3720,8 @@ def add_tag_to_workitem(workitemid):
 
         cursor.execute("INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id))
         conn.commit()
+        cache.delete(f"interactions_{workitemid}")
+        cache.delete('all_tags')
 
         return jsonify({'success': True, 'message': _("Tag added successfully."), 'tag': {'TagID': tag_id, 'TagName': tag_name, 'TagColor': tag_color}})
 
@@ -3535,6 +3750,8 @@ def remove_tag_from_workitem(workitemid, tag_id):
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': _("Tag association not found.")}), 404
 
+        cache.delete(f"interactions_{workitemid}")
+        cache.delete('all_tags')
         return jsonify({'success': True, 'message': _("Tag removed successfully.")})
     except Exception as e:
         app.logger.error(f"Error removing tag {tag_id} from workitem {workitemid}: {e}")
@@ -4370,77 +4587,542 @@ def upload_chat_file(conversation_id):
 
 # ----------------------------- Generali Evaluation -------------------------- #
 
-@app.route("/generali")
-@require_permission('generali.view')
+@app.route("/generali-dashboard")
+@require_permission('generali.dashboard.view')
 def generali_evaluation():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        return render_template("generali.html", 
-                             logged_in_user=session.get('username'), 
-                             userid=session.get('userid'), 
-                             pageV=pageVisability())
+        return render_template("generali-dashboard.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability())
     except Exception as e:
         app.logger.error(f"Error loading Generali Evaluation: {e}")
         return render_template('handlers/500.html'), 500
 
-@app.route("/api/generali/stats")
-@require_permission('generali.view')
-def api_generali_stats():
+@app.route("/generali/documents")
+@require_permission('generali.view.documentlist')
+def generali_documents():
     try:
-        conn = engineStatisticsDB.raw_connection()
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_documents.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Documents: {e}")
+        return render_template('handlers/500.html'), 500
+
+@app.route("/api/generali/stats")
+@require_permission('generali.dashboard.view')
+def api_generali_stats():
+    conn = None
+    try:
+        start_date = (request.args.get('startDate')).replace('T',' ')
+        end_date = (request.args.get('endDate')).replace('T',' ')
+
+        date_filter = ""
+        date_params = []
+
+        if start_date:
+            date_filter += " AND DOC_DateCreated >= ?"
+            date_params.append(start_date)
+        if end_date:
+            date_filter += " AND DOC_DateCreated <= ?"
+            date_params.append(end_date)
+
+        conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT 
+        cursor.execute(f"""
+            SELECT
                 COUNT(*) as TotalDocs,
-                SUM(CASE WHEN NK1 = 1 THEN 1 ELSE 0 END) as NK1_Success,
-                SUM(CASE WHEN NK2 = 1 THEN 1 ELSE 0 END) as NK2_Success,
-                AVG(DATEDIFF(MINUTE, ImportDateTime, ExportDateTime)) as AvgProcessingTime
-            FROM generali
-        """)
+                SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_Pass,
+                SUM(CASE WHEN DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK2_Pass,
+                SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' AND DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_NK2_Pass
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+        """, date_params)
         kpi_row = cursor.fetchone()
+        total = kpi_row[0] or 0
         kpis = {
-            "total_docs": kpi_row[0],
-            "nk1_rate": round((kpi_row[1] / kpi_row[0]) * 100, 1) if kpi_row[0] > 0 else 0,
-            "nk2_rate": round((kpi_row[2] / kpi_row[0]) * 100, 1) if kpi_row[0] > 0 else 0,
-            "avg_time": kpi_row[3] or 0
+            "total_docs": total,
+            "nk1_rate": round((kpi_row[1] / total) * 100, 1) if total > 0 else 0,
+            "nk2_rate": round((kpi_row[2] / total) * 100, 1) if total > 0 else 0,
+            "nk1_nk2_rate": round((kpi_row[3] / total) * 100, 1) if total > 0 else 0
         }
 
-        cursor.execute("""
-            SELECT CAST(ImportDateTime AS DATE) as d, COUNT(*) as c 
-            FROM generali
-            WHERE ImportDateTime >= DATEADD(day, -14, GETDATE())
-            GROUP BY CAST(ImportDateTime AS DATE)
+        trend_where = "1=1" + date_filter if date_filter else "DOC_DateCreated >= DATEADD(day, -30, GETDATE())"
+        cursor.execute(f"""
+            SELECT CAST(DOC_DateCreated AS DATE) as d, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE {trend_where}
+            GROUP BY CAST(DOC_DateCreated AS DATE)
             ORDER BY d
-        """)
+        """, date_params)
         trend_rows = cursor.fetchall()
         trend_data = {"labels": [str(r[0]) for r in trend_rows], "values": [r[1] for r in trend_rows]}
+        
+        kpis['avg_daily'] = round(total / len(trend_rows), 1) if total > 0 else 0
+        
+        cursor.execute(f"""
+            SELECT ISNULL(DOC_DOKUMENTENTYP, 'Unknown') as t, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+            GROUP BY DOC_DOKUMENTENTYP
+            ORDER BY c DESC
+        """, date_params)
+        rows = cursor.fetchall()
+        doctype_data = {"labels": [r[0] for r in rows], "values": [r[1] for r in rows]}
 
-        cursor.execute("""
-            SELECT DocumentType, COUNT(*) as c 
-            FROM generali 
-            GROUP BY DocumentType 
-            ORDER BY DocumentType
-        """)
-        dist_rows = cursor.fetchall()
-        dist_data = {"labels": [f"Type {r[0]}" for r in dist_rows], "values": [r[1] for r in dist_rows]}
+        cursor.execute(f"""
+            SELECT ISNULL(DOC_EMPFAENGER, 'Unknown') as e, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+            GROUP BY DOC_EMPFAENGER
+            ORDER BY c DESC
+        """, date_params)
+        rows = cursor.fetchall()
 
+        empfaenger_data = {"labels": [r[0] for r in rows], "values": [r[1] for r in rows]}
+
+        cursor.execute(f"""
+            SELECT ISNULL(DOC_SPRACHE, 'Unknown') as s, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+            GROUP BY DOC_SPRACHE
+            ORDER BY c DESC
+        """, date_params)
+        rows = cursor.fetchall()
+
+        language_data = {"labels": [r[0] for r in rows], "values": [r[1] for r in rows]}
+
+        cursor.execute(f"""
+            SELECT ISNULL(DOC_EINGANGSKANAL, 'Unknown') as k, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+            GROUP BY DOC_EINGANGSKANAL
+            ORDER BY c DESC
+        """, date_params)
+        rows = cursor.fetchall()
+
+        channel_data = {"labels": [r[0] for r in rows], "values": [r[1] for r in rows]}
+
+        cursor.execute(f"""
+            SELECT ISNULL(DOC_NK1,'Unknown') as nk1, ISNULL(DOC_NK2,'Unknown') as nk2, COUNT(*) as c
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE 1=1 {date_filter}
+            GROUP BY DOC_NK1, DOC_NK2
+            ORDER BY c DESC
+        """, date_params)
+        rows = cursor.fetchall()
+
+        nk_data = [{"nk1": r[0], "nk2": r[1], "count": r[2]} for r in rows]
         return jsonify({
             "success": True,
             "kpis": kpis,
             "trend": trend_data,
-            "distribution": dist_data
+            "doctype": doctype_data,
+            "empfaenger": empfaenger_data,
+            "language": language_data,
+            "channel": channel_data,
+            "nk": nk_data,
         })
     except Exception as e:
-        app.logger.error(f"Generali API Error: {e}")
+        app.logger.error(f"Generali Stats API Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
+@app.route("/api/generali/filter_options")
+@require_permission('generali.view.documentlist')
+def api_generali_filter_options():
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        result = {}
+        for col, key in [
+            ("DOC_DOKUMENTENTYP", "doctype"),
+            ("DOC_EMPFAENGER", "empfaenger"),
+            ("DOC_SPRACHE", "sprache"),
+            ("DOC_NK1", "nk1"),
+            ("DOC_NK2", "nk2"),
+            ("DOC_EINGANGSKANAL", "eingangskanal"),
+            ("DOC_KOMMUNIKATION", "kommunikation"),
+        ]:
+            cursor.execute(f"SELECT DISTINCT {col} FROM [dbo].[v_ReportJobJoinDefinitions] WHERE {col} IS NOT NULL ORDER BY {col}")
+            result[key] = [r[0] for r in cursor.fetchall()]
+        return jsonify({"success": True, "options": result})
+    except Exception as e:
+        app.logger.error(f"Generali Filter Options Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/generali/documents")
+@require_permission('generali.view.documentlist')
+def api_generali_documents():
+    conn = None
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 50
+        offset = (page - 1) * per_page
+
+        doc_type = request.args.get('docType')
+        empfaenger = request.args.get('empfaenger')
+        sprache = request.args.get('sprache')
+        nk1 = request.args.get('nk1')
+        nk2 = request.args.get('nk2')
+        eingangskanal = request.args.get('eingangskanal')
+        kommunikation = request.args.get('kommunikation')
+        start_date = request.args.get('startDate')
+        end_date = request.args.get('endDate')
+        search = request.args.get('search', '').strip()
+        sort_by = request.args.get('sortBy', 'DOC_DateCreated')
+        sort_dir = request.args.get('sortDir', 'DESC').upper()
+        group_by = request.args.get('groupBy', '')
+
+        allowed_sort_cols = {
+            'DOC_DateCreated', 'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_SPRACHE',
+            'DOC_EINGANGSKANAL', 'DOC_NK1', 'DOC_NK2', 'DOC_BETRAG', 'DOC_KOMMUNIKATION'
+        }
+        if sort_by not in allowed_sort_cols:
+            sort_by = 'DOC_DateCreated'
+        if sort_dir not in ('ASC', 'DESC'):
+            sort_dir = 'DESC'
+
+        allowed_group_cols = {
+            'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_SPRACHE', 'DOC_EINGANGSKANAL', 'DOC_KOMMUNIKATION'
+        }
+        if group_by not in allowed_group_cols:
+            group_by = ''
+
+        where_clauses = ["1=1"]
+        params = []
+
+        if doc_type:
+            where_clauses.append("DOC_DOKUMENTENTYP = ?")
+            params.append(doc_type)
+        if empfaenger:
+            where_clauses.append("DOC_EMPFAENGER = ?")
+            params.append(empfaenger)
+        if sprache:
+            where_clauses.append("DOC_SPRACHE = ?")
+            params.append(sprache)
+        if nk1:
+            where_clauses.append("DOC_NK1 = ?")
+            params.append(nk1)
+        if nk2:
+            where_clauses.append("DOC_NK2 = ?")
+            params.append(nk2)
+        if eingangskanal:
+            where_clauses.append("DOC_EINGANGSKANAL = ?")
+            params.append(eingangskanal)
+        if kommunikation:
+            where_clauses.append("DOC_KOMMUNIKATION = ?")
+            params.append(kommunikation)
+        if start_date:
+            where_clauses.append("DOC_DateCreated >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("DOC_DateCreated <= ?")
+            params.append(end_date)
+        if search:
+            where_clauses.append("""(
+                DOC_ID LIKE ? OR CAST(CASE_ID AS NVARCHAR) LIKE ?
+                OR DOC_BEZEICHNUNG LIKE ? OR DOC_KONTAKTPERSON LIKE ?
+                OR DOC_POLICEN_NR LIKE ? OR DOC_SCHADEN_NR LIKE ?
+            )""")
+            s = f"%{search}%"
+            params.extend([s, s, s, s, s, s])
+
+        where_sql = " AND ".join(where_clauses)
+
+        order_parts = []
+        if group_by:
+            order_parts.append(f"{group_by} ASC")
+        if sort_by != group_by:
+            order_parts.append(f"{sort_by} {sort_dir}")
+        order_sql = ", ".join(order_parts) if order_parts else "DOC_DateCreated DESC"
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*) FROM [dbo].[v_ReportJobJoinDefinitions] WHERE {where_sql}", params)
+        total_items = cursor.fetchone()[0]
+        total_pages = math.ceil(total_items / per_page)
+
+        cursor.execute(f"""
+            SELECT
+                DOC_ID, CASE_ID, CASE_FOLDERNAME, DOC_DateCreated, DOC_DOKUMENTENTYP,
+                DOC_EMPFAENGER, DOC_SPRACHE, DOC_KOMMUNIKATION, DOC_EINGANGSKANAL,
+                DOC_BETRAG, DOC_WAEHRUNG, DOC_NK1, DOC_NK2, DOC_SCANORT,
+                DOC_BEZEICHNUNG, DOC_NOTIFIKATIONSSTATUS, DOC_RICHTUNG, DOC_PENDING
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE {where_sql}
+            ORDER BY {order_sql}
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        cols = [
+            'doc_id', 'case_id', 'case_foldername', 'doc_datecreated', 'doc_dokumententyp',
+            'doc_empfaenger', 'doc_sprache', 'doc_kommunikation', 'doc_eingangskanal',
+            'doc_betrag', 'doc_waehrung', 'doc_nk1', 'doc_nk2', 'doc_scanort',
+            'doc_bezeichnung', 'doc_notifikationsstatus', 'doc_richtung', 'doc_pending'
+        ]
+        documents = []
+        for row in cursor.fetchall():
+            d = dict(zip(cols, row))
+            d['doc_datecreated'] = str(d['doc_datecreated']) if d['doc_datecreated'] else None
+            documents.append(d)
+
+        return jsonify({
+            "success": True,
+            "documents": documents,
+            "group_by": group_by,
+            "pagination": {
+                "currentPage": page,
+                "totalPages": total_pages,
+                "totalItems": total_items,
+                "perPage": per_page,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Documents API Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/generali/documents/<path:doc_id>")
+@require_permission('generali.view.documentlist')
+def api_generali_document_detail(doc_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE DOC_ID = ?
+        """, [doc_id])
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": "Not found"}), 404
+        cols = [desc[0] for desc in cursor.description]
+        doc = {}
+        for k, v in zip(cols, row):
+            doc[k] = str(v) if v is not None else None
+        return jsonify({"success": True, "document": doc})
+    except Exception as e:
+        app.logger.error(f"Generali Document Detail Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Reporting --------------------------- #
+
+REPORTING_CATEGORIES = {'export_post', 'export_post_scan'}
+#'provision_archive'
+@app.route("/generali/reporting")
+@require_permission('generali.reporting.view')
+def generali_reporting():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_reporting.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.reporting.add'),
+                               can_edit=has_permission('generali.reporting.edit'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Reporting: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/reporting", methods=["GET"])
+@require_permission('generali.reporting.view')
+def api_generali_reporting_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+        category   = request.args.get('category', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ReportForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ReportForDate <= ?")
+            params.append(end_date)
+        if category and category in REPORTING_CATEGORIES:
+            where_clauses.append("category = ?")
+            params.append(category)
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*) FROM [dbo].[reportingiss] {where_sql}", params)
+        total_records = cursor.fetchone()[0]
+        total_pages = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+            FROM [dbo].[reportingiss]
+            {where_sql}
+            ORDER BY ReportForDate DESC, ReportTimeStamp DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        # collect unique user IDs for name lookup
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, username, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, uname, fname in nx_cur.fetchall():
+                    user_map[uid] = {'username': uname, 'fullname': fname or uname}
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for reporting: {ue}")
+
+        records = []
+        for r in rows:
+            report_date, report_ts, user_id, ontime, cat = r
+            user_info = user_map.get(user_id, {})
+            records.append({
+                'reportForDate':   str(report_date) if report_date else None,
+                'reportTimeStamp': report_ts.isoformat() if report_ts else None,
+                'reportByUserID':  user_id,
+                'username':        user_info.get('username'),
+                'fullname':        user_info.get('fullname'),
+                'ontime':          bool(ontime),
+                'category':        cat,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Reporting List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/reporting", methods=["POST"])
+@require_permission('generali.reporting.add')
+def api_generali_reporting_add():
+    conn = None
+    try:
+        body = request.get_json(force=True)
+        report_for_date = body.get('reportForDate', '').strip()
+        category        = body.get('category', '').strip()
+        ontime          = bool(body.get('ontime', False))
+        user_id         = session.get('userid')
+
+        if not report_for_date:
+            return jsonify({"success": False, "error": "reportForDate is required"}), 400
+        if category not in REPORTING_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        # check for duplicate
+        cursor.execute("""
+            SELECT COUNT(*) FROM [dbo].[reportingiss]
+            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+        """, [report_for_date, user_id, category])
+        if cursor.fetchone()[0] > 0:
+            return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
+
+        cursor.execute("""
+            INSERT INTO [dbo].[reportingiss] (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category)
+            VALUES (?, GETDATE(), ?, ?, ?)
+        """, [report_for_date, user_id, 1 if ontime else 0, category])
+        conn.commit()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/reporting", methods=["PUT"])
+@require_permission('generali.reporting.edit')
+def api_generali_reporting_edit():
+    conn = None
+    try:
+        body = request.get_json(force=True)
+        report_for_date = body.get('reportForDate', '').strip()
+        user_id         = body.get('userId')
+        category        = body.get('category', '').strip()
+        ontime          = bool(body.get('ontime', False))
+
+        if not report_for_date or user_id is None:
+            return jsonify({"success": False, "error": "reportForDate and userId are required"}), 400
+        if category not in REPORTING_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [dbo].[reportingiss]
+            SET ontime = ?
+            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+        """, [1 if ontime else 0, report_for_date, user_id, category])
+        conn.commit()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route("/api/dashboard/recent_activity")
 @require_permission('dashboard.view')
+@cache.cached(timeout=120, key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
 def api_recent_activity():
     conn = None
     try:
@@ -4465,7 +5147,7 @@ def api_recent_activity():
         cursor = conn.cursor()
         activityinstancesToIgnore = get_activityinstancesToIgnore()
 
-        raw_rows = []  # list of (row, domain)
+        raw_rows = []  
         for tbl_prefix, procs, domain in [
             ("", regular_procs, OCTO_DOMAIN),
             (RUNTIME_TBL_MOBSCAN, mobscan_procs, OCTO_DOMAIN_MOBSCN),

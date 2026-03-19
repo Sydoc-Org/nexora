@@ -1,20 +1,294 @@
+/* ============================================================
+   NEXORA – Shared header / sidebar styles
+   ============================================================ */
+
+/* ---------- Base body ---------- */
 body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f9fafb;
-        }
-
-
-#notification-list::-webkit-scrollbar {
-    width: 6px;
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+    padding-left: 64px;          /* reserve sidebar width */
+    transition: padding-left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
-#notification-list::-webkit-scrollbar-track {
-    background: transparent;
+
+body > main {
+    flex: 1 0 auto;
 }
-#notification-list::-webkit-scrollbar-thumb {
-    background: #e5e7eb;
+
+footer {
+    flex-shrink: 0;
+}
+
+#nexora-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 64px;                 
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-right: 1px solid #f3f4f6;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    transition: width 0.28s cubic-bezier(.4,0,.2,1);
+}
+#nexora-sidebar:hover {
+    width: 220px;
+}
+
+/* ---------- Sidebar label (hidden when collapsed) ---------- */
+.sidebar-label {
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+#nexora-sidebar:hover .sidebar-label {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ---------- Logo area ---------- */
+.sidebar-logo-area {
+    display: flex;
+    align-items: center;
+    height: 64px;
+    padding: 0 12px;
+    border-bottom: 1px solid #f3f4f6;
+    flex-shrink: 0;
+}
+
+/* Scale down the animated BH logo to fit the 64px collapsed sidebar */
+.sidebar-logo-area .bh {
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0;
+}
+
+/* Keep brand link in a single row, let overflow hide the text when collapsed */
+.sidebar-logo-area .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+/* Shrink the logo text slightly */
+.sidebar-logo-area .nexora-title {
+    font-size: 1.05rem !important;
+}
+.sidebar-logo-area .nexora-subtitle {
+    font-size: 0.6rem !important;
+    margin-top: 1px !important;
+}
+
+/* Text part fades in with the sidebar expansion */
+.sidebar-logo-area .flex.flex-col {
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+}
+#nexora-sidebar:hover .sidebar-logo-area .flex.flex-col {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ---------- Nav section ---------- */
+.sidebar-nav {
+    flex: 1;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ---------- Nav item ---------- */
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
     border-radius: 10px;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.sidebar-nav-item:hover {
+    background: #f5f3ff;
+    color: #4f46e5;
+}
+.sidebar-nav-item--active {
+    background: #eef2ff;
+    color: #4f46e5;
+    font-weight: 600;
 }
 
+/* ---------- Nav icon ---------- */
+.sidebar-nav-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+/* ---------- Nav sub-group (e.g. Generali) ---------- */
+.sidebar-nav-group-header {
+    cursor: pointer;
+}
+.sidebar-nav-group-header:hover {
+    background: #f5f3ff;
+    color: #4f46e5;
+}
+.sidebar-nav-subitems {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease;
+}
+#nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
+    max-height: 200px;
+}
+.sidebar-nav-subitem {
+    padding-left: 20px;
+}
+.sidebar-subitem-icon {
+    font-size: 0.8rem !important;
+    width: 24px !important;
+    height: 24px !important;
+}
+.sidebar-generali-chevron {
+    font-size: 0.65rem;
+    transition: opacity 0.18s ease, transform 0.2s ease !important;
+}
+#generaliNavGroup.generali-open .sidebar-generali-chevron {
+    transform: rotate(90deg);
+}
+html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc; }
+
+/* ---------- Bottom section ---------- */
+.sidebar-bottom {
+    flex-shrink: 0;
+    border-top: 1px solid #f3f4f6;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* ---------- Notification bell ---------- */
+.sidebar-notif-wrapper {
+    position: relative;
+}
+.sidebar-notif-icon-wrap {
+    position: relative;
+}
+.sidebar-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: flex;
+    height: 16px;
+    width: 16px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #ef4444;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    border: 2px solid #fff;
+}
+.sidebar-notif-panel {
+    position: fixed;
+    left: 68px;
+    bottom: 60px;
+    width: 300px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+    overflow: hidden;
+    z-index: 100;
+}
+.sidebar-notif-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    background: #fafafa;
+}
+.sidebar-notif-new-badge {
+    font-size: 9px;
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 800;
+}
+.sidebar-notif-list {
+    max-height: 360px;
+    overflow-y: auto;
+}
+.sidebar-notif-list::-webkit-scrollbar { width: 5px; }
+.sidebar-notif-list::-webkit-scrollbar-track { background: transparent; }
+.sidebar-notif-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+
+/* ---------- Profile / avatar ---------- */
+.sidebar-avatar-wrap {
+    position: relative;
+}
+.sidebar-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    object-fit: cover;
+    ring: 2px solid #e0e7ff;
+}
+.sidebar-online-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #22c55e;
+    border: 2px solid #fff;
+}
+.sidebar-username {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+}
+.sidebar-profile-btn {
+    cursor: pointer;
+}
+
+/* ---------- notification-item (legacy support) ---------- */
 .notification-item {
     border-left: 3px solid transparent;
     transition: all 0.2s ease;
@@ -24,7 +298,84 @@ body {
     background-color: #f9fafb;
 }
 
+/* ---------- Backdrop blur (legacy) ---------- */
 .backdrop-blur-md {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+}
+
+
+/* ============================================================
+   DARK MODE
+   Applied when <html class="dark"> is set.
+   These overrides cover the sidebar + broad page elements.
+   ============================================================ */
+
+html.dark body {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+/* Sidebar shell */
+html.dark #nexora-sidebar {
+    background: #1e293b;
+    border-right-color: #334155;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+}
+html.dark .sidebar-logo-area  { border-bottom-color: #334155; }
+html.dark .sidebar-logo-area .nexora-title { background: linear-gradient(90deg, #f1f5f9, #a5b4fc) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+html.dark .sidebar-bottom      { border-top-color: #334155; }
+html.dark .sidebar-nav-item    { color: #94a3b8; }
+html.dark .sidebar-nav-item:hover { background: #334155; color: #a5b4fc; }
+html.dark .sidebar-nav-item--active { background: rgba(79,70,229,0.25); color: #a5b4fc; }
+html.dark .sidebar-username    { color: #e2e8f0; }
+html.dark .sidebar-online-dot  { border-color: #1e293b; }
+html.dark .sidebar-notif-panel { background: #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+html.dark .sidebar-notif-panel-header { background: #0f172a; border-bottom-color: #334155; color: #64748b; }
+
+/* Cards, panels, surfaces */
+html.dark .bg-white         { background-color: #1e293b !important; }
+html.dark .bg-gray-50       { background-color: #0f172a !important; }
+html.dark .bg-gray-100      { background-color: #1e293b !important; }
+
+/* Text */
+html.dark .text-gray-900    { color: #f1f5f9 !important; }
+html.dark .text-gray-800    { color: #e2e8f0 !important; }
+html.dark .text-gray-700    { color: #cbd5e1 !important; }
+html.dark .text-gray-600    { color: #94a3b8 !important; }
+html.dark .text-gray-500    { color: #64748b !important; }
+html.dark .text-gray-400    { color: #475569 !important; }
+
+/* Borders */
+html.dark .border-gray-100  { border-color: #334155 !important; }
+html.dark .border-gray-200  { border-color: #334155 !important; }
+html.dark .border-gray-300  { border-color: #475569 !important; }
+html.dark .divide-gray-200 > * + * { border-color: #334155 !important; }
+
+/* Inputs / selects */
+html.dark select,
+html.dark input[type="text"],
+html.dark input[type="date"],
+html.dark input[type="datetime-local"],
+html.dark textarea {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #f1f5f9 !important;
+}
+
+/* Table rows */
+html.dark table thead tr   { background-color: #0f172a !important; }
+html.dark table tbody tr:hover { background-color: rgba(30,41,59,0.7) !important; }
+
+/* Shadows */
+html.dark .shadow-sm,
+html.dark .shadow-lg,
+html.dark .shadow-2xl {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+}
+
+/* Skeleton shimmer in dark mode */
+html.dark .skeleton-shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%) !important;
+    background-size: 200% 100% !important;
 }

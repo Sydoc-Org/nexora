@@ -14,6 +14,41 @@
             document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
         }
 
+        /* ---- Dark mode ---- */
+        (function() {
+            const saved = localStorage.getItem('nexora-theme');
+            if (saved === 'dark') document.documentElement.classList.add('dark');
+        })();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const dmToggle = document.getElementById('dark-mode-toggle');
+            const dmIcon  = document.getElementById('dark-mode-icon');
+            const dmLabel = document.getElementById('dark-mode-label');
+
+            function applyTheme(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    dmIcon.className  = 'fas fa-sun sidebar-nav-icon';
+                    if (dmLabel) dmLabel.textContent = 'Light Mode';
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    dmIcon.className  = 'fas fa-moon sidebar-nav-icon';
+                    if (dmLabel) dmLabel.textContent = 'Dark Mode';
+                }
+            }
+
+            // Apply on load
+            applyTheme(document.documentElement.classList.contains('dark'));
+
+            if (dmToggle) {
+                dmToggle.addEventListener('click', () => {
+                    const nowDark = !document.documentElement.classList.contains('dark');
+                    localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
+                    applyTheme(nowDark);
+                });
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             const bellButton = document.getElementById('bell-button');
             const notificationCountBadge = document.getElementById('notification-count');
@@ -132,6 +167,22 @@
 
             fetchNotifications();
             setInterval(fetchNotifications, 60000);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const group  = document.getElementById('generaliNavGroup');
+            const header = document.getElementById('generaliNavHeader');
+            if (!group || !header) return;
+
+            // auto-open when on a generali page, otherwise restore saved state
+            const isActive = group.dataset.active === 'true';
+            const savedOpen = localStorage.getItem('nexora-generali-nav') === 'true';
+            if (isActive || savedOpen) group.classList.add('generali-open');
+
+            header.addEventListener('click', () => {
+                const nowOpen = group.classList.toggle('generali-open');
+                localStorage.setItem('nexora-generali-nav', nowOpen ? 'true' : 'false');
+            });
         });
     </script>
 </body>
