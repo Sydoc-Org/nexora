@@ -837,6 +837,25 @@ def admin_delete_organization(organizationcode):
         if conn:
             conn.close()
 
+@app.route("/api/admin/organizations/list")
+@require_permission('admin.view.organizations')
+def api_admin_organizations_list():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT organizationcode, organization FROM organizations ORDER BY organization")
+        orgs = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(orgs)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch organizations list: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 @app.route("/admin/users")
 @require_permission('admin.view.users')
 def admin_users():
@@ -1119,6 +1138,31 @@ def admin_delete_user(user_id):
             cursor.close()
         if conn:
             conn.close()
+
+@app.route("/api/admin/users/list")
+@require_permission('admin.view.users')
+def api_admin_users_list():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization
+            FROM Users u
+            JOIN accessprofile ap ON ap.accessid = u.accessid
+            JOIN organizations o ON o.organizationcode = u.organizationcode
+            ORDER BY username
+        """)
+        users = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Failed to fetch users list: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route("/api/admin/recent_logs")
 @require_permission('admin.view.active.sessions')

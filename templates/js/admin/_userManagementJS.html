@@ -93,6 +93,39 @@
             openModal();
         }
 
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function renderUserRow(user) {
+            const userJson = JSON.stringify(user).replace(/"/g, '&quot;');
+            return `<tr class="bg-white border-b hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">${escapeHtml(user.username)}</td>
+                <td class="px-6 py-4">${escapeHtml(user.fullname)}</td>
+                <td class="px-6 py-4">${escapeHtml(user.email)}</td>
+                <td class="px-6 py-4">${escapeHtml(user.accessprofile)}</td>
+                <td class="px-6 py-4">${escapeHtml(user.organization)}</td>
+                <td class="px-6 py-4 text-right">
+                    <button data-user="${userJson}" class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4">{{ _("Edit") }}</button>
+                    <button onclick="deleteUser(${user.userID})" class="font-medium text-red-600 hover:text-red-800">{{ _("Delete") }}</button>
+                </td>
+            </tr>`;
+        }
+
+        async function refreshUsersTable() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/admin/users/list`, {
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (!response.ok) return;
+                const users = await response.json();
+                document.getElementById('users-tbody').innerHTML = users.map(renderUserRow).join('');
+            } catch (error) {
+                console.error('Failed to refresh users table:', error);
+            }
+        }
+
         userForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(userForm).entries());
@@ -108,16 +141,16 @@
                     body: JSON.stringify(data)
                 });
 
-                // NEW: Explicitly check for 403 before parsing JSON
                 if (response.status === 403) {
                     showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
-                    return; 
+                    return;
                 }
 
                 const result = await response.json();
                 if (response.ok) {
+                    closeModal(null);
                     showNotification(`{{ _("Success") }}`);
-                    setTimeout(() => window.location.reload(), 1500);
+                    refreshUsersTable();
                 } else {
                     showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
                 }
@@ -167,7 +200,7 @@
                     const result = await response.json();
                     if (response.ok) {
                         showNotification('{{ _("Success") }}');
-                        setTimeout(() => window.location.reload(), 1500);
+                        refreshUsersTable();
                     } else {
                         showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
                     }
@@ -180,13 +213,12 @@
         }
 
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.edit-user-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    const userData = JSON.parse(button.dataset.user);
-                    openEditUserModal(userData);
-                });
-            });
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-user-btn');
+            if (editBtn) {
+                const userData = JSON.parse(editBtn.dataset.user);
+                openEditUserModal(userData);
+            }
         });
 
     </script>

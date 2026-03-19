@@ -81,6 +81,36 @@
             openModal();
         }
 
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function renderOrgRow(org) {
+            const orgJson = JSON.stringify(org).replace(/"/g, '&quot;');
+            return `<tr class="bg-white border-b hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">${escapeHtml(org.organizationcode)}</td>
+                <td class="px-6 py-4 font-medium text-gray-900">${escapeHtml(org.organization)}</td>
+                <td class="px-6 py-4 text-right">
+                    <button data-organization="${orgJson}" class="edit-organization-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4">{{ _("Edit") }}</button>
+                    <button onclick="deleteorganization('${escapeHtml(org.organizationcode)}')" class="font-medium text-red-600 hover:text-red-800">{{ _("Delete") }}</button>
+                </td>
+            </tr>`;
+        }
+
+        async function refreshOrgsTable() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/admin/organizations/list`, {
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (!response.ok) return;
+                const orgs = await response.json();
+                document.getElementById('orgs-tbody').innerHTML = orgs.map(renderOrgRow).join('');
+            } catch (error) {
+                console.error('Failed to refresh organizations table:', error);
+            }
+        }
+
         organizationForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(organizationForm).entries());
@@ -91,20 +121,21 @@
                 const response = await fetch(url, {
                     method: 'POST', headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 },
                     body: JSON.stringify(data)
                 });
 
                 if (response.status === 403) {
                     showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
-                    return; 
+                    return;
                 }
 
                 const result = await response.json();
                 if (response.ok) {
+                    closeModal(null);
                     showNotification(`{{ _("Success") }}`);
-                    setTimeout(() => window.location.reload(), 1500);
+                    refreshOrgsTable();
                 } else {
                     showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
                 }
@@ -158,7 +189,7 @@
                     const result = await response.json();
                     if (response.ok) {
                         showNotification('{{ _("Success") }}');
-                        setTimeout(() => window.location.reload(), 1500);
+                        refreshOrgsTable();
                     } else {
                         showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
                     }
@@ -170,13 +201,12 @@
             showConfirmationModal(`{{ _("Are you sure you want to delete this Organization? This action cannot be undone.") }}`, deletionTask);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.edit-organization-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    const organizationdata = JSON.parse(button.dataset.organization);
-                    openEditOrganizationModal(organizationdata);
-                });
-            });
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-organization-btn');
+            if (editBtn) {
+                const organizationdata = JSON.parse(editBtn.dataset.organization);
+                openEditOrganizationModal(organizationdata);
+            }
         });
 
     </script>
