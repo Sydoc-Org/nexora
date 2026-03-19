@@ -168,6 +168,22 @@
             fetchNotifications();
             setInterval(fetchNotifications, 60000);
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const group  = document.getElementById('generaliNavGroup');
+            const header = document.getElementById('generaliNavHeader');
+            if (!group || !header) return;
+
+            // auto-open when on a generali page, otherwise restore saved state
+            const isActive = group.dataset.active === 'true';
+            const savedOpen = localStorage.getItem('nexora-generali-nav') === 'true';
+            if (isActive || savedOpen) group.classList.add('generali-open');
+
+            header.addEventListener('click', () => {
+                const nowOpen = group.classList.toggle('generali-open');
+                localStorage.setItem('nexora-generali-nav', nowOpen ? 'true' : 'false');
+            });
+        });
     </script>
 </body>
 

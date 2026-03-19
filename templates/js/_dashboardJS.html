@@ -61,6 +61,8 @@
 
     function animateValue(element, start, end, duration, suffix = '') {
         if (!element) return;
+        start = parseFloat(start) || 0;
+        end = parseFloat(end) || 0;
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
@@ -89,24 +91,31 @@
             ]);
             const stats = await response.json();
             const apt = await apt_response.json();
-            const re = /h|min|s/g;
-            let avg_display = apt.avg_display;
-            let measurement = avg_display.match(re);
-            let avg_number = avg_display.replace(re, "");
-            const avg_el = document.getElementById("avg-processing-time")
-            console.log(measurement[0],avg_number);
+
             animateValue(document.getElementById("imported-today"), importedTodayLoadInit, stats.imported_today, 1500);
             animateValue(document.getElementById("processed-today"), proccessedTodayLoadInit, stats.processed_today, 1500);
             animateValue(document.getElementById("current-backlog"), currentBacklogLoadInit, stats.current_backlog, 1500);
-            animateValue(avg_el, avgproctimeLoadInit, avg_number, 1500, measurement[0]);
             importedTodayLoadInit = stats.imported_today;
             proccessedTodayLoadInit = stats.processed_today;
             currentBacklogLoadInit = stats.current_backlog;
-            avgproctimeLoadInit = avg_number;
+
+            const avg_el = document.getElementById("avg-processing-time");
+            const avg_display = apt.avg_display || '—';
+            const re = /h|min|s/g;
+            const measurement = avg_display.match(re);
+            if (measurement) {
+                const suffix = measurement[0];
+                const avg_number = parseFloat(avg_display.replace(re, ''));
+                animateValue(avg_el, avgproctimeLoadInit, avg_number, 1500, suffix);
+                avgproctimeLoadInit = avg_number;
+            } else {
+                if (avg_el) avg_el.innerText = avg_display;
+                avgproctimeLoadInit = 0;
+            }
         } catch (error) {
             console.error("Failed to update KPI stats:", error);
         }
-    } 
+    }
 
     async function updateProcessedOverTimeChart() {
         try {
@@ -204,16 +213,30 @@
         }
     }
 
+    async function setProcessFilter(value) {
+        try {
+            await fetch(`${API_PREFIX}api/dashboard/set_filter`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ process_name: value })
+            });
+            updateKpiStats();
+            updateProcessedOverTimeChart();
+            updateHourlyChart();
+            updateActivityFeed();
+        } catch (error) {
+            console.error("Failed to set process filter:", error);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         updateKpiStats();
-        // updateAvgProcessingTime();
         updateProcessedOverTimeChart();
         updateHourlyChart();
         updateActivityFeed();
         setInterval(updateActivityFeed, 60000);
         setInterval(() => {
             updateKpiStats();
-            // updateAvgProcessingTime();
             updateHourlyChart();
         }, 30000);
     });

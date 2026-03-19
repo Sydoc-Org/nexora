@@ -31,17 +31,14 @@
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-wrap items-center gap-6">
       <div class="flex items-center gap-3">
         <label for="prcfD" class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Process") }}</label>
-        <form method="GET" action="" id="filterForm">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <select id="prcfD" name="prcfD"
-            class="bg-gray-50 border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all font-[inherit]"
-            onchange="this.form.submit()">
-            <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
-            {% for proc in allowed_processes %}
-            <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>{{ proc }}</option>
-            {% endfor %}
-          </select>
-        </form>
+        <select id="prcfD" name="prcfD"
+          class="bg-gray-50 border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all font-[inherit]"
+          onchange="setProcessFilter(this.value)">
+          <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
+          {% for proc in allowed_processes %}
+          <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>{{ proc }}</option>
+          {% endfor %}
+        </select>
       </div>
 
 

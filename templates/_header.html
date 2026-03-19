@@ -38,7 +38,6 @@
                 {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
                 {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},
                 {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'), 'active': active_page == 'invoices'},
-                {'perm': pageV.generaliPagePerm,  'url': url_for('generali_evaluation'), 'icon': 'fa-building-columns',   'label': 'Generali',    'active': active_page == 'generali'},
             ] %}
 
             {% for item in nav_items %}
@@ -50,6 +49,40 @@
             </a>
             {% endif %}
             {% endfor %}
+
+            {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm %}
+            {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting'] %}
+            <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader">
+                    <i class="fas fa-building-columns sidebar-nav-icon"></i>
+                    <span class="sidebar-label" style="flex:1">Generali</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    {% if pageV.generaliPagePerm %}
+                    <a href="{{ url_for('generali_evaluation') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_dashboard' else '' }}">
+                        <i class="fas fa-chart-line sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Dashboard') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if pageV.generaliDocumentsPerm %}
+                    <a href="{{ url_for('generali_documents') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_documents' else '' }}">
+                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Document List') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if pageV.generaliReportingPerm %}
+                    <a href="{{ url_for('generali_reporting') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_reporting' else '' }}">
+                        <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Reporting') }}</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </nav>
 
         <!-- Bottom actions -->

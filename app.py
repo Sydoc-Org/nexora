@@ -326,11 +326,15 @@ def pageVisability():
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
     generaliPagePerm = has_permission('generali.dashboard.view')
-    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm, 
+    generaliDocumentsPerm = has_permission('generali.view.documentlist')
+    generaliReportingPerm = has_permission('generali.reporting.view')
+    return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             #   'teamboardPagePerm': teamboardPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
-            'generaliPagePerm': generaliPagePerm}
+            'generaliPagePerm': generaliPagePerm,
+            'generaliDocumentsPerm': generaliDocumentsPerm,
+            'generaliReportingPerm': generaliReportingPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -1659,18 +1663,6 @@ def get_activityinstancesToIgnore():
         if cursor: cursor.close()
         if conn: conn.close()
 
-# ------------------------------ process filter ------------------------------ #
-def get_process_filter_and_params(process_name):
-    if process_name == '02_Posteingang':
-        return "?", ["02_Posteingang"]
-    elif process_name == '02_InitialScan':
-        return "?", ["02_InitialScan"]
-    elif process_name == '03_Invoice_New':
-        return "?", ["03_Invoice_New"]
-    else:
-        return "?, ?, ?", ["02_Posteingang", "03_Invoice_New", "02_InitialScan"]
-# ---------------------------- process filter end ---------------------------- #
-
 cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 300})
 
 
@@ -2153,12 +2145,30 @@ def dashboard():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
-            allowed_processes=allowed_processes,  
+            allowed_processes=allowed_processes,
             pageV=pageVisability(),
             fullname=fullname
         )
     except Exception as e:
         return render_template('500.html')
+
+@app.route("/api/dashboard/set_filter", methods=["POST"])
+@require_permission('dashboard.view')
+def dashboard_set_filter():
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (perm.split('.')[-2] + '.' + perm.split('.')[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    })
+    process_name = request.json.get('process_name', 'all')
+    if process_name != 'all' and process_name not in allowed_processes:
+        process_name = 'all'
+    session['process_name_dashboard'] = process_name
+    return jsonify({"ok": True, "process_name": process_name})
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #
@@ -4539,7 +4549,7 @@ def generali_evaluation():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        return render_template("generali.html",
+        return render_template("generali-dashboard.html",
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability())
@@ -4666,7 +4676,6 @@ def api_generali_stats():
         rows = cursor.fetchall()
 
         nk_data = [{"nk1": r[0], "nk2": r[1], "count": r[2]} for r in rows]
-        print(nk_data)
         return jsonify({
             "success": True,
             "kpis": kpis,
@@ -4867,6 +4876,200 @@ def api_generali_document_detail(doc_id):
         return jsonify({"success": True, "document": doc})
     except Exception as e:
         app.logger.error(f"Generali Document Detail Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Reporting --------------------------- #
+
+REPORTING_CATEGORIES = {'export_post', 'export_post_scan'}
+#'provision_archive'
+@app.route("/generali/reporting")
+@require_permission('generali.reporting.view')
+def generali_reporting():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_reporting.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.reporting.add'),
+                               can_edit=has_permission('generali.reporting.edit'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Reporting: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/reporting", methods=["GET"])
+@require_permission('generali.reporting.view')
+def api_generali_reporting_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+        category   = request.args.get('category', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ReportForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ReportForDate <= ?")
+            params.append(end_date)
+        if category and category in REPORTING_CATEGORIES:
+            where_clauses.append("category = ?")
+            params.append(category)
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*) FROM [dbo].[reportingiss] {where_sql}", params)
+        total_records = cursor.fetchone()[0]
+        total_pages = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+            FROM [dbo].[reportingiss]
+            {where_sql}
+            ORDER BY ReportForDate DESC, ReportTimeStamp DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        # collect unique user IDs for name lookup
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, username, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, uname, fname in nx_cur.fetchall():
+                    user_map[uid] = {'username': uname, 'fullname': fname or uname}
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for reporting: {ue}")
+
+        records = []
+        for r in rows:
+            report_date, report_ts, user_id, ontime, cat = r
+            user_info = user_map.get(user_id, {})
+            records.append({
+                'reportForDate':   str(report_date) if report_date else None,
+                'reportTimeStamp': report_ts.isoformat() if report_ts else None,
+                'reportByUserID':  user_id,
+                'username':        user_info.get('username'),
+                'fullname':        user_info.get('fullname'),
+                'ontime':          bool(ontime),
+                'category':        cat,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Reporting List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/reporting", methods=["POST"])
+@require_permission('generali.reporting.add')
+def api_generali_reporting_add():
+    conn = None
+    try:
+        body = request.get_json(force=True)
+        report_for_date = body.get('reportForDate', '').strip()
+        category        = body.get('category', '').strip()
+        ontime          = bool(body.get('ontime', False))
+        user_id         = session.get('userid')
+
+        if not report_for_date:
+            return jsonify({"success": False, "error": "reportForDate is required"}), 400
+        if category not in REPORTING_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        # check for duplicate
+        cursor.execute("""
+            SELECT COUNT(*) FROM [dbo].[reportingiss]
+            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+        """, [report_for_date, user_id, category])
+        if cursor.fetchone()[0] > 0:
+            return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
+
+        cursor.execute("""
+            INSERT INTO [dbo].[reportingiss] (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category)
+            VALUES (?, GETDATE(), ?, ?, ?)
+        """, [report_for_date, user_id, 1 if ontime else 0, category])
+        conn.commit()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/reporting", methods=["PUT"])
+@require_permission('generali.reporting.edit')
+def api_generali_reporting_edit():
+    conn = None
+    try:
+        body = request.get_json(force=True)
+        report_for_date = body.get('reportForDate', '').strip()
+        user_id         = body.get('userId')
+        category        = body.get('category', '').strip()
+        ontime          = bool(body.get('ontime', False))
+
+        if not report_for_date or user_id is None:
+            return jsonify({"success": False, "error": "reportForDate and userId are required"}), 400
+        if category not in REPORTING_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [dbo].[reportingiss]
+            SET ontime = ?
+            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+        """, [1 if ontime else 0, report_for_date, user_id, category])
+        conn.commit()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Edit Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         if conn:
