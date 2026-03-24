@@ -9,31 +9,33 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
   {% set active_page = 'generali_documents' %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto p-6">
+  <main class="container mx-auto px-3 py-4 sm:p-6">
 
     <!-- Page Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Documents") }}</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Documents") }}</h2>
         <p class="text-gray-500 font-medium">{{ _("Browse and filter all documents") }}</p>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div class="bg-white px-3 py-2 sm:px-5 sm:py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2">
           <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Total") }}</span>
           <span class="text-sm font-bold text-indigo-600 uppercase tracking-widest" id="totalItemsCount">—</span>
         </div>
         <a href="{{ url_for('generali_evaluation') }}"
            class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
-          <i class="fas fa-chart-line"></i>{{ _("Dashboard") }}
+          <i class="fas fa-chart-line"></i><span class="hidden sm:inline">{{ _("Dashboard") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
            class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
-          <i class="fas fa-clipboard-list"></i>{{ _("Reporting") }}
+          <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
     </div>
@@ -156,12 +158,12 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
-            <input type="datetime-local" id="filterStartDate" name="startDate"
+            <input type="text" id="filterStartDate" name="startDate" placeholder="yyyy-mm-dd hh:mm:ss"
               class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
-            <input type="datetime-local" id="filterEndDate" name="endDate"
+            <input type="text" id="filterEndDate" name="endDate" placeholder="yyyy-mm-dd hh:mm:ss"
               class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
         </div>
@@ -169,7 +171,7 @@
 
       <!-- Search + Actions row -->
       <div class="flex flex-wrap items-center justify-between gap-3 mt-5 pt-5 border-t border-gray-200">
-        <div class="relative flex-1 min-w-48">
+        <div class="relative flex-1 min-w-0">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
             <i class="fas fa-search text-xs"></i>
           </span>
@@ -253,7 +255,7 @@
     </div>
 
     <!-- Pagination -->
-    <div id="paginationContainer" class="mt-6 flex items-center justify-between">
+    <div id="paginationContainer" class="mt-6 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
       <div class="text-sm text-gray-500 font-medium">
         {{ _("Showing") }}
         <span class="font-semibold text-gray-700" id="showingCount">—</span>
@@ -268,5 +270,10 @@
 
   {% include '_small_footer.html' %}
   {% include 'js/_generaliDocumentsJS.html' %}
+  <script>
+    const _fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
+    flatpickr('#filterStartDate', _fpOpts);
+    flatpickr('#filterEndDate',   _fpOpts);
+  </script>
 </body>
 </html>

@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 
 <body class="text-gray-800 bg-white">
@@ -54,7 +56,7 @@
               {{ _("From Date") }}
             </label>
             <div class="relative mt-1">
-              <input type="date" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}" {% if date_perm == False %} disabled {% endif %}
+              <input type="text" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
                 class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
             </div>
           </div>
@@ -64,7 +66,7 @@
               {{ _("To Date") }}
             </label>
             <div class="relative mt-1"> 
-              <input type="date" id="dateTo" name="dateTo" value="{{ dateTo or '' }}"  {% if date_perm == False %} disabled {% endif %}
+              <input type="text" id="dateTo" name="dateTo" value="{{ dateTo or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
                 class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
             </div>
           </div>
@@ -139,6 +141,10 @@
 
 
   {% include 'js/_invoicesJS.html' %}
+  <script>
+    flatpickr('#dateFrom', { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#dateTo',   { dateFormat: 'Y-m-d', allowInput: true });
+  </script>
 
 </body>
 </html>

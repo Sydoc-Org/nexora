@@ -81,56 +81,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -310,9 +310,11 @@ def startpage_redirect_to(pV):
         'dashboardPagePerm': 'dashboard',
         'workitemsPagePerm': 'workitems_overview',
         'invoicesPagePerm': 'invoices',
-        'adminPagePerm': 'admin_dashboard',
+        'generaliPagePerm': 'generali_evaluation',
+        'generaliDocumentsPerm': 'generali_documents',
+        'generaliReportingPerm': 'generali_reporting',
         'chatPagePerm': 'chat_page',
-        'generaliPagePerm': 'generali_evaluation'
+        'adminPagePerm': 'admin_dashboard'
     }
     for pTF in permToFunction:
         if pV[pTF]: return permToFunction[pTF]
@@ -514,50 +516,50 @@ def init_reset_password():
         return
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user("1019")
             
-        #     return redirect(url_for('dashboard'))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code = row
+            return redirect(url_for('dashboard'))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user(userid)
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user(userid)
             
-        #     return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -4927,9 +4929,7 @@ def api_generali_document_detail(doc_id):
 
 
 # ----------------------------- Generali Reporting --------------------------- #
-
-REPORTING_CATEGORIES = {'export_post', 'export_post_scan'}
-#'provision_archive'
+REPORTING_CATEGORIES = {'export_post', 'export_post_scan', 'provision_archive', 'stray_document_digital', 'stray_document_physical'}
 @app.route("/generali/reporting")
 @require_permission('generali.reporting.view')
 def generali_reporting():
@@ -4983,7 +4983,8 @@ def api_generali_reporting_list():
         total_pages = max(1, -(-total_records // per_page))
 
         cursor.execute(f"""
-            SELECT ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
+                   EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
             FROM [dbo].[reportingiss]
             {where_sql}
             ORDER BY ReportForDate DESC, ReportTimeStamp DESC
@@ -4993,8 +4994,7 @@ def api_generali_reporting_list():
         rows = cursor.fetchall()
         cursor.close()
 
-        # collect unique user IDs for name lookup
-        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_ids = list({r[3] for r in rows if r[3] is not None})
         user_map = {}
         if user_ids:
             try:
@@ -5002,28 +5002,33 @@ def api_generali_reporting_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, username, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, uname, fname in nx_cur.fetchall():
-                    user_map[uid] = {'username': uname, 'fullname': fname or uname}
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
                 app.logger.warning(f"User lookup failed for reporting: {ue}")
 
+
         records = []
         for r in rows:
-            report_date, report_ts, user_id, ontime, cat = r
+            rec_id, report_date, report_ts, user_id, ontime, cat, email_rcvd, delivery_ts, latest_ts, mailroom_ts = r
             user_info = user_map.get(user_id, {})
             records.append({
-                'reportForDate':   str(report_date) if report_date else None,
-                'reportTimeStamp': report_ts.isoformat() if report_ts else None,
-                'reportByUserID':  user_id,
-                'username':        user_info.get('username'),
-                'fullname':        user_info.get('fullname'),
-                'ontime':          bool(ontime),
-                'category':        cat,
+                'id':                      rec_id,
+                'reportForDate':           str(report_date) if report_date else None,
+                'reportTimeStamp':         report_ts.isoformat() if report_ts else None,
+                'reportByUserID':          user_id,
+                'fullname':                user_info.get('fullname'),
+                'ontime':                  bool(ontime),
+                'category':                cat,
+                'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
+                'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
+                'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
+                'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
             })
 
         return jsonify({
@@ -5050,11 +5055,21 @@ def api_generali_reporting_add():
     conn = None
     try:
         body = request.get_json(force=True)
-        report_for_date = body.get('reportForDate', '').strip()
-        category        = body.get('category', '').strip()
-        ontime          = bool(body.get('ontime', False))
-        user_id         = session.get('userid')
+        report_for_date   = body.get('reportForDate', '').strip()
+        category          = body.get('category', '').strip()
+        ontime            = bool(body.get('ontime', False))
+        user_id           = session.get('userid')
+        email_received    = body.get('emailReceivedTimeStamp') or None
+        mailroom_request  = body.get('mailRoomRequestTimeStamp') or None
+        delivery          = body.get('deliveryTimeStamp') or None
+        latest_delivery   = body.get('latestDeliveryTimeStamp') or None
 
+        email_received   = email_received.replace('T',' ') if email_received else None
+        mailroom_request = mailroom_request.replace('T',' ') if mailroom_request else None
+        delivery         = delivery.replace('T',' ') if delivery else None
+        latest_delivery  = latest_delivery.replace('T',' ') if latest_delivery else None
+
+        
         if not report_for_date:
             return jsonify({"success": False, "error": "reportForDate is required"}), 400
         if category not in REPORTING_CATEGORIES:
@@ -5063,18 +5078,22 @@ def api_generali_reporting_add():
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
 
-        # check for duplicate
-        cursor.execute("""
-            SELECT COUNT(*) FROM [dbo].[reportingiss]
-            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
-        """, [report_for_date, user_id, category])
-        if cursor.fetchone()[0] > 0:
-            return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
+        multi_allowed = {'provision_archive', 'stray_document_digital', 'stray_document_physical'}
+        if category not in multi_allowed:
+            cursor.execute("""
+                SELECT COUNT(*) FROM [dbo].[reportingiss]
+                WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+            """, [report_for_date, user_id, category])
+            if cursor.fetchone()[0] > 0:
+                return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
 
         cursor.execute("""
-            INSERT INTO [dbo].[reportingiss] (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category)
-            VALUES (?, GETDATE(), ?, ?, ?)
-        """, [report_for_date, user_id, 1 if ontime else 0, category])
+            INSERT INTO [dbo].[reportingiss]
+                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
+                 EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp)
+            VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?)
+        """, [report_for_date, user_id, 1 if ontime else 0, category,
+              email_received, delivery, latest_delivery, mailroom_request])
         conn.commit()
 
         return jsonify({"success": True})
@@ -5091,24 +5110,37 @@ def api_generali_reporting_add():
 def api_generali_reporting_edit():
     conn = None
     try:
-        body = request.get_json(force=True)
-        report_for_date = body.get('reportForDate', '').strip()
-        user_id         = body.get('userId')
-        category        = body.get('category', '').strip()
+        body            = request.get_json(force=True)
+        record_id       = body.get('id')
+        report_for_date = (body.get('reportForDate') or '').strip()
         ontime          = bool(body.get('ontime', False))
+        email_received  = body.get('emailReceivedTimeStamp') or None
+        mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
+        delivery        = body.get('deliveryTimeStamp') or None
+        latest_delivery = body.get('latestDeliveryTimeStamp') or None
 
-        if not report_for_date or user_id is None:
-            return jsonify({"success": False, "error": "reportForDate and userId are required"}), 400
-        if category not in REPORTING_CATEGORIES:
-            return jsonify({"success": False, "error": "Invalid category"}), 400
+        if not record_id or not report_for_date:
+            return jsonify({"success": False, "error": "id and reportForDate are required"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        if email_received:  email_received  = email_received.replace('T', ' ')
+        if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
+        if delivery:        delivery        = delivery.replace('T', ' ')
+        if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
+
+        conn   = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE [dbo].[reportingiss]
-            SET ontime = ?
-            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
-        """, [1 if ontime else 0, report_for_date, user_id, category])
+            SET ReportForDate            = ?,
+                ontime                   = ?,
+                EmailReceivedTimeStamp   = ?,
+                MailRoomRequestTimeStamp = ?,
+                DeliveryTimeStamp        = ?,
+                LatestDeliveryTimeStamp  = ?
+            WHERE ID = ?
+        """, [report_for_date, 1 if ontime else 0,
+              email_received, mailroom_req, delivery, latest_delivery,
+              record_id])
         conn.commit()
 
         return jsonify({"success": True})
@@ -5190,7 +5222,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

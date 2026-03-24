@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 </head>
 
@@ -144,8 +146,8 @@
                 {{ _("From Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="datetime-local" id="startDate" name="startDate" value="{{ startDate or '' }}" {% if
-                  datetime_perm==False %} disabled {% endif %} class="{{ input_base }}" />
+                <input type="text" id="startDate" name="startDate" value="{{ startDate or '' }}" {% if
+                  datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" />
               </div>
             </div>
 
@@ -154,8 +156,8 @@
                 {{ _("To Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="datetime-local" id="endDate" name="endDate" value="{{ endDate or '' }}" {% if
-                  datetime_perm==False %} disabled {% endif %} class="{{ input_base }}" />
+                <input type="text" id="endDate" name="endDate" value="{{ endDate or '' }}" {% if
+                  datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" />
               </div>
             </div>
 
@@ -450,6 +452,11 @@
 
     {% include '_small_footer.html' %}
     {% include 'js/_workitems_overviewJS.html' %}
+    <script>
+      const _fpDtOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
+      flatpickr('#startDate', _fpDtOpts);
+      flatpickr('#endDate',   _fpDtOpts);
+    </script>
 
 </body>
 

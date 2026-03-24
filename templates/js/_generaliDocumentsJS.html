@@ -101,7 +101,7 @@
             }
 
             const dateStr = doc.doc_datecreated
-                ? new Date(doc.doc_datecreated).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                ? doc.doc_datecreated.replace('T', ' ').substring(0, 19)
                 : '—';
 
             const docRow = document.createElement('tr');
