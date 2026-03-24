@@ -75,7 +75,7 @@
     // wd ≤ 4 (Mon–Thu): +1 day; Fri: +4 days; Sat: +3 days; Sun: +2 days → always at 12:00
     function computeLatestDeliveryStray(datetimeStr) {
         if (!datetimeStr) return null;
-        const [datePart] = datetimeStr.split('T');
+        const [datePart] = datetimeStr.split(/[T ]/);
         if (!datePart) return null;
         const [year, month, day] = datePart.split('-').map(Number);
         let wd = new Date(year, month - 1, day).getDay(); // 0=Sun…6=Sat
@@ -163,7 +163,7 @@
             tr.className = 'hover:bg-gray-50 transition-colors';
             tr.innerHTML = `
                 <td class="px-4 py-3 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${formatDate(r.reportForDate)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname || r.username || r.reportByUserID}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname}</td>
                 <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
                 <td class="px-4 py-3 text-center">${ontimeBadge(r.ontime)}</td>
                 <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
@@ -389,20 +389,27 @@
     function syncGroupControls(group) {
         if (!group) return;
         const rows = group.querySelectorAll('.entry-row');
-        const used = Array.from(rows).map(r => r.querySelector('.entry-category').value).filter(Boolean);
+
+        // Archive categories are unlimited — only deduplicate non-archive ones
+        const usedNonArchive = Array.from(rows)
+            .map(r => r.querySelector('.entry-category').value)
+            .filter(v => v && !ARCHIVE_CATS.includes(v));
 
         rows.forEach(row => {
             const sel = row.querySelector('.entry-category');
             const own = sel.value;
             ALL_CATEGORIES.forEach(cat => {
                 const opt = sel.querySelector(`option[value="${cat.value}"]`);
-                if (opt) opt.disabled = cat.value !== own && used.includes(cat.value);
+                if (opt) opt.disabled = !ARCHIVE_CATS.includes(cat.value)
+                    && cat.value !== own
+                    && usedNonArchive.includes(cat.value);
             });
             row.querySelector('.entry-remove-btn').style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
         });
 
+        // Archive categories are unlimited so the add button is always available
         const addBtn = group.querySelector('.group-add-entry-btn');
-        if (addBtn) addBtn.style.display = used.length >= ALL_CATEGORIES.length ? 'none' : '';
+        if (addBtn) addBtn.style.display = '';
     }
 
     function syncDateGroups() {
@@ -694,7 +701,7 @@
             fpEditDelivery.setDate(r.deliveryTimeStamp || '', true);
             const latest = r.latestDeliveryTimeStamp || '';
             editLatestDel.textContent   = latest ? formatDateTime(latest) : '—';
-            editLatestDel.dataset.value = latest;
+            editLatestDel.dataset.value = latest ? latest.replace('T', ' ') : '';
         } else {
             editArchiveFields.classList.add('hidden');
             fpEditRequest.clear();

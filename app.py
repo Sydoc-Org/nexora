@@ -81,7 +81,7 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 # app.config['SESSION_COOKIE_SECURE'] = True 
 # app.config['SESSION_COOKIE_HTTPONLY'] = True
 # app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -4929,7 +4929,6 @@ def api_generali_document_detail(doc_id):
 
 
 # ----------------------------- Generali Reporting --------------------------- #
-
 REPORTING_CATEGORIES = {'export_post', 'export_post_scan', 'provision_archive', 'stray_document_digital', 'stray_document_physical'}
 @app.route("/generali/reporting")
 @require_permission('generali.reporting.view')
@@ -4995,7 +4994,7 @@ def api_generali_reporting_list():
         rows = cursor.fetchall()
         cursor.close()
 
-        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_ids = list({r[3] for r in rows if r[3] is not None})
         user_map = {}
         if user_ids:
             try:
@@ -5003,15 +5002,16 @@ def api_generali_reporting_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, username, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, uname, fname in nx_cur.fetchall():
-                    user_map[uid] = {'username': uname, 'fullname': fname or uname}
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
                 app.logger.warning(f"User lookup failed for reporting: {ue}")
+
 
         records = []
         for r in rows:
@@ -5022,7 +5022,6 @@ def api_generali_reporting_list():
                 'reportForDate':           str(report_date) if report_date else None,
                 'reportTimeStamp':         report_ts.isoformat() if report_ts else None,
                 'reportByUserID':          user_id,
-                'username':                user_info.get('username'),
                 'fullname':                user_info.get('fullname'),
                 'ontime':                  bool(ontime),
                 'category':                cat,
@@ -5079,12 +5078,14 @@ def api_generali_reporting_add():
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT COUNT(*) FROM [dbo].[reportingiss]
-            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
-        """, [report_for_date, user_id, category])
-        if cursor.fetchone()[0] > 0:
-            return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
+        multi_allowed = {'provision_archive', 'stray_document_digital', 'stray_document_physical'}
+        if category not in multi_allowed:
+            cursor.execute("""
+                SELECT COUNT(*) FROM [dbo].[reportingiss]
+                WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+            """, [report_for_date, user_id, category])
+            if cursor.fetchone()[0] > 0:
+                return jsonify({"success": False, "error": "A report for this date and category already exists."}), 409
 
         cursor.execute("""
             INSERT INTO [dbo].[reportingiss]
