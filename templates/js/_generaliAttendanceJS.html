@@ -214,7 +214,6 @@
         filterSub.options[0].textContent = '{{ _("All") }}';
     });
 
-    // flatpickr for filter dates
     flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
     flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
 
@@ -243,7 +242,7 @@
         populateSubSelect(document.getElementById('addSubCategory'), this.value);
     });
 
-    flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today'});
 
     document.getElementById('submitAddBtn').addEventListener('click', function() {
         const forDate    = document.getElementById('addForDate').value.trim();
@@ -321,7 +320,7 @@
         populateSubSelect(document.getElementById('editSubCategory'), this.value);
     });
 
-    flatpickr('#editForDate', { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#editForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
 
     document.getElementById('saveEditBtn').addEventListener('click', function() {
         const forDate = document.getElementById('editForDate').value.trim();

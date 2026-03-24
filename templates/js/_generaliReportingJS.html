@@ -444,7 +444,6 @@
         groupDateInput.value = date;
         flatpickr(groupDateInput, { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
 
-        // Date change: re-apply past-date rule (provision_archive is exempt)
         groupDateInput.addEventListener('change', function () {
             const isPast = isDatePast(this.value);
             group.querySelectorAll('.entry-row').forEach(row => {
