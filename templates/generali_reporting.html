@@ -215,6 +215,59 @@
     </div>
   </div>
 
+  <!-- Edit Report Modal -->
+  <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Report") }}</h3>
+        <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition">
+          <i class="fas fa-times text-lg"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Report Date") }}</label>
+          <input type="text" id="editReportDate" placeholder="yyyy-mm-dd"
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("On Time") }}</label>
+          <button type="button" id="editOntimeBtn"
+            class="h-10 px-4 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50"
+            data-ontime="true">&#10003; {{ _("On Time") }}</button>
+        </div>
+        <div id="editArchiveFields" class="hidden space-y-3">
+          <div>
+            <label id="editRequestLabel" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</label>
+            <input type="text" id="editRequestTime" placeholder="yyyy-mm-dd hh:mm:ss"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</label>
+            <input type="text" id="editDelivery" placeholder="yyyy-mm-dd hh:mm:ss"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</label>
+            <div id="editLatestDelivery" data-value=""
+              class="h-9 flex items-center px-3 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 font-medium">—</div>
+          </div>
+        </div>
+        <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
+      </div>
+      <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+        <button id="cancelEditBtn"
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
+          {{ _("Cancel") }}
+        </button>
+        <button id="saveEditBtn"
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">
+          {{ _("Save") }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   {% include '_small_footer.html' %}
   {% include 'js/_generaliReportingJS.html' %}
 </body>

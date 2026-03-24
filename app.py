@@ -310,9 +310,11 @@ def startpage_redirect_to(pV):
         'dashboardPagePerm': 'dashboard',
         'workitemsPagePerm': 'workitems_overview',
         'invoicesPagePerm': 'invoices',
-        'adminPagePerm': 'admin_dashboard',
+        'generaliPagePerm': 'generali_evaluation',
+        'generaliDocumentsPerm': 'generali_documents',
+        'generaliReportingPerm': 'generali_reporting',
         'chatPagePerm': 'chat_page',
-        'generaliPagePerm': 'generali_evaluation'
+        'adminPagePerm': 'admin_dashboard'
     }
     for pTF in permToFunction:
         if pV[pTF]: return permToFunction[pTF]
@@ -514,7 +516,7 @@ def init_reset_password():
         return
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
@@ -5107,24 +5109,37 @@ def api_generali_reporting_add():
 def api_generali_reporting_edit():
     conn = None
     try:
-        body = request.get_json(force=True)
-        report_for_date = body.get('reportForDate', '').strip()
-        user_id         = body.get('userId')
-        category        = body.get('category', '').strip()
+        body            = request.get_json(force=True)
+        record_id       = body.get('id')
+        report_for_date = (body.get('reportForDate') or '').strip()
         ontime          = bool(body.get('ontime', False))
+        email_received  = body.get('emailReceivedTimeStamp') or None
+        mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
+        delivery        = body.get('deliveryTimeStamp') or None
+        latest_delivery = body.get('latestDeliveryTimeStamp') or None
 
-        if not report_for_date or user_id is None:
-            return jsonify({"success": False, "error": "reportForDate and userId are required"}), 400
-        if category not in REPORTING_CATEGORIES:
-            return jsonify({"success": False, "error": "Invalid category"}), 400
+        if not record_id or not report_for_date:
+            return jsonify({"success": False, "error": "id and reportForDate are required"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        if email_received:  email_received  = email_received.replace('T', ' ')
+        if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
+        if delivery:        delivery        = delivery.replace('T', ' ')
+        if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
+
+        conn   = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE [dbo].[reportingiss]
-            SET ontime = ?
-            WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
-        """, [1 if ontime else 0, report_for_date, user_id, category])
+            SET ReportForDate            = ?,
+                ontime                   = ?,
+                EmailReceivedTimeStamp   = ?,
+                MailRoomRequestTimeStamp = ?,
+                DeliveryTimeStamp        = ?,
+                LatestDeliveryTimeStamp  = ?
+            WHERE ID = ?
+        """, [report_for_date, 1 if ontime else 0,
+              email_received, mailroom_req, delivery, latest_delivery,
+              record_id])
         conn.commit()
 
         return jsonify({"success": True})

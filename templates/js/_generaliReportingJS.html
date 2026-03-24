@@ -135,9 +135,13 @@
 
         document.getElementById('showingCount').textContent = records.length;
 
+        const recordMap = {};
+
         records.forEach(r => {
             const catLabel  = CATEGORIES[r.category] || r.category;
             const isArchive = ARCHIVE_CATS.includes(r.category);
+
+            recordMap[r.id] = r;
 
             const detailsCell = isArchive
                 ? `<td class="px-4 py-3 text-center">
@@ -149,13 +153,9 @@
 
             const actionsCell = canEdit ? `
                 <td class="px-4 py-3 text-center">
-                    <button class="toggle-ontime-btn text-xs font-semibold px-3 py-1.5 rounded-lg border transition
-                        ${r.ontime ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}"
-                        data-date="${r.reportForDate}"
-                        data-userid="${r.reportByUserID}"
-                        data-category="${r.category}"
-                        data-ontime="${r.ontime}">
-                        ${r.ontime ? '{{ _("Mark Late") }}' : '{{ _("Mark On Time") }}'}
+                    <button class="edit-record-btn h-9 px-3 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                        data-id="${r.id}">
+                        <i class="fas fa-pencil-alt mr-1"></i>{{ _("Edit") }}
                     </button>
                 </td>` : '';
 
@@ -165,10 +165,9 @@
                 <td class="px-4 py-3 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${formatDate(r.reportForDate)}</td>
                 <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname || r.username || r.reportByUserID}</td>
                 <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
-                <td class="px-4 py-3 text-center" id="ontime-cell-${r.reportForDate}-${r.reportByUserID}-${r.category}">${ontimeBadge(r.ontime)}</td>
+                <td class="px-4 py-3 text-center">${ontimeBadge(r.ontime)}</td>
                 <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
                 ${detailsCell}
-                
                 ${actionsCell}
             `;
             tbody.appendChild(tr);
@@ -178,9 +177,12 @@
             }
         });
 
+        tbody._recordMap = recordMap;
+
         if (canEdit) {
-            tbody.querySelectorAll('.toggle-ontime-btn').forEach(btn => {
-                btn.addEventListener('click', () => handleToggle(btn));
+            tbody.addEventListener('click', e => {
+                const btn = e.target.closest('.edit-record-btn');
+                if (btn) openEditModal(tbody._recordMap[btn.dataset.id]);
             });
         }
     }
@@ -215,39 +217,6 @@
         ctrl.appendChild(pageInfo);
 
         ctrl.appendChild(btn('{{ _("Next") }} ›', page + 1, page >= total_pages));
-    }
-
-    // ----------------------------- toggle ontime ----------------------------- //
-    async function handleToggle(btn) {
-        const date     = btn.dataset.date;
-        const userId   = parseInt(btn.dataset.userid);
-        const category = btn.dataset.category;
-        const newVal   = btn.dataset.ontime !== 'true';
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-        try {
-            const res = await fetch(`${API_PREFIX}api/generali/reporting`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ reportForDate: date, userId, category, ontime: newVal })
-            });
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error);
-
-            const cellId = `ontime-cell-${date}-${userId}-${category}`;
-            document.getElementById(cellId).innerHTML = ontimeBadge(newVal);
-            btn.dataset.ontime = String(newVal);
-            btn.disabled = false;
-            btn.className = `toggle-ontime-btn text-xs font-semibold px-3 py-1.5 rounded-lg border transition
-                ${newVal ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`;
-            btn.textContent = newVal ? '{{ _("Mark Late") }}' : '{{ _("Mark On Time") }}';
-        } catch (e) {
-            console.error('Toggle failed:', e);
-            btn.disabled = false;
-            btn.textContent = '{{ _("Error") }}';
-        }
     }
 
     // ----------------------------- modal ----------------------------- //
@@ -646,6 +615,155 @@
         const el = document.getElementById(id);
         if (el) el.addEventListener('click', closeDetailsModal);
     });
+
+    // ----------------------------- edit modal ----------------------------- //
+    const editModal         = document.getElementById('editModal');
+    const editOntimeBtn     = document.getElementById('editOntimeBtn');
+    const editArchiveFields = document.getElementById('editArchiveFields');
+    const editLatestDel     = document.getElementById('editLatestDelivery');
+    const editError         = document.getElementById('editError');
+    let   _editRecord       = null;
+
+    const fpEditDate = flatpickr('#editReportDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
+    const fpEditRequest = flatpickr('#editRequestTime', {
+        dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true,
+        allowInput: true, time_24hr: true, maxDate: 'today',
+        onChange: () => recomputeEditLatest()
+    });
+    const fpEditDelivery = flatpickr('#editDelivery', {
+        dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true,
+        allowInput: true, time_24hr: true, maxDate: 'today',
+        onChange: () => autoSetEditOntime()
+    });
+
+    function recomputeEditLatest() {
+        const cat = _editRecord ? _editRecord.category : '';
+        const fn  = cat === 'provision_archive' ? computeLatestDelivery : computeLatestDeliveryStray;
+        const val = fn(document.getElementById('editRequestTime').value);
+        editLatestDel.textContent   = val ? formatDateTime(val) : '—';
+        editLatestDel.dataset.value = val || '';
+        autoSetEditOntime();
+    }
+
+    function autoSetEditOntime() {
+        const latest   = editLatestDel.dataset.value;
+        const delivery = document.getElementById('editDelivery').value;
+        if (latest && delivery) {
+            const isOnTime = delivery <= latest;
+            editOntimeBtn.dataset.ontime = String(isOnTime);
+            editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
+                (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                          : 'border-red-200 text-red-600 bg-red-50');
+            editOntimeBtn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        }
+    }
+
+    if (editOntimeBtn) {
+        editOntimeBtn.addEventListener('click', function () {
+            const nxt = this.dataset.ontime !== 'true';
+            this.dataset.ontime = String(nxt);
+            this.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
+                (nxt ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                     : 'border-red-200 text-red-600 bg-red-50');
+            this.innerHTML = nxt ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        });
+    }
+
+    function openEditModal(r) {
+        if (!r) return;
+        _editRecord = r;
+        editError.classList.add('hidden');
+
+        fpEditDate.setDate(r.reportForDate, true);
+
+        const isOnTime = r.ontime;
+        editOntimeBtn.dataset.ontime = String(isOnTime);
+        editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
+            (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                      : 'border-red-200 text-red-600 bg-red-50');
+        editOntimeBtn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+
+        const isArchive = ARCHIVE_CATS.includes(r.category);
+        if (isArchive) {
+            editArchiveFields.classList.remove('hidden');
+            document.getElementById('editRequestLabel').textContent =
+                r.category === 'provision_archive' ? '{{ _("Email Received") }}' : '{{ _("Mailroom Request") }}';
+            const reqVal = r.category === 'provision_archive'
+                ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp;
+            fpEditRequest.setDate(reqVal || '', true);
+            fpEditDelivery.setDate(r.deliveryTimeStamp || '', true);
+            const latest = r.latestDeliveryTimeStamp || '';
+            editLatestDel.textContent   = latest ? formatDateTime(latest) : '—';
+            editLatestDel.dataset.value = latest;
+        } else {
+            editArchiveFields.classList.add('hidden');
+            fpEditRequest.clear();
+            fpEditDelivery.clear();
+            editLatestDel.textContent   = '—';
+            editLatestDel.dataset.value = '';
+        }
+
+        editModal.classList.remove('hidden');
+        editModal.classList.add('flex');
+    }
+
+    function closeEditModal() {
+        editModal.classList.add('hidden');
+        editModal.classList.remove('flex');
+        _editRecord = null;
+    }
+
+    async function saveEdit() {
+        if (!_editRecord) return;
+        const reportForDate = document.getElementById('editReportDate').value.trim();
+        if (!reportForDate) {
+            editError.textContent = '{{ _("Report date is required.") }}';
+            editError.classList.remove('hidden');
+            return;
+        }
+        const ontime    = editOntimeBtn.dataset.ontime === 'true';
+        const isArchive = ARCHIVE_CATS.includes(_editRecord.category);
+        const requestVal  = isArchive ? document.getElementById('editRequestTime').value.trim() : null;
+        const deliveryVal = isArchive ? document.getElementById('editDelivery').value.trim()     : null;
+        const latestVal   = isArchive ? (editLatestDel.dataset.value || null)                    : null;
+
+        const payload = { id: _editRecord.id, reportForDate, ontime, latestDeliveryTimeStamp: latestVal || null };
+        if (_editRecord.category === 'provision_archive') {
+            payload.emailReceivedTimeStamp = requestVal || null;
+        } else if (isArchive) {
+            payload.mailRoomRequestTimeStamp = requestVal || null;
+        }
+        if (isArchive) payload.deliveryTimeStamp = deliveryVal || null;
+
+        const saveBtn = document.getElementById('saveEditBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ _("Saving…") }}';
+
+        try {
+            const res  = await fetch(`${API_PREFIX}api/generali/reporting`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            closeEditModal();
+            fetchRecords(currentPage);
+        } catch (e) {
+            editError.textContent = e.message || '{{ _("Save failed. Please try again.") }}';
+            editError.classList.remove('hidden');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '{{ _("Save") }}';
+        }
+    }
+
+    if (editModal) {
+        document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+        document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+        document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+    }
 
     // ----------------------------- filter ----------------------------- //
     const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
