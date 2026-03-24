@@ -1,15 +1,19 @@
 <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const canEdit = document.getElementById('reportingTable').dataset.canEdit === 'true';
-    const colSpan = canEdit ? 6 : 5;
+    const colSpan = canEdit ? 7 : 6;
 
     let currentPage = 1;
 
     const CATEGORIES = {
-        'export_post':       '{{ _("Export physical post (till 12:00)") }}',
-        'export_post_scan':  '{{ _("Export physical post with scanning (till 12:00)") }}'
+        'export_post':            '{{ _("Export physical post") }}',
+        'export_post_scan':       '{{ _("Export physical post with scanning") }}',
+        'provision_archive':      '{{ _("Provision of the original from the interim and long-term archives") }}',
+        'stray_document_digital': '{{ _("Stray document (digital)") }}',
+        'stray_document_physical':'{{ _("Stray document (physical)") }}'
     };
-    //'provision_archive': '{{ _("Provision of the original from the interim and long-term archives (till 12:00 next day)") }}'
+
+    const ARCHIVE_CATS = ['provision_archive', 'stray_document_digital', 'stray_document_physical'];
 
     function ontimeBadge(ontime) {
         if (ontime) {
@@ -26,6 +30,64 @@
     function formatDateTime(dtStr) {
         if (!dtStr) return '—';
         return dtStr.replace('T', ' ').substring(0, 16);
+    }
+
+    // ----------------------------- latest delivery formula ----------------------------- //
+    // if weekend → next Tuesday 12:00
+    // if before 17:00 → next business day 12:00 (Mon–Thu +1d, Fri +3d)
+    // if after  17:00 → two business days later 12:00 (Mon–Wed +2d, Thu–Fri +4d)
+    function computeLatestDelivery(datetimeStr) {
+        if (!datetimeStr) return null;
+        const [datePart, timePart] = datetimeStr.split(' ');
+        if (!datePart) return null;
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = (timePart || '00:00').split(':').map(Number);
+
+        let wd = new Date(year, month - 1, day).getDay(); // 0=Sun…6=Sat
+        wd = wd === 0 ? 7 : wd;                           // 1=Mon…7=Sun
+
+        const tSec = hours * 3600 + minutes * 60;
+        const t17  = 17 * 3600;
+        const base = new Date(year, month - 1, day);
+
+        function addDaysAt12(d, n) {
+            const r = new Date(d);
+            r.setDate(r.getDate() + n);
+            r.setHours(12, 0, 0, 0);
+            return r;
+        }
+
+        let result;
+        if (wd === 6 || wd === 7) {
+            // Sat(6)→+3=Tue, Sun(7)→+2=Tue
+            result = addDaysAt12(base, ((2 - wd + 7) % 7 + 7) % 7);
+        } else if (tSec <= t17) {
+            result = wd <= 4 ? addDaysAt12(base, 1) : addDaysAt12(base, 3);
+        } else {
+            result = wd <= 3 ? addDaysAt12(base, 2) : addDaysAt12(base, 4);
+        }
+
+        const p = n => String(n).padStart(2, '0');
+        return `${result.getFullYear()}-${p(result.getMonth()+1)}-${p(result.getDate())} ${p(result.getHours())}:${p(result.getMinutes())}:00`;
+    }
+
+    // ----------------------------- stray document latest delivery formula ----------------------------- //
+    // wd ≤ 4 (Mon–Thu): +1 day; Fri: +4 days; Sat: +3 days; Sun: +2 days → always at 12:00
+    function computeLatestDeliveryStray(datetimeStr) {
+        if (!datetimeStr) return null;
+        const [datePart] = datetimeStr.split('T');
+        if (!datePart) return null;
+        const [year, month, day] = datePart.split('-').map(Number);
+        let wd = new Date(year, month - 1, day).getDay(); // 0=Sun…6=Sat
+        wd = wd === 0 ? 7 : wd;                           // 1=Mon…7=Sun
+        const base = new Date(year, month - 1, day);
+        function addDaysAt12(d, n) {
+            const r = new Date(d); r.setDate(r.getDate() + n); r.setHours(12, 0, 0, 0); return r;
+        }
+        const daysToAdd = wd <= 4 ? 1 : wd === 5 ? 4 : wd === 6 ? 3 : 2;
+        const result = addDaysAt12(base, daysToAdd);
+        const p = n => String(n).padStart(2, '0');
+        return `${result.getFullYear()}-${p(result.getMonth()+1)}-${p(result.getDate())} ${p(result.getHours())}:${p(result.getMinutes())}:00`;
     }
 
     // ----------------------------- fetch ----------------------------- //
@@ -74,7 +136,17 @@
         document.getElementById('showingCount').textContent = records.length;
 
         records.forEach(r => {
-            const catLabel = CATEGORIES[r.category] || r.category;
+            const catLabel  = CATEGORIES[r.category] || r.category;
+            const isArchive = ARCHIVE_CATS.includes(r.category);
+
+            const detailsCell = isArchive
+                ? `<td class="px-4 py-3 text-center">
+                    <button class="view-details-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                        <i class="fas fa-eye mr-1"></i>{{ _("Details") }}
+                    </button>
+                   </td>`
+                : `<td class="px-4 py-3 text-center text-gray-300 text-sm">—</td>`;
+
             const actionsCell = canEdit ? `
                 <td class="px-4 py-3 text-center">
                     <button class="toggle-ontime-btn text-xs font-semibold px-3 py-1.5 rounded-lg border transition
@@ -91,16 +163,21 @@
             tr.className = 'hover:bg-gray-50 transition-colors';
             tr.innerHTML = `
                 <td class="px-4 py-3 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${formatDate(r.reportForDate)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname || r.username || '#' + r.reportByUserID}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname || r.username || r.reportByUserID}</td>
                 <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
                 <td class="px-4 py-3 text-center" id="ontime-cell-${r.reportForDate}-${r.reportByUserID}-${r.category}">${ontimeBadge(r.ontime)}</td>
                 <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
+                ${detailsCell}
+                
                 ${actionsCell}
             `;
             tbody.appendChild(tr);
+
+            if (isArchive) {
+                tr.querySelector('.view-details-btn').addEventListener('click', () => openDetailsModal(r));
+            }
         });
 
-        // edit toggle handlers
         if (canEdit) {
             tbody.querySelectorAll('.toggle-ontime-btn').forEach(btn => {
                 btn.addEventListener('click', () => handleToggle(btn));
@@ -145,7 +222,7 @@
         const date     = btn.dataset.date;
         const userId   = parseInt(btn.dataset.userid);
         const category = btn.dataset.category;
-        const newVal   = btn.dataset.ontime !== 'true'; // flip
+        const newVal   = btn.dataset.ontime !== 'true';
 
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -159,7 +236,6 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
 
-            // update badge in-place
             const cellId = `ontime-cell-${date}-${userId}-${category}`;
             document.getElementById(cellId).innerHTML = ontimeBadge(newVal);
             btn.dataset.ontime = String(newVal);
@@ -183,10 +259,12 @@
     const modalError = document.getElementById('modalError');
 
     const ALL_CATEGORIES = [
-        { value: 'export_post',       label: '{{ _("Export physical post (till 12:00)") }}' },
-        { value: 'export_post_scan',  label: '{{ _("Export physical post with scanning (till 12:00)") }}' }
+        { value: 'export_post',             label: '{{ _("Export physical post") }}' },
+        { value: 'export_post_scan',        label: '{{ _("Export physical post with scanning") }}' },
+        { value: 'provision_archive',       label: '{{ _("Provision of the original from the interim and long-term archives") }}' },
+        { value: 'stray_document_digital',  label: '{{ _("Stray document (digital)") }}' },
+        { value: 'stray_document_physical', label: '{{ _("Stray document (physical)") }}' }
     ];
-    //{ value: 'provision_archive', label: '{{ _("Provision of the original from the interim and long-term archives (till 12:00 next day)") }}' }
 
     function getToday() {
         return new Date().toISOString().split('T')[0];
@@ -204,28 +282,63 @@
         return `<button type="button" class="${cls}" data-ontime="${ontime}" ${disabled ? 'disabled' : ''}>${label}</button>`;
     }
 
+    function refreshOntimeBtn(btn, isOnTime) {
+        btn.dataset.ontime = String(isOnTime);
+        btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition ' +
+            (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                      : 'border-red-200 text-red-600 bg-red-50');
+        btn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+    }
+
+    function autoSetOntime(row) {
+        const latestVal   = row.querySelector('.latest-delivery-display').dataset.value;
+        const deliveryVal = row.querySelector('.delivery-input').value;
+        if (latestVal && deliveryVal) {
+            refreshOntimeBtn(row.querySelector('.entry-ontime-btn'), deliveryVal <= latestVal);
+        }
+    }
+
+    // ----------------------------- entry row ----------------------------- //
     function buildEntryRow(isPast) {
         const row = document.createElement('div');
-        row.className = 'entry-row flex items-center gap-2';
+        row.className = 'entry-row';
 
         const catOptions = ALL_CATEGORIES.map(c =>
             `<option value="${c.value}">${c.label}</option>`
         ).join('');
 
         row.innerHTML = `
-            <div class="relative flex-1 min-w-0">
-                <select class="entry-category block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
-                    <option value="">{{ _("Select category…") }}</option>
-                    ${catOptions}
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <i class="fa-solid fa-chevron-down text-xs"></i>
+            <div class="flex items-center gap-2">
+                <div class="relative flex-1 min-w-0">
+                    <select class="entry-category block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
+                        <option value="">{{ _("Select category…") }}</option>
+                        ${catOptions}
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+                ${ontimeButtonHtml(!isPast, isPast)}
+                <button type="button" class="entry-remove-btn flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <div class="archive-details hidden mt-2 rounded-lg bg-indigo-50 border border-indigo-100 p-3 space-y-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="request-time-label block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</label>
+                        <input type="text" class="request-time-input block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd hh:mm:ss" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</label>
+                        <input type="text" class="delivery-input block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd hh:mm:ss" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</label>
+                    <div class="latest-delivery-display h-9 flex items-center px-3 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 font-medium" data-value="">—</div>
                 </div>
             </div>
-            ${ontimeButtonHtml(!isPast, isPast)}
-            <button type="button" class="entry-remove-btn flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
-                <i class="fas fa-times text-sm"></i>
-            </button>
         `;
 
         row.querySelector('.entry-ontime-btn').addEventListener('click', function () {
@@ -239,69 +352,127 @@
         });
 
         row.querySelector('.entry-remove-btn').addEventListener('click', function () {
-            if (document.querySelectorAll('#entryRows .entry-row').length <= 1) return;
+            const group = row.closest('.date-group');
+            if (group && group.querySelectorAll('.entry-row').length <= 1) return;
             row.remove();
-            syncRowControls();
+            if (group) syncGroupControls(group);
         });
 
-        row.querySelector('.entry-category').addEventListener('change', syncRowControls);
+        row.querySelector('.entry-category').addEventListener('change', function () {
+            const details   = row.querySelector('.archive-details');
+            const ontimeBtn = row.querySelector('.entry-ontime-btn');
+            const isArchive = ARCHIVE_CATS.includes(this.value);
+
+            if (isArchive) {
+                details.classList.remove('hidden');
+                // Update the request-time label based on category
+                row.querySelector('.request-time-label').textContent = this.value === 'provision_archive'
+                    ? '{{ _("Email Received") }}'
+                    : '{{ _("Mailroom Request") }}';
+                // On-time is auto-determined for archive categories
+                ontimeBtn.disabled = true;
+            } else {
+                details.classList.add('hidden');
+                row.querySelector('.request-time-input').value = '';
+                row.querySelector('.delivery-input').value = '';
+                const display = row.querySelector('.latest-delivery-display');
+                display.textContent = '—';
+                display.dataset.value = '';
+                // Re-enable manual toggle, re-apply past-date lock
+                ontimeBtn.disabled = false;
+                const group = row.closest('.date-group');
+                if (group) {
+                    const dateVal = group.querySelector('.group-date').value || getToday();
+                    if (isDatePast(dateVal)) {
+                        refreshOntimeBtn(ontimeBtn, false);
+                        ontimeBtn.disabled = true;
+                    }
+                }
+            }
+            const group = row.closest('.date-group');
+            if (group) syncGroupControls(group);
+        });
+
+        row.querySelector('.request-time-input').addEventListener('input', function () {
+            const category = row.querySelector('.entry-category').value;
+            const fn = category === 'provision_archive' ? computeLatestDelivery : computeLatestDeliveryStray;
+            const latestDelivery = fn(this.value);
+            const display = row.querySelector('.latest-delivery-display');
+            display.textContent = latestDelivery ? formatDateTime(latestDelivery) : '—';
+            display.dataset.value = latestDelivery || '';
+            autoSetOntime(row);
+        });
+
+        row.querySelector('.delivery-input').addEventListener('input', function () {
+            autoSetOntime(row);
+        });
+
+        const fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true, maxDate: 'today' };
+        const reqIn  = row.querySelector('.request-time-input');
+        const delIn  = row.querySelector('.delivery-input');
+        flatpickr(reqIn, { ...fpOpts, onChange: () => reqIn.dispatchEvent(new Event('input')) });
+        flatpickr(delIn, { ...fpOpts, onChange: () => delIn.dispatchEvent(new Event('input')) });
 
         return row;
     }
 
-    function syncRowControls() {
-        const rows   = document.querySelectorAll('#entryRows .entry-row');
-        const used   = Array.from(rows).map(r => r.querySelector('.entry-category').value).filter(Boolean);
-        const isPast = isDatePast(document.getElementById('modalDate').value || getToday());
+    // ----------------------------- group helpers ----------------------------- //
+    function syncGroupControls(group) {
+        if (!group) return;
+        const rows = group.querySelectorAll('.entry-row');
+        const used = Array.from(rows).map(r => r.querySelector('.entry-category').value).filter(Boolean);
 
         rows.forEach(row => {
             const sel = row.querySelector('.entry-category');
             const own = sel.value;
-
-            // grey out already-chosen categories in other rows
             ALL_CATEGORIES.forEach(cat => {
                 const opt = sel.querySelector(`option[value="${cat.value}"]`);
                 if (opt) opt.disabled = cat.value !== own && used.includes(cat.value);
             });
-
-            // show/hide remove button
             row.querySelector('.entry-remove-btn').style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
         });
 
-        // show/hide "Add another" button
-        const addBtn = document.getElementById('addEntryRowBtn');
+        const addBtn = group.querySelector('.group-add-entry-btn');
         if (addBtn) addBtn.style.display = used.length >= ALL_CATEGORIES.length ? 'none' : '';
     }
 
-    function addEntryRow() {
-        const isPast = isDatePast(document.getElementById('modalDate').value || getToday());
-        document.getElementById('entryRows').appendChild(buildEntryRow(isPast));
-        syncRowControls();
+    function syncDateGroups() {
+        const groups = document.querySelectorAll('#dateGroups .date-group');
+        groups.forEach(g => {
+            g.querySelector('.group-remove-btn').style.visibility = groups.length <= 1 ? 'hidden' : 'visible';
+        });
     }
 
-    function openModal() {
-        const today     = getToday();
-        const dateInput = document.getElementById('modalDate');
-        dateInput.value = today;
-        dateInput.max   = today;
-        document.getElementById('entryRows').innerHTML = '';
-        addEntryRow();
-        if (modalError) { modalError.classList.add('hidden'); modalError.textContent = ''; }
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
+    // ----------------------------- date group ----------------------------- //
+    function buildDateGroup(date) {
+        const group = document.createElement('div');
+        group.className = 'date-group border border-gray-200 rounded-xl p-3 space-y-2';
 
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
+        group.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Report Date") }}</label>
+                    <input type="text" class="group-date block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd" />
+                </div>
+                <button type="button" class="group-remove-btn flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <div class="group-entry-rows space-y-2"></div>
+            <button type="button" class="group-add-entry-btn flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                <i class="fas fa-plus"></i>{{ _("Add another category") }}
+            </button>
+        `;
 
-    // when date changes, enforce past-date rule on all existing rows
-    const modalDateInput = document.getElementById('modalDate');
-    if (modalDateInput) {
-        modalDateInput.addEventListener('change', () => {
-            const isPast = isDatePast(modalDateInput.value);
-            document.querySelectorAll('#entryRows .entry-row').forEach(row => {
+        const groupDateInput = group.querySelector('.group-date');
+        groupDateInput.value = date;
+        flatpickr(groupDateInput, { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
+
+        // Date change: re-apply past-date rule (provision_archive is exempt)
+        groupDateInput.addEventListener('change', function () {
+            const isPast = isDatePast(this.value);
+            group.querySelectorAll('.entry-row').forEach(row => {
+                if (ARCHIVE_CATS.includes(row.querySelector('.entry-category').value)) return;
                 const btn = row.querySelector('.entry-ontime-btn');
                 if (isPast) {
                     btn.dataset.ontime = 'false';
@@ -313,6 +484,43 @@
                 }
             });
         });
+
+        group.querySelector('.group-add-entry-btn').addEventListener('click', function () {
+            const isPast = isDatePast(groupDateInput.value || getToday());
+            group.querySelector('.group-entry-rows').appendChild(buildEntryRow(isPast));
+            syncGroupControls(group);
+        });
+
+        group.querySelector('.group-remove-btn').addEventListener('click', function () {
+            if (document.querySelectorAll('#dateGroups .date-group').length <= 1) return;
+            group.remove();
+            syncDateGroups();
+        });
+
+        group.querySelector('.group-entry-rows').appendChild(buildEntryRow(isDatePast(date)));
+        syncGroupControls(group);
+
+        return group;
+    }
+
+    function addDateGroup() {
+        document.getElementById('dateGroups').appendChild(buildDateGroup(getToday()));
+        syncDateGroups();
+    }
+
+    // ----------------------------- open / close ----------------------------- //
+    function openModal() {
+        document.getElementById('dateGroups').innerHTML = '';
+        document.getElementById('dateGroups').appendChild(buildDateGroup(getToday()));
+        syncDateGroups();
+        if (modalError) { modalError.classList.add('hidden'); modalError.textContent = ''; }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
 
     if (openBtn)   openBtn.addEventListener('click', openModal);
@@ -320,26 +528,56 @@
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (modal)     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-    const addEntryRowBtn = document.getElementById('addEntryRowBtn');
-    if (addEntryRowBtn) addEntryRowBtn.addEventListener('click', addEntryRow);
+    const addDateGroupBtn = document.getElementById('addDateGroupBtn');
+    if (addDateGroupBtn) addDateGroupBtn.addEventListener('click', addDateGroup);
 
+    // ----------------------------- submit ----------------------------- //
     if (submitBtn) {
         submitBtn.addEventListener('click', async () => {
-            const reportForDate = document.getElementById('modalDate').value;
-            if (!reportForDate) { showModalError('{{ _("Please select a date.") }}'); return; }
+            if (modalError) { modalError.classList.add('hidden'); }
 
-            const rows = document.querySelectorAll('#entryRows .entry-row');
-            const entries = [];
-            for (const row of rows) {
-                const category = row.querySelector('.entry-category').value;
-                if (!category) { showModalError('{{ _("Please select a category for each entry.") }}'); return; }
-                const ontime = row.querySelector('.entry-ontime-btn').dataset.ontime === 'true';
-                entries.push({ category, ontime });
+            const allEntries = [];
+
+            for (const group of document.querySelectorAll('#dateGroups .date-group')) {
+                const reportForDate = group.querySelector('.group-date').value;
+                if (!reportForDate) { showModalError('{{ _("Please select a date.") }}'); return; }
+
+                const groupEntries = [];
+                for (const row of group.querySelectorAll('.entry-row')) {
+                    const category = row.querySelector('.entry-category').value;
+                    if (!category) { showModalError('{{ _("Please select a category for each entry.") }}'); return; }
+                    const ontime = row.querySelector('.entry-ontime-btn').dataset.ontime === 'true';
+
+                    let emailReceivedTimeStamp = null, mailRoomRequestTimeStamp = null,
+                        deliveryTimeStamp = null, latestDeliveryTimeStamp = null;
+                    if (ARCHIVE_CATS.includes(category)) {
+                        const requestVal        = row.querySelector('.request-time-input').value || null;
+                        deliveryTimeStamp       = row.querySelector('.delivery-input').value || null;
+                        latestDeliveryTimeStamp = row.querySelector('.latest-delivery-display').dataset.value || null;
+                        if (!requestVal)         { showModalError('{{ _("Please set the Request timestamp for this category.") }}'); return; }
+                        if (!deliveryTimeStamp)  { showModalError('{{ _("Please set the Delivery timestamp for this category.") }}'); return; }
+                        if (category === 'provision_archive') {
+                            emailReceivedTimeStamp = requestVal;
+                        } else {
+                            mailRoomRequestTimeStamp = requestVal;
+                        }
+                    }
+                    groupEntries.push({ category, ontime, emailReceivedTimeStamp, mailRoomRequestTimeStamp, deliveryTimeStamp, latestDeliveryTimeStamp });
+                }
+
+                const cats = groupEntries.map(e => e.category);
+                if (new Set(cats).size !== cats.length) {
+                    showModalError('{{ _("Duplicate categories in submission.") }}');
+                    return;
+                }
+
+                groupEntries.forEach(e => allEntries.push({ reportForDate, ...e }));
             }
 
-            const cats = entries.map(e => e.category);
-            if (new Set(cats).size !== cats.length) {
-                showModalError('{{ _("Duplicate categories in submission.") }}');
+            // Catch duplicate date+category across groups
+            const keys = allEntries.map(e => `${e.reportForDate}|${e.category}`);
+            if (new Set(keys).size !== keys.length) {
+                showModalError('{{ _("Duplicate date + category combination found.") }}');
                 return;
             }
 
@@ -347,12 +585,12 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Submitting…") }}';
 
             const errors = [];
-            for (const entry of entries) {
+            for (const entry of allEntries) {
                 try {
                     const res = await fetch(`${API_PREFIX}api/generali/reporting`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                        body: JSON.stringify({ reportForDate, ...entry })
+                        body: JSON.stringify(entry)
                     });
                     const data = await res.json();
                     if (!data.success) errors.push(data.error || entry.category);
@@ -379,12 +617,45 @@
         modalError.classList.remove('hidden');
     }
 
+    // ----------------------------- details modal ----------------------------- //
+    const detailsModal = document.getElementById('detailsModal');
+
+    function openDetailsModal(r) {
+        const isProvision = r.category === 'provision_archive';
+        document.querySelector('#detailsModal h3').textContent =
+            isProvision ? '{{ _("Provision Archive Details") }}' : '{{ _("Stray Document Details") }}';
+        document.getElementById('detailRequestLabel').textContent =
+            isProvision ? '{{ _("Email Received") }}' : '{{ _("Mailroom Request") }}';
+        document.getElementById('detailEmailRcvd').textContent =
+            formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
+        document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
+        document.getElementById('detailDelivery').textContent       = formatDateTime(r.deliveryTimeStamp);
+        detailsModal.classList.remove('hidden');
+        detailsModal.classList.add('flex');
+    }
+
+    function closeDetailsModal() {
+        detailsModal.classList.add('hidden');
+        detailsModal.classList.remove('flex');
+    }
+
+    if (detailsModal) {
+        detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
+    }
+    ['closeDetailsBtn', 'closeDetailsBtnFooter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', closeDetailsModal);
+    });
+
     // ----------------------------- filter ----------------------------- //
+    const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
+    const fpFilterEnd   = flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+
     document.getElementById('applyFilterBtn').addEventListener('click', () => fetchRecords(1));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
-        document.getElementById('filterStartDate').value = '';
-        document.getElementById('filterEndDate').value   = '';
-        document.getElementById('filterCategory').value  = '';
+        fpFilterStart.clear();
+        fpFilterEnd.clear();
+        document.getElementById('filterCategory').value = '';
         fetchRecords(1);
     });
 
