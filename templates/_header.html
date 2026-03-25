@@ -50,8 +50,8 @@
             {% endif %}
             {% endfor %}
 
-            {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm or pageV.generaliAttendancePerm %}
-            {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting', 'generali_attendance'] %}
+            {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm or pageV.generaliAttendancePerm or pageV.generaliPDQMPerm %}
+            {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting', 'generali_attendance', 'generali_pdqm'] %}
             <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader">
                     <i class="fas fa-building-columns sidebar-nav-icon"></i>
@@ -85,6 +85,13 @@
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_attendance' else '' }}">
                         <i class="fas fa-clock sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Attendance') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if pageV.generaliPDQMPerm %}
+                    <a href="{{ url_for('generali_pdqm') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_pdqm' else '' }}">
+                        <i class="fas fa-file-lines sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('PDQM') }}</span>
                     </a>
                     {% endif %}
                 </div>

@@ -268,6 +268,31 @@
     </div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs flex flex-col overflow-hidden">
+      <div class="flex items-center gap-3 px-6 pt-6 pb-4">
+        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+          <i class="fas fa-trash text-red-500"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-gray-900">{{ _("Delete record") }}</h3>
+          <p class="text-sm text-gray-500 mt-0.5">{{ _("This action cannot be undone.") }}</p>
+        </div>
+      </div>
+      <div class="flex gap-3 px-6 pb-5 pt-2">
+        <button id="cancelDeleteBtn"
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
+          {{ _("Cancel") }}
+        </button>
+        <button id="confirmDeleteBtn"
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm">
+          {{ _("Delete") }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   {% include '_small_footer.html' %}
   {% include 'js/_generaliReportingJS.html' %}
 </body>
