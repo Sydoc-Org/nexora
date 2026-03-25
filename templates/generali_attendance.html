@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ _("Generali Reporting - nexora") }}</title>
+  <title>{{ _("Generali Attendance - nexora") }}</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  {% set active_page = 'generali_reporting' %}
+  {% set active_page = 'generali_attendance' %}
   {% include '_header.html' %}
 
   <main class="container mx-auto px-3 py-4 sm:p-6">
@@ -21,23 +21,19 @@
     <!-- Page Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Reporting") }}</h2>
-        <p class="text-gray-500 font-medium">{{ _("Daily task completion reporting") }}</p>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Attendance") }}</h2>
+        <p class="text-gray-500 font-medium">{{ _("Daily effort tracking by category") }}</p>
       </div>
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         {% if can_add %}
         <button id="openAddModalBtn"
           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
-          <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Report") }}</span>
+          <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Attendance") }}</span>
         </button>
         {% endif %}
-        <a href="{{ url_for('generali_documents') }}"
+        <a href="{{ url_for('generali_reporting') }}"
            class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
-          <i class="fas fa-table-list"></i><span class="hidden sm:inline">{{ _("Document List") }}</span>
-        </a>
-        <a href="{{ url_for('generali_evaluation') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
-          <i class="fas fa-chart-line"></i><span class="hidden sm:inline">{{ _("Dashboard") }}</span>
+          <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
     </div>
@@ -56,16 +52,23 @@
             class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Category") }}</label>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Parent Category") }}</label>
           <div class="relative">
-            <select id="filterCategory"
-              class="block w-full sm:min-w-48 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
-              <option value="">{{ _("All Categories") }}</option>
-              <option value="export_post">{{ _("Export physical post") }}</option>
-              <option value="export_post_scan">{{ _("Export physical post with scanning") }}</option>
-              <option value="provision_archive">{{ _("Provision of the original from the interim and long-term archives") }}</option>
-              <option value="stray_document_digital">{{ _("Stray document (digital)") }}</option>
-              <option value="stray_document_physical">{{ _("Stray document (physical)") }}</option>
+            <select id="filterParentCategory"
+              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("All") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Sub Category") }}</label>
+          <div class="relative">
+            <select id="filterSubCategory"
+              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
               <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -85,10 +88,15 @@
       </div>
     </div>
 
-    <!-- Table -->
+    <div class="mb-4 flex items-center gap-2">
+      <span class="text-sm text-gray-500 font-medium">{{ _("Total hours (filtered):") }}</span>
+      <span id="totalHoursDisplay" class="text-sm font-bold text-indigo-600">—</span>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-         id="reportingTable"
-         data-can-edit="{{ can_edit | tojson }}">
+         id="attendanceTable"
+         data-can-edit="{{ can_edit | tojson }}"
+         data-can-add="{{ can_add | tojson }}">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -100,16 +108,16 @@
                 <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("User") }}</span>
               </th>
               <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Category") }}</span>
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Parent Category") }}</span>
+              </th>
+              <th class="px-4 py-4 text-left">
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Sub Category") }}</span>
               </th>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("On Time") }}</span>
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Hours") }}</span>
               </th>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Reported At") }}</span>
-              </th>
-               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Details") }}</span>
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Recorded At") }}</span>
               </th>
               {% if can_edit %}
               <th class="px-4 py-4 text-center">
@@ -118,7 +126,7 @@
               {% endif %}
             </tr>
           </thead>
-          <tbody id="reportingTbody" class="bg-white divide-y divide-gray-200">
+          <tbody id="attendanceTbody" class="bg-white divide-y divide-gray-200">
             <tr>
               <td colspan="{{ 7 if can_edit else 6 }}" class="text-center py-16">
                 <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
@@ -129,7 +137,6 @@
       </div>
     </div>
 
-    <!-- Pagination -->
     <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
       <div class="text-sm text-gray-500 font-medium">
         {{ _("Showing") }}
@@ -143,38 +150,58 @@
 
   </main>
 
-  <!-- Add Report Modal -->
   {% if can_add %}
-  <div id="addReportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-
-      <!-- Modal header -->
+  <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-lg font-bold text-gray-900">{{ _("Add Report") }}</h3>
-        <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition">
+        <h3 class="text-lg font-bold text-gray-900">{{ _("Add Attendance") }}</h3>
+        <button id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 transition">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-
-      <!-- Error -->
-      <div id="modalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
-
-      <!-- Scrollable content -->
-      <div class="flex-1 overflow-y-auto px-6 py-4 min-h-0">
-        <div id="dateGroups" class="space-y-3"></div>
-        <button type="button" id="addDateGroupBtn"
-          class="mt-3 flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
-          <i class="fas fa-plus"></i>{{ _("Add Date") }}
-        </button>
+      <div id="addModalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
+          <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Category") }}</label>
+          <div class="relative">
+            <select id="addParentCategory"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Select…") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Sub Category") }}</label>
+          <div class="relative">
+            <select id="addSubCategory"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Select parent first") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
+          <input type="number" id="addEffortHours" placeholder="0.5" step="0.5" min="0.5"
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
       </div>
-
-      <!-- Modal footer -->
       <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
-        <button id="cancelModalBtn"
+        <button id="cancelAddModalBtn"
           class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
           {{ _("Cancel") }}
         </button>
-        <button id="submitReportBtn"
+        <button id="submitAddBtn"
           class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">
           {{ _("Submit") }}
         </button>
@@ -183,75 +210,48 @@
   </div>
   {% endif %}
 
-  <!-- Provision Archive Details Modal -->
-  <div id="detailsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-        <h3 class="text-base font-bold text-gray-900">{{ _("Provision Archive Details") }}</h3>
-        <button id="closeDetailsBtn" class="text-gray-400 hover:text-gray-600 transition">
-          <i class="fas fa-times text-lg"></i>
-        </button>
-      </div>
-      <div class="px-6 py-4 space-y-4">
-        <div>
-          <p id="detailRequestLabel" class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</p>
-          <p id="detailEmailRcvd" class="text-sm text-gray-800 font-medium">—</p>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</p>
-          <p id="detailLatestDelivery" class="text-sm text-gray-800 font-medium">—</p>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</p>
-          <p id="detailDelivery" class="text-sm text-gray-800 font-medium">—</p>
-        </div>
-      </div>
-      <div class="px-6 pb-5">
-        <button id="closeDetailsBtnFooter"
-          class="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
-          {{ _("Close") }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Edit Report Modal -->
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Report") }}</h3>
+        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Attendance") }}</h3>
         <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Report Date") }}</label>
-          <input type="text" id="editReportDate" placeholder="yyyy-mm-dd"
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
+          <input type="text" id="editForDate" placeholder="yyyy-mm-dd"
             class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("On Time") }}</label>
-          <button type="button" id="editOntimeBtn"
-            class="h-10 px-4 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50"
-            data-ontime="true">&#10003; {{ _("On Time") }}</button>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Category") }}</label>
+          <div class="relative">
+            <select id="editParentCategory"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Select…") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
         </div>
-        <div id="editArchiveFields" class="hidden space-y-3">
-          <div>
-            <label id="editRequestLabel" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</label>
-            <input type="text" id="editRequestTime" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Sub Category") }}</label>
+          <div class="relative">
+            <select id="editSubCategory"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Select parent first") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</label>
-            <input type="text" id="editDelivery" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</label>
-            <div id="editLatestDelivery" data-value=""
-              class="h-9 flex items-center px-3 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 font-medium">—</div>
-          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
+          <input type="number" id="editEffortHours" placeholder="0.5" step="0.5" min="0.5"
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
       </div>
@@ -294,6 +294,6 @@
   </div>
 
   {% include '_small_footer.html' %}
-  {% include 'js/_generaliReportingJS.html' %}
+  {% include 'js/_generaliAttendanceJS.html' %}
 </body>
 </html>

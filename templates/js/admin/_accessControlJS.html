@@ -167,9 +167,7 @@
             inheritCells.forEach(td => td.style.display = 'none');
 
             document.querySelectorAll('#editorModal input[type=radio][value="D"]').forEach(r => {
-                 if(!r.checked && !document.querySelector(`input[name="${r.name}"][value="A"]`).checked) {
-                     r.checked = true;
-                 }
+                r.checked = true;
             });
         } else {
             if (inheritHeader) inheritHeader.style.display = ''; 

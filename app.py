@@ -81,56 +81,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -313,6 +313,8 @@ def startpage_redirect_to(pV):
         'generaliPagePerm': 'generali_evaluation',
         'generaliDocumentsPerm': 'generali_documents',
         'generaliReportingPerm': 'generali_reporting',
+        'generaliAttendancePerm': 'generali_attendance',
+        'generaliPDQMPerm': 'generali_pdqm',
         'chatPagePerm': 'chat_page',
         'adminPagePerm': 'admin_dashboard'
     }
@@ -330,13 +332,17 @@ def pageVisability():
     generaliPagePerm = has_permission('generali.dashboard.view')
     generaliDocumentsPerm = has_permission('generali.view.documentlist')
     generaliReportingPerm = has_permission('generali.reporting.view')
+    generaliAttendancePerm = has_permission('generali.attendance.view')
+    generaliPDQMPerm = has_permission('generali.pdqm.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             #   'teamboardPagePerm': teamboardPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
             'generaliPagePerm': generaliPagePerm,
             'generaliDocumentsPerm': generaliDocumentsPerm,
-            'generaliReportingPerm': generaliReportingPerm}
+            'generaliReportingPerm': generaliReportingPerm,
+            'generaliAttendancePerm': generaliAttendancePerm,
+            'generaliPDQMPerm': generaliPDQMPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -522,44 +528,44 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user("1019")
             
-        #     return redirect(url_for('dashboard'))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code = row
+            return redirect(url_for('dashboard'))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user(userid)
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user(userid)
             
-        #     return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -5152,6 +5158,545 @@ def api_generali_reporting_edit():
             conn.close()
 
 
+@app.route("/api/generali/reporting/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.reporting.edit')
+def api_generali_reporting_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [dbo].[reportingiss] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Attendance -------------------------- #
+@app.route("/generali/attendance")
+@require_permission('generali.attendance.view')
+def generali_attendance():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_attendance.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.attendance.add'),
+                               can_edit=has_permission('generali.attendance.edit'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Attendance: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/attendance/categories", methods=["GET"])
+@require_permission('generali.attendance.view')
+def api_generali_attendance_categories():
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT ParentCategory, SubCategory
+            FROM [Generali].[dbo].[AdditionalServices]
+            ORDER BY ParentCategory, SubCategory
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        grouped = {}
+        for parent, sub in rows:
+            if parent not in grouped:
+                grouped[parent] = []
+            if sub:
+                grouped[parent].append(sub)
+
+        return jsonify({"success": True, "categories": grouped})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance Categories Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/attendance", methods=["GET"])
+@require_permission('generali.attendance.view')
+def api_generali_attendance_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date     = request.args.get('startDate', '').strip()
+        end_date       = request.args.get('endDate', '').strip()
+        parent_cat     = request.args.get('parentCategory', '').strip()
+        sub_cat        = request.args.get('subCategory', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+        if parent_cat:
+            where_clauses.append("ParentCategory = ?")
+            params.append(parent_cat)
+        if sub_cat:
+            where_clauses.append("SubCategory = ?")
+            params.append(sub_cat)
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(EffortInHours) FROM [Generali].[dbo].[Attendance] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records = agg[0] or 0
+        total_hours   = float(agg[1]) if agg[1] is not None else 0.0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, EffortInHours, UserID, ForDate, ParentCategory, SubCategory, RecordDateTime
+            FROM [Generali].[dbo].[Attendance]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for attendance: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, effort, user_id, for_date, parent, sub, recorded_at = r
+            records.append({
+                'id':             rec_id,
+                'effortInHours':  float(effort) if effort is not None else None,
+                'userId':         user_id,
+                'fullname':       user_map.get(user_id),
+                'forDate':        str(for_date) if for_date else None,
+                'parentCategory': parent,
+                'subCategory':    sub,
+                'recordDateTime': recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalHours': total_hours,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Attendance List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/attendance", methods=["POST"])
+@require_permission('generali.attendance.add')
+def api_generali_attendance_add():
+    conn = None
+    try:
+        body          = request.get_json(force=True)
+        for_date      = body.get('forDate', '').strip()
+        parent_cat    = body.get('parentCategory', '').strip()
+        sub_cat       = body.get('subCategory', '').strip()
+        effort        = body.get('effortInHours')
+        user_id       = session.get('userid')
+
+        if not for_date or not parent_cat or not sub_cat or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[Attendance]
+                (EffortInHours, UserID, ForDate, ParentCategory, SubCategory, RecordDateTime)
+            VALUES (?, ?, ?, ?, ?, GETDATE())
+        """, [effort, user_id, for_date, parent_cat, sub_cat])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/attendance/<int:record_id>", methods=["PUT"])
+@require_permission('generali.attendance.edit')
+def api_generali_attendance_edit(record_id):
+    conn = None
+    try:
+        body       = request.get_json(force=True)
+        for_date   = body.get('forDate', '').strip()
+        parent_cat = body.get('parentCategory', '').strip()
+        sub_cat    = body.get('subCategory', '').strip()
+        effort     = body.get('effortInHours')
+
+        if not for_date or not parent_cat or not sub_cat or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[Attendance]
+            SET ForDate = ?, ParentCategory = ?, SubCategory = ?, EffortInHours = ?
+            WHERE ID = ?
+        """, [for_date, parent_cat, sub_cat, effort, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/attendance/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.attendance.edit')
+def api_generali_attendance_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[Attendance] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali PDQM -------------------------------- #
+@app.route("/generali/pdqm")
+@require_permission('generali.pdqm.view')
+def generali_pdqm():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_pdqm.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.pdqm.add'),
+                               can_edit=has_permission('generali.pdqm.edit'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali PDQM: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/pdqm/categories", methods=["GET"])
+@require_permission('generali.pdqm.view')
+def api_generali_pdqm_categories():
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT ParentCategory, ParentSubCategory, SubCategory
+            FROM [Generali].[dbo].[PDQMMapping]
+            ORDER BY ParentCategory, ParentSubCategory, SubCategory
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        # nested: { parent: { parentSub_or_"": [sub, ...] } }
+        grouped = {}
+        for parent, parent_sub, sub in rows:
+            if parent not in grouped:
+                grouped[parent] = {}
+            key = parent_sub if parent_sub is not None else ""
+            if key not in grouped[parent]:
+                grouped[parent][key] = []
+            if sub:
+                grouped[parent][key].append(sub)
+
+        return jsonify({"success": True, "categories": grouped})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM Categories Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/pdqm", methods=["GET"])
+@require_permission('generali.pdqm.view')
+def api_generali_pdqm_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date     = request.args.get('startDate', '').strip()
+        end_date       = request.args.get('endDate', '').strip()
+        parent_cat     = request.args.get('parentCategory', '').strip()
+        parent_sub_cat = request.args.get('parentSubCategory', None)  # None = not filtered; "" = IS NULL
+        sub_cat        = request.args.get('subCategory', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+        if parent_cat:
+            where_clauses.append("ParentCategory = ?")
+            params.append(parent_cat)
+        if parent_sub_cat is not None:
+            if parent_sub_cat == "":
+                where_clauses.append("ParentSubCategory IS NULL")
+            else:
+                where_clauses.append("ParentSubCategory = ?")
+                params.append(parent_sub_cat)
+        if sub_cat:
+            where_clauses.append("SubCategory = ?")
+            params.append(sub_cat)
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(Quantity) FROM [Generali].[dbo].[PDQMReport] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records   = agg[0] or 0
+        total_quantity  = int(agg[1]) if agg[1] is not None else 0
+        total_pages     = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, Quantity, UserID, ForDate, ParentCategory, ParentSubCategory, SubCategory, RecordDateTime
+            FROM [Generali].[dbo].[PDQMReport]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for PDQM: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, qty, user_id, for_date, parent, parent_sub, sub, recorded_at = r
+            records.append({
+                'id':                rec_id,
+                'quantity':          int(qty) if qty is not None else None,
+                'userId':            user_id,
+                'fullname':          user_map.get(user_id),
+                'forDate':           str(for_date) if for_date else None,
+                'parentCategory':    parent,
+                'parentSubCategory': parent_sub,
+                'subCategory':       sub,
+                'recordDateTime':    recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalQuantity': total_quantity,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali PDQM List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/pdqm", methods=["POST"])
+@require_permission('generali.pdqm.add')
+def api_generali_pdqm_add():
+    conn = None
+    try:
+        body           = request.get_json(force=True)
+        for_date       = body.get('forDate', '').strip()
+        parent_cat     = body.get('parentCategory', '').strip()
+        parent_sub_cat = body.get('parentSubCategory', '')  # "" means NULL
+        sub_cat        = body.get('subCategory', '').strip()
+        quantity       = body.get('quantity')
+        user_id        = session.get('userid')
+
+        if not for_date or not parent_cat or not sub_cat or quantity is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            quantity = int(quantity)
+            if quantity < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid quantity"}), 400
+
+        db_parent_sub = parent_sub_cat if parent_sub_cat != "" else None
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[PDQMReport]
+                (Quantity, ForDate, UserID, RecordDateTime, ParentCategory, ParentSubCategory, SubCategory)
+            VALUES (?, ?, ?, GETDATE(), ?, ?, ?)
+        """, [quantity, for_date, user_id, parent_cat, db_parent_sub, sub_cat])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/pdqm/<int:record_id>", methods=["PUT"])
+@require_permission('generali.pdqm.edit')
+def api_generali_pdqm_edit(record_id):
+    conn = None
+    try:
+        body           = request.get_json(force=True)
+        for_date       = body.get('forDate', '').strip()
+        parent_cat     = body.get('parentCategory', '').strip()
+        parent_sub_cat = body.get('parentSubCategory', '')
+        sub_cat        = body.get('subCategory', '').strip()
+        quantity       = body.get('quantity')
+
+        if not for_date or not parent_cat or not sub_cat or quantity is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            quantity = int(quantity)
+            if quantity < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid quantity"}), 400
+
+        db_parent_sub = parent_sub_cat if parent_sub_cat != "" else None
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[PDQMReport]
+            SET ForDate = ?, ParentCategory = ?, ParentSubCategory = ?, SubCategory = ?, Quantity = ?
+            WHERE ID = ?
+        """, [for_date, parent_cat, db_parent_sub, sub_cat, quantity, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/pdqm/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.pdqm.edit')
+def api_generali_pdqm_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[PDQMReport] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/dashboard/recent_activity")
 @require_permission('dashboard.view')
 @cache.cached(timeout=120, key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
@@ -5221,8 +5766,8 @@ def api_recent_activity():
         return jsonify([])
     finally:
         if conn: conn.close()
-# ------------------------------- ONLY FOR PROD -------------------------------- #
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# ------------------------------- ONLY FOR PROD -------------------------------- # 
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

@@ -152,10 +152,14 @@
                 : `<td class="px-4 py-3 text-center text-gray-300 text-sm">—</td>`;
 
             const actionsCell = canEdit ? `
-                <td class="px-4 py-3 text-center">
-                    <button class="edit-record-btn h-9 px-3 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <button class="edit-record-btn inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-lg hover:bg-indigo-50 transition mr-1"
                         data-id="${r.id}">
-                        <i class="fas fa-pencil-alt mr-1"></i>{{ _("Edit") }}
+                        <i class="fas fa-pen text-xs"></i>
+                    </button>
+                    <button class="delete-record-btn inline-flex items-center text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition"
+                        data-id="${r.id}">
+                        <i class="fas fa-trash text-xs"></i>
                     </button>
                 </td>` : '';
 
@@ -181,8 +185,10 @@
 
         if (canEdit) {
             tbody.addEventListener('click', e => {
-                const btn = e.target.closest('.edit-record-btn');
-                if (btn) openEditModal(tbody._recordMap[btn.dataset.id]);
+                const editBtn = e.target.closest('.edit-record-btn');
+                if (editBtn) openEditModal(tbody._recordMap[editBtn.dataset.id]);
+                const deleteBtn = e.target.closest('.delete-record-btn');
+                if (deleteBtn) deleteRecord(deleteBtn.dataset.id);
             });
         }
     }
@@ -444,7 +450,6 @@
         groupDateInput.value = date;
         flatpickr(groupDateInput, { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
 
-        // Date change: re-apply past-date rule (provision_archive is exempt)
         groupDateInput.addEventListener('change', function () {
             const isPast = isDatePast(this.value);
             group.querySelectorAll('.entry-row').forEach(row => {
@@ -771,6 +776,57 @@
         document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
         editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
     }
+
+    // ----------------------------- delete ----------------------------- //
+    let pendingDeleteId = null;
+
+    function deleteRecord(id) {
+        pendingDeleteId = id;
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('deleteModal').classList.add('flex');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('deleteModal').classList.remove('flex');
+        pendingDeleteId = null;
+    }
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!pendingDeleteId) return;
+        const id = pendingDeleteId;
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ _("Deleting…") }}';
+        fetch(`${API_PREFIX}api/generali/reporting/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            this.disabled = false;
+            this.innerHTML = '{{ _("Delete") }}';
+            closeDeleteModal();
+            if (data.success) {
+                fetchRecords(currentPage);
+            } else {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+                errDiv.textContent = data.error || '{{ _("Error deleting record.") }}';
+                document.body.appendChild(errDiv);
+                setTimeout(() => errDiv.remove(), 4000);
+            }
+        })
+        .catch(() => {
+            this.disabled = false;
+            this.innerHTML = '{{ _("Delete") }}';
+            closeDeleteModal();
+        });
+    });
 
     // ----------------------------- filter ----------------------------- //
     const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
