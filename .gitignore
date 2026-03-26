@@ -144,7 +144,7 @@ session/
 logs/
 
 # Environments
-.env
+*.env
 .envrc
 .venv
 env/

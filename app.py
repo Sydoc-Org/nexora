@@ -36,7 +36,7 @@ import urllib, csv
 # -------------------------------- app config -------------------------------- #
 app = Flask(__name__)
 load_dotenv()
-
+load_dotenv(dotenv_path=f'{os.environ.get("ENVIRONMENT")}.env')
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
@@ -81,56 +81,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -528,44 +528,44 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user("1019")
             
-        #     return redirect(url_for('dashboard'))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code = row
+            return redirect(url_for('dashboard'))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user(userid)
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['permissions'] = load_permissions_for_user(userid)
             
-        #     return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard'))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -5767,7 +5767,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
