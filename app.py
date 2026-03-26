@@ -5337,11 +5337,12 @@ def api_generali_attendance_add():
         body          = request.get_json(force=True)
         for_date      = body.get('forDate', '').strip()
         parent_cat    = body.get('parentCategory', '').strip()
-        sub_cat       = body.get('subCategory', '').strip()
+        sub_cat_raw   = body.get('subCategory')
+        sub_cat       = sub_cat_raw.strip() if sub_cat_raw else None
         effort        = body.get('effortInHours')
         user_id       = session.get('userid')
 
-        if not for_date or not parent_cat or not sub_cat or effort is None:
+        if not for_date or not parent_cat or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
             effort = float(effort)
@@ -5377,10 +5378,11 @@ def api_generali_attendance_edit(record_id):
         body       = request.get_json(force=True)
         for_date   = body.get('forDate', '').strip()
         parent_cat = body.get('parentCategory', '').strip()
-        sub_cat    = body.get('subCategory', '').strip()
+        sub_cat_raw = body.get('subCategory')
+        sub_cat    = sub_cat_raw.strip() if sub_cat_raw else None
         effort     = body.get('effortInHours')
 
-        if not for_date or not parent_cat or not sub_cat or effort is None:
+        if not for_date or not parent_cat or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
             effort = float(effort)
