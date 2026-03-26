@@ -1082,13 +1082,13 @@ msgstr "Bereitstellung des Originals aus dem Zwischen- und Langzeitarchiv"
 #: templates/js/_generaliReportingJS.html:12
 #: templates/js/_generaliReportingJS.html:240
 msgid "Stray document (digital)"
-msgstr "Streugut (digital)"
+msgstr "Irrläufer (digital)"
 
 #: templates/generali_reporting.html:68
 #: templates/js/_generaliReportingJS.html:13
 #: templates/js/_generaliReportingJS.html:241
 msgid "Stray document (physical)"
-msgstr "Streugut (physisch)"
+msgstr "Irrläufer (physisch)"
 
 #: templates/generali_reporting.html:106 templates/generali_reporting.html:234
 #: templates/generali_reporting.html:237
@@ -2373,7 +2373,7 @@ msgstr "Netzwerkfehler für"
 
 #: templates/js/_generaliReportingJS.html:607
 msgid "Stray Document Details"
-msgstr "Streugut-Details"
+msgstr "Irrläufer-Details"
 
 #: templates/js/_generaliReportingJS.html:732
 msgid "Report date is required."

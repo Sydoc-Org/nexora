@@ -144,7 +144,7 @@ session/
 logs/
 
 # Environments
-.env
+*.env
 .envrc
 .venv
 env/
@@ -152,6 +152,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+environment_transfer_queries.tmp.sql
 
 # Spyder project settings
 .spyderproject
