@@ -61,23 +61,43 @@
 
     function populateSubSelect(selectEl, parent, parentSub, selected) {
         while (selectEl.options.length > 0) selectEl.remove(0);
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
         const ready = parentSub !== null && parentSub !== undefined && parentSub !== '';
-        placeholder.textContent = ready && parent ? '{{ _("Select…") }}' : '{{ _("Select parent sub first") }}';
-        selectEl.appendChild(placeholder);
+        const isFilter = selectEl.id.startsWith('filter');
+
+        if (!ready || !parent) {
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = isFilter ? '{{ _("All") }}' : '{{ _("Select parent sub first") }}';
+            selectEl.appendChild(placeholder);
+            selectEl.disabled = false;
+            return;
+        }
 
         // translate sentinel back to "" for data lookup
         const lookupKey = parentSub === NULL_SENTINEL ? '' : parentSub;
-        if (parent && ready && categoriesData[parent] && categoriesData[parent][lookupKey]) {
-            categoriesData[parent][lookupKey].forEach(sub => {
-                const opt = document.createElement('option');
-                opt.value = sub;
-                opt.textContent = sub;
-                if (sub === selected) opt.selected = true;
-                selectEl.appendChild(opt);
-            });
+        const subs = (categoriesData[parent] && categoriesData[parent][lookupKey]) ? categoriesData[parent][lookupKey] : [];
+
+        if (subs.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = isFilter ? '{{ _("All") }}' : '—';
+            selectEl.appendChild(opt);
+            selectEl.disabled = !isFilter;
+            return;
         }
+
+        selectEl.disabled = false;
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = isFilter ? '{{ _("All") }}' : '{{ _("Select…") }}';
+        selectEl.appendChild(placeholder);
+        subs.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub;
+            opt.textContent = sub;
+            if (sub === selected) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
     }
 
     function loadCategories() {
@@ -351,7 +371,9 @@
         const quantity   = document.getElementById('addQuantity').value;
         const errEl      = document.getElementById('addModalError');
 
-        if (!forDate || !parent || !sub || !quantity) {
+        const addParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
+        const addSubs = (categoriesData[parent] && categoriesData[parent][addParentSubKey]) ? categoriesData[parent][addParentSubKey] : [];
+        if (!forDate || !parent || (addSubs.length > 0 && !sub) || !quantity) {
             errEl.textContent = '{{ _("Please fill in all fields.") }}';
             errEl.classList.remove('hidden');
             return;
@@ -365,7 +387,7 @@
                 forDate,
                 parentCategory: parent,
                 parentSubCategory: parentSub === NULL_SENTINEL ? '' : parentSub,
-                subCategory: sub,
+                subCategory: sub || null,
                 quantity: parseInt(quantity, 10)
             })
         })
@@ -452,7 +474,9 @@
         const quantity  = document.getElementById('editQuantity').value;
         const errEl     = document.getElementById('editError');
 
-        if (!forDate || !parent || !sub || !quantity) {
+        const editParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
+        const editSubs = (categoriesData[parent] && categoriesData[parent][editParentSubKey]) ? categoriesData[parent][editParentSubKey] : [];
+        if (!forDate || !parent || (editSubs.length > 0 && !sub) || !quantity) {
             errEl.textContent = '{{ _("Please fill in all fields.") }}';
             errEl.classList.remove('hidden');
             return;
@@ -466,7 +490,7 @@
                 forDate,
                 parentCategory: parent,
                 parentSubCategory: parentSub === NULL_SENTINEL ? '' : parentSub,
-                subCategory: sub,
+                subCategory: sub || null,
                 quantity: parseInt(quantity, 10)
             })
         })

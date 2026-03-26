@@ -5603,11 +5603,12 @@ def api_generali_pdqm_add():
         for_date       = body.get('forDate', '').strip()
         parent_cat     = body.get('parentCategory', '').strip()
         parent_sub_cat = body.get('parentSubCategory', '')  # "" means NULL
-        sub_cat        = body.get('subCategory', '').strip()
+        sub_cat_raw    = body.get('subCategory')
+        sub_cat        = sub_cat_raw.strip() if sub_cat_raw else None
         quantity       = body.get('quantity')
         user_id        = session.get('userid')
 
-        if not for_date or not parent_cat or not sub_cat or quantity is None:
+        if not for_date or not parent_cat or quantity is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
             quantity = int(quantity)
@@ -5646,10 +5647,11 @@ def api_generali_pdqm_edit(record_id):
         for_date       = body.get('forDate', '').strip()
         parent_cat     = body.get('parentCategory', '').strip()
         parent_sub_cat = body.get('parentSubCategory', '')
-        sub_cat        = body.get('subCategory', '').strip()
+        sub_cat_raw    = body.get('subCategory')
+        sub_cat        = sub_cat_raw.strip() if sub_cat_raw else None
         quantity       = body.get('quantity')
 
-        if not for_date or not parent_cat or not sub_cat or quantity is None:
+        if not for_date or not parent_cat or quantity is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
             quantity = int(quantity)
