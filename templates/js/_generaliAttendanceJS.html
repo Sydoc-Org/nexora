@@ -5,7 +5,8 @@
     const colSpan = canEdit ? 7 : 6;
 
     let currentPage = 1;
-    let categoriesData = {}; 
+    let categoriesData = {};
+    let translationsMap = {};
 
     function populateParentSelect(selectEl, selected) {
         const current = selected !== undefined ? selected : selectEl.value;
@@ -13,7 +14,7 @@
         Object.keys(categoriesData).sort().forEach(parent => {
             const opt = document.createElement('option');
             opt.value = parent;
-            opt.textContent = parent;
+            opt.textContent = translationsMap[parent] || parent;
             if (parent === current) opt.selected = true;
             selectEl.appendChild(opt);
         });
@@ -25,7 +26,7 @@
         if (!parent) {
             const placeholder = document.createElement('option');
             placeholder.value = '';
-            placeholder.textContent = '{{ _("Select parent first") }}';
+            placeholder.textContent = {{ _("Select parent first") | tojson }};
             selectEl.appendChild(placeholder);
             selectEl.disabled = false;
             return;
@@ -44,12 +45,12 @@
         selectEl.disabled = false;
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = '{{ _("Select…") }}';
+        placeholder.textContent = {{ _("Select…") | tojson }};
         selectEl.appendChild(placeholder);
         subs.forEach(sub => {
             const opt = document.createElement('option');
             opt.value = sub;
-            opt.textContent = sub;
+            opt.textContent = translationsMap[sub] || sub;
             if (sub === selected) opt.selected = true;
             selectEl.appendChild(opt);
         });
@@ -63,10 +64,11 @@
             .then(data => {
                 if (!data.success) return;
                 categoriesData = data.categories || {};
+                translationsMap = data.translations || {};
 
                 populateParentSelect(document.getElementById('filterParentCategory'));
                 const filterParent = document.getElementById('filterParentCategory');
-                filterParent.options[0].textContent = '{{ _("All") }}';
+                filterParent.options[0].textContent = {{ _("All") | tojson }};
 
                 if (canAdd) populateParentSelect(document.getElementById('addParentCategory'));
                 populateParentSelect(document.getElementById('editParentCategory'));
@@ -116,6 +118,8 @@
                 </button>
             </td>` : '';
 
+        const tParent = translationsMap[r.parentCategory] || r.parentCategory || '—';
+        const tSub    = translationsMap[r.subCategory]    || r.subCategory    || '—';
         return `<tr class="hover:bg-gray-50 transition" data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-parent="${(r.parentCategory||'').replace(/"/g,'&quot;')}" data-sub="${(r.subCategory||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
             <td class="px-4 py-3 text-center whitespace-nowrap">
                 <span class="text-sm font-semibold text-gray-800">${formatDate(r.forDate)}</span>
@@ -124,10 +128,10 @@
                 <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-800">${r.parentCategory || '—'}</span>
+                <span class="text-sm text-gray-800">${tParent}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-600">${r.subCategory || '—'}</span>
+                <span class="text-sm text-gray-600">${tSub}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${formatHours(r.effortInHours)} h</span>
@@ -229,7 +233,7 @@
     document.getElementById('filterParentCategory').addEventListener('change', function() {
         const filterSub = document.getElementById('filterSubCategory');
         populateSubSelect(filterSub, this.value);
-        filterSub.options[0].textContent = '{{ _("All") }}';
+        filterSub.options[0].textContent = {{ _("All") | tojson }};
     });
 
     flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
@@ -271,7 +275,7 @@
 
         const addHasSubs = (categoriesData[parent] || []).length > 0;
         if (!forDate || !parent || (addHasSubs && !sub) || !effort) {
-            errEl.textContent = '{{ _("Please fill in all fields.") }}';
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -289,13 +293,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || '{{ _("Error saving record.") }}';
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = '{{ _("Network error.") }}';
+            errEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -350,7 +354,7 @@
 
         const editHasSubs = (categoriesData[parent] || []).length > 0;
         if (!forDate || !parent || (editHasSubs && !sub) || !effort) {
-            errEl.textContent = '{{ _("Please fill in all fields.") }}';
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -368,13 +372,13 @@
                 closeEditModal();
                 loadRecords(currentPage);
             } else {
-                errEl.textContent = data.error || '{{ _("Error saving record.") }}';
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = '{{ _("Network error.") }}';
+            errEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -411,21 +415,21 @@
         .then(r => r.json())
         .then(data => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
             if (data.success) loadRecords(currentPage);
             else {
                 // show error inline via a brief toast-style approach
                 const errDiv = document.createElement('div');
                 errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-                errDiv.textContent = data.error || '{{ _("Error deleting record.") }}';
+                errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
                 document.body.appendChild(errDiv);
                 setTimeout(() => errDiv.remove(), 4000);
             }
         })
         .catch(() => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
         });
     });

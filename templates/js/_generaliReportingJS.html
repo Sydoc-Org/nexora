@@ -6,11 +6,11 @@
     let currentPage = 1;
 
     const CATEGORIES = {
-        'export_post':            '{{ _("Export physical post") }}',
-        'export_post_scan':       '{{ _("Export physical post with scanning") }}',
-        'provision_archive':      '{{ _("Provision of the original from the interim and long-term archives") }}',
-        'stray_document_digital': '{{ _("Stray document (digital)") }}',
-        'stray_document_physical':'{{ _("Stray document (physical)") }}'
+        'export_post':            {{ _("Export physical post") | tojson }},
+        'export_post_scan':       {{ _("Export physical post with scanning") | tojson }},
+        'provision_archive':      {{ _("Provision of the original from the interim and long-term archives") | tojson }},
+        'stray_document_digital': {{ _("Stray document (digital)") | tojson }},
+        'stray_document_physical':{{ _("Stray document (physical)") | tojson }}
     };
 
     const ARCHIVE_CATS = ['provision_archive', 'stray_document_digital', 'stray_document_physical'];
@@ -215,14 +215,14 @@
             return el;
         };
 
-        ctrl.appendChild(btn('‹ {{ _("Prev") }}', page - 1, page <= 1));
+        ctrl.appendChild(btn('‹ ' + {{ _("Prev") | tojson }}, page - 1, page <= 1));
 
         const pageInfo = document.createElement('span');
         pageInfo.className = 'px-3 py-1.5 text-sm text-gray-500 font-medium';
         pageInfo.textContent = `{{ _("Page") }} ${page} / ${total_pages}`;
         ctrl.appendChild(pageInfo);
 
-        ctrl.appendChild(btn('{{ _("Next") }} ›', page + 1, page >= total_pages));
+        ctrl.appendChild(btn({{ _("Next") | tojson }} + ' ›', page + 1, page >= total_pages));
     }
 
     // ----------------------------- modal ----------------------------- //
@@ -234,11 +234,11 @@
     const modalError = document.getElementById('modalError');
 
     const ALL_CATEGORIES = [
-        { value: 'export_post',             label: '{{ _("Export physical post") }}' },
-        { value: 'export_post_scan',        label: '{{ _("Export physical post with scanning") }}' },
-        { value: 'provision_archive',       label: '{{ _("Provision of the original from the interim and long-term archives") }}' },
-        { value: 'stray_document_digital',  label: '{{ _("Stray document (digital)") }}' },
-        { value: 'stray_document_physical', label: '{{ _("Stray document (physical)") }}' }
+        { value: 'export_post',             label: {{ _("Export physical post") | tojson }} },
+        { value: 'export_post_scan',        label: {{ _("Export physical post with scanning") | tojson }} },
+        { value: 'provision_archive',       label: {{ _("Provision of the original from the interim and long-term archives") | tojson }} },
+        { value: 'stray_document_digital',  label: {{ _("Stray document (digital)") | tojson }} },
+        { value: 'stray_document_physical', label: {{ _("Stray document (physical)") | tojson }} }
     ];
 
     function getToday() {
@@ -253,7 +253,7 @@
         const cls = ontime
             ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
             : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
-        const label = ontime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        const label = ontime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
         return `<button type="button" class="${cls}" data-ontime="${ontime}" ${disabled ? 'disabled' : ''}>${label}</button>`;
     }
 
@@ -262,7 +262,7 @@
         btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition ' +
             (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
                       : 'border-red-200 text-red-600 bg-red-50');
-        btn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        btn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
     }
 
     function autoSetOntime(row) {
@@ -323,7 +323,7 @@
             this.className = newVal
                 ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
                 : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
-            this.innerHTML = newVal ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+            this.innerHTML = newVal ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
         });
 
         row.querySelector('.entry-remove-btn').addEventListener('click', function () {
@@ -342,8 +342,8 @@
                 details.classList.remove('hidden');
                 // Update the request-time label based on category
                 row.querySelector('.request-time-label').textContent = this.value === 'provision_archive'
-                    ? '{{ _("Email Received") }}'
-                    : '{{ _("Mailroom Request") }}';
+                    ? {{ _("Email Received") | tojson }}
+                    : {{ _("Mailroom Request") | tojson }};
                 // On-time is auto-determined for archive categories
                 ontimeBtn.disabled = true;
             } else {
@@ -458,7 +458,7 @@
                 if (isPast) {
                     btn.dataset.ontime = 'false';
                     btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
-                    btn.innerHTML = '&#10007; {{ _("Late") }}';
+                    btn.innerHTML = '&#10007; ' + {{ _("Late") | tojson }};
                     btn.disabled = true;
                 } else {
                     btn.disabled = false;
@@ -521,12 +521,12 @@
 
             for (const group of document.querySelectorAll('#dateGroups .date-group')) {
                 const reportForDate = group.querySelector('.group-date').value;
-                if (!reportForDate) { showModalError('{{ _("Please select a date.") }}'); return; }
+                if (!reportForDate) { showModalError({{ _("Please select a date.") | tojson }}); return; }
 
                 const groupEntries = [];
                 for (const row of group.querySelectorAll('.entry-row')) {
                     const category = row.querySelector('.entry-category').value;
-                    if (!category) { showModalError('{{ _("Please select a category for each entry.") }}'); return; }
+                    if (!category) { showModalError({{ _("Please select a category for each entry.") | tojson }}); return; }
                     const ontime = row.querySelector('.entry-ontime-btn').dataset.ontime === 'true';
 
                     let emailReceivedTimeStamp = null, mailRoomRequestTimeStamp = null,
@@ -535,8 +535,8 @@
                         const requestVal        = row.querySelector('.request-time-input').value || null;
                         deliveryTimeStamp       = row.querySelector('.delivery-input').value || null;
                         latestDeliveryTimeStamp = row.querySelector('.latest-delivery-display').dataset.value || null;
-                        if (!requestVal)         { showModalError('{{ _("Please set the Request timestamp for this category.") }}'); return; }
-                        if (!deliveryTimeStamp)  { showModalError('{{ _("Please set the Delivery timestamp for this category.") }}'); return; }
+                        if (!requestVal)         { showModalError({{ _("Please set the Request timestamp for this category.") | tojson }}); return; }
+                        if (!deliveryTimeStamp)  { showModalError({{ _("Please set the Delivery timestamp for this category.") | tojson }}); return; }
                         if (category === 'provision_archive') {
                             emailReceivedTimeStamp = requestVal;
                         } else {
@@ -548,7 +548,7 @@
 
                 const cats = groupEntries.map(e => e.category);
                 if (new Set(cats).size !== cats.length) {
-                    showModalError('{{ _("Duplicate categories in submission.") }}');
+                    showModalError({{ _("Duplicate categories in submission.") | tojson }});
                     return;
                 }
 
@@ -558,12 +558,12 @@
             // Catch duplicate date+category across groups
             const keys = allEntries.map(e => `${e.reportForDate}|${e.category}`);
             if (new Set(keys).size !== keys.length) {
-                showModalError('{{ _("Duplicate date + category combination found.") }}');
+                showModalError({{ _("Duplicate date + category combination found.") | tojson }});
                 return;
             }
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Submitting…") }}';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + {{ _("Submitting…") | tojson }};
 
             const errors = [];
             for (const entry of allEntries) {
@@ -581,7 +581,7 @@
             }
 
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '{{ _("Submit") }}';
+            submitBtn.innerHTML = {{ _("Submit") | tojson }};
 
             if (errors.length) {
                 showModalError(errors.join(' · '));
@@ -604,9 +604,9 @@
     function openDetailsModal(r) {
         const isProvision = r.category === 'provision_archive';
         document.querySelector('#detailsModal h3').textContent =
-            isProvision ? '{{ _("Provision Archive Details") }}' : '{{ _("Stray Document Details") }}';
+            isProvision ? {{ _("Provision Archive Details") | tojson }} : {{ _("Stray Document Details") | tojson }};
         document.getElementById('detailRequestLabel').textContent =
-            isProvision ? '{{ _("Email Received") }}' : '{{ _("Mailroom Request") }}';
+            isProvision ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
         document.getElementById('detailEmailRcvd').textContent =
             formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
         document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
@@ -666,7 +666,7 @@
             editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
                 (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
                           : 'border-red-200 text-red-600 bg-red-50');
-            editOntimeBtn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+            editOntimeBtn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
         }
     }
 
@@ -677,7 +677,7 @@
             this.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
                 (nxt ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
                      : 'border-red-200 text-red-600 bg-red-50');
-            this.innerHTML = nxt ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+            this.innerHTML = nxt ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
         });
     }
 
@@ -693,13 +693,13 @@
         editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
             (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
                       : 'border-red-200 text-red-600 bg-red-50');
-        editOntimeBtn.innerHTML = isOnTime ? '&#10003; {{ _("On Time") }}' : '&#10007; {{ _("Late") }}';
+        editOntimeBtn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
 
         const isArchive = ARCHIVE_CATS.includes(r.category);
         if (isArchive) {
             editArchiveFields.classList.remove('hidden');
             document.getElementById('editRequestLabel').textContent =
-                r.category === 'provision_archive' ? '{{ _("Email Received") }}' : '{{ _("Mailroom Request") }}';
+                r.category === 'provision_archive' ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
             const reqVal = r.category === 'provision_archive'
                 ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp;
             fpEditRequest.setDate(reqVal || '', true);
@@ -729,7 +729,7 @@
         if (!_editRecord) return;
         const reportForDate = document.getElementById('editReportDate').value.trim();
         if (!reportForDate) {
-            editError.textContent = '{{ _("Report date is required.") }}';
+            editError.textContent = {{ _("Report date is required.") | tojson }};
             editError.classList.remove('hidden');
             return;
         }
@@ -749,7 +749,7 @@
 
         const saveBtn = document.getElementById('saveEditBtn');
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ _("Saving…") }}';
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>' + {{ _("Saving…") | tojson }};
 
         try {
             const res  = await fetch(`${API_PREFIX}api/generali/reporting`, {
@@ -762,11 +762,11 @@
             closeEditModal();
             fetchRecords(currentPage);
         } catch (e) {
-            editError.textContent = e.message || '{{ _("Save failed. Please try again.") }}';
+            editError.textContent = e.message || {{ _("Save failed. Please try again.") | tojson }};
             editError.classList.remove('hidden');
         } finally {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '{{ _("Save") }}';
+            saveBtn.innerHTML = {{ _("Save") | tojson }};
         }
     }
 
@@ -801,7 +801,7 @@
         if (!pendingDeleteId) return;
         const id = pendingDeleteId;
         this.disabled = true;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ _("Deleting…") }}';
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>' + {{ _("Deleting…") | tojson }};
         fetch(`${API_PREFIX}api/generali/reporting/${id}`, {
             method: 'DELETE',
             headers: { 'X-CSRFToken': csrfToken }
@@ -809,21 +809,21 @@
         .then(r => r.json())
         .then(data => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
             if (data.success) {
                 fetchRecords(currentPage);
             } else {
                 const errDiv = document.createElement('div');
                 errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-                errDiv.textContent = data.error || '{{ _("Error deleting record.") }}';
+                errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
                 document.body.appendChild(errDiv);
                 setTimeout(() => errDiv.remove(), 4000);
             }
         })
         .catch(() => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
         });
     });

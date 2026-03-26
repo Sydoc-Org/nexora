@@ -395,7 +395,6 @@ def init_2FA():
 
                 username, fullname, email, org_code = row
                 session.pop('temp_2fa_secret', None)
-                create_notification(user_id, _("2FA enabled successfully"), icon='fa-shield-halved')
 
                 session.clear() 
                 session['userid'] = user_id
@@ -511,7 +510,6 @@ def init_reset_password():
         cursor.close()
         conn.close()
 
-        create_notification(pre_auth_userid, _("Initial Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
         if not stored_2FA:
             session['pre_2fa_userid'] = pre_auth_userid
             session['pre_2fa_username'] = stored_username 
@@ -777,7 +775,6 @@ def admin_add_organization():
         cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization,))
         conn.commit()
 
-        create_notification(userid, _("Organization created successfully.") , link=url_for('admin_organizations_view'), icon='fa-square-plus')
         return jsonify({'success': True, 'message': _("Organization created successfully.")})
     except pyodbc.IntegrityError:
         return jsonify({'success': False, 'message': _("Organization already exists.")}), 409
@@ -806,7 +803,6 @@ def admin_edit_organization(organizationcode):
                         (organization, organizationcode))
         conn.commit()
         
-        create_notification(currentUserId, _("Organization updated successfully"), link=url_for('admin_organizations_view'), icon='fa-pen')
         return jsonify({'success': True, 'message': _("Organization updated successfully.")})
     except Exception as e:
         app.logger.error(f"Error editing Organization {currentUserId}: {e}")
@@ -833,7 +829,6 @@ def admin_delete_organization(organizationcode):
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': _("Organization not found.")}), 404
 
-        create_notification(current_user, _("Organization deleted successfully"), link=url_for('admin_organizations_view'), icon='fa-slash')
         
         return jsonify({'success': True, 'message': _("Organization deleted successfully.")})
     except Exception as e:
@@ -1035,7 +1030,6 @@ def admin_add_user():
         cursor.execute("INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
                        (username, hashed_password, fullname, email, organizationcode, accessid))
         conn.commit()
-        create_notification(userid, _("User created successfully.") , link=url_for('admin_users'), icon='fa-user-plus')
         return jsonify({'success': True, 'message': _("User created successfully.")})
     except pyodbc.IntegrityError:
         return jsonify({'success': False, 'message': _("Username or email already exists.")}), 409
@@ -1082,7 +1076,6 @@ def admin_edit_user(user_id):
                            (username, fullname, email, organizationcode, accessid, user_id))
         conn.commit()
 
-        create_notification(currentUserId, _("User updated successfully"), link=url_for('admin_users'), icon='fa-user-pen')
         return jsonify({'success': True, 'message': _("User updated successfully.")})
     except Exception as e:
         app.logger.error(f"Error editing user {user_id}: {e}")
@@ -1136,7 +1129,6 @@ def admin_delete_user(user_id):
         if cursor.rowcount == 0:
             return jsonify({'success': False, 'message': _("User not found.")}), 404
 
-        create_notification(current_user, _("User deleted successfully"), link=url_for('admin_users'), icon='fa-user-slash')
         return jsonify({'success': True, 'message': _("User deleted successfully.")})
     except Exception as e:
         app.logger.error(f"Error deleting user {user_id}: {e}")
@@ -1471,7 +1463,6 @@ def set_new_password():
 
         conn.commit()
 
-        create_notification(userid, _("Password changed successfully"), link=url_for('profile'), icon='fa-unlock')
         return render_template("reset_password.html", message=_("Password changed"))
     except Exception as e:
         return
@@ -3991,7 +3982,6 @@ def update_profile():
                     app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
                     flash(_("Invalid file format. Please upload a valid image."), 'failure_updateProfile')
                     return redirect(url_for("profile"))
-            create_notification(userid, _("Your profile was updated successfully."), link=url_for('profile'), icon='fa-user-pen')
             flash(_("Profile updated successfully!"), 'success_updateProfile')
             return redirect(url_for("profile"))
     except Exception as e:
@@ -4055,7 +4045,6 @@ def change_password():
 
                 conn.commit()
 
-                create_notification(userid, _("Password updated successfully!"), link=url_for('profile'), icon='fa-user-shield')
                 flash(_("Password updated successfully!"), 'success_changePW')
                 return redirect(url_for('profile'))
             else:
@@ -4075,7 +4064,6 @@ def set_language(lang=None):
     try:
         userid = session['userid']
         session['locale'] = lang
-        create_notification(userid, _("Language changed successfully!"), link=url_for('profile'), icon='fa-language')
         flash(_("Language changed successfully!"), 'success_setLanguage')
         return redirect(url_for('profile'))
     except Exception as e:
@@ -5217,7 +5205,20 @@ def api_generali_attendance_categories():
             if sub:
                 grouped[parent].append(sub)
 
-        return jsonify({"success": True, "categories": grouped})
+        locale = (session.get('locale') or 'de').split('_')[0]
+        translations = {}
+        if locale != 'de':
+            cursor2 = conn.cursor()
+            cursor2.execute("""
+                SELECT OriginalValue, TranslatedValue
+                FROM [Generali].[dbo].[CategoryTranslation] WITH (NOLOCK)
+                WHERE SourceTable = 'AdditionalServices' AND Locale = ?
+            """, [locale])
+            for orig, trans in cursor2.fetchall():
+                translations[orig] = trans
+            cursor2.close()
+
+        return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
         app.logger.error(f"Generali Attendance Categories Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5474,7 +5475,20 @@ def api_generali_pdqm_categories():
             if sub:
                 grouped[parent][key].append(sub)
 
-        return jsonify({"success": True, "categories": grouped})
+        locale = (session.get('locale') or 'de').split('_')[0]
+        translations = {}
+        if locale != 'de':
+            cursor2 = conn.cursor()
+            cursor2.execute("""
+                SELECT OriginalValue, TranslatedValue
+                FROM [Generali].[dbo].[CategoryTranslation] WITH (NOLOCK)
+                WHERE SourceTable = 'PDQMMapping' AND Locale = ?
+            """, [locale])
+            for orig, trans in cursor2.fetchall():
+                translations[orig] = trans
+            cursor2.close()
+
+        return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
         app.logger.error(f"Generali PDQM Categories Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500

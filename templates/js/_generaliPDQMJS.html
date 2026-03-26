@@ -8,6 +8,7 @@
     // categoriesData shape: { "Parent": { "": ["Sub1"], "ParentSub": ["Sub2"] } }
     // "" key means the DB row had NULL for ParentSubCategory
     let categoriesData = {};
+    let translationsMap = {};
 
     // ----------------------------- category helpers ----------------------------- //
     function populateParentSelect(selectEl, selected) {
@@ -16,7 +17,7 @@
         Object.keys(categoriesData).sort().forEach(parent => {
             const opt = document.createElement('option');
             opt.value = parent;
-            opt.textContent = parent;
+            opt.textContent = translationsMap[parent] || parent;
             if (parent === current) opt.selected = true;
             selectEl.appendChild(opt);
         });
@@ -31,7 +32,7 @@
         while (selectEl.options.length > 0) selectEl.remove(0);
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = parent ? '{{ _("Select…") }}' : '{{ _("Select parent first") }}';
+        placeholder.textContent = parent ? {{ _("Select…") | tojson }} : {{ _("Select parent first") | tojson }};
         selectEl.appendChild(placeholder);
 
         if (parent && categoriesData[parent]) {
@@ -43,7 +44,7 @@
             keys.forEach(key => {
                 const opt = document.createElement('option');
                 opt.value = key === '' ? NULL_SENTINEL : key;  // "" → sentinel
-                opt.textContent = key === '' ? '—' : key;
+                opt.textContent = key === '' ? '—' : (translationsMap[key] || key);
                 if (opt.value === selected) opt.selected = true;
                 selectEl.appendChild(opt);
             });
@@ -67,7 +68,7 @@
         if (!ready || !parent) {
             const placeholder = document.createElement('option');
             placeholder.value = '';
-            placeholder.textContent = isFilter ? '{{ _("All") }}' : '{{ _("Select parent sub first") }}';
+            placeholder.textContent = isFilter ? {{ _("All") | tojson }} : {{ _("Select parent sub first") | tojson }};
             selectEl.appendChild(placeholder);
             selectEl.disabled = false;
             return;
@@ -80,7 +81,7 @@
         if (subs.length === 0) {
             const opt = document.createElement('option');
             opt.value = '';
-            opt.textContent = isFilter ? '{{ _("All") }}' : '—';
+            opt.textContent = isFilter ? {{ _("All") | tojson }} : '—';
             selectEl.appendChild(opt);
             selectEl.disabled = !isFilter;
             return;
@@ -89,12 +90,12 @@
         selectEl.disabled = false;
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = isFilter ? '{{ _("All") }}' : '{{ _("Select…") }}';
+        placeholder.textContent = isFilter ? {{ _("All") | tojson }} : {{ _("Select…") | tojson }};
         selectEl.appendChild(placeholder);
         subs.forEach(sub => {
             const opt = document.createElement('option');
             opt.value = sub;
-            opt.textContent = sub;
+            opt.textContent = translationsMap[sub] || sub;
             if (sub === selected) opt.selected = true;
             selectEl.appendChild(opt);
         });
@@ -106,9 +107,10 @@
             .then(data => {
                 if (!data.success) return;
                 categoriesData = data.categories || {};
+                translationsMap = data.translations || {};
 
                 populateParentSelect(document.getElementById('filterParentCategory'));
-                document.getElementById('filterParentCategory').options[0].textContent = '{{ _("All") }}';
+                document.getElementById('filterParentCategory').options[0].textContent = {{ _("All") | tojson }};
 
                 if (canAdd) populateParentSelect(document.getElementById('addParentCategory'));
                 populateParentSelect(document.getElementById('editParentCategory'));
@@ -148,9 +150,12 @@
     }
 
     function renderRow(r) {
-        const parentSubDisplay = (r.parentSubCategory === null || r.parentSubCategory === undefined || r.parentSubCategory === '')
+        const tParent    = translationsMap[r.parentCategory]    || r.parentCategory    || '—';
+        const tParentSub = r.parentSubCategory ? (translationsMap[r.parentSubCategory] || r.parentSubCategory) : null;
+        const tSub       = translationsMap[r.subCategory]       || r.subCategory       || '—';
+        const parentSubDisplay = tParentSub === null
             ? '<span class="text-gray-400">—</span>'
-            : `<span class="text-sm text-gray-700">${r.parentSubCategory}</span>`;
+            : `<span class="text-sm text-gray-700">${tParentSub}</span>`;
 
         const actionsCell = canEdit ? `
             <td class="px-4 py-3 text-center whitespace-nowrap">
@@ -180,11 +185,11 @@
                 <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-800">${r.parentCategory || '—'}</span>
+                <span class="text-sm text-gray-800">${tParent}</span>
             </td>
             <td class="px-4 py-3 text-left">${parentSubDisplay}</td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-600">${r.subCategory || '—'}</span>
+                <span class="text-sm text-gray-600">${tSub}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${r.quantity !== null ? r.quantity : '—'}</span>
@@ -281,7 +286,7 @@
         const psc = document.getElementById('filterParentSubCategory');
         psc.dataset.active = 'false';
         while (psc.options.length > 1) psc.remove(1);
-        psc.options[0].textContent = '{{ _("All") }}';
+        psc.options[0].textContent = {{ _("All") | tojson }};
         psc.value = '';
         const sc = document.getElementById('filterSubCategory');
         while (sc.options.length > 1) sc.remove(1);
@@ -297,7 +302,7 @@
         sc.value = '';
 
         populateParentSubSelect(psc, this.value);
-        if (psc.options.length > 0) psc.options[0].textContent = '{{ _("All") }}';
+        if (psc.options.length > 0) psc.options[0].textContent = {{ _("All") | tojson }};
         psc.value = '';
 
         // If only the null option exists, auto-select it and populate sub category
@@ -306,7 +311,7 @@
             psc.value = NULL_SENTINEL;
             psc.dataset.active = 'true';
             populateSubSelect(sc, this.value, NULL_SENTINEL);
-            if (sc.options.length > 0) sc.options[0].textContent = '{{ _("All") }}';
+            if (sc.options.length > 0) sc.options[0].textContent = {{ _("All") | tojson }};
         }
     });
 
@@ -318,7 +323,7 @@
         sc.value = '';
         if (parent && this.value !== '') {
             populateSubSelect(sc, parent, this.value);
-            if (sc.options.length > 0) sc.options[0].textContent = '{{ _("All") }}';
+            if (sc.options.length > 0) sc.options[0].textContent = {{ _("All") | tojson }};
         }
     });
 
@@ -374,7 +379,7 @@
         const addParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
         const addSubs = (categoriesData[parent] && categoriesData[parent][addParentSubKey]) ? categoriesData[parent][addParentSubKey] : [];
         if (!forDate || !parent || (addSubs.length > 0 && !sub) || !quantity) {
-            errEl.textContent = '{{ _("Please fill in all fields.") }}';
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -398,13 +403,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || '{{ _("Error saving record.") }}';
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = '{{ _("Network error.") }}';
+            errEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -477,7 +482,7 @@
         const editParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
         const editSubs = (categoriesData[parent] && categoriesData[parent][editParentSubKey]) ? categoriesData[parent][editParentSubKey] : [];
         if (!forDate || !parent || (editSubs.length > 0 && !sub) || !quantity) {
-            errEl.textContent = '{{ _("Please fill in all fields.") }}';
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -501,13 +506,13 @@
                 closeEditModal();
                 loadRecords(currentPage);
             } else {
-                errEl.textContent = data.error || '{{ _("Error saving record.") }}';
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = '{{ _("Network error.") }}';
+            errEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -545,21 +550,21 @@
         .then(r => r.json())
         .then(data => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
             if (data.success) {
                 loadRecords(currentPage);
             } else {
                 const errDiv = document.createElement('div');
                 errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-                errDiv.textContent = data.error || '{{ _("Error deleting record.") }}';
+                errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
                 document.body.appendChild(errDiv);
                 setTimeout(() => errDiv.remove(), 4000);
             }
         })
         .catch(() => {
             this.disabled = false;
-            this.innerHTML = '{{ _("Delete") }}';
+            this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
         });
     });
