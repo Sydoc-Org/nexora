@@ -67,7 +67,7 @@
                 data: {
                     labels: data.trend.labels,
                     datasets: [{
-                        label: '{{ _("Documents") }}',
+                        label: {{ _("Documents") | tojson }},
                         data: data.trend.values,
                         borderColor: '#4f46e5',
                         backgroundColor: 'rgba(79,70,229,0.08)',
@@ -94,7 +94,7 @@
                 data: {
                     labels: data.empfaenger.labels,
                     datasets: [{
-                        label: '{{ _("Documents") }}',
+                        label: {{ _("Documents") | tojson }},
                         data: data.empfaenger.values,
                         backgroundColor: PALETTE,
                         borderRadius: 6,
@@ -163,7 +163,7 @@
                 data: {
                     labels: data.channel.labels,
                     datasets: [{
-                        label: '{{ _("Documents") }}',
+                        label: {{ _("Documents") | tojson }},
                         data: data.channel.values,
                         backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'],
                         borderRadius: 6,

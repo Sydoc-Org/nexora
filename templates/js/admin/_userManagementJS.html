@@ -199,7 +199,7 @@
 
                     const result = await response.json();
                     if (response.ok) {
-                        showNotification('{{ _("Success") }}');
+                        showNotification({{ _("Success") | tojson }});
                         refreshUsersTable();
                     } else {
                         showNotification(`{{ _("Error:") }} ${result.message}`, 'error');

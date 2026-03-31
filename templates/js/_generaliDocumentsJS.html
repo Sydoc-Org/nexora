@@ -146,39 +146,39 @@
     function renderDetailCard(doc) {
         const sections = [
             {
-                title: '{{ _("Identification") }}', icon: 'fa-id-card',
+                title: {{ _("Identification") | tojson }}, icon: 'fa-id-card',
                 fields: ['CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID', 'DOC_DOKUMENT_ID', 'DOC_DOSSIER_NR', 'DOC_REFERENZNUMMER']
             },
             {
-                title: '{{ _("Dates") }}', icon: 'fa-calendar',
+                title: {{ _("Dates") | tojson }}, icon: 'fa-calendar',
                 fields: ['DOC_DateCreated', 'DOC_SCANDATUM', 'DOC_SCANDATUM_INITIAL', 'DOC_BELEGDATUM', 'DOC_GEBURTSDATUM']
             },
             {
-                title: '{{ _("Classification") }}', icon: 'fa-tag',
+                title: {{ _("Classification") | tojson }}, icon: 'fa-tag',
                 fields: ['DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_EMPFAENGERADRESSE', 'DOC_SPRACHE', 'DOC_KOMMUNIKATION', 'DOC_RICHTUNG', 'DOC_EINGANGSKANAL', 'DOC_DOKUMENTENSTATUS', 'DOC_NOTIFIKATIONSSTATUS', 'DOC_VERTRAULICHKEIT', 'DOC_DOKUMENTENORDER', 'DOC_DOKUMENT_URL']
             },
             {
-                title: '{{ _("Partners & Numbers") }}', icon: 'fa-hashtag',
+                title: {{ _("Partners & Numbers") | tojson }}, icon: 'fa-hashtag',
                 fields: ['DOC_PARTNER_NR_SYRIUS', 'DOC_PARTNER_NR_GAV', 'DOC_PARTNER_NR_GPV', 'DOC_PARTNER_NR_RGI', 'DOC_ANTRAG_NR', 'DOC_ANTRAG_NR_MULTI', 'DOC_POLICEN_NR', 'DOC_POLICEN_NR_MULTI', 'DOC_SCHADEN_NR', 'DOC_VERFAHREN_NR', 'DOC_PERSONAL_NR', 'DOC_KONTONUMMER', 'DOC_KREDITOREN_NR', 'DOC_OFFERTEN_NR', 'DOC_BUCHUNGSKREIS_NR', 'DOC_FORMULAR_NR']
             },
             {
-                title: '{{ _("Financial") }}', icon: 'fa-coins',
+                title: {{ _("Financial") | tojson }}, icon: 'fa-coins',
                 fields: ['DOC_BETRAG', 'DOC_WAEHRUNG', 'DOC_ANZAHL', 'DOC_GESCHAEFTSART', 'DOC_PRODUKT_CODE']
             },
             {
-                title: '{{ _("Scan & Origin") }}', icon: 'fa-scanner',
+                title: {{ _("Scan & Origin") | tojson }}, icon: 'fa-scanner',
                 fields: ['DOC_SCANORT', 'DOC_SCANUSER', 'DOC_INITIAL_USER', 'DOC_ORIGIN', 'DOC_INTERFACE_LINK', 'DOC_EINGANGSKANAL']
             },
             {
-                title: '{{ _("Content & Contact") }}', icon: 'fa-file-lines',
+                title: {{ _("Content & Contact") | tojson }}, icon: 'fa-file-lines',
                 fields: ['DOC_BEZEICHNUNG', 'DOC_BEMERKUNG', 'DOC_KONTAKTPERSON', 'DOC_PENDING', 'DOC_COUVERTDOCCOUNT', 'DOC_VERTRAGSNUMMER', 'DOC_VERTRAGSPARTNER', 'DOC_FONDSNAME']
             },
             {
-                title: '{{ _("Quality Control") }}', icon: 'fa-shield-halved',
+                title: {{ _("Quality Control") | tojson }}, icon: 'fa-shield-halved',
                 fields: ['DOC_NK1', 'DOC_NK2']
             },
             {
-                title: '{{ _("SAP / ALF") }}', icon: 'fa-database',
+                title: {{ _("SAP / ALF") | tojson }}, icon: 'fa-database',
                 fields: ['DOC_SAPDocId', 'DOC_SAPDocDate', 'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_SAPContType', 'DOC_SAPComps', 'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified', 'DOC_ALFdpages', 'DOC_ALFpages', 'DOC_PageSize', 'DOC_BARCODENR']
             },
         ];

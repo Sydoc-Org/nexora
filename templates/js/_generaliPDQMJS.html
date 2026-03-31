@@ -102,7 +102,7 @@
     }
 
     function loadCategories() {
-        fetch(API_PREFIX + 'api/generali/pdqm/categories', { headers: { 'X-CSRFToken': csrfToken } })
+        fetch(API_PREFIX + 'api/generali/pdqm/categories?locale={{ current_lang }}', { headers: { 'X-CSRFToken': csrfToken } })
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;

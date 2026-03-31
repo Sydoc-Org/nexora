@@ -7,35 +7,48 @@
 </head>
 <body>
     <script>
-        window.addEventListener('load', () => {
+        function showContentImmediately() {
+            const preloader = document.getElementById('preloader');
+            const headerLogo = document.getElementById('header-logo-wrapper');
+            const siginin = document.getElementById('signin');
+            const mainContent = document.getElementById('main-content-wrapper');
+            if (preloader) preloader.style.display = 'none';
+            if (headerLogo) headerLogo.style.opacity = '1';
+            if (siginin) siginin.style.opacity = '1';
+            if (mainContent) mainContent.style.opacity = '1';
+        }
+
+        function runPreloaderAnimation() {
             const preloader = document.getElementById('preloader');
             const preloaderLogo = document.getElementById('preloader-logo');
-            const preloaderTitle = preloader.querySelector('.nexora-title');
-            const preloadersubTitle = preloader.querySelector('.nexora-subtitle');
             const headerLogo = document.getElementById('header-logo-wrapper');
             const siginin = document.getElementById('signin');
             const mainContent = document.getElementById('main-content-wrapper');
 
-            if (!preloader || !preloaderLogo || !headerLogo || !siginin|| !mainContent) {
+            if (!preloader || !preloaderLogo || !headerLogo || !siginin || !mainContent) {
                 console.error('Preloader elements not found!');
+                showContentImmediately();
                 return;
             }
+
+            const preloaderTitle = preloader.querySelector('.nexora-title');
+            const preloadersubTitle = preloader.querySelector('.nexora-subtitle');
 
             setTimeout(() => {
                 const endRect = headerLogo.getBoundingClientRect();
                 const startRect = preloaderLogo.getBoundingClientRect();
-                
+
                 const deltaX = endRect.left - startRect.left;
                 const deltaY = endRect.top - startRect.top;
 
                 preloaderLogo.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1)`;
 
                 preloader.style.backgroundColor = 'transparent';
-                preloaderTitle.style.opacity = '0';
-                preloadersubTitle.style.opacity = '0';
+                if (preloaderTitle) preloaderTitle.style.opacity = '0';
+                if (preloadersubTitle) preloadersubTitle.style.opacity = '0';
                 setTimeout(() => {
                     headerLogo.style.opacity = '1';
-                    siginin.style.opacity = '1'
+                    siginin.style.opacity = '1';
                     mainContent.style.opacity = '1';
                 }, 900);
 
@@ -43,7 +56,24 @@
                     preloader.style.display = 'none';
                 }, 1000);
 
-            }, 1000); 
+            }, 1000);
+        }
+
+        // Guaranteed fallback: if load event never fires (bfcache, blocked resource, etc.)
+        // the preloader will be hidden after 4 seconds no matter what
+        const preloaderFallback = setTimeout(showContentImmediately, 4000);
+
+        window.addEventListener('load', () => {
+            clearTimeout(preloaderFallback);
+            runPreloaderAnimation();
+        });
+
+        // Handle back-forward cache restores — load event does not re-fire on bfcache
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                clearTimeout(preloaderFallback);
+                showContentImmediately();
+            }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -85,7 +115,7 @@
                 });
 
                 await wait(500);
-                statusText.textContent = '{{ _("Waiting for new document...") }}';
+                statusText.textContent = {{ _("Waiting for new document...") | tojson }};
                 statusText.style.opacity = '1';
             };
 
@@ -119,7 +149,7 @@
                     await wait(2000); 
                 }
 
-                await updateStatusText('{{ _("Process Complete!") }}');
+                await updateStatusText({{ _("Process Complete!") | tojson }});
                 const lastStep = stepElements[steps.length - 1];
                 lastStep.querySelector('.step-icon-wrapper').classList.remove('active');
                 lastStep.querySelector('.step-icon-wrapper').classList.add('completed');

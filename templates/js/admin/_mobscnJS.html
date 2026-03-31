@@ -148,7 +148,7 @@
 
                     const result = await response.json();
                     if (response.ok) {
-                        showNotification('{{ _("Success") }}');
+                        showNotification({{ _("Success") | tojson }});
                         setTimeout(() => window.location.reload(), 1500);
                     } else {
                         showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
