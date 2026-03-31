@@ -244,6 +244,16 @@ def start_timer():
     request.start_time = time.time()
 
 @app.before_request
+def reload_user_permissions():
+    if request.path.startswith('/static'):
+        return
+    if 'userid' in session:
+        try:
+            session['permissions'] = load_permissions_for_user(str(session['userid']))
+        except Exception as e:
+            app.logger.error(f"reload_user_permissions error: {e}")
+
+@app.before_request
 def load_user_locale():
     if 'userid' in session and 'locale' not in session:
         try:
@@ -561,8 +571,8 @@ def login():
             session['uuid'] = uuid.uuid4()
             session['locale'] = locale
             session['permissions'] = load_permissions_for_user("1019")
-            
-            return redirect(url_for('dashboard'))
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if UID_REQUEST == '321' and PWD_REQUEST == '321':
             conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
@@ -581,8 +591,8 @@ def login():
             session['uuid'] = uuid.uuid4()
             session['locale'] = locale
             session['permissions'] = load_permissions_for_user(userid)
-            
-            return redirect(url_for('dashboard'))
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
