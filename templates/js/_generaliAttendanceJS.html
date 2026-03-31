@@ -57,8 +57,8 @@
     }
 
     function loadCategories() {
-        fetch(API_PREFIX + 'api/generali/attendance/categories', {headers: {
-                'X-CSRFToken': csrfToken  
+        fetch(API_PREFIX + 'api/generali/attendance/categories?locale={{ current_lang }}', {headers: {
+                'X-CSRFToken': csrfToken
                 }})
             .then(r => r.json())
             .then(data => {

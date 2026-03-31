@@ -81,56 +81,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -243,6 +243,31 @@ def get_ip():
 def start_timer():
     request.start_time = time.time()
 
+@app.before_request
+def reload_user_permissions():
+    if request.path.startswith('/static'):
+        return
+    if 'userid' in session:
+        try:
+            session['permissions'] = load_permissions_for_user(str(session['userid']))
+        except Exception as e:
+            app.logger.error(f"reload_user_permissions error: {e}")
+
+@app.before_request
+def load_user_locale():
+    if 'userid' in session and 'locale' not in session:
+        try:
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT locale FROM Users WHERE userid = ?", [session['userid']])
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if row and row[0] in ['de', 'en', 'fr', 'it']:
+                session['locale'] = row[0]
+        except Exception as e:
+            app.logger.error(f"load_user_locale error: {e}")
+
 @app.after_request
 def log_every_request(response):
     if request.path.startswith('/static'):
@@ -326,7 +351,6 @@ def pageVisability():
     adminPagePerm = has_permission('admin.view')
     dashboardPagePerm = has_permission('dashboard.view')
     workitemsPagePerm = has_permission('workitems.view')
-    # teamboardPagePerm = has_permission('teamboard.view')
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
     generaliPagePerm = has_permission('generali.dashboard.view')
@@ -336,7 +360,6 @@ def pageVisability():
     generaliPDQMPerm = has_permission('generali.pdqm.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
-            #   'teamboardPagePerm': teamboardPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
             'generaliPagePerm': generaliPagePerm,
             'generaliDocumentsPerm': generaliDocumentsPerm,
@@ -387,16 +410,16 @@ def init_2FA():
                 """, (secret, user_id))
                 conn.commit()
 
-                cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
+                cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = ?", (user_id,))
                 row = cursor.fetchone()
 
                 if not row:
                     return redirect(url_for('login'))
 
-                username, fullname, email, org_code = row
+                username, fullname, email, org_code, user_locale = row
                 session.pop('temp_2fa_secret', None)
 
-                session.clear() 
+                session.clear()
                 session['userid'] = user_id
                 session['username'] = username
                 session['fullname'] = fullname
@@ -404,6 +427,8 @@ def init_2FA():
                 session['organizationcode'] = org_code
                 session['uuid'] = uuid.uuid4()
                 session['permissions'] = load_permissions_for_user(str(user_id))
+                if user_locale in ['de', 'en', 'fr', 'it']:
+                    session['locale'] = user_locale
                 pV = pageVisability()
                 return redirect(url_for(startpage_redirect_to(pV)))
             except Exception as e:
@@ -433,7 +458,7 @@ def verify_2fa():
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT TwoFASecret, username, fullname, email, organizationcode FROM Users WHERE userid = ?", (user_id,))
+        cursor.execute("SELECT TwoFASecret, username, fullname, email, organizationcode, locale FROM Users WHERE userid = ?", (user_id,))
         row = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -441,11 +466,11 @@ def verify_2fa():
         if not row:
             return redirect(url_for('login'))
 
-        secret, username, fullname, email, org_code = row
+        secret, username, fullname, email, org_code, user_locale = row
 
         totp = pyotp.TOTP(secret)
         if totp.verify(code):
-            session.clear() 
+            session.clear()
             session['userid'] = user_id
             session['username'] = username
             session['fullname'] = fullname
@@ -453,6 +478,8 @@ def verify_2fa():
             session['organizationcode'] = org_code
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
+            if user_locale in ['de', 'en', 'fr', 'it']:
+                session['locale'] = user_locale
             pV = pageVisability()
             return redirect(url_for(startpage_redirect_to(pV)))
         else:
@@ -526,44 +553,46 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user("1019")
-            
-        #     return redirect(url_for('dashboard'))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code = row
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user("1019")
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['permissions'] = load_permissions_for_user(userid)
-            
-        #     return redirect(url_for('dashboard'))
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -3762,121 +3791,6 @@ def remove_tag_from_workitem(workitemid, tag_id):
             conn.close()
 # ---------------------- workitem collaboration apis end --------------------- #
 
-
-# -------------------------------- team board --------------------------------- #
-# @app.route("/team-board")
-# @require_permission('teamboard.view')
-# def team_board():
-#     try:
-#         if 'username' not in session:
-#             return redirect(url_for("login"))
-        
-#         perms = session.get('permissions', [])
-#         prefix = "teamboard.filter.process."
-#         allowed_processes = sorted({
-#             (perm.split('.')[-2] + '.' + perm.split('.')[-1])
-#             for perm in perms
-#             if perm.startswith(prefix)
-#         })
-#         process_name = request.args.get('prcfB', 'all')
-#         if process_name != 'all' and process_name not in allowed_processes:
-#             process_name = 'all'
-
-#         params, process_placeholders, client_placeholders = prepare_process_selection_sql(prefix=prefix,process_name=process_name)
-#         activityinstancesToIgnore = get_activityinstancesToIgnore()
-
-#         where_clauses = [
-#             f"tp.Name IN ({process_placeholders})",
-#             f"tp.ClientName IN ({client_placeholders})",
-#             f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})"
-#         ]
-#         priority = request.args.get('priority', '')
-
-#         if priority:
-#             where_clauses.append("wim.Priority = ?")
-#             params.append(priority)
-
-#         where_sql = " AND ".join(where_clauses)
-
-#         conn = engineOctoDB.raw_connection()
-#         cursor = conn.cursor()
-
-#         cursor.execute(f"""
-#             WITH BoardItems AS (
-#                 SELECT
-#                     twi.id WorkitemID,
-#                     twi.ModifiedAt,
-#                     CASE
-#                         WHEN twi.Status = 5 THEN 'Delivery'
-#                         WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-#                         WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-#                         WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-#                         WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-#                         WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' THEN 'Delivery'
-#                         ELSE 'Extraction'
-#                     END AS CurrentStage,
-#                     wim.Priority,
-#                     wim.AssignedUserID,
-#                     (
-#                         SELECT t.TagName AS name, t.TagColor AS color
-#                         FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-#                         JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-#                         WHERE wt.workitemid = twi.id
-#                         FOR JSON PATH
-#                     ) AS TagsJSON,
-#                     ROW_NUMBER() OVER(PARTITION BY twi.id ORDER BY twi.ModifiedAt DESC) as rn
-#                 FROM t_WorkItems twi
-#                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-#                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-#                 LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-#                 WHERE {where_sql}
-#             )
-#             SELECT
-#             WorkitemID,
-#             ModifiedAt, CurrentStage, Priority, AssignedUserID, TagsJSON
-#             FROM BoardItems
-#             WHERE rn = 1
-#             ORDER BY Priority DESC, ModifiedAt ASC;
-#         """
-#         ,params)
-        
-#         portal_users = get_all_portal_users('teamboard', 'view')
-#         workitems_by_user = {user['userID']: [] for user in portal_users}
-#         workitems_by_user['Unassigned'] = []
-
-#         for row in cursor.fetchall():
-#             user_id = row.AssignedUserID if row.AssignedUserID else 'Unassigned'
-#             if user_id in workitems_by_user:
-#                 workitems_by_user[user_id].append({
-#                     'workitemid': row.WorkitemID,
-#                     'modifiedat': row.ModifiedAt,
-#                     'current_stage': row.CurrentStage,
-#                     'priority': row.Priority or 0,
-#                     'tags': json.loads(row.TagsJSON) if row.TagsJSON else []
-#                 })
-
-
-#         return render_template("team_board.html",
-#             workitems_by_user=workitems_by_user,
-#             process_name=process_name,
-#             priority=priority,
-#             portal_users=portal_users,
-#             userid=session.get('userid'),
-#             pageV=pageVisability(),
-#             allowed_processes=allowed_processes,
-#             logged_in_user=session.get('username')
-#         )
-#     except Exception as e:
-#         app.logger.error(f"Error loading team board: {e}")
-#         return render_template('500.html')
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
-# ------------------------------ process board end ------------------------------- #
-
-
 # --------------------------- workitem overview end -------------------------- #
 
 def get_all_portal_users(fromRequest, action):
@@ -4061,14 +3975,27 @@ def change_password():
 
 @app.route('/language/<lang>')
 def set_language(lang=None):
+    conn = None
     try:
+        if lang not in ['de', 'en', 'fr', 'it']:
+            flash(_("Unexpected Error"), 'failure_setLanguage')
+            return redirect(url_for('profile'))
         userid = session['userid']
         session['locale'] = lang
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET locale = ? WHERE userid = ?", [lang, userid])
+        conn.commit()
+        cursor.close()
         flash(_("Language changed successfully!"), 'success_setLanguage')
         return redirect(url_for('profile'))
     except Exception as e:
+        app.logger.error(f"set_language error: {e}")
         flash(_("Unexpected Error"), 'failure_setLanguage')
         return redirect(url_for('profile'))
+    finally:
+        if conn:
+            conn.close()
 
 @app.context_processor
 def inject_current_lang():
@@ -5205,7 +5132,7 @@ def api_generali_attendance_categories():
             if sub:
                 grouped[parent].append(sub)
 
-        locale = (session.get('locale') or 'de').split('_')[0]
+        locale = str(get_locale() or 'de').split('_')[0]
         translations = {}
         if locale != 'de':
             cursor2 = conn.cursor()
@@ -5475,7 +5402,7 @@ def api_generali_pdqm_categories():
             if sub:
                 grouped[parent][key].append(sub)
 
-        locale = (session.get('locale') or 'de').split('_')[0]
+        locale = str(get_locale() or 'de').split('_')[0]
         translations = {}
         if locale != 'de':
             cursor2 = conn.cursor()
@@ -5785,7 +5712,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

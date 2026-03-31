@@ -152,7 +152,7 @@
                 const jsonObj = JSON.parse(log.Args);
                 formattedDetails = JSON.stringify(jsonObj, null, 2); 
             } else {
-                formattedDetails = "{{ _('No arguments provided.') }}";
+                formattedDetails = {{ _("No arguments provided.") | tojson }};
             }
         } catch (e) {
             formattedDetails = log.Args || "{{ _('No arguments provided.') }}"; 

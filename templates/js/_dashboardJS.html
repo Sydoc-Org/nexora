@@ -141,7 +141,7 @@
                     data: { 
                         labels: data.labels, 
                         datasets: [{ 
-                            label: '{{ _("Documents Processed") }}', 
+                            label: {{ _("Documents Processed") | tojson }}, 
                             data: data.data, 
                             fill: true, 
                             backgroundColor: gradient, 
@@ -188,7 +188,7 @@
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: '{{ _("Documents Processed") }}',
+                            label: {{ _("Documents Processed") | tojson }},
                             data: chartData,
                             backgroundColor: 'rgba(20, 184, 166, 0.15)',
                             borderColor: '#14b8a6',

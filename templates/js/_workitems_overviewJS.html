@@ -845,7 +845,7 @@
             const fileArray = Array.from(files).filter(f => f.type === 'application/pdf');
             
             if (fileArray.length === 0) {
-                showNotification('{{ _("Please select valid PDF files.") }}', 'error');
+                showNotification({{ _("Please select valid PDF files.") | tojson }}, 'error');
                 return;
             }
 

@@ -205,7 +205,7 @@
 
 
     function openProfileModal() {
-        openEditorModal('{{ _("Create New Access Profile") }}', 'profile');
+        openEditorModal({{ _("Create New Access Profile") | tojson }}, 'profile');
         document.getElementById('editTargetId').value = 0; 
         document.getElementById('profileName').value = '';
         document.getElementById('profileDesc').value = '';
@@ -329,7 +329,7 @@
                 showNotification(result.message, 'error');
             }
         } catch (e) {
-            showNotification('{{ _("Network error") }}', 'error');
+            showNotification({{ _("Network error") | tojson }}, 'error');
         }
     }
 
