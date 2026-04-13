@@ -2,6 +2,7 @@
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const canEdit = document.getElementById('attendanceTable').dataset.canEdit === 'true';
     const canAdd  = document.getElementById('attendanceTable').dataset.canAdd  === 'true';
+    const canAddForOrg = document.getElementById('attendanceTable').dataset.canAddForOrg === 'true';
     const colSpan = canEdit ? 7 : 6;
 
     let currentPage = 1;
@@ -240,11 +241,32 @@
     flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
 
     {% if can_add %}
+    function loadOrgUsers() {
+        if (!canAddForOrg) return;
+        fetch(API_PREFIX + 'api/generali/attendance/orgUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('addUserId');
+            if (!sel) return;
+            (data.users || []).forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load org users', e));
+    }
+
     function openAddModal() {
         document.getElementById('addForDate').value = '';
         document.getElementById('addParentCategory').value = '';
         populateSubSelect(document.getElementById('addSubCategory'), '');
         document.getElementById('addEffortHours').value = '';
+        if (canAddForOrg) document.getElementById('addUserId').value = '';
         document.getElementById('addModalError').classList.add('hidden');
         document.getElementById('addModalError').textContent = '';
         document.getElementById('addModal').classList.remove('hidden');
@@ -280,11 +302,17 @@
             return;
         }
 
+        const payload = { forDate, parentCategory: parent, subCategory: sub || null, effortInHours: parseFloat(effort) };
+        if (canAddForOrg) {
+            const selectedUser = document.getElementById('addUserId').value;
+            if (selectedUser) payload.userId = parseInt(selectedUser, 10);
+        }
+
         this.disabled = true;
         fetch(API_PREFIX + 'api/generali/attendance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({ forDate, parentCategory: parent, subCategory: sub || null, effortInHours: parseFloat(effort) })
+            body: JSON.stringify(payload)
         })
         .then(r => r.json())
         .then(data => {
@@ -435,5 +463,6 @@
     });
 
     loadCategories();
+    {% if can_add %}loadOrgUsers();{% endif %}
     loadRecords(1);
 </script>

@@ -96,7 +96,8 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
          id="attendanceTable"
          data-can-edit="{{ can_edit | tojson }}"
-         data-can-add="{{ can_add | tojson }}">
+         data-can-add="{{ can_add | tojson }}"
+         data-can-add-for-org="{{ can_add_for_org | tojson }}">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -161,6 +162,20 @@
       </div>
       <div id="addModalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
+        {% if can_add_for_org %}
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("User") }}</label>
+          <div class="relative">
+            <select id="addUserId"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Myself") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+        {% endif %}
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
