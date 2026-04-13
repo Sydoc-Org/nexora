@@ -339,6 +339,8 @@ def startpage_redirect_to(pV):
         'generaliDocumentsPerm': 'generali_documents',
         'generaliReportingPerm': 'generali_reporting',
         'generaliAdditionalServicesPerm': 'generali_additionalServices',
+        'generaliBaseServicesPerm': 'generali_baseServices',
+        'generaliProjectManagementPerm': 'generali_projectManagement',
         'generaliPDQMPerm': 'generali_pdqm',
         'chatPagePerm': 'chat_page',
         'adminPagePerm': 'admin_dashboard'
@@ -357,6 +359,8 @@ def pageVisability():
     generaliDocumentsPerm = has_permission('generali.documentlist.view')
     generaliReportingPerm = has_permission('generali.reporting.view')
     generaliAdditionalServicesPerm = has_permission('generali.additionalservices.view')
+    generaliBaseServicesPerm = has_permission('generali.baseservices.view')
+    generaliProjectManagementPerm = has_permission('generali.projectmanagement.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
@@ -365,6 +369,8 @@ def pageVisability():
             'generaliDocumentsPerm': generaliDocumentsPerm,
             'generaliReportingPerm': generaliReportingPerm,
             'generaliAdditionalServicesPerm': generaliAdditionalServicesPerm,
+            'generaliBaseServicesPerm': generaliBaseServicesPerm,
+            'generaliProjectManagementPerm': generaliProjectManagementPerm,
             'generaliPDQMPerm': generaliPDQMPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
@@ -5427,6 +5433,540 @@ def api_generali_attendance_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         app.logger.error(f"Generali Attendance Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Base Services ----------------------- #
+@app.route("/generali/baseServices")
+@require_permission('generali.baseservices.view')
+def generali_baseServices():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_baseservices.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.baseservices.add'),
+                               can_edit=has_permission('generali.baseservices.edit'),
+                               can_add_for_org=has_permission('generali.baseservices.addForOrg'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Base Services: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/baseservices/orgUsers", methods=["GET"])
+@require_permission('generali.baseservices.addForOrg')
+def api_generali_baseservices_org_users():
+    conn = None
+    try:
+        org_code = session.get('organizationcode')
+        if not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+            [org_code]
+        )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices", methods=["GET"])
+@require_permission('generali.baseservices.view')
+def api_generali_baseservices_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+        category   = request.args.get('category', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+        if category:
+            where_clauses.append("Category = ?")
+            params.append(category)
+
+        if not has_permission('generali.baseservices.edit'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(EffortInHours) FROM [Generali].[dbo].[BaseServices] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records = agg[0] or 0
+        total_hours   = float(agg[1]) if agg[1] is not None else 0.0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, EffortInHours, UserID, ForDate, Category, RecordDateTime
+            FROM [Generali].[dbo].[BaseServices]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for base services: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, effort, user_id, for_date, category_val, recorded_at = r
+            records.append({
+                'id':            rec_id,
+                'effortInHours': float(effort) if effort is not None else None,
+                'userId':        user_id,
+                'fullname':      user_map.get(user_id),
+                'forDate':       str(for_date) if for_date else None,
+                'category':      category_val,
+                'recordDateTime': recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalHours': total_hours,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Base Services List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE / PPR"}
+
+
+@app.route("/api/generali/baseservices", methods=["POST"])
+@require_permission('generali.baseservices.add')
+def api_generali_baseservices_add():
+    conn = None
+    try:
+        body       = request.get_json(force=True)
+        for_date   = body.get('forDate', '').strip()
+        category   = body.get('category', '').strip()
+        effort     = body.get('effortInHours')
+        caller_id  = session.get('userid')
+        target_raw = body.get('userId')
+        user_id    = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            if not has_permission('generali.baseservices.addForOrg'):
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            nx_conn = engineNexoraDB.raw_connection()
+            nx_cur = nx_conn.cursor()
+            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+            row = nx_cur.fetchone()
+            nx_cur.close()
+            nx_conn.close()
+            if not row or row[0] != session.get('organizationcode'):
+                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
+
+        if not for_date or not category or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        if category not in VALID_BASE_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[BaseServices]
+                (EffortInHours, UserID, ForDate, Category, RecordDateTime)
+            VALUES (?, ?, ?, ?, GETDATE())
+        """, [effort, user_id, for_date, category])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices/<int:record_id>", methods=["PUT"])
+@require_permission('generali.baseservices.edit')
+def api_generali_baseservices_edit(record_id):
+    conn = None
+    try:
+        body     = request.get_json(force=True)
+        for_date = body.get('forDate', '').strip()
+        category = body.get('category', '').strip()
+        effort   = body.get('effortInHours')
+
+        if not for_date or not category or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        if category not in VALID_BASE_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[BaseServices]
+            SET ForDate = ?, Category = ?, EffortInHours = ?
+            WHERE ID = ?
+        """, [for_date, category, effort, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.baseservices.edit')
+def api_generali_baseservices_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[BaseServices] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Project Management ------------------ #
+@app.route("/generali/projectManagement")
+@require_permission('generali.projectmanagement.view')
+def generali_projectManagement():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_projectmanagement.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.projectmanagement.add'),
+                               can_edit=has_permission('generali.projectmanagement.edit'),
+                               can_add_for_org=has_permission('generali.projectmanagement.addForOrg'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Project Management: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/projectmanagement/orgUsers", methods=["GET"])
+@require_permission('generali.projectmanagement.addForOrg')
+def api_generali_projectmanagement_org_users():
+    conn = None
+    try:
+        org_code = session.get('organizationcode')
+        if not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+            [org_code]
+        )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement", methods=["GET"])
+@require_permission('generali.projectmanagement.view')
+def api_generali_projectmanagement_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+
+        if not has_permission('generali.projectmanagement.edit'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(EffortInHours) FROM [Generali].[dbo].[ProjectManagement] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records = agg[0] or 0
+        total_hours   = float(agg[1]) if agg[1] is not None else 0.0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime
+            FROM [Generali].[dbo].[ProjectManagement]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for project management: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, effort, user_id, for_date, category_val, comment, recorded_at = r
+            records.append({
+                'id':            rec_id,
+                'effortInHours': float(effort) if effort is not None else None,
+                'userId':        user_id,
+                'fullname':      user_map.get(user_id),
+                'forDate':       str(for_date) if for_date else None,
+                'category':      category_val,
+                'comment':       comment,
+                'recordDateTime': recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalHours': total_hours,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Project Management List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement", methods=["POST"])
+@require_permission('generali.projectmanagement.add')
+def api_generali_projectmanagement_add():
+    conn = None
+    try:
+        body       = request.get_json(force=True)
+        for_date   = body.get('forDate', '').strip()
+        effort     = body.get('effortInHours')
+        comment    = body.get('comment')
+        comment    = comment.strip() if comment else None
+        caller_id  = session.get('userid')
+        target_raw = body.get('userId')
+        user_id    = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            if not has_permission('generali.projectmanagement.addForOrg'):
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            nx_conn = engineNexoraDB.raw_connection()
+            nx_cur = nx_conn.cursor()
+            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+            row = nx_cur.fetchone()
+            nx_cur.close()
+            nx_conn.close()
+            if not row or row[0] != session.get('organizationcode'):
+                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
+
+        if not for_date or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[ProjectManagement]
+                (EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime)
+            VALUES (?, ?, ?, ?, ?, GETDATE())
+        """, [effort, user_id, for_date, 'Project Effort', comment])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement/<int:record_id>", methods=["PUT"])
+@require_permission('generali.projectmanagement.edit')
+def api_generali_projectmanagement_edit(record_id):
+    conn = None
+    try:
+        body     = request.get_json(force=True)
+        for_date = body.get('forDate', '').strip()
+        effort   = body.get('effortInHours')
+        comment  = body.get('comment')
+        comment  = comment.strip() if comment else None
+
+        if not for_date or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[ProjectManagement]
+            SET ForDate = ?, EffortInHours = ?, Comment = ?
+            WHERE ID = ?
+        """, [for_date, effort, comment, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.projectmanagement.edit')
+def api_generali_projectmanagement_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[ProjectManagement] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Delete Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         if conn:

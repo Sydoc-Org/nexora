@@ -166,7 +166,7 @@ footer {
     transition: max-height 0.25s ease;
 }
 #nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
-    max-height: 260px;
+    max-height: var(--generali-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
     padding-left: 20px;
@@ -459,7 +459,7 @@ html.dark .sidebar-toggle-btn {
         pointer-events: auto;
     }
     #nexora-sidebar.open #generaliNavGroup.generali-open .sidebar-nav-subitems {
-        max-height: 260px;
+        max-height: var(--generali-subitems-height, 9999px);
     }
 
     .sidebar-backdrop.open {

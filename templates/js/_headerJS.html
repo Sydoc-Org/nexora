@@ -263,9 +263,20 @@
         });
 
         document.addEventListener('DOMContentLoaded', function () {
-            const group  = document.getElementById('generaliNavGroup');
-            const header = document.getElementById('generaliNavHeader');
-            if (!group || !header) return;
+            const group    = document.getElementById('generaliNavGroup');
+            const header   = document.getElementById('generaliNavHeader');
+            const subitems = group && group.querySelector('.sidebar-nav-subitems');
+            if (!group || !header || !subitems) return;
+
+            function setSubitemsHeight() {
+                // Temporarily make it visible to measure its full height
+                subitems.style.maxHeight = 'none';
+                const h = subitems.scrollHeight;
+                subitems.style.maxHeight = '';
+                group.style.setProperty('--generali-subitems-height', h + 'px');
+            }
+
+            setSubitemsHeight();
 
             // auto-open when on a generali page, otherwise restore saved state
             const isActive = group.dataset.active === 'true';
