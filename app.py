@@ -338,7 +338,7 @@ def startpage_redirect_to(pV):
         'generaliPagePerm': 'generali_evaluation',
         'generaliDocumentsPerm': 'generali_documents',
         'generaliReportingPerm': 'generali_reporting',
-        'generaliAttendancePerm': 'generali_attendance',
+        'generaliAdditionalServicesPerm': 'generali_additionalServices',
         'generaliPDQMPerm': 'generali_pdqm',
         'chatPagePerm': 'chat_page',
         'adminPagePerm': 'admin_dashboard'
@@ -356,7 +356,7 @@ def pageVisability():
     generaliPagePerm = has_permission('generali.dashboard.view')
     generaliDocumentsPerm = has_permission('generali.documentlist.view')
     generaliReportingPerm = has_permission('generali.reporting.view')
-    generaliAttendancePerm = has_permission('generali.attendance.view')
+    generaliAdditionalServicesPerm = has_permission('generali.additionalservices.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
@@ -364,7 +364,7 @@ def pageVisability():
             'generaliPagePerm': generaliPagePerm,
             'generaliDocumentsPerm': generaliDocumentsPerm,
             'generaliReportingPerm': generaliReportingPerm,
-            'generaliAttendancePerm': generaliAttendancePerm,
+            'generaliAdditionalServicesPerm': generaliAdditionalServicesPerm,
             'generaliPDQMPerm': generaliPDQMPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
@@ -4924,8 +4924,8 @@ def api_generali_reporting_list():
         total_pages = max(1, -(-total_records // per_page))
 
         cursor.execute(f"""
-            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
-                   EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
+            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+                   --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
             FROM [dbo].[reportingiss]
             {where_sql}
             ORDER BY ReportForDate DESC, ReportTimeStamp DESC
@@ -4956,7 +4956,8 @@ def api_generali_reporting_list():
 
         records = []
         for r in rows:
-            rec_id, report_date, report_ts, user_id, ontime, cat, email_rcvd, delivery_ts, latest_ts, mailroom_ts = r
+            # , email_rcvd, delivery_ts, latest_ts, mailroom_ts
+            rec_id, report_date, report_ts, user_id, ontime, cat = r
             user_info = user_map.get(user_id, {})
             records.append({
                 'id':                      rec_id,
@@ -4965,12 +4966,13 @@ def api_generali_reporting_list():
                 'reportByUserID':          user_id,
                 'fullname':                user_info.get('fullname'),
                 'ontime':                  bool(ontime),
-                'category':                cat,
-                'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
-                'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
-                'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
-                'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
+                'category':                cat
+                
             })
+            # 'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
+            #     'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
+            #     'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
+            #     'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
 
         return jsonify({
             'success': True,
@@ -5000,15 +5002,15 @@ def api_generali_reporting_add():
         category          = body.get('category', '').strip()
         ontime            = bool(body.get('ontime', False))
         user_id           = session.get('userid')
-        email_received    = body.get('emailReceivedTimeStamp') or None
-        mailroom_request  = body.get('mailRoomRequestTimeStamp') or None
-        delivery          = body.get('deliveryTimeStamp') or None
-        latest_delivery   = body.get('latestDeliveryTimeStamp') or None
+        # email_received    = body.get('emailReceivedTimeStamp') or None
+        # mailroom_request  = body.get('mailRoomRequestTimeStamp') or None
+        # delivery          = body.get('deliveryTimeStamp') or None
+        # latest_delivery   = body.get('latestDeliveryTimeStamp') or None
 
-        email_received   = email_received.replace('T',' ') if email_received else None
-        mailroom_request = mailroom_request.replace('T',' ') if mailroom_request else None
-        delivery         = delivery.replace('T',' ') if delivery else None
-        latest_delivery  = latest_delivery.replace('T',' ') if latest_delivery else None
+        # email_received   = email_received.replace('T',' ') if email_received else None
+        # mailroom_request = mailroom_request.replace('T',' ') if mailroom_request else None
+        # delivery         = delivery.replace('T',' ') if delivery else None
+        # latest_delivery  = latest_delivery.replace('T',' ') if latest_delivery else None
 
         
         if not report_for_date:
@@ -5030,11 +5032,13 @@ def api_generali_reporting_add():
 
         cursor.execute("""
             INSERT INTO [dbo].[reportingiss]
-                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
-                 EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp)
-            VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?)
-        """, [report_for_date, user_id, 1 if ontime else 0, category,
-              email_received, delivery, latest_delivery, mailroom_request])
+                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+                 --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
+                       )
+            VALUES (?, GETDATE(), ?, ?, ?)
+        """, [report_for_date, user_id, 1 if ontime else 0, category
+            #   ,email_received, delivery, latest_delivery, mailroom_request
+            ])
         conn.commit()
 
         return jsonify({"success": True})
@@ -5055,32 +5059,32 @@ def api_generali_reporting_edit():
         record_id       = body.get('id')
         report_for_date = (body.get('reportForDate') or '').strip()
         ontime          = bool(body.get('ontime', False))
-        email_received  = body.get('emailReceivedTimeStamp') or None
-        mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
-        delivery        = body.get('deliveryTimeStamp') or None
-        latest_delivery = body.get('latestDeliveryTimeStamp') or None
+        # email_received  = body.get('emailReceivedTimeStamp') or None
+        # mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
+        # delivery        = body.get('deliveryTimeStamp') or None
+        # latest_delivery = body.get('latestDeliveryTimeStamp') or None
 
         if not record_id or not report_for_date:
             return jsonify({"success": False, "error": "id and reportForDate are required"}), 400
 
-        if email_received:  email_received  = email_received.replace('T', ' ')
-        if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
-        if delivery:        delivery        = delivery.replace('T', ' ')
-        if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
+        # if email_received:  email_received  = email_received.replace('T', ' ')
+        # if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
+        # if delivery:        delivery        = delivery.replace('T', ' ')
+        # if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
 
         conn   = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE [dbo].[reportingiss]
             SET ReportForDate            = ?,
-                ontime                   = ?,
-                EmailReceivedTimeStamp   = ?,
-                MailRoomRequestTimeStamp = ?,
-                DeliveryTimeStamp        = ?,
-                LatestDeliveryTimeStamp  = ?
+                ontime                   = ?
+                --,EmailReceivedTimeStamp   = ?,
+                --MailRoomRequestTimeStamp = ?,
+                --DeliveryTimeStamp        = ?,
+                --LatestDeliveryTimeStamp  = ?
             WHERE ID = ?
         """, [report_for_date, 1 if ontime else 0,
-              email_received, mailroom_req, delivery, latest_delivery,
+            #   email_received, mailroom_req, delivery, latest_delivery,
               record_id])
         conn.commit()
 
@@ -5112,14 +5116,14 @@ def api_generali_reporting_delete(record_id):
             conn.close()
 
 
-# ----------------------------- Generali Attendance -------------------------- #
-@app.route("/generali/attendance")
-@require_permission('generali.attendance.view')
-def generali_attendance():
+# ----------------------------- Generali Additional Services -------------------------- #
+@app.route("/generali/additionalServices")
+@require_permission('generali.additionalservices.view')
+def generali_additionalServices():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        return render_template("generali_attendance.html",
+        return render_template("generali_additionalservices.html",
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
@@ -5132,7 +5136,7 @@ def generali_attendance():
 
 
 @app.route("/api/generali/attendance/categories", methods=["GET"])
-@require_permission('generali.attendance.view')
+@require_permission('generali.additionalservices.view')
 def api_generali_attendance_categories():
     conn = None
     try:
@@ -5202,7 +5206,7 @@ def api_generali_attendance_org_users():
 
 
 @app.route("/api/generali/attendance", methods=["GET"])
-@require_permission('generali.attendance.view')
+@require_permission('generali.additionalservices.view')
 def api_generali_attendance_list():
     conn = None
     try:

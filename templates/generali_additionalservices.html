@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ _("Generali Attendance - nexora") }}</title>
+  <title>{{ _("Generali additional services - nexora") }}</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  {% set active_page = 'generali_attendance' %}
+  {% set active_page = 'generali_additionalservices' %}
   {% include '_header.html' %}
 
   <main class="container mx-auto px-3 py-4 sm:p-6">
@@ -21,7 +21,7 @@
     <!-- Page Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Attendance") }}</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Additional services") }}</h2>
         <p class="text-gray-500 font-medium">{{ _("Daily effort tracking by category") }}</p>
       </div>
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -309,6 +309,6 @@
   </div>
 
   {% include '_small_footer.html' %}
-  {% include 'js/_generaliAttendanceJS.html' %}
+  {% include 'js/_generaliAdditionalServicesJS.html' %}
 </body>
 </html>

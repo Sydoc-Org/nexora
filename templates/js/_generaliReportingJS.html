@@ -12,7 +12,8 @@
         'stray_document_physical':{{ _("KPI 13: Stray document (physical)") | tojson }}
     };
 
-    const ARCHIVE_CATS = ['provision_archive', 'stray_document_digital', 'stray_document_physical'];
+    // Details (archive/stray) disabled — these categories now behave like export_post/export_post_scan (on-time/late only)
+    const ARCHIVE_CATS = []; // was: ['provision_archive', 'stray_document_digital', 'stray_document_physical']
 
     function ontimeBadge(ontime) {
         if (ontime) {
@@ -597,35 +598,36 @@
         modalError.classList.remove('hidden');
     }
 
-    // ----------------------------- details modal ----------------------------- //
-    const detailsModal = document.getElementById('detailsModal');
-
-    function openDetailsModal(r) {
-        const isProvision = r.category === 'provision_archive';
-        document.querySelector('#detailsModal h3').textContent =
-            isProvision ? {{ _("Provision Archive Details") | tojson }} : {{ _("Stray Document Details") | tojson }};
-        document.getElementById('detailRequestLabel').textContent =
-            isProvision ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
-        document.getElementById('detailEmailRcvd').textContent =
-            formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
-        document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
-        document.getElementById('detailDelivery').textContent       = formatDateTime(r.deliveryTimeStamp);
-        detailsModal.classList.remove('hidden');
-        detailsModal.classList.add('flex');
-    }
-
-    function closeDetailsModal() {
-        detailsModal.classList.add('hidden');
-        detailsModal.classList.remove('flex');
-    }
-
-    if (detailsModal) {
-        detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
-    }
-    ['closeDetailsBtn', 'closeDetailsBtnFooter'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', closeDetailsModal);
-    });
+    // ----------------------------- details modal (disabled) ----------------------------- //
+    // Provision Archive / Stray Document detail modals are no longer used.
+    // const detailsModal = document.getElementById('detailsModal');
+    //
+    // function openDetailsModal(r) {
+    //     const isProvision = r.category === 'provision_archive';
+    //     document.querySelector('#detailsModal h3').textContent =
+    //         isProvision ? {{ _("Provision Archive Details") | tojson }} : {{ _("Stray Document Details") | tojson }};
+    //     document.getElementById('detailRequestLabel').textContent =
+    //         isProvision ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
+    //     document.getElementById('detailEmailRcvd').textContent =
+    //         formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
+    //     document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
+    //     document.getElementById('detailDelivery').textContent       = formatDateTime(r.deliveryTimeStamp);
+    //     detailsModal.classList.remove('hidden');
+    //     detailsModal.classList.add('flex');
+    // }
+    //
+    // function closeDetailsModal() {
+    //     detailsModal.classList.add('hidden');
+    //     detailsModal.classList.remove('flex');
+    // }
+    //
+    // if (detailsModal) {
+    //     detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
+    // }
+    // ['closeDetailsBtn', 'closeDetailsBtnFooter'].forEach(id => {
+    //     const el = document.getElementById(id);
+    //     if (el) el.addEventListener('click', closeDetailsModal);
+    // });
 
     // ----------------------------- edit modal ----------------------------- //
     const editModal         = document.getElementById('editModal');
