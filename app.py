@@ -354,7 +354,7 @@ def pageVisability():
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
     generaliPagePerm = has_permission('generali.dashboard.view')
-    generaliDocumentsPerm = has_permission('generali.view.documentlist')
+    generaliDocumentsPerm = has_permission('generali.documentlist.view')
     generaliReportingPerm = has_permission('generali.reporting.view')
     generaliAttendancePerm = has_permission('generali.attendance.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
@@ -4545,7 +4545,7 @@ def generali_evaluation():
         return render_template('handlers/500.html'), 500
 
 @app.route("/generali/documents")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def generali_documents():
     try:
         if 'username' not in session:
@@ -4681,7 +4681,7 @@ def api_generali_stats():
             conn.close()
 
 @app.route("/api/generali/filter_options")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_filter_options():
     conn = None
     try:
@@ -4708,7 +4708,7 @@ def api_generali_filter_options():
             conn.close()
 
 @app.route("/api/generali/documents")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_documents():
     conn = None
     try:
@@ -4843,7 +4843,7 @@ def api_generali_documents():
             conn.close()
 
 @app.route("/api/generali/documents/<path:doc_id>")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_document_detail(doc_id):
     conn = None
     try:

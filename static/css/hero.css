@@ -82,4 +82,11 @@ body {
             opacity: 0;
             transition: opacity 0.6s ease-in;
         }
-        
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            #preloader-logo { transform: scale(1.1); }
+            .step-icon-wrapper { width: 2.75rem !important; height: 2.75rem !important; }
+            .process-step .step-label { font-size: 0.75rem; }
+            .process-step i { font-size: 1rem !important; }
+        }

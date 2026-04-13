@@ -4,13 +4,12 @@
     const colSpan = canEdit ? 7 : 6;
 
     let currentPage = 1;
-
     const CATEGORIES = {
-        'export_post':            {{ _("Export physical post") | tojson }},
-        'export_post_scan':       {{ _("Export physical post with scanning") | tojson }},
-        'provision_archive':      {{ _("Provision of the original from the interim and long-term archives") | tojson }},
-        'stray_document_digital': {{ _("Stray document (digital)") | tojson }},
-        'stray_document_physical':{{ _("Stray document (physical)") | tojson }}
+        'export_post':            {{ _("KPI 1: Delivery physical post") | tojson }},
+        'export_post_scan':       {{ _("KPI 2: Delivery physical post with scanning") | tojson }},
+        'provision_archive':      {{ _("KPI 3: Provision of Archival Records") | tojson }},
+        'stray_document_digital': {{ _("KPI 12: Stray document (digital)") | tojson }},
+        'stray_document_physical':{{ _("KPI 13: Stray document (physical)") | tojson }}
     };
 
     const ARCHIVE_CATS = ['provision_archive', 'stray_document_digital', 'stray_document_physical'];
@@ -234,11 +233,11 @@
     const modalError = document.getElementById('modalError');
 
     const ALL_CATEGORIES = [
-        { value: 'export_post',             label: {{ _("Export physical post") | tojson }} },
-        { value: 'export_post_scan',        label: {{ _("Export physical post with scanning") | tojson }} },
-        { value: 'provision_archive',       label: {{ _("Provision of the original from the interim and long-term archives") | tojson }} },
-        { value: 'stray_document_digital',  label: {{ _("Stray document (digital)") | tojson }} },
-        { value: 'stray_document_physical', label: {{ _("Stray document (physical)") | tojson }} }
+        { value: 'export_post',             label: {{ _("KPI 1: Delivery physical post") | tojson }} },
+        { value: 'export_post_scan',        label: {{ _("KPI 2: Delivery physical post with scanning") | tojson }} },
+        { value: 'provision_archive',       label: {{ _("KPI 3: Provision of Archival Records") | tojson }} },
+        { value: 'stray_document_digital',  label: {{ _("KPI 12: Stray document (digital)") | tojson }} },
+        { value: 'stray_document_physical', label: {{ _("KPI 13: Stray document (physical)") | tojson }} }
     ];
 
     function getToday() {
