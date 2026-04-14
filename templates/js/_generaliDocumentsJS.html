@@ -344,7 +344,7 @@
         });
 
         // Filter selects auto-submit
-        ['filterDocType', 'filterEmpfaenger', 'filterSprache', 'filterNK1', 'filterNK2', 'filterKanal', 'filterKomm', 'filterGroupBy', 'filterStartDate', 'filterEndDate'].forEach(id => {
+        ['filterDocType', 'filterEmpfaenger', 'filterSprache', 'filterNK1', 'filterNK2', 'filterKanal', 'filterKomm', 'filterGroupBy', 'filterStartDate', 'filterEndDate', 'filterPerPage'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => fetchDocuments(1));
         });

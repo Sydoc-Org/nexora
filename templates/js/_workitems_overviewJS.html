@@ -1369,30 +1369,90 @@ async function uploadBatchFiles(files, processName) {
                 }
             }
 
-            function exportWorkitemsCSV(ids) {
-                const rows = ids.size > 0
-                    ? allRenderedWorkitems.filter(w => ids.has(String(w.workitemid)))
-                    : allRenderedWorkitems;
-                if (rows.length === 0) return;
-                const headers = ['Workitem ID', 'Status', 'Last Movement At', 'Priority', 'Tags'];
-                const priorityLabel = { 3: 'High', 2: 'Medium', 1: 'Low' };
-                const lines = rows.map(w => [
-                    w.workitemid,
-                    w.status,
-                    w.modifiedat ? new Date(w.modifiedat).toISOString().slice(0,19).replace('T',' ') : '',
-                    priorityLabel[w.priority] || '',
-                    (w.tags || []).map(t => t.name).join('; ')
-                ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-                const csv  = [headers.join(','), ...lines].join('\r\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url  = URL.createObjectURL(blob);
-                const a    = Object.assign(document.createElement('a'), {
-                    href: url,
-                    download: `workitems_${new Date().toISOString().slice(0,10)}.csv`
+            // ---- Export modal state ----
+            let _exportSelectedIds = new Set();
+
+            function _setExportSpinner(on) {
+                document.getElementById('exportModalSpinner').style.display = on ? '' : 'none';
+                document.getElementById('exportModalIcon').style.display    = on ? 'none' : '';
+                document.getElementById('confirmExportModalBtn').disabled   = on;
+            }
+
+            function openExportModal(selectedIds) {
+                _exportSelectedIds = selectedIds;
+                _setExportSpinner(false);
+
+                const modal    = document.getElementById('exportOptionsModal');
+                const subtitle = document.getElementById('exportModalSubtitle');
+                subtitle.textContent = selectedIds.size > 0
+                    ? `${selectedIds.size} {{ _("selected workitems will be exported") }}`
+                    : '{{ _("All workitems matching current filters will be exported") }}';
+
+                // Audit history and images are only allowed for specific selections
+                const heavyOpts   = ['exportOptFields', 'exportOptHistory', 'exportOptImages'];
+                const isSelection = selectedIds.size > 0 && selectedIds.size <= 10;
+                heavyOpts.forEach(id => {
+                    const cb    = document.getElementById(id);
+                    const label = cb?.closest('label');
+                    if (!cb) return;
+                    cb.disabled = !isSelection;
+                    if (!isSelection) {
+                        cb.checked = false;
+                        label?.classList.add('opacity-40', 'cursor-not-allowed');
+                        label?.querySelector('input')?.classList.remove('cursor-pointer');
+                    } else {
+                        label?.classList.remove('opacity-40', 'cursor-not-allowed');
+                        label?.querySelector('input')?.classList.add('cursor-pointer');
+                    }
                 });
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+
+                modal.classList.remove('hidden');
+            }
+
+            function closeExportModal() {
+                document.getElementById('exportOptionsModal').classList.add('hidden');
+                _setExportSpinner(false);
+            }
+
+            async function runExport() {
+                _setExportSpinner(true);
+                const btn = document.getElementById('confirmExportModalBtn');
+
+                // Build params from current filter form
+                const filterForm = document.getElementById('filterForm');
+                const params = new URLSearchParams();
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    params.append(el.name, el.value);
+                }
+
+                // Append export-specific params
+                const include = [];
+                if (document.getElementById('exportOptFields')?.checked)  include.push('fields');
+                if (document.getElementById('exportOptHistory')?.checked) include.push('history');
+                if (document.getElementById('exportOptImages')?.checked)  include.push('images');
+                if (include.length) params.set('include', include.join(','));
+                if (_exportSelectedIds.size > 0) params.set('ids', [..._exportSelectedIds].join(','));
+
+                try {
+                    const url = `${API_PREFIX}api/export/workitems/csv?${params.toString()}`;
+                    const resp = await fetch(url, { headers: { 'X-CSRFToken': csrfToken } });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const blob = await resp.blob();
+                    const a = Object.assign(document.createElement('a'), {
+                        href: URL.createObjectURL(blob),
+                        download: `workitems_export_${new Date().toISOString().slice(0,10)}.csv`
+                    });
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+                    closeExportModal();
+                } catch (e) {
+                    console.error('Export failed:', e);
+                    alert('{{ _("Export failed. Please try again.") }}');
+                    _setExportSpinner(false);
+                }
             }
 
             function renderTable(workitems) {
@@ -1661,7 +1721,7 @@ async function uploadBatchFiles(files, processName) {
                 fetchAndUpdateWorkitems();
             });
 
-            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter'].forEach(id => {
+            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter', 'filterPerPage'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
             });
@@ -1836,7 +1896,7 @@ async function uploadBatchFiles(files, processName) {
             const exportCsvBtn    = document.getElementById('exportCsvBtn');
 
             if (bulkExportBtn) {
-                bulkExportBtn.addEventListener('click', () => exportWorkitemsCSV(selectedWorkitemIds));
+                bulkExportBtn.addEventListener('click', () => openExportModal(new Set(selectedWorkitemIds)));
             }
             if (bulkDeselectBtn) {
                 bulkDeselectBtn.addEventListener('click', () => {
@@ -1848,8 +1908,16 @@ async function uploadBatchFiles(files, processName) {
                 });
             }
             if (exportCsvBtn) {
-                exportCsvBtn.addEventListener('click', () => exportWorkitemsCSV(new Set()));
+                exportCsvBtn.addEventListener('click', () => openExportModal(new Set()));
             }
+
+            // ---- Export modal buttons ----
+            document.getElementById('closeExportModalBtn')?.addEventListener('click', closeExportModal);
+            document.getElementById('cancelExportModalBtn')?.addEventListener('click', closeExportModal);
+            document.getElementById('confirmExportModalBtn')?.addEventListener('click', runExport);
+            document.getElementById('exportOptionsModal')?.addEventListener('click', e => {
+                if (e.target === e.currentTarget) closeExportModal();
+            });
         });
     </script>
 </body>

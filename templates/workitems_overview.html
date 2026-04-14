@@ -294,6 +294,19 @@
           <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
             class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center">{{
             _("Reset") }}</a>
+          <div class="relative">
+            <select id="filterPerPage" name="perPage"
+              class="block h-9 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
+              <option value="40" selected>40</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+              <option value="1000">1000</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
 
           <button type="button" id="exportCsvBtn"
             class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
@@ -438,6 +451,80 @@
           <button type="button" id="confirmImportBtn"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm">
             {{ _("Import File") }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Options Modal -->
+    <div id="exportOptionsModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">{{ _("Export Workitems") }}</h3>
+            <p class="text-sm text-gray-500 mt-0.5" id="exportModalSubtitle"></p>
+          </div>
+          <button type="button" id="closeExportModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fas fa-times text-lg"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <!-- Always-on columns -->
+          <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Always included") }}</p>
+            <div class="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+              <i class="fas fa-lock text-gray-300 text-xs"></i>
+              {{ _("Workitem ID, Status, Stage, Last Movement, Priority, Tags") }}
+            </div>
+          </div>
+
+          <!-- Optional extras -->
+          <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Optional extras") }}</p>
+            <div class="space-y-2">
+              <label class="flex items-start gap-3 cursor-pointer group">
+                <input type="checkbox" id="exportOptFields" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                <div>
+                  <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Document fields") }}</span>
+                  <p class="text-xs text-gray-400">{{ _("Index fields — only available for selections of up to 10 workitems") }}</p>
+                </div>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer group">
+                <input type="checkbox" id="exportOptHistory" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                <div>
+                  <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Audit history") }}</span>
+                  <p class="text-xs text-gray-400">{{ _("Full timeline of all stages — only available for selections of up to 10 workitems") }}</p>
+                </div>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer group">
+                <input type="checkbox" id="exportOptImages" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                <div>
+                  <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Images as base64") }}</span>
+                  <p class="text-xs text-gray-400">{{ _("Up to 5 images per workitem — only available for selections of up to 10 workitems") }}</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Info notice -->
+          <div class="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700">
+            <i class="fas fa-info-circle mt-0.5 shrink-0"></i>
+            <span>{{ _("All workitems matching the current filters will be exported (not just the current page).") }}</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-100">
+          <button type="button" id="cancelExportModalBtn"
+            class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            {{ _("Cancel") }}
+          </button>
+          <button type="button" id="confirmExportModalBtn"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm flex items-center gap-2">
+            <i id="exportModalSpinner" class="fas fa-spinner fa-spin" style="display:none"></i>
+            <i id="exportModalIcon" class="fas fa-download"></i>
+            {{ _("Export CSV") }}
           </button>
         </div>
       </div>

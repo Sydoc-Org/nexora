@@ -1,6 +1,7 @@
 import math
 import uuid
 from fileinput import filename
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
 from flask_babel import Babel, gettext, ngettext, _
 from flask_session import Session
@@ -2363,7 +2364,7 @@ def get_valid_search_columns():
         if conn:
             conn.close()
 
-def _get_workitems_data(args):
+def _get_workitems_data(args, export_all=False):
     page = args.get('page', 1, type=int)
     search_term = args.get('search', '').strip()
     status = args.get('status', '')
@@ -2374,8 +2375,14 @@ def _get_workitems_data(args):
     end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
     priority = args.get('priority', '')
     assigned_user = args.get('assignedUser', '')
-    per_page = 40
-    offset = (page - 1) * per_page
+    if export_all:
+        per_page = 5000
+        offset = 0
+    else:
+        per_page = int(args.get('perPage', 40))
+        if per_page not in (40, 100, 200, 500, 1000):
+            per_page = 40
+        offset = (page - 1) * per_page
     activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     process_name = args.get('prcfW', 'all')
@@ -2795,6 +2802,203 @@ def api_workitems():
     except Exception as e:
         app.logger.error(f"API error in workitems overview: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
+
+
+@app.route("/api/export/workitems/csv")
+@require_permission('workitems.view')
+def export_workitems_csv():
+    """Export workitems as CSV. Supports optional doc fields, audit history, and images.
+    Query params:
+      - Same filters as /api/workitems (prcfW, search, status, tag, startDate, endDate, priority, assignedUser)
+      - include: comma-separated extras: 'fields', 'history', 'images'
+      - ids: comma-separated workitem IDs to restrict export (for bulk selection)
+    """
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+
+    include_set = set(request.args.get('include', '').split(','))
+    include_fields  = 'fields'  in include_set and has_permission('workitems.details.view.fields')
+    include_history = 'history' in include_set and has_permission('workitems.details.view.audit')
+    include_images  = 'images'  in include_set and has_permission('workitems.details.view.images')
+
+    ids_param = request.args.get('ids', '').strip()
+    specific_ids = set(int(i) for i in ids_param.split(',') if i.strip().isdigit()) if ids_param else set()
+
+    try:
+        result = _get_workitems_data(request.args, export_all=True)
+        workitems = result.get('workitems', [])
+    except Exception as e:
+        app.logger.error(f"Export: failed to fetch workitems: {e}")
+        return jsonify({"error": "Failed to fetch workitems"}), 500
+
+    if specific_ids:
+        workitems = [w for w in workitems if w['workitemid'] in specific_ids]
+
+    if not workitems:
+        output = io.StringIO()
+        output.write('No workitems to export\r\n')
+        resp = make_response(output.getvalue())
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        resp.headers['Content-Disposition'] = 'attachment; filename=workitems_export.csv'
+        return resp
+
+    domains = {}
+    for w in workitems:
+        wid = w['workitemid']
+        try:
+            domains[wid] = get_domain_for_workitem(wid)
+        except Exception:
+            domains[wid] = OCTO_DOMAIN
+
+    _include_fields  = include_fields
+    _include_history = include_history
+    _include_images  = include_images
+    _app = app
+
+    def _fetch(wid):
+        detail = {'fields': {}, 'history': [], 'images': []}
+        domain = domains.get(wid, OCTO_DOMAIN)
+        with _app.app_context():
+            if _include_fields or _include_images:
+                try:
+                    urls, extensions = [], []  # safe defaults
+                    cached = cache.get(f"media_info_{wid}")
+                    if cached:
+                        detail['fields'] = cached.get('fields', {})
+                    else:
+                        returndata = get_workitemdata_param(wid, domain)
+                        if returndata:
+                            workitemdata, document_id = returndata
+                            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+                            detail['fields'] = fields
+                            cache.set(f"media_info_{wid}", {"fields": fields, "media_count": len(urls)})
+                            if urls:
+                                cache.set(f"media_data_{wid}", {'extensions': extensions, 'urls': urls})
+                    if _include_images:
+                        cached_media = cache.get(f"media_data_{wid}")
+                        if cached_media:
+                            urls       = cached_media.get('urls', [])
+                            extensions = cached_media.get('extensions', [])
+                        for i, (img_url, ext) in enumerate(zip(urls[:5], extensions[:5])):
+                            try:
+                                img_bytes = get_media(img_url, domain)
+                                if str(ext).lower() in ('.tif', '.tiff'):
+                                    with Image.open(io.BytesIO(img_bytes)) as img:
+                                        if img.mode != 'RGB':
+                                            img = img.convert('RGB')
+                                        buf = io.BytesIO()
+                                        img.save(buf, 'JPEG', quality=75)
+                                        img_bytes = buf.getvalue()
+                                detail['images'].append(base64.b64encode(img_bytes).decode('utf-8'))
+                            except Exception as img_err:
+                                _app.logger.warning(f"Export: image {i} for {wid} failed: {img_err}")
+                except Exception as e:
+                    _app.logger.error(f"Export: doc fields error for {wid}: {e}")
+
+            if _include_history:
+                try:
+                    cached = cache.get(f"audithistory_{wid}")
+                    if cached is not None:
+                        detail['history'] = cached
+                    else:
+                        audit_url = (
+                            f'https://{domain}/api/processservice/api/v2.1/processService/'
+                            f'WorkItemAudits?WorkItemID={wid}&VerifyAuditSignatures=true'
+                        )
+                        token = get_access_token(domain)
+                        resp = requests.get(audit_url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
+                        resp.raise_for_status()
+                        audits_data = resp.json()
+                        unique_acts = {}
+                        for audit in (audits_data.get('Audits', []) if isinstance(audits_data, dict) else []):
+                            aid = audit.get('ActivityInstanceID')
+                            if aid and aid not in unique_acts:
+                                unique_acts[aid] = datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S")
+                        history_list = []
+                        total = len(unique_acts)
+                        for i, (aid, ts) in enumerate(unique_acts.items()):
+                            name = get_activity_type_name(aid, domain)
+                            history_list.append({'Activity': name, 'DateTime': ts, 'Step': total - i})
+                        cache.set(f"audithistory_{wid}", history_list, timeout=1800)
+                        detail['history'] = history_list
+                except Exception as e:
+                    _app.logger.error(f"Export: history error for {wid}: {e}")
+        return wid, detail
+
+    details_map = {}
+    if include_fields or include_history or include_images:
+        max_workers = min(10, len(workitems))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_fetch, w['workitemid']): w['workitemid'] for w in workitems}
+            for future in as_completed(futures, timeout=120):
+                try:
+                    wid, detail = future.result()
+                    details_map[wid] = detail
+                except Exception as e:
+                    wid = futures[future]
+                    app.logger.error(f"Export: future error for {wid}: {e}")
+                    details_map[wid] = {'fields': {}, 'history': [], 'images': []}
+
+    # Determine dynamic columns
+    all_field_keys = []
+    if include_fields:
+        seen_keys = set()
+        for w in workitems:
+            for k in details_map.get(w['workitemid'], {}).get('fields', {}):
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    all_field_keys.append(k)
+
+    max_images = 0
+    if include_images:
+        for w in workitems:
+            max_images = max(max_images, len(details_map.get(w['workitemid'], {}).get('images', [])))
+
+    # Build CSV
+    priority_label = {3: 'High', 2: 'Medium', 1: 'Low'}
+    headers = ['Workitem ID', 'Status', 'Stage', 'Last Movement At', 'Priority', 'Tags']
+    if include_fields:
+        headers.extend(all_field_keys)
+    if include_history:
+        headers.append('Audit History')
+    if include_images:
+        headers.extend(f'Image {i+1} (base64)' for i in range(max_images))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+
+    for w in workitems:
+        wid = w['workitemid']
+        detail = details_map.get(wid, {'fields': {}, 'history': [], 'images': []})
+        ts = w.get('modifiedat')
+        date_str = ts.strftime('%Y-%m-%d %H:%M:%S') if hasattr(ts, 'strftime') else str(ts or '')[:19]
+
+        row = [
+            wid,
+            w.get('status', ''),
+            w.get('current_stage', ''),
+            date_str,
+            priority_label.get(w.get('priority', 0), ''),
+            '; '.join(t['name'] for t in (w.get('tags') or [])),
+        ]
+        if include_fields:
+            fields = detail['fields']
+            row.extend(fields.get(k, '') for k in all_field_keys)
+        if include_history:
+            history = sorted(detail.get('history', []), key=lambda h: h.get('Step', 0), reverse=True)
+            row.append('; '.join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history))
+        if include_images:
+            images = detail.get('images', [])
+            row.extend(images[i] if i < len(images) else '' for i in range(max_images))
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    response = make_response(csv_content)
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    filename = f'workitems_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
 
 @app.route("/workitems")
 @require_permission('workitems.view')
@@ -4719,7 +4923,9 @@ def api_generali_documents():
     conn = None
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = 50
+        per_page = request.args.get('perPage', 40, type=int)
+        if per_page not in (40, 100, 200, 500, 1000):
+            per_page = 40
         offset = (page - 1) * per_page
 
         doc_type = request.args.get('docType')
