@@ -1,6 +1,7 @@
 import math
 import uuid
 from fileinput import filename
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
 from flask_babel import Babel, gettext, ngettext, _
 from flask_session import Session
@@ -338,7 +339,9 @@ def startpage_redirect_to(pV):
         'generaliPagePerm': 'generali_evaluation',
         'generaliDocumentsPerm': 'generali_documents',
         'generaliReportingPerm': 'generali_reporting',
-        'generaliAttendancePerm': 'generali_attendance',
+        'generaliAdditionalServicesPerm': 'generali_additionalServices',
+        'generaliBaseServicesPerm': 'generali_baseServices',
+        'generaliProjectManagementPerm': 'generali_projectManagement',
         'generaliPDQMPerm': 'generali_pdqm',
         'chatPagePerm': 'chat_page',
         'adminPagePerm': 'admin_dashboard'
@@ -354,9 +357,11 @@ def pageVisability():
     invoicesPagePerm = has_permission('invoices.view')
     chatPagePerm = has_permission('chat.view')
     generaliPagePerm = has_permission('generali.dashboard.view')
-    generaliDocumentsPerm = has_permission('generali.view.documentlist')
+    generaliDocumentsPerm = has_permission('generali.documentlist.view')
     generaliReportingPerm = has_permission('generali.reporting.view')
-    generaliAttendancePerm = has_permission('generali.attendance.view')
+    generaliAdditionalServicesPerm = has_permission('generali.additionalservices.view')
+    generaliBaseServicesPerm = has_permission('generali.baseservices.view')
+    generaliProjectManagementPerm = has_permission('generali.projectmanagement.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
@@ -364,7 +369,9 @@ def pageVisability():
             'generaliPagePerm': generaliPagePerm,
             'generaliDocumentsPerm': generaliDocumentsPerm,
             'generaliReportingPerm': generaliReportingPerm,
-            'generaliAttendancePerm': generaliAttendancePerm,
+            'generaliAdditionalServicesPerm': generaliAdditionalServicesPerm,
+            'generaliBaseServicesPerm': generaliBaseServicesPerm,
+            'generaliProjectManagementPerm': generaliProjectManagementPerm,
             'generaliPDQMPerm': generaliPDQMPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
@@ -577,6 +584,26 @@ def login():
         #     conn = engineNexoraDB.raw_connection()
         #     cursor = conn.cursor()
         #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code, locale = row
+
+        #     session.clear() 
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user(userid)
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
+        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
         #     row = cursor.fetchone()
         #     cursor.close()
         #     conn.close()
@@ -2337,7 +2364,7 @@ def get_valid_search_columns():
         if conn:
             conn.close()
 
-def _get_workitems_data(args):
+def _get_workitems_data(args, export_all=False):
     page = args.get('page', 1, type=int)
     search_term = args.get('search', '').strip()
     status = args.get('status', '')
@@ -2348,8 +2375,14 @@ def _get_workitems_data(args):
     end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
     priority = args.get('priority', '')
     assigned_user = args.get('assignedUser', '')
-    per_page = 40
-    offset = (page - 1) * per_page
+    if export_all:
+        per_page = 5000
+        offset = 0
+    else:
+        per_page = int(args.get('perPage', 40))
+        if per_page not in (40, 100, 200, 500, 1000):
+            per_page = 40
+        offset = (page - 1) * per_page
     activityinstancesToIgnore = get_activityinstancesToIgnore()
 
     process_name = args.get('prcfW', 'all')
@@ -2769,6 +2802,204 @@ def api_workitems():
     except Exception as e:
         app.logger.error(f"API error in workitems overview: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
+
+
+@app.route("/api/export/workitems/csv")
+@require_permission('workitems.view')
+def export_workitems_csv():
+    """Export workitems as CSV. Supports optional doc fields, audit history, and images.
+    Query params:
+      - Same filters as /api/workitems (prcfW, search, status, tag, startDate, endDate, priority, assignedUser)
+      - include: comma-separated extras: 'fields', 'history', 'images'
+      - ids: comma-separated workitem IDs to restrict export (for bulk selection)
+    """
+    if 'username' not in session:
+        return jsonify({"error": "Not authorized"}), 401
+
+    include_set = set(request.args.get('include', '').split(','))
+    include_fields  = 'fields'  in include_set and has_permission('workitems.details.view.fields')
+    include_history = 'history' in include_set and has_permission('workitems.details.view.audit')
+    include_images  = 'images'  in include_set and has_permission('workitems.details.view.images')
+
+    ids_param = request.args.get('ids', '').strip()
+    specific_ids = set(int(i) for i in ids_param.split(',') if i.strip().isdigit()) if ids_param else set()
+
+    try:
+        result = _get_workitems_data(request.args, export_all=True)
+        workitems = result.get('workitems', [])
+    except Exception as e:
+        app.logger.error(f"Export: failed to fetch workitems: {e}")
+        return jsonify({"error": "Failed to fetch workitems"}), 500
+
+    if specific_ids:
+        workitems = [w for w in workitems if w['workitemid'] in specific_ids]
+
+    if not workitems:
+        output = io.StringIO()
+        output.write('No workitems to export\r\n')
+        resp = make_response(output.getvalue())
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        resp.headers['Content-Disposition'] = 'attachment; filename=workitems_export.csv'
+        return resp
+
+    domains = {}
+    for w in workitems:
+        wid = w['workitemid']
+        try:
+            domains[wid] = get_domain_for_workitem(wid)
+        except Exception:
+            domains[wid] = OCTO_DOMAIN
+
+    _include_fields  = include_fields
+    _include_history = include_history
+    _include_images  = include_images
+    _app = app
+
+    def _fetch(wid):
+        detail = {'fields': {}, 'history': [], 'images': []}
+        domain = domains.get(wid, OCTO_DOMAIN)
+        with _app.app_context():
+            if _include_fields or _include_images:
+                try:
+                    urls, extensions = [], []  # safe defaults
+                    cached = cache.get(f"media_info_{wid}")
+                    if cached:
+                        detail['fields'] = cached.get('fields', {})
+                    else:
+                        returndata = get_workitemdata_param(wid, domain)
+                        if returndata:
+                            workitemdata, document_id = returndata
+                            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+                            detail['fields'] = fields
+                            cache.set(f"media_info_{wid}", {"fields": fields, "media_count": len(urls)})
+                            if urls:
+                                cache.set(f"media_data_{wid}", {'extensions': extensions, 'urls': urls})
+                    if _include_images:
+                        cached_media = cache.get(f"media_data_{wid}")
+                        if cached_media:
+                            urls       = cached_media.get('urls', [])
+                            extensions = cached_media.get('extensions', [])
+                        for i, (img_url, ext) in enumerate(zip(urls[:5], extensions[:5])):
+                            try:
+                                img_bytes = get_media(img_url, domain)
+                                if str(ext).lower() in ('.tif', '.tiff'):
+                                    with Image.open(io.BytesIO(img_bytes)) as img:
+                                        if img.mode != 'RGB':
+                                            img = img.convert('RGB')
+                                        buf = io.BytesIO()
+                                        img.save(buf, 'JPEG', quality=75)
+                                        img_bytes = buf.getvalue()
+                                detail['images'].append(base64.b64encode(img_bytes).decode('utf-8'))
+                            except Exception as img_err:
+                                _app.logger.warning(f"Export: image {i} for {wid} failed: {img_err}")
+                except Exception as e:
+                    _app.logger.error(f"Export: doc fields error for {wid}: {e}")
+
+            if _include_history:
+                try:
+                    cached = cache.get(f"audithistory_{wid}")
+                    if cached is not None:
+                        detail['history'] = cached
+                    else:
+                        audit_url = (
+                            f'https://{domain}/api/processservice/api/v2.1/processService/'
+                            f'WorkItemAudits?WorkItemID={wid}&VerifyAuditSignatures=true'
+                        )
+                        token = get_access_token(domain)
+                        resp = requests.get(audit_url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
+                        resp.raise_for_status()
+                        audits_data = resp.json()
+                        unique_acts = {}
+                        for audit in (audits_data.get('Audits', []) if isinstance(audits_data, dict) else []):
+                            aid = audit.get('ActivityInstanceID')
+                            if aid and aid not in unique_acts:
+                                unique_acts[aid] = datetime.fromisoformat(audit['TimeStamp']).strftime("%Y-%m-%d %H:%M:%S")
+                        history_list = []
+                        total = len(unique_acts)
+                        for i, (aid, ts) in enumerate(unique_acts.items()):
+                            name = get_activity_type_name(aid, domain)
+                            history_list.append({'Activity': name, 'DateTime': ts, 'Step': total - i})
+                        cache.set(f"audithistory_{wid}", history_list, timeout=1800)
+                        detail['history'] = history_list
+                except Exception as e:
+                    _app.logger.error(f"Export: history error for {wid}: {e}")
+        return wid, detail
+
+    details_map = {}
+    if include_fields or include_history or include_images:
+        max_workers = min(10, len(workitems))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_fetch, w['workitemid']): w['workitemid'] for w in workitems}
+            for future in as_completed(futures, timeout=120):
+                try:
+                    wid, detail = future.result()
+                    details_map[wid] = detail
+                except Exception as e:
+                    wid = futures[future]
+                    app.logger.error(f"Export: future error for {wid}: {e}")
+                    details_map[wid] = {'fields': {}, 'history': [], 'images': []}
+
+    # Determine dynamic columns
+    all_field_keys = []
+    if include_fields:
+        seen_keys = set()
+        for w in workitems:
+            for k in details_map.get(w['workitemid'], {}).get('fields', {}):
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    all_field_keys.append(k)
+
+    max_images = 0
+    if include_images:
+        for w in workitems:
+            max_images = max(max_images, len(details_map.get(w['workitemid'], {}).get('images', [])))
+
+    # Build CSV
+    priority_label = {3: 'High', 2: 'Medium', 1: 'Low'}
+    headers = ['Workitem ID', 'Status', 'Stage', 'Last Movement At', 'Priority', 'Tags']
+    if include_fields:
+        headers.extend(all_field_keys)
+    if include_history:
+        headers.append('Audit History')
+    if include_images:
+        headers.extend(f'Image {i+1} (base64)' for i in range(max_images))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+
+    for w in workitems:
+        wid = w['workitemid']
+        detail = details_map.get(wid, {'fields': {}, 'history': [], 'images': []})
+        ts = w.get('modifiedat')
+        date_str = ts.strftime('%Y-%m-%d %H:%M:%S') if hasattr(ts, 'strftime') else str(ts or '')[:19]
+
+        row = [
+            wid,
+            w.get('status', ''),
+            w.get('current_stage', ''),
+            date_str,
+            priority_label.get(w.get('priority', 0), ''),
+            '; '.join(t['name'] for t in (w.get('tags') or [])),
+        ]
+        if include_fields:
+            fields = detail['fields']
+            row.extend(fields.get(k, '') for k in all_field_keys)
+        if include_history:
+            history = sorted(detail.get('history', []), key=lambda h: h.get('Step', 0), reverse=True)
+            row.append('; '.join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history))
+        if include_images:
+            images = detail.get('images', [])
+            row.extend(images[i] if i < len(images) else '' for i in range(max_images))
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    response = make_response(csv_content)
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    filename = f'workitems_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
+
 
 @app.route("/workitems")
 @require_permission('workitems.view')
@@ -4525,7 +4756,7 @@ def generali_evaluation():
         return render_template('handlers/500.html'), 500
 
 @app.route("/generali/documents")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def generali_documents():
     try:
         if 'username' not in session:
@@ -4661,7 +4892,7 @@ def api_generali_stats():
             conn.close()
 
 @app.route("/api/generali/filter_options")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_filter_options():
     conn = None
     try:
@@ -4688,12 +4919,14 @@ def api_generali_filter_options():
             conn.close()
 
 @app.route("/api/generali/documents")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_documents():
     conn = None
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = 50
+        per_page = request.args.get('perPage', 40, type=int)
+        if per_page not in (40, 100, 200, 500, 1000):
+            per_page = 40
         offset = (page - 1) * per_page
 
         doc_type = request.args.get('docType')
@@ -4823,7 +5056,7 @@ def api_generali_documents():
             conn.close()
 
 @app.route("/api/generali/documents/<path:doc_id>")
-@require_permission('generali.view.documentlist')
+@require_permission('generali.documentlist.view')
 def api_generali_document_detail(doc_id):
     conn = None
     try:
@@ -4904,8 +5137,8 @@ def api_generali_reporting_list():
         total_pages = max(1, -(-total_records // per_page))
 
         cursor.execute(f"""
-            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
-                   EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
+            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+                   --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
             FROM [dbo].[reportingiss]
             {where_sql}
             ORDER BY ReportForDate DESC, ReportTimeStamp DESC
@@ -4936,7 +5169,8 @@ def api_generali_reporting_list():
 
         records = []
         for r in rows:
-            rec_id, report_date, report_ts, user_id, ontime, cat, email_rcvd, delivery_ts, latest_ts, mailroom_ts = r
+            # , email_rcvd, delivery_ts, latest_ts, mailroom_ts
+            rec_id, report_date, report_ts, user_id, ontime, cat = r
             user_info = user_map.get(user_id, {})
             records.append({
                 'id':                      rec_id,
@@ -4945,12 +5179,13 @@ def api_generali_reporting_list():
                 'reportByUserID':          user_id,
                 'fullname':                user_info.get('fullname'),
                 'ontime':                  bool(ontime),
-                'category':                cat,
-                'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
-                'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
-                'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
-                'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
+                'category':                cat
+                
             })
+            # 'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
+            #     'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
+            #     'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
+            #     'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
 
         return jsonify({
             'success': True,
@@ -4980,15 +5215,15 @@ def api_generali_reporting_add():
         category          = body.get('category', '').strip()
         ontime            = bool(body.get('ontime', False))
         user_id           = session.get('userid')
-        email_received    = body.get('emailReceivedTimeStamp') or None
-        mailroom_request  = body.get('mailRoomRequestTimeStamp') or None
-        delivery          = body.get('deliveryTimeStamp') or None
-        latest_delivery   = body.get('latestDeliveryTimeStamp') or None
+        # email_received    = body.get('emailReceivedTimeStamp') or None
+        # mailroom_request  = body.get('mailRoomRequestTimeStamp') or None
+        # delivery          = body.get('deliveryTimeStamp') or None
+        # latest_delivery   = body.get('latestDeliveryTimeStamp') or None
 
-        email_received   = email_received.replace('T',' ') if email_received else None
-        mailroom_request = mailroom_request.replace('T',' ') if mailroom_request else None
-        delivery         = delivery.replace('T',' ') if delivery else None
-        latest_delivery  = latest_delivery.replace('T',' ') if latest_delivery else None
+        # email_received   = email_received.replace('T',' ') if email_received else None
+        # mailroom_request = mailroom_request.replace('T',' ') if mailroom_request else None
+        # delivery         = delivery.replace('T',' ') if delivery else None
+        # latest_delivery  = latest_delivery.replace('T',' ') if latest_delivery else None
 
         
         if not report_for_date:
@@ -5010,11 +5245,13 @@ def api_generali_reporting_add():
 
         cursor.execute("""
             INSERT INTO [dbo].[reportingiss]
-                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category,
-                 EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp)
-            VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?)
-        """, [report_for_date, user_id, 1 if ontime else 0, category,
-              email_received, delivery, latest_delivery, mailroom_request])
+                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+                 --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
+                       )
+            VALUES (?, GETDATE(), ?, ?, ?)
+        """, [report_for_date, user_id, 1 if ontime else 0, category
+            #   ,email_received, delivery, latest_delivery, mailroom_request
+            ])
         conn.commit()
 
         return jsonify({"success": True})
@@ -5035,32 +5272,32 @@ def api_generali_reporting_edit():
         record_id       = body.get('id')
         report_for_date = (body.get('reportForDate') or '').strip()
         ontime          = bool(body.get('ontime', False))
-        email_received  = body.get('emailReceivedTimeStamp') or None
-        mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
-        delivery        = body.get('deliveryTimeStamp') or None
-        latest_delivery = body.get('latestDeliveryTimeStamp') or None
+        # email_received  = body.get('emailReceivedTimeStamp') or None
+        # mailroom_req    = body.get('mailRoomRequestTimeStamp') or None
+        # delivery        = body.get('deliveryTimeStamp') or None
+        # latest_delivery = body.get('latestDeliveryTimeStamp') or None
 
         if not record_id or not report_for_date:
             return jsonify({"success": False, "error": "id and reportForDate are required"}), 400
 
-        if email_received:  email_received  = email_received.replace('T', ' ')
-        if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
-        if delivery:        delivery        = delivery.replace('T', ' ')
-        if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
+        # if email_received:  email_received  = email_received.replace('T', ' ')
+        # if mailroom_req:    mailroom_req    = mailroom_req.replace('T', ' ')
+        # if delivery:        delivery        = delivery.replace('T', ' ')
+        # if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
 
         conn   = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE [dbo].[reportingiss]
             SET ReportForDate            = ?,
-                ontime                   = ?,
-                EmailReceivedTimeStamp   = ?,
-                MailRoomRequestTimeStamp = ?,
-                DeliveryTimeStamp        = ?,
-                LatestDeliveryTimeStamp  = ?
+                ontime                   = ?
+                --,EmailReceivedTimeStamp   = ?,
+                --MailRoomRequestTimeStamp = ?,
+                --DeliveryTimeStamp        = ?,
+                --LatestDeliveryTimeStamp  = ?
             WHERE ID = ?
         """, [report_for_date, 1 if ontime else 0,
-              email_received, mailroom_req, delivery, latest_delivery,
+            #   email_received, mailroom_req, delivery, latest_delivery,
               record_id])
         conn.commit()
 
@@ -5092,26 +5329,27 @@ def api_generali_reporting_delete(record_id):
             conn.close()
 
 
-# ----------------------------- Generali Attendance -------------------------- #
-@app.route("/generali/attendance")
-@require_permission('generali.attendance.view')
-def generali_attendance():
+# ----------------------------- Generali Additional Services -------------------------- #
+@app.route("/generali/additionalServices")
+@require_permission('generali.additionalservices.view')
+def generali_additionalServices():
     try:
         if 'username' not in session:
             return redirect(url_for("login"))
-        return render_template("generali_attendance.html",
+        return render_template("generali_additionalservices.html",
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
                                can_add=has_permission('generali.attendance.add'),
-                               can_edit=has_permission('generali.attendance.edit'))
+                               can_edit=has_permission('generali.attendance.edit'),
+                               can_add_for_org=has_permission('generali.attendance.addForOrg'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Attendance: {e}")
         return render_template('handlers/500.html'), 500
 
 
 @app.route("/api/generali/attendance/categories", methods=["GET"])
-@require_permission('generali.attendance.view')
+@require_permission('generali.additionalservices.view')
 def api_generali_attendance_categories():
     conn = None
     try:
@@ -5154,8 +5392,34 @@ def api_generali_attendance_categories():
             conn.close()
 
 
+@app.route("/api/generali/attendance/orgUsers", methods=["GET"])
+@require_permission('generali.attendance.addForOrg')
+def api_generali_attendance_org_users():
+    conn = None
+    try:
+        org_code = session.get('organizationcode')
+        if not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+            [org_code]
+        )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/attendance", methods=["GET"])
-@require_permission('generali.attendance.view')
+@require_permission('generali.additionalservices.view')
 def api_generali_attendance_list():
     conn = None
     try:
@@ -5183,6 +5447,10 @@ def api_generali_attendance_list():
         if sub_cat:
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
+
+        if not has_permission('generali.attendance.edit'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -5268,7 +5536,27 @@ def api_generali_attendance_add():
         sub_cat_raw   = body.get('subCategory')
         sub_cat       = sub_cat_raw.strip() if sub_cat_raw else None
         effort        = body.get('effortInHours')
-        user_id       = session.get('userid')
+        caller_id     = session.get('userid')
+        target_raw    = body.get('userId')
+        user_id       = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            if not has_permission('generali.attendance.addForOrg'):
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            nx_conn = engineNexoraDB.raw_connection()
+            nx_cur = nx_conn.cursor()
+            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+            row = nx_cur.fetchone()
+            nx_cur.close()
+            nx_conn.close()
+            if not row or row[0] != session.get('organizationcode'):
+                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
 
         if not for_date or not parent_cat or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
@@ -5352,6 +5640,540 @@ def api_generali_attendance_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         app.logger.error(f"Generali Attendance Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Base Services ----------------------- #
+@app.route("/generali/baseServices")
+@require_permission('generali.baseservices.view')
+def generali_baseServices():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_baseservices.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.baseservices.add'),
+                               can_edit=has_permission('generali.baseservices.edit'),
+                               can_add_for_org=has_permission('generali.baseservices.addForOrg'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Base Services: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/baseservices/orgUsers", methods=["GET"])
+@require_permission('generali.baseservices.addForOrg')
+def api_generali_baseservices_org_users():
+    conn = None
+    try:
+        org_code = session.get('organizationcode')
+        if not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+            [org_code]
+        )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices", methods=["GET"])
+@require_permission('generali.baseservices.view')
+def api_generali_baseservices_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+        category   = request.args.get('category', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+        if category:
+            where_clauses.append("Category = ?")
+            params.append(category)
+
+        if not has_permission('generali.baseservices.edit'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(EffortInHours) FROM [Generali].[dbo].[BaseServices] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records = agg[0] or 0
+        total_hours   = float(agg[1]) if agg[1] is not None else 0.0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, EffortInHours, UserID, ForDate, Category, RecordDateTime
+            FROM [Generali].[dbo].[BaseServices]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for base services: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, effort, user_id, for_date, category_val, recorded_at = r
+            records.append({
+                'id':            rec_id,
+                'effortInHours': float(effort) if effort is not None else None,
+                'userId':        user_id,
+                'fullname':      user_map.get(user_id),
+                'forDate':       str(for_date) if for_date else None,
+                'category':      category_val,
+                'recordDateTime': recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalHours': total_hours,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Base Services List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE / PPR"}
+
+
+@app.route("/api/generali/baseservices", methods=["POST"])
+@require_permission('generali.baseservices.add')
+def api_generali_baseservices_add():
+    conn = None
+    try:
+        body       = request.get_json(force=True)
+        for_date   = body.get('forDate', '').strip()
+        category   = body.get('category', '').strip()
+        effort     = body.get('effortInHours')
+        caller_id  = session.get('userid')
+        target_raw = body.get('userId')
+        user_id    = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            if not has_permission('generali.baseservices.addForOrg'):
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            nx_conn = engineNexoraDB.raw_connection()
+            nx_cur = nx_conn.cursor()
+            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+            row = nx_cur.fetchone()
+            nx_cur.close()
+            nx_conn.close()
+            if not row or row[0] != session.get('organizationcode'):
+                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
+
+        if not for_date or not category or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        if category not in VALID_BASE_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[BaseServices]
+                (EffortInHours, UserID, ForDate, Category, RecordDateTime)
+            VALUES (?, ?, ?, ?, GETDATE())
+        """, [effort, user_id, for_date, category])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices/<int:record_id>", methods=["PUT"])
+@require_permission('generali.baseservices.edit')
+def api_generali_baseservices_edit(record_id):
+    conn = None
+    try:
+        body     = request.get_json(force=True)
+        for_date = body.get('forDate', '').strip()
+        category = body.get('category', '').strip()
+        effort   = body.get('effortInHours')
+
+        if not for_date or not category or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        if category not in VALID_BASE_CATEGORIES:
+            return jsonify({"success": False, "error": "Invalid category"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[BaseServices]
+            SET ForDate = ?, Category = ?, EffortInHours = ?
+            WHERE ID = ?
+        """, [for_date, category, effort, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/baseservices/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.baseservices.edit')
+def api_generali_baseservices_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[BaseServices] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Delete Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ----------------------------- Generali Project Management ------------------ #
+@app.route("/generali/projectManagement")
+@require_permission('generali.projectmanagement.view')
+def generali_projectManagement():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_projectmanagement.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               can_add=has_permission('generali.projectmanagement.add'),
+                               can_edit=has_permission('generali.projectmanagement.edit'),
+                               can_add_for_org=has_permission('generali.projectmanagement.addForOrg'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Project Management: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/projectmanagement/orgUsers", methods=["GET"])
+@require_permission('generali.projectmanagement.addForOrg')
+def api_generali_projectmanagement_org_users():
+    conn = None
+    try:
+        org_code = session.get('organizationcode')
+        if not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+            [org_code]
+        )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement", methods=["GET"])
+@require_permission('generali.projectmanagement.view')
+def api_generali_projectmanagement_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("ForDate >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("ForDate <= ?")
+            params.append(end_date)
+
+        if not has_permission('generali.projectmanagement.edit'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*), SUM(EffortInHours) FROM [Generali].[dbo].[ProjectManagement] {where_sql}", params)
+        agg = cursor.fetchone()
+        total_records = agg[0] or 0
+        total_hours   = float(agg[1]) if agg[1] is not None else 0.0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime
+            FROM [Generali].[dbo].[ProjectManagement]
+            {where_sql}
+            ORDER BY ForDate DESC, RecordDateTime DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        user_ids = list({r[2] for r in rows if r[2] is not None})
+        user_map = {}
+        if user_ids:
+            try:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                placeholders = ','.join(['?'] * len(user_ids))
+                nx_cur.execute(
+                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    user_ids
+                )
+                for uid, fullname in nx_cur.fetchall():
+                    user_map[uid] = fullname
+                nx_cur.close()
+                nx_conn.close()
+            except Exception as ue:
+                app.logger.warning(f"User lookup failed for project management: {ue}")
+
+        records = []
+        for r in rows:
+            rec_id, effort, user_id, for_date, category_val, comment, recorded_at = r
+            records.append({
+                'id':            rec_id,
+                'effortInHours': float(effort) if effort is not None else None,
+                'userId':        user_id,
+                'fullname':      user_map.get(user_id),
+                'forDate':       str(for_date) if for_date else None,
+                'category':      category_val,
+                'comment':       comment,
+                'recordDateTime': recorded_at.isoformat() if recorded_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'totalHours': total_hours,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Project Management List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement", methods=["POST"])
+@require_permission('generali.projectmanagement.add')
+def api_generali_projectmanagement_add():
+    conn = None
+    try:
+        body       = request.get_json(force=True)
+        for_date   = body.get('forDate', '').strip()
+        effort     = body.get('effortInHours')
+        comment    = body.get('comment')
+        comment    = comment.strip() if comment else None
+        caller_id  = session.get('userid')
+        target_raw = body.get('userId')
+        user_id    = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            if not has_permission('generali.projectmanagement.addForOrg'):
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            nx_conn = engineNexoraDB.raw_connection()
+            nx_cur = nx_conn.cursor()
+            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+            row = nx_cur.fetchone()
+            nx_cur.close()
+            nx_conn.close()
+            if not row or row[0] != session.get('organizationcode'):
+                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
+
+        if not for_date or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO [Generali].[dbo].[ProjectManagement]
+                (EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime)
+            VALUES (?, ?, ?, ?, ?, GETDATE())
+        """, [effort, user_id, for_date, 'Project Effort', comment])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Add Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement/<int:record_id>", methods=["PUT"])
+@require_permission('generali.projectmanagement.edit')
+def api_generali_projectmanagement_edit(record_id):
+    conn = None
+    try:
+        body     = request.get_json(force=True)
+        for_date = body.get('forDate', '').strip()
+        effort   = body.get('effortInHours')
+        comment  = body.get('comment')
+        comment  = comment.strip() if comment else None
+
+        if not for_date or effort is None:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        try:
+            effort = float(effort)
+            if effort <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": "Invalid effort value"}), 400
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE [Generali].[dbo].[ProjectManagement]
+            SET ForDate = ?, EffortInHours = ?, Comment = ?
+            WHERE ID = ?
+        """, [for_date, effort, comment, record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Edit Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/generali/projectmanagement/<int:record_id>", methods=["DELETE"])
+@require_permission('generali.projectmanagement.edit')
+def api_generali_projectmanagement_delete(record_id):
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM [Generali].[dbo].[ProjectManagement] WHERE ID = ?", [record_id])
+        conn.commit()
+        cursor.close()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Delete Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         if conn:

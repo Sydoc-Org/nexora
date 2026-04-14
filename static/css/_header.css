@@ -166,7 +166,7 @@ footer {
     transition: max-height 0.25s ease;
 }
 #nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
-    max-height: 260px;
+    max-height: var(--generali-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
     padding-left: 20px;
@@ -378,4 +378,222 @@ html.dark .shadow-2xl {
 html.dark .skeleton-shimmer {
     background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%) !important;
     background-size: 200% 100% !important;
+}
+
+/* ============================================================
+   MOBILE HAMBURGER + BACKDROP (hidden on ≥ 768px)
+   ============================================================ */
+.sidebar-toggle-btn {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 60;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #4f46e5;
+    font-size: 1.05rem;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+}
+.sidebar-toggle-btn:hover { background: #f5f3ff; }
+html.dark .sidebar-toggle-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #a5b4fc;
+}
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 38;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.sidebar-backdrop.open {
+    opacity: 1;
+}
+
+/* ============================================================
+   BREAKPOINT: ≤ 768px  — sidebar becomes off-canvas drawer
+   ============================================================ */
+@media (max-width: 768px) {
+    body {
+        padding-left: 0 !important;
+        padding-top: 60px;   /* reserve space for floating hamburger */
+    }
+
+    .sidebar-toggle-btn { display: flex; }
+
+    /* Drawer: hidden off-screen by default */
+    #nexora-sidebar {
+        width: 260px;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+        box-shadow: 4px 0 18px rgba(0,0,0,0.15);
+    }
+    /* Disable hover-expand — drawer is controlled by .open class */
+    #nexora-sidebar:hover {
+        width: 260px;
+    }
+    #nexora-sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Push logo area right so the fixed toggle button doesn't cover it */
+    #nexora-sidebar.open .sidebar-logo-area {
+        padding-left: 56px;
+    }
+
+    /* Always show labels when drawer is open */
+    #nexora-sidebar.open .sidebar-label,
+    #nexora-sidebar.open .sidebar-logo-area .flex.flex-col {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    #nexora-sidebar.open #generaliNavGroup.generali-open .sidebar-nav-subitems {
+        max-height: var(--generali-subitems-height, 9999px);
+    }
+
+    .sidebar-backdrop.open {
+        display: block;
+    }
+
+    /* Notification panel must not overflow viewport */
+    .sidebar-notif-panel {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: calc(100vw - 24px);
+        bottom: 72px;
+    }
+
+    /* Shrink Tailwind container padding on small screens */
+    main.container,
+    .container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    /* Tables inside cards should scroll horizontally */
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
+/* Extra-small phones */
+@media (max-width: 480px) {
+    main.container,
+    .container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE TABLE → CARD LAYOUT ON MOBILE
+   Tables tagged with .responsive-card-table (auto-applied by JS
+   in _headerJS.html) stack each row into a card, with each cell
+   prefixed by its column header via data-label.
+   ============================================================ */
+@media (max-width: 768px) {
+    .responsive-card-table,
+    .responsive-card-table thead,
+    .responsive-card-table tbody,
+    .responsive-card-table tr,
+    .responsive-card-table td {
+        display: block;
+        width: 100% !important;
+    }
+    .responsive-card-table thead {
+        display: none;
+    }
+    .responsive-card-table tbody {
+        background: transparent !important;
+    }
+    .responsive-card-table tr {
+        margin: 0 0 0.75rem 0 !important;
+        padding: 0.25rem 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.9rem;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        overflow: hidden;
+    }
+    .responsive-card-table tr:hover {
+        transform: none !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+    }
+    .responsive-card-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 1rem !important;
+        text-align: right;
+        border: none !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        white-space: normal !important;
+        min-height: 2.5rem;
+    }
+    .responsive-card-table td:last-child {
+        border-bottom: none !important;
+    }
+    .responsive-card-table td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-size: 0.68rem;
+        letter-spacing: 0.05em;
+        text-align: left;
+        padding-right: 0.5rem;
+    }
+    /* Hide the label slot entirely when the column has no header (checkboxes, "Actions" icon-only, etc.) */
+    .responsive-card-table td[data-label=""]::before,
+    .responsive-card-table td:not([data-label])::before {
+        content: none;
+    }
+    .responsive-card-table td[data-label=""],
+    .responsive-card-table td:not([data-label]) {
+        justify-content: center;
+    }
+
+    /* Special rows: details expansion / spinner / "no results" keep full-width, no card frame */
+    .responsive-card-table tr.details-row,
+    .responsive-card-table tr.details-row td {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    .responsive-card-table tr.details-row {
+        margin-top: -0.5rem !important;
+    }
+
+    /* Workitems detailed view: let inner grids collapse comfortably */
+    .details-content-wrapper > div {
+        padding: 1rem !important;
+    }
+    .details-content-wrapper .grid {
+        grid-template-columns: 1fr !important;
+    }
+    .details-content-wrapper .input-flex-container {
+        width: 100%;
+        margin: 16px 0 32px;
+    }
+
+    /* Dark mode card frames */
+    html.dark .responsive-card-table tr {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    html.dark .responsive-card-table td {
+        border-bottom-color: #334155 !important;
+    }
 }

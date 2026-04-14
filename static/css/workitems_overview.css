@@ -434,3 +434,72 @@
     border: none;
     box-shadow: none;
 }
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 768px) {
+    main.container { padding: 1rem !important; }
+
+    /* Filter form action row should wrap on narrow screens */
+    #filterForm .flex.items-center.justify-end {
+        flex-wrap: wrap;
+        justify-content: stretch !important;
+    }
+    #filterForm .flex.items-center.justify-end > * {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    /* Page header (title + total count) stacks vertically */
+    .mb-8 > .flex.items-center.justify-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+
+    /* Bulk action bar must stay inside viewport */
+    #bulk-action-bar {
+        left: 12px !important;
+        right: 12px !important;
+        transform: none !important;
+        bottom: 12px !important;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* Pagination wraps */
+    #paginationContainer {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+
+    /* Modal images fill more of the screen */
+    .modal-content { max-width: 96%; max-height: 80vh; }
+    .modal-prev, .modal-next { font-size: 28px; }
+    .modal-close { top: 12px; right: 16px; font-size: 32px; }
+
+    /* Timeline step labels – smaller for narrow screens */
+    .input {
+        width: 28px;
+        height: 28px;
+    }
+    .input-flex-container {
+        margin: 24px 0 40px;
+    }
+    .label {
+        font-size: 10px;
+        min-width: 56px;
+        padding: 2px 4px;
+    }
+    .input span .date { font-size: 11px; margin-top: 32px; }
+    .input span .time { font-size: 10px; }
+
+    /* Table cells get tighter padding */
+    #workitemsTable thead th { padding: 0.75rem 0.75rem; }
+}
+
+@media (max-width: 480px) {
+    #filterForm { padding: 1rem !important; }
+}

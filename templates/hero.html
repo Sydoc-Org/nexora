@@ -27,11 +27,9 @@
                 <a href="{{ url_for('login') }}" id="signin" class="hidden md:inline-block bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-100 transition duration-300">
                     Sign In
                 </a>
-                <div class="md:hidden">
-                    <button>
-                        <i class="fas fa-bars text-2xl text-gray-600"></i>
-                    </button>
-                </div>
+                <a href="{{ url_for('login') }}" class="md:hidden bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
+                    {{ _("Sign In") }}
+                </a>
             </div>
         </header>
 

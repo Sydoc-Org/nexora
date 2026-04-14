@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ _("Generali Attendance - nexora") }}</title>
+  <title>{{ _("Generali additional services - nexora") }}</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
@@ -11,9 +11,10 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  {% set active_page = 'generali_attendance' %}
+  {% set active_page = 'generali_additionalservices' %}
   {% include '_header.html' %}
 
   <main class="container mx-auto px-3 py-4 sm:p-6">
@@ -21,7 +22,7 @@
     <!-- Page Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Attendance") }}</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Additional services") }}</h2>
         <p class="text-gray-500 font-medium">{{ _("Daily effort tracking by category") }}</p>
       </div>
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -31,6 +32,10 @@
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Attendance") }}</span>
         </button>
         {% endif %}
+        <button id="exportExcelBtn" onclick="exportToExcel()"
+          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200">
+          <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
+        </button>
         <a href="{{ url_for('generali_reporting') }}"
            class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
@@ -96,7 +101,8 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
          id="attendanceTable"
          data-can-edit="{{ can_edit | tojson }}"
-         data-can-add="{{ can_add | tojson }}">
+         data-can-add="{{ can_add | tojson }}"
+         data-can-add-for-org="{{ can_add_for_org | tojson }}">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -161,6 +167,20 @@
       </div>
       <div id="addModalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
+        {% if can_add_for_org %}
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("User") }}</label>
+          <div class="relative">
+            <select id="addUserId"
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              <option value="">{{ _("Myself") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+        {% endif %}
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
@@ -294,6 +314,6 @@
   </div>
 
   {% include '_small_footer.html' %}
-  {% include 'js/_generaliAttendanceJS.html' %}
+  {% include 'js/_generaliAdditionalServicesJS.html' %}
 </body>
 </html>

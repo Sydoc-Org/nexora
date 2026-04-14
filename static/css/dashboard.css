@@ -166,3 +166,13 @@ span.flatpickr-weekday {
   font-weight: 600;
   font-size: 0.8rem;
 }
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+  main.container { padding: 1rem !important; }
+  .h-85  { height: 16rem !important; }
+  .h-56  { height: 14rem !important; }
+  .timeline-item { padding-left: 3rem; padding-bottom: 1.25rem; }
+  .timeline-icon { width: 44px; height: 44px; }
+  .timeline-connector { left: 22px; top: 44px; height: calc(100% - 44px); }
+}
