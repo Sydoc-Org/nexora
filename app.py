@@ -3000,6 +3000,7 @@ def export_workitems_csv():
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     return response
 
+
 @app.route("/workitems")
 @require_permission('workitems.view')
 def workitems_overview():

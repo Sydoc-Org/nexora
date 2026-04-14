@@ -13,6 +13,9 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js"></script>
 
 </head>
 
@@ -505,6 +508,30 @@
                   <p class="text-xs text-gray-400">{{ _("Up to 5 images per workitem — only available for selections of up to 10 workitems") }}</p>
                 </div>
               </label>
+              <div id="exportImagesHelperInfo" style="display:none" class="ml-7 mt-1 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                <p class="text-xs text-gray-500">{{ _("Use this PowerShell script to extract images from the exported CSV. Requires execution policy") }} <code class="bg-gray-200 rounded px-1 font-mono text-gray-700">Bypass</code> {{ _("or higher.") }}</p>
+                <div class="relative">
+                  <pre class="text-xs bg-white border border-gray-200 rounded p-2 overflow-x-auto m-0"><code id="exportHelperScript" class="language-powershell">$csvPath = (Read-Host "CSV Path").replace('"','').replace("'",'')
+$outputPath = (Read-Host "Output Path").replace('"','').replace("'",'')
+$data = Import-Csv $csvPath -Delimiter ","
+$headers = $data[0].psobject.properties.name
+$countImageHeaders = ($headers | Where-Object {$_ -like "Image*"}).length
+$nonImageHeaders = $headers | Where-Object {$_ -notlike "Image*"}
+$data | ForEach-Object {
+    $workitemDirPath = Join-Path $outputPath $_."Workitem ID"
+    New-Item -Path $workitemDirPath -ItemType Directory -Force
+    $newDataCsvPath = (Join-Path $_."Workitem ID" "data.csv")
+    $_ | Select-Object $nonImageHeaders | Export-Csv $newDataCsvPath -NoTypeInformation
+    for($i = 1; $i -le $countImageHeaders; $i++) {
+        [IO.File]::WriteAllBytes((Join-Path $workitemDirPath "Image_$i.jpg"), [Convert]::FromBase64String($_."Image $i (base64)"))
+    }
+}</code></pre>
+                  <button type="button" id="copyHelperScriptBtn"
+                    class="absolute top-1.5 right-1.5 text-gray-400 hover:text-gray-700 transition-colors bg-white border border-gray-200 rounded px-1.5 py-0.5">
+                    <i class="fas fa-copy text-xs"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

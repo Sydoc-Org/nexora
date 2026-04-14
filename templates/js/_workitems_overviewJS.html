@@ -1411,6 +1411,7 @@ async function uploadBatchFiles(files, processName) {
 
             function closeExportModal() {
                 document.getElementById('exportOptionsModal').classList.add('hidden');
+                document.getElementById('exportImagesHelperInfo').style.display = 'none';
                 _setExportSpinner(false);
             }
 
@@ -1917,6 +1918,25 @@ async function uploadBatchFiles(files, processName) {
             document.getElementById('confirmExportModalBtn')?.addEventListener('click', runExport);
             document.getElementById('exportOptionsModal')?.addEventListener('click', e => {
                 if (e.target === e.currentTarget) closeExportModal();
+            });
+
+            // Show helper info when images checkbox is ticked; highlight once on first show
+            let _helperHighlighted = false;
+            document.getElementById('exportOptImages')?.addEventListener('change', e => {
+                document.getElementById('exportImagesHelperInfo').style.display = e.target.checked ? '' : 'none';
+                if (e.target.checked && !_helperHighlighted) {
+                    const codeEl = document.getElementById('exportHelperScript');
+                    if (codeEl && window.hljs) { hljs.highlightElement(codeEl); }
+                    _helperHighlighted = true;
+                }
+            });
+
+            document.getElementById('copyHelperScriptBtn')?.addEventListener('click', function() {
+                const codeEl = document.getElementById('exportHelperScript');
+                navigator.clipboard.writeText(codeEl.innerText).then(() => {
+                    this.innerHTML = '<i class="fas fa-check text-xs"></i>';
+                    setTimeout(() => { this.innerHTML = '<i class="fas fa-copy text-xs"></i>'; }, 1500);
+                });
             });
         });
     </script>
