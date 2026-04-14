@@ -12,6 +12,7 @@
     ];
 
     let currentPage = 1;
+    let _currentRecords = [];
 
     function populateCategorySelect(selectEl, selected) {
         while (selectEl.options.length > 1) selectEl.remove(1);
@@ -114,6 +115,7 @@
             document.getElementById('totalHoursDisplay').textContent =
                 th !== undefined ? formatHours(th) + ' h' : '—';
 
+            _currentRecords = data.records;
             if (!data.records.length) {
                 tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16 text-gray-400 text-sm">{{ _("No records found") }}</td></tr>`;
             } else {
@@ -383,6 +385,25 @@
 
     populateFilterCategorySelect();
     populateCategorySelect(document.getElementById('editCategory'));
+    // ----------------------------- excel export ----------------------------- //
+    function exportToExcel() {
+        if (!_currentRecords.length) return;
+        const today = new Date().toISOString().split('T')[0];
+        const rows = _currentRecords.map(r => ({
+            'ID':          r.id,
+            'Date':        r.forDate ? r.forDate.split('T')[0] : '',
+            'Full Name':   r.fullname,
+            'User ID':     r.userId,
+            'Category':    r.category,
+            'Effort (h)':  r.effortInHours,
+            'Recorded At': r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Base Services');
+        XLSX.writeFile(wb, `generali_baseservices_${today}.xlsx`);
+    }
+
     {% if can_add %}
     populateCategorySelect(document.getElementById('addCategory'));
     loadOrgUsers();

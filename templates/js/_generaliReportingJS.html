@@ -4,6 +4,7 @@
     const colSpan = canEdit ? 7 : 6;
 
     let currentPage = 1;
+    let _currentRecords = [];
     const CATEGORIES = {
         'export_post':            {{ _("KPI 1: Delivery physical post") | tojson }},
         'export_post_scan':       {{ _("KPI 2: Delivery physical post with scanning") | tojson }},
@@ -125,6 +126,7 @@
 
     // ----------------------------- render table ----------------------------- //
     function renderTable(records) {
+        _currentRecords = records;
         const tbody = document.getElementById('reportingTbody');
         tbody.innerHTML = '';
 
@@ -171,7 +173,6 @@
                 <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
                 <td class="px-4 py-3 text-center">${ontimeBadge(r.ontime)}</td>
                 <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
-                ${detailsCell}
                 ${actionsCell}
             `;
             tbody.appendChild(tr);
@@ -840,6 +841,24 @@
         document.getElementById('filterCategory').value = '';
         fetchRecords(1);
     });
+
+    // ----------------------------- excel export ----------------------------- //
+    function exportToExcel() {
+        if (!_currentRecords.length) return;
+        const today = new Date().toISOString().split('T')[0];
+        const rows = _currentRecords.map(r => ({
+            'ID':          r.id,
+            'Date':        r.reportForDate ? r.reportForDate.split('T')[0] : '',
+            'Full Name':   r.fullname,
+            'Category':    CATEGORIES[r.category] || r.category,
+            'On Time':     r.ontime ? 'Yes' : 'No',
+            'Recorded At': r.reportTimeStamp ? r.reportTimeStamp.replace('T', ' ').substring(0, 16) : ''
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporting');
+        XLSX.writeFile(wb, `generali_reporting_${today}.xlsx`);
+    }
 
     // ----------------------------- init ----------------------------- //
     fetchRecords(1);
