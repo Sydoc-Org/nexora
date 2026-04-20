@@ -216,6 +216,7 @@ if ($valuesList.Count -gt 0) {
     Flush_Batch $valuesList $csvRowsInserted $csvRows
 }
 Write-Host "`rDone! Inserted $csvRowsInserted / $csvRows rows." -ForegroundColor Green
-
-Move-item -Path $csvFilePath -Destination $datafoldergen/done -Force
+if ($envVars.SERVERINSTANCE -like 'INT*'){Copy-Item -Path $csvFilePath -Destination "$datafoldergen/doneINT" -Force}
+else{Move-item -Path $csvFilePath -Destination "$datafoldergen/donePROD" -Force
+}
 }

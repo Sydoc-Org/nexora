@@ -7,7 +7,7 @@ __pycache__/
 *.so
 
 claude.md
-.claude
+.claude/
 env.json
 
 # Distribution / packaging
