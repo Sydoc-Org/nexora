@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -330,6 +330,36 @@ def require_permission(code):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+def require_any_permission(*codes):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if 'username' not in session:
+                return redirect(url_for('login'))
+            if not any(has_permission(c) for c in codes):
+                raise PermissionDenied()
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def _check_generali_record_org(cursor, table, user_id_col, record_id):
+    """Raises PermissionDenied if record belongs to a user outside the current user's org."""
+    cursor.execute(f"SELECT {user_id_col} FROM {table} WHERE ID = ?", [record_id])
+    rec = cursor.fetchone()
+    if not rec:
+        return  # record not found — UPDATE/DELETE will affect 0 rows
+    record_uid = rec[0]
+    if record_uid == session.get('userid'):
+        return  # own record always allowed
+    nx_conn = engineNexoraDB.raw_connection()
+    nx_cur = nx_conn.cursor()
+    nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [record_uid])
+    org_row = nx_cur.fetchone()
+    nx_cur.close()
+    nx_conn.close()
+    if not org_row or org_row[0] != session.get('organizationcode'):
+        raise PermissionDenied()
 
 def startpage_redirect_to(pV):
     permToFunction = {
@@ -560,66 +590,66 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code, locale = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user("1019")
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user("1019")
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '456' and PWD_REQUEST == '456':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -5094,8 +5124,10 @@ def generali_reporting():
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.reporting.add'),
-                               can_edit=has_permission('generali.reporting.edit'))
+                               can_edit=has_permission('generali.reporting.edit') or has_permission('generali.reporting.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.reporting.edit.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Reporting: {e}")
         return render_template('handlers/500.html'), 500
@@ -5156,11 +5188,11 @@ def api_generali_reporting_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, fullname in nx_cur.fetchall():
-                    user_map[uid] = {'fullname': fullname}
+                for uid, fullname, orgcode in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname, 'orgCode': orgcode}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
@@ -5178,9 +5210,10 @@ def api_generali_reporting_list():
                 'reportTimeStamp':         report_ts.isoformat() if report_ts else None,
                 'reportByUserID':          user_id,
                 'fullname':                user_info.get('fullname'),
+                'orgCode':                 user_info.get('orgCode'),
                 'ontime':                  bool(ontime),
                 'category':                cat
-                
+
             })
             # 'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
             #     'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
@@ -5264,7 +5297,7 @@ def api_generali_reporting_add():
 
 
 @app.route("/api/generali/reporting", methods=["PUT"])
-@require_permission('generali.reporting.edit')
+@require_any_permission('generali.reporting.edit', 'generali.reporting.edit.transorganizational')
 def api_generali_reporting_edit():
     conn = None
     try:
@@ -5287,6 +5320,8 @@ def api_generali_reporting_edit():
 
         conn   = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.reporting.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[dbo].[reportingiss]', 'ReportByUserID', record_id)
         cursor.execute("""
             UPDATE [dbo].[reportingiss]
             SET ReportForDate            = ?,
@@ -5311,12 +5346,14 @@ def api_generali_reporting_edit():
 
 
 @app.route("/api/generali/reporting/<int:record_id>", methods=["DELETE"])
-@require_permission('generali.reporting.edit')
+@require_any_permission('generali.reporting.edit', 'generali.reporting.edit.transorganizational')
 def api_generali_reporting_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.reporting.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[dbo].[reportingiss]', 'ReportByUserID', record_id)
         cursor.execute("DELETE FROM [dbo].[reportingiss] WHERE ID = ?", [record_id])
         conn.commit()
         cursor.close()
@@ -5340,8 +5377,10 @@ def generali_additionalServices():
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.attendance.add'),
-                               can_edit=has_permission('generali.attendance.edit'),
+                               can_edit=has_permission('generali.attendance.edit') or has_permission('generali.attendance.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.attendance.edit.transorganizational'),
                                can_add_for_org=has_permission('generali.attendance.addForOrg'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Attendance: {e}")
@@ -5448,7 +5487,7 @@ def api_generali_attendance_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission('generali.attendance.edit'):
+        if not has_permission('generali.attendance.edit') and not has_permission('generali.attendance.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -5482,11 +5521,11 @@ def api_generali_attendance_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, fullname in nx_cur.fetchall():
-                    user_map[uid] = fullname
+                for uid, fullname, orgcode in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname, 'orgCode': orgcode}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
@@ -5495,11 +5534,13 @@ def api_generali_attendance_list():
         records = []
         for r in rows:
             rec_id, effort, user_id, for_date, parent, sub, recorded_at = r
+            user_info = user_map.get(user_id, {})
             records.append({
                 'id':             rec_id,
                 'effortInHours':  float(effort) if effort is not None else None,
                 'userId':         user_id,
-                'fullname':       user_map.get(user_id),
+                'fullname':       user_info.get('fullname'),
+                'orgCode':        user_info.get('orgCode'),
                 'forDate':        str(for_date) if for_date else None,
                 'parentCategory': parent,
                 'subCategory':    sub,
@@ -5587,7 +5628,7 @@ def api_generali_attendance_add():
 
 
 @app.route("/api/generali/attendance/<int:record_id>", methods=["PUT"])
-@require_permission('generali.attendance.edit')
+@require_any_permission('generali.attendance.edit', 'generali.attendance.edit.transorganizational')
 def api_generali_attendance_edit(record_id):
     conn = None
     try:
@@ -5609,6 +5650,8 @@ def api_generali_attendance_edit(record_id):
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.attendance.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[Attendance]', 'UserID', record_id)
         cursor.execute("""
             UPDATE [Generali].[dbo].[Attendance]
             SET ForDate = ?, ParentCategory = ?, SubCategory = ?, EffortInHours = ?
@@ -5627,12 +5670,14 @@ def api_generali_attendance_edit(record_id):
 
 
 @app.route("/api/generali/attendance/<int:record_id>", methods=["DELETE"])
-@require_permission('generali.attendance.edit')
+@require_any_permission('generali.attendance.edit', 'generali.attendance.edit.transorganizational')
 def api_generali_attendance_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.attendance.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[Attendance]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[Attendance] WHERE ID = ?", [record_id])
         conn.commit()
         cursor.close()
@@ -5657,8 +5702,10 @@ def generali_baseServices():
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.baseservices.add'),
-                               can_edit=has_permission('generali.baseservices.edit'),
+                               can_edit=has_permission('generali.baseservices.edit') or has_permission('generali.baseservices.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.baseservices.edit.transorganizational'),
                                can_add_for_org=has_permission('generali.baseservices.addForOrg'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Base Services: {e}")
@@ -5717,7 +5764,7 @@ def api_generali_baseservices_list():
             where_clauses.append("Category = ?")
             params.append(category)
 
-        if not has_permission('generali.baseservices.edit'):
+        if not has_permission('generali.baseservices.edit') and not has_permission('generali.baseservices.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -5751,11 +5798,11 @@ def api_generali_baseservices_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, fullname in nx_cur.fetchall():
-                    user_map[uid] = fullname
+                for uid, fullname, orgcode in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname, 'orgCode': orgcode}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
@@ -5764,11 +5811,13 @@ def api_generali_baseservices_list():
         records = []
         for r in rows:
             rec_id, effort, user_id, for_date, category_val, recorded_at = r
+            user_info = user_map.get(user_id, {})
             records.append({
                 'id':            rec_id,
                 'effortInHours': float(effort) if effort is not None else None,
                 'userId':        user_id,
-                'fullname':      user_map.get(user_id),
+                'fullname':      user_info.get('fullname'),
+                'orgCode':       user_info.get('orgCode'),
                 'forDate':       str(for_date) if for_date else None,
                 'category':      category_val,
                 'recordDateTime': recorded_at.isoformat() if recorded_at else None,
@@ -5858,7 +5907,7 @@ def api_generali_baseservices_add():
 
 
 @app.route("/api/generali/baseservices/<int:record_id>", methods=["PUT"])
-@require_permission('generali.baseservices.edit')
+@require_any_permission('generali.baseservices.edit', 'generali.baseservices.edit.transorganizational')
 def api_generali_baseservices_edit(record_id):
     conn = None
     try:
@@ -5880,6 +5929,8 @@ def api_generali_baseservices_edit(record_id):
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.baseservices.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[BaseServices]', 'UserID', record_id)
         cursor.execute("""
             UPDATE [Generali].[dbo].[BaseServices]
             SET ForDate = ?, Category = ?, EffortInHours = ?
@@ -5898,12 +5949,14 @@ def api_generali_baseservices_edit(record_id):
 
 
 @app.route("/api/generali/baseservices/<int:record_id>", methods=["DELETE"])
-@require_permission('generali.baseservices.edit')
+@require_any_permission('generali.baseservices.edit', 'generali.baseservices.edit.transorganizational')
 def api_generali_baseservices_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.baseservices.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[BaseServices]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[BaseServices] WHERE ID = ?", [record_id])
         conn.commit()
         cursor.close()
@@ -5928,8 +5981,10 @@ def generali_projectManagement():
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.projectmanagement.add'),
-                               can_edit=has_permission('generali.projectmanagement.edit'),
+                               can_edit=has_permission('generali.projectmanagement.edit') or has_permission('generali.projectmanagement.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.projectmanagement.edit.transorganizational'),
                                can_add_for_org=has_permission('generali.projectmanagement.addForOrg'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Project Management: {e}")
@@ -5984,7 +6039,7 @@ def api_generali_projectmanagement_list():
             where_clauses.append("ForDate <= ?")
             params.append(end_date)
 
-        if not has_permission('generali.projectmanagement.edit'):
+        if not has_permission('generali.projectmanagement.edit') and not has_permission('generali.projectmanagement.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -6018,11 +6073,11 @@ def api_generali_projectmanagement_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, fullname in nx_cur.fetchall():
-                    user_map[uid] = fullname
+                for uid, fullname, orgcode in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname, 'orgCode': orgcode}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
@@ -6031,11 +6086,13 @@ def api_generali_projectmanagement_list():
         records = []
         for r in rows:
             rec_id, effort, user_id, for_date, category_val, comment, recorded_at = r
+            user_info = user_map.get(user_id, {})
             records.append({
                 'id':            rec_id,
                 'effortInHours': float(effort) if effort is not None else None,
                 'userId':        user_id,
-                'fullname':      user_map.get(user_id),
+                'fullname':      user_info.get('fullname'),
+                'orgCode':       user_info.get('orgCode'),
                 'forDate':       str(for_date) if for_date else None,
                 'category':      category_val,
                 'comment':       comment,
@@ -6122,7 +6179,7 @@ def api_generali_projectmanagement_add():
 
 
 @app.route("/api/generali/projectmanagement/<int:record_id>", methods=["PUT"])
-@require_permission('generali.projectmanagement.edit')
+@require_any_permission('generali.projectmanagement.edit', 'generali.projectmanagement.edit.transorganizational')
 def api_generali_projectmanagement_edit(record_id):
     conn = None
     try:
@@ -6143,6 +6200,8 @@ def api_generali_projectmanagement_edit(record_id):
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.projectmanagement.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[ProjectManagement]', 'UserID', record_id)
         cursor.execute("""
             UPDATE [Generali].[dbo].[ProjectManagement]
             SET ForDate = ?, EffortInHours = ?, Comment = ?
@@ -6161,12 +6220,14 @@ def api_generali_projectmanagement_edit(record_id):
 
 
 @app.route("/api/generali/projectmanagement/<int:record_id>", methods=["DELETE"])
-@require_permission('generali.projectmanagement.edit')
+@require_any_permission('generali.projectmanagement.edit', 'generali.projectmanagement.edit.transorganizational')
 def api_generali_projectmanagement_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.projectmanagement.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[ProjectManagement]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[ProjectManagement] WHERE ID = ?", [record_id])
         conn.commit()
         cursor.close()
@@ -6191,8 +6252,10 @@ def generali_pdqm():
                                logged_in_user=session.get('username'),
                                userid=session.get('userid'),
                                pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.pdqm.add'),
-                               can_edit=has_permission('generali.pdqm.edit'))
+                               can_edit=has_permission('generali.pdqm.edit') or has_permission('generali.pdqm.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.pdqm.edit.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali PDQM: {e}")
         return render_template('handlers/500.html'), 500
@@ -6313,11 +6376,11 @@ def api_generali_pdqm_list():
                 nx_cur = nx_conn.cursor()
                 placeholders = ','.join(['?'] * len(user_ids))
                 nx_cur.execute(
-                    f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders})",
+                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
                     user_ids
                 )
-                for uid, fullname in nx_cur.fetchall():
-                    user_map[uid] = fullname
+                for uid, fullname, orgcode in nx_cur.fetchall():
+                    user_map[uid] = {'fullname': fullname, 'orgCode': orgcode}
                 nx_cur.close()
                 nx_conn.close()
             except Exception as ue:
@@ -6326,11 +6389,13 @@ def api_generali_pdqm_list():
         records = []
         for r in rows:
             rec_id, qty, user_id, for_date, parent, parent_sub, sub, recorded_at = r
+            user_info = user_map.get(user_id, {})
             records.append({
                 'id':                rec_id,
                 'quantity':          int(qty) if qty is not None else None,
                 'userId':            user_id,
-                'fullname':          user_map.get(user_id),
+                'fullname':          user_info.get('fullname'),
+                'orgCode':           user_info.get('orgCode'),
                 'forDate':           str(for_date) if for_date else None,
                 'parentCategory':    parent,
                 'parentSubCategory': parent_sub,
@@ -6402,7 +6467,7 @@ def api_generali_pdqm_add():
 
 
 @app.route("/api/generali/pdqm/<int:record_id>", methods=["PUT"])
-@require_permission('generali.pdqm.edit')
+@require_any_permission('generali.pdqm.edit', 'generali.pdqm.edit.transorganizational')
 def api_generali_pdqm_edit(record_id):
     conn = None
     try:
@@ -6427,6 +6492,8 @@ def api_generali_pdqm_edit(record_id):
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.pdqm.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[PDQMReport]', 'UserID', record_id)
         cursor.execute("""
             UPDATE [Generali].[dbo].[PDQMReport]
             SET ForDate = ?, ParentCategory = ?, ParentSubCategory = ?, SubCategory = ?, Quantity = ?
@@ -6445,12 +6512,14 @@ def api_generali_pdqm_edit(record_id):
 
 
 @app.route("/api/generali/pdqm/<int:record_id>", methods=["DELETE"])
-@require_permission('generali.pdqm.edit')
+@require_any_permission('generali.pdqm.edit', 'generali.pdqm.edit.transorganizational')
 def api_generali_pdqm_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
+        if not has_permission('generali.pdqm.edit.transorganizational'):
+            _check_generali_record_org(cursor, '[Generali].[dbo].[PDQMReport]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[PDQMReport] WHERE ID = ?", [record_id])
         conn.commit()
         cursor.close()
@@ -6534,7 +6603,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

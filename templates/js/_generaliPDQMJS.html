@@ -1,8 +1,13 @@
 <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-    const canEdit = document.getElementById('pdqmTable').dataset.canEdit === 'true';
-    const canAdd  = document.getElementById('pdqmTable').dataset.canAdd  === 'true';
+    const canEdit         = document.getElementById('pdqmTable').dataset.canEdit === 'true';
+    const canEditTransOrg  = document.getElementById('pdqmTable').dataset.canEditTransorg === 'true';
+    const currentOrgCode   = document.getElementById('pdqmTable').dataset.orgCode || null;
+    const canAdd           = document.getElementById('pdqmTable').dataset.canAdd  === 'true';
     const colSpan = canEdit ? 8 : 7;
+    function canEditRecord(r) {
+        return canEdit && (canEditTransOrg || r.orgCode === currentOrgCode);
+    }
 
     let currentPage = 1;
     let _currentRecords = [];
@@ -158,14 +163,17 @@
             ? '<span class="text-gray-400">—</span>'
             : `<span class="text-sm text-gray-700">${tParentSub}</span>`;
 
+        const editable = canEditRecord(r);
         const actionsCell = canEdit ? `
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <button onclick="openEditModal(${r.id})"
-                    class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-lg hover:bg-indigo-50 transition mr-1">
+                <button ${editable ? `onclick="openEditModal(${r.id})"` : 'disabled'}
+                    class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1
+                        ${editable ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}">
                     <i class="fas fa-pen text-xs"></i>
                 </button>
-                <button onclick="deleteRecord(${r.id})"
-                    class="inline-flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition">
+                <button ${editable ? `onclick="deleteRecord(${r.id})"` : 'disabled'}
+                    class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition
+                        ${editable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}">
                     <i class="fas fa-trash text-xs"></i>
                 </button>
             </td>` : '';

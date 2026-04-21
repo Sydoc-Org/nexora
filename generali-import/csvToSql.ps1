@@ -1,4 +1,4 @@
-$datafoldergen = "C:\Users\bes\Downloads\gen"
+$datafoldergen = "C:\Users\bes\OneDrive - TCG Informatik AG\Desktop\gen"
 Get-ChildItem $datafoldergen -File | ForEach-Object {
 
 $csvFilePath = $_.FullName
@@ -105,9 +105,9 @@ function Flush_Batch {
 }
 
 foreach ($row in $rows) {
-        $DOC_DateCreated = $row.DOC_DateCreated -ne 'null' ? [datetime]::ParseExact($row.DOC_DateCreated, 'dd.MM.yyyy HH:mm', $null).ToString("yyyy-MM-dd hh:mm:ss") : ''
-        $DOC_SCANDATUM = $row.DOC_SCANDATUM -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM, 'dd.MM.yyyy HH:mm', $null).ToString("yyyy-MM-dd hh:mm:ss") : ''
-        $DOC_SCANDATUM_INITIAL = $row.DOC_SCANDATUM_INITIAL -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM_INITIAL, 'dd.MM.yyyy HH:mm', $null).ToString("yyyy-MM-dd hh:mm:ss"): ''
+        $DOC_DateCreated = $row.DOC_DateCreated -ne 'null' ? [datetime]::ParseExact($row.DOC_DateCreated, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
+        $DOC_SCANDATUM = $row.DOC_SCANDATUM -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
+        $DOC_SCANDATUM_INITIAL = $row.DOC_SCANDATUM_INITIAL -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM_INITIAL, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
         $DOC_SAPCompCreated = ''
         if ($row.DOC_SAPCompCreated -ne 'null') {
             try { $DOC_SAPCompCreated = [datetime]::ParseExact(($row.DOC_SAPCompCreated -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}

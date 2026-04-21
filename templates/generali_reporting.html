@@ -93,7 +93,9 @@
     <!-- Table -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
          id="reportingTable"
-         data-can-edit="{{ can_edit | tojson }}">
+         data-can-edit="{{ can_edit | tojson }}"
+         data-can-edit-transorg="{{ can_edit_transorg | tojson }}"
+         data-org-code="{{ organizationcode }}">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">

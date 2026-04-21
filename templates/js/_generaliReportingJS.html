@@ -1,7 +1,12 @@
 <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-    const canEdit = document.getElementById('reportingTable').dataset.canEdit === 'true';
+    const canEdit        = document.getElementById('reportingTable').dataset.canEdit === 'true';
+    const canEditTransOrg = document.getElementById('reportingTable').dataset.canEditTransorg === 'true';
+    const currentOrgCode  = document.getElementById('reportingTable').dataset.orgCode || null;
     const colSpan = canEdit ? 7 : 6;
+    function canEditRecord(r) {
+        return canEdit && (canEditTransOrg || r.orgCode === currentOrgCode);
+    }
 
     let currentPage = 1;
     let _currentRecords = [];
@@ -153,14 +158,17 @@
                    </td>`
                 : `<td class="px-4 py-3 text-center text-gray-300 text-sm">—</td>`;
 
+            const editable = canEditRecord(r);
             const actionsCell = canEdit ? `
                 <td class="px-4 py-3 text-center whitespace-nowrap">
-                    <button class="edit-record-btn inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-lg hover:bg-indigo-50 transition mr-1"
-                        data-id="${r.id}">
+                    <button class="edit-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition mr-1
+                        ${editable ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}"
+                        data-id="${r.id}" ${editable ? '' : 'disabled'}>
                         <i class="fas fa-pen text-xs"></i>
                     </button>
-                    <button class="delete-record-btn inline-flex items-center text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-lg hover:bg-red-50 transition"
-                        data-id="${r.id}">
+                    <button class="delete-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition
+                        ${editable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}"
+                        data-id="${r.id}" ${editable ? '' : 'disabled'}>
                         <i class="fas fa-trash text-xs"></i>
                     </button>
                 </td>` : '';
