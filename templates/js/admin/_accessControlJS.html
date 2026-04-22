@@ -1,292 +1,213 @@
 <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-    const editorModal = document.getElementById('editorModal');
-    const profileMetaFields = document.getElementById('profileMetaFields');
-    let currentMode = 'profile'; 
 
+    // Drawer & modal DOM refs
+    const permissionDrawer  = document.getElementById('permissionDrawer');
+    const drawerOverlay     = document.getElementById('drawerOverlay');
+    const permMetaModal     = document.getElementById('permissionMetaModal');
+    const confirmDeleteModal= document.getElementById('confirmDeleteModal');
+    const userModal         = document.getElementById('userModal');
+
+    // State
+    let currentMode      = 'profile';
+    let allUsersData     = [];
+    let allPermissionsData = [];
+    let expandedUserId   = null;
+    let expandedPermId   = null;
+    let permMetaMode     = 'add';
+    let pendingDeleteCallback = null;
+    const permissionsMap = {};
+    const usersMap       = {};
+
+    // ── Profile badge colours (cycled by AccessProfileID) ────────────
+    const PROFILE_COLORS = [
+        'bg-indigo-100 text-indigo-700 border-indigo-200',
+        'bg-emerald-100 text-emerald-700 border-emerald-200',
+        'bg-blue-100 text-blue-700 border-blue-200',
+        'bg-violet-100 text-violet-700 border-violet-200',
+        'bg-orange-100 text-orange-700 border-orange-200',
+        'bg-teal-100 text-teal-700 border-teal-200',
+        'bg-rose-100 text-rose-700 border-rose-200',
+        'bg-amber-100 text-amber-700 border-amber-200',
+    ];
+    function profileBadge(name, accessId) {
+        if (!name) return `<span class="text-xs italic text-red-400">{{ _("No Profile") }}</span>`;
+        const c = PROFILE_COLORS[(accessId || 0) % PROFILE_COLORS.length];
+        return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${c}">${escapeHtml(name)}</span>`;
+    }
+
+    // ── Generic helpers ───────────────────────────────────────────────
     function showNotification(message, type = 'success') {
         const container = document.getElementById('notification-container');
-        const notification = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-        notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg mb-2 transition-all duration-500`;
-        notification.innerHTML = `<span class="flex-1">${message}</span>`;
-        container.appendChild(notification);
-        setTimeout(() => notification.remove(), 4000);
+        const n = document.createElement('div');
+        const bg = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+        n.className = `flex items-center w-full p-4 text-white ${bg} rounded-lg shadow-lg mb-2`;
+        n.innerHTML = `<span class="flex-1 text-sm">${message}</span>`;
+        container.appendChild(n);
+        setTimeout(() => n.remove(), 4000);
     }
+
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    function openCenterModal(el) {
+        el.classList.remove('hidden');
+        setTimeout(() => {
+            el.classList.remove('opacity-0');
+            const inner = el.querySelector('.modal-content, div.transform');
+            if (inner) inner.classList.remove('scale-95');
+        }, 10);
+    }
+    function closeCenterModal(el) {
+        el.classList.add('opacity-0');
+        const inner = el.querySelector('.modal-content, div.transform');
+        if (inner) inner.classList.add('scale-95');
+        setTimeout(() => el.classList.add('hidden'), 300);
+    }
+
+    // ── Tabs ──────────────────────────────────────────────────────────
+    const TAB_IDS = ['users', 'permissions', 'profiles'];
+    const BTN_BASE   = "inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300";
+    const BTN_ACTIVE = "inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg";
 
     function switchTab(tabName) {
-        document.getElementById('tab-overview').classList.add('hidden');
-        document.getElementById('tab-profiles').classList.add('hidden');
-
-        const btnBaseClass = "inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300";
-        const btnActiveClass = "inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg active";
-        
-        document.getElementById('tab-overview-btn').className = btnBaseClass;
-        document.getElementById('tab-profiles-btn').className = btnBaseClass;
-
+        TAB_IDS.forEach(id => {
+            document.getElementById(`tab-${id}`).classList.add('hidden');
+            const btn = document.getElementById(`tab-${id}-btn`);
+            if (btn) btn.className = BTN_BASE;
+        });
         document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-        document.getElementById(`tab-${tabName}-btn`).className = btnActiveClass;
+        const ab = document.getElementById(`tab-${tabName}-btn`);
+        if (ab) ab.className = BTN_ACTIVE;
     }
 
-
-    function setupAutoPermissionLogic() {
-        const table = document.querySelector('#permissionForm table');
-        if (!table) return;
-
-        if (table.dataset.hasAutoPermListener) return;
-
-        table.addEventListener('change', (e) => {
-            if (e.target.type === 'radio') {
-                const row = e.target.closest('tr');
-                if (row) {
-                    const isValid = validateViewActivation(row, e.target);
-                    if (isValid) {
-                        syncParentChildPermissions(row);
-                    }
-                }
-            }
-        });
-        table.dataset.hasAutoPermListener = 'true';
-    }
-
-    function validateViewActivation(changedRow, targetInput) {
-        if (targetInput.value !== 'A') return true;
-
-        const codeDiv = changedRow.querySelector('.font-medium');
-        if (!codeDiv) return true;
-
-        const code = codeDiv.innerText.trim();
-        const match = code.match(/^(\w+)\.view$/);
-        if (!match) return true; 
-
-        const pagePrefix = match[1]; 
-        
-        const allRows = document.querySelectorAll('.permission-row');
-        let hasProcessFilters = false;
-        let anyProcessAllowed = false;
-
-        allRows.forEach(row => {
-            const rowCode = row.querySelector('.font-medium').innerText.trim();
-            const permId = row.dataset.permId;
-            
-            if (rowCode.startsWith(`${pagePrefix}.filter.process.`)) {
-                hasProcessFilters = true;
-                const allowRadio = row.querySelector(`input[name="perm_${permId}"][value="A"]`);
-                if (allowRadio && allowRadio.checked) {
-                    anyProcessAllowed = true;
-                }
-            }
-        });
-
-        if (hasProcessFilters && !anyProcessAllowed) {
-            const denyRadio = changedRow.querySelector(`input[value="D"]`);
-            if (denyRadio) denyRadio.checked = true;
-
-            showNotification(`{{ _("Cannot activate") }} ${code}. {{ _("Please enable at least one process filter first.") }}`, 'error');
-            return false;
-        }
-
-        return true; 
-    }
-
-    function syncParentChildPermissions(changedRow) {
-        const codeDiv = changedRow.querySelector('.font-medium');
-        if (!codeDiv) return;
-        
-        const code = codeDiv.innerText.trim();
-        const match = code.match(/^(\w+)\.filter\.process\./);
-        
-        if (!match) return; 
-
-        const pagePrefix = match[1]; 
-        const targetViewCode = `${pagePrefix}.view`;
-
-        const allRows = document.querySelectorAll('.permission-row');
-        let viewRow = null;
-        let anySiblingAllowed = false;
-        let allSiblingsDenied = true;
-        let hasSiblings = false;
-
-        allRows.forEach(row => {
-            const rowCode = row.querySelector('.font-medium').innerText.trim();
-            const permId = row.dataset.permId;
-
-            if (rowCode === targetViewCode) {
-                viewRow = row;
-            }
-
-            if (rowCode.startsWith(`${pagePrefix}.filter.process.`)) {
-                hasSiblings = true;
-                
-                const allowRadio = row.querySelector(`input[name="perm_${permId}"][value="A"]`);
-                const denyRadio = row.querySelector(`input[name="perm_${permId}"][value="D"]`);
-
-                if (allowRadio && allowRadio.checked) anySiblingAllowed = true;
-                if (denyRadio && !denyRadio.checked) allSiblingsDenied = false;
-            }
-        });
-
-        if (!viewRow || !hasSiblings) return;
-
-        const viewPermId = viewRow.dataset.permId;
-        const viewAllowRadio = viewRow.querySelector(`input[name="perm_${viewPermId}"][value="A"]`);
-        const viewDenyRadio = viewRow.querySelector(`input[name="perm_${viewPermId}"][value="D"]`);
-
-        if (anySiblingAllowed) {
-            if (viewAllowRadio && !viewAllowRadio.checked) {
-                viewAllowRadio.checked = true;
-                flashRow(viewRow, 'green');
-                showNotification(`{{ _("Automatically enabled") }} ${targetViewCode}`, 'success');
-            }
-        }
-        else if (allSiblingsDenied) {
-            if (viewDenyRadio && !viewDenyRadio.checked) {
-                viewDenyRadio.checked = true;
-                flashRow(viewRow, 'red');
-                showNotification(`{{ _("Automatically denied") }} ${targetViewCode} {{ _("because all processes are denied.") }}`, 'success');
-            }
-        }
-    }
-
-    function flashRow(row, colorName) {
-        const bgClass = colorName === 'green' ? 'bg-green-50' : 'bg-red-50';
-        row.classList.add(bgClass);
-        setTimeout(() => row.classList.remove(bgClass), 1000);
-    }
-
-
-    function openEditorModal(title, mode) {
+    // ── DRAWER (permission editor, replaces center modal) ─────────────
+    function openDrawer(title, subtitle, mode) {
         currentMode = mode;
-        document.getElementById('editorModalTitle').innerText = title;
 
-        const inheritHeader = document.querySelector('#editorModal thead th:nth-child(2)');
-        const inheritCells = document.querySelectorAll('#editorModal tbody td:nth-child(2)');
+        document.getElementById('drawerTitle').innerText    = title;
+        document.getElementById('drawerSubtitle').innerText = subtitle || '';
+        document.getElementById('drawerPermSearch').value   = '';
+        filterDrawerPerms();
+
+        const inheritHeader = document.getElementById('drawerInheritHeader');
+        const inheritCells  = document.querySelectorAll('#permissionDrawer tbody td:nth-child(2)');
 
         if (mode === 'profile') {
             if (inheritHeader) inheritHeader.style.display = 'none';
             inheritCells.forEach(td => td.style.display = 'none');
-
-            document.querySelectorAll('#editorModal input[type=radio][value="D"]').forEach(r => {
-                r.checked = true;
-            });
+            document.querySelectorAll('#permissionDrawer input[type=radio][value="D"]').forEach(r => r.checked = true);
+            document.getElementById('drawerProfileMeta').classList.remove('hidden');
         } else {
-            if (inheritHeader) inheritHeader.style.display = ''; 
+            if (inheritHeader) inheritHeader.style.display = '';
             inheritCells.forEach(td => td.style.display = '');
-
-            document.querySelectorAll('#editorModal input[type=radio][value="None"]').forEach(r => r.checked = true);
+            document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
+            document.getElementById('drawerProfileMeta').classList.add('hidden');
         }
 
-        document.querySelectorAll('#editorModal input[type=radio]').forEach(r => {
+        document.querySelectorAll('#permissionDrawer input[type=radio]').forEach(r => {
             r.disabled = false;
-            if (r.parentElement) r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
         });
-
-        const modalBody = document.getElementById('editorModal');
-        if (mode === 'profile') {
-            profileMetaFields.classList.remove('hidden');
-        } else {
-            profileMetaFields.classList.add('hidden');
-        }
 
         setupAutoPermissionLogic();
-        
-        editorModal.classList.remove('hidden');
-        setTimeout(() => {
-            editorModal.classList.remove('opacity-0');
-            editorModal.querySelector('div.transform').classList.remove('scale-95');
-        }, 10);
-    }        
-    
-    function closeEditorModal() {
-        editorModal.classList.add('opacity-0');
-        editorModal.querySelector('div.transform').classList.add('scale-95');
-        setTimeout(() => editorModal.classList.add('hidden'), 300);
+        updateDrawerSelectedCount();
+
+        drawerOverlay.classList.remove('hidden');
+        setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
+        permissionDrawer.classList.remove('translate-x-full');
     }
 
-
-    function openProfileModal() {
-        openEditorModal({{ _("Create New Access Profile") | tojson }}, 'profile');
-        document.getElementById('editTargetId').value = 0; 
-        document.getElementById('profileName').value = '';
-        document.getElementById('profileDesc').value = '';
+    function closeDrawer() {
+        permissionDrawer.classList.add('translate-x-full');
+        drawerOverlay.classList.add('opacity-0');
+        setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
     }
 
-    async function editProfile(id, name, desc) {
-        openEditorModal(`{{ _("Edit Profile:") }} ${name}`, 'profile');
-        document.getElementById('editTargetId').value = id;
-        document.getElementById('profileName').value = name;
-        document.getElementById('profileDesc').value = desc;
-
-        try {
-            const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-            const data = await res.json();
-            if(data.success) {
-                applyPermissionsToUI(data.permissions);
-            }
-        } catch(e) { console.error(e); }
-    }
-    let allUsersData = [];
-
-    async function searchUsers() {
-        const query = document.getElementById('userSearchInput').value;
-        const res = await fetch(`${API_PREFIX}api/admin/users`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }}); 
-        const users = await res.json();
-        
-        const resultsContainer = document.getElementById('userSearchResults');
-        resultsContainer.innerHTML = '';
-
-        const filtered = users.filter(u => u.fullname.toLowerCase().includes(query.toLowerCase()) || u.username.toLowerCase().includes(query.toLowerCase()));
-
-        filtered.forEach(u => {
-            const li = document.createElement('li');
-            li.className = "flex justify-between items-center p-3 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer border";
-            li.innerHTML = `<span>${u.fullname} (${u.username})</span> <button class="text-xs bg-indigo-600 text-white px-2 py-1 rounded">{{ _("Manage Permissions") }}</button>`;
-            li.onclick = () => openUserOverrideModal(u.userID, u.username);
-            resultsContainer.appendChild(li);
+    function filterDrawerPerms() {
+        const q = document.getElementById('drawerPermSearch').value.toLowerCase();
+        document.querySelectorAll('.permission-row').forEach(row => {
+            const code = (row.dataset.permCode || '').toLowerCase();
+            const desc = row.querySelector('.text-gray-500')?.innerText.toLowerCase() || '';
+            row.style.display = (!q || code.includes(q) || desc.includes(q)) ? '' : 'none';
         });
     }
 
-    async function openUserOverrideModal(userId, username) {
-        openEditorModal(`{{ _("Overrides for user:") }} ${username}`, 'user');
-        document.getElementById('editTargetId').value = userId;
-
-        try {
-            const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-            const data = await res.json();
-            if(data.success) {
-                
-                for (const [permId, effect] of Object.entries(data.overrides)) {
-                    const radio = document.querySelector(`input[name="perm_${permId}"][value="${effect}"]`);
-                    if(radio) radio.checked = true;
-                }
-
-            }
-        } catch(e) { console.error(e); }
+    function updateDrawerSelectedCount() {
+        let allow = 0, deny = 0;
+        document.querySelectorAll('.permission-row').forEach(row => {
+            const permId = row.dataset.permId;
+            const checked = row.querySelector(`input[name="perm_${permId}"]:checked`);
+            if (checked?.value === 'A') allow++;
+            else if (checked?.value === 'D') deny++;
+        });
+        const el = document.getElementById('drawerSelectedCount');
+        if (el) el.innerText = `${allow} {{ _("allowed") }}, ${deny} {{ _("denied") }}`;
     }
 
+    document.getElementById('permissionForm')?.addEventListener('change', updateDrawerSelectedCount);
 
-    function applyPermissionsToUI(permissionsList) {
-            permissionsList.forEach(p => {
-                const radio = document.querySelector(`input[name="perm_${p.PermissionID}"][value="${p.Effect}"]`);
-                if (radio) radio.checked = true;
+    // ── Profile drawer ────────────────────────────────────────────────
+    function openProfileDrawer() {
+        openDrawer({{ _("Create New Access Profile") | tojson }}, '', 'profile');
+        document.getElementById('editTargetId').value = 0;
+        document.getElementById('profileName').value  = '';
+        document.getElementById('profileDesc').value  = '';
+    }
+
+    async function editProfile(id) {
+        const p = profilesMap[id] || {};
+        openDrawer(`{{ _("Edit Profile:") }} ${p.name || ''}`, `{{ _("Adjust permissions assigned to this profile") }}`, 'profile');
+        document.getElementById('editTargetId').value = id;
+        document.getElementById('profileName').value  = p.name || '';
+        document.getElementById('profileDesc').value  = p.desc || '';
+        try {
+            const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
             });
+            const data = await res.json();
+            if (data.success) {
+                data.permissions.forEach(p => {
+                    const r = document.querySelector(`input[name="perm_${p.PermissionID}"][value="${p.Effect}"]`);
+                    if (r) r.checked = true;
+                });
+                updateDrawerSelectedCount();
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // ── User override drawer ──────────────────────────────────────────
+    async function openUserOverrideModal(userId) {
+        const u = usersMap[userId] || {};
+        openDrawer(
+            `{{ _("Overrides for") }} ${u.username || userId}`,
+            `{{ _("Overrides take priority over the user's access profile") }}`,
+            'user'
+        );
+        document.getElementById('editTargetId').value = userId;
+        try {
+            const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (data.success) {
+                for (const [permId, effect] of Object.entries(data.overrides)) {
+                    const r = document.querySelector(`input[name="perm_${permId}"][value="${effect}"]`);
+                    if (r) r.checked = true;
+                }
+                updateDrawerSelectedCount();
+            }
+        } catch (e) { console.error(e); }
     }
 
     async function savePermissions() {
-        const targetId = document.getElementById('editTargetId').value;
+        const targetId    = document.getElementById('editTargetId').value;
         const permissions = [];
-        
         document.querySelectorAll('.permission-row').forEach(row => {
-            const permId = row.dataset.permId;
+            const permId  = row.dataset.permId;
             const checked = row.querySelector(`input[name="perm_${permId}"]:checked`);
             if (checked && checked.value !== 'None') {
                 permissions.push({ PermissionID: permId, Effect: checked.value });
@@ -294,37 +215,36 @@
         });
 
         let url, payload;
-
         if (currentMode === 'profile') {
-            url = `${API_PREFIX}api/admin/access_profile/save`;
+            url     = `${API_PREFIX}api/admin/access_profile/save`;
             payload = {
-                accessId: targetId == 0 ? null : targetId,
-                name: document.getElementById('profileName').value,
+                accessId:    targetId == 0 ? null : targetId,
+                name:        document.getElementById('profileName').value,
                 description: document.getElementById('profileDesc').value,
-                permissions: permissions
+                permissions
             };
         } else {
-            url = `${API_PREFIX}api/admin/user_overrides/save`;
-            payload = {
-                userId: targetId,
-                overrides: permissions
-            };
+            url     = `${API_PREFIX}api/admin/user_overrides/save`;
+            payload = { userId: targetId, overrides: permissions };
         }
 
         try {
             const res = await fetch(url, {
                 method: 'POST',
-                headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(payload)
             });
             const result = await res.json();
             if (result.success) {
                 showNotification(result.message);
-                closeEditorModal();
-                if(currentMode === 'profile') setTimeout(() => location.reload(), 1000);
+                closeDrawer();
+                if (currentMode === 'profile') {
+                    localStorage.setItem('acl_tab', 'profiles');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    await fetchAllUsers();
+                    collapseUserRow(expandedUserId);
+                }
             } else {
                 showNotification(result.message, 'error');
             }
@@ -333,112 +253,548 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        fetchAllUsers();
-    });
+    // ── Auto permission logic (view/process filter sync) ──────────────
+    function setupAutoPermissionLogic() {
+        const table = document.querySelector('#permissionForm table');
+        if (!table || table.dataset.hasListener) return;
+        table.addEventListener('change', e => {
+            if (e.target.type === 'radio') {
+                const row = e.target.closest('tr');
+                if (row && validateViewActivation(row, e.target)) {
+                    syncParentChildPermissions(row);
+                }
+            }
+        });
+        table.dataset.hasListener = 'true';
+    }
 
-    async function fetchAllUsers() {
-        const tableBody = document.getElementById('overviewTableBody');
-        
-        try {
-            const res = await fetch(`${API_PREFIX}api/admin/users`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
-                }});
-            if (!res.ok) throw new Error('Failed to load');
-            
-            allUsersData = await res.json();
-            
-            renderOverviewTable(allUsersData);
-            
-        } catch (error) {
-            console.error(error);
-            tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">{{ _("Error loading data.") }}</td></tr>`;
+    function validateViewActivation(changedRow, input) {
+        if (input.value !== 'A') return true;
+        const code = changedRow.querySelector('.font-medium')?.innerText.trim();
+        const match = code?.match(/^(\w+)\.view$/);
+        if (!match) return true;
+        const prefix = match[1];
+        let hasFilters = false, anyAllowed = false;
+        document.querySelectorAll('.permission-row').forEach(row => {
+            const rc = row.querySelector('.font-medium')?.innerText.trim();
+            const pid = row.dataset.permId;
+            if (rc?.startsWith(`${prefix}.filter.process.`)) {
+                hasFilters = true;
+                if (row.querySelector(`input[name="perm_${pid}"][value="A"]`)?.checked) anyAllowed = true;
+            }
+        });
+        if (hasFilters && !anyAllowed) {
+            changedRow.querySelector('input[value="D"]').checked = true;
+            showNotification(`{{ _("Cannot activate") }} ${code}. {{ _("Enable at least one process filter first.") }}`, 'error');
+            return false;
+        }
+        return true;
+    }
+
+    function syncParentChildPermissions(changedRow) {
+        const code  = changedRow.querySelector('.font-medium')?.innerText.trim();
+        const match = code?.match(/^(\w+)\.filter\.process\./);
+        if (!match) return;
+        const prefix      = match[1];
+        const viewCode    = `${prefix}.view`;
+        let viewRow = null, anyAllowed = false, allDenied = true, hasSiblings = false;
+        document.querySelectorAll('.permission-row').forEach(row => {
+            const rc  = row.querySelector('.font-medium')?.innerText.trim();
+            const pid = row.dataset.permId;
+            if (rc === viewCode) viewRow = row;
+            if (rc?.startsWith(`${prefix}.filter.process.`)) {
+                hasSiblings = true;
+                if (row.querySelector(`input[name="perm_${pid}"][value="A"]`)?.checked) anyAllowed = true;
+                if (!row.querySelector(`input[name="perm_${pid}"][value="D"]`)?.checked) allDenied = false;
+            }
+        });
+        if (!viewRow || !hasSiblings) return;
+        const vpid = viewRow.dataset.permId;
+        if (anyAllowed) {
+            const r = viewRow.querySelector(`input[name="perm_${vpid}"][value="A"]`);
+            if (r && !r.checked) { r.checked = true; flashRow(viewRow, 'green'); showNotification(`{{ _("Auto-enabled") }} ${viewCode}`); }
+        } else if (allDenied) {
+            const r = viewRow.querySelector(`input[name="perm_${vpid}"][value="D"]`);
+            if (r && !r.checked) { r.checked = true; flashRow(viewRow, 'red'); showNotification(`{{ _("Auto-denied") }} ${viewCode}`); }
         }
     }
-    function renderOverviewTable(users) {
-        const tbody = document.getElementById('overviewTableBody');
-        tbody.innerHTML = '';
 
-        if (users.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">{{ _("No users found.") }}</td></tr>`;
+    function flashRow(row, color) {
+        const cls = color === 'green' ? 'bg-green-50' : 'bg-red-50';
+        row.classList.add(cls);
+        setTimeout(() => row.classList.remove(cls), 900);
+    }
+
+    // ── USERS TAB ─────────────────────────────────────────────────────
+    async function fetchAllUsers() {
+        try {
+            const res = await fetch(`${API_PREFIX}api/admin/users`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            if (!res.ok) throw new Error();
+            allUsersData = await res.json();
+            renderUsersTable(allUsersData);
+        } catch {
+            document.getElementById('usersTableBody').innerHTML =
+                `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">{{ _("Error loading data.") }}</td></tr>`;
+        }
+    }
+
+    function renderUsersTable(users) {
+        const tbody = document.getElementById('usersTableBody');
+        if (!users.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">{{ _("No users found.") }}</td></tr>`;
             return;
         }
-
+        tbody.innerHTML = '';
         users.forEach(u => {
+            usersMap[u.userID] = u;
+            const badge = profileBadge(u.AccessProfileName, u.AccessProfileID);
+            const overrideBadge = u.OverrideCount > 0
+                ? `<span class="px-2 py-0.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full border border-yellow-200">${u.OverrideCount} {{ _("overrides") }}</span>`
+                : `<span class="px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded-full">{{ _("default") }}</span>`;
+
+            const actionBtns = [
+                `<button onclick="openUserOverrideModal(${u.userID})"
+                        class="text-indigo-500 hover:text-indigo-700 text-xs font-medium" title="{{ _('Manage Overrides') }}">
+                    <i class="fas fa-shield-alt mr-1"></i>{{ _("Overrides") }}
+                </button>`
+            ];
+            // Edit / Delete injected only if the server passed can_edit/delete flags
+            // We rely on the 403 from the API — buttons are always shown for simplicity
+            actionBtns.push(
+                `<button onclick="openEditUserModal(${u.userID})"
+                        class="text-gray-500 hover:text-indigo-600 text-xs font-medium" title="{{ _('Edit User') }}">
+                    <i class="fas fa-user-edit mr-1"></i>{{ _("Edit") }}
+                </button>`,
+                `<button onclick="deleteUser(${u.userID})"
+                        class="text-gray-400 hover:text-red-600 text-xs" title="{{ _('Delete') }}">
+                    <i class="fas fa-trash-alt"></i>
+                </button>`
+            );
+
             const tr = document.createElement('tr');
             tr.className = "bg-white border-b hover:bg-gray-50 transition";
-
-            const hasOverrides = u.OverrideCount > 0;
-            const overrideBadge = hasOverrides 
-                ? `<span class="px-2 py-1 text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-full border border-yellow-200">${u.OverrideCount} {{ _("Overrides") }}</span>`
-                : `<span class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">{{ _("Default") }}</span>`;
-
-            const profileName = u.AccessProfileName || `<span class="text-red-400 italic">{{ _("No Profile") }}</span>`;
-
+            tr.id = `user-row-${u.userID}`;
             tr.innerHTML = `
-                <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900">${u.fullname}</div>
-                    <div class="text-xs text-gray-500">@${u.username}</div>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-700">
-                    ${profileName}
-                </td>
-                <td class="px-6 py-4 text-center">
-                    ${overrideBadge}
-                </td>
-                <td class="px-6 py-4 text-right">
-                    <button onclick="openUserOverrideModal('${u.userID}', '${u.username}')" 
-                        class="text-indigo-600 hover:text-indigo-900 font-medium text-sm">
-                        {{ _("Manage Permissions") }}
+                <td class="px-4 py-4">
+                    <button onclick="toggleUserExpand(${u.userID})"
+                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="user-expand-icon-${u.userID}"></i>
                     </button>
                 </td>
-            `;
+                <td class="px-6 py-4">
+                    <div class="font-medium text-gray-900 text-sm">${escapeHtml(u.fullname)}</div>
+                    <div class="text-xs text-gray-400">@${escapeHtml(u.username)}</div>
+                    <div class="text-xs text-gray-400">${escapeHtml(u.email || '')}</div>
+                </td>
+                <td class="px-6 py-4">${badge}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(u.organization || '—')}</td>
+                <td class="px-6 py-4 text-center">${overrideBadge}</td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end space-x-3">${actionBtns.join('')}</div>
+                </td>`;
             tbody.appendChild(tr);
         });
     }
 
-    function filterOverviewTable() {
-        const query = document.getElementById('overviewSearchInput').value.toLowerCase();
-        const filtered = allUsersData.filter(u => 
-            (u.fullname && u.fullname.toLowerCase().includes(query)) || 
-            (u.username && u.username.toLowerCase().includes(query)) ||
-            (u.AccessProfileName && u.AccessProfileName.toLowerCase().includes(query))
-        );
-        renderOverviewTable(filtered);
+    function filterUsersTable() {
+        const q = document.getElementById('userSearchInput').value.toLowerCase();
+        renderUsersTable(allUsersData.filter(u =>
+            (u.fullname || '').toLowerCase().includes(q) ||
+            (u.username || '').toLowerCase().includes(q) ||
+            (u.email || '').toLowerCase().includes(q) ||
+            (u.AccessProfileName || '').toLowerCase().includes(q) ||
+            (u.organization || '').toLowerCase().includes(q)
+        ));
     }
 
-    function filterUsers() {
-        const query = document.getElementById('userSearchInput').value.toLowerCase();
-        
-        const filtered = allUsersData.filter(u => 
-            (u.fullname && u.fullname.toLowerCase().includes(query)) || 
-            (u.username && u.username.toLowerCase().includes(query))
-        );
-        
-        renderUserList(filtered);
+    function collapseUserRow(userId) {
+        if (!userId) return;
+        const row = document.getElementById(`user-detail-row-${userId}`);
+        if (row) row.remove();
+        const icon = document.getElementById(`user-expand-icon-${userId}`);
+        if (icon) { icon.style.transform = ''; icon.classList.remove('text-indigo-600'); }
+        expandedUserId = null;
     }
 
+    async function toggleUserExpand(userId) {
+        const icon = document.getElementById(`user-expand-icon-${userId}`);
+        if (document.getElementById(`user-detail-row-${userId}`)) {
+            collapseUserRow(userId);
+            return;
+        }
+        collapseUserRow(expandedUserId);
+        expandedUserId = userId;
+        icon.style.transform = 'rotate(90deg)';
+        icon.classList.add('text-indigo-600');
 
-function setPermissionNone(id) {
-    if (currentMode === 'profile') {
-        const DenyRadio = document.querySelector(`input[name="perm_${id}"][value="D"]`);
-        if (DenyRadio) DenyRadio.checked = true;
-    } else {
-        const NoneRadio = document.querySelector(`input[name="perm_${id}"][value="None"]`);
-        if (NoneRadio) NoneRadio.checked = true;
+        const userRow   = document.getElementById(`user-row-${userId}`);
+        const detailRow = document.createElement('tr');
+        detailRow.id    = `user-detail-row-${userId}`;
+        detailRow.innerHTML = `<td colspan="6" class="bg-indigo-50 px-8 py-4 text-center text-sm text-gray-400">{{ _("Loading permissions...") }}</td>`;
+        userRow.insertAdjacentElement('afterend', detailRow);
+
+        try {
+            const res  = await fetch(`${API_PREFIX}api/admin/users/${userId}/all_permissions`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            const relevant  = data.permissions.filter(p => p.IsEffective || p.OverrideEffect || p.ProfileEffect);
+            const effective = relevant.filter(p => p.IsEffective);
+            const denied    = relevant.filter(p => !p.IsEffective);
+
+            let rows = [...effective, ...denied].map(p => {
+                const src    = sourceLabel(p.OverrideEffect, p.ProfileEffect);
+                const status = p.IsEffective
+                    ? `<i class="fas fa-check-circle text-green-500"></i>`
+                    : `<i class="fas fa-times-circle text-red-300"></i>`;
+                return `<tr class="border-t border-gray-100 ${p.IsEffective ? '' : 'opacity-50'}">
+                    <td class="px-4 py-2 font-mono text-xs text-gray-800">${escapeHtml(p.Code)}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500">${escapeHtml(p.Description)}</td>
+                    <td class="px-4 py-2 text-xs">${src}</td>
+                    <td class="px-4 py-2 text-center">${status}</td>
+                </tr>`;
+            }).join('') || `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-400 text-xs">{{ _("No permissions assigned.") }}</td></tr>`;
+
+            detailRow.innerHTML = `<td colspan="6" class="bg-indigo-50 px-6 py-3 border-b border-indigo-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-indigo-700">
+                        {{ _("Effective permissions") }}: ${effective.length}
+                        ${denied.length ? `<span class="ml-2 font-normal text-gray-500">+ ${denied.length} {{ _("denied/overridden") }}</span>` : ''}
+                    </span>
+                </div>
+                <div class="overflow-x-auto rounded border border-indigo-200 bg-white">
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-100 text-indigo-700 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-2">{{ _("Permission") }}</th>
+                                <th class="px-4 py-2">{{ _("Description") }}</th>
+                                <th class="px-4 py-2">{{ _("Source") }}</th>
+                                <th class="px-4 py-2 text-center">{{ _("Active") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </td>`;
+        } catch {
+            detailRow.innerHTML = `<td colspan="6" class="bg-red-50 px-6 py-3 text-sm text-red-400">{{ _("Error loading permissions.") }}</td>`;
+        }
     }
-}
 
-function toggleRowInputs(id, shouldDisable) {
-    const otherRadios = document.querySelectorAll(`input[name="perm_${id}"]:not([value="A"])`);
-    otherRadios.forEach(r => {
-        r.disabled = shouldDisable;
-        if (shouldDisable) {
-            r.parentElement.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            r.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
+    // ── USER CRUD ─────────────────────────────────────────────────────
+    function openAddUserModal() {
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('userModalTitle').innerText = {{ _("Add User") | tojson }};
+        document.getElementById('password-help').classList.add('hidden');
+        document.getElementById('password').required = true;
+        openCenterModal(userModal);
+    }
+
+    function openEditUserModal(userId) {
+        const u = usersMap[userId];
+        if (!u) return;
+        document.getElementById('userForm').reset();
+        document.getElementById('userModalTitle').innerText = {{ _("Edit User") | tojson }};
+        document.getElementById('userId').value      = u.userID;
+        document.getElementById('username').value    = u.username;
+        document.getElementById('fullname').value    = u.fullname;
+        document.getElementById('email').value       = u.email || '';
+        document.getElementById('accessprofile').value = u.AccessProfileName || '';
+        document.getElementById('organization').value  = u.organization || '';
+        document.getElementById('password-help').classList.remove('hidden');
+        document.getElementById('password').required = false;
+        openCenterModal(userModal);
+    }
+
+    function closeUserModal() { closeCenterModal(userModal); }
+
+    document.getElementById('userForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const data   = Object.fromEntries(new FormData(this).entries());
+        const userId = data.userId;
+        const url    = userId ? `${API_PREFIX}admin/users/edit/${userId}` : `${API_PREFIX}admin/users/add`;
+        if (userId && !data.password) delete data.password;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(data)
+            });
+            if (res.status === 403) {
+                showNotification({{ _("You do not have permission to perform this action.") | tojson }}, 'error');
+                return;
+            }
+            const result = await res.json();
+            if (res.ok) {
+                closeUserModal();
+                showNotification({{ _("User saved successfully.") | tojson }});
+                fetchAllUsers();
+            } else {
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+            }
+        } catch {
+            showNotification({{ _("Network error") | tojson }}, 'error');
         }
     });
-}
+
+    function deleteUser(userId) {
+        const u = usersMap[userId];
+        document.getElementById('confirmDeleteMessage').innerText =
+            `{{ _("Are you sure you want to delete user") }} "${u ? u.fullname : userId}"? {{ _("This cannot be undone.") }}`;
+        pendingDeleteCallback = async () => {
+            try {
+                const res = await fetch(`${API_PREFIX}admin/users/delete/${userId}`, {
+                    method: 'DELETE', headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (res.status === 403) {
+                    showNotification({{ _("You do not have permission to delete this user.") | tojson }}, 'error');
+                    return;
+                }
+                const result = await res.json();
+                if (res.ok) { showNotification({{ _("User deleted.") | tojson }}); fetchAllUsers(); }
+                else showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+            } catch { showNotification({{ _("Network error") | tojson }}, 'error'); }
+        };
+        document.getElementById('confirmDeleteBtn').onclick = () => { closeConfirmDeleteModal(); pendingDeleteCallback(); };
+        openCenterModal(confirmDeleteModal);
+    }
+
+    // ── PERMISSIONS TAB ───────────────────────────────────────────────
+    async function fetchAllPermissions() {
+        try {
+            const res = await fetch(`${API_PREFIX}api/admin/permissions/list`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            if (!res.ok) throw new Error();
+            allPermissionsData = await res.json();
+            renderPermissionsTable(allPermissionsData);
+        } catch {
+            document.getElementById('permissionsTableBody').innerHTML =
+                `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">{{ _("Error loading data.") }}</td></tr>`;
+        }
+    }
+
+    function renderPermissionsTable(perms) {
+        const tbody = document.getElementById('permissionsTableBody');
+        if (!perms.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">{{ _("No permissions found.") }}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = '';
+        perms.forEach(p => {
+            permissionsMap[p.PermissionID] = p;
+            const sortLabel = p.SortingCode ? `<div class="text-xs text-gray-400">#${escapeHtml(p.SortingCode)}</div>` : '';
+            const tr = document.createElement('tr');
+            tr.className = "bg-white border-b hover:bg-gray-50 transition";
+            tr.id = `perm-row-${p.PermissionID}`;
+            tr.innerHTML = `
+                <td class="px-4 py-4">
+                    <button onclick="togglePermExpand(${p.PermissionID})"
+                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
+                    </button>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="font-mono text-sm font-medium text-gray-900">${escapeHtml(p.Code)}</div>
+                    ${sortLabel}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(p.Description)}</td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-0.5 text-xs rounded-full ${p.ProfileCount > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${p.ProfileCount}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-0.5 text-xs rounded-full ${p.OverrideCount > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}">${p.OverrideCount}</span>
+                </td>
+                <td class="px-6 py-4 text-right space-x-3">
+                    <button onclick="openEditPermissionModal(${p.PermissionID})"
+                            class="text-indigo-400 hover:text-indigo-700 text-sm" title="{{ _('Edit') }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="confirmDeletePermission(${p.PermissionID})"
+                            class="text-red-300 hover:text-red-600 text-sm" title="{{ _('Delete') }}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterPermissionsTable() {
+        const q = document.getElementById('permSearchInput').value.toLowerCase();
+        renderPermissionsTable(allPermissionsData.filter(p =>
+            p.Code.toLowerCase().includes(q) || p.Description.toLowerCase().includes(q)
+        ));
+    }
+
+    async function togglePermExpand(permId) {
+        const icon = document.getElementById(`perm-expand-icon-${permId}`);
+        if (document.getElementById(`perm-detail-row-${permId}`)) {
+            document.getElementById(`perm-detail-row-${permId}`).remove();
+            icon.style.transform = ''; icon.classList.remove('text-indigo-600');
+            expandedPermId = null; return;
+        }
+        if (expandedPermId !== null) {
+            const prev = document.getElementById(`perm-detail-row-${expandedPermId}`);
+            if (prev) prev.remove();
+            const pi = document.getElementById(`perm-expand-icon-${expandedPermId}`);
+            if (pi) { pi.style.transform = ''; pi.classList.remove('text-indigo-600'); }
+        }
+        expandedPermId = permId;
+        icon.style.transform = 'rotate(90deg)'; icon.classList.add('text-indigo-600');
+
+        const permRow   = document.getElementById(`perm-row-${permId}`);
+        const detailRow = document.createElement('tr');
+        detailRow.id    = `perm-detail-row-${permId}`;
+        detailRow.innerHTML = `<td colspan="6" class="bg-green-50 px-8 py-4 text-center text-sm text-gray-400">{{ _("Loading...") }}</td>`;
+        permRow.insertAdjacentElement('afterend', detailRow);
+
+        try {
+            const res  = await fetch(`${API_PREFIX}api/admin/permissions/${permId}/users`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            const withPerm  = data.users.filter(u => u.HasPermission);
+            const explDenied= data.users.filter(u => !u.HasPermission && (u.OverrideEffect === 'D' || u.ProfileEffect === 'D'));
+
+            const rows = [...withPerm, ...explDenied].map(u => {
+                const src    = sourceLabel(u.OverrideEffect, u.ProfileEffect);
+                const status = u.HasPermission
+                    ? `<span class="text-green-600 font-medium text-xs"><i class="fas fa-check-circle mr-1"></i>{{ _("Yes") }}</span>`
+                    : `<span class="text-red-400 text-xs"><i class="fas fa-times-circle mr-1"></i>{{ _("Denied") }}</span>`;
+                return `<tr class="border-t border-gray-100 ${u.HasPermission ? '' : 'opacity-60'}">
+                    <td class="px-4 py-2 text-xs">
+                        <div class="font-medium text-gray-800">${escapeHtml(u.fullname)}</div>
+                        <div class="text-gray-400">@${escapeHtml(u.username)}</div>
+                    </td>
+                    <td class="px-4 py-2 text-xs text-gray-600">${escapeHtml(u.AccessProfileName || '—')}</td>
+                    <td class="px-4 py-2 text-xs">${src}</td>
+                    <td class="px-4 py-2 text-center">${status}</td>
+                </tr>`;
+            }).join('') || `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-400 text-xs">{{ _("No users have this permission assigned.") }}</td></tr>`;
+
+            detailRow.innerHTML = `<td colspan="6" class="bg-green-50 px-6 py-3 border-b border-green-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-green-800">
+                        {{ _("Users with this permission") }}: ${withPerm.length}
+                        ${explDenied.length ? `<span class="ml-2 font-normal text-gray-500">+ ${explDenied.length} {{ _("explicitly denied") }}</span>` : ''}
+                    </span>
+                </div>
+                <div class="overflow-x-auto rounded border border-green-200 bg-white">
+                    <table class="w-full text-left">
+                        <thead class="bg-green-100 text-green-700 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-2">{{ _("User") }}</th>
+                                <th class="px-4 py-2">{{ _("Profile") }}</th>
+                                <th class="px-4 py-2">{{ _("Source") }}</th>
+                                <th class="px-4 py-2 text-center">{{ _("Has Permission") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </td>`;
+        } catch {
+            detailRow.innerHTML = `<td colspan="6" class="bg-red-50 px-6 py-3 text-sm text-red-400">{{ _("Error loading data.") }}</td>`;
+        }
+    }
+
+    // ── ADD / EDIT PERMISSION META ────────────────────────────────────
+    function openAddPermissionModal() {
+        permMetaMode = 'add';
+        document.getElementById('permMetaModalTitle').innerText = {{ _("Add Permission") | tojson }};
+        ['permMetaId','permMetaCode','permMetaDescription','permMetaSortingCode'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        openCenterModal(permMetaModal);
+    }
+
+    function openEditPermissionModal(id) {
+        const p = permissionsMap[id]; if (!p) return;
+        permMetaMode = 'edit';
+        document.getElementById('permMetaModalTitle').innerText = {{ _("Edit Permission") | tojson }};
+        document.getElementById('permMetaId').value          = id;
+        document.getElementById('permMetaCode').value        = p.Code;
+        document.getElementById('permMetaDescription').value = p.Description;
+        document.getElementById('permMetaSortingCode').value = p.SortingCode || '';
+        openCenterModal(permMetaModal);
+    }
+
+    function closePermMetaModal() { closeCenterModal(permMetaModal); }
+
+    async function savePermissionMeta() {
+        const code        = document.getElementById('permMetaCode').value.trim();
+        const description = document.getElementById('permMetaDescription').value.trim();
+        const sortingCode = document.getElementById('permMetaSortingCode').value.trim();
+        const id          = document.getElementById('permMetaId').value;
+        if (!code || !description) {
+            showNotification({{ _("Code and description are required.") | tojson }}, 'error'); return;
+        }
+        const url = permMetaMode === 'add'
+            ? `${API_PREFIX}api/admin/permissions/add`
+            : `${API_PREFIX}api/admin/permissions/edit/${id}`;
+        try {
+            const res    = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ code, description, sortingCode })
+            });
+            const result = await res.json();
+            if (result.success) {
+                showNotification(result.message);
+                closePermMetaModal();
+                localStorage.setItem('acl_tab', 'permissions');
+                setTimeout(() => location.reload(), 800);
+            } else { showNotification(result.message, 'error'); }
+        } catch { showNotification({{ _("Network error") | tojson }}, 'error'); }
+    }
+
+    // ── DELETE PERMISSION ─────────────────────────────────────────────
+    function confirmDeletePermission(permId) {
+        const p = permissionsMap[permId];
+        document.getElementById('confirmDeleteMessage').innerText =
+            `{{ _("Are you sure you want to delete") }} "${p ? p.Code : permId}"?`;
+        pendingDeleteCallback = async () => {
+            try {
+                const res    = await fetch(`${API_PREFIX}api/admin/permissions/delete/${permId}`, {
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                const result = await res.json();
+                if (result.success) { showNotification(result.message); fetchAllPermissions(); }
+                else showNotification(result.message, 'error');
+            } catch { showNotification({{ _("Network error") | tojson }}, 'error'); }
+        };
+        document.getElementById('confirmDeleteBtn').onclick = () => { closeConfirmDeleteModal(); pendingDeleteCallback(); };
+        openCenterModal(confirmDeleteModal);
+    }
+
+    function closeConfirmDeleteModal() { closeCenterModal(confirmDeleteModal); }
+
+    // ── SHARED SOURCE LABEL ───────────────────────────────────────────
+    function sourceLabel(overrideEffect, profileEffect) {
+        if (overrideEffect === 'A') return `<span class="text-purple-700 font-medium text-xs"><i class="fas fa-user-check mr-1"></i>{{ _("Override Allow") }}</span>`;
+        if (overrideEffect === 'D') return `<span class="text-red-700 font-medium text-xs"><i class="fas fa-user-times mr-1"></i>{{ _("Override Deny") }}</span>`;
+        if (profileEffect  === 'A') return `<span class="text-blue-600 text-xs"><i class="fas fa-id-badge mr-1"></i>{{ _("Profile Allow") }}</span>`;
+        if (profileEffect  === 'D') return `<span class="text-orange-600 text-xs"><i class="fas fa-ban mr-1"></i>{{ _("Profile Deny") }}</span>`;
+        return `<span class="text-gray-400 text-xs">{{ _("No assignment") }}</span>`;
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchAllUsers();
+        fetchAllPermissions();
+
+        const saved = localStorage.getItem('acl_tab');
+        if (saved && TAB_IDS.includes(saved)) {
+            switchTab(saved);
+            localStorage.removeItem('acl_tab');
+        }
+    });
 </script>

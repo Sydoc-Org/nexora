@@ -16,8 +16,6 @@
 </head>
 
 <body>
-
-    <!-- Mobile hamburger toggle + backdrop (only visible <768px) -->
     <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button">
         <i class="fas fa-bars"></i>
     </button>
@@ -31,7 +29,7 @@
 
         <nav class="sidebar-nav">
             {% set nav_items = [
-                {'perm': pageV.adminPagePerm,     'url': url_for('admin_dashboard'),     'icon': 'fa-shield-halved',       'label': _('Admin'),     'active': active_page in ['adminOverview','userManagement','organizations','mobscan_management']},
+                {'perm': pageV.adminPagePerm,     'url': url_for('admin_dashboard'),     'icon': 'fa-shield-halved',       'label': _('Admin'),     'active': active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions']},
                 {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),      'active': active_page == 'chat'},
                 {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
                 {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},

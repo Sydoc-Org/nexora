@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -590,66 +590,66 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code, locale = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user("1019")
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user("1019")
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '456' and PWD_REQUEST == '456':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials"))
 
@@ -798,23 +798,23 @@ def admin_dashboard():
                          logged_in_user=session.get('username'), 
                          userid=session.get('userid'), pageV=pageVisability())
 
-@app.route("/admin/mobscn_processmanagement")
-@require_permission('admin.view.mobscn.processmanagement')
-def admin_mobscn_processmanagement():
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            select ClientName, Name from [VM-SQLS-MOBSCAN].RuntimeDatabase.dbo.t_Processes where name <> 'System'
-        """)
-        rows = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        return render_template("admin/mobscn_processmanagement.html", rows=rows, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
-    except Exception as e:
-        app.logger.error(f"Failed to fetch mobscn_processmanagement: {e}")
-        return render_template('500.html')
-    finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
+# @app.route("/admin/mobscn_processmanagement")
+# @require_permission('admin.view.mobscn.processmanagement')
+# def admin_mobscn_processmanagement():
+#     try:
+#         conn = engineOctoDB.raw_connection()
+#         cursor = conn.cursor()
+#         cursor.execute("""
+#             select ClientName, Name from [VM-SQLS-MOBSCAN].RuntimeDatabase.dbo.t_Processes where name <> 'System'
+#         """)
+#         rows = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+#         return render_template("admin/mobscn_processmanagement.html", rows=rows, logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+#     except Exception as e:
+#         app.logger.error(f"Failed to fetch mobscn_processmanagement: {e}")
+#         return render_template('500.html')
+#     finally:
+#             if cursor: cursor.close()
+#             if conn: conn.close()
 
 
 @app.route("/admin/organizations")
@@ -944,47 +944,6 @@ def api_admin_organizations_list():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-
-@app.route("/admin/users")
-@require_permission('admin.view.users')
-def admin_users():
-    conn = None
-    try:
-        conn = engineNexoraDB.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization FROM Users u
-            join accessprofile ap on ap.accessid = u.accessid
-            join organizations o on o.organizationcode = u.organizationcode 
-            ORDER BY username
-        """)
-        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-
-        ap_query_base = "SELECT ap.name profile, ap.accessid accessid FROM accessprofile ap "
-        cursor.execute(ap_query_base)
-        accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-
-        ap_perm_true = []
-        for ap in accessprofiles:
-            if has_permission(f'admin.assign.user.accessprofile.{str(ap['profile']).lower()}'):
-                ap_perm_true.append(("'" + ap['profile'] + "'"))
-        ap_query = ap_query_base +f" WHERE ap.Name IN ({', '.join(ap_perm_true)})"
-
-        cursor.execute(ap_query)
-        accessprofiles =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-
-        cursor.execute("SELECT organizationcode, organization FROM Organizations")
-        organizations =  [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-
-        return render_template("admin/userManagement.html",organizations=organizations, accessprofiles=accessprofiles, users=users, userid=session.get('userid'), logged_in_user=session.get('username'), pageV=pageVisability())
-    except Exception as e:
-        app.logger.error(f"Failed to fetch users: {e}")
-        return render_template('500.html')
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 @app.route("/admin/logs")
 @require_permission('admin.view.system.logs')
@@ -1304,30 +1263,54 @@ def admin_active_sessions():
         if conn: conn.close()
 # ----------------------------- Access Control ------------------------------ #
 @app.route("/admin/access_control")
-@require_permission('admin.view.accessprofiles.useroverrides') 
+@require_permission('admin.view.accessprofiles.useroverrides')
 def admin_access_control():
+    conn = None
+    cursor = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        
-        cursor.execute("SELECT AccessID, Name, Description FROM AccessProfile ORDER BY Name")
+
+        cursor.execute("""
+            SELECT ap.AccessID, ap.Name, ap.Description, COUNT(u.userID) AS UserCount
+            FROM AccessProfile ap
+            LEFT JOIN Users u ON u.accessID = ap.AccessID
+            GROUP BY ap.AccessID, ap.Name, ap.Description
+            ORDER BY ap.Name
+        """)
         profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-        
+
         cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
         all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
-        return render_template("admin/accessControl.html", 
-                             profiles=profiles, 
+        organizations = []
+        assignable_profiles = []
+        if has_permission('admin.view.users'):
+            cursor.execute("SELECT organizationcode, organization FROM Organizations ORDER BY organization")
+            organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name")
+            all_ap = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            for ap in all_ap:
+                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}'):
+                    assignable_profiles.append(ap)
+
+        return render_template("admin/accessControl.html",
+                             profiles=profiles,
                              all_permissions=all_permissions,
+                             organizations=organizations,
+                             assignable_profiles=assignable_profiles,
+                             can_edit_accessprofile=has_permission('admin.edit.accessprofile'),
+                             can_view_users=has_permission('admin.view.users'),
+                             can_create_user=has_permission('admin.create.user'),
+                             can_edit_user=has_permission('admin.edit.user'),
+                             can_delete_user=has_permission('admin.delete.user'),
                              logged_in_user=session.get('username'), userid=session.get('userid'), pageV=pageVisability())
     except Exception as e:
         app.logger.error(f"Error loading access control: {e}")
         return render_template('500.html')
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route('/api/admin/users')
 @require_permission('admin.view.accessprofiles.useroverrides')
@@ -1341,14 +1324,14 @@ def get_users_admin_access_control():
         cursor = conn.cursor()
         
         query = """
-            SELECT 
-                u.userID, 
-                u.username, 
-                u.fullname, 
-                ap.Name as AccessProfileName,
-                (SELECT COUNT(*) FROM UserPermissionOverride upo WHERE upo.UserID = u.userID) as OverrideCount
+            SELECT
+                u.userID, u.username, u.fullname, u.email,
+                ap.Name AS AccessProfileName, ap.AccessID AS AccessProfileID,
+                o.organization,
+                (SELECT COUNT(*) FROM UserPermissionOverride upo WHERE upo.UserID = u.userID) AS OverrideCount
             FROM Users u
             LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
+            LEFT JOIN Organizations o ON u.organizationcode = o.organizationcode
             ORDER BY u.fullname
         """
         cursor.execute(query)
@@ -1483,6 +1466,193 @@ def save_user_overrides():
             cursor.close()
         if conn:
             conn.close()
+
+@app.route("/api/admin/permissions/list")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def api_admin_permissions_list():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                p.PermissionID, p.Code, p.Description, p.SortingCode,
+                (SELECT COUNT(*) FROM AccessProfilePermission a WHERE a.PermissionID = p.PermissionID) AS ProfileCount,
+                (SELECT COUNT(*) FROM UserPermissionOverride o WHERE o.PermissionID = p.PermissionID) AS OverrideCount
+            FROM Permission p
+            ORDER BY p.SortingCode, p.Code
+        """)
+        perms = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify(perms)
+    except Exception as e:
+        app.logger.error(f"Error listing permissions: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/admin/permissions/<int:perm_id>/users")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def api_admin_permission_users(perm_id):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT Code FROM Permission WHERE PermissionID = ?", (perm_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': _("Permission not found")}), 404
+        perm_code = row[0]
+        cursor.execute("""
+            SELECT
+                u.userID, u.username, u.fullname,
+                ap.Name AS AccessProfileName,
+                CAST(dbo.fnUserHasPermission(u.userID, ?) AS INT) AS HasPermission,
+                upo.Effect AS OverrideEffect,
+                app.Effect AS ProfileEffect
+            FROM Users u
+            LEFT JOIN AccessProfile ap ON ap.AccessID = u.accessID
+            LEFT JOIN UserPermissionOverride upo ON upo.UserID = u.userID AND upo.PermissionID = ?
+            LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = ?
+            ORDER BY u.fullname
+        """, (perm_code, perm_id, perm_id))
+        users = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        app.logger.error(f"Error fetching users for permission {perm_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/admin/users/<int:user_id>/all_permissions")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def api_admin_user_all_permissions(user_id):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                p.PermissionID, p.Code, p.Description, p.SortingCode,
+                CAST(dbo.fnUserHasPermission(?, p.Code) AS INT) AS IsEffective,
+                upo.Effect AS OverrideEffect,
+                app.Effect AS ProfileEffect
+            FROM Permission p
+            LEFT JOIN Users u ON u.userID = ?
+            LEFT JOIN UserPermissionOverride upo ON upo.UserID = ? AND upo.PermissionID = p.PermissionID
+            LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = p.PermissionID
+            ORDER BY p.SortingCode, p.Code
+        """, (user_id, user_id, user_id))
+        perms = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        return jsonify({'success': True, 'permissions': perms})
+    except Exception as e:
+        app.logger.error(f"Error fetching all permissions for user {user_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/admin/permissions/add", methods=['POST'])
+@require_permission('admin.edit.accessprofile')
+def api_admin_permission_add():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    data = request.get_json()
+    code = (data.get('code') or '').strip()
+    description = (data.get('description') or '').strip()
+    sorting_code = (data.get('sortingCode') or '').strip() or None
+    if not code or not description:
+        return jsonify({'success': False, 'message': _("Code and description are required")}), 400
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO Permission (Code, Description, SortingCode) OUTPUT INSERTED.PermissionID VALUES (?, ?, ?)",
+            (code, description, sorting_code)
+        )
+        new_id = cursor.fetchone()[0]
+        conn.commit()
+        return jsonify({'success': True, 'message': _("Permission created successfully"), 'permissionId': new_id})
+    except Exception as e:
+        app.logger.error(f"Error creating permission: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/admin/permissions/edit/<int:perm_id>", methods=['POST'])
+@require_permission('admin.edit.accessprofile')
+def api_admin_permission_edit(perm_id):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    data = request.get_json()
+    code = (data.get('code') or '').strip()
+    description = (data.get('description') or '').strip()
+    sorting_code = (data.get('sortingCode') or '').strip() or None
+    if not code or not description:
+        return jsonify({'success': False, 'message': _("Code and description are required")}), 400
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE Permission SET Code=?, Description=?, SortingCode=? WHERE PermissionID=?",
+            (code, description, sorting_code, perm_id)
+        )
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': _("Permission not found")}), 404
+        conn.commit()
+        return jsonify({'success': True, 'message': _("Permission updated successfully")})
+    except Exception as e:
+        app.logger.error(f"Error updating permission {perm_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/api/admin/permissions/delete/<int:perm_id>", methods=['DELETE'])
+@require_permission('admin.edit.accessprofile')
+def api_admin_permission_delete(perm_id):
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,))
+        profile_refs = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM UserPermissionOverride WHERE PermissionID=?", (perm_id,))
+        override_refs = cursor.fetchone()[0]
+        if profile_refs > 0 or override_refs > 0:
+            return jsonify({
+                'success': False,
+                'message': _("Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all assignments first.") % {'p': profile_refs, 'o': override_refs}
+            }), 400
+        cursor.execute("DELETE FROM Permission WHERE PermissionID=?", (perm_id,))
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': _("Permission not found")}), 404
+        conn.commit()
+        return jsonify({'success': True, 'message': _("Permission deleted successfully")})
+    except Exception as e:
+        app.logger.error(f"Error deleting permission {perm_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 # --------------------------- Access Control End ---------------------------- #
 
@@ -6603,7 +6773,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

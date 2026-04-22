@@ -24,17 +24,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <a href="{{ url_for('admin_users') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-indigo-100 rounded-lg text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-indigo-600"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800">{{ _("User Management") }}</h3>
-                <p class="text-sm text-gray-500 mt-2">{{ _("Create, edit, and delete user accounts. Manage personal details and companies.") }}</p>
-            </a>
-
             <a href="{{ url_for('admin_access_control') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-purple-100 rounded-lg text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
@@ -43,7 +32,7 @@
                     <i class="fas fa-arrow-right text-gray-300 group-hover:text-purple-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">{{ _("Permissions & Profiles") }}</h3>
-                <p class="text-sm text-gray-500 mt-2">{{ _("Manage access profiles, role-based permissions, and individual user overrides.") }}</p>
+                <p class="text-sm text-gray-500 mt-2">{{ _("Manage Users, access profiles and role-based permissions") }}</p>
             </a>
 
             <a href="{{ url_for('admin_logs_view') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6 "> <!--disabled--> 
@@ -79,18 +68,6 @@
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">{{ _("Organizations") }}</h3>
                 <p class="text-sm text-gray-500 mt-2">{{ _("Manage Organizations") }}</p>
-            </a>
-
-
-            <a href="{{ url_for('admin_mobscn_processmanagement') }}" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-teal-100 rounded-lg text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition">
-                        <i class="fas fa-file-contract fa-2x"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-300 group-hover:text-green-600"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800">{{ _("Mobscan Process Management") }}</h3>
-                <p class="text-sm text-gray-500 mt-2">{{ _("Update or add Mobscan Processes") }}</p>
             </a>
 
             <a href="https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774" class="group block bg-white rounded-xl shadow hover:shadow-lg transition border border-gray-200 p-6">
