@@ -49,16 +49,39 @@
 
     <!-- ── USERS TAB ─────────────────────────────────────────────────── -->
     <div id="tab-users">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-            <div class="admin-input-icon" style="width:280px">
-                <i class="fas fa-search"></i>
-                <input type="text" id="userSearchInput" oninput="filterUsersTable()" class="admin-input" placeholder="{{ _('Search users...') }}">
+        <div class="admin-filter-bar">
+            <div>
+                <label for="userSearchInput">{{ _('Search') }}</label>
+                <div class="admin-input-icon"><i class="fas fa-search"></i>
+                    <input type="text" id="userSearchInput" oninput="filterUsersTable()" class="admin-input" placeholder="{{ _('Name, email...') }}">
+                </div>
             </div>
-            {% if can_create_user %}
-            <button onclick="openAddUserModal()" class="admin-btn admin-btn-primary" type="button">
-                <i class="fas fa-plus"></i>{{ _("Add User") }}
-            </button>
-            {% endif %}
+            <div>
+                <label for="userProfileFilter">{{ _('Profile') }}</label>
+                <select id="userProfileFilter" class="admin-select">
+                    <option value="">{{ _('All') }}</option>
+                    {% for profile in assignable_profiles %}
+                    <option value="{{ profile.profile }}">{{ profile.profile }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="userOrgFilter">{{ _('Organization') }}</label>
+                <select id="userOrgFilter" class="admin-select">
+                    <option value="">{{ _('All') }}</option>
+                    {% for org in organizations %}
+                    <option value="{{ org.organizationcode }}">{{ org.organization }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                {% if can_create_user %}
+                <button onclick="openAddUserModal()" class="admin-btn admin-btn-primary" style="width:100%" type="button">
+                    <i class="fas fa-plus"></i>{{ _("Add User") }}
+                </button>
+                {% endif %}
+            </div>
         </div>
         <div class="admin-table-wrap">
             <table class="admin-table">

@@ -326,15 +326,24 @@
     // ── USERS TAB ─────────────────────────────────────────────────────
     async function fetchAllUsers() {
         try {
-            const res = await fetch(`${API_PREFIX}api/admin/users`, {
+            const profileEl = document.getElementById('userProfileFilter');
+            const orgEl     = document.getElementById('userOrgFilter');
+            const params = new URLSearchParams();
+            if (profileEl && profileEl.value) params.set('profile', profileEl.value);
+            if (orgEl && orgEl.value)         params.set('organization', orgEl.value);
+
+            const url = `${API_PREFIX}api/admin/users${params.toString() ? '?' + params.toString() : ''}`;
+            const res = await fetch(url, {
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
             });
             if (!res.ok) throw new Error();
             allUsersData = await res.json();
             renderUsersTable(allUsersData);
+            // Re-apply the client-side text filter if there's a search query already typed
+            filterUsersTable();
         } catch {
             document.getElementById('usersTableBody').innerHTML =
-                `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">{{ _("Error loading data.") }}</td></tr>`;
+                `<tr><td colspan="6" class="admin-empty" style="color:var(--a-danger)">{{ _("Error loading data.") }}</td></tr>`;
         }
     }
 
@@ -794,5 +803,10 @@
             switchTab(saved);
             localStorage.removeItem('acl_tab');
         }
+
+        ['userProfileFilter', 'userOrgFilter'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', fetchAllUsers);
+        });
     });
 </script>

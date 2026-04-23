@@ -1362,24 +1362,39 @@ def get_users_admin_access_control():
     if 'username' not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
+    profile_filter = request.args.get('profile', '').strip()
+    org_filter     = request.args.get('organization', '').strip()
+
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        
-        query = """
+
+        where_parts = ["1=1"]
+        params = []
+        if profile_filter:
+            where_parts.append("ap.Name = ?")
+            params.append(profile_filter)
+        if org_filter:
+            where_parts.append("o.organizationcode = ?")
+            params.append(org_filter)
+        where_clause = " AND ".join(where_parts)
+
+        query = f"""
             SELECT
                 u.userID, u.username, u.fullname, u.email,
                 ap.Name AS AccessProfileName, ap.AccessID AS AccessProfileID,
+                o.organizationcode,
                 o.organization,
                 (SELECT COUNT(*) FROM UserPermissionOverride upo WHERE upo.UserID = u.userID) AS OverrideCount
             FROM Users u
             LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
             LEFT JOIN Organizations o ON u.organizationcode = o.organizationcode
+            WHERE {where_clause}
             ORDER BY u.fullname
         """
-        cursor.execute(query)
-        
+        cursor.execute(query, params)
+
         users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(users)
     except Exception as e:
