@@ -139,4 +139,43 @@
         });
         el.textContent = `${allow} {{ _("allow") }} · ${deny} {{ _("deny") }}`;
     }
+
+    // ─── Delete user (Danger zone) ──────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const btn   = document.getElementById('deleteUserBtn');
+        const modal = document.getElementById('confirmDeleteModal');
+        const msg   = document.getElementById('confirmDeleteMessage');
+        const ok    = document.getElementById('confirmDeleteBtn');
+        if (!btn || !modal || !msg || !ok) return;
+
+        btn.addEventListener('click', () => {
+            const username = btn.dataset.username || '';
+            msg.textContent = `{{ _("This will permanently delete") }} "${username}". {{ _("This action cannot be undone.") }}`;
+            modal.style.display = 'flex';
+        });
+
+        ok.addEventListener('click', async () => {
+            const userId = btn.dataset.userId;
+            ok.disabled = true;
+            try {
+                const res = await fetch(`/admin/users/delete/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok && result.success) {
+                    window.location.href = "{{ url_for('admin_access_control') }}";
+                } else {
+                    userDetailToast(result.message || '{{ _("Delete failed.") }}', 'error');
+                    modal.style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+                userDetailToast('{{ _("Network error") }}', 'error');
+                modal.style.display = 'none';
+            } finally {
+                ok.disabled = false;
+            }
+        });
+    });
 </script>

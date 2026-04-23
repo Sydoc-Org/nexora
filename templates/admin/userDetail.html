@@ -125,6 +125,57 @@
             {% endif %}
         </form>
     </div>
+
+    {# ------------- Activity (Phase 2 placeholder) ------------- #}
+    <div class="admin-card" style="margin-bottom:20px">
+        <div class="admin-section" style="margin-bottom:4px">{{ _('Activity') }}</div>
+        <p style="font-size:12px;color:var(--a-text-sec);margin:0 0 12px">
+            {{ _("A chronological audit trail of this user's actions.") }}
+        </p>
+        <div class="admin-empty" style="background:var(--a-alt);border-radius:8px">
+            <i class="fas fa-hourglass-half"></i> &nbsp; {{ _('Coming in a future release.') }}
+        </div>
+    </div>
+
+    {# ------------- Danger zone ------------- #}
+    {% if can_delete_user %}
+    <div class="admin-card" style="border-color:var(--a-danger)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+            <div>
+                <div class="admin-section" style="color:var(--a-danger)">{{ _('Danger zone') }}</div>
+                <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0">
+                    {{ _('Deleting this user is irreversible. Their access is revoked immediately.') }}
+                </p>
+            </div>
+            <button id="deleteUserBtn" class="admin-btn admin-btn-danger"
+                    data-user-id="{{ user.userID }}"
+                    data-username="{{ user.username }}"
+                    type="button">
+                <i class="fas fa-trash"></i> {{ _('Delete user') }}
+            </button>
+        </div>
+    </div>
+
+    {# Confirm-delete modal (inline, self-contained) #}
+    <div id="confirmDeleteModal"
+         style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:10px;padding:24px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)">
+            <i class="fas fa-exclamation-triangle" style="color:var(--a-danger);font-size:28px"></i>
+            <h3 style="font-size:16px;font-weight:600;margin:10px 0 6px">{{ _('Delete user?') }}</h3>
+            <p style="font-size:13px;color:var(--a-text-sec);margin:0 0 16px" id="confirmDeleteMessage"></p>
+            <div style="display:flex;justify-content:center;gap:8px">
+                <button type="button" class="admin-btn admin-btn-secondary"
+                        onclick="document.getElementById('confirmDeleteModal').style.display='none'">
+                    {{ _('Cancel') }}
+                </button>
+                <button type="button" id="confirmDeleteBtn" class="admin-btn admin-btn-danger">
+                    {{ _('Delete') }}
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     </main>
 
     {% include 'js/admin/_userDetailJS.html' %}
