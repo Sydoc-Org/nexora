@@ -71,18 +71,16 @@
 
     // ── Tabs ──────────────────────────────────────────────────────────
     const TAB_IDS = ['users', 'permissions', 'profiles'];
-    const BTN_BASE   = "inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300";
-    const BTN_ACTIVE = "inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg";
 
     function switchTab(tabName) {
         TAB_IDS.forEach(id => {
             document.getElementById(`tab-${id}`).classList.add('hidden');
             const btn = document.getElementById(`tab-${id}-btn`);
-            if (btn) btn.className = BTN_BASE;
+            if (btn) btn.classList.remove('is-active');
         });
         document.getElementById(`tab-${tabName}`).classList.remove('hidden');
         const ab = document.getElementById(`tab-${tabName}-btn`);
-        if (ab) ab.className = BTN_ACTIVE;
+        if (ab) ab.classList.add('is-active');
     }
 
     // ── DRAWER (permission editor, replaces center modal) ─────────────

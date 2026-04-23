@@ -5,118 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("Access Control - nexora") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+      .acl-tabs { display:flex; gap:24px; margin:0; padding:0; list-style:none; border-bottom:1px solid var(--a-border); margin-bottom:20px; }
+      .acl-tab-btn { padding:10px 0; border:none; background:transparent; font-size:13px; font-weight:500; color:var(--a-text-sec); border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+      .acl-tab-btn:hover { color:var(--a-text); }
+      .acl-tab-btn.is-active { color:var(--a-text); border-bottom-color:var(--a-indigo); font-weight:600; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="admin-page">
 <div id="notification-container" class="fixed top-4 right-4 z-[200] w-full max-w-xs space-y-3"></div>
 
 {% set active_page = 'admin_access' %}
 {% include '_header.html' %}
+{% import 'admin/_admin_helpers.html' as a %}
 
-<main class="container mx-auto p-6">
-    <div class="flex items-center space-x-4 mb-6">
-        <a href="{{ url_for('admin_dashboard') }}" class="text-gray-500 hover:text-indigo-600">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <div>
-            <h2 class="text-3xl font-bold text-gray-800">{{ _("Access Control") }}</h2>
-            <p class="text-gray-500 text-sm">{{ _("Users, permissions and access profiles in one place") }}</p>
-        </div>
-    </div>
+<main>
+    {{ a.page_header(
+        title=_('Access Control'),
+        subtitle=_('Users, permissions and access profiles'),
+        back_url=url_for('admin_dashboard')
+    ) }}
 
     <!-- Tabs -->
-    <div class="mb-6 border-b border-gray-200">
-        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
-            <li class="mr-2">
-                <button id="tab-users-btn" onclick="switchTab('users')"
-                        class="inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg">
-                    <i class="fas fa-users mr-2"></i>{{ _("Users") }}
-                </button>
-            </li>
-            <li class="mr-2">
-                <button id="tab-permissions-btn" onclick="switchTab('permissions')"
-                        class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300">
-                    <i class="fas fa-key mr-2"></i>{{ _("Permissions") }}
-                </button>
-            </li>
-            <li class="mr-2">
-                <button id="tab-profiles-btn" onclick="switchTab('profiles')"
-                        class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300">
-                    <i class="fas fa-id-badge mr-2"></i>{{ _("Access Profiles") }}
-                </button>
-            </li>
-        </ul>
-    </div>
+    <ul class="acl-tabs">
+        <li>
+            <button id="tab-users-btn" onclick="switchTab('users')" type="button" class="acl-tab-btn is-active">
+                <i class="fas fa-users"></i>{{ _("Users") }}
+            </button>
+        </li>
+        <li>
+            <button id="tab-permissions-btn" onclick="switchTab('permissions')" type="button" class="acl-tab-btn">
+                <i class="fas fa-key"></i>{{ _("Permissions") }}
+            </button>
+        </li>
+        <li>
+            <button id="tab-profiles-btn" onclick="switchTab('profiles')" type="button" class="acl-tab-btn">
+                <i class="fas fa-id-badge"></i>{{ _("Access Profiles") }}
+            </button>
+        </li>
+    </ul>
 
     <!-- ── USERS TAB ─────────────────────────────────────────────────── -->
-    <div id="tab-users" class="bg-white rounded-xl shadow overflow-hidden">
-        <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center gap-4 flex-wrap">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <i class="fas fa-search text-gray-400 text-sm"></i>
-                </div>
-                <input type="text" id="userSearchInput" oninput="filterUsersTable()"
-                       class="block w-64 p-2 pl-9 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500"
-                       placeholder="{{ _('Search users...') }}">
+    <div id="tab-users">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+            <div class="admin-input-icon" style="width:280px">
+                <i class="fas fa-search"></i>
+                <input type="text" id="userSearchInput" oninput="filterUsersTable()" class="admin-input" placeholder="{{ _('Search users...') }}">
             </div>
             {% if can_create_user %}
-            <button onclick="openAddUserModal()"
-                    class="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow">
-                <i class="fas fa-plus mr-2"></i>{{ _("Add User") }}
+            <button onclick="openAddUserModal()" class="admin-btn admin-btn-primary" type="button">
+                <i class="fas fa-plus"></i>{{ _("Add User") }}
             </button>
             {% endif %}
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3 w-10"></th>
-                        <th class="px-6 py-3">{{ _("User") }}</th>
-                        <th class="px-6 py-3">{{ _("Access Profile") }}</th>
-                        <th class="px-6 py-3">{{ _("Organization") }}</th>
-                        <th class="px-6 py-3 text-center">{{ _("Overrides") }}</th>
-                        <th class="px-6 py-3 text-right">{{ _("Actions") }}</th>
+                        <th style="width:40px"></th>
+                        <th>{{ _("User") }}</th>
+                        <th>{{ _("Access Profile") }}</th>
+                        <th>{{ _("Organization") }}</th>
+                        <th style="text-align:center;width:120px">{{ _("Overrides") }}</th>
+                        <th class="align-right" style="width:180px">{{ _("Actions") }}</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
-                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">{{ _("Loading...") }}</td></tr>
+                    <tr><td colspan="6" class="admin-empty">{{ _("Loading...") }}</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <!-- ── PERMISSIONS TAB ───────────────────────────────────────────── -->
-    <div id="tab-permissions" class="hidden bg-white rounded-xl shadow overflow-hidden">
-        <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center gap-4 flex-wrap">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <i class="fas fa-search text-gray-400 text-sm"></i>
-                </div>
-                <input type="text" id="permSearchInput" oninput="filterPermissionsTable()"
-                       class="block w-64 p-2 pl-9 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500"
-                       placeholder="{{ _('Search permissions...') }}">
+    <div id="tab-permissions" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+            <div class="admin-input-icon" style="width:280px">
+                <i class="fas fa-search"></i>
+                <input type="text" id="permSearchInput" oninput="filterPermissionsTable()" class="admin-input" placeholder="{{ _('Search permissions...') }}">
             </div>
             {% if can_edit_accessprofile %}
-            <button onclick="openAddPermissionModal()"
-                    class="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow">
-                <i class="fas fa-plus mr-2"></i>{{ _("Add Permission") }}
+            <button onclick="openAddPermissionModal()" class="admin-btn admin-btn-primary" type="button">
+                <i class="fas fa-plus"></i>{{ _("Add Permission") }}
             </button>
             {% endif %}
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3 w-10"></th>
-                        <th class="px-6 py-3">{{ _("Code") }}</th>
-                        <th class="px-6 py-3">{{ _("Description") }}</th>
-                        <th class="px-6 py-3 text-center w-28">{{ _("In Profiles") }}</th>
-                        <th class="px-6 py-3 text-center w-28">{{ _("Overrides") }}</th>
-                        <th class="px-6 py-3 text-right w-24">{{ _("Actions") }}</th>
+                        <th style="width:40px"></th>
+                        <th>{{ _("Code") }}</th>
+                        <th>{{ _("Description") }}</th>
+                        <th style="text-align:center;width:120px">{{ _("In Profiles") }}</th>
+                        <th style="text-align:center;width:120px">{{ _("Overrides") }}</th>
+                        <th class="align-right" style="width:120px">{{ _("Actions") }}</th>
                     </tr>
                 </thead>
                 <tbody id="permissionsTableBody">
-                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">{{ _("Loading...") }}</td></tr>
+                    <tr><td colspan="6" class="admin-empty">{{ _("Loading...") }}</td></tr>
                 </tbody>
             </table>
         </div>
@@ -124,32 +113,30 @@
 
     <!-- ── ACCESS PROFILES TAB ───────────────────────────────────────── -->
     <div id="tab-profiles" class="hidden">
-        <div class="flex justify-between items-center mb-5">
-            <p class="text-sm text-gray-500">{{ profiles | length }} {{ _("profiles") }}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <p style="font-size:13px;color:var(--a-text-sec);margin:0">{{ profiles | length }} {{ _("profiles") }}</p>
             {% if can_edit_accessprofile %}
-            <button onclick="openProfileDrawer()"
-                    class="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow">
-                <i class="fas fa-plus mr-2"></i>{{ _("Add Profile") }}
+            <button onclick="openProfileDrawer()" class="admin-btn admin-btn-primary" type="button">
+                <i class="fas fa-plus"></i>{{ _("Add Profile") }}
             </button>
             {% endif %}
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
             {% for profile in profiles %}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col justify-between hover:shadow transition">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1 min-w-0 mr-3">
-                        <h3 class="text-base font-bold text-gray-800 truncate">{{ profile.Name }}</h3>
-                        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ profile.Description or '' }}</p>
+            <div class="admin-card" style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                    <div style="flex:1;min-width:0">
+                        <div class="admin-section" style="font-size:15px">{{ profile.Name }}</div>
+                        <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0;line-height:1.5">{{ profile.Description or '' }}</p>
                     </div>
                     {% if can_edit_accessprofile %}
-                    <button onclick="editProfile({{ profile.AccessID }})"
-                            class="text-gray-400 hover:text-indigo-600 transition flex-shrink-0 mt-0.5">
-                        <i class="fas fa-edit text-sm"></i>
+                    <button onclick="editProfile({{ profile.AccessID }})" class="admin-btn admin-btn-ghost" style="padding:4px 8px" type="button" title="{{ _('Edit') }}">
+                        <i class="fas fa-edit" style="font-size:12px"></i>
                     </button>
                     {% endif %}
                 </div>
-                <div class="mt-3 pt-3 border-t border-gray-100 flex items-center text-xs text-gray-400">
-                    <i class="fas fa-users mr-1.5"></i>
+                <div style="display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid var(--a-border);font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px">
+                    <i class="fas fa-users" style="font-size:10px"></i>
                     {{ profile.UserCount }} {{ _("user(s)") }}
                 </div>
             </div>
