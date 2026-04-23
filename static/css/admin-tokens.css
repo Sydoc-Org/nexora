@@ -127,13 +127,3 @@ body.admin-page main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
 /* Empty / loading state cells */
 .admin-empty { padding: 32px 16px; text-align: center; color: var(--a-text-meta); font-size: 13px; }
 
-/* Sidebar admin-open rules (see Task 3 for the accompanying JS) */
-#nexora-sidebar:hover #adminNavGroup.admin-open .sidebar-nav-subitems {
-  max-height: var(--admin-subitems-height, 9999px);
-}
-#adminNavGroup.admin-open .sidebar-generali-chevron { transform: rotate(90deg); }
-@media (max-width: 768px) {
-  #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
-    max-height: var(--admin-subitems-height, 9999px);
-  }
-}

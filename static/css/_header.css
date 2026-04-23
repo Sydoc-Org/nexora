@@ -168,6 +168,10 @@ footer {
 #nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
+/* Admin group expand (mirrors generali rules) */
+#nexora-sidebar:hover #adminNavGroup.admin-open .sidebar-nav-subitems {
+    max-height: var(--admin-subitems-height, 9999px);
+}
 .sidebar-nav-subitem {
     padding-left: 20px;
 }
@@ -181,6 +185,9 @@ footer {
     transition: opacity 0.18s ease, transform 0.2s ease !important;
 }
 #generaliNavGroup.generali-open .sidebar-generali-chevron {
+    transform: rotate(90deg);
+}
+#adminNavGroup.admin-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
 html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc; }
@@ -460,6 +467,9 @@ html.dark .sidebar-toggle-btn {
     }
     #nexora-sidebar.open #generaliNavGroup.generali-open .sidebar-nav-subitems {
         max-height: var(--generali-subitems-height, 9999px);
+    }
+    #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
+        max-height: var(--admin-subitems-height, 9999px);
     }
 
     .sidebar-backdrop.open {
