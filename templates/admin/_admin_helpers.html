@@ -1,0 +1,98 @@
+{# ------------------------------------------------------------------
+   Admin UI macros — shared building blocks for every admin page.
+   Usage:  {% import 'admin/_admin_helpers.html' as a %}
+   ------------------------------------------------------------------ #}
+
+{% macro page_header(title, subtitle=None, back_url=None, actions=None) %}
+  <div class="admin-header">
+    <div class="admin-header-left">
+      {% if back_url %}
+        <a href="{{ back_url }}" class="admin-back" aria-label="{{ _('Back') }}">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+      {% endif %}
+      <div>
+        <h2 class="admin-title">{{ title }}</h2>
+        {% if subtitle %}<p class="admin-subtitle">{{ subtitle }}</p>{% endif %}
+      </div>
+    </div>
+    {% if actions %}
+      <div class="admin-header-actions">
+        {% for act in actions %}
+          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}">
+            {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
+            {{ act.label }}
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{% macro filter_bar(filters) %}
+  {# filters = [{id, label, type, placeholder?, options?}] where type in 'search'|'select'|'date' #}
+  <div class="admin-filter-bar">
+    {% for f in filters %}
+      <div>
+        <label for="{{ f.id }}">{{ f.label }}</label>
+        {% if f.type == 'search' %}
+          <div class="admin-input-icon">
+            <i class="fas fa-search"></i>
+            <input type="text" id="{{ f.id }}" class="admin-input" placeholder="{{ f.placeholder|default('') }}">
+          </div>
+        {% elif f.type == 'select' %}
+          <select id="{{ f.id }}" class="admin-select">
+            {% for opt in f.options %}
+              <option value="{{ opt.value }}">{{ opt.label }}</option>
+            {% endfor %}
+          </select>
+        {% elif f.type == 'date' %}
+          <input type="date" id="{{ f.id }}" class="admin-input">
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+
+{% macro toolbar(search_id, search_placeholder, actions=None) %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="admin-input-icon" style="width:280px">
+      <i class="fas fa-search"></i>
+      <input type="text" id="{{ search_id }}" class="admin-input" placeholder="{{ search_placeholder }}">
+    </div>
+    {% if actions %}
+      <div class="admin-header-actions">
+        {% for act in actions %}
+          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}">
+            {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
+            {{ act.label }}
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{% macro table_header(columns) %}
+  {# columns = list of {label, align?, width?} #}
+  <thead>
+    <tr>
+      {% for c in columns %}
+        <th{% if c.align %} class="align-{{ c.align }}"{% endif %}{% if c.width %} style="width:{{ c.width }}"{% endif %}>{{ c.label }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+{% endmacro %}
+
+
+{% macro empty_state(icon, message, colspan=6) %}
+  <tr><td colspan="{{ colspan }}" class="admin-empty"><i class="fas {{ icon }}"></i> &nbsp; {{ message }}</td></tr>
+{% endmacro %}
+
+
+{% macro badge(label, tone='gray') %}
+  <span class="admin-badge admin-badge--{{ tone }}">{{ label }}</span>
+{% endmacro %}
