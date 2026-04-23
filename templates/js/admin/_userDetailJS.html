@@ -178,4 +178,136 @@
             }
         });
     });
+
+    // ─── Activity (last 7 days) ─────────────────────────────────────────
+    (function () {
+        const tbody = document.getElementById('activityTbody');
+        if (!tbody) return;
+
+        const userId = tbody.dataset.userId;
+        let currentPage = 1;
+        const prevBtn = document.getElementById('activityPrevBtn');
+        const nextBtn = document.getElementById('activityNextBtn');
+        const info    = document.getElementById('activityPageInfo');
+
+        function esc(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function statusBadge(code) {
+            const n = parseInt(code);
+            if (isNaN(n)) return '<span class="log-status log-status--warn">?</span>';
+            if (n >= 200 && n < 300) return '<span class="log-status log-status--ok">' + n + '</span>';
+            if (n >= 400 && n < 500) return '<span class="log-status log-status--warn">' + n + '</span>';
+            return '<span class="log-status log-status--error">' + n + '</span>';
+        }
+
+        function relativeTime(iso) {
+            if (!iso) return '';
+            const t = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+            const seconds = Math.max(0, Math.floor((Date.now() - t.getTime()) / 1000));
+            if (seconds < 60) return '{{ _("just now") }}';
+            const m = Math.floor(seconds / 60);
+            if (m < 60) return m + ' {{ _("min ago") }}';
+            const h = Math.floor(m / 60);
+            if (h < 24) return h + ' {{ _("h ago") }}';
+            return Math.floor(h / 24) + ' {{ _("d ago") }}';
+        }
+
+        async function load(page) {
+            currentPage = page;
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+            const loadingTr = document.createElement('tr');
+            const loadingTd = document.createElement('td');
+            loadingTd.setAttribute('colspan', '3');
+            loadingTd.className = 'admin-empty';
+            loadingTd.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+            loadingTd.appendChild(document.createTextNode('   {{ _("Loading...") }}'));
+            loadingTr.appendChild(loadingTd);
+            tbody.appendChild(loadingTr);
+            try {
+                const res = await fetch('/api/admin/users/' + userId + '/activity?page=' + page, {
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const data = await res.json().catch(() => ({}));
+                while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+                if (!res.ok || !data.entries) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.setAttribute('colspan', '3');
+                    td.className = 'admin-empty';
+                    td.style.color = 'var(--a-danger)';
+                    td.textContent = '{{ _("Could not load activity.") }}';
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                    return;
+                }
+                if (data.total === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.setAttribute('colspan', '3');
+                    td.className = 'admin-empty';
+                    td.textContent = '{{ _("No recorded activity in the last 7 days.") }}';
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                    info.textContent = '';
+                    prevBtn.disabled = true;
+                    nextBtn.disabled = true;
+                    return;
+                }
+                data.entries.forEach(e => {
+                    const tr = document.createElement('tr');
+
+                    // Time cell
+                    const tdTime = document.createElement('td');
+                    tdTime.setAttribute('title', esc(e.Timestamp || ''));
+                    tdTime.textContent = relativeTime(e.Timestamp);
+
+                    // Action cell
+                    const tdAction = document.createElement('td');
+                    const path = e.Path || '';
+                    const pathShort = path.length > 60 ? path.substring(0, 60) + '…' : path;
+                    const method = e.HttpRequestMethod || '';
+                    const methodSpan = document.createElement('span');
+                    methodSpan.className = 'log-method log-method--' + esc(method);
+                    methodSpan.textContent = method;
+                    const pathSpan = document.createElement('span');
+                    pathSpan.className = 'admin-mono';
+                    pathSpan.style.fontSize = '11px';
+                    pathSpan.textContent = pathShort;
+                    tdAction.appendChild(methodSpan);
+                    tdAction.appendChild(document.createTextNode(' '));
+                    tdAction.appendChild(pathSpan);
+
+                    // Status cell — statusBadge only emits trusted integer values wrapped in safe class names
+                    const tdStatus = document.createElement('td');
+                    tdStatus.className = 'align-right';
+                    tdStatus.innerHTML = statusBadge(e.HttpResponseCode);
+
+                    tr.appendChild(tdTime);
+                    tr.appendChild(tdAction);
+                    tr.appendChild(tdStatus);
+                    tbody.appendChild(tr);
+                });
+                info.textContent = '{{ _("Page") }} ' + data.page + ' {{ _("of") }} ' + data.pages + ' (' + data.total + ' {{ _("entries") }})';
+                prevBtn.disabled = data.page <= 1;
+                nextBtn.disabled = data.page >= data.pages;
+            } catch (err) {
+                while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.setAttribute('colspan', '3');
+                td.className = 'admin-empty';
+                td.style.color = 'var(--a-danger)';
+                td.textContent = '{{ _("Could not load activity.") }}';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            }
+        }
+
+        prevBtn.addEventListener('click', () => load(Math.max(1, currentPage - 1)));
+        nextBtn.addEventListener('click', () => load(currentPage + 1));
+        document.addEventListener('DOMContentLoaded', () => load(1));
+    })();
 </script>

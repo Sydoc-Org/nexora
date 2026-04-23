@@ -126,14 +126,41 @@
         </form>
     </div>
 
-    {# ------------- Activity (Phase 2 placeholder) ------------- #}
+    {# ------------- Activity (last 7 days) ------------- #}
     <div class="admin-card" style="margin-bottom:20px">
-        <div class="admin-section" style="margin-bottom:4px">{{ _('Activity') }}</div>
-        <p style="font-size:12px;color:var(--a-text-sec);margin:0 0 12px">
-            {{ _("A chronological audit trail of this user's actions.") }}
-        </p>
-        <div class="admin-empty" style="background:var(--a-alt);border-radius:8px">
-            <i class="fas fa-hourglass-half"></i> &nbsp; {{ _('Coming in a future release.') }}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+            <div>
+                <div class="admin-section">{{ _('Activity') }}</div>
+                <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0">
+                    {{ _("Recent actions by this user — last 7 days.") }}
+                </p>
+            </div>
+            <a href="{{ url_for('admin_logs_view') }}?username={{ user.username|urlencode }}"
+               class="admin-btn admin-btn-ghost" style="font-size:12px">
+                {{ _('View all in logs') }} <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px"></i>
+            </a>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width:170px">{{ _('Time') }}</th>
+                        <th>{{ _('Action') }}</th>
+                        <th class="align-right" style="width:130px">{{ _('Status') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="activityTbody" data-user-id="{{ user.userID }}">
+                    <tr><td colspan="3" class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i> &nbsp; {{ _('Loading...') }}</td></tr>
+                </tbody>
+            </table>
+            <div style="padding:10px 16px;border-top:1px solid var(--a-border);display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:12px;color:var(--a-text-sec)" id="activityPageInfo"></span>
+                <div style="display:flex;gap:8px">
+                    <button id="activityPrevBtn" class="admin-btn admin-btn-secondary" type="button" disabled>{{ _('Previous') }}</button>
+                    <button id="activityNextBtn" class="admin-btn admin-btn-secondary" type="button" disabled>{{ _('Next') }}</button>
+                </div>
+            </div>
         </div>
     </div>
 
