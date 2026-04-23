@@ -50,4 +50,93 @@
             }
         });
     });
+
+    // ─── Permission overrides ──────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async function () {
+        const form = document.getElementById('overridesForm');
+        if (!form) return;
+
+        const userId = form.dataset.userId;
+
+        // Load current overrides and apply to radios
+        try {
+            const res = await fetch(`/api/admin/user_overrides/${userId}`, {
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+                for (const [permId, effect] of Object.entries(data.overrides || {})) {
+                    const radio = document.querySelector(`input[name="perm_${permId}"][value="${effect}"]`);
+                    if (radio) radio.checked = true;
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load overrides:', err);
+        }
+
+        updateOverrideSummary();
+
+        // Keep summary current
+        form.addEventListener('change', (e) => {
+            if (e.target.type === 'radio') updateOverrideSummary();
+        });
+
+        // Filter
+        const search = document.getElementById('overrideSearch');
+        if (search) {
+            search.addEventListener('input', () => {
+                const q = search.value.trim().toLowerCase();
+                form.querySelectorAll('tr[data-search]').forEach(tr => {
+                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+                });
+            });
+        }
+
+        // Save
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const overrides = [];
+            form.querySelectorAll('tr[data-perm-id]').forEach(tr => {
+                const permId = tr.dataset.permId;
+                const checked = tr.querySelector(`input[name="perm_${permId}"]:checked`);
+                if (checked && checked.value !== 'None') {
+                    overrides.push({ PermissionID: Number(permId), Effect: checked.value });
+                }
+            });
+
+            try {
+                const res = await fetch('/api/admin/user_overrides/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ userId: Number(userId), overrides })
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok && result.success) {
+                    userDetailToast(result.message || '{{ _("Overrides saved.") }}', 'success');
+                } else {
+                    userDetailToast(result.message || '{{ _("Save failed.") }}', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                userDetailToast('{{ _("Network error") }}', 'error');
+            }
+        });
+    });
+
+    function updateOverrideSummary() {
+        const form = document.getElementById('overridesForm');
+        const el = document.getElementById('overrideSummary');
+        if (!form || !el) return;
+        let allow = 0, deny = 0;
+        form.querySelectorAll('tr[data-perm-id]').forEach(tr => {
+            const permId = tr.dataset.permId;
+            const checked = tr.querySelector(`input[name="perm_${permId}"]:checked`);
+            if (checked?.value === 'A') allow++;
+            else if (checked?.value === 'D') deny++;
+        });
+        el.textContent = `${allow} {{ _("allow") }} · ${deny} {{ _("deny") }}`;
+    }
 </script>

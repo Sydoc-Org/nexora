@@ -1211,13 +1211,18 @@ def admin_user_detail(user_id):
             if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
         ]
 
+        cursor.execute("SELECT PermissionID, Code, Description, SortingCode FROM Permission ORDER BY SortingCode, Code")
+        all_permissions = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+
         return render_template(
             "admin/userDetail.html",
             user=user,
             organizations=organizations,
             assignable_profiles=assignable_profiles,
+            all_permissions=all_permissions,
             can_edit_user=has_permission('admin.edit.user'),
             can_delete_user=has_permission('admin.delete.user'),
+            can_edit_overrides=has_permission('admin.edit.user.override'),
             logged_in_user=session.get('username'),
             userid=session.get('userid'),
             pageV=pageVisability(),
