@@ -1452,6 +1452,87 @@ def admin_delete_user(user_id):
         if conn:
             conn.close()
 
+
+def _revoke_session_by_id(session_id):
+    """Delete a session's DB row and its on-disk file (if any).
+    Returns True if the DB row existed."""
+    deleted = 0
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM ActiveSessions WHERE SessionID = ?", (str(session_id),))
+        deleted = cursor.rowcount
+        conn.commit()
+    except Exception as e:
+        app.logger.warning(f"Could not delete ActiveSessions row for {session_id}: {e}")
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+    # Attempt to remove the on-disk session file. Works in prod (filesystem
+    # backend); silently no-op in dev where the file typically doesn't exist.
+    try:
+        sdir = app.config.get('SESSION_FILE_DIR') or os.path.join(app.root_path, 'session')
+        fpath = os.path.join(sdir, str(session_id))
+        if os.path.isfile(fpath):
+            os.unlink(fpath)
+    except Exception as e:
+        app.logger.warning(f"Could not remove session file for {session_id}: {e}")
+
+    return deleted > 0
+
+
+@app.route("/admin/sessions/<string:session_id>/revoke", methods=['POST'])
+@require_permission('admin.edit.user.override')
+def admin_revoke_session(session_id):
+    try:
+        _revoke_session_by_id(session_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Failed to revoke session {session_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route("/admin/users/<int:user_id>/revoke_all", methods=['POST'])
+@require_permission('admin.edit.user.override')
+def admin_revoke_all_sessions(user_id):
+    sids = []
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT SessionID FROM ActiveSessions WHERE UserID = ?", (user_id,))
+        sids = [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        app.logger.error(f"Failed to list sessions for user {user_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+    revoked = 0
+    for sid in sids:
+        try:
+            if _revoke_session_by_id(sid):
+                revoked += 1
+        except Exception as e:
+            app.logger.warning(f"Revoke failed for session {sid}: {e}")
+
+    app.logger.info(f"Admin {session.get('username')} revoked {revoked} session(s) for user {user_id}")
+    return jsonify({'success': True, 'revoked': revoked})
+
+
 @app.route("/api/admin/users/list")
 @require_permission('admin.view.users')
 def api_admin_users_list():
