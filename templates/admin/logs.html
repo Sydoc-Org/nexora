@@ -5,177 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("System Logs - nexora") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <style>
-        .code-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-        .code-scroll::-webkit-scrollbar-track { background: #1f2937; }
-        .code-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        .code-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-        
-       
-        input[type="date"] {
-            min-height: 2.5rem; 
-        }
+      .log-preset-row { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+      .log-preset     { padding:5px 10px; border-radius:6px; background:var(--a-card); border:1px solid var(--a-border-input); font-size:12px; color:var(--a-text-sec); cursor:pointer; }
+      .log-preset:hover { background:var(--a-alt); color:var(--a-text); }
+      .log-preset.is-active { background:var(--a-ink); color:#fff; border-color:var(--a-ink); }
+      .code-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+      .code-scroll::-webkit-scrollbar-track { background: #1f2937; }
+      .code-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+      .code-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+      .log-method { font-weight:700; font-family:"SF Mono",Consolas,"Roboto Mono",monospace; font-size:11px; margin-right:6px; }
+      .log-method--GET    { color:#2563eb; }
+      .log-method--POST   { color:#15803d; }
+      .log-method--PUT    { color:#b54708; }
+      .log-method--DELETE { color:#b42318; }
+      .log-status { display:inline-flex; align-items:center; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; font-family:"SF Mono",Consolas,"Roboto Mono",monospace; }
+      .log-status--ok     { background:#e7f6ec; color:#257c3d; }
+      .log-status--warn   { background:#fef3c7; color:#92400e; }
+      .log-status--error  { background:#fee4e2; color:#b42318; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+<body class="admin-page">
     {% set active_page = 'admin_logs' %}
     {% include '_header.html' %}
-    
-    <main class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div class="flex items-center space-x-4">
-                <a href="{{ url_for('admin_dashboard') }}" class="p-2 rounded-full hover:bg-white hover:shadow transition text-gray-500 hover:text-indigo-600">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">{{ _("System Audit Logs") }}</h2>
-                </div>
-            </div>
-        </div>
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 items-end">
-        
-        <div>
-            <label for="filterUser" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Username") }}</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                    <i class="fas fa-user text-sm"></i>
-                </div>
-                <input type="text" id="filterUser" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
-            </div>
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main>
+        {{ a.page_header(
+            title=_('System Audit Logs'),
+            subtitle=_('Filter by user, date, method, status or organization'),
+            back_url=url_for('admin_dashboard')
+        ) }}
+
+        <div class="log-preset-row">
+            <button type="button" class="log-preset" data-preset="1h">{{ _('Last hour') }}</button>
+            <button type="button" class="log-preset" data-preset="24h">{{ _('Today') }}</button>
+            <button type="button" class="log-preset" data-preset="7d">{{ _('Last 7 days') }}</button>
+            <button type="button" class="log-preset" data-preset="30d">{{ _('Last 30 days') }}</button>
         </div>
 
-        <div>
-            <label for="filterMethod" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Method") }}</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                    <i class="fas fa-code-branch text-sm"></i>
+        <div class="admin-filter-bar">
+            <div>
+                <label for="filterUser">{{ _('Username') }}</label>
+                <div class="admin-input-icon"><i class="fas fa-user"></i>
+                    <input type="text" id="filterUser" class="admin-input">
                 </div>
-                <select id="filterMethod" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm appearance-none cursor-pointer">
-                    <option value="">{{ _("All") }}</option>
+            </div>
+            <div>
+                <label for="filterMethod">{{ _('Method') }}</label>
+                <select id="filterMethod" class="admin-select">
+                    <option value="">{{ _('All') }}</option>
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
                     <option value="PUT">PUT</option>
                     <option value="DELETE">DELETE</option>
                 </select>
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <i class="fas fa-chevron-down text-xs"></i>
+            </div>
+            <div>
+                <label for="filterPath">{{ _('Path') }}</label>
+                <div class="admin-input-icon"><i class="fas fa-link"></i>
+                    <input type="text" id="filterPath" class="admin-input" placeholder="/api/...">
                 </div>
             </div>
-        </div>
-
-        <div>
-            <label for="filterPath" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Path") }}</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                    <i class="fas fa-link text-sm"></i>
-                </div>
-                <input type="text" id="filterPath" placeholder="/api/..." class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm placeholder-gray-400">
-            </div>
-        </div>
-
-        <div>
-            <label for="filterStatus" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Status") }}</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 w-10 flex items-center justify-center pointer-events-none text-gray-400">
-                    <i class="fas fa-info-circle text-sm"></i>
-                </div>
-                <select id="filterStatus" class="h-10 block w-full pl-10 rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm appearance-none cursor-pointer">
-                    <option value="">{{ _("All") }}</option>
-                    <option value="SUCCESS">{{ _("Success (2xx)") }}</option>
-                    <option value="FAILURE">{{ _("Failure (4xx/5xx)") }}</option>
+            <div>
+                <label for="filterStatus">{{ _('Status') }}</label>
+                <select id="filterStatus" class="admin-select">
+                    <option value="">{{ _('All') }}</option>
+                    <option value="SUCCESS">{{ _('Success (2xx)') }}</option>
+                    <option value="FAILURE">{{ _('Failure (4xx/5xx)') }}</option>
                 </select>
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <i class="fas fa-chevron-down text-xs"></i>
-                </div>
+            </div>
+            <div>
+                <label for="filterOrg">{{ _('Organization') }}</label>
+                <select id="filterOrg" class="admin-select">
+                    <option value="">{{ _('All') }}</option>
+                    {% for org in organizations %}
+                    <option value="{{ org.organizationcode }}">{{ org.organization }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="filterStart">{{ _('Start date') }}</label>
+                <input type="date" id="filterStart" class="admin-input">
+            </div>
+            <div>
+                <label for="filterEnd">{{ _('End date') }}</label>
+                <input type="date" id="filterEnd" class="admin-input">
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button type="button" onclick="fetchLogs(1)" class="admin-btn admin-btn-primary" style="width:100%">
+                    <i class="fas fa-search"></i> {{ _('Filter') }}
+                </button>
             </div>
         </div>
 
-        <div>
-            <label for="filterStart" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("Start Date") }}</label>
-            <input type="date" id="filterStart" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
-        </div>
-
-        <div>
-            <label for="filterEnd" class="block text-xs font-semibold text-gray-500 mb-1 ml-1 uppercase tracking-wide">{{ _("End Date") }}</label>
-            <input type="date" id="filterEnd" class="h-10 block w-full rounded-lg border-gray-300 bg-gray-50 text-sm focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm text-gray-600">
-        </div>
-
-        <div>
-            <button onclick="fetchLogs(1)" class="h-10 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-2 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <i class="fas fa-search"></i> {{ _("Filter") }}
-            </button>
-        </div>
-    </div>
-</div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            <th class="px-6 py-4">{{ _("Time") }}</th>
-                            <th class="px-6 py-4">{{ _("User") }}</th>
-                            <th class="px-6 py-4">{{ _("Action") }}</th>
-                            <th class="px-6 py-4">{{ _("Status") }}</th>
-                            <th class="px-6 py-4">{{ _("IP Address") }}</th>
-                            <th class="px-6 py-4 text-right">{{ _("Details") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody" class="divide-y divide-gray-100">
-                        </tbody>
-                </table>
-            </div>
-            
-            <div class="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between" id="paginationControls">
-                <span class="text-sm text-gray-500" id="pageInfo">{{ _("Loading...") }}</span>
-                <div class="flex gap-2">
-                    <button id="prevBtn" class="px-4 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" onclick="changePage(-1)" disabled>
-                        {{ _("Previous") }}
-                    </button>
-                    <button id="nextBtn" class="px-4 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" onclick="changePage(1)" disabled>
-                        {{ _("Next") }}
-                    </button>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                {{ a.table_header([
+                    {'label': _('Time'), 'width': '160px'},
+                    {'label': _('User'), 'width': '180px'},
+                    {'label': _('Action')},
+                    {'label': _('Status'), 'width': '130px'},
+                    {'label': _('IP'), 'width': '140px'},
+                    {'label': _('Details'), 'align': 'right', 'width': '100px'}
+                ]) }}
+                <tbody id="logsTableBody"></tbody>
+            </table>
+            <div style="padding:12px 16px;border-top:1px solid var(--a-border);display:flex;align-items:center;justify-content:space-between" id="paginationControls">
+                <span style="font-size:13px;color:var(--a-text-sec)" id="pageInfo">{{ _('Loading...') }}</span>
+                <div style="display:flex;gap:8px">
+                    <button id="prevBtn" class="admin-btn admin-btn-secondary" onclick="changePage(-1)" disabled>{{ _('Previous') }}</button>
+                    <button id="nextBtn" class="admin-btn admin-btn-secondary" onclick="changePage(1)" disabled>{{ _('Next') }}</button>
                 </div>
             </div>
         </div>
     </main>
 
+    {# keep the existing log details modal as-is (dark pre block) #}
     <div id="logDetailsModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
-
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" id="modalPanel">
-                    
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-100">
                         <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
-                            <i class="fas fa-terminal text-indigo-500 mr-2"></i> {{ _("Log Details Payload") }}
+                            <i class="fas fa-terminal text-indigo-500 mr-2"></i> {{ _('Log Details Payload') }}
                         </h3>
-                        <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition">
-                            <i class="fas fa-times text-lg"></i>
-                        </button>
+                        <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-lg"></i></button>
                     </div>
-
                     <div class="px-4 py-5 sm:p-6 bg-white">
                         <div class="grid grid-cols-3 gap-4 mb-4 text-sm text-gray-500 border-b border-gray-100 pb-4">
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _("User") }}</span> <span id="modalUser" class="text-gray-800 font-medium"></span></div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _("Action") }}</span> <span id="modalAction" class="text-gray-800 font-medium"></span></div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _("Time") }}</span> <span id="modalTime" class="text-gray-800 font-medium"></span></div>
+                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('User') }}</span> <span id="modalUser" class="text-gray-800 font-medium"></span></div>
+                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('Action') }}</span> <span id="modalAction" class="text-gray-800 font-medium"></span></div>
+                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('Time') }}</span> <span id="modalTime" class="text-gray-800 font-medium"></span></div>
                         </div>
-                        
                         <div class="relative">
                             <button onclick="copyToClipboard()" class="absolute top-2 right-2 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition border border-gray-600 z-10">
-                                <i class="fas fa-copy mr-1"></i> {{ _("Copy") }}
+                                <i class="fas fa-copy mr-1"></i> {{ _('Copy') }}
                             </button>
                             <pre id="modalCodeContent" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-auto max-h-96 code-scroll whitespace-pre-wrap break-all shadow-inner"></pre>
                         </div>
                     </div>
-
                     <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                        <button type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition" onclick="closeLogModal()">
-                            {{ _("Close") }}
-                        </button>
+                        <button type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition" onclick="closeLogModal()">{{ _('Close') }}</button>
                     </div>
                 </div>
             </div>

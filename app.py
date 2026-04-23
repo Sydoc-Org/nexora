@@ -971,7 +971,24 @@ def api_admin_organizations_list():
 @app.route("/admin/logs")
 @require_permission('admin.view.system.logs')
 def admin_logs_view():
-    return render_template("admin/logs.html", logged_in_user=session.get('username'),userid=session.get('userid'), pageV=pageVisability())
+    organizations = []
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("select organizationcode, organization from organizations")
+        organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+    except Exception as e:
+        app.logger.error(f"Failed to load organizations for logs page: {e}")
+    finally:
+        try: cursor.close()
+        except Exception: pass
+        try: conn.close()
+        except Exception: pass
+    return render_template("admin/logs.html",
+                         organizations=organizations,
+                         logged_in_user=session.get('username'),
+                         userid=session.get('userid'),
+                         pageV=pageVisability())
 
 @app.route("/api/admin/logs/search")
 @require_permission('admin.view.system.logs')
