@@ -145,3 +145,27 @@ body.admin-page main {
 /* Empty / loading state cells */
 .admin-empty { padding: 32px 16px; text-align: center; color: var(--a-text-meta); font-size: 13px; }
 
+/* Shared method / status cells (Logs + user-detail Activity) */
+.log-method { font-weight:700; font-family:"SF Mono",Consolas,"Roboto Mono",monospace; font-size:11px; margin-right:6px; }
+.log-method--GET    { color:#2563eb; }
+.log-method--POST   { color:#15803d; }
+.log-method--PUT    { color:#b54708; }
+.log-method--DELETE { color:#b42318; }
+.log-status { display:inline-flex; align-items:center; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; font-family:"SF Mono",Consolas,"Roboto Mono",monospace; }
+.log-status--ok    { background:#d1fae5; color:#065f46; }
+.log-status--warn  { background:#fef3c7; color:#92400e; }
+.log-status--error { background:#fee2e2; color:#991b1b; }
+
+/* Health strip on admin overview */
+.health-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px; }
+.health-card { padding:16px 18px; }
+.health-card-label { font-size:11px; font-weight:600; letter-spacing:0.6px; text-transform:uppercase; color:var(--a-text-meta); margin-bottom:6px; }
+.health-card-value { font-size:24px; font-weight:600; letter-spacing:-0.4px; color:var(--a-text); line-height:1.2; }
+.health-card-value.is-danger { color:var(--a-danger); }
+.health-card-sub { font-size:12px; color:var(--a-text-sec); margin-top:4px; }
+.health-db-list { display:flex; flex-wrap:wrap; gap:6px; }
+.health-db-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:500; background:var(--a-b-gray); color:var(--a-b-gray-fg); }
+.health-db-pill--ok  { background:var(--a-b-green); color:var(--a-b-green-fg); }
+.health-db-pill--err { background:var(--a-b-red);   color:var(--a-b-red-fg);   }
+.health-db-pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.7; }
+
