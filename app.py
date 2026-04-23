@@ -1594,6 +1594,7 @@ def admin_active_sessions():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
+                MIN(SessionID) AS SessionID,
 				Username,
 				Userid,
                 RequestIpAddress as IPAddress,
