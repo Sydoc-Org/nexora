@@ -4,41 +4,42 @@
    ============================================================ */
 
 :root {
-  /* Surfaces */
-  --a-page:          #f7f5f2;
+  /* Surfaces — match the rest of the app (gray-50 / white) */
+  --a-page:          #f9fafb;
   --a-card:          #ffffff;
-  --a-alt:           #faf8f4;   /* table header, row hover */
-  --a-ink:           #1a1a1a;   /* primary button bg, body text */
+  --a-alt:           #f9fafb;   /* table header, row hover */
+  --a-ink:           #4f46e5;   /* primary button bg (indigo-600) */
+  --a-ink-hover:     #4338ca;   /* primary button hover (indigo-700) */
 
   /* Borders */
-  --a-border:        #eae6e0;
-  --a-border-input:  #d8d3cb;
-  --a-row-divider:   #f5f2ed;
-  --a-mono-bg:       #f3efe9;
+  --a-border:        #e5e7eb;
+  --a-border-input:  #d1d5db;
+  --a-row-divider:   #f3f4f6;
+  --a-mono-bg:       #f3f4f6;
 
   /* Text */
-  --a-text:          #1a1a1a;
-  --a-text-sec:      #6b6760;
-  --a-text-meta:     #8a857c;
+  --a-text:          #1f2937;
+  --a-text-sec:      #6b7280;
+  --a-text-meta:     #9ca3af;
 
-  /* Accents */
-  --a-indigo:        #6b46c1;
-  --a-indigo-soft:   rgba(107,70,193,0.12);
-  --a-success:       #257c3d;
-  --a-warning:       #b54708;
-  --a-danger:        #b42318;
+  /* Accents — match app's indigo-600/700 family */
+  --a-indigo:        #4f46e5;
+  --a-indigo-soft:   rgba(79,70,229,0.12);
+  --a-success:       #059669;
+  --a-warning:       #d97706;
+  --a-danger:        #dc2626;
 
-  /* Badge backgrounds */
-  --a-b-indigo:      #eef0ff;
+  /* Badge backgrounds — Tailwind-aligned pastels */
+  --a-b-indigo:      #eef2ff;
   --a-b-indigo-fg:   #4338ca;
-  --a-b-green:       #e7f6ec;
-  --a-b-green-fg:    #257c3d;
+  --a-b-green:       #d1fae5;
+  --a-b-green-fg:    #065f46;
   --a-b-amber:       #fef3c7;
   --a-b-amber-fg:    #92400e;
-  --a-b-gray:        #f3efe9;
-  --a-b-gray-fg:     #6b6760;
-  --a-b-red:         #fee4e2;
-  --a-b-red-fg:      #b42318;
+  --a-b-gray:        #f3f4f6;
+  --a-b-gray-fg:     #4b5563;
+  --a-b-red:         #fee2e2;
+  --a-b-red-fg:      #991b1b;
 }
 
 /* Page wrapper */
@@ -69,11 +70,11 @@ body.admin-page main {
 .admin-btn          { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: background-color 0.12s, border-color 0.12s; }
 .admin-btn:focus    { outline: none; box-shadow: 0 0 0 3px var(--a-indigo-soft); }
 .admin-btn-primary  { background: var(--a-ink); color: #fff; }
-.admin-btn-primary:hover { background: #000; }
+.admin-btn-primary:hover { background: var(--a-ink-hover); }
 .admin-btn-secondary { background: var(--a-card); color: var(--a-text); border-color: var(--a-border-input); }
 .admin-btn-secondary:hover { background: var(--a-alt); }
 .admin-btn-danger   { background: var(--a-danger); color: #fff; }
-.admin-btn-danger:hover { background: #8c1b12; }
+.admin-btn-danger:hover { background: #b91c1c; }
 .admin-btn-ghost    { background: transparent; color: var(--a-text-sec); }
 .admin-btn-ghost:hover { background: var(--a-alt); color: var(--a-text); }
 
