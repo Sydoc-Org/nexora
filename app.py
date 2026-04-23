@@ -231,6 +231,36 @@ engineGeneraliDB = create_engine(
     pool_recycle=1800
 )
 
+def ping_db(engine, label, timeout_s=2.0):
+    """Probe a SQLAlchemy engine with SELECT 1. Never raises.
+    Returns {'label', 'ok', 'error', 'latency_ms'}.
+    timeout_s is reserved for future use; pyodbc per-query timeouts
+    aren't exposed through raw_connection() without engine-level config."""
+    start = time.monotonic()
+    try:
+        conn = engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT 1")
+            cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+        return {
+            'label': label,
+            'ok': True,
+            'error': None,
+            'latency_ms': int((time.monotonic() - start) * 1000),
+        }
+    except Exception as e:
+        msg = (str(e).splitlines()[0] if str(e) else 'error')[:140]
+        return {
+            'label': label,
+            'ok': False,
+            'error': msg,
+            'latency_ms': int((time.monotonic() - start) * 1000),
+        }
+
 # ------------------------------ database connection end --------------------- #
 
 # ---------------------------------- logging --------------------------------- #
@@ -797,26 +827,64 @@ def admin_dashboard():
 
     user_count = 0
     org_count = 0
+    active_users_5m = None
+    failed_logins_today = None
+
+    conn = None
+    cursor = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
+
         cursor.execute("SELECT COUNT(*) FROM Users")
         row = cursor.fetchone()
         if row: user_count = row[0]
+
         cursor.execute("SELECT COUNT(*) FROM organizations")
         row = cursor.fetchone()
         if row: org_count = row[0]
+
+        cursor.execute("""
+            SELECT COUNT(DISTINCT Username) FROM Logs
+            WHERE Timestamp > DATEADD(minute, -5, GETDATE())
+              AND Username IS NOT NULL
+        """)
+        row = cursor.fetchone()
+        if row: active_users_5m = row[0]
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM Logs
+            WHERE Path = '/login'
+              AND HttpRequestMethod = 'POST'
+              AND HttpResponseCode >= 400
+              AND Timestamp >= CAST(GETDATE() AS DATE)
+        """)
+        row = cursor.fetchone()
+        if row: failed_logins_today = row[0]
     except Exception as e:
         app.logger.error(f"Failed to load admin overview counts: {e}")
     finally:
-        try: cursor.close()
+        try:
+            if cursor: cursor.close()
         except Exception: pass
-        try: conn.close()
+        try:
+            if conn: conn.close()
         except Exception: pass
+
+    db_health = [
+        ping_db(engineNexoraDB,            'Nexora'),
+        ping_db(engineOctoDB,              'Octo'),
+        ping_db(engineStatisticsDB,        'Stats'),
+        ping_db(engineStatisticsDBMobscan, 'Stats-Mobscan'),
+        ping_db(engineGeneraliDB,          'Generali'),
+    ]
 
     return render_template("admin/adminOverview.html",
                          user_count=user_count,
                          org_count=org_count,
+                         active_users_5m=active_users_5m,
+                         failed_logins_today=failed_logins_today,
+                         db_health=db_health,
                          logged_in_user=session.get('username'),
                          userid=session.get('userid'),
                          pageV=pageVisability())
