@@ -175,20 +175,19 @@
 </main>
 
 <!-- ================================================================== -->
-<!-- USER ADD / EDIT MODAL (center — simple form)                        -->
+<!-- USER ADD MODAL (center — simple form)                               -->
 <!-- ================================================================== -->
 <div id="userModal"
      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300">
     <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300">
         <div class="flex justify-between items-center mb-5">
-            <h3 id="userModalTitle" class="text-xl font-bold text-gray-800">{{ _("Add User") }}</h3>
+            <h3 class="text-xl font-bold text-gray-800">{{ _("Add User") }}</h3>
             <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <form id="userForm" class="space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <input type="hidden" id="userId" name="userId">
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">{{ _("Username") }}</label>
@@ -228,15 +227,14 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">{{ _("Password") }}</label>
-                <input type="password" id="password" name="password"
+                <input type="password" id="password" name="password" required
                        class="w-full border border-gray-300 rounded-lg text-sm p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                <p id="password-help" class="text-xs text-gray-400 mt-1 hidden">{{ _("Leave blank to keep current password.") }}</p>
             </div>
             <div class="flex justify-end space-x-3 pt-2">
                 <button type="button" onclick="closeUserModal()"
                         class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ _("Cancel") }}</button>
                 <button type="submit"
-                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow">{{ _("Save") }}</button>
+                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow">{{ _("Create") }}</button>
             </div>
         </form>
     </div>
