@@ -1,0 +1,139 @@
+/* ============================================================
+   NEXORA ADMIN — design tokens + components (Phase 1)
+   Scoped to pages that include this file.
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --a-page:          #f7f5f2;
+  --a-card:          #ffffff;
+  --a-alt:           #faf8f4;   /* table header, row hover */
+  --a-ink:           #1a1a1a;   /* primary button bg, body text */
+
+  /* Borders */
+  --a-border:        #eae6e0;
+  --a-border-input:  #d8d3cb;
+  --a-row-divider:   #f5f2ed;
+  --a-mono-bg:       #f3efe9;
+
+  /* Text */
+  --a-text:          #1a1a1a;
+  --a-text-sec:      #6b6760;
+  --a-text-meta:     #8a857c;
+
+  /* Accents */
+  --a-indigo:        #6b46c1;
+  --a-indigo-soft:   rgba(107,70,193,0.12);
+  --a-success:       #257c3d;
+  --a-warning:       #b54708;
+  --a-danger:        #b42318;
+
+  /* Badge backgrounds */
+  --a-b-indigo:      #eef0ff;
+  --a-b-indigo-fg:   #4338ca;
+  --a-b-green:       #e7f6ec;
+  --a-b-green-fg:    #257c3d;
+  --a-b-amber:       #fef3c7;
+  --a-b-amber-fg:    #92400e;
+  --a-b-gray:        #f3efe9;
+  --a-b-gray-fg:     #6b6760;
+  --a-b-red:         #fee4e2;
+  --a-b-red-fg:      #b42318;
+}
+
+/* Page wrapper */
+body.admin-page { background: var(--a-page); color: var(--a-text); }
+body.admin-page main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+
+/* Typography */
+.admin-title    { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; color: var(--a-text); margin: 0; }
+.admin-subtitle { font-size: 13px; color: var(--a-text-sec); margin: 4px 0 0; }
+.admin-section  { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; color: var(--a-text); }
+.admin-meta     { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--a-text-meta); }
+.admin-mono     { font-family: "SF Mono", Consolas, "Roboto Mono", monospace; font-size: 12px; background: var(--a-mono-bg); padding: 1px 6px; border-radius: 3px; }
+
+/* Header block */
+.admin-header        { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.admin-header-left   { display: flex; align-items: center; gap: 12px; }
+.admin-back          { color: var(--a-text-sec); padding: 6px; border-radius: 6px; }
+.admin-back:hover    { background: var(--a-alt); color: var(--a-text); }
+.admin-header-actions { display: flex; gap: 8px; }
+
+/* Buttons */
+.admin-btn          { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: background-color 0.12s, border-color 0.12s; }
+.admin-btn:focus    { outline: none; box-shadow: 0 0 0 3px var(--a-indigo-soft); }
+.admin-btn-primary  { background: var(--a-ink); color: #fff; }
+.admin-btn-primary:hover { background: #000; }
+.admin-btn-secondary { background: var(--a-card); color: var(--a-text); border-color: var(--a-border-input); }
+.admin-btn-secondary:hover { background: var(--a-alt); }
+.admin-btn-danger   { background: var(--a-danger); color: #fff; }
+.admin-btn-danger:hover { background: #8c1b12; }
+.admin-btn-ghost    { background: transparent; color: var(--a-text-sec); }
+.admin-btn-ghost:hover { background: var(--a-alt); color: var(--a-text); }
+
+/* Badges */
+.admin-badge              { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.admin-badge--indigo      { background: var(--a-b-indigo); color: var(--a-b-indigo-fg); }
+.admin-badge--green       { background: var(--a-b-green);  color: var(--a-b-green-fg);  }
+.admin-badge--amber       { background: var(--a-b-amber);  color: var(--a-b-amber-fg);  }
+.admin-badge--gray        { background: var(--a-b-gray);   color: var(--a-b-gray-fg);   }
+.admin-badge--red         { background: var(--a-b-red);    color: var(--a-b-red-fg);    }
+
+/* Inputs */
+.admin-input, .admin-select {
+  background: var(--a-card);
+  border: 1px solid var(--a-border-input);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--a-text);
+  width: 100%;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.admin-input:focus, .admin-select:focus { outline: none; border-color: var(--a-indigo); box-shadow: 0 0 0 3px var(--a-indigo-soft); }
+.admin-input-icon { position: relative; }
+.admin-input-icon > i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--a-text-meta); font-size: 12px; }
+.admin-input-icon > input { padding-left: 32px; }
+
+/* Filter bar */
+.admin-filter-bar {
+  background: var(--a-card);
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+}
+.admin-filter-bar label { font-size: 11px; font-weight: 600; color: var(--a-text-meta); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; display: block; }
+
+/* Card */
+.admin-card { background: var(--a-card); border: 1px solid var(--a-border); border-radius: 10px; padding: 16px; }
+.admin-card-link { display: block; text-decoration: none; color: inherit; transition: border-color 0.12s, box-shadow 0.12s; }
+.admin-card-link:hover { border-color: var(--a-text-sec); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+
+/* Table */
+.admin-table-wrap { background: var(--a-card); border: 1px solid var(--a-border); border-radius: 10px; overflow: hidden; }
+.admin-table      { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--a-text); }
+.admin-table thead th { background: var(--a-alt); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--a-text-meta); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--a-border); }
+.admin-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--a-row-divider); }
+.admin-table tbody tr:last-child td { border-bottom: none; }
+.admin-table tbody tr.is-clickable { cursor: pointer; }
+.admin-table tbody tr.is-clickable:hover { background: var(--a-alt); }
+.admin-table .align-right { text-align: right; }
+
+/* Empty / loading state cells */
+.admin-empty { padding: 32px 16px; text-align: center; color: var(--a-text-meta); font-size: 13px; }
+
+/* Sidebar admin-open rules (see Task 3 for the accompanying JS) */
+#nexora-sidebar:hover #adminNavGroup.admin-open .sidebar-nav-subitems {
+  max-height: var(--admin-subitems-height, 9999px);
+}
+#adminNavGroup.admin-open .sidebar-generali-chevron { transform: rotate(90deg); }
+@media (max-width: 768px) {
+  #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
+    max-height: var(--admin-subitems-height, 9999px);
+  }
+}
