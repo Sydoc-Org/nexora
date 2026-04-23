@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-23 13:31+0200\n"
+"POT-Creation-Date: 2026-04-23 16:02+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -18,204 +18,204 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:434
+#: app.py:464
 msgid "Session expired, please try again"
 msgstr "Sessione scaduta, riprova"
 
-#: app.py:473
+#: app.py:504
 msgid "Database error"
 msgstr "Errore del database"
 
-#: app.py:481
+#: app.py:512
 msgid "Invalid code. Please try again."
 msgstr "Codice non valido. Riprova."
 
-#: app.py:523
+#: app.py:555
 msgid "Invalid code"
 msgstr "Codice non valido"
 
-#: app.py:537 app.py:1807
+#: app.py:569 app.py:2050
 msgid "Passwords do not match"
 msgstr "Le password non corrispondono"
 
-#: app.py:539 app.py:1809
+#: app.py:571 app.py:2052
 msgid "All Fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: app.py:541 app.py:1811 app.py:4484
+#: app.py:573 app.py:2054 app.py:4727
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "La nuova password deve essere lunga almeno 8 caratteri, senza spazi"
 
-#: app.py:560 app.py:1829
+#: app.py:592 app.py:2072
 msgid "New Password musn't be previously used password"
 msgstr ""
 "La nuova password non deve essere una password già utilizzata in "
 "precedenza"
 
-#: app.py:654 app.py:689
+#: app.py:712 app.py:747
 msgid "Invalid credentials"
 msgstr "Credenziali non valide"
 
-#: app.py:693
+#: app.py:751
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: app.py:726 app.py:755
+#: app.py:784 app.py:813
 msgid "Not authenticated"
 msgstr "Non autenticato"
 
-#: app.py:745
+#: app.py:803
 msgid "Could not fetch notifications"
 msgstr "Impossibile recuperare le notifiche"
 
-#: app.py:761
+#: app.py:819
 msgid "Invalid payload"
 msgstr "Payload non valido"
 
-#: app.py:780
+#: app.py:838
 msgid "Notifications marked as read."
 msgstr "Notifiche contrassegnate come lette."
 
-#: app.py:783
+#: app.py:841
 msgid "Could not update notifications"
 msgstr "Impossibile aggiornare le notifiche"
 
-#: app.py:872 app.py:1107
+#: app.py:968 app.py:1203
 msgid "All fields are required."
 msgstr "Tutti i campi sono obbligatori."
 
-#: app.py:887
+#: app.py:983
 msgid "Organization created successfully."
 msgstr "Organizzazione creata con successo."
 
-#: app.py:889
+#: app.py:985
 msgid "Organization already exists."
 msgstr "L'organizzazione esiste già."
 
-#: app.py:892 app.py:1127 app.py:4058 app.py:4100 app.py:4138 app.py:4311
-#: app.py:4339
+#: app.py:988 app.py:1223 app.py:4301 app.py:4343 app.py:4381 app.py:4554
+#: app.py:4582
 msgid "An unexpected error occurred."
 msgstr "Si è verificato un errore imprevisto."
 
-#: app.py:915
+#: app.py:1011
 msgid "Organization updated successfully."
 msgstr "Organizzazione aggiornata con successo."
 
-#: app.py:918 app.py:945 app.py:1171 app.py:1287
+#: app.py:1014 app.py:1041 app.py:1267 app.py:1448
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
 
-#: app.py:939
+#: app.py:1035
 msgid "Organization not found."
 msgstr "Organizzazione non trovata."
 
-#: app.py:942
+#: app.py:1038
 msgid "Organization deleted successfully."
 msgstr "Organizzazione eliminata con successo."
 
-#: app.py:1122 templates/js/admin/_accessControlJS.html:439
+#: app.py:1218 templates/js/admin/_accessControlJS.html:449
 msgid "User created successfully."
 msgstr "Utente creato con successo."
 
-#: app.py:1124
+#: app.py:1220
 msgid "Username or email already exists."
 msgstr "Il nome utente o l'e-mail esistono già."
 
-#: app.py:1152
+#: app.py:1248
 msgid "Permission Denied for this action."
 msgstr "Autorizzazione negata per questa azione."
 
-#: app.py:1168
+#: app.py:1264
 msgid "User updated successfully."
 msgstr "Utente aggiornato con successo."
 
-#: app.py:1246
+#: app.py:1407
 msgid "You cannot delete your own account."
 msgstr "Non puoi eliminare il tuo account."
 
-#: app.py:1282
+#: app.py:1443
 msgid "User not found."
 msgstr "Utente non trovato."
 
-#: app.py:1284
+#: app.py:1445
 msgid "User deleted successfully."
 msgstr "Utente eliminato con successo."
 
-#: app.py:1342
+#: app.py:1584
 msgid "Could not fetch logs"
 msgstr "Impossibile recuperare i log"
 
-#: app.py:1368
+#: app.py:1611
 msgid "Could not fetch sessions"
 msgstr "Impossibile recuperare le sessioni"
 
-#: app.py:1426 app.py:1596 app.py:1623 app.py:1660 app.py:1691 app.py:1721
-#: app.py:1752 app.py:2151 app.py:2241 app.py:2356 app.py:2444 app.py:3024
-#: app.py:3501 app.py:3726 app.py:3903 app.py:3941 app.py:4023 app.py:4068
-#: app.py:4110 app.py:4148 app.py:4274 app.py:4321 app.py:4773 app.py:4856
+#: app.py:1669 app.py:1839 app.py:1866 app.py:1903 app.py:1934 app.py:1964
+#: app.py:1995 app.py:2394 app.py:2484 app.py:2599 app.py:2687 app.py:3267
+#: app.py:3744 app.py:3969 app.py:4146 app.py:4184 app.py:4266 app.py:4311
+#: app.py:4353 app.py:4391 app.py:4517 app.py:4564 app.py:5016 app.py:5099
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
-#: app.py:1465 app.py:3931
+#: app.py:1708 app.py:4174
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: app.py:1503
+#: app.py:1746
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: app.py:1520
+#: app.py:1763
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: app.py:1582
+#: app.py:1825
 msgid "Overrides updated successfully"
 msgstr "Override aggiornati con successo"
 
-#: app.py:1632 app.py:1738 app.py:1769
+#: app.py:1875 app.py:1981 app.py:2012
 #, fuzzy
 msgid "Permission not found"
 msgstr "Organizzazione non trovata."
 
-#: app.py:1697 app.py:1727
+#: app.py:1940 app.py:1970
 msgid "Code and description are required"
 msgstr ""
 
-#: app.py:1709
+#: app.py:1952
 #, fuzzy
 msgid "Permission created successfully"
 msgstr "Utente creato con successo."
 
-#: app.py:1740
+#: app.py:1983
 #, fuzzy
 msgid "Permission updated successfully"
 msgstr "Password aggiornata con successo!"
 
-#: app.py:1765
+#: app.py:2008
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: app.py:1771
+#: app.py:2014
 #, fuzzy
 msgid "Permission deleted successfully"
 msgstr "Utente eliminato con successo."
 
-#: app.py:1844
+#: app.py:2087
 msgid "Password changed"
 msgstr "Password modificata"
 
-#: app.py:1910
+#: app.py:2153
 msgid "nexora Password Reset Request"
 msgstr "Richiesta di reimpostazione password nexora"
 
-#: app.py:1945
+#: app.py:2188
 msgid "Hello,"
 msgstr "Salve,"
 
-#: app.py:1947
+#: app.py:2190
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -224,7 +224,7 @@ msgstr ""
 "tuo account. Puoi reimpostare la password facendo clic sul pulsante qui "
 "sotto."
 
-#: app.py:1948
+#: app.py:2191
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -232,214 +232,214 @@ msgstr ""
 "Se non hai richiesto la reimpostazione della password, ignora questa "
 "e-mail. Questo link è valido per 15 minuti."
 
-#: app.py:1951
+#: app.py:2194
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Grazie,<br>Il Team Sydoc"
 
-#: app.py:1959
+#: app.py:2202
 msgid "Reset Your Password"
 msgstr "Reimposta la tua password"
 
-#: app.py:2021
+#: app.py:2264
 msgid "A password reset link has been sent to your email"
 msgstr ""
 "Un link per la reimpostazione della password è stato inviato alla tua "
 "e-mail"
 
-#: app.py:2023 app.py:2027
+#: app.py:2266 app.py:2270
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: app.py:2024
+#: app.py:2267
 msgid "Invalid Email Address"
 msgstr "Indirizzo e-mail non valido"
 
-#: app.py:3109
+#: app.py:3352
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
 
-#: app.py:3449
+#: app.py:3692
 msgid "No file part in the request."
 msgstr "Nessuna parte del file nella richiesta."
 
-#: app.py:3456
+#: app.py:3699
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: app.py:3460
+#: app.py:3703
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: app.py:3472
+#: app.py:3715
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: app.py:3489
+#: app.py:3732
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: app.py:3492
+#: app.py:3735
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: app.py:3494
+#: app.py:3737
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: app.py:3544
+#: app.py:3787
 msgid "Could not fetch workitem data"
 msgstr "Impossibile recuperare i dati del Workitem"
 
-#: app.py:3743 app.py:3781
+#: app.py:3986 app.py:4024
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: app.py:3770 app.py:3832
+#: app.py:4013 app.py:4075
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: app.py:3792
+#: app.py:4035
 msgid "Media index out of bounds"
 msgstr "Indice media fuori dai limiti"
 
-#: app.py:3816
+#: app.py:4059
 msgid "Failed to process TIFF image"
 msgstr "Impossibile elaborare l'immagine TIFF"
 
-#: app.py:3851
+#: app.py:4094
 msgid "Error fetching activity instance"
 msgstr "Errore nel recupero dell'istanza di attività"
 
-#: app.py:3895
+#: app.py:4138
 msgid "Failed to fetch audit history"
 msgstr "Impossibile recuperare la cronologia di audit"
 
-#: app.py:3897
+#: app.py:4140
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: app.py:3985
+#: app.py:4228
 msgid "No data found for this workitem."
 msgstr "Nessun dato trovato per questo Workitem."
 
-#: app.py:4013
+#: app.py:4256
 msgid "Could not fetch interactions"
 msgstr "Impossibile recuperare le interazioni"
 
-#: app.py:4028
+#: app.py:4271
 msgid "Comment cannot be empty."
 msgstr "Il commento non può essere vuoto."
 
-#: app.py:4055
+#: app.py:4298
 msgid "Comment added."
 msgstr "Commento aggiunto."
 
-#: app.py:4073
+#: app.py:4316
 msgid "Invalid assignment."
 msgstr "Assegnazione non valida."
 
-#: app.py:4096
+#: app.py:4339
 msgid "assigned you on workitem"
 msgstr "ti ha assegnato al Workitem"
 
-#: app.py:4097
+#: app.py:4340
 msgid "Assignment updated."
 msgstr "Assegnazione aggiornata."
 
-#: app.py:4115
+#: app.py:4358
 msgid "Invalid priority level."
 msgstr "Livello di priorità non valido."
 
-#: app.py:4135
+#: app.py:4378
 msgid "Priority updated."
 msgstr "Priorità aggiornata."
 
-#: app.py:4164
+#: app.py:4407
 msgid "Could not fetch tags"
 msgstr "Impossibile recuperare i tag"
 
-#: app.py:4281
+#: app.py:4524
 msgid "Tag name cannot be empty."
 msgstr "Il nome del tag non può essere vuoto."
 
-#: app.py:4300
+#: app.py:4543
 msgid "Workitem already has this tag."
 msgstr "Il Workitem ha già questo tag."
 
-#: app.py:4307
+#: app.py:4550
 msgid "Tag added successfully."
 msgstr "Tag aggiunto con successo."
 
-#: app.py:4332
+#: app.py:4575
 msgid "Tag association not found."
 msgstr "Associazione tag non trovata."
 
-#: app.py:4336
+#: app.py:4579
 msgid "Tag removed successfully."
 msgstr "Tag rimosso con successo."
 
-#: app.py:4403
+#: app.py:4646
 msgid "Email Adress is not valid"
 msgstr "L'indirizzo e-mail non è valido"
 
-#: app.py:4410
+#: app.py:4653
 msgid "Email Adress is already in use"
 msgstr "L'indirizzo e-mail è già in uso"
 
-#: app.py:4429 app.py:4450
+#: app.py:4672 app.py:4693
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Formato file non valido. Carica un'immagine valida."
 
-#: app.py:4452
+#: app.py:4695
 msgid "Profile updated successfully!"
 msgstr "Profilo aggiornato con successo!"
 
-#: app.py:4455
+#: app.py:4698
 msgid "Unexpected error"
 msgstr "Errore imprevisto"
 
-#: app.py:4478
+#: app.py:4721
 msgid "New passwords do not match"
 msgstr "Le nuove password non corrispondono"
 
-#: app.py:4481
+#: app.py:4724
 msgid "All fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: app.py:4515
+#: app.py:4758
 msgid "Password updated successfully!"
 msgstr "Password aggiornata con successo!"
 
-#: app.py:4518
+#: app.py:4761
 msgid "Current password is incorrect"
 msgstr "La password attuale non è corretta"
 
-#: app.py:4521 app.py:4534 app.py:4547
+#: app.py:4764 app.py:4777 app.py:4790
 msgid "Unexpected Error"
 msgstr "Errore imprevisto"
 
-#: app.py:4543
+#: app.py:4786
 msgid "Language changed successfully!"
 msgstr "Lingua cambiata con successo!"
 
-#: app.py:4701 templates/invoices.html:81
+#: app.py:4944 templates/invoices.html:81
 msgid "Paid"
 msgstr "Pagato"
 
-#: app.py:4703 templates/invoices.html:82
+#: app.py:4946 templates/invoices.html:82
 msgid "Open"
 msgstr "Aperto"
 
-#: app.py:4826
+#: app.py:5069
 msgid "Could not download PDF. File not found or API error."
 msgstr "Impossibile scaricare il PDF. File non trovato o errore API."
 
-#: app.py:4831
+#: app.py:5074
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Si è verificato un errore imprevisto durante il download del PDF."
 
-#: app.py:4887
+#: app.py:5130
 msgid "No messages yet"
 msgstr "Nessun messaggio ancora"
 
@@ -457,12 +457,12 @@ msgid "Overview"
 msgstr "Panoramica utenti"
 
 #: templates/_header.html:48 templates/admin/accessControl.html:26
-#: templates/admin/adminOverview.html:26
+#: templates/admin/adminOverview.html:58
 #, fuzzy
 msgid "Access Control"
 msgstr "Controllo accessi - nexora"
 
-#: templates/_header.html:53 templates/admin/adminOverview.html:36
+#: templates/_header.html:53 templates/admin/adminOverview.html:68
 #: templates/admin/organizations.html:20
 msgid "Organizations"
 msgstr "Organizzazioni"
@@ -610,14 +610,14 @@ msgstr "Nessun altro utente disponibile."
 #: templates/admin/accessControl.html:235
 #: templates/admin/accessControl.html:254
 #: templates/admin/accessControl.html:294
-#: templates/admin/accessControl.html:395
+#: templates/admin/accessControl.html:399
 #: templates/admin/modals/_mobscn_modals.html:13
 #: templates/admin/modals/_mobscn_modals.html:47
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:41
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:81
-#: templates/admin/userDetail.html:68 templates/admin/userDetail.html:169
+#: templates/admin/userDetail.html:68 templates/admin/userDetail.html:204
 #: templates/chat.html:90 templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:283
 #: templates/generali_additionalservices.html:308
@@ -848,8 +848,8 @@ msgid "Parent Category"
 msgstr "Categoria principale"
 
 #: templates/admin/accessControl.html:62 templates/admin/accessControl.html:71
-#: templates/admin/logs.html:59 templates/admin/logs.html:75
-#: templates/admin/logs.html:83 templates/generali_additionalservices.html:64
+#: templates/admin/logs.html:50 templates/admin/logs.html:66
+#: templates/admin/logs.html:74 templates/generali_additionalservices.html:64
 #: templates/generali_additionalservices.html:76
 #: templates/generali_baseservices.html:64
 #: templates/generali_documents.html:133 templates/generali_pdqm.html:60
@@ -893,15 +893,15 @@ msgstr "Ore totali (filtrate):"
 msgid "Date"
 msgstr "Data"
 
-#: templates/admin/accessControl.html:97 templates/admin/logs.html:109
-#: templates/admin/logs.html:141 templates/generali_additionalservices.html:116
+#: templates/admin/accessControl.html:97 templates/admin/logs.html:100
+#: templates/admin/logs.html:132 templates/generali_additionalservices.html:116
 #: templates/generali_additionalservices.html:174
 #: templates/generali_baseservices.html:104
 #: templates/generali_baseservices.html:159 templates/generali_pdqm.html:125
 #: templates/generali_projectmanagement.html:92
 #: templates/generali_projectmanagement.html:147
 #: templates/generali_reporting.html:107
-#: templates/js/admin/_accessControlJS.html:575
+#: templates/js/admin/_accessControlJS.html:585
 msgid "User"
 msgstr "Utente"
 
@@ -921,7 +921,7 @@ msgstr "Registrato alle"
 #: templates/admin/accessControl.html:133
 #: templates/admin/archive/mobscn_processmanagement.html:36
 #: templates/admin/archive/userManagement.html:42
-#: templates/admin/organizations.html:33
+#: templates/admin/organizations.html:33 templates/admin/sessions.html:31
 #: templates/generali_additionalservices.html:132
 #: templates/generali_baseservices.html:117 templates/generali_pdqm.html:144
 #: templates/generali_projectmanagement.html:105
@@ -942,6 +942,7 @@ msgstr "Visualizzazione"
 #: templates/generali_documents.html:275 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:125
 #: templates/generali_reporting.html:141 templates/js/admin/_logsJS.html:99
+#: templates/js/admin/_userDetailJS.html:320
 #: templates/workitems_overview.html:413
 msgid "of"
 msgstr "di"
@@ -1026,7 +1027,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/admin/accessControl.html:256
 #: templates/admin/archive/mobscn_processmanagement.html:46
 #: templates/admin/archive/userManagement.html:55
-#: templates/admin/organizations.html:42 templates/admin/userDetail.html:172
+#: templates/admin/organizations.html:42 templates/admin/userDetail.html:207
 #: templates/generali_additionalservices.html:312
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:337
 #: templates/generali_projectmanagement.html:259
@@ -1040,7 +1041,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/js/_generaliProjectManagementJS.html:370
 #: templates/js/_generaliReportingJS.html:822
 #: templates/js/_generaliReportingJS.html:836
-#: templates/js/admin/_accessControlJS.html:501
+#: templates/js/admin/_accessControlJS.html:511
 #: templates/js/admin/_organizationsJS.html:97
 #: templates/js/admin/_userManagementJS.html:111
 msgid "Delete"
@@ -1552,7 +1553,7 @@ msgid "Login - nexora"
 msgstr "Accesso - nexora"
 
 #: templates/admin/accessControl.html:193
-#: templates/admin/archive/userManagement.html:37 templates/admin/logs.html:51
+#: templates/admin/archive/userManagement.html:37 templates/admin/logs.html:42
 #: templates/admin/modals/_user_modals.html:33 templates/admin/sessions.html:27
 #: templates/admin/userDetail.html:35 templates/index.html:38
 #: templates/profile.html:88
@@ -1673,9 +1674,10 @@ msgstr "Cliente"
 msgid "All Clients"
 msgstr "Tutti i clienti"
 
-#: templates/admin/logs.html:73 templates/admin/logs.html:111
-#: templates/invoices.html:75 templates/invoices.html:122
-#: templates/workitems_overview.html:125 templates/workitems_overview.html:355
+#: templates/admin/logs.html:64 templates/admin/logs.html:102
+#: templates/admin/userDetail.html:150 templates/invoices.html:75
+#: templates/invoices.html:122 templates/workitems_overview.html:125
+#: templates/workitems_overview.html:355
 msgid "Status"
 msgstr "Stato"
 
@@ -1705,7 +1707,7 @@ msgid "Account settings"
 msgstr "Impostazioni account"
 
 #: templates/admin/accessControl.html:60 templates/admin/userDetail.html:27
-#: templates/js/admin/_accessControlJS.html:576 templates/profile.html:31
+#: templates/js/admin/_accessControlJS.html:586 templates/profile.html:31
 msgid "Profile"
 msgstr "Profilo"
 
@@ -1964,7 +1966,7 @@ msgstr "Indietro"
 msgid "Access Control - nexora"
 msgstr "Controllo accessi - nexora"
 
-#: templates/admin/accessControl.html:27 templates/admin/adminOverview.html:31
+#: templates/admin/accessControl.html:27 templates/admin/adminOverview.html:63
 #, fuzzy
 msgid "Users, permissions and access profiles"
 msgstr "Autorizzazioni e profili"
@@ -1994,7 +1996,7 @@ msgstr ""
 
 #: templates/admin/accessControl.html:69 templates/admin/accessControl.html:99
 #: templates/admin/accessControl.html:219
-#: templates/admin/archive/userManagement.html:41 templates/admin/logs.html:81
+#: templates/admin/archive/userManagement.html:41 templates/admin/logs.html:72
 #: templates/admin/modals/_user_modals.html:62
 #: templates/admin/userDetail.html:55
 msgid "Organization"
@@ -2022,10 +2024,11 @@ msgid "Overrides"
 msgstr "Override"
 
 #: templates/admin/accessControl.html:105
-#: templates/admin/accessControl.html:137 templates/admin/logs.html:118
-#: templates/admin/sessions.html:33
-#: templates/js/admin/_accessControlJS.html:535
-#: templates/js/admin/_sessionsJS.html:38
+#: templates/admin/accessControl.html:137 templates/admin/logs.html:109
+#: templates/admin/sessions.html:34 templates/admin/userDetail.html:154
+#: templates/js/admin/_accessControlJS.html:545
+#: templates/js/admin/_sessionsJS.html:39
+#: templates/js/admin/_userDetailJS.html:253
 msgid "Loading..."
 msgstr "Caricamento..."
 
@@ -2036,7 +2039,7 @@ msgstr "Tutti gli utenti e le autorizzazioni"
 
 #: templates/admin/accessControl.html:120
 #: templates/admin/accessControl.html:268
-#: templates/js/admin/_accessControlJS.html:593
+#: templates/js/admin/_accessControlJS.html:603
 #, fuzzy
 msgid "Add Permission"
 msgstr "Autorizzazione"
@@ -2071,7 +2074,7 @@ msgstr "Profilo"
 #: templates/admin/archive/mobscn_processmanagement.html:45
 #: templates/admin/archive/userManagement.html:54
 #: templates/admin/organizations.html:41
-#: templates/js/admin/_accessControlJS.html:497
+#: templates/js/admin/_accessControlJS.html:507
 #: templates/js/admin/_organizationsJS.html:96
 #: templates/js/admin/_userManagementJS.html:110
 msgid "Edit"
@@ -2145,7 +2148,7 @@ msgstr "Nega"
 msgid "Allow"
 msgstr "Consenti"
 
-#: templates/admin/accessControl.html:397
+#: templates/admin/accessControl.html:401
 msgid "Save Changes"
 msgstr "Salva modifiche"
 
@@ -2162,67 +2165,91 @@ msgstr "Hub di amministrazione"
 msgid "Users, organizations, sessions and logs."
 msgstr ""
 
-#: templates/admin/adminOverview.html:30
+#: templates/admin/adminOverview.html:25
+#, fuzzy
+msgid "Active users (5 min)"
+msgstr "Sessioni attive"
+
+#: templates/admin/adminOverview.html:29
+#, fuzzy
+msgid "Users active in the last 5 minutes"
+msgstr "Utenti attivi negli ultimi 30 minuti."
+
+#: templates/admin/adminOverview.html:33
+msgid "Failed logins today"
+msgstr ""
+
+#: templates/admin/adminOverview.html:37
+msgid "Since midnight"
+msgstr ""
+
+#: templates/admin/adminOverview.html:41
+#, fuzzy
+msgid "Database health"
+msgstr "Errore del database"
+
+#: templates/admin/adminOverview.html:62
+#: templates/js/admin/_accessControlJS.html:171
 #, fuzzy
 msgid "users"
 msgstr "Utenti"
 
-#: templates/admin/adminOverview.html:40
+#: templates/admin/adminOverview.html:72
 #, fuzzy
 msgid "organizations"
 msgstr "Organizzazioni"
 
-#: templates/admin/adminOverview.html:41 templates/admin/organizations.html:21
+#: templates/admin/adminOverview.html:73 templates/admin/organizations.html:21
 #, fuzzy
 msgid "Tenant organizations and their codes"
 msgstr "Codice organizzazione"
 
-#: templates/admin/adminOverview.html:46 templates/admin/sessions.html:18
+#: templates/admin/adminOverview.html:78 templates/admin/sessions.html:18
 msgid "Active Sessions"
 msgstr "Sessioni attive"
 
-#: templates/admin/adminOverview.html:49
+#: templates/admin/adminOverview.html:81
 #, fuzzy
 msgid "Live"
 msgstr "Consegna"
 
-#: templates/admin/adminOverview.html:50
+#: templates/admin/adminOverview.html:82
 msgid "users online now"
 msgstr ""
 
-#: templates/admin/adminOverview.html:51
+#: templates/admin/adminOverview.html:83
 #, fuzzy
 msgid "Users active in the last 30 minutes"
 msgstr "Utenti attivi negli ultimi 30 minuti."
 
-#: templates/admin/adminOverview.html:56
+#: templates/admin/adminOverview.html:88
 msgid "System Logs"
 msgstr "Log di sistema"
 
-#: templates/admin/adminOverview.html:59
+#: templates/admin/adminOverview.html:91
 #, fuzzy
 msgid "Audit"
 msgstr "Modifica"
 
-#: templates/admin/adminOverview.html:60
+#: templates/admin/adminOverview.html:92
 msgid "activity &amp; events"
 msgstr ""
 
-#: templates/admin/adminOverview.html:61
+#: templates/admin/adminOverview.html:93
 msgid "Filter by user, date, method or status"
 msgstr ""
 
-#: templates/admin/adminOverview.html:67
+#: templates/admin/adminOverview.html:99
 #, fuzzy
 msgid "Resources"
 msgstr "Limitato"
 
-#: templates/admin/adminOverview.html:72
+#: templates/admin/adminOverview.html:104
 #, fuzzy
 msgid "Nexora documentation"
 msgstr "Leggi la documentazione"
 
-#: templates/admin/adminOverview.html:78
+#: templates/admin/adminOverview.html:110
 msgid "ngrok hosting"
 msgstr ""
 
@@ -2230,99 +2257,103 @@ msgstr ""
 msgid "System Logs - nexora"
 msgstr "Log di sistema - nexora"
 
-#: templates/admin/logs.html:37
+#: templates/admin/logs.html:28
 msgid "System Audit Logs"
 msgstr "Log di audit di sistema"
 
-#: templates/admin/logs.html:38
+#: templates/admin/logs.html:29
 msgid "Filter by user, date, method, status or organization"
 msgstr ""
 
-#: templates/admin/logs.html:43
+#: templates/admin/logs.html:34
 #, fuzzy
 msgid "Last hour"
 msgstr "Inizia tour"
 
-#: templates/admin/logs.html:44
+#: templates/admin/logs.html:35
 #, fuzzy
 msgid "Today"
 msgstr "Data fine"
 
-#: templates/admin/logs.html:45
+#: templates/admin/logs.html:36
 msgid "Last 7 days"
 msgstr ""
 
-#: templates/admin/logs.html:46
+#: templates/admin/logs.html:37
 msgid "Last 30 days"
 msgstr ""
 
-#: templates/admin/logs.html:57
+#: templates/admin/logs.html:48
 msgid "Method"
 msgstr "Metodo"
 
-#: templates/admin/logs.html:67
+#: templates/admin/logs.html:58
 msgid "Path"
 msgstr "Percorso"
 
-#: templates/admin/logs.html:76
+#: templates/admin/logs.html:67
 msgid "Success (2xx)"
 msgstr "Successo (2xx)"
 
-#: templates/admin/logs.html:77
+#: templates/admin/logs.html:68
 msgid "Failure (4xx/5xx)"
 msgstr "Errore (4xx/5xx)"
 
-#: templates/admin/logs.html:90
+#: templates/admin/logs.html:81
 #, fuzzy
 msgid "Start date"
 msgstr "Data inizio"
 
-#: templates/admin/logs.html:94
+#: templates/admin/logs.html:85
 #, fuzzy
 msgid "End date"
 msgstr "Data fine"
 
-#: templates/admin/logs.html:100
+#: templates/admin/logs.html:91
 msgid "Filter"
 msgstr "Filtra"
 
-#: templates/admin/logs.html:108 templates/admin/logs.html:143
+#: templates/admin/logs.html:99 templates/admin/logs.html:134
+#: templates/admin/userDetail.html:148
 msgid "Time"
 msgstr "Ora"
 
-#: templates/admin/logs.html:110 templates/admin/logs.html:142
+#: templates/admin/logs.html:101 templates/admin/logs.html:133
+#: templates/admin/userDetail.html:149
 msgid "Action"
 msgstr "Azione"
 
-#: templates/admin/logs.html:112
+#: templates/admin/logs.html:103
 msgid "IP"
 msgstr ""
 
-#: templates/admin/logs.html:113 templates/js/_generaliReportingJS.html:156
+#: templates/admin/logs.html:104 templates/js/_generaliReportingJS.html:156
 msgid "Details"
 msgstr "Dettagli"
 
-#: templates/admin/logs.html:120 templates/js/_generaliDocumentsJS.html:265
+#: templates/admin/logs.html:111 templates/admin/userDetail.html:160
+#: templates/js/_generaliDocumentsJS.html:265
 #: templates/js/_workitems_overviewJS.html:1627
 msgid "Previous"
 msgstr "Precedente"
 
-#: templates/admin/logs.html:121 templates/js/_generaliDocumentsJS.html:269
+#: templates/admin/logs.html:112 templates/admin/userDetail.html:161
+#: templates/js/_generaliDocumentsJS.html:269
 #: templates/js/_generaliReportingJS.html:234
 #: templates/js/_workitems_overviewJS.html:1633
 #: templates/js/archive/_tourJS.html:17
 msgid "Next"
 msgstr "Successivo"
 
-#: templates/admin/logs.html:135
+#: templates/admin/logs.html:126
 msgid "Log Details Payload"
 msgstr "Payload dettagli log"
 
-#: templates/admin/logs.html:147
+#: templates/admin/logs.html:138
 msgid "Copy"
 msgstr "Copia"
 
-#: templates/admin/logs.html:153
+#: templates/admin/logs.html:144
 msgid "Close"
 msgstr "Chiudi"
 
@@ -2408,34 +2439,39 @@ msgstr ""
 msgid "Save overrides"
 msgstr "Override"
 
-#: templates/admin/userDetail.html:131
+#: templates/admin/userDetail.html:133
 #, fuzzy
 msgid "Activity"
 msgstr "Ultima attività"
 
-#: templates/admin/userDetail.html:133
-msgid "A chronological audit trail of this user's actions."
+#: templates/admin/userDetail.html:135
+msgid "Recent actions by this user — last 7 days."
 msgstr ""
 
-#: templates/admin/userDetail.html:136
-msgid "Coming in a future release."
-msgstr ""
+#: templates/admin/userDetail.html:140
+#, fuzzy
+msgid "View all in logs"
+msgstr "Visualizza dettagli"
 
-#: templates/admin/userDetail.html:145
+#: templates/admin/userDetail.html:172
 #, fuzzy
 msgid "Danger zone"
 msgstr "Modalità scura"
 
-#: templates/admin/userDetail.html:147
+#: templates/admin/userDetail.html:174
 msgid "Deleting this user is irreversible. Their access is revoked immediately."
 msgstr ""
 
+#: templates/admin/userDetail.html:182
+msgid "Sign out everywhere"
+msgstr ""
+
 #: templates/admin/modals/_user_modals.html:6
-#: templates/admin/userDetail.html:154
+#: templates/admin/userDetail.html:188
 msgid "Delete user"
 msgstr "Elimina utente"
 
-#: templates/admin/userDetail.html:164
+#: templates/admin/userDetail.html:199
 #, fuzzy
 msgid "Delete user?"
 msgstr "Elimina utente"
@@ -2645,6 +2681,7 @@ msgstr "Errore durante il salvataggio."
 #: templates/js/_generaliPDQMJS.html:422 templates/js/_generaliPDQMJS.html:525
 #: templates/js/_generaliProjectManagementJS.html:256
 #: templates/js/_generaliProjectManagementJS.html:321
+#: templates/js/admin/_sessionsJS.html:129
 msgid "Network error."
 msgstr "Errore di rete."
 
@@ -2738,7 +2775,7 @@ msgid "Prev"
 msgstr "Prec."
 
 #: templates/js/_generaliReportingJS.html:231
-#: templates/js/admin/_logsJS.html:99
+#: templates/js/admin/_logsJS.html:99 templates/js/admin/_userDetailJS.html:320
 msgid "Page"
 msgstr "Pagina"
 
@@ -2808,31 +2845,31 @@ msgstr "Salvataggio…"
 msgid "Save failed. Please try again."
 msgstr "Salvataggio fallito. Riprova."
 
-#: templates/js/_headerJS.html:67 templates/js/admin/_sessionsJS.html:17
+#: templates/js/_headerJS.html:67 templates/js/admin/_sessionsJS.html:18
 msgid "years ago"
 msgstr "anni fa"
 
-#: templates/js/_headerJS.html:70 templates/js/admin/_sessionsJS.html:20
+#: templates/js/_headerJS.html:70 templates/js/admin/_sessionsJS.html:21
 msgid "months ago"
 msgstr "mesi fa"
 
-#: templates/js/_headerJS.html:73 templates/js/admin/_sessionsJS.html:23
+#: templates/js/_headerJS.html:73 templates/js/admin/_sessionsJS.html:24
 msgid "days ago"
 msgstr "giorni fa"
 
-#: templates/js/_headerJS.html:76 templates/js/admin/_sessionsJS.html:26
+#: templates/js/_headerJS.html:76 templates/js/admin/_sessionsJS.html:27
 msgid "hours ago"
 msgstr "ore fa"
 
-#: templates/js/_headerJS.html:79 templates/js/admin/_sessionsJS.html:29
+#: templates/js/_headerJS.html:79 templates/js/admin/_sessionsJS.html:30
 msgid "minutes ago"
 msgstr "minuti fa"
 
-#: templates/js/_headerJS.html:81 templates/js/admin/_sessionsJS.html:31
+#: templates/js/_headerJS.html:81 templates/js/admin/_sessionsJS.html:32
 msgid "Just now"
 msgstr "Proprio ora"
 
-#: templates/js/_headerJS.html:83 templates/js/admin/_sessionsJS.html:33
+#: templates/js/_headerJS.html:83 templates/js/admin/_sessionsJS.html:34
 msgid "seconds ago"
 msgstr "secondi fa"
 
@@ -3044,93 +3081,111 @@ msgstr "Prova a modificare i filtri o a reimpostare la ricerca."
 msgid "No Profile"
 msgstr "Nessun profilo"
 
-#: templates/js/admin/_accessControlJS.html:145
+#: templates/js/admin/_accessControlJS.html:150
 #, fuzzy
 msgid "allowed"
 msgstr "Consenti"
 
-#: templates/js/admin/_accessControlJS.html:145
+#: templates/js/admin/_accessControlJS.html:150
 #, fuzzy
 msgid "denied"
 msgstr "Invia"
 
-#: templates/js/admin/_accessControlJS.html:152
+#: templates/js/admin/_accessControlJS.html:157
 msgid "Create New Access Profile"
 msgstr "Crea nuovo profilo di accesso"
 
-#: templates/js/admin/_accessControlJS.html:160
+#: templates/js/admin/_accessControlJS.html:158
+msgid "will affect 0 users (new profile)"
+msgstr ""
+
+#: templates/js/admin/_accessControlJS.html:166
 msgid "Edit Profile:"
 msgstr "Modifica profilo:"
 
-#: templates/js/admin/_accessControlJS.html:160
+#: templates/js/admin/_accessControlJS.html:166
 #, fuzzy
 msgid "Adjust permissions assigned to this profile"
 msgstr "Autorizzazioni e profili"
 
-#: templates/js/admin/_accessControlJS.html:183
+#: templates/js/admin/_accessControlJS.html:171
+msgid "will affect"
+msgstr ""
+
+#: templates/js/admin/_accessControlJS.html:171
+#, fuzzy
+msgid "user"
+msgstr "Utente"
+
+#: templates/js/admin/_accessControlJS.html:191
 #, fuzzy
 msgid "Overrides for"
 msgstr "Override"
 
-#: templates/js/admin/_accessControlJS.html:184
+#: templates/js/admin/_accessControlJS.html:192
 msgid "Overrides take priority over the user's access profile"
 msgstr ""
 
-#: templates/js/admin/_accessControlJS.html:248
-#: templates/js/admin/_accessControlJS.html:445
-#: templates/js/admin/_accessControlJS.html:637
-#: templates/js/admin/_accessControlJS.html:653
+#: templates/js/admin/_accessControlJS.html:197
+msgid "will affect 1 user:"
+msgstr ""
+
+#: templates/js/admin/_accessControlJS.html:258
+#: templates/js/admin/_accessControlJS.html:455
+#: templates/js/admin/_accessControlJS.html:647
+#: templates/js/admin/_accessControlJS.html:663
 #: templates/js/admin/_userDetailJS.html:49
 #: templates/js/admin/_userDetailJS.html:124
 #: templates/js/admin/_userDetailJS.html:174
+#: templates/js/admin/_userDetailJS.html:202
 msgid "Network error"
 msgstr "Errore di rete"
 
-#: templates/js/admin/_accessControlJS.html:284
+#: templates/js/admin/_accessControlJS.html:294
 msgid "Cannot activate"
 msgstr "Impossibile attivare"
 
-#: templates/js/admin/_accessControlJS.html:284
+#: templates/js/admin/_accessControlJS.html:294
 #, fuzzy
 msgid "Enable at least one process filter first."
 msgstr "Abilita prima almeno un filtro di processo."
 
-#: templates/js/admin/_accessControlJS.html:311
+#: templates/js/admin/_accessControlJS.html:321
 #, fuzzy
 msgid "Auto-enabled"
 msgstr "Abilitato automaticamente"
 
-#: templates/js/admin/_accessControlJS.html:314
+#: templates/js/admin/_accessControlJS.html:324
 #, fuzzy
 msgid "Auto-denied"
 msgstr "Negato automaticamente"
 
-#: templates/js/admin/_accessControlJS.html:344
-#: templates/js/admin/_accessControlJS.html:460
-#: templates/js/admin/_accessControlJS.html:586
+#: templates/js/admin/_accessControlJS.html:354
+#: templates/js/admin/_accessControlJS.html:470
+#: templates/js/admin/_accessControlJS.html:596
 msgid "Error loading data."
 msgstr "Errore nel caricamento dei dati."
 
-#: templates/js/admin/_accessControlJS.html:351
+#: templates/js/admin/_accessControlJS.html:361
 msgid "No users found."
 msgstr "Nessun utente trovato."
 
-#: templates/js/admin/_accessControlJS.html:359
+#: templates/js/admin/_accessControlJS.html:369
 #, fuzzy
 msgid "overrides"
 msgstr "Override"
 
-#: templates/js/admin/_accessControlJS.html:360
+#: templates/js/admin/_accessControlJS.html:370
 #, fuzzy
 msgid "default"
 msgstr "Predefinito"
 
-#: templates/js/admin/_accessControlJS.html:433
+#: templates/js/admin/_accessControlJS.html:443
 #, fuzzy
 msgid "You do not have permission to create users."
 msgstr "Non hai l'autorizzazione per eliminare questo utente."
 
-#: templates/js/admin/_accessControlJS.html:442
+#: templates/js/admin/_accessControlJS.html:452
 #: templates/js/admin/_mobscnJS.html:100 templates/js/admin/_mobscnJS.html:154
 #: templates/js/admin/_organizationsJS.html:141
 #: templates/js/admin/_organizationsJS.html:195
@@ -3139,81 +3194,81 @@ msgstr "Non hai l'autorizzazione per eliminare questo utente."
 msgid "Error:"
 msgstr "Errore:"
 
-#: templates/js/admin/_accessControlJS.html:467
+#: templates/js/admin/_accessControlJS.html:477
 #, fuzzy
 msgid "No permissions found."
 msgstr "Nessuna sessione attiva trovata."
 
-#: templates/js/admin/_accessControlJS.html:551
+#: templates/js/admin/_accessControlJS.html:561
 msgid "Yes"
 msgstr ""
 
-#: templates/js/admin/_accessControlJS.html:552
+#: templates/js/admin/_accessControlJS.html:562
 #, fuzzy
 msgid "Denied"
 msgstr "Invia"
 
-#: templates/js/admin/_accessControlJS.html:562
+#: templates/js/admin/_accessControlJS.html:572
 #, fuzzy
 msgid "No users have this permission assigned."
 msgstr "Tutti gli utenti e le autorizzazioni"
 
-#: templates/js/admin/_accessControlJS.html:567
+#: templates/js/admin/_accessControlJS.html:577
 #, fuzzy
 msgid "Users with this permission"
 msgstr "Tutti gli utenti e le autorizzazioni"
 
-#: templates/js/admin/_accessControlJS.html:568
+#: templates/js/admin/_accessControlJS.html:578
 msgid "explicitly denied"
 msgstr ""
 
-#: templates/js/admin/_accessControlJS.html:577
+#: templates/js/admin/_accessControlJS.html:587
 #, fuzzy
 msgid "Source"
 msgstr "Successo"
 
-#: templates/js/admin/_accessControlJS.html:578
+#: templates/js/admin/_accessControlJS.html:588
 #, fuzzy
 msgid "Has Permission"
 msgstr "Autorizzazione"
 
-#: templates/js/admin/_accessControlJS.html:603
+#: templates/js/admin/_accessControlJS.html:613
 #, fuzzy
 msgid "Edit Permission"
 msgstr "Autorizzazione"
 
-#: templates/js/admin/_accessControlJS.html:619
+#: templates/js/admin/_accessControlJS.html:629
 msgid "Code and description are required."
 msgstr ""
 
-#: templates/js/admin/_accessControlJS.html:644
+#: templates/js/admin/_accessControlJS.html:654
 #, fuzzy
 msgid "Are you sure you want to delete"
 msgstr ""
 "Sei sicuro di voler eliminare questo utente? Questa azione non può essere"
 " annullata."
 
-#: templates/js/admin/_accessControlJS.html:663
+#: templates/js/admin/_accessControlJS.html:673
 #, fuzzy
 msgid "Override Allow"
 msgstr "Override"
 
-#: templates/js/admin/_accessControlJS.html:664
+#: templates/js/admin/_accessControlJS.html:674
 #, fuzzy
 msgid "Override Deny"
 msgstr "Override"
 
-#: templates/js/admin/_accessControlJS.html:665
+#: templates/js/admin/_accessControlJS.html:675
 #, fuzzy
 msgid "Profile Allow"
 msgstr "Nome profilo"
 
-#: templates/js/admin/_accessControlJS.html:666
+#: templates/js/admin/_accessControlJS.html:676
 #, fuzzy
 msgid "Profile Deny"
 msgstr "Nome profilo"
 
-#: templates/js/admin/_accessControlJS.html:667
+#: templates/js/admin/_accessControlJS.html:677
 #, fuzzy
 msgid "No assignment"
 msgstr "Assegnazione non valida."
@@ -3296,12 +3351,31 @@ msgstr ""
 "Sei sicuro di voler eliminare questa organizzazione? Questa azione non "
 "può essere annullata."
 
-#: templates/js/admin/_sessionsJS.html:50
+#: templates/js/admin/_sessionsJS.html:51
 msgid "No active sessions found."
 msgstr "Nessuna sessione attiva trovata."
 
-#: templates/js/admin/_sessionsJS.html:67
+#: templates/js/admin/_sessionsJS.html:89
+msgid "Revoke this session"
+msgstr ""
+
+#: templates/js/admin/_sessionsJS.html:93
+#, fuzzy
+msgid "Revoke"
+msgstr "Prec."
+
+#: templates/js/admin/_sessionsJS.html:102
 msgid "Could not load sessions."
+msgstr "Impossibile caricare le sessioni."
+
+#: templates/js/admin/_sessionsJS.html:115
+#, fuzzy
+msgid "Revoke the active session for"
+msgstr "Nessuna sessione attiva trovata."
+
+#: templates/js/admin/_sessionsJS.html:125
+#, fuzzy
+msgid "Could not revoke session."
 msgstr "Impossibile caricare le sessioni."
 
 #: templates/js/admin/_userDetailJS.html:40
@@ -3337,6 +3411,65 @@ msgstr ""
 #, fuzzy
 msgid "Delete failed."
 msgstr "Elimina voce"
+
+#: templates/js/admin/_userDetailJS.html:188
+#, fuzzy
+msgid "Sign out ALL active sessions for"
+msgstr "Nessuna sessione attiva trovata."
+
+#: templates/js/admin/_userDetailJS.html:188
+msgid "They will be forced to log in again."
+msgstr ""
+
+#: templates/js/admin/_userDetailJS.html:197
+msgid "Revoked"
+msgstr ""
+
+#: templates/js/admin/_userDetailJS.html:197
+#, fuzzy
+msgid "session(s)."
+msgstr "Sessioni attive"
+
+#: templates/js/admin/_userDetailJS.html:199
+#, fuzzy
+msgid "Revoke failed."
+msgstr "Elimina voce"
+
+#: templates/js/admin/_userDetailJS.html:237
+#, fuzzy
+msgid "just now"
+msgstr "Proprio ora"
+
+#: templates/js/admin/_userDetailJS.html:239
+#, fuzzy
+msgid "min ago"
+msgstr "minuti fa"
+
+#: templates/js/admin/_userDetailJS.html:241
+#, fuzzy
+msgid "h ago"
+msgstr "ore fa"
+
+#: templates/js/admin/_userDetailJS.html:242
+#, fuzzy
+msgid "d ago"
+msgstr "giorni fa"
+
+#: templates/js/admin/_userDetailJS.html:268
+#: templates/js/admin/_userDetailJS.html:330
+#, fuzzy
+msgid "Could not load activity."
+msgstr "Impossibile caricare la cronologia"
+
+#: templates/js/admin/_userDetailJS.html:278
+#, fuzzy
+msgid "No recorded activity in the last 7 days."
+msgstr "Utenti attivi negli ultimi 30 minuti."
+
+#: templates/js/admin/_userDetailJS.html:320
+#, fuzzy
+msgid "entries"
+msgstr "Override"
 
 #: templates/js/admin/_userManagementJS.html:81
 msgid "Edit user"
@@ -3778,4 +3911,10 @@ msgstr ""
 
 #~ msgid "Overrides for user:"
 #~ msgstr "Override per l'utente:"
+
+#~ msgid "A chronological audit trail of this user's actions."
+#~ msgstr ""
+
+#~ msgid "Coming in a future release."
+#~ msgstr ""
 
