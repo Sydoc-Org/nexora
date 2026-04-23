@@ -53,6 +53,11 @@
             .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
+    function setDrawerImpact(text) {
+        const el = document.getElementById('drawerImpactCount');
+        if (el) el.textContent = text || '';
+    }
+
     function openCenterModal(el) {
         el.classList.remove('hidden');
         setTimeout(() => {
@@ -150,6 +155,7 @@
     // ── Profile drawer ────────────────────────────────────────────────
     function openProfileDrawer() {
         openDrawer({{ _("Create New Access Profile") | tojson }}, '', 'profile');
+        setDrawerImpact('{{ _("will affect 0 users (new profile)") }}');
         document.getElementById('editTargetId').value = 0;
         document.getElementById('profileName').value  = '';
         document.getElementById('profileDesc').value  = '';
@@ -161,6 +167,8 @@
         document.getElementById('editTargetId').value = id;
         document.getElementById('profileName').value  = p.name || '';
         document.getElementById('profileDesc').value  = p.desc || '';
+        const _affected = p.userCount != null ? p.userCount : 0;
+        setDrawerImpact(`{{ _("will affect") }} ${_affected} ${_affected === 1 ? '{{ _("user") }}' : '{{ _("users") }}'}`);
         try {
             const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`, {
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
@@ -185,6 +193,8 @@
             'user'
         );
         document.getElementById('editTargetId').value = userId;
+        const _u = usersMap[userId] || {};
+        setDrawerImpact(`{{ _("will affect 1 user:") }} ${_u.username || ''}`);
         try {
             const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
