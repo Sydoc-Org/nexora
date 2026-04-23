@@ -19,6 +19,38 @@
             subtitle=_('Users, organizations, sessions and logs.')
         ) }}
 
+        <div class="health-strip">
+
+            <div class="admin-card health-card">
+                <div class="health-card-label">{{ _('Active users (5 min)') }}</div>
+                <div class="health-card-value">
+                    {% if active_users_5m is not none %}{{ active_users_5m }}{% else %}—{% endif %}
+                </div>
+                <div class="health-card-sub">{{ _('Users active in the last 5 minutes') }}</div>
+            </div>
+
+            <div class="admin-card health-card">
+                <div class="health-card-label">{{ _('Failed logins today') }}</div>
+                <div class="health-card-value {% if failed_logins_today and failed_logins_today > 0 %}is-danger{% endif %}">
+                    {% if failed_logins_today is not none %}{{ failed_logins_today }}{% else %}—{% endif %}
+                </div>
+                <div class="health-card-sub">{{ _('Since midnight') }}</div>
+            </div>
+
+            <div class="admin-card health-card">
+                <div class="health-card-label">{{ _('Database health') }}</div>
+                <div class="health-db-list" style="margin-top:8px">
+                    {% for db in db_health %}
+                    <span class="health-db-pill {% if db.ok %}health-db-pill--ok{% else %}health-db-pill--err{% endif %}"
+                          title="{% if db.ok %}{{ db.latency_ms }} ms{% else %}{{ db.error }}{% endif %}">
+                        <span class="dot"></span>{{ db.label }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:32px;">
 
             <a href="{{ url_for('admin_access_control') }}" class="admin-card admin-card-link admin-overview-card">
