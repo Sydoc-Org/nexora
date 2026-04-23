@@ -1000,7 +1000,8 @@ def api_admin_logs_search():
     status = request.args.get('status', '').strip()
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
-    
+    organization = request.args.get('organization', '').strip()
+
     page = request.args.get('page', 1, type=int)
     per_page = 50
     offset = (page - 1) * per_page
@@ -1031,6 +1032,9 @@ def api_admin_logs_search():
     if end_date:
         query_parts.append("Timestamp <= ?")
         params.append(f"{end_date} 23:59:59")
+    if organization:
+        query_parts.append("Username IN (SELECT username FROM Users WHERE organizationcode = ?)")
+        params.append(organization)
 
     where_clause = " AND ".join(query_parts)
 

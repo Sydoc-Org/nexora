@@ -17,6 +17,7 @@
         const status = document.getElementById('filterStatus').value;
         const start = document.getElementById('filterStart').value;
         const end = document.getElementById('filterEnd').value;
+        const org = document.getElementById('filterOrg')?.value || '';
 
         const tbody = document.getElementById('logsTableBody');
         tbody.innerHTML = `<tr><td colspan="6" class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i>   {{ _("Loading logs...") }}</td></tr>`;
@@ -29,7 +30,8 @@
                 path: path,       
                 status: status,
                 start_date: start,
-                end_date: end
+                end_date: end,
+                organization: org
             });
 
             const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`, {
