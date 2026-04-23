@@ -1222,6 +1222,8 @@ def admin_user_detail(user_id):
             userid=session.get('userid'),
             pageV=pageVisability(),
         )
+    except HTTPException:
+        raise
     except Exception as e:
         app.logger.error(f"Error loading user detail {user_id}: {e}")
         return render_template('500.html')
