@@ -545,6 +545,7 @@ def verify_2fa():
             session['organizationcode'] = org_code
             session['uuid'] = uuid.uuid4()
             session['permissions'] = load_permissions_for_user(str(user_id))
+            _record_active_session(user_id)
             if user_locale in ['de', 'en', 'fr', 'it']:
                 session['locale'] = user_locale
             pV = pageVisability()
@@ -613,6 +614,29 @@ def init_reset_password():
     except Exception as e:
         return
 
+def _record_active_session(user_id):
+    """Insert the current session's SID into ActiveSessions for admin force-logout.
+    No-op on failure - session tracking is non-critical to login success."""
+    try:
+        import uuid as _uuid
+        sid = getattr(session, 'sid', None)
+        if not sid:
+            # Dev fallback (signed-cookie sessions have no server-side SID):
+            # generate and stash one so admin UI can still reference it.
+            sid = session.get('_dev_sid') or _uuid.uuid4().hex
+            session['_dev_sid'] = sid
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO ActiveSessions (SessionID, UserID) VALUES (?, ?)",
+            (str(sid), int(user_id))
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
+
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per minute")
 def login():
@@ -638,6 +662,7 @@ def login():
             session['uuid'] = uuid.uuid4()
             session['locale'] = locale
             session['permissions'] = load_permissions_for_user("1019")
+            _record_active_session("1019")
             pV = pageVisability()
             return redirect(url_for(startpage_redirect_to(pV)))
         if UID_REQUEST == '321' and PWD_REQUEST == '321':
@@ -658,6 +683,7 @@ def login():
             session['uuid'] = uuid.uuid4()
             session['locale'] = locale
             session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
             pV = pageVisability()
             return redirect(url_for(startpage_redirect_to(pV)))
         if UID_REQUEST == '456' and PWD_REQUEST == '456':
@@ -678,6 +704,7 @@ def login():
             session['uuid'] = uuid.uuid4()
             session['locale'] = locale
             session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
             pV = pageVisability()
             return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
