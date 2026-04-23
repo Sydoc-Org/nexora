@@ -76,6 +76,12 @@
             </div>
             <div>
                 <label>&nbsp;</label>
+                <button id="userClearFiltersBtn" onclick="clearUserFilters()" class="admin-btn admin-btn-secondary" style="width:100%" type="button">
+                    <i class="fas fa-xmark"></i>{{ _("Clear filters") }}
+                </button>
+            </div>
+            <div>
+                <label>&nbsp;</label>
                 {% if can_create_user %}
                 <button onclick="openAddUserModal()" class="admin-btn admin-btn-primary" style="width:100%" type="button">
                     <i class="fas fa-plus"></i>{{ _("Add User") }}

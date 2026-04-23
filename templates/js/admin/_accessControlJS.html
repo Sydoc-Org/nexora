@@ -405,6 +405,16 @@
         });
     }
 
+    function clearUserFilters() {
+        const search = document.getElementById('userSearchInput');
+        const prof   = document.getElementById('userProfileFilter');
+        const org    = document.getElementById('userOrgFilter');
+        if (search) search.value = '';
+        if (prof)   prof.value   = '';
+        if (org)    org.value    = '';
+        fetchAllUsers();
+    }
+
     function filterUsersTable() {
         const q = document.getElementById('userSearchInput').value.toLowerCase();
         renderUsersTable(allUsersData.filter(u =>
