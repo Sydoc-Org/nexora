@@ -494,6 +494,7 @@ def init_2FA():
                 session['organizationcode'] = org_code
                 session['uuid'] = uuid.uuid4()
                 session['permissions'] = load_permissions_for_user(str(user_id))
+                _record_active_session(user_id)
                 if user_locale in ['de', 'en', 'fr', 'it']:
                     session['locale'] = user_locale
                 pV = pageVisability()
