@@ -98,9 +98,9 @@
                     <thead>
                         <tr>
                             <th>{{ _('Permission') }}</th>
-                            <th style="text-align:right;width:90px">{{ _('None') }}</th>
-                            <th style="text-align:right;width:90px">{{ _('Deny') }}</th>
-                            <th style="text-align:right;width:90px">{{ _('Allow') }}</th>
+                            <th class="align-center" style="width:90px">{{ _('None') }}</th>
+                            <th class="align-center" style="width:90px">{{ _('Deny') }}</th>
+                            <th class="align-center" style="width:90px">{{ _('Allow') }}</th>
                         </tr>
                     </thead>
                     <tbody id="overridesTbody">
@@ -110,9 +110,9 @@
                                 <div><span class="admin-mono">{{ perm.Code }}</span></div>
                                 <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
                             </td>
-                            <td class="align-right"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked></td>
-                            <td class="align-right"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %}></td>
-                            <td class="align-right"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %}></td>
+                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked></td>
+                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %}></td>
+                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %}></td>
                         </tr>
                         {% endfor %}
                     </tbody>

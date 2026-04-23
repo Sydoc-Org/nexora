@@ -139,7 +139,8 @@ body.admin-page main {
 .admin-table tbody tr:last-child td { border-bottom: none; }
 .admin-table tbody tr.is-clickable { cursor: pointer; }
 .admin-table tbody tr.is-clickable:hover { background: var(--a-alt); }
-.admin-table .align-right { text-align: right; }
+.admin-table .align-right  { text-align: right; }
+.admin-table .align-center { text-align: center; }
 
 /* Empty / loading state cells */
 .admin-empty { padding: 32px 16px; text-align: center; color: var(--a-text-meta); font-size: 13px; }
