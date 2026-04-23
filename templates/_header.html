@@ -28,23 +28,6 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% set nav_items = [
-                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),      'active': active_page == 'chat'},
-                {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
-                {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},
-                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'), 'active': active_page == 'invoices'},
-            ] %}
-
-            {% for item in nav_items %}
-            {% if item.perm %}
-            <a href="{{ item.url }}"
-                class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}">
-                <i class="fas {{ item.icon }} sidebar-nav-icon"></i>
-                <span class="sidebar-label">{{ item.label }}</span>
-            </a>
-            {% endif %}
-            {% endfor %}
-
             {% if pageV.adminPagePerm %}
             {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
@@ -82,6 +65,23 @@
                 </div>
             </div>
             {% endif %}
+
+            {% set nav_items = [
+                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),      'active': active_page == 'chat'},
+                {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
+                {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},
+                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'), 'active': active_page == 'invoices'},
+            ] %}
+
+            {% for item in nav_items %}
+            {% if item.perm %}
+            <a href="{{ item.url }}"
+                class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}">
+                <i class="fas {{ item.icon }} sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ item.label }}</span>
+            </a>
+            {% endif %}
+            {% endfor %}
 
             {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm or pageV.generaliAdditionalServicesPerm or pageV.generaliBaseServicesPerm or pageV.generaliProjectManagementPerm or pageV.generaliPDQMPerm %}
             {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting', 'generali_additionalservices', 'generali_baseservices', 'generali_projectmanagement', 'generali_pdqm'] %}
