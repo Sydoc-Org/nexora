@@ -1334,6 +1334,71 @@ def admin_user_detail(user_id):
         if conn:
             conn.close()
 
+@app.route("/api/admin/users/<int:user_id>/activity")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def api_admin_user_activity(user_id):
+    """Recent log entries for one user. Last 7 days, paginated, 25 per page."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = max(0, (page - 1) * per_page)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT username FROM Users WHERE userID = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'entries': [], 'total': 0, 'page': page, 'pages': 0})
+        username = row[0]
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM Logs
+            WHERE Username = ?
+              AND Timestamp >= DATEADD(day, -7, GETDATE())
+        """, (username,))
+        total = (cursor.fetchone() or [0])[0] or 0
+
+        cursor.execute("""
+            SELECT Timestamp, HttpRequestMethod, Path, HttpResponseCode
+            FROM Logs
+            WHERE Username = ?
+              AND Timestamp >= DATEADD(day, -7, GETDATE())
+            ORDER BY Timestamp DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, (username, offset, per_page))
+
+        entries = []
+        for r in cursor.fetchall():
+            entries.append({
+                'Timestamp': str(r.Timestamp) if r.Timestamp else None,
+                'HttpRequestMethod': r.HttpRequestMethod,
+                'Path': r.Path,
+                'HttpResponseCode': r.HttpResponseCode,
+            })
+
+        import math
+        pages = max(1, math.ceil(total / per_page)) if total else 0
+
+        return jsonify({
+            'entries': entries,
+            'total': int(total),
+            'page': page,
+            'pages': pages,
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to load activity for user {user_id}: {e}")
+        return jsonify({'error': str(e), 'entries': [], 'total': 0, 'page': page, 'pages': 0}), 500
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
 @app.route("/admin/users/delete/<int:user_id>", methods=['DELETE'])
 @require_permission('admin.delete.user')
 def admin_delete_user(user_id):
