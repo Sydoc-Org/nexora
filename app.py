@@ -794,9 +794,32 @@ def mark_notifications_as_read():
 def admin_dashboard():
     if 'username' not in session:
         return redirect(url_for("login"))
-    return render_template("admin/adminOverview.html", 
-                         logged_in_user=session.get('username'), 
-                         userid=session.get('userid'), pageV=pageVisability())
+
+    user_count = 0
+    org_count = 0
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Users")
+        row = cursor.fetchone()
+        if row: user_count = row[0]
+        cursor.execute("SELECT COUNT(*) FROM organizations")
+        row = cursor.fetchone()
+        if row: org_count = row[0]
+    except Exception as e:
+        app.logger.error(f"Failed to load admin overview counts: {e}")
+    finally:
+        try: cursor.close()
+        except Exception: pass
+        try: conn.close()
+        except Exception: pass
+
+    return render_template("admin/adminOverview.html",
+                         user_count=user_count,
+                         org_count=org_count,
+                         logged_in_user=session.get('username'),
+                         userid=session.get('userid'),
+                         pageV=pageVisability())
 
 # @app.route("/admin/mobscn_processmanagement")
 # @require_permission('admin.view.mobscn.processmanagement')
