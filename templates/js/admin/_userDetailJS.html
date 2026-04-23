@@ -1,0 +1,53 @@
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function userDetailToast(msg, tone) {
+        const container = document.getElementById('notification-container');
+        if (!container) { alert(msg); return; }
+        const el = document.createElement('div');
+        el.style.cssText = 'background:#fff;border:1px solid var(--a-border);padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-size:13px;margin-bottom:8px;';
+        if (tone === 'error') el.style.borderColor = 'var(--a-danger)';
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('userProfileForm');
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = form.dataset.userId;
+            const fd = new FormData(form);
+            const payload = {};
+            fd.forEach((value, key) => { payload[key] = value; });
+            // The edit endpoint expects JSON, treats empty password as "no change"
+            if (!payload.password) delete payload.password;
+
+            try {
+                const res = await fetch(`/admin/users/edit/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json().catch(() => ({}));
+                if (res.ok && result.success) {
+                    userDetailToast(result.message || '{{ _("User saved.") }}', 'success');
+                    // Clear password field after successful save
+                    const pw = document.getElementById('fld-password');
+                    if (pw) pw.value = '';
+                } else {
+                    userDetailToast(result.message || '{{ _("Save failed.") }}', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                userDetailToast('{{ _("Network error") }}', 'error');
+            }
+        });
+    });
+</script>

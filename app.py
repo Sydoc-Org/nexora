@@ -2,7 +2,7 @@ import math
 import uuid
 from fileinput import filename
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file, abort
 from flask_babel import Babel, gettext, ngettext, _
 from flask_session import Session
 import pyodbc
@@ -1169,6 +1169,62 @@ def admin_edit_user(user_id):
     except Exception as e:
         app.logger.error(f"Error editing user {user_id}: {e}")
         return jsonify({'success': False, 'message': _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route("/admin/users/<int:user_id>")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def admin_user_detail(user_id):
+    if 'username' not in session:
+        return redirect(url_for("login"))
+
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT u.userID, u.username, u.fullname, u.email,
+                   ap.Name AS AccessProfileName,
+                   o.organization, o.organizationcode
+            FROM Users u
+            LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
+            LEFT JOIN Organizations o ON u.organizationcode = o.organizationcode
+            WHERE u.userID = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            abort(404)
+        user = dict(zip([c[0] for c in cursor.description], row))
+
+        cursor.execute("SELECT organizationcode, organization FROM Organizations ORDER BY organization")
+        organizations = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+
+        cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name")
+        all_ap = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+        assignable_profiles = [
+            ap for ap in all_ap
+            if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
+        ]
+
+        return render_template(
+            "admin/userDetail.html",
+            user=user,
+            organizations=organizations,
+            assignable_profiles=assignable_profiles,
+            can_edit_user=has_permission('admin.edit.user'),
+            can_delete_user=has_permission('admin.delete.user'),
+            logged_in_user=session.get('username'),
+            userid=session.get('userid'),
+            pageV=pageVisability(),
+        )
+    except Exception as e:
+        app.logger.error(f"Error loading user detail {user_id}: {e}")
+        return render_template('500.html')
     finally:
         if cursor:
             cursor.close()

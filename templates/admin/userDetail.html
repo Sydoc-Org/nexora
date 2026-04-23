@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ user.fullname }} — {{ _('User detail') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+</head>
+<body class="admin-page">
+    <div id="notification-container" class="fixed top-4 right-4 z-[200] w-full max-w-xs space-y-3"></div>
+
+    {% set active_page = 'admin_user_detail' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main>
+        {{ a.page_header(
+            title=user.fullname,
+            subtitle=user.username ~ ' · ' ~ (user.AccessProfileName or _('No profile')),
+            back_url=url_for('admin_access_control')
+        ) }}
+
+        {# ------------- Profile section ------------- #}
+        <div class="admin-card" style="margin-bottom:20px">
+            <div class="admin-section" style="margin-bottom:16px">{{ _('Profile') }}</div>
+
+            <form id="userProfileForm"
+                  data-user-id="{{ user.userID }}"
+                  style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                <div>
+                    <label class="admin-meta" for="fld-username" style="display:block;margin-bottom:6px">{{ _('Username') }}</label>
+                    <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="admin-input">
+                </div>
+                <div>
+                    <label class="admin-meta" for="fld-fullname" style="display:block;margin-bottom:6px">{{ _('Full name') }}</label>
+                    <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="admin-input">
+                </div>
+                <div>
+                    <label class="admin-meta" for="fld-email" style="display:block;margin-bottom:6px">{{ _('Email') }}</label>
+                    <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="admin-input">
+                </div>
+                <div>
+                    <label class="admin-meta" for="fld-profile" style="display:block;margin-bottom:6px">{{ _('Access profile') }}</label>
+                    <select id="fld-profile" name="accessprofile" class="admin-select" {% if not can_edit_user %}disabled{% endif %}>
+                        {% for p in assignable_profiles %}
+                        <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="admin-meta" for="fld-org" style="display:block;margin-bottom:6px">{{ _('Organization') }}</label>
+                    <select id="fld-org" name="organization" class="admin-select" {% if not can_edit_user %}disabled{% endif %}>
+                        {% for o in organizations %}
+                        <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="admin-meta" for="fld-password" style="display:block;margin-bottom:6px">{{ _('New password') }}</label>
+                    <input type="password" id="fld-password" name="password" class="admin-input" placeholder="{{ _('Leave blank to keep current') }}">
+                </div>
+
+                <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px">
+                    <a href="{{ url_for('admin_access_control') }}" class="admin-btn admin-btn-secondary">{{ _('Cancel') }}</a>
+                    {% if can_edit_user %}
+                    <button type="submit" class="admin-btn admin-btn-primary">{{ _('Save changes') }}</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </main>
+
+    {% include 'js/admin/_userDetailJS.html' %}
+</body>
+</html>
