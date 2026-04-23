@@ -43,7 +43,13 @@
 
 /* Page wrapper */
 body.admin-page { background: var(--a-page); color: var(--a-text); }
-body.admin-page main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+body.admin-page main {
+  width: 100%;
+  max-width: 1600px;
+  padding: 28px 40px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
 
 /* Typography */
 .admin-title    { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; color: var(--a-text); margin: 0; }
