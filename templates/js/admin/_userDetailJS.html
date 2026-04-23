@@ -179,6 +179,33 @@
         });
     });
 
+    // ─── Sign out everywhere ────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const btn = document.getElementById('signOutAllBtn');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            const uname = btn.dataset.username || '';
+            if (!confirm(`{{ _("Sign out ALL active sessions for") }} "${uname}"? {{ _("They will be forced to log in again.") }}`)) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/admin/users/${btn.dataset.userId}/revoke_all`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok && result.success) {
+                    userDetailToast(`{{ _("Revoked") }} ${result.revoked} {{ _("session(s).") }}`, 'success');
+                } else {
+                    userDetailToast(result.message || '{{ _("Revoke failed.") }}', 'error');
+                }
+            } catch {
+                userDetailToast('{{ _("Network error") }}', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+
     // ─── Activity (last 7 days) ─────────────────────────────────────────
     (function () {
         const tbody = document.getElementById('activityTbody');

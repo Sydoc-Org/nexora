@@ -174,12 +174,20 @@
                     {{ _('Deleting this user is irreversible. Their access is revoked immediately.') }}
                 </p>
             </div>
-            <button id="deleteUserBtn" class="admin-btn admin-btn-danger"
-                    data-user-id="{{ user.userID }}"
-                    data-username="{{ user.username }}"
-                    type="button">
-                <i class="fas fa-trash"></i> {{ _('Delete user') }}
-            </button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="signOutAllBtn" class="admin-btn admin-btn-secondary"
+                        data-user-id="{{ user.userID }}"
+                        data-username="{{ user.username }}"
+                        type="button">
+                    <i class="fas fa-sign-out-alt"></i> {{ _('Sign out everywhere') }}
+                </button>
+                <button id="deleteUserBtn" class="admin-btn admin-btn-danger"
+                        data-user-id="{{ user.userID }}"
+                        data-username="{{ user.username }}"
+                        type="button">
+                    <i class="fas fa-trash"></i> {{ _('Delete user') }}
+                </button>
+            </div>
         </div>
     </div>
 
