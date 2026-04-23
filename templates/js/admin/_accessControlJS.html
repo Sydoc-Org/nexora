@@ -412,7 +412,18 @@
         if (search) search.value = '';
         if (prof)   prof.value   = '';
         if (org)    org.value    = '';
+        updateClearFilterVisibility();
         fetchAllUsers();
+    }
+
+    function updateClearFilterVisibility() {
+        const wrap = document.getElementById('userClearFiltersWrap');
+        if (!wrap) return;
+        const hasAny =
+            (document.getElementById('userSearchInput')?.value || '').trim() !== '' ||
+            (document.getElementById('userProfileFilter')?.value || '') !== '' ||
+            (document.getElementById('userOrgFilter')?.value || '') !== '';
+        wrap.style.display = hasAny ? '' : 'none';
     }
 
     function filterUsersTable() {
@@ -816,7 +827,10 @@
 
         ['userProfileFilter', 'userOrgFilter'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', fetchAllUsers);
+            if (el) el.addEventListener('change', () => {
+                updateClearFilterVisibility();
+                fetchAllUsers();
+            });
         });
     });
 </script>
