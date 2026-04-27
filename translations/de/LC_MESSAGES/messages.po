@@ -3878,3 +3878,70 @@ msgstr ""
 #~ msgid "Coming in a future release."
 #~ msgstr "Folgt in einer späteren Version."
 
+# Phase 3 — command palette, saved presets, CSV export
+msgid "Export CSV"
+msgstr "CSV exportieren"
+
+msgid "Saved filters"
+msgstr "Gespeicherte Filter"
+
+msgid "Save current"
+msgstr "Aktuellen speichern"
+
+msgid "None yet — save a filter to recall it later."
+msgstr "Noch keine — Filter speichern, um ihn später erneut zu laden."
+
+msgid "Apply"
+msgstr "Anwenden"
+
+msgid "Delete preset"
+msgstr "Voreinstellung löschen"
+
+msgid "Name this filter preset:"
+msgstr "Name für diese Filter-Voreinstellung:"
+
+msgid "Command palette"
+msgstr "Befehlspalette"
+
+msgid "Type a command or search..."
+msgstr "Befehl eingeben oder suchen..."
+
+msgid "navigate"
+msgstr "Navigieren"
+
+msgid "open"
+msgstr "öffnen"
+
+msgid "close"
+msgstr "schließen"
+
+msgid "No matching commands."
+msgstr "Keine passenden Befehle."
+
+msgid "Admin Overview"
+msgstr "Admin-Übersicht"
+
+msgid "Workspace"
+msgstr "Arbeitsbereich"
+
+msgid "Quick action"
+msgstr "Schnellaktion"
+
+msgid "Account"
+msgstr "Konto"
+
+msgid "Toggle dark mode"
+msgstr "Dark Mode umschalten"
+
+msgid "Work items"
+msgstr "Workitems"
+
+msgid "Admin action"
+msgstr "Admin-Aktion"
+
+msgid "Add user"
+msgstr "Benutzer hinzufügen"
+
+msgid "Add organization"
+msgstr "Organisation hinzufügen"
+

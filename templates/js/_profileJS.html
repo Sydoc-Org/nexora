@@ -1,12 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-    <script>function defaultIconNonHeader() {
-    document.getElementById('profilePictureNonHeader').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
-}</script>
-</body>
-</html>
+<script>
+(function () {
+    const DEFAULT_ICON = "{{ url_for('static', filename='images/default-Icon.png') }}";
+    const I18N_MATCH    = "{{ _('Passwords match') }}";
+    const I18N_NOMATCH  = "{{ _('Passwords do not match') }}";
+    const I18N_TOOSHORT = "{{ _('At least 8 characters required') }}";
+
+    window.defaultIconNonHeader = function () {
+        const el = document.getElementById('profilePictureNonHeader');
+        if (el) el.src = DEFAULT_ICON;
+    };
+    window.defaultIconPreview = function () {
+        const el = document.getElementById('photoPreview');
+        if (el) el.src = DEFAULT_ICON;
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // -------- Live photo preview --------
+        const fileInput   = document.getElementById('file');
+        const photoPrev   = document.getElementById('photoPreview');
+        const heroPic     = document.getElementById('profilePictureNonHeader');
+        const photoHint   = document.getElementById('photoHint');
+        const defaultHint = photoHint ? photoHint.textContent : '';
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function (e) {
+                const f = e.target.files && e.target.files[0];
+                if (!f) {
+                    if (photoHint) photoHint.textContent = defaultHint;
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    if (photoPrev) photoPrev.src = ev.target.result;
+                    if (heroPic)   heroPic.src   = ev.target.result;
+                };
+                reader.readAsDataURL(f);
+                if (photoHint) {
+                    const kb = Math.max(1, Math.round(f.size / 1024));
+                    photoHint.textContent = f.name + ' · ' + kb + ' KB';
+                }
+            });
+        }
+
+        // -------- Password reveal toggles --------
+        document.querySelectorAll('.profile-pw-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = btn.getAttribute('data-target');
+                const input = document.getElementById(id);
+                const icon = btn.querySelector('i');
+                if (!input) return;
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                if (icon) {
+                    icon.classList.toggle('fa-eye', showing);
+                    icon.classList.toggle('fa-eye-slash', !showing);
+                }
+            });
+        });
+
+        // -------- Password strength + match --------
+        const newPw    = document.getElementById('newPassword');
+        const confPw   = document.getElementById('confirmPassword');
+        const meter    = document.getElementById('pwStrength');
+        const matchHnt = document.getElementById('pwMatchHint');
+
+        function scorePassword(pw) {
+            if (!pw) return 0;
+            let s = 0;
+            if (pw.length >= 8)  s++;
+            if (pw.length >= 12) s++;
+            if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+            if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
+            return Math.min(s, 4);
+        }
+
+        function refreshPwUI() {
+            if (meter && newPw) {
+                meter.setAttribute('data-score', String(scorePassword(newPw.value)));
+            }
+            if (matchHnt && newPw && confPw) {
+                if (!confPw.value) {
+                    matchHnt.textContent = '';
+                    matchHnt.classList.remove('is-error', 'is-success');
+                } else if (newPw.value && newPw.value.length < 8) {
+                    matchHnt.textContent = I18N_TOOSHORT;
+                    matchHnt.classList.add('is-error');
+                    matchHnt.classList.remove('is-success');
+                } else if (newPw.value === confPw.value) {
+                    matchHnt.textContent = I18N_MATCH;
+                    matchHnt.classList.add('is-success');
+                    matchHnt.classList.remove('is-error');
+                } else {
+                    matchHnt.textContent = I18N_NOMATCH;
+                    matchHnt.classList.add('is-error');
+                    matchHnt.classList.remove('is-success');
+                }
+            }
+        }
+        if (newPw)  newPw.addEventListener('input', refreshPwUI);
+        if (confPw) confPw.addEventListener('input', refreshPwUI);
+
+        // -------- Jump nav scroll-spy + smooth scroll --------
+        const links = document.querySelectorAll('.profile-jumpnav-link');
+        const sectionIds = ['section-profile', 'section-password', 'section-language'];
+        const setActive = function (id) {
+            links.forEach(function (link) {
+                link.classList.toggle('is-active', link.getAttribute('href') === '#' + id);
+            });
+        };
+
+        if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) setActive(entry.target.id);
+                });
+            }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+
+            sectionIds.forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) io.observe(el);
+            });
+        }
+
+        links.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                const href = link.getAttribute('href');
+                if (href && href.indexOf('#') === 0) {
+                    const target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        setActive(href.slice(1));
+                    }
+                }
+            });
+        });
+
+        // -------- Auto-jump if URL has a matching hash on load --------
+        if (window.location.hash) {
+            const id = window.location.hash.replace('#', '');
+            if (sectionIds.indexOf(id) !== -1) setActive(id);
+        }
+    });
+})();
+</script>

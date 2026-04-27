@@ -54,7 +54,8 @@
 
                 sessions.forEach(session => {
                     const row = document.createElement('tr');
-                    const rawTs = session.LoggedInAt ? session.LoggedInAt + 'Z' : null;
+                    // LoggedInAt is already ISO-8601 — pass directly to Date.
+                    const rawTs = session.LoggedInAt || null;
 
                     const td1 = document.createElement('td');
                     td1.textContent = session.Username || '';

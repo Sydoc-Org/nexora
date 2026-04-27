@@ -82,17 +82,17 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
 # csp = {
@@ -316,6 +316,40 @@ def get_ip():
 @app.before_request
 def start_timer():
     request.start_time = time.time()
+
+_SESSION_ENFORCE_SKIP_PATHS = (
+    '/static', '/login', '/logout', '/forgot_password', '/set_new_password',
+    '/init_reset', '/init_2FA', '/verify_2fa', '/reset_password',
+)
+
+@app.before_request
+def enforce_active_session():
+    """If a logged-in user's SID is no longer in ActiveSessions (e.g. an admin
+    revoked it), clear the session and redirect/401. Backend-agnostic: this is
+    what makes force-logout actually take effect on the next request."""
+    if request.path.startswith(_SESSION_ENFORCE_SKIP_PATHS):
+        return
+    if 'userid' not in session:
+        return
+    sid = getattr(session, 'sid', None) or session.get('_dev_sid')
+    if not sid:
+        return
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        app.logger.warning(f"enforce_active_session check failed: {e}")
+        return  # Fail open — never lock users out due to a transient DB blip
+    if row:
+        return
+    session.clear()
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({'error': 'Session revoked', 'reason': 'revoked'}), 401
+    return redirect(url_for('login'))
 
 @app.before_request
 def reload_user_permissions():
@@ -596,7 +630,7 @@ def verify_2fa():
             return redirect(url_for(startpage_redirect_to(pV)))
         else:
             flash(_("Invalid code"), "error")
-            return render_template('verify_2fa.html')
+            return render_template('verify_2fa.html'), 401
 
 @app.route('/init_reset')
 def init_reset():
@@ -674,10 +708,18 @@ def _record_active_session(user_id):
         cursor = conn.cursor()
         # Upsert: a re-login with the same SID should refresh the row, not collide on PK.
         cursor.execute("DELETE FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
-        cursor.execute(
-            "INSERT INTO ActiveSessions (SessionID, UserID, IPAddress) VALUES (?, ?, ?)",
-            (str(sid), int(user_id), ip or None)
-        )
+        try:
+            cursor.execute(
+                "INSERT INTO ActiveSessions (SessionID, UserID, IPAddress) VALUES (?, ?, ?)",
+                (str(sid), int(user_id), ip or None)
+            )
+        except Exception:
+            # Fallback when the IPAddress column hasn't been added yet
+            # (Patch-ActiveSessions_addIPAddress.sql not applied).
+            cursor.execute(
+                "INSERT INTO ActiveSessions (SessionID, UserID) VALUES (?, ?)",
+                (str(sid), int(user_id))
+            )
         conn.commit()
         cursor.close()
         conn.close()
@@ -755,7 +797,7 @@ def login():
             pV = pageVisability()
             return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
-            return render_template('index.html', error=_("Invalid credentials"))
+            return render_template('index.html', error=_("Invalid credentials")), 401
 
         try:
             conn = engineNexoraDB.raw_connection()
@@ -790,11 +832,11 @@ def login():
                         session['pre_2fa_username'] = stored_username 
                         return redirect(url_for('verify_2fa'))
            
-            return render_template('index.html', error=_("Invalid credentials"))
+            return render_template('index.html', error=_("Invalid credentials")), 401
 
         except Exception as e:
             app.logger.error(f"Database error during login: {e}")
-            return render_template('index.html', error=_("Login temporarily unavailable"))
+            return render_template('index.html', error=_("Login temporarily unavailable")), 503
         finally:
             if cursor:
                 cursor.close()
@@ -927,7 +969,7 @@ def admin_dashboard():
 
         cursor.execute("""
             SELECT COUNT(*) FROM Logs
-            WHERE Path = '/login'
+            WHERE Path IN ('/login', '/verify_2fa')
               AND HttpRequestMethod = 'POST'
               AND HttpResponseCode >= 400
               AND Timestamp >= CAST(GETDATE() AS DATE)
@@ -950,7 +992,7 @@ def admin_dashboard():
         (engineStatisticsDB,        'Stats'),
         (engineStatisticsDBMobscan, 'Stats-Mobscan'),
         (engineGeneraliDB,          'Generali'),
-    ], timeout_s=2.0)
+    ], timeout_s=0.8)
 
     return render_template("admin/adminOverview.html",
                          user_count=user_count,
@@ -1134,50 +1176,11 @@ def admin_logs_view():
 @app.route("/api/admin/logs/search")
 @require_permission('admin.view.system.logs')
 def api_admin_logs_search():
-    username = request.args.get('username', '').strip()
-    method = request.args.get('method', '').strip()
-    path = request.args.get('path', '').strip()
-    
-    status = request.args.get('status', '').strip()
-    start_date = request.args.get('start_date', '')
-    end_date = request.args.get('end_date', '')
-    organization = request.args.get('organization', '').strip()
-
     page = request.args.get('page', 1, type=int)
     per_page = 50
     offset = (page - 1) * per_page
 
-    query_parts = ["1=1"]
-    params = []
-
-    if username:
-        query_parts.append("Username LIKE ?")
-        params.append(f"%{username}%")
-    
-    if method:
-        query_parts.append("HttpRequestMethod = ?")
-        params.append(method)
-    
-    if path:
-        query_parts.append("Path LIKE ?")
-        params.append(f"%{path}%")
-
-    if status == 'SUCCESS':
-        query_parts.append("HttpResponseCode BETWEEN 200 AND 299")
-    elif status == 'FAILURE':
-        query_parts.append("HttpResponseCode >= 400")
-
-    if start_date:
-        query_parts.append("Timestamp >= ?")
-        params.append(start_date)
-    if end_date:
-        query_parts.append("Timestamp <= ?")
-        params.append(f"{end_date} 23:59:59")
-    if organization:
-        query_parts.append("Username IN (SELECT username FROM Users WHERE organizationcode = ?)")
-        params.append(organization)
-
-    where_clause = " AND ".join(query_parts)
+    where_clause, params = _build_logs_where_clause()
 
     conn = None
     try:
@@ -1225,6 +1228,111 @@ def api_admin_logs_search():
             cursor.close()
         if conn:
             conn.close()
+
+
+def _build_logs_where_clause():
+    """Pull filter args from request and produce (where_clause, params).
+    Shared between /api/admin/logs/search and /api/admin/logs/export.csv."""
+    username = request.args.get('username', '').strip()
+    method = request.args.get('method', '').strip()
+    path = request.args.get('path', '').strip()
+    status = request.args.get('status', '').strip()
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    organization = request.args.get('organization', '').strip()
+
+    parts = ["1=1"]
+    params = []
+
+    if username:
+        parts.append("Username LIKE ?")
+        params.append(f"%{username}%")
+    if method:
+        parts.append("HttpRequestMethod = ?")
+        params.append(method)
+    if path:
+        parts.append("Path LIKE ?")
+        params.append(f"%{path}%")
+    if status == 'SUCCESS':
+        parts.append("HttpResponseCode BETWEEN 200 AND 299")
+    elif status == 'FAILURE':
+        parts.append("HttpResponseCode >= 400")
+    if start_date:
+        parts.append("Timestamp >= ?")
+        params.append(start_date)
+    if end_date:
+        parts.append("Timestamp <= ?")
+        params.append(f"{end_date} 23:59:59")
+    if organization:
+        parts.append("Username IN (SELECT username FROM Users WHERE organizationcode = ?)")
+        params.append(organization)
+
+    return " AND ".join(parts), params
+
+
+@app.route("/api/admin/logs/export.csv")
+@require_permission('admin.view.system.logs')
+def api_admin_logs_export():
+    """Stream the filtered log set as CSV. Capped at 50k rows so a wide-open
+    filter doesn't yank the whole table."""
+    MAX_ROWS = 50000
+    where_clause, params = _build_logs_where_clause()
+
+    sql = f"""
+        SELECT TOP ({MAX_ROWS}) LogID, Timestamp, Username, HttpRequestMethod, Path,
+               HttpResponseCode, RequestIpAddress, durationSeconds, Args
+        FROM Logs
+        WHERE {where_clause}
+        ORDER BY Timestamp DESC
+    """
+
+    def generate():
+        import io as _io
+        buf = _io.StringIO()
+        writer = csv.writer(buf, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow([
+            'LogID', 'Timestamp', 'Username', 'Method', 'Path',
+            'StatusCode', 'IPAddress', 'DurationSeconds', 'Args'
+        ])
+        yield buf.getvalue()
+        buf.seek(0); buf.truncate(0)
+
+        conn = engineNexoraDB.raw_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            while True:
+                rows = cursor.fetchmany(500)
+                if not rows:
+                    break
+                for row in rows:
+                    writer.writerow([
+                        row.LogID,
+                        row.Timestamp.isoformat() if row.Timestamp else '',
+                        row.Username or '',
+                        row.HttpRequestMethod or '',
+                        row.Path or '',
+                        row.HttpResponseCode if row.HttpResponseCode is not None else '',
+                        row.RequestIpAddress or '',
+                        row.durationSeconds if row.durationSeconds is not None else '',
+                        row.Args or '',
+                    ])
+                yield buf.getvalue()
+                buf.seek(0); buf.truncate(0)
+            cursor.close()
+        finally:
+            conn.close()
+
+    filename = f"nexora-logs-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
+    return Response(
+        generate(),
+        mimetype='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Cache-Control': 'no-store',
+        },
+    )
+
 
 @app.route("/admin/sessions")
 @require_permission('admin.view.active.sessions')
@@ -1418,7 +1526,7 @@ def api_admin_user_activity(user_id):
         entries = []
         for r in cursor.fetchall():
             entries.append({
-                'Timestamp': str(r.Timestamp) if r.Timestamp else None,
+                'Timestamp': r.Timestamp.isoformat() if r.Timestamp else None,
                 'HttpRequestMethod': r.HttpRequestMethod,
                 'Path': r.Path,
                 'HttpResponseCode': r.HttpResponseCode,
@@ -1499,8 +1607,10 @@ def admin_delete_user(user_id):
 
 
 def _revoke_session_by_id(session_id):
-    """Delete a session's DB row and its on-disk file (if any).
-    Returns True if the DB row existed."""
+    """Delete a session's ActiveSessions row and its server-side data (if any).
+    Returns True if the DB row existed.
+    The before_request hook also enforces revocation by re-checking ActiveSessions
+    on every request, so stale session files alone cannot keep someone logged in."""
     deleted = 0
     conn = None
     cursor = None
@@ -1520,15 +1630,17 @@ def _revoke_session_by_id(session_id):
             try: conn.close()
             except Exception: pass
 
-    # Attempt to remove the on-disk session file. Works in prod (filesystem
-    # backend); silently no-op in dev where the file typically doesn't exist.
+    # Best-effort: nuke the server-side session data via Flask-Session's
+    # internal store. Works for filesystem, cachelib, redis, etc. Falls back
+    # silently on backends that don't expose these helpers.
     try:
-        sdir = app.config.get('SESSION_FILE_DIR') or os.path.join(app.root_path, 'session')
-        fpath = os.path.join(sdir, str(session_id))
-        if os.path.isfile(fpath):
-            os.unlink(fpath)
+        si = app.session_interface
+        get_store_id = getattr(si, '_get_store_id', None)
+        delete_session = getattr(si, '_delete_session', None)
+        if callable(get_store_id) and callable(delete_session):
+            delete_session(get_store_id(str(session_id)))
     except Exception as e:
-        app.logger.warning(f"Could not remove session file for {session_id}: {e}")
+        app.logger.warning(f"Could not delete session store entry for {session_id}: {e}")
 
     return deleted > 0
 
@@ -1576,6 +1688,16 @@ def admin_revoke_all_sessions(user_id):
 
     app.logger.info(f"Admin {session.get('username')} revoked {revoked} session(s) for user {user_id}")
     return jsonify({'success': True, 'revoked': revoked})
+
+
+@app.route("/api/session/heartbeat")
+def session_heartbeat():
+    """Lightweight liveness probe. Authenticated pages poll this every few
+    seconds; if the session was revoked, enforce_active_session has already
+    returned 401, so the client redirects to /login."""
+    if 'userid' not in session:
+        return jsonify({'ok': False, 'reason': 'unauthenticated'}), 401
+    return jsonify({'ok': True})
 
 
 @app.route("/api/admin/users/list")
@@ -1651,7 +1773,18 @@ def admin_active_sessions():
             WHERE a.CreatedAt >= DATEADD(hour, -24, GETDATE())
             ORDER BY a.CreatedAt DESC
         """)
-        sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        sessions = []
+        for r in cursor.fetchall():
+            sessions.append({
+                'SessionID': r[0],
+                'Userid':    r[1],
+                'Username':  r[2],
+                'IPAddress': r[3],
+                # Emit ISO-8601 explicitly so the client can pass it straight
+                # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                # which doesn't survive the +'Z' timezone-suffix hack.
+                'LoggedInAt': r[4].isoformat() if r[4] else None,
+            })
         return jsonify(sessions)
     except Exception as e:
         app.logger.error(f"Failed to fetch active sessions: {e}")
@@ -4871,7 +5004,7 @@ def resolve_user_icon_url(user_id):
 
 @app.context_processor
 def utility_processor():
-    return dict(get_user_icon_url=resolve_user_icon_url)
+    return dict(get_user_icon_url=resolve_user_icon_url, has_permission=has_permission)
 
 # -------------------------------- profile end ------------------------------- #
 

@@ -105,6 +105,105 @@
         fetchLogs(currentPage + delta);
     }
 
+    /* ---- Saved filter presets (localStorage) ---- */
+    const PRESETS_KEY = 'nexora.admin.logs.presets';
+    const PRESET_FIELDS = {
+        username:     'filterUser',
+        method:       'filterMethod',
+        path:         'filterPath',
+        status:       'filterStatus',
+        organization: 'filterOrg',
+        start_date:   'filterStart',
+        end_date:     'filterEnd',
+    };
+
+    function loadPresets() {
+        try { return JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]'); }
+        catch { return []; }
+    }
+    function savePresets(list) {
+        localStorage.setItem(PRESETS_KEY, JSON.stringify(list));
+    }
+    function captureCurrentFilters() {
+        const out = {};
+        for (const [param, elId] of Object.entries(PRESET_FIELDS)) {
+            const el = document.getElementById(elId);
+            out[param] = el ? el.value : '';
+        }
+        return out;
+    }
+    function applyPreset(filters) {
+        for (const [param, elId] of Object.entries(PRESET_FIELDS)) {
+            const el = document.getElementById(elId);
+            if (el) el.value = filters[param] || '';
+        }
+        // The static time-range presets shouldn't look "active" anymore.
+        document.querySelectorAll('.log-preset.is-active').forEach(b => b.classList.remove('is-active'));
+        fetchLogs(1);
+    }
+    function renderSavedPresets() {
+        const container = document.getElementById('savedPresetsContainer');
+        if (!container) return;
+        const presets = loadPresets();
+        container.innerHTML = '';
+        if (presets.length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'saved-preset-empty';
+            empty.textContent = '{{ _("None yet — save a filter to recall it later.") }}';
+            container.appendChild(empty);
+            return;
+        }
+        presets.forEach((p, idx) => {
+            const chip = document.createElement('span');
+            chip.className = 'saved-preset';
+            chip.title = '{{ _("Apply") }}: ' + (p.name || '');
+            const name = document.createElement('span');
+            name.className = 'name';
+            name.textContent = p.name || '';
+            name.addEventListener('click', () => applyPreset(p.filters || {}));
+            const del = document.createElement('span');
+            del.className = 'del';
+            del.title = '{{ _("Delete preset") }}';
+            del.innerHTML = '<i class="fas fa-times"></i>';
+            del.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const list = loadPresets();
+                list.splice(idx, 1);
+                savePresets(list);
+                renderSavedPresets();
+            });
+            chip.appendChild(name);
+            chip.appendChild(del);
+            container.appendChild(chip);
+        });
+    }
+    function promptSavePreset() {
+        const name = (prompt('{{ _("Name this filter preset:") }}') || '').trim();
+        if (!name) return;
+        const list = loadPresets();
+        // Replace in place if name already exists
+        const existing = list.findIndex(p => p.name === name);
+        const entry = { name, filters: captureCurrentFilters() };
+        if (existing >= 0) list[existing] = entry; else list.push(entry);
+        savePresets(list);
+        renderSavedPresets();
+    }
+
+    function exportLogsCsv() {
+        // Build the same param set the search uses so the export matches
+        // exactly what's on screen. Browser handles the file download.
+        const params = new URLSearchParams({
+            username: document.getElementById('filterUser').value,
+            method:   document.getElementById('filterMethod').value,
+            path:     document.getElementById('filterPath').value,
+            status:   document.getElementById('filterStatus').value,
+            start_date: document.getElementById('filterStart').value,
+            end_date:   document.getElementById('filterEnd').value,
+            organization: document.getElementById('filterOrg')?.value || '',
+        });
+        window.location.href = `${API_PREFIX}api/admin/logs/export.csv?${params}`;
+    }
+
     const modal = document.getElementById('logDetailsModal');
     const modalBackdrop = document.getElementById('modalBackdrop');
     const modalPanel = document.getElementById('modalPanel');
@@ -173,7 +272,51 @@
 
     modalBackdrop.addEventListener('click', closeLogModal);
 
+    // Pre-fill filters from the URL query string (e.g. /admin/logs?username=foo)
+    // so deep-links from other admin pages land on a filtered view.
+    (function applyUrlFilters() {
+        const qs = new URLSearchParams(window.location.search);
+        const map = {
+            username: 'filterUser',
+            method:   'filterMethod',
+            path:     'filterPath',
+            status:   'filterStatus',
+            organization: 'filterOrg',
+            start_date: 'filterStart',
+            end_date:   'filterEnd',
+        };
+        for (const [param, elId] of Object.entries(map)) {
+            const v = qs.get(param);
+            if (v == null) continue;
+            const el = document.getElementById(elId);
+            if (el) el.value = v;
+        }
+    })();
+
     fetchLogs(1);
+    renderSavedPresets();
+    const savePresetBtn = document.getElementById('savePresetBtn');
+    if (savePresetBtn) savePresetBtn.addEventListener('click', promptSavePreset);
+
+    // Live filtering — fire as soon as any filter changes. Text inputs are
+    // debounced so we don't hammer the API on every keystroke.
+    (function wireLiveFilters() {
+        let textTimer = null;
+        const debouncedFetch = () => {
+            clearTimeout(textTimer);
+            textTimer = setTimeout(() => fetchLogs(1), 300);
+        };
+        const textIds = ['filterUser', 'filterPath'];
+        const instantIds = ['filterMethod', 'filterStatus', 'filterOrg', 'filterStart', 'filterEnd'];
+        textIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', debouncedFetch);
+        });
+        instantIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => fetchLogs(1));
+        });
+    })();
 
     document.addEventListener('DOMContentLoaded', function () {
         const presets = document.querySelectorAll('.log-preset');

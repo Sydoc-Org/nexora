@@ -232,7 +232,10 @@
 
         function relativeTime(iso) {
             if (!iso) return '';
-            const t = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+            // Server emits ISO-8601 (server-local time, naive). Parse directly;
+            // Date() treats naive ISO as local, which matches a same-TZ server.
+            const t = new Date(iso);
+            if (isNaN(t.getTime())) return '';
             const seconds = Math.max(0, Math.floor((Date.now() - t.getTime()) / 1000));
             if (seconds < 60) return '{{ _("just now") }}';
             const m = Math.floor(seconds / 60);

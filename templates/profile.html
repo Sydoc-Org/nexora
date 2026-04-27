@@ -6,203 +6,305 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ _('Profile settings - nexora') }}</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/admin-tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/profile.css') }}">
-  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
-<body class="bg-white text-gray-800 font-sans">
+<body class="admin-page">
 
     {% set active_page = 'profile' %} {% include '_header.html' %}
 
-    <main class="container mx-auto px-6 py-12">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8 sticky top-30">{{ _("Account settings") }}</h1>
+    <main>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div class="profile-pageheader">
+            <span class="profile-eyebrow">{{ _("Personal") }}</span>
+            <h1 class="profile-title">{{ _("Account settings") }}</h1>
+            <p class="profile-lede">{{ _("Manage your profile, password and language preferences.") }}</p>
+        </div>
 
-            <aside class="md:col-span-1">
-                <nav class="space-y-1 sticky top-50">
-                    <a href="#profile"
-                        class="flex items-center px-4 py-2 text-indigo-700 bg-indigo-50 rounded-lg font-semibold">
-                        <i class="fas fa-user-circle w-5 h-5 mr-3"></i>
-                        {{ _("Profile") }}
+        <div class="profile-grid">
+
+            <aside class="profile-identity">
+                <div class="profile-identity-card">
+
+                    <div class="profile-avatar-stage">
+                        <div class="profile-avatar-ring" aria-hidden="true"></div>
+                        <img src="{{ get_user_icon_url(userid) }}"
+                            id="profilePictureNonHeader"
+                            class="profile-avatar"
+                            alt="{{ _('Profile Picture') }}"
+                            onerror="defaultIconNonHeader()">
+                    </div>
+
+                    <div class="profile-identity-name">{{ fullname }}</div>
+                    <div class="profile-identity-username">@{{ logged_in_user }}</div>
+
+                    <div class="profile-identity-email" title="{{ email }}">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ email }}</span>
+                    </div>
+
+                    <div class="profile-identity-divider"></div>
+
+                    <nav class="profile-jumpnav" aria-label="{{ _('Settings sections') }}">
+                        <a href="#section-profile" class="profile-jumpnav-link is-active">
+                            <i class="fas fa-user-circle"></i>
+                            <span>{{ _("Profile") }}</span>
+                            <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
+                        </a>
+                        <a href="#section-password" class="profile-jumpnav-link">
+                            <i class="fas fa-lock"></i>
+                            <span>{{ _("Password") }}</span>
+                            <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
+                        </a>
+                        <a href="#section-language" class="profile-jumpnav-link">
+                            <i class="fas fa-language"></i>
+                            <span>{{ _("Language") }}</span>
+                            <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
+                        </a>
+                    </nav>
+
+                    <a href="{{ url_for('logout') }}" class="profile-signout">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
+                        <span>{{ _("Sign out") }}</span>
                     </a>
-                    <a href="#password"
-                        class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg font-medium">
-                        <i class="fas fa-lock w-5 h-5 mr-3"></i>
-                        {{ _("Password") }}
-                    </a>
-                    <a href="#language"
-                        class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg font-medium">
-                        <i class="fas fa-language w-5 h-5 mr-3"></i>
-                        {{ _("Language") }}
-                    </a>
-                    <a href="{{ url_for('logout') }}"
-                        class="flex items-center px-4 py-2 text-red-600 hover:bg-red-100 hover:text-red-900 rounded-lg font-medium">
-                        <i class="fas fa-arrow-right-from-bracket w-5 h-5 mr-3"></i>
-                        {{ _("Sign out") }}
-                    </a>
-                </nav>
+
+                </div>
             </aside>
 
-            <div class="md:col-span-3 space-y-8">
+            <div class="profile-sections">
 
-                <section id="profile" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _("Profile information") }}</h2>
+                <section id="section-profile" class="profile-card">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-user-circle"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Profile information") }}</h2>
+                            <p class="profile-card-sub">{{ _("Your photo, name and email shown across nexora.") }}</p>
+                        </div>
+                    </header>
+
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     {% for category, message in messages %}
                     {% if category == 'success_updateProfile' %}
-                    <div class="message p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-                        {{ message }}
+                    <div class="profile-flash profile-flash--success" role="alert">
+                        <i class="fas fa-circle-check"></i><span>{{ message }}</span>
                     </div>
                     {% elif category == 'failure_updateProfile' %}
-                    <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                        {{ message }}
+                    <div class="profile-flash profile-flash--error" role="alert">
+                        <i class="fas fa-circle-exclamation"></i><span>{{ message }}</span>
                     </div>
                     {% endif %}
                     {% endfor %}
                     {% endif %}
                     {% endwith %}
-                    <form class="space-y-6" action="{{ url_for('update_profile') }}" method="post"
+
+                    <form class="profile-form" action="{{ url_for('update_profile') }}" method="post"
                         enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-                        <div class="flex items-center space-x-5">
-                            <img src="{{ get_user_icon_url(userid) }}"
-                            id="profilePictureNonHeader" 
-                            class="h-10 w-10 rounded-full cursor-pointer" 
-                            alt="{{ _('Profile Picture') }}">
-                            <div>
-                                <input id="file" type="file" name="file" accept=".jpg, .png"
-                                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                </input>
+                        <div class="profile-photo-row">
+                            <div class="profile-photo-preview">
+                                <img id="photoPreview"
+                                     src="{{ get_user_icon_url(userid) }}"
+                                     alt="{{ _('Profile Picture') }}"
+                                     onerror="defaultIconPreview()">
+                            </div>
+                            <div class="profile-photo-controls">
+                                <label for="file" class="profile-photo-btn">
+                                    <i class="fas fa-cloud-arrow-up"></i>
+                                    <span>{{ _("Upload new photo") }}</span>
+                                </label>
+                                <input id="file" type="file" name="file" accept=".jpg, .png" class="profile-photo-input">
+                                <span class="profile-photo-hint" id="photoHint">{{ _("JPG or PNG · square images look best") }}</span>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="username" class="block text-sm font-medium leading-6 text-gray-900">{{
-                                    _("Username") }}</label>
-                                <div class="mt-2">
-                                    <input type="text" id="username" name="username" value="{{ logged_in_user }}"
-                                        class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
-                                        disabled>
-                                </div>
+
+                        <div class="profile-fields-grid">
+                            <div class="profile-field">
+                                <label class="profile-label" for="username">{{ _("Username") }}</label>
+                                <input type="text" id="username" name="username" value="{{ logged_in_user }}"
+                                    class="profile-input" disabled>
+                                <span class="profile-field-hint">{{ _("Your username cannot be changed.") }}</span>
                             </div>
-                            <div>
-                                <label for="fullName" class="block text-sm font-medium leading-6 text-gray-900">{{
-                                    _("Full name") }}</label>
-                                <div class="mt-2">
-                                    <input type="text" id="fullName" name="fullName" value="{{ fullname }}"
-                                        class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                </div>
+                            <div class="profile-field">
+                                <label class="profile-label" for="fullName">{{ _("Full name") }}</label>
+                                <input type="text" id="fullName" name="fullName" value="{{ fullname }}"
+                                    class="profile-input">
                             </div>
-                            <div>
-                                <label for="email" class="block text-sm font-medium leading-6 text-gray-900">
-                                    {{ _("Email address") }}</label>
-                                <div class="mt-2">
-                                    <input type="email" id="email" name="email" value="{{ email }}"
-                                        class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                </div>
+                            <div class="profile-field profile-field--full">
+                                <label class="profile-label" for="email">{{ _("Email address") }}</label>
+                                <input type="email" id="email" name="email" value="{{ email }}"
+                                    class="profile-input">
                             </div>
                         </div>
-                        <div class="flex items-center justify-end gap-x-4 pt-4">
-                            <button type="submit"
-                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">{{
-                                _("Save changes") }}</button>
+
+                        <div class="profile-form-actions">
+                            <button type="submit" class="profile-btn profile-btn--primary">
+                                <i class="fas fa-check"></i>
+                                <span>{{ _("Save changes") }}</span>
+                            </button>
                         </div>
                     </form>
                 </section>
 
-                <section id="password" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _("Change password") }}</h2>
-                    <form action="{{ url_for('change_password') }}" method="POST" class="space-y-6 max-w-lg">
+                <section id="section-password" class="profile-card">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-lock"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Change password") }}</h2>
+                            <p class="profile-card-sub">{{ _("At least 8 characters, no whitespace.") }}</p>
+                        </div>
+                    </header>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    {% if category == 'success_changePW' %}
+                    <div class="profile-flash profile-flash--success" role="alert">
+                        <i class="fas fa-circle-check"></i><span>{{ message }}</span>
+                    </div>
+                    {% elif category == 'failure_changePW' %}
+                    <div class="profile-flash profile-flash--error" role="alert">
+                        <i class="fas fa-circle-exclamation"></i><span>{{ message }}</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form class="profile-form" action="{{ url_for('change_password') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-                        {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                        {% for category, message in messages %}
-                        {% if category == 'success_changePW' %}
-                        <div class="message p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-                            {{ message }}
+                        <div class="profile-fields-grid">
+                            <div class="profile-field profile-field--full">
+                                <label class="profile-label" for="currentPassword">{{ _("Current password") }}</label>
+                                <div class="profile-pw-wrap">
+                                    <input type="password" id="currentPassword" name="currentPassword"
+                                        class="profile-input" autocomplete="current-password">
+                                    <button type="button" class="profile-pw-toggle" data-target="currentPassword"
+                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="profile-field">
+                                <label class="profile-label" for="newPassword">{{ _("New password") }}</label>
+                                <div class="profile-pw-wrap">
+                                    <input type="password" id="newPassword" name="newPassword"
+                                        class="profile-input" autocomplete="new-password">
+                                    <button type="button" class="profile-pw-toggle" data-target="newPassword"
+                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="profile-pw-strength" id="pwStrength" aria-hidden="true">
+                                    <span class="profile-pw-strength-bar"></span>
+                                    <span class="profile-pw-strength-bar"></span>
+                                    <span class="profile-pw-strength-bar"></span>
+                                    <span class="profile-pw-strength-bar"></span>
+                                </div>
+                            </div>
+                            <div class="profile-field">
+                                <label class="profile-label" for="confirmPassword">{{ _("Confirm new password") }}</label>
+                                <div class="profile-pw-wrap">
+                                    <input type="password" id="confirmPassword" name="confirmPassword"
+                                        class="profile-input" autocomplete="new-password">
+                                    <button type="button" class="profile-pw-toggle" data-target="confirmPassword"
+                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span class="profile-field-hint" id="pwMatchHint"></span>
+                            </div>
                         </div>
-                        {% elif category == 'failure_changePW' %}
-                        <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                            {{ message }}
-                        </div>
-                        {% endif %}
-                        {% endfor %}
-                        {% endif %}
-                        {% endwith %}
 
-                        <div>
-                            <label for="currentPassword" class="block text-sm font-medium leading-6 text-gray-900">{{ _("Current password") }}</label>
-                            <div class="mt-2">
-                                <input type="password" id="currentPassword" name="currentPassword"
-                                    class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            </div>
-                        </div>
-                        <div>
-                            <label for="newPassword" class="block text-sm font-medium leading-6 text-gray-900">{{ _("New password") }}</label>
-                            <div class="mt-2">
-                                <input type="password" id="newPassword" name="newPassword"
-                                    class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            </div>
-                        </div>
-                        <div>
-                            <label for="confirmPassword" class="block text-sm font-medium leading-6 text-gray-900">{{ _("Confirm new password") }}</label>
-                            <div class="mt-2">
-                                <input type="password" id="confirmPassword" name="confirmPassword"
-                                    class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-end gap-x-4 pt-4">
-                            <button type="submit"
-                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">{{ _("Save changes") }}</button>
+                        <div class="profile-form-actions">
+                            <button type="submit" class="profile-btn profile-btn--primary">
+                                <i class="fas fa-key"></i>
+                                <span>{{ _("Update password") }}</span>
+                            </button>
                         </div>
                     </form>
                 </section>
 
-                <section id="language" class="bg-white p-6 md:p-8 shadow-md rounded-lg">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ _("Language") }}</h2>
+                <section id="section-language" class="profile-card">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-language"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Language") }}</h2>
+                            <p class="profile-card-sub">{{ _("Choose the language used across nexora.") }}</p>
+                        </div>
+                    </header>
 
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     {% for category, message in messages %}
                     {% if category == 'success_setLanguage' %}
-                    <div class="message p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-                        {{ message }}
+                    <div class="profile-flash profile-flash--success" role="alert">
+                        <i class="fas fa-circle-check"></i><span>{{ message }}</span>
                     </div>
                     {% elif category == 'failure_setLanguage' %}
-                    <div class="error-message p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                        {{ message }}
+                    <div class="profile-flash profile-flash--error" role="alert">
+                        <i class="fas fa-circle-exclamation"></i><span>{{ message }}</span>
                     </div>
                     {% endif %}
                     {% endfor %}
                     {% endif %}
                     {% endwith %}
 
-                    <div>
-                        <label for="language-select" class="block text-sm font-medium leading-6 text-gray-900">{{ _("Change language") }}</label>
-                        <select id="language-select" name="language"
-                            class="mt-2 block w-full md:w-auto rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                            onchange="if (this.value) window.location.href=this.value;">
-                            <option value="{{ url_for('set_language', lang='en') }}" {% if current_lang=='en'
-                                %}selected{% endif %}>English</option>
-                            <option value="{{ url_for('set_language', lang='de') }}" {% if current_lang=='de'
-                                %}selected{% endif %}>Deutsch</option>
-                            <option value="{{ url_for('set_language', lang='fr') }}" {% if current_lang=='fr'
-                                %}selected{% endif %}>Français</option>
-                            <option value="{{ url_for('set_language', lang='it') }}" {% if current_lang=='it'
-                                %}selected{% endif %}>Italiano</option>
-                        </select>
+                    <div class="profile-lang-grid">
+                        <a href="{{ url_for('set_language', lang='en') }}"
+                            class="profile-lang-pill {% if current_lang == 'en' %}is-active{% endif %}">
+                            <span class="profile-lang-flag" aria-hidden="true">🇬🇧</span>
+                            <div class="profile-lang-text">
+                                <span class="profile-lang-name">{{ _("English") }}</span>
+                                <span class="profile-lang-native">English</span>
+                            </div>
+                            <i class="fas fa-circle-check profile-lang-check"></i>
+                        </a>
+                        <a href="{{ url_for('set_language', lang='de') }}"
+                            class="profile-lang-pill {% if current_lang == 'de' %}is-active{% endif %}">
+                            <span class="profile-lang-flag" aria-hidden="true">🇩🇪</span>
+                            <div class="profile-lang-text">
+                                <span class="profile-lang-name">{{ _("German") }}</span>
+                                <span class="profile-lang-native">Deutsch</span>
+                            </div>
+                            <i class="fas fa-circle-check profile-lang-check"></i>
+                        </a>
+                        <a href="{{ url_for('set_language', lang='fr') }}"
+                            class="profile-lang-pill {% if current_lang == 'fr' %}is-active{% endif %}">
+                            <span class="profile-lang-flag" aria-hidden="true">🇫🇷</span>
+                            <div class="profile-lang-text">
+                                <span class="profile-lang-name">{{ _("French") }}</span>
+                                <span class="profile-lang-native">Français</span>
+                            </div>
+                            <i class="fas fa-circle-check profile-lang-check"></i>
+                        </a>
+                        <a href="{{ url_for('set_language', lang='it') }}"
+                            class="profile-lang-pill {% if current_lang == 'it' %}is-active{% endif %}">
+                            <span class="profile-lang-flag" aria-hidden="true">🇮🇹</span>
+                            <div class="profile-lang-text">
+                                <span class="profile-lang-name">{{ _("Italian") }}</span>
+                                <span class="profile-lang-native">Italiano</span>
+                            </div>
+                            <i class="fas fa-circle-check profile-lang-check"></i>
+                        </a>
                     </div>
-                    <div class="block italic text-sm font-medium leading-6 text-gray-900 pt-4">{{ _("Disclaimer: Translations may not be 100&#x25; correct") }}</div>
 
+                    <p class="profile-lang-disclaimer">
+                        <i class="fas fa-circle-info"></i>
+                        <span>{{ _("Disclaimer: Translations may not be 100&#x25; correct") }}</span>
+                    </p>
                 </section>
+
             </div>
         </div>
     </main>

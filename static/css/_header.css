@@ -607,3 +607,89 @@ html.dark .sidebar-toggle-btn {
         border-bottom-color: #334155 !important;
     }
 }
+
+/* ============================================================
+   COMMAND PALETTE (Ctrl/Cmd+K)
+   ============================================================ */
+.cmdk-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15,23,42,0.45);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+}
+.cmdk-overlay[hidden] { display: none; }
+
+.cmdk-panel {
+    width: 100%; max-width: 580px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.20);
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.cmdk-input-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.cmdk-input-icon { color: #9ca3af; font-size: 14px; }
+.cmdk-input {
+    flex: 1; border: none; outline: none;
+    font-size: 15px; color: #111827;
+    background: transparent;
+}
+.cmdk-input::placeholder { color: #9ca3af; }
+
+.cmdk-list {
+    list-style: none; margin: 0; padding: 6px;
+    max-height: 320px; overflow-y: auto;
+}
+.cmdk-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; border-radius: 7px;
+    cursor: pointer; color: #1f2937; font-size: 13px;
+}
+.cmdk-item .cmdk-item-icon {
+    width: 24px; text-align: center; color: #6b7280; font-size: 13px;
+}
+.cmdk-item .cmdk-item-label { flex: 1; }
+.cmdk-item .cmdk-item-section {
+    font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px;
+}
+.cmdk-item.is-selected { background: #eef2ff; color: #3730a3; }
+.cmdk-item.is-selected .cmdk-item-icon { color: #4f46e5; }
+.cmdk-list .cmdk-empty {
+    padding: 24px 12px; text-align: center; color: #9ca3af; font-size: 13px;
+}
+
+.cmdk-footer {
+    display: flex; gap: 18px; padding: 8px 14px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 11px; color: #9ca3af;
+}
+.cmdk-kbd {
+    display: inline-block; padding: 1px 6px; margin: 0 2px;
+    border: 1px solid #e5e7eb; border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #f9fafb;
+    color: #6b7280;
+    font-family: ui-monospace, SFMono-Regular, monospace; font-size: 10px;
+    line-height: 1.4;
+}
+
+/* Dark mode */
+html.dark .cmdk-panel { background: #1e293b; border-color: #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+html.dark .cmdk-input-row { border-bottom-color: #273449; }
+html.dark .cmdk-input { color: #e2e8f0; }
+html.dark .cmdk-input::placeholder { color: #64748b; }
+html.dark .cmdk-input-icon { color: #64748b; }
+html.dark .cmdk-item { color: #e2e8f0; }
+html.dark .cmdk-item .cmdk-item-icon { color: #94a3b8; }
+html.dark .cmdk-item.is-selected { background: #312e81; color: #c7d2fe; }
+html.dark .cmdk-item.is-selected .cmdk-item-icon { color: #818cf8; }
+html.dark .cmdk-list .cmdk-empty { color: #64748b; }
+html.dark .cmdk-footer { border-top-color: #273449; color: #64748b; }
+html.dark .cmdk-kbd { background: #273449; border-color: #334155; color: #cbd5e1; }

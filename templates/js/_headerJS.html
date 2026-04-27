@@ -20,6 +20,221 @@
             if (saved === 'dark') document.documentElement.classList.add('dark');
         })();
 
+        /* ---- Session liveness poll ----
+           Polls /api/session/heartbeat every 5s. If the admin force-logs us out,
+           the before_request hook returns 401 and we bounce to /login. */
+        (function() {
+            const PUBLIC_PATHS = ['/login', '/logout', '/forgot_password',
+                '/set_new_password', '/init_reset', '/init_2FA', '/verify_2fa',
+                '/reset_password'];
+            if (PUBLIC_PATHS.some(p => window.location.pathname.startsWith(p))) return;
+
+            let stopped = false;
+            async function ping() {
+                if (stopped) return;
+                try {
+                    const r = await fetch('/api/session/heartbeat', {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
+                    if (r.status === 401) {
+                        stopped = true;
+                        window.location.href = "{{ url_for('login') }}";
+                    }
+                } catch (e) {
+                    // Network blip — keep trying.
+                }
+            }
+            // First check after 2s, then every 5s.
+            setTimeout(ping, 2000);
+            setInterval(ping, 5000);
+        })();
+
+        /* ---- Command palette (Ctrl/Cmd+K) ----
+           Server populates the action list based on the user's permissions.
+           Adding new commands later = appending to the array below. */
+        (function() {
+            const ACTIONS = [
+                {% if pageV.adminPagePerm %}
+                { section: "{{ _('Admin') }}", label: "{{ _('Admin Overview') }}", icon: 'fa-shield-halved', url: "{{ url_for('admin_dashboard') }}" },
+                { section: "{{ _('Admin') }}", label: "{{ _('Access Control') }}",   icon: 'fa-id-badge',  url: "{{ url_for('admin_access_control') }}" },
+                { section: "{{ _('Admin') }}", label: "{{ _('Organizations') }}",    icon: 'fa-building',  url: "{{ url_for('admin_organizations_view') }}" },
+                { section: "{{ _('Admin') }}", label: "{{ _('Active Sessions') }}",  icon: 'fa-users',     url: "{{ url_for('admin_sessions_view') }}" },
+                { section: "{{ _('Admin') }}", label: "{{ _('System Logs') }}",      icon: 'fa-list-ul',   url: "{{ url_for('admin_logs_view') }}" },
+                {% endif %}
+                {% if has_permission('admin.create.user') %}
+                { section: "{{ _('Admin action') }}", label: "{{ _('Add user') }}",         icon: 'fa-user-plus',   url: "{{ url_for('admin_access_control') }}#add-user" },
+                {% endif %}
+                {% if has_permission('admin.add.organization') %}
+                { section: "{{ _('Admin action') }}", label: "{{ _('Add organization') }}", icon: 'fa-circle-plus', url: "{{ url_for('admin_organizations_view') }}#add-org" },
+                {% endif %}
+                {% if pageV.dashboardPagePerm %}
+                { section: "{{ _('Workspace') }}", label: "{{ _('Dashboard') }}",  icon: 'fa-chart-line', url: "{{ url_for('dashboard') }}" },
+                {% endif %}
+                {% if pageV.workitemsPagePerm %}
+                { section: "{{ _('Workspace') }}", label: "{{ _('Work items') }}", icon: 'fa-list-check', url: "{{ url_for('workitems_overview') }}" },
+                {% endif %}
+                {% if pageV.invoicesPagePerm %}
+                { section: "{{ _('Workspace') }}", label: "{{ _('Invoices') }}",   icon: 'fa-file-invoice', url: "{{ url_for('invoices') }}" },
+                {% endif %}
+                {% if pageV.chatPagePerm %}
+                { section: "{{ _('Workspace') }}", label: "{{ _('Chat') }}",       icon: 'fa-comment',    url: "{{ url_for('chat_page') }}" },
+                {% endif %}
+                {% if pageV.generaliPagePerm %}
+                { section: "Generali", label: "{{ _('Dashboard') }}",            icon: 'fa-chart-line',      url: "{{ url_for('generali_evaluation') }}" },
+                {% endif %}
+                {% if pageV.generaliDocumentsPerm %}
+                { section: "Generali", label: "{{ _('Document List') }}",        icon: 'fa-table-list',      url: "{{ url_for('generali_documents') }}" },
+                {% endif %}
+                {% if pageV.generaliReportingPerm %}
+                { section: "Generali", label: "{{ _('Reporting') }}",            icon: 'fa-clipboard-list',  url: "{{ url_for('generali_reporting') }}" },
+                {% endif %}
+                {% if pageV.generaliAdditionalServicesPerm %}
+                { section: "Generali", label: "{{ _('Additional Services') }}",  icon: 'fa-clock',           url: "{{ url_for('generali_additionalServices') }}" },
+                {% endif %}
+                {% if pageV.generaliBaseServicesPerm %}
+                { section: "Generali", label: "{{ _('Base Services') }}",        icon: 'fa-inbox',           url: "{{ url_for('generali_baseServices') }}" },
+                {% endif %}
+                {% if pageV.generaliProjectManagementPerm %}
+                { section: "Generali", label: "{{ _('Project Management') }}",   icon: 'fa-diagram-project', url: "{{ url_for('generali_projectManagement') }}" },
+                {% endif %}
+                {% if pageV.generaliPDQMPerm %}
+                { section: "Generali", label: "{{ _('PDQM') }}",                 icon: 'fa-file-lines',      url: "{{ url_for('generali_pdqm') }}" },
+                {% endif %}
+                { section: "{{ _('Quick action') }}", label: "{{ _('Toggle dark mode') }}", icon: 'fa-moon', action: 'toggle-dark' },
+                { section: "{{ _('Account') }}", label: "{{ _('Sign out') }}", icon: 'fa-sign-out-alt', url: "{{ url_for('logout') }}" },
+            ];
+
+            const overlay = document.getElementById('cmdkOverlay');
+            const input   = document.getElementById('cmdkInput');
+            const list    = document.getElementById('cmdkList');
+            if (!overlay || !input || !list) return;
+
+            let visible = false;
+            let selectedIdx = 0;
+            let filtered = ACTIONS.slice();
+
+            function buildItem(action, index) {
+                const li = document.createElement('li');
+                li.className = 'cmdk-item' + (index === selectedIdx ? ' is-selected' : '');
+                li.setAttribute('role', 'option');
+                li.dataset.idx = String(index);
+
+                const icon = document.createElement('i');
+                icon.className = 'fas ' + (action.icon || 'fa-arrow-right') + ' cmdk-item-icon';
+                li.appendChild(icon);
+
+                const label = document.createElement('span');
+                label.className = 'cmdk-item-label';
+                label.textContent = action.label || '';
+                li.appendChild(label);
+
+                if (action.section) {
+                    const sec = document.createElement('span');
+                    sec.className = 'cmdk-item-section';
+                    sec.textContent = action.section;
+                    li.appendChild(sec);
+                }
+
+                li.addEventListener('click', () => activate(index));
+                li.addEventListener('mouseenter', () => { selectedIdx = index; updateSelection(); });
+                return li;
+            }
+
+            function render() {
+                while (list.firstChild) list.removeChild(list.firstChild);
+                if (filtered.length === 0) {
+                    const empty = document.createElement('li');
+                    empty.className = 'cmdk-empty';
+                    empty.textContent = '{{ _("No matching commands.") }}';
+                    list.appendChild(empty);
+                    return;
+                }
+                filtered.forEach((a, i) => list.appendChild(buildItem(a, i)));
+            }
+            function updateSelection() {
+                list.querySelectorAll('.cmdk-item').forEach((el, i) => {
+                    el.classList.toggle('is-selected', i === selectedIdx);
+                    if (i === selectedIdx) el.scrollIntoView({block: 'nearest'});
+                });
+            }
+            function activate(i) {
+                const a = filtered[i];
+                if (!a) return;
+                if (a.action === 'toggle-dark') {
+                    const dmToggle = document.getElementById('dark-mode-toggle');
+                    if (dmToggle) dmToggle.click();
+                    close();
+                    return;
+                }
+                if (a.url) {
+                    close();
+                    window.location.href = a.url;
+                }
+            }
+            function applyFilter(q) {
+                q = (q || '').trim().toLowerCase();
+                if (!q) {
+                    filtered = ACTIONS.slice();
+                } else {
+                    filtered = ACTIONS.filter(a =>
+                        (a.label || '').toLowerCase().includes(q) ||
+                        (a.section || '').toLowerCase().includes(q)
+                    );
+                }
+                selectedIdx = 0;
+                render();
+            }
+            function open() {
+                visible = true;
+                overlay.hidden = false;
+                input.value = '';
+                applyFilter('');
+                setTimeout(() => input.focus(), 10);
+            }
+            function close() {
+                visible = false;
+                overlay.hidden = true;
+                input.blur();
+            }
+
+            input.addEventListener('input', e => applyFilter(e.target.value));
+
+            input.addEventListener('keydown', e => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIdx = Math.min(filtered.length - 1, selectedIdx + 1);
+                    updateSelection();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIdx = Math.max(0, selectedIdx - 1);
+                    updateSelection();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    activate(selectedIdx);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    close();
+                }
+            });
+
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) close();
+            });
+
+            // Global hotkey
+            document.addEventListener('keydown', e => {
+                const isCmdK = (e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K');
+                if (isCmdK) {
+                    e.preventDefault();
+                    visible ? close() : open();
+                }
+            });
+
+            render();
+        })();
+
         document.addEventListener('DOMContentLoaded', function () {
             const dmToggle = document.getElementById('dark-mode-toggle');
             const dmIcon  = document.getElementById('dark-mode-icon');

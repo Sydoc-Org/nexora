@@ -219,6 +219,12 @@
             // Re-apply the filter whenever the table re-renders (after add/edit/delete)
             const observer = new MutationObserver(applyFilter);
             observer.observe(tbody, { childList: true });
+
+            // Deep-link from command palette: /admin/organizations#add-org
+            if (window.location.hash === '#add-org' && typeof openAddOrganizationModal === 'function') {
+                openAddOrganizationModal();
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
         });
 
         document.addEventListener('click', (e) => {

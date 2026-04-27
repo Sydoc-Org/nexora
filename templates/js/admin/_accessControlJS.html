@@ -695,5 +695,12 @@
                 fetchAllUsers();
             });
         });
+
+        // Deep-link from command palette: /admin/access_control#add-user
+        if (window.location.hash === '#add-user' && typeof openAddUserModal === 'function') {
+            switchTab('users');
+            openAddUserModal();
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
     });
 </script>

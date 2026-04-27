@@ -169,3 +169,138 @@ body.admin-page main {
 .health-db-pill--err { background:var(--a-b-red);   color:var(--a-b-red-fg);   }
 .health-db-pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.7; }
 
+/* ============================================================
+   DARK MODE — applies when html.dark is set
+   Tone: gray-900 page, gray-800 surfaces, indigo-400 accents.
+   ============================================================ */
+.dark {
+  --a-page:          #0f172a;
+  --a-card:          #1e293b;
+  --a-alt:           #273449;
+  --a-ink:           #6366f1;
+  --a-ink-hover:     #818cf8;
+
+  --a-border:        #334155;
+  --a-border-input:  #475569;
+  --a-row-divider:   #273449;
+  --a-mono-bg:       #273449;
+
+  --a-text:          #e2e8f0;
+  --a-text-sec:      #94a3b8;
+  --a-text-meta:     #64748b;
+
+  --a-indigo:        #818cf8;
+  --a-indigo-soft:   rgba(129,140,248,0.20);
+  --a-success:       #34d399;
+  --a-warning:       #fbbf24;
+  --a-danger:        #f87171;
+
+  --a-b-indigo:      #312e81;
+  --a-b-indigo-fg:   #c7d2fe;
+  --a-b-green:       #064e3b;
+  --a-b-green-fg:    #6ee7b7;
+  --a-b-amber:       #78350f;
+  --a-b-amber-fg:    #fcd34d;
+  --a-b-gray:        #334155;
+  --a-b-gray-fg:     #cbd5e1;
+  --a-b-red:         #7f1d1d;
+  --a-b-red-fg:      #fca5a5;
+}
+
+/* Method colors — bump brightness for dark backgrounds */
+.dark .log-method--GET    { color:#60a5fa; }
+.dark .log-method--POST   { color:#4ade80; }
+.dark .log-method--PUT    { color:#fbbf24; }
+.dark .log-method--DELETE { color:#f87171; }
+
+/* Log-status pills inherit from --a-b-* tokens above, no override needed. */
+
+/* Card hover shadow needs higher contrast in dark */
+.dark .admin-card-link:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+
+/* Confirm-delete modal background (used inline on userDetail) */
+.dark #confirmDeleteModal > div { background: var(--a-card) !important; color: var(--a-text); }
+
+/* Native date inputs render with white-on-black calendar icon by default;
+   force the calendar picker to invert in dark for visibility. */
+.dark .admin-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}
+
+/* ============================================================
+   ADMIN MODAL DARK OVERRIDES
+   The modal HTML is full of raw Tailwind utility classes
+   (bg-white, text-gray-*, etc.). Rather than touch every
+   modal partial, we override the colors via .dark scoping.
+   ============================================================ */
+.dark body.admin-page .modal-content {
+    background: #1e293b !important;
+    color: #e2e8f0;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+.dark body.admin-page .modal-content h2,
+.dark body.admin-page .modal-content h3,
+.dark body.admin-page .modal-content h4,
+.dark body.admin-page .modal-content label {
+    color: #e2e8f0 !important;
+}
+.dark body.admin-page .modal-content .text-gray-900,
+.dark body.admin-page .modal-content .text-gray-800 {
+    color: #e2e8f0 !important;
+}
+.dark body.admin-page .modal-content .text-gray-700,
+.dark body.admin-page .modal-content .text-gray-600,
+.dark body.admin-page .modal-content .text-gray-500,
+.dark body.admin-page .modal-content .text-gray-400,
+.dark body.admin-page .modal-content p {
+    color: #94a3b8 !important;
+}
+.dark body.admin-page .modal-content input,
+.dark body.admin-page .modal-content select,
+.dark body.admin-page .modal-content textarea {
+    background: #273449 !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+.dark body.admin-page .modal-content input::placeholder,
+.dark body.admin-page .modal-content textarea::placeholder {
+    color: #64748b !important;
+}
+.dark body.admin-page .modal-content .bg-gray-50,
+.dark body.admin-page .modal-content .bg-gray-100 {
+    background: #273449 !important;
+}
+.dark body.admin-page .modal-content button.bg-gray-200 {
+    background: #334155 !important;
+    color: #e2e8f0 !important;
+}
+.dark body.admin-page .modal-content button.bg-gray-200:hover {
+    background: #475569 !important;
+}
+.dark body.admin-page .modal-content .border-gray-100,
+.dark body.admin-page .modal-content .border-gray-200,
+.dark body.admin-page .modal-content .border-gray-300 {
+    border-color: #475569 !important;
+}
+
+/* Log details modal (logs.html — inline, not under modals/) uses
+   bg-white surrounding the green-on-black <pre>. Flip its chrome too. */
+.dark body.admin-page #logDetailsModal .bg-white {
+    background: #1e293b !important;
+    color: #e2e8f0;
+}
+.dark body.admin-page #logDetailsModal .bg-gray-50 {
+    background: #273449 !important;
+}
+.dark body.admin-page #logDetailsModal .text-gray-900 { color: #e2e8f0 !important; }
+.dark body.admin-page #logDetailsModal .text-gray-800 { color: #e2e8f0 !important; }
+.dark body.admin-page #logDetailsModal .text-gray-500,
+.dark body.admin-page #logDetailsModal .text-gray-400 { color: #94a3b8 !important; }
+.dark body.admin-page #logDetailsModal .border-gray-100 { border-color: #334155 !important; }
+.dark body.admin-page #logDetailsModal .ring-gray-300 {
+    --tw-ring-color: #475569 !important;
+}
+.dark body.admin-page #logDetailsModal .hover\:bg-gray-50:hover {
+    background: #273449 !important;
+}
+
