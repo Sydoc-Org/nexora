@@ -21,7 +21,7 @@ import base64
 from PIL import Image
 import io
 from flask_caching import Cache
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import wraps
 import time
 from werkzeug.utils import secure_filename
@@ -1980,6 +1980,88 @@ def get_user_overrides(user_id):
         if conn:
             conn.close()
 
+@app.route("/api/admin/users/<int:user_id>/effective_permissions")
+@require_permission('admin.view.accessprofiles.useroverrides')
+def api_admin_user_effective_permissions(user_id):
+    """Compute the merged permission set: profile-grant unless an override
+    flips it. Source on each entry tells the UI whether it came from the
+    profile or from an Allow override."""
+    conn = None
+    cursor = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT u.userID, u.username, u.AccessID, ap.Name AS ProfileName
+            FROM Users u
+            LEFT JOIN AccessProfile ap ON ap.AccessID = u.AccessID
+            WHERE u.userID = ?
+        """, (user_id,))
+        u = cursor.fetchone()
+        if not u:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        cursor.execute("""
+            SELECT p.PermissionID, p.Code, p.Description,
+                   ap_perm.Effect AS ProfileEffect,
+                   uo.Effect      AS OverrideEffect
+            FROM Permission p
+            LEFT JOIN AccessProfilePermission ap_perm
+                   ON ap_perm.PermissionID = p.PermissionID
+                  AND ap_perm.AccessID = ?
+            LEFT JOIN UserPermissionOverride uo
+                   ON uo.PermissionID = p.PermissionID
+                  AND uo.UserID = ?
+            ORDER BY p.sortingcode, p.Code
+        """, (u.AccessID, user_id))
+
+        granted = []
+        denied  = []
+        for r in cursor.fetchall():
+            override = r.OverrideEffect
+            profile  = r.ProfileEffect
+            if override == 'A':
+                source = 'override-allow'; effective = True
+            elif override == 'D':
+                source = 'override-deny';  effective = False
+            elif profile == 'A':
+                source = 'profile';        effective = True
+            elif profile == 'D':
+                source = 'profile-deny';   effective = False
+            else:
+                continue  # No grant, no override — irrelevant
+
+            entry = {
+                'PermissionID': r.PermissionID,
+                'Code': r.Code,
+                'Description': r.Description,
+                'source': source,
+            }
+            (granted if effective else denied).append(entry)
+
+        return jsonify({
+            'success': True,
+            'user': {
+                'userID': u.userID,
+                'username': u.username,
+                'profile': u.ProfileName,
+            },
+            'granted': granted,
+            'denied': denied,
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to compute effective permissions for user {user_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+
 @app.route("/api/admin/user_overrides/save", methods=['POST'])
 @require_permission('admin.edit.user.override')
 def save_user_overrides():
@@ -3019,6 +3101,886 @@ def dashboard_set_filter():
         process_name = 'all'
     session['process_name_dashboard'] = process_name
     return jsonify({"ok": True, "process_name": process_name})
+
+# ---------------------------- dashboard helpers ----------------------------- #
+
+DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
+DASHBOARD_DATE_PRESETS = {'today', 'yesterday', 'last_7d', 'last_30d', 'this_month', 'custom'}
+DASHBOARD_WIDGET_TYPES = {'kpi', 'timeseries', 'categorical'}
+DASHBOARD_TIMESERIES_BUCKETS = {'hour', 'day', 'week', 'month'}
+DASHBOARD_CHART_TYPES = {
+    'timeseries': {'line', 'area', 'bar'},
+    'categorical': {'bar', 'hbar', 'pie', 'doughnut'},
+}
+DASHBOARD_METRIC_KINDS = {'count', 'sum', 'avg', 'min', 'max', 'proc_time_avg'}
+
+
+def dashboard_default_layout():
+    """Hard-coded starter layout used when a user has no saved row.
+    Mirrors the legacy fixed dashboard so first-time users get continuity."""
+    today = datetime.now().date()
+    fourteen_days_ago = today - timedelta(days=13)
+    return {
+        "schemaVersion": DASHBOARD_LAYOUT_SCHEMA_VERSION,
+        "globalFilters": {
+            "process": "all",
+            "datePreset": "today",
+            "dateFrom": None,
+            "dateTo": None,
+            "docFilters": [],
+        },
+        "grid": [
+            {
+                "id": "wid_starter_imported",
+                "x": 0, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Imported today"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "wid_starter_processed",
+                "x": 3, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Processed today"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {"status": "Done"},
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "wid_starter_backlog",
+                "x": 6, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Current backlog"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {"status": "Ready", "datePreset": None},
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "wid_starter_avgtime",
+                "x": 9, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Avg processing time"),
+                "config": {"metric": {"kind": "proc_time_avg"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "wid_starter_overtime",
+                "x": 0, "y": 2, "w": 8, "h": 4,
+                "type": "timeseries",
+                "title": _("Documents Processed Over Time"),
+                "config": {
+                    "chartType": "line",
+                    "bucket": "day",
+                    "metric": {"kind": "count"},
+                    "groupBy": None,
+                },
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {
+                    "datePreset": "custom",
+                    "dateFrom": fourteen_days_ago.isoformat(),
+                    "dateTo": today.isoformat(),
+                },
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "wid_starter_topdoctypes",
+                "x": 8, "y": 2, "w": 4, "h": 4,
+                "type": "categorical",
+                "title": _("Top doctypes today"),
+                "config": {
+                    "chartType": "bar",
+                    "dimension": "doctype",
+                    "metric": {"kind": "count"},
+                    "topN": 5,
+                    "sort": "desc",
+                },
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+        ],
+    }
+
+
+class DashboardLayoutError(ValueError):
+    """Raised by validate_dashboard_layout when the JSON shape is bad."""
+    pass
+
+
+def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggregable_field_keys):
+    """Validate a layout dict against the v1 schema.
+
+    Raises DashboardLayoutError on any problem; returns nothing on success.
+
+    `allowed_processes` is the set of ProcessName values the user can see.
+    `valid_field_keys` is the set of categorical/numeric/date FieldMetadata keys
+    plus the synthetic 'processname' and 'status'.
+    `aggregable_field_keys` is the subset where Aggregable=1.
+    """
+    if not isinstance(layout, dict):
+        raise DashboardLayoutError("layout must be an object")
+    if layout.get("schemaVersion") != DASHBOARD_LAYOUT_SCHEMA_VERSION:
+        raise DashboardLayoutError(f"schemaVersion must be {DASHBOARD_LAYOUT_SCHEMA_VERSION}")
+
+    gf = layout.get("globalFilters") or {}
+    if not isinstance(gf, dict):
+        raise DashboardLayoutError("globalFilters must be an object")
+    process = gf.get("process", "all")
+    if process != "all" and process not in allowed_processes:
+        raise DashboardLayoutError(f"globalFilters.process '{process}' not allowed")
+    if gf.get("datePreset") not in DASHBOARD_DATE_PRESETS:
+        raise DashboardLayoutError("globalFilters.datePreset invalid")
+    for f in gf.get("docFilters") or []:
+        if not isinstance(f, dict) or 'field' not in f or 'value' not in f:
+            raise DashboardLayoutError("docFilters items must be {field, value}")
+        if f['field'] not in valid_field_keys:
+            raise DashboardLayoutError(f"docFilter field '{f['field']}' unknown")
+
+    grid = layout.get("grid")
+    if not isinstance(grid, list):
+        raise DashboardLayoutError("grid must be a list")
+
+    seen_ids = set()
+    for w in grid:
+        wid = w.get("id")
+        if not wid or wid in seen_ids:
+            raise DashboardLayoutError(f"widget id missing or duplicate: {wid!r}")
+        seen_ids.add(wid)
+        if w.get("type") not in DASHBOARD_WIDGET_TYPES:
+            raise DashboardLayoutError(f"widget {wid}: unknown type {w.get('type')!r}")
+        for k in ("x", "y", "w", "h"):
+            v = w.get(k)
+            if not isinstance(v, int) or v < 0 or v > 12:
+                raise DashboardLayoutError(f"widget {wid}: {k} must be int in [0,12]")
+
+        cfg = w.get("config") or {}
+        if w["type"] == "kpi":
+            metric = cfg.get("metric") or {}
+            kind = metric.get("kind")
+            if kind not in DASHBOARD_METRIC_KINDS:
+                raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
+            if kind in {"sum", "avg", "min", "max"}:
+                if metric.get("field") not in aggregable_field_keys:
+                    raise DashboardLayoutError(f"widget {wid}: metric.field must be an aggregable numeric field")
+        elif w["type"] == "timeseries":
+            if cfg.get("chartType") not in DASHBOARD_CHART_TYPES["timeseries"]:
+                raise DashboardLayoutError(f"widget {wid}: chartType invalid")
+            if cfg.get("bucket") not in DASHBOARD_TIMESERIES_BUCKETS:
+                raise DashboardLayoutError(f"widget {wid}: bucket invalid")
+            metric = cfg.get("metric") or {}
+            if metric.get("kind") not in DASHBOARD_METRIC_KINDS:
+                raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
+            if metric.get("kind") in {"sum", "avg", "min", "max"} and metric.get("field") not in aggregable_field_keys:
+                raise DashboardLayoutError(f"widget {wid}: metric.field must be aggregable")
+            if cfg.get("groupBy") is not None and cfg["groupBy"] not in valid_field_keys:
+                raise DashboardLayoutError(f"widget {wid}: groupBy field unknown")
+        elif w["type"] == "categorical":
+            if cfg.get("chartType") not in DASHBOARD_CHART_TYPES["categorical"]:
+                raise DashboardLayoutError(f"widget {wid}: chartType invalid")
+            if cfg.get("dimension") not in valid_field_keys:
+                raise DashboardLayoutError(f"widget {wid}: dimension unknown")
+            metric = cfg.get("metric") or {}
+            if metric.get("kind") not in DASHBOARD_METRIC_KINDS:
+                raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
+            if metric.get("kind") in {"sum", "avg", "min", "max"} and metric.get("field") not in aggregable_field_keys:
+                raise DashboardLayoutError(f"widget {wid}: metric.field must be aggregable")
+            topn = cfg.get("topN", 10)
+            if topn != "all" and (not isinstance(topn, int) or topn < 1 or topn > 100):
+                raise DashboardLayoutError(f"widget {wid}: topN invalid")
+            if cfg.get("sort") not in {"desc", "asc", "alpha"}:
+                raise DashboardLayoutError(f"widget {wid}: sort invalid")
+
+        compare = w.get("compare") or {}
+        if compare.get("enabled") and compare.get("shift") != "previous_period":
+            raise DashboardLayoutError(f"widget {wid}: compare.shift only 'previous_period' supported in v1")
+
+
+@app.route("/api/dashboard/field_metadata")
+@require_permission('dashboard.view')
+@cache.cached(timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{str(get_locale())}")
+def dashboard_field_metadata():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+
+    current_lang = str(get_locale())
+    lang_col = {'de': 'GermanLabel', 'fr': 'FrenchLabel', 'it': 'ItalianLabel'}.get(current_lang, 'EnglishLabel')
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
+        meta_rows = cur.fetchall()
+        meta_by_key = {r.FieldKey: {
+            "field": r.FieldKey,
+            "type": r.DataType,
+            "aggregable": bool(r.Aggregable),
+            "sortable": bool(r.Sortable),
+        } for r in meta_rows}
+
+        cur.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
+        for r in cur.fetchall():
+            if r.FieldKey in meta_by_key:
+                meta_by_key[r.FieldKey]["label"] = getattr(r, lang_col) or r.EnglishLabel
+
+        cur.execute("SELECT TOP 0 * FROM SearchConfig")
+        cols = [c[0] for c in cur.description if c[0].startswith('col_')]
+        select_cols = ", ".join(cols)
+        cur.execute(f"SELECT ProcessName, {select_cols} FROM SearchConfig")
+        availability = {}
+        for row in cur.fetchall():
+            if row.ProcessName not in allowed_processes:
+                continue
+            for i, col in enumerate(cols):
+                if row[i + 1]:
+                    fk = col[len('col_'):]
+                    availability.setdefault(fk, []).append(row.ProcessName)
+
+        for fk in ('processname', 'status'):
+            availability[fk] = allowed_processes[:]
+
+        out = []
+        for fk, meta in meta_by_key.items():
+            if fk not in availability:
+                continue
+            entry = dict(meta)
+            entry.setdefault("label", fk.replace('_', ' ').title())
+            entry["processes"] = sorted(availability[fk])
+            out.append(entry)
+
+        out.sort(key=lambda e: e["label"])
+        return jsonify(out)
+
+    except Exception as e:
+        app.logger.error(f"/api/dashboard/field_metadata error: {e}")
+        return jsonify({"error": _("Could not fetch field metadata")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/dashboard/layout")
+@require_permission('dashboard.view')
+def dashboard_get_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT LayoutJSON FROM DashboardLayouts WHERE UserID = ?", (userid,))
+        row = cur.fetchone()
+        if row:
+            return jsonify(json.loads(row.LayoutJSON))
+        return jsonify(dashboard_default_layout())
+    except Exception as e:
+        app.logger.error(f"/api/dashboard/layout GET error: {e}")
+        return jsonify({"error": _("Could not load layout")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/dashboard/layout", methods=["PUT"])
+@require_permission('dashboard.view')
+def dashboard_put_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = {
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    }
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT FieldKey, Aggregable FROM FieldMetadata")
+        rows = cur.fetchall()
+        valid_fields = {r.FieldKey for r in rows}
+        aggregable_fields = {r.FieldKey for r in rows if r.Aggregable}
+
+        try:
+            validate_dashboard_layout(payload, allowed_processes, valid_fields, aggregable_fields)
+        except DashboardLayoutError as e:
+            return jsonify({"error": str(e)}), 400
+
+        layout_str = json.dumps(payload, ensure_ascii=False)
+
+        cur.execute("""
+            MERGE DashboardLayouts AS t
+            USING (SELECT ? AS UserID, ? AS LayoutJSON) AS s
+            ON t.UserID = s.UserID
+            WHEN MATCHED THEN UPDATE SET LayoutJSON = s.LayoutJSON, UpdatedAt = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (UserID, LayoutJSON) VALUES (s.UserID, s.LayoutJSON);
+        """, (userid, layout_str))
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        app.logger.error(f"/api/dashboard/layout PUT error: {e}")
+        return jsonify({"error": _("Could not save layout")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/dashboard/layout/reset", methods=["POST"])
+@require_permission('dashboard.view')
+def dashboard_reset_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM DashboardLayouts WHERE UserID = ?", (userid,))
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        app.logger.error(f"/api/dashboard/layout/reset error: {e}")
+        return jsonify({"error": _("Could not reset layout")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# ------------------------- dashboard query builder -------------------------- #
+
+def _resolve_date_range(date_preset, date_from=None, date_to=None):
+    """Returns (start_date, end_date) as datetime.date or (None, None) if no date filter applies.
+    None means 'do not filter by date' (used by point-in-time KPIs like backlog)."""
+    if date_preset is None:
+        return (None, None)
+    today = datetime.now().date()
+    if date_preset == 'today':
+        return (today, today)
+    if date_preset == 'yesterday':
+        y = today - timedelta(days=1)
+        return (y, y)
+    if date_preset == 'last_7d':
+        return (today - timedelta(days=6), today)
+    if date_preset == 'last_30d':
+        return (today - timedelta(days=29), today)
+    if date_preset == 'this_month':
+        return (today.replace(day=1), today)
+    if date_preset == 'custom':
+        s = date.fromisoformat(date_from) if date_from else None
+        e = date.fromisoformat(date_to) if date_to else None
+        return (s, e)
+    return (None, None)
+
+
+def _effective_filters(widget, global_filters):
+    if widget.get('ignoreGlobalFilters'):
+        base = {}
+    else:
+        base = dict(global_filters or {})
+    overrides = widget.get('filterOverrides') or {}
+    base.update(overrides)
+    return base
+
+
+def _process_scope(filters, allowed_processes):
+    proc = filters.get('process', 'all') if isinstance(filters, dict) else 'all'
+    if proc == 'all':
+        return list(allowed_processes)
+    return [proc] if proc in allowed_processes else []
+
+
+_search_config_cache = {}  # ProcessName -> {field_key: actual_col_name}
+
+
+def _resolve_aggregation_column(process_name, field_key):
+    """Look up SearchConfig.col_<field> (which stores the *actual* data column name) for this process.
+    Returns None if the process or field isn't mapped."""
+    if process_name in _search_config_cache:
+        return _search_config_cache[process_name].get(field_key)
+    conn = engineNexoraDB.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT TOP 0 * FROM SearchConfig")
+        cols = [c[0] for c in cur.description if c[0].startswith('col_')]
+        select_cols = ', '.join(cols)
+        cur.execute(f"SELECT {select_cols} FROM SearchConfig WHERE ProcessName = ?", (process_name,))
+        row = cur.fetchone()
+        if not row:
+            _search_config_cache[process_name] = {}
+            return None
+        mapping = {}
+        for i, col in enumerate(cols):
+            val = row[i]
+            if val:
+                mapping[col[len('col_'):]] = val
+        _search_config_cache[process_name] = mapping
+        return mapping.get(field_key)
+    finally:
+        conn.close()
+
+
+def _build_kpi_sql(widget, filters, configs, mobscan_set):
+    metric = widget['config']['metric']
+    kind = metric['kind']
+    field = metric.get('field')
+    start_date, end_date = _resolve_date_range(filters.get('datePreset'), filters.get('dateFrom'), filters.get('dateTo'))
+    status = filters.get('status')
+
+    def build_for(cfgs):
+        if not cfgs:
+            return '', []
+        sub_qs = []
+        params = []
+        for row in cfgs:
+            tbl = row.TableName
+            export_col = row.ExportColumn
+            import_col = row.ImportColumn
+            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+
+            if kind == 'count':
+                expr = "COUNT(*)"
+            elif kind == 'proc_time_avg':
+                expr = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
+            elif kind in ('sum', 'avg', 'min', 'max'):
+                col_actual = _resolve_aggregation_column(row.ProcessName, field)
+                if not col_actual:
+                    continue
+                expr = f"{kind.upper()}(CAST({col_actual} AS DECIMAL(18,4)))"
+            else:
+                continue
+
+            where = []
+            if start_date is not None and status != 'Ready':
+                where.append(f"CAST({export_col} AS DATE) >= ?")
+                params.append(start_date)
+            if end_date is not None and status != 'Ready':
+                where.append(f"CAST({export_col} AS DATE) <= ?")
+                params.append(end_date)
+            for f in (filters.get('docFilters') or []):
+                col = _resolve_aggregation_column(row.ProcessName, f['field'])
+                if not col:
+                    continue
+                where.append(f"{col} = ?")
+                params.append(f['value'])
+            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+            sub_qs.append(f"SELECT {expr} AS v FROM [{DB_STATISTICS}].{tbl}{where_sql}")
+        if not sub_qs:
+            return '', []
+        outer_agg = {'count': 'SUM', 'sum': 'SUM', 'avg': 'AVG', 'min': 'MIN', 'max': 'MAX', 'proc_time_avg': 'AVG'}[kind]
+        full = f"SELECT {outer_agg}(v) FROM ({' UNION ALL '.join(sub_qs)}) t"
+        return full, params
+
+    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
+    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
+    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
+
+
+def _bucket_expr(col, bucket):
+    if bucket == 'hour':
+        return f"DATEADD(hour, DATEPART(hour, {col}), CAST(CAST({col} AS DATE) AS DATETIME2))"
+    if bucket == 'day':
+        return f"CAST({col} AS DATE)"
+    if bucket == 'week':
+        return f"DATEADD(day, 1 - DATEPART(weekday, {col}), CAST({col} AS DATE))"
+    if bucket == 'month':
+        return f"DATEFROMPARTS(YEAR({col}), MONTH({col}), 1)"
+    raise ValueError(f"unknown bucket {bucket!r}")
+
+
+def _metric_expr(metric, process_name):
+    """Return a SQL fragment for the metric expression. Returns None if the field isn't exposed
+    by this process — caller skips the subquery."""
+    kind = metric['kind']
+    if kind == 'count':
+        return "COUNT(*)"
+    if kind == 'proc_time_avg':
+        return None  # caller injects DATEDIFF directly because it needs both cols
+    field = metric.get('field')
+    col = _resolve_aggregation_column(process_name, field) if field else None
+    if not col:
+        return None
+    return f"{kind.upper()}(CAST({col} AS DECIMAL(18,4)))"
+
+
+def _doc_filter_clauses(filters, process_name, params_out):
+    clauses = []
+    for f in (filters.get('docFilters') or []):
+        col = _resolve_aggregation_column(process_name, f['field'])
+        if not col:
+            continue
+        clauses.append(f"{col} = ?")
+        params_out.append(f['value'])
+    return clauses
+
+
+def _build_timeseries_sql(widget, filters, configs, mobscan_set):
+    cfg = widget['config']
+    bucket = cfg['bucket']
+    metric = cfg['metric']
+    start_date, end_date = _resolve_date_range(filters.get('datePreset'), filters.get('dateFrom'), filters.get('dateTo'))
+
+    def build_for(cfgs):
+        if not cfgs:
+            return '', []
+        sub_qs = []
+        params = []
+        for row in cfgs:
+            tbl = row.TableName
+            export_col = row.ExportColumn
+            import_col = row.ImportColumn
+            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+            bucket_sql = _bucket_expr(export_col, bucket)
+            if metric['kind'] == 'proc_time_avg':
+                metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
+            else:
+                metric_sql = _metric_expr(metric, row.ProcessName)
+                if metric_sql is None:
+                    continue
+            where = []
+            if start_date is not None:
+                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date)
+            if end_date is not None:
+                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date)
+            where += _doc_filter_clauses(filters, row.ProcessName, params)
+            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+            sub_qs.append(
+                f"SELECT {bucket_sql} AS bucket, {metric_sql} AS v "
+                f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {bucket_sql}"
+            )
+        if not sub_qs:
+            return '', []
+        outer_agg = {'count': 'SUM', 'sum': 'SUM', 'avg': 'AVG', 'min': 'MIN', 'max': 'MAX', 'proc_time_avg': 'AVG'}[metric['kind']]
+        full = (
+            f"SELECT bucket, {outer_agg}(v) AS v "
+            f"FROM ({' UNION ALL '.join(sub_qs)}) t "
+            f"GROUP BY bucket ORDER BY bucket"
+        )
+        return full, params
+
+    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
+    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
+    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
+
+
+def _build_categorical_sql(widget, filters, configs, mobscan_set):
+    cfg = widget['config']
+    dim = cfg['dimension']
+    metric = cfg['metric']
+    top_n = cfg.get('topN', 10)
+    sort = cfg.get('sort', 'desc')
+    start_date, end_date = _resolve_date_range(filters.get('datePreset'), filters.get('dateFrom'), filters.get('dateTo'))
+
+    def build_for(cfgs):
+        if not cfgs:
+            return '', []
+        sub_qs = []
+        params = []
+        for row in cfgs:
+            tbl = row.TableName
+            export_col = row.ExportColumn
+            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+
+            if dim == 'processname':
+                dim_sql = "?"
+                params.append(row.ProcessName)
+            elif dim == 'status':
+                # status lives on Octopus runtime, not the stats DB — skip in v1
+                continue
+            else:
+                dim_col = _resolve_aggregation_column(row.ProcessName, dim)
+                if not dim_col:
+                    continue
+                dim_sql = dim_col
+
+            if metric['kind'] == 'proc_time_avg':
+                metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {row.ImportColumn}, {export_col}) AS BIGINT))"
+            else:
+                metric_sql = _metric_expr(metric, row.ProcessName)
+                if metric_sql is None:
+                    continue
+
+            where = []
+            if start_date is not None:
+                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date)
+            if end_date is not None:
+                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date)
+            where += _doc_filter_clauses(filters, row.ProcessName, params)
+            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+
+            group_by = dim_sql if dim_sql != "?" else "1"
+            sub_qs.append(
+                f"SELECT {dim_sql} AS dim, {metric_sql} AS v "
+                f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {group_by}"
+            )
+        if not sub_qs:
+            return '', []
+        outer_agg = {'count': 'SUM', 'sum': 'SUM', 'avg': 'AVG', 'min': 'MIN', 'max': 'MAX', 'proc_time_avg': 'AVG'}[metric['kind']]
+        order_sql = {'desc': 'v DESC', 'asc': 'v ASC', 'alpha': 'dim ASC'}[sort]
+        top_sql = "" if top_n == 'all' else f"TOP {int(top_n)} "
+        full = (
+            f"SELECT {top_sql}dim, {outer_agg}(v) AS v "
+            f"FROM ({' UNION ALL '.join(sub_qs)}) t "
+            f"GROUP BY dim ORDER BY {order_sql}"
+        )
+        return full, params
+
+    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
+    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
+    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
+
+
+def build_widget_query(widget, global_filters, allowed_processes):
+    """Translate (widget, filters) -> a list of (engine, sql, params) tuples.
+    Caller runs each tuple, merges results per widget.type, returns labels/series/value."""
+    filters = _effective_filters(widget, global_filters)
+    target_processes = _process_scope(filters, allowed_processes)
+    if not target_processes:
+        return []
+
+    conn = engineNexoraDB.raw_connection()
+    try:
+        cur = conn.cursor()
+        placeholders = ','.join(['?'] * len(target_processes))
+        cur.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition "
+            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        configs = cur.fetchall()
+    finally:
+        conn.close()
+    if not configs:
+        return []
+
+    mobscan_set = set(get_mobscan_clients())
+
+    builder = {
+        'kpi': _build_kpi_sql,
+        'timeseries': _build_timeseries_sql,
+        'categorical': _build_categorical_sql,
+    }[widget['type']]
+    reg_sql, reg_params, mob_sql, mob_params = builder(widget, filters, configs, mobscan_set)
+    out = []
+    if reg_sql:
+        out.append((engineStatisticsDB, reg_sql, reg_params))
+    if mob_sql:
+        out.append((engineStatisticsDBMobscan, mob_sql, mob_params))
+    return out
+
+
+def _run_widget_queries(widget, queries, label_override=None):
+    """Run pre-built (engine, sql, params) tuples and merge into a result dict.
+    Returns {value, unit?} for KPI, {labels, series} for chart widgets.
+    label_override sets the series label (used by widget_compare to mark previous-period)."""
+    series_label = label_override or widget.get('title', '')
+
+    if not queries:
+        if widget['type'] == 'kpi':
+            return {"value": 0, "unit": "seconds" if widget['config']['metric']['kind'] == 'proc_time_avg' else None,
+                    "warnings": ["no_data_in_scope"]}
+        return {"labels": [], "series": [{"label": series_label, "data": []}], "warnings": ["no_data_in_scope"]}
+
+    if widget['type'] == 'kpi':
+        kind = widget['config']['metric']['kind']
+        total_value = 0.0
+        avg_values = []
+        min_value = None
+        max_value = None
+        for engine, sql, params in queries:
+            conn = engine.raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute(sql, params)
+                row = cur.fetchone()
+                v = row[0] if row else None
+                if v is None:
+                    continue
+                v = float(v)
+                if kind in ('count', 'sum'):
+                    total_value += v
+                elif kind in ('avg', 'proc_time_avg'):
+                    avg_values.append(v)
+                elif kind == 'min':
+                    min_value = v if min_value is None else min(min_value, v)
+                elif kind == 'max':
+                    max_value = v if max_value is None else max(max_value, v)
+            finally:
+                conn.close()
+        if kind in ('count', 'sum'):
+            value = total_value
+        elif kind in ('avg', 'proc_time_avg'):
+            value = (sum(avg_values) / len(avg_values)) if avg_values else 0
+        elif kind == 'min':
+            value = min_value if min_value is not None else 0
+        elif kind == 'max':
+            value = max_value if max_value is not None else 0
+        else:
+            value = 0
+        return {"value": value, "unit": "seconds" if kind == 'proc_time_avg' else None}
+
+    if widget['type'] == 'timeseries':
+        merged = {}
+        for engine, sql, params in queries:
+            conn = engine.raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute(sql, params)
+                for r in cur.fetchall():
+                    bucket = r[0]
+                    v = float(r[1]) if r[1] is not None else 0.0
+                    merged[bucket] = merged.get(bucket, 0.0) + v
+            finally:
+                conn.close()
+        labels = sorted(merged.keys())
+        return {
+            "labels": [str(b) for b in labels],
+            "series": [{"label": series_label, "data": [merged[b] for b in labels]}],
+        }
+
+    # categorical
+    merged = {}
+    for engine, sql, params in queries:
+        conn = engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            for r in cur.fetchall():
+                dim = r[0]
+                v = float(r[1]) if r[1] is not None else 0.0
+                merged[dim] = merged.get(dim, 0.0) + v
+        finally:
+            conn.close()
+    sort = widget['config'].get('sort', 'desc')
+    top_n = widget['config'].get('topN', 10)
+    items = list(merged.items())
+    if sort == 'desc':
+        items.sort(key=lambda kv: kv[1], reverse=True)
+    elif sort == 'asc':
+        items.sort(key=lambda kv: kv[1])
+    else:
+        items.sort(key=lambda kv: str(kv[0]))
+    if top_n != 'all':
+        items = items[:int(top_n)]
+    return {
+        "labels": [str(k) for k, _v in items],
+        "series": [{"label": series_label, "data": [v for _k, v in items]}],
+    }
+
+
+def _hash_widget_request(userid, widget, global_filters, allowed_processes):
+    import hashlib
+    key_obj = {
+        'u': userid,
+        'w': widget,
+        'gf': global_filters,
+        'ap': sorted(allowed_processes),
+    }
+    return hashlib.sha256(json.dumps(key_obj, sort_keys=True, default=str).encode()).hexdigest()
+
+
+@app.route("/api/dashboard/widget_data", methods=["POST"])
+@require_permission('dashboard.view')
+@limiter.limit("120 per minute")
+def dashboard_widget_data():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+
+    payload = request.get_json(silent=True) or {}
+    widget = payload.get('widget')
+    global_filters = payload.get('globalFilters') or {}
+    if not isinstance(widget, dict) or widget.get('type') not in DASHBOARD_WIDGET_TYPES:
+        return jsonify({"error": _("Invalid widget")}), 400
+
+    cache_ttl = 60 if widget['type'] == 'kpi' else 300
+    cache_key = f"dash_widget_{_hash_widget_request(userid, widget, global_filters, allowed_processes)}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+
+    try:
+        queries = build_widget_query(widget, global_filters, allowed_processes)
+    except DashboardLayoutError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        app.logger.error(f"widget_data build error: {e}")
+        return jsonify({"error": _("Could not build query")}), 500
+
+    try:
+        result = _run_widget_queries(widget, queries)
+    except Exception as e:
+        app.logger.error(f"widget_data run error: {e}")
+        return jsonify({"error": _("Could not run query")}), 500
+
+    cache.set(cache_key, result, timeout=cache_ttl)
+    return jsonify(result)
+
+
+@app.route("/api/dashboard/widget_compare", methods=["POST"])
+@require_permission('dashboard.view')
+@limiter.limit("60 per minute")
+def dashboard_widget_compare():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    payload = request.get_json(silent=True) or {}
+    widget = payload.get('widget')
+    global_filters = payload.get('globalFilters') or {}
+    if not isinstance(widget, dict) or widget.get('type') not in DASHBOARD_WIDGET_TYPES:
+        return jsonify({"error": _("Invalid widget")}), 400
+
+    filters = _effective_filters(widget, global_filters)
+    s, e = _resolve_date_range(filters.get('datePreset'), filters.get('dateFrom'), filters.get('dateTo'))
+    if s is None or e is None:
+        return jsonify({"labels": [], "series": [], "warnings": ["compare_unavailable_no_date_range"]})
+    span_days = (e - s).days + 1
+    new_e = s - timedelta(days=1)
+    new_s = new_e - timedelta(days=span_days - 1)
+
+    shifted_widget = json.loads(json.dumps(widget))  # deep copy
+    shifted_widget['filterOverrides'] = dict(shifted_widget.get('filterOverrides') or {})
+    shifted_widget['filterOverrides']['datePreset'] = 'custom'
+    shifted_widget['filterOverrides']['dateFrom'] = new_s.isoformat()
+    shifted_widget['filterOverrides']['dateTo'] = new_e.isoformat()
+
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+    try:
+        queries = build_widget_query(shifted_widget, global_filters, allowed_processes)
+        result = _run_widget_queries(shifted_widget, queries, label_override=_("Previous period"))
+    except Exception as ex:
+        app.logger.error(f"widget_compare error: {ex}")
+        return jsonify({"error": _("Could not build comparison")}), 500
+    return jsonify(result)
+
+
 # ------------------------------- dashboard end ------------------------------ #
 
 # ----------------------------- workitem overview ---------------------------- #

@@ -51,6 +51,16 @@
         });
     });
 
+    // ─── Tabs (Effective / Overrides) ───────────────────────────────────
+    function switchPermTab(name) {
+        ['effective', 'overrides'].forEach(n => {
+            const btn  = document.getElementById('perm-tab-' + n + '-btn');
+            const pane = document.getElementById('perm-tab-' + n);
+            if (btn)  btn.classList.toggle('is-active', n === name);
+            if (pane) pane.classList.toggle('hidden',   n !== name);
+        });
+    }
+
     // ─── Permission overrides ──────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async function () {
         const form = document.getElementById('overridesForm');
@@ -81,7 +91,7 @@
             if (e.target.type === 'radio') updateOverrideSummary();
         });
 
-        // Filter
+        // Per-tab search filter (overrides table only)
         const search = document.getElementById('overrideSearch');
         if (search) {
             search.addEventListener('input', () => {
@@ -116,6 +126,7 @@
                 const result = await res.json().catch(() => ({}));
                 if (res.ok && result.success) {
                     userDetailToast(result.message || '{{ _("Overrides saved.") }}', 'success');
+                    if (typeof loadEffectivePermissions === 'function') loadEffectivePermissions();
                 } else {
                     userDetailToast(result.message || '{{ _("Save failed.") }}', 'error');
                 }
@@ -205,6 +216,138 @@
             }
         });
     });
+
+    // ─── Effective permissions ──────────────────────────────────────────
+    let loadEffectivePermissions; // defined inside IIFE, exposed for callers
+    (function () {
+        const tbody = document.getElementById('effTbody');
+        if (!tbody) return;
+        const userId = tbody.dataset.userId;
+        const summary = document.getElementById('effSummary');
+        const search  = document.getElementById('effSearch');
+
+        function sourceBadge(src) {
+            const span = document.createElement('span');
+            span.className = 'admin-badge';
+            if (src === 'profile')        { span.classList.add('admin-badge--gray');  span.textContent = '{{ _("Profile") }}'; }
+            else if (src === 'override-allow') { span.classList.add('admin-badge--green'); span.textContent = '{{ _("Override · Allow") }}'; }
+            else if (src === 'override-deny')  { span.classList.add('admin-badge--red');   span.textContent = '{{ _("Override · Deny") }}'; }
+            else                            { span.classList.add('admin-badge--amber'); span.textContent = '{{ _("Profile · Deny") }}'; }
+            return span;
+        }
+
+        function renderRows(entries, isDenied) {
+            entries.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.dataset.search = ((e.Code || '') + ' ' + (e.Description || '')).toLowerCase();
+                if (isDenied) tr.style.opacity = '0.55';
+
+                const tdPerm = document.createElement('td');
+                const code = document.createElement('div');
+                const codeMono = document.createElement('span');
+                codeMono.className = 'admin-mono';
+                codeMono.textContent = e.Code || '';
+                code.appendChild(codeMono);
+                if (isDenied) {
+                    const tag = document.createElement('span');
+                    tag.style.cssText = 'font-size:10px;margin-left:8px;color:var(--a-danger);text-transform:uppercase;letter-spacing:0.6px;font-weight:600';
+                    tag.textContent = '{{ _("Denied") }}';
+                    code.appendChild(tag);
+                }
+                const desc = document.createElement('div');
+                desc.style.cssText = 'font-size:12px;color:var(--a-text-sec);margin-top:2px';
+                desc.textContent = e.Description || '';
+                tdPerm.appendChild(code);
+                tdPerm.appendChild(desc);
+
+                const tdSrc = document.createElement('td');
+                tdSrc.className = 'align-right';
+                tdSrc.appendChild(sourceBadge(e.source));
+
+                tr.appendChild(tdPerm);
+                tr.appendChild(tdSrc);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applySearch() {
+            const q = (search?.value || '').trim().toLowerCase();
+            tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                tr.style.display = (!q || tr.dataset.search.includes(q)) ? '' : 'none';
+            });
+        }
+
+        loadEffectivePermissions = async function () {
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+            const loadingTr = document.createElement('tr');
+            const loadingTd = document.createElement('td');
+            loadingTd.setAttribute('colspan', '2');
+            loadingTd.className = 'admin-empty';
+            loadingTd.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+            loadingTd.appendChild(document.createTextNode('  {{ _("Loading...") }}'));
+            loadingTr.appendChild(loadingTd);
+            tbody.appendChild(loadingTr);
+
+            try {
+                const res = await fetch('/api/admin/users/' + userId + '/effective_permissions', {
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const data = await res.json().catch(() => ({}));
+                while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+                if (!res.ok || !data.success) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.setAttribute('colspan', '2');
+                    td.className = 'admin-empty';
+                    td.style.color = 'var(--a-danger)';
+                    td.textContent = '{{ _("Could not load effective permissions.") }}';
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                    return;
+                }
+
+                const granted = data.granted || [];
+                const denied  = data.denied  || [];
+
+                if (granted.length === 0 && denied.length === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.setAttribute('colspan', '2');
+                    td.className = 'admin-empty';
+                    td.textContent = '{{ _("This user has no permissions.") }}';
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                } else {
+                    renderRows(granted, false);
+                    renderRows(denied, true);
+                }
+
+                const fromProfile  = granted.filter(g => g.source === 'profile').length;
+                const fromOverride = granted.filter(g => g.source === 'override-allow').length;
+                if (summary) {
+                    summary.textContent = granted.length + ' {{ _("granted") }}'
+                        + ' · ' + fromProfile + ' {{ _("profile") }}'
+                        + ' · ' + fromOverride + ' {{ _("override") }}';
+                }
+                applySearch();
+            } catch (err) {
+                console.error(err);
+                while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.setAttribute('colspan', '2');
+                td.className = 'admin-empty';
+                td.style.color = 'var(--a-danger)';
+                td.textContent = '{{ _("Could not load effective permissions.") }}';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            }
+        };
+
+        if (search) search.addEventListener('input', applySearch);
+        document.addEventListener('DOMContentLoaded', loadEffectivePermissions);
+    })();
 
     // ─── Activity (last 7 days) ─────────────────────────────────────────
     (function () {

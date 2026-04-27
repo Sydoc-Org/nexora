@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 </head>
 <body class="admin-page">
+    <style>
+      .perm-tabs    { display:flex; gap:24px; margin:0; padding:0; list-style:none; border-bottom:1px solid var(--a-border); margin-bottom:16px; }
+      .perm-tab-btn { padding:10px 0; border:none; background:transparent; font-size:13px; font-weight:500; color:var(--a-text-sec); border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+      .perm-tab-btn:hover { color:var(--a-text); }
+      .perm-tab-btn.is-active { color:var(--a-text); border-bottom-color:var(--a-indigo); font-weight:600; }
+    </style>
     <div id="notification-container" class="fixed top-4 right-4 z-[200] w-full max-w-xs space-y-3"></div>
 
     {% set active_page = 'admin_user_detail' %}
@@ -73,57 +79,103 @@
             </form>
         </div>
 
-    {# ------------- Permission overrides section ------------- #}
+    {# ------------- Permissions section (tabbed) ------------- #}
     <div class="admin-card" style="margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-            <div>
-                <div class="admin-section">{{ _('Permission overrides') }}</div>
-                <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0">
-                    {{ _('Override the access profile on a per-permission basis. Leave as None to inherit from the profile.') }}
-                </p>
-            </div>
-            <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="overrideSummary"></div>
-        </div>
+        <div class="admin-section" style="margin-bottom:14px">{{ _('Permissions') }}</div>
 
-        <form id="overridesForm" data-user-id="{{ user.userID }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <ul class="perm-tabs">
+            <li>
+                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="perm-tab-btn is-active">
+                    <i class="fas fa-shield-halved"></i>{{ _('Effective Permissions') }}
+                </button>
+            </li>
+            <li>
+                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="perm-tab-btn">
+                    <i class="fas fa-sliders"></i>{{ _('Overrides') }}
+                </button>
+            </li>
+        </ul>
+
+        <!-- ── EFFECTIVE PERMISSIONS TAB ─────────────────────────── -->
+        <div id="perm-tab-effective">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+                <p style="font-size:12px;color:var(--a-text-sec);margin:0;max-width:640px">
+                    {{ _("The actual permission set this user has — profile combined with any per-user overrides.") }}
+                </p>
+                <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="effSummary"></div>
+            </div>
+
             <div style="margin-bottom:12px">
                 <div class="admin-input-icon" style="max-width:320px">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="overrideSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}">
+                    <input type="text" id="effSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}">
                 </div>
             </div>
+
             <div class="admin-table-wrap">
                 <table class="admin-table">
                     <thead>
                         <tr>
                             <th>{{ _('Permission') }}</th>
-                            <th class="align-center" style="width:90px">{{ _('None') }}</th>
-                            <th class="align-center" style="width:90px">{{ _('Deny') }}</th>
-                            <th class="align-center" style="width:90px">{{ _('Allow') }}</th>
+                            <th class="align-right" style="width:160px">{{ _('Source') }}</th>
                         </tr>
                     </thead>
-                    <tbody id="overridesTbody">
-                        {% for perm in all_permissions %}
-                        <tr data-perm-id="{{ perm.PermissionID }}" data-search="{{ ((perm.Code or '') ~ ' ' ~ (perm.Description or ''))|lower }}">
-                            <td>
-                                <div><span class="admin-mono">{{ perm.Code }}</span></div>
-                                <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
-                            </td>
-                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked></td>
-                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %}></td>
-                            <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %}></td>
-                        </tr>
-                        {% endfor %}
+                    <tbody id="effTbody" data-user-id="{{ user.userID }}">
+                        <tr><td colspan="2" class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i> &nbsp; {{ _('Loading...') }}</td></tr>
                     </tbody>
                 </table>
             </div>
-            {% if can_edit_overrides %}
-            <div style="display:flex;justify-content:flex-end;margin-top:12px">
-                <button type="submit" class="admin-btn admin-btn-primary">{{ _('Save overrides') }}</button>
+        </div>
+
+        <!-- ── OVERRIDES TAB ─────────────────────────────────────── -->
+        <div id="perm-tab-overrides" class="hidden">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+                <p style="font-size:12px;color:var(--a-text-sec);margin:0;max-width:640px">
+                    {{ _('Override the access profile on a per-permission basis. Leave as None to inherit from the profile.') }}
+                </p>
+                <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="overrideSummary"></div>
             </div>
-            {% endif %}
-        </form>
+
+            <form id="overridesForm" data-user-id="{{ user.userID }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div style="margin-bottom:12px">
+                    <div class="admin-input-icon" style="max-width:320px">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="overrideSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}">
+                    </div>
+                </div>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>{{ _('Permission') }}</th>
+                                <th class="align-center" style="width:90px">{{ _('None') }}</th>
+                                <th class="align-center" style="width:90px">{{ _('Deny') }}</th>
+                                <th class="align-center" style="width:90px">{{ _('Allow') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overridesTbody">
+                            {% for perm in all_permissions %}
+                            <tr data-perm-id="{{ perm.PermissionID }}" data-search="{{ ((perm.Code or '') ~ ' ' ~ (perm.Description or ''))|lower }}">
+                                <td>
+                                    <div><span class="admin-mono">{{ perm.Code }}</span></div>
+                                    <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
+                                </td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked></td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %}></td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %}></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if can_edit_overrides %}
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                    <button type="submit" class="admin-btn admin-btn-primary">{{ _('Save overrides') }}</button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
     </div>
 
     {# ------------- Activity (last 7 days) ------------- #}
