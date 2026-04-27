@@ -10,6 +10,8 @@ claude.md
 .claude/
 env.json
 
+.superpowers/
+
 # Distribution / packaging
 .Python
 build/

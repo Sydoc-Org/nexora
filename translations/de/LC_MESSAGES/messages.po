@@ -2167,6 +2167,18 @@ msgstr "Aktive Benutzer (5 Min)"
 msgid "Users active in the last 5 minutes"
 msgstr "In den letzten 5 Minuten aktive Benutzer"
 
+#: templates/admin/adminOverview.html:25
+msgid "Active sessions"
+msgstr "Aktive Sitzungen"
+
+#: templates/admin/adminOverview.html:29
+msgid "Currently signed in"
+msgstr "Derzeit angemeldet"
+
+#: templates/admin/sessions.html:30
+msgid "Logged in"
+msgstr "Angemeldet"
+
 #: templates/admin/adminOverview.html:33
 msgid "Failed logins today"
 msgstr "Fehlgeschlagene Anmeldungen heute"

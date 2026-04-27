@@ -1,6 +1,6 @@
 <script>
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        // csrfToken is declared globally in _headerJS.html
 
         function escapeHtml(str) {
             if (str == null) return '';
@@ -54,7 +54,7 @@
 
                 sessions.forEach(session => {
                     const row = document.createElement('tr');
-                    const rawTs = session.LastActivity ? session.LastActivity + 'Z' : null;
+                    const rawTs = session.LoggedInAt ? session.LoggedInAt + 'Z' : null;
 
                     const td1 = document.createElement('td');
                     td1.textContent = session.Username || '';

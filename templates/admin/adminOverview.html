@@ -21,13 +21,13 @@
 
         <div class="health-strip">
 
-            <div class="admin-card health-card">
-                <div class="health-card-label">{{ _('Active users (5 min)') }}</div>
+            <a href="{{ url_for('admin_sessions_view') }}" class="admin-card admin-card-link health-card">
+                <div class="health-card-label">{{ _('Active sessions') }}</div>
                 <div class="health-card-value">
-                    {% if active_users_5m is not none %}{{ active_users_5m }}{% else %}—{% endif %}
+                    {% if active_sessions_count is not none %}{{ active_sessions_count }}{% else %}—{% endif %}
                 </div>
-                <div class="health-card-sub">{{ _('Users active in the last 5 minutes') }}</div>
-            </div>
+                <div class="health-card-sub">{{ _('Currently signed in') }}</div>
+            </a>
 
             <div class="admin-card health-card">
                 <div class="health-card-label">{{ _('Failed logins today') }}</div>

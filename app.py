@@ -1,7 +1,7 @@
 import math
 import uuid
 from fileinput import filename
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, jsonify, Response, make_response, send_file, abort
 from flask_babel import Babel, gettext, ngettext, _
 from flask_session import Session
@@ -82,17 +82,17 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-# app.config['SESSION_COOKIE_SECURE'] = True 
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# app.config['SESSION_TYPE'] = 'filesystem'  
-# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-# app.config['SESSION_PERMANENT'] = True
-# app.config['SESSION_USE_SIGNER'] = True    
+app.config['SESSION_TYPE'] = 'filesystem'  
+app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True    
 
-# Session(app)
+Session(app)
 
 csrf = CSRFProtect(app)
 # csp = {
@@ -231,26 +231,41 @@ engineGeneraliDB = create_engine(
     pool_recycle=1800
 )
 
-def ping_db(engine, label, timeout_s=2.0):
-    """Probe a SQLAlchemy engine with SELECT 1. Never raises.
-    Returns {'label', 'ok', 'error', 'latency_ms'}.
-    timeout_s is reserved for future use; pyodbc per-query timeouts
-    aren't exposed through raw_connection() without engine-level config."""
-    start = time.monotonic()
+# Dedicated executor for DB health pings so a hung server doesn't block the page.
+_db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix='db-ping')
+
+def _ping_db_probe(engine):
+    conn = engine.raw_connection()
     try:
-        conn = engine.raw_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute("SELECT 1")
-            cur.fetchone()
-            cur.close()
-        finally:
-            conn.close()
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.fetchone()
+        cur.close()
+    finally:
+        conn.close()
+
+def ping_db(engine, label, timeout_s=2.0):
+    """Probe a SQLAlchemy engine with SELECT 1, enforcing a wall-clock timeout.
+    Never raises. Returns {'label', 'ok', 'error', 'latency_ms'}.
+    If the probe doesn't finish within timeout_s, returns ok=False with
+    error='timeout' — the underlying thread keeps running in the background
+    until the OS connect timeout fires, but the caller is unblocked."""
+    start = time.monotonic()
+    future = _db_ping_executor.submit(_ping_db_probe, engine)
+    try:
+        future.result(timeout=timeout_s)
         return {
             'label': label,
             'ok': True,
             'error': None,
             'latency_ms': int((time.monotonic() - start) * 1000),
+        }
+    except FuturesTimeoutError:
+        return {
+            'label': label,
+            'ok': False,
+            'error': 'timeout',
+            'latency_ms': int(timeout_s * 1000),
         }
     except Exception as e:
         msg = (str(e).splitlines()[0] if str(e) else 'error')[:140]
@@ -260,6 +275,34 @@ def ping_db(engine, label, timeout_s=2.0):
             'error': msg,
             'latency_ms': int((time.monotonic() - start) * 1000),
         }
+
+def ping_dbs_parallel(targets, timeout_s=2.0):
+    """Ping several engines concurrently. `targets` is [(engine, label), ...].
+    Total wall time is bounded by ~timeout_s regardless of how many are down."""
+    futures = [
+        (label, _db_ping_executor.submit(_ping_db_probe, engine), time.monotonic())
+        for engine, label in targets
+    ]
+    results = []
+    for label, fut, started in futures:
+        try:
+            fut.result(timeout=timeout_s)
+            results.append({
+                'label': label, 'ok': True, 'error': None,
+                'latency_ms': int((time.monotonic() - started) * 1000),
+            })
+        except FuturesTimeoutError:
+            results.append({
+                'label': label, 'ok': False, 'error': 'timeout',
+                'latency_ms': int(timeout_s * 1000),
+            })
+        except Exception as e:
+            msg = (str(e).splitlines()[0] if str(e) else 'error')[:140]
+            results.append({
+                'label': label, 'ok': False, 'error': msg,
+                'latency_ms': int((time.monotonic() - started) * 1000),
+            })
+    return results
 
 # ------------------------------ database connection end --------------------- #
 
@@ -626,11 +669,14 @@ def _record_active_session(user_id):
             # generate and stash one so admin UI can still reference it.
             sid = session.get('_dev_sid') or _uuid.uuid4().hex
             session['_dev_sid'] = sid
+        ip = (get_ip() or '')[:45]
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
+        # Upsert: a re-login with the same SID should refresh the row, not collide on PK.
+        cursor.execute("DELETE FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
         cursor.execute(
-            "INSERT INTO ActiveSessions (SessionID, UserID) VALUES (?, ?)",
-            (str(sid), int(user_id))
+            "INSERT INTO ActiveSessions (SessionID, UserID, IPAddress) VALUES (?, ?, ?)",
+            (str(sid), int(user_id), ip or None)
         )
         conn.commit()
         cursor.close()
@@ -855,7 +901,7 @@ def admin_dashboard():
 
     user_count = 0
     org_count = 0
-    active_users_5m = None
+    active_sessions_count = None
     failed_logins_today = None
 
     conn = None
@@ -873,12 +919,11 @@ def admin_dashboard():
         if row: org_count = row[0]
 
         cursor.execute("""
-            SELECT COUNT(DISTINCT Username) FROM Logs
-            WHERE Timestamp > DATEADD(minute, -5, GETDATE())
-              AND Username IS NOT NULL
+            SELECT COUNT(*) FROM ActiveSessions
+            WHERE CreatedAt >= DATEADD(hour, -24, GETDATE())
         """)
         row = cursor.fetchone()
-        if row: active_users_5m = row[0]
+        if row: active_sessions_count = row[0]
 
         cursor.execute("""
             SELECT COUNT(*) FROM Logs
@@ -899,18 +944,18 @@ def admin_dashboard():
             if conn: conn.close()
         except Exception: pass
 
-    db_health = [
-        ping_db(engineNexoraDB,            'Nexora'),
-        ping_db(engineOctoDB,              'Octo'),
-        ping_db(engineStatisticsDB,        'Stats'),
-        ping_db(engineStatisticsDBMobscan, 'Stats-Mobscan'),
-        ping_db(engineGeneraliDB,          'Generali'),
-    ]
+    db_health = ping_dbs_parallel([
+        (engineNexoraDB,            'Nexora'),
+        (engineOctoDB,              'Octo'),
+        (engineStatisticsDB,        'Stats'),
+        (engineStatisticsDBMobscan, 'Stats-Mobscan'),
+        (engineGeneraliDB,          'Generali'),
+    ], timeout_s=2.0)
 
     return render_template("admin/adminOverview.html",
                          user_count=user_count,
                          org_count=org_count,
-                         active_users_5m=active_users_5m,
+                         active_sessions_count=active_sessions_count,
                          failed_logins_today=failed_logins_today,
                          db_health=db_health,
                          logged_in_user=session.get('username'),
@@ -1588,21 +1633,23 @@ def admin_recent_logs():
 @app.route("/api/admin/active_sessions")
 @require_permission('admin.view.active.sessions')
 def admin_active_sessions():
+    """Read currently-active sessions from ActiveSessions, joined to Users.
+    Filtered to the last 24 hours so abandoned rows fall off naturally."""
     conn = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
-                MIN(SessionID) AS SessionID,
-				Username,
-				Userid,
-                RequestIpAddress as IPAddress,
-                MAX(Timestamp) as LastActivity
-            FROM Logs
-            WHERE Timestamp >= DATEADD(minute, -30, getdate())
-            GROUP BY SessionID, Username, RequestIpAddress, Userid
-            ORDER BY LastActivity DESC
+                a.SessionID,
+                a.UserID    AS Userid,
+                u.username  AS Username,
+                a.IPAddress,
+                a.CreatedAt AS LoggedInAt
+            FROM ActiveSessions a
+            LEFT JOIN Users u ON u.userID = a.UserID
+            WHERE a.CreatedAt >= DATEADD(hour, -24, GETDATE())
+            ORDER BY a.CreatedAt DESC
         """)
         sessions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(sessions)
@@ -2027,6 +2074,12 @@ def api_admin_permission_delete(perm_id):
 @app.route("/logout")
 def logout():
     try:
+        sid = getattr(session, 'sid', None) or session.get('_dev_sid')
+        if sid:
+            try:
+                _revoke_session_by_id(sid)
+            except Exception as e:
+                app.logger.warning(f"Logout: could not delete ActiveSessions row for {sid}: {e}")
         session.pop('username', None)
         session.pop('uuid', None)
         session.pop('userid', None)
