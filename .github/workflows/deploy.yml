@@ -1,0 +1,27 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest
+        shell: powershell
+        working-directory: D:\sydoc\nexora
+        run: git pull
+
+      - name: Trigger restart task
+        shell: powershell
+        run: |
+          Start-ScheduledTask -TaskName "DeployRestart"
+          do {
+            Start-Sleep -Seconds 2
+            $task = Get-ScheduledTask -TaskName "DeployRestart"
+          } while ($task.State -eq 'Running')
+
+          $info = Get-ScheduledTaskInfo -TaskName "DeployRestart"
+          if ($info.LastTaskResult -ne 0) {
+            throw "Restart task failed with code $($info.LastTaskResult)"
+          }

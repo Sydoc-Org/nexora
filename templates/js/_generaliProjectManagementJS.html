@@ -373,22 +373,51 @@
     });
 
     // ----------------------------- excel export ----------------------------- //
-    function exportToExcel() {
-        if (!_currentRecords.length) return;
-        const today = new Date().toISOString().split('T')[0];
-        const rows = _currentRecords.map(r => ({
-            'ID':          r.id,
-            'Date':        r.forDate ? r.forDate.split('T')[0] : '',
-            'Full Name':   r.fullname,
-            'User ID':     r.userId,
-            'Effort (h)':  r.effortInHours,
-            'Comment':     r.comment,
-            'Recorded At': r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Project Management');
-        XLSX.writeFile(wb, `generali_projectmanagement_${today}.xlsx`);
+    function showExportError(msg) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+        errDiv.textContent = msg;
+        document.body.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 4000);
+    }
+
+    async function exportToExcel() {
+        const btn = document.getElementById('exportExcelBtn');
+        const icon = btn ? btn.querySelector('i') : null;
+        const originalIconClass = icon ? icon.className : '';
+        if (btn) btn.disabled = true;
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        try {
+            const params = buildParams(1);
+            params.set('all', 'true');
+            const res = await fetch(API_PREFIX + 'api/generali/projectmanagement?' + params.toString(), {
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Export failed');
+            const records = data.records || [];
+            if (!records.length) return;
+            const today = new Date().toISOString().split('T')[0];
+            const rows = records.map(r => ({
+                'ID':          r.id,
+                'Date':        r.forDate ? r.forDate.split('T')[0] : '',
+                'Full Name':   r.fullname,
+                'User ID':     r.userId,
+                'Effort (h)':  r.effortInHours,
+                'Comment':     r.comment,
+                'Recorded At': r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Project Management');
+            XLSX.writeFile(wb, `generali_projectmanagement_${today}.xlsx`);
+        } catch (e) {
+            console.error('Export failed:', e);
+            showExportError({{ _("Export failed.") | tojson }});
+        } finally {
+            if (btn) btn.disabled = false;
+            if (icon) icon.className = originalIconClass;
+        }
     }
 
     {% if can_add %}loadOrgUsers();{% endif %}

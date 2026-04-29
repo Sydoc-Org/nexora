@@ -1,6 +1,7 @@
 USE [nexora]
 GO
 
+/****** Objekt:  Table [dbo].[SearchConfig]    Skriptdatum: 27.04.2026 15:24:28 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -51,7 +52,7 @@ CREATE TABLE [dbo].[SearchConfig](
 	[col_doctypeidsydoc] [nvarchar](100) NULL,
 	[col_registeridtargetsystem] [nvarchar](100) NULL,
 	[col_masterdataseparatorsheettype] [nvarchar](100) NULL,
-	[col_materdatabirthday] [nvarchar](100) NULL,
+	[col_masterdatabirthday] [nvarchar](100) NULL,
 	[col_masterdatafirstname] [nvarchar](100) NULL,
 	[col_masterdatalastname] [nvarchar](100) NULL,
 	[col_masterdataseparatorsheetid] [nvarchar](100) NULL,

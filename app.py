@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-# app.config['SESSION_COOKIE_SECURE'] = True 
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# app.config['SESSION_TYPE'] = 'filesystem'  
-# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-# app.config['SESSION_PERMANENT'] = True
-# app.config['SESSION_USE_SIGNER'] = True    
+app.config['SESSION_TYPE'] = 'filesystem'  
+app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True    
 
-# Session(app)
+Session(app)
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'base-uri': '\'self\'',         
-#     'object-src': '\'none\'',       
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+csp = {
+    'default-src': '\'self\'',
+    'base-uri': '\'self\'',         
+    'object-src': '\'none\'',       
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://cdn.tailwindcss.com',   
+        'https://cdnjs.cloudflare.com',  
+        'https://cdn.jsdelivr.net'       
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://fonts.googleapis.com',  
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com',     
+        'https://cdnjs.cloudflare.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'blob:',                         
+        'https://cdn.tailwindcss.com'
+    ],
+    'connect-src': [
+        '\'self\'',                     
+        'https://cdn.tailwindcss.com',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ]
+}
+Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -733,69 +733,69 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        if UID_REQUEST == '123' and PWD_REQUEST == '123':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            username, fullname, email, org_code, locale = row
+        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     username, fullname, email, org_code, locale = row
 
-            session.clear() 
-            session['userid'] = "1019"
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user("1019")
-            _record_active_session("1019")
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '321' and PWD_REQUEST == '321':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
+        #     session.clear() 
+        #     session['userid'] = "1019"
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user("1019")
+        #     _record_active_session("1019")
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
+        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code, locale = row
 
-            session.clear() 
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '456' and PWD_REQUEST == '456':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
+        #     session.clear() 
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user(userid)
+        #     _record_active_session(userid)
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
+        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code, locale = row
 
-            session.clear() 
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
+        #     session.clear() 
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user(userid)
+        #     _record_active_session(userid)
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials")), 401
 
@@ -6851,14 +6851,17 @@ def api_generali_reporting_list():
         total_records = cursor.fetchone()[0]
         total_pages = max(1, -(-total_records // per_page))
 
+        fetch_all = request.args.get('all', '').lower() == 'true'
+        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        sql_params = params if fetch_all else params + [offset, per_page]
         cursor.execute(f"""
             SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
                    --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
             FROM [dbo].[reportingiss]
             {where_sql}
             ORDER BY ReportForDate DESC, ReportTimeStamp DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, params + [offset, per_page])
+            {pagination_sql}
+        """, sql_params)
 
         rows = cursor.fetchall()
         cursor.close()
@@ -7185,13 +7188,16 @@ def api_generali_attendance_list():
         total_hours   = float(agg[1]) if agg[1] is not None else 0.0
         total_pages   = max(1, -(-total_records // per_page))
 
+        fetch_all = request.args.get('all', '').lower() == 'true'
+        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        sql_params = params if fetch_all else params + [offset, per_page]
         cursor.execute(f"""
             SELECT ID, EffortInHours, UserID, ForDate, ParentCategory, SubCategory, RecordDateTime
             FROM [Generali].[dbo].[Attendance]
             {where_sql}
             ORDER BY ForDate DESC, RecordDateTime DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, params + [offset, per_page])
+            {pagination_sql}
+        """, sql_params)
 
         rows = cursor.fetchall()
         cursor.close()
@@ -7462,13 +7468,16 @@ def api_generali_baseservices_list():
         total_hours   = float(agg[1]) if agg[1] is not None else 0.0
         total_pages   = max(1, -(-total_records // per_page))
 
+        fetch_all = request.args.get('all', '').lower() == 'true'
+        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        sql_params = params if fetch_all else params + [offset, per_page]
         cursor.execute(f"""
             SELECT ID, EffortInHours, UserID, ForDate, Category, RecordDateTime
             FROM [Generali].[dbo].[BaseServices]
             {where_sql}
             ORDER BY ForDate DESC, RecordDateTime DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, params + [offset, per_page])
+            {pagination_sql}
+        """, sql_params)
 
         rows = cursor.fetchall()
         cursor.close()
@@ -7737,13 +7746,16 @@ def api_generali_projectmanagement_list():
         total_hours   = float(agg[1]) if agg[1] is not None else 0.0
         total_pages   = max(1, -(-total_records // per_page))
 
+        fetch_all = request.args.get('all', '').lower() == 'true'
+        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        sql_params = params if fetch_all else params + [offset, per_page]
         cursor.execute(f"""
             SELECT ID, EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime
             FROM [Generali].[dbo].[ProjectManagement]
             {where_sql}
             ORDER BY ForDate DESC, RecordDateTime DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, params + [offset, per_page])
+            {pagination_sql}
+        """, sql_params)
 
         rows = cursor.fetchall()
         cursor.close()
@@ -8040,13 +8052,16 @@ def api_generali_pdqm_list():
         total_quantity  = int(agg[1]) if agg[1] is not None else 0
         total_pages     = max(1, -(-total_records // per_page))
 
+        fetch_all = request.args.get('all', '').lower() == 'true'
+        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        sql_params = params if fetch_all else params + [offset, per_page]
         cursor.execute(f"""
             SELECT ID, Quantity, UserID, ForDate, ParentCategory, ParentSubCategory, SubCategory, RecordDateTime
             FROM [Generali].[dbo].[PDQMReport]
             {where_sql}
             ORDER BY ForDate DESC, RecordDateTime DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, params + [offset, per_page])
+            {pagination_sql}
+        """, sql_params)
 
         rows = cursor.fetchall()
         cursor.close()
@@ -8286,7 +8301,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 
