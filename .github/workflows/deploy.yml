@@ -7,21 +7,24 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Pull latest
-        shell: powershell
-        working-directory: D:\sydoc\nexora
-        run: git pull
+      - uses: actions/checkout@v4
 
-      - name: Trigger restart task
+      - name: Stop app pool and service
         shell: powershell
         run: |
-          Start-ScheduledTask -TaskName "DeployRestart"
-          do {
-            Start-Sleep -Seconds 2
-            $task = Get-ScheduledTask -TaskName "DeployRestart"
-          } while ($task.State -eq 'Running')
+          Import-Module WebAdministration
+          Stop-WebAppPool -Name "DefaultAppPool" -ErrorAction SilentlyContinue
+          Stop-Service -Name "ngrok" -Force -ErrorAction SilentlyContinue
 
-          $info = Get-ScheduledTaskInfo -TaskName "DeployRestart"
-          if ($info.LastTaskResult -ne 0) {
-            throw "Restart task failed with code $($info.LastTaskResult)"
-          }
+      - name: Sync to deploy folder
+        shell: powershell
+        run: |
+          robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 /XD .git .github session logs uploads __pycache__ .vscode .idea /XF *.env ngrok.yaml
+          if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
+
+      - name: Start app pool and service
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Start-WebAppPool -Name "DefaultAppPool"
+          Start-Service -Name "ngrok"

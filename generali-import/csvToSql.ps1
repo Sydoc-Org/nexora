@@ -2,6 +2,7 @@ $datafoldergen = "C:\Users\bes\OneDrive - TCG Informatik AG\Desktop\gen"
 Get-ChildItem $datafoldergen -File | ForEach-Object {
 
 $csvFilePath = $_.FullName
+$csvFileNameShort = $_.Name
 $batchSize = 500
 $envVars = Get-Content -Raw "env.json" | ConvertFrom-Json
 
@@ -90,7 +91,8 @@ function Flush_Batch {
       ,[DOC_ORIGIN]
       ,[DOC_INTERFACE_LINK]
       ,[DOC_NK1]
-      ,[DOC_NK2])
+      ,[DOC_NK2],
+      SourceCSVFileName)
         VALUES`n
 "@ + ($valuesList -join ",`n")
         Invoke-Sqlcmd -ServerInstance $envVars.SERVERINSTANCE -Database $envVars.DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
@@ -141,7 +143,6 @@ foreach ($row in $rows) {
         $($row.DOC_SPRACHE -in @('null','') ? 'NULL' : "'$($row.DOC_SPRACHE.Replace("'","''"))'"),
         $($row.DOC_NOTIFIKATIONSSTATUS -in @('null','') ? 'NULL' : "'$($row.DOC_NOTIFIKATIONSSTATUS.Replace("'","''"))'"),
         $($row.DOC_VERTRAULICHKEIT -eq 'null' ? 'NULL' : "'$($row.DOC_VERTRAULICHKEIT.Replace("'","''"))'"),
-        
         $($row.DOC_RICHTUNG -in @('null','') ? 'NULL' : "'$($row.DOC_RICHTUNG.Replace("'","''"))'"),
         $($row.DOC_DOKUMENT_ID -eq 'null' ? 'NULL' : "'$($row.DOC_DOKUMENT_ID.Replace("'","''"))'"),
         $($row.DOC_DOKUMENTENORDER -eq 'null' ? 'NULL' : "'$($row.DOC_DOKUMENTENORDER.Replace("'","''"))'"),
@@ -199,7 +200,8 @@ foreach ($row in $rows) {
         $($row.DOC_ORIGIN -in @('null','') ? 'NULL' : "'$($row.DOC_ORIGIN.Replace("'","''"))'"),
         $($row.DOC_INTERFACE_LINK -in @('null','') ? 'NULL' : "'$($row.DOC_INTERFACE_LINK.Replace("'","''"))'"),
         $($row.DOC_NK1 -in @('null','') ? 'NULL' : "'$($row.DOC_NK1.Replace("'","''"))'"),
-        $($row.DOC_NK2 -in @('null','') ? 'NULL' : "'$($row.DOC_NK2.Replace("'","''"))'")
+        $($row.DOC_NK2 -in @('null','') ? 'NULL' : "'$($row.DOC_NK2.Replace("'","''"))'"),
+        $csvFileNameShort
 )
 "@
         $valuesList.Add($values)
