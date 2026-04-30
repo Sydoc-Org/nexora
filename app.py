@@ -6511,6 +6511,7 @@ def api_generali_stats():
                 SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' AND DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_NK2_Pass
             FROM [dbo].[v_ReportJobJoinDefinitions]
             WHERE 1=1 {date_filter}
+
         """, date_params)
         kpi_row = cursor.fetchone()
         total = kpi_row[0] or 0

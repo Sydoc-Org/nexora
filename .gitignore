@@ -11,7 +11,7 @@ claude.md
 env.json
 
 .superpowers/
-
+ngrok.yaml
 # Distribution / packaging
 .Python
 build/
