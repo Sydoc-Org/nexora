@@ -16,6 +16,7 @@
 </head>
 
 <body>
+    {% include '_maintenance_banner.html' %}
     <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button">
         <i class="fas fa-bars"></i>
     </button>
@@ -28,8 +29,8 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% if pageV.adminPagePerm %}
-            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail'] %}
+            {% if pageV.adminPagePerm or pageV.adminMaintenanceViewPerm %}
+            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
@@ -62,6 +63,13 @@
                         <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Logs') }}</span>
                     </a>
+                    {% if pageV.adminMaintenanceViewPerm %}
+                    <a href="{{ url_for('admin_maintenance_view') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'maintenance' else '' }}">
+                        <i class="fas fa-bullhorn sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Maintenance') }}</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}

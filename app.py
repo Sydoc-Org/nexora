@@ -501,6 +501,8 @@ def pageVisability():
     generaliProjectManagementPerm = has_permission('generali.projectmanagement.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
     generaliImportStatusPerm = has_permission('generali.importstatus.view')
+    adminMaintenanceViewPerm = has_permission('admin.maintenance.view')
+    adminMaintenanceEditPerm = has_permission('admin.maintenance.edit')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
@@ -511,7 +513,9 @@ def pageVisability():
             'generaliBaseServicesPerm': generaliBaseServicesPerm,
             'generaliProjectManagementPerm': generaliProjectManagementPerm,
             'generaliPDQMPerm': generaliPDQMPerm,
-            'generaliImportStatusPerm': generaliImportStatusPerm}
+            'generaliImportStatusPerm': generaliImportStatusPerm,
+            'adminMaintenanceViewPerm': adminMaintenanceViewPerm,
+            'adminMaintenanceEditPerm': adminMaintenanceEditPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -1152,6 +1156,203 @@ def api_admin_organizations_list():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+
+# ----------------------------- Maintenance Banner -------------------------- #
+MAINTENANCE_SEVERITIES = {'info', 'warning', 'critical'}
+
+
+def _maintenance_iso(v):
+    if v is None:
+        return None
+    if hasattr(v, 'isoformat'):
+        return v.isoformat()
+    return str(v)
+
+
+def _maintenance_row_to_dict(row, cols):
+    d = dict(zip(cols, row))
+    for k in ('StartAt', 'EndAt', 'CreatedAt'):
+        d[k] = _maintenance_iso(d.get(k))
+    d['Active'] = bool(d.get('Active'))
+    return d
+
+
+@app.route("/admin/maintenance")
+@require_permission('admin.maintenance.view')
+def admin_maintenance_view():
+    try:
+        return render_template("admin/maintenance.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability())
+    except Exception as e:
+        app.logger.error(f"Failed to load maintenance page: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/admin/maintenance", methods=['GET'])
+@require_permission('admin.maintenance.view')
+def api_admin_maintenance_list():
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, CreatedBy, CreatedAt
+            FROM MaintenanceBanner
+            ORDER BY StartAt DESC, ID DESC
+        """)
+        cols = [c[0] for c in cursor.description]
+        records = [_maintenance_row_to_dict(row, cols) for row in cursor.fetchall()]
+        return jsonify({"success": True, "records": records})
+    except Exception as e:
+        app.logger.error(f"Maintenance list error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+def _maintenance_parse_payload(body):
+    title    = (body.get('title') or '').strip()
+    message  = (body.get('message') or '').strip()
+    start_at = (body.get('startAt') or '').strip().replace('T', ' ')
+    end_at   = (body.get('endAt') or '').strip().replace('T', ' ')
+    severity = (body.get('severity') or 'info').strip().lower()
+    active   = bool(body.get('active', True))
+
+    if not message:
+        return None, ("message is required", 400)
+    if not start_at or not end_at:
+        return None, ("startAt and endAt are required", 400)
+    if severity not in MAINTENANCE_SEVERITIES:
+        return None, ("invalid severity", 400)
+    return {
+        'title': title or None,
+        'message': message,
+        'start_at': start_at,
+        'end_at': end_at,
+        'severity': severity,
+        'active': 1 if active else 0,
+    }, None
+
+
+@app.route("/api/admin/maintenance", methods=['POST'])
+@require_permission('admin.maintenance.edit')
+def api_admin_maintenance_add():
+    body = request.get_json(force=True) or {}
+    parsed, err = _maintenance_parse_payload(body)
+    if err:
+        return jsonify({"success": False, "error": err[0]}), err[1]
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, CreatedBy, CreatedAt)
+            OUTPUT INSERTED.ID
+            VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE())
+        """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
+              parsed['severity'], parsed['active'], session.get('userid')])
+        new_id = cursor.fetchone()[0]
+        conn.commit()
+        return jsonify({"success": True, "id": int(new_id)})
+    except Exception as e:
+        app.logger.error(f"Maintenance add error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/admin/maintenance/<int:banner_id>", methods=['PUT'])
+@require_permission('admin.maintenance.edit')
+def api_admin_maintenance_edit(banner_id):
+    body = request.get_json(force=True) or {}
+    parsed, err = _maintenance_parse_payload(body)
+    if err:
+        return jsonify({"success": False, "error": err[0]}), err[1]
+
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE MaintenanceBanner
+               SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?, Active = ?
+             WHERE ID = ?
+        """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
+              parsed['severity'], parsed['active'], banner_id])
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "error": "Banner not found"}), 404
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Maintenance edit error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/admin/maintenance/<int:banner_id>", methods=['DELETE'])
+@require_permission('admin.maintenance.edit')
+def api_admin_maintenance_delete(banner_id):
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM MaintenanceBanner WHERE ID = ?", [banner_id])
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "error": "Banner not found"}), 404
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        app.logger.error(f"Maintenance delete error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/maintenance/active", methods=['GET'])
+def api_maintenance_active():
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity
+            FROM MaintenanceBanner
+            WHERE Active = 1
+              AND StartAt <= GETDATE()
+              AND EndAt   >= GETDATE()
+            ORDER BY StartAt DESC, ID DESC
+        """)
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": True, "banner": None})
+        rec_id, title, message, start_at, end_at, severity = row
+        return jsonify({
+            "success": True,
+            "banner": {
+                "id": int(rec_id),
+                "title": title,
+                "message": message,
+                "startAt": _maintenance_iso(start_at),
+                "endAt":   _maintenance_iso(end_at),
+                "severity": severity,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Maintenance active error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 
 @app.route("/admin/logs")
 @require_permission('admin.view.system.logs')

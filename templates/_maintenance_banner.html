@@ -1,0 +1,103 @@
+<style>
+  #maintenance-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  #maintenance-banner.mb-show { display: flex; align-items: center; gap: 12px; }
+  #maintenance-banner .mb-icon { flex: 0 0 auto; font-size: 16px; }
+  #maintenance-banner .mb-body { flex: 1 1 auto; min-width: 0; }
+  #maintenance-banner .mb-title { font-weight: 700; margin-right: 6px; }
+  #maintenance-banner .mb-window { opacity: 0.85; font-size: 12px; margin-left: 8px; white-space: nowrap; }
+  #maintenance-banner .mb-dismiss {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    opacity: 0.8;
+  }
+  #maintenance-banner .mb-dismiss:hover { background: rgba(0,0,0,0.1); opacity: 1; }
+  #maintenance-banner.mb-info     { background: #eef2ff; color: #3730a3; border-bottom: 1px solid #c7d2fe; }
+  #maintenance-banner.mb-warning  { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; }
+  #maintenance-banner.mb-critical { background: #fef2f2; color: #991b1b; border-bottom: 1px solid #fecaca; }
+  body.has-maintenance-banner { padding-top: 44px; }
+  @media (max-width: 640px) {
+    #maintenance-banner .mb-window { display: none; }
+  }
+</style>
+<div id="maintenance-banner" role="alert" aria-live="polite"></div>
+<script>
+(function() {
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const SEVERITY_ICON = { info: 'fa-circle-info', warning: 'fa-triangle-exclamation', critical: 'fa-circle-exclamation' };
+    const banner = document.getElementById('maintenance-banner');
+    if (!banner) return;
+
+    function fmt(iso) {
+        if (!iso) return '';
+        return iso.replace('T', ' ').substring(0, 16);
+    }
+
+    function render(b) {
+        const dismissedKey = 'mb-dismissed-' + b.id;
+        if (sessionStorage.getItem(dismissedKey) === '1') return;
+
+        banner.replaceChildren();
+        banner.className = 'mb-show mb-' + (b.severity || 'info');
+
+        const ico = document.createElement('i');
+        ico.className = 'fas mb-icon ' + (SEVERITY_ICON[b.severity] || SEVERITY_ICON.info);
+        banner.appendChild(ico);
+
+        const body = document.createElement('div');
+        body.className = 'mb-body';
+        if (b.title) {
+            const t = document.createElement('span');
+            t.className = 'mb-title';
+            t.textContent = b.title;
+            body.appendChild(t);
+        }
+        body.appendChild(document.createTextNode(b.message || ''));
+        if (b.startAt && b.endAt) {
+            const win = document.createElement('span');
+            win.className = 'mb-window';
+            win.textContent = '(' + fmt(b.startAt) + ' – ' + fmt(b.endAt) + ')';
+            body.appendChild(win);
+        }
+        banner.appendChild(body);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mb-dismiss';
+        btn.setAttribute('aria-label', 'Dismiss');
+        const x = document.createElement('i');
+        x.className = 'fas fa-xmark';
+        btn.appendChild(x);
+        btn.addEventListener('click', () => {
+            sessionStorage.setItem(dismissedKey, '1');
+            banner.classList.remove('mb-show');
+            document.body.classList.remove('has-maintenance-banner');
+        });
+        banner.appendChild(btn);
+
+        document.body.classList.add('has-maintenance-banner');
+    }
+
+    fetch(API_PREFIX + 'api/maintenance/active')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.success && data.banner) render(data.banner);
+        })
+        .catch(() => {});
+})();
+</script>

@@ -1,0 +1,308 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const canEdit = !!window.MAINTENANCE_CAN_EDIT;
+
+    const SEVERITY_LABEL = {
+        info:     {{ _("Info")     | tojson }},
+        warning:  {{ _("Warning")  | tojson }},
+        critical: {{ _("Critical") | tojson }},
+    };
+
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+        const div = document.createElement('div');
+        const bg = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+        div.className = `flex items-center w-full p-4 text-white ${bg} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+        const iconWrap = document.createElement('div');
+        iconWrap.className = 'text-xl';
+        const icon = document.createElement('i');
+        icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+        iconWrap.appendChild(icon);
+        const msg = document.createElement('div');
+        msg.className = 'ml-3 text-sm font-medium';
+        msg.textContent = message;
+        div.appendChild(iconWrap);
+        div.appendChild(msg);
+        container.appendChild(div);
+        setTimeout(() => div.classList.remove('opacity-0', 'translate-x-full'), 10);
+        setTimeout(() => {
+            div.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => div.remove(), 300);
+        }, 5000);
+    }
+
+    function formatRange(startISO, endISO) {
+        const fmt = s => s ? s.replace('T', ' ').substring(0, 16) : '—';
+        return fmt(startISO) + ' → ' + fmt(endISO);
+    }
+
+    let _allBanners = [];
+    let _pendingDeleteId = null;
+
+    function makeSeverityPill(sev) {
+        const span = document.createElement('span');
+        span.className = `sev-pill sev-${sev}`;
+        const dot = document.createElement('i');
+        dot.className = sev === 'critical' ? 'fas fa-circle-exclamation' :
+                       sev === 'warning'  ? 'fas fa-triangle-exclamation' :
+                                            'fas fa-circle-info';
+        dot.style.fontSize = '10px';
+        span.appendChild(dot);
+        span.appendChild(document.createTextNode(SEVERITY_LABEL[sev] || sev));
+        return span;
+    }
+
+    function makeActiveBadge(active, startISO, endISO) {
+        const now = new Date();
+        const inWindow = startISO && endISO && new Date(startISO) <= now && now <= new Date(endISO);
+        const span = document.createElement('span');
+        if (active && inWindow) {
+            span.textContent = {{ _("Live now") | tojson }};
+            span.className = 'inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700';
+        } else if (active) {
+            const future = startISO && new Date(startISO) > now;
+            span.textContent = future ? {{ _("Scheduled") | tojson }} : {{ _("Past") | tojson }};
+            span.className = future
+                ? 'inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700'
+                : 'inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500';
+        } else {
+            span.textContent = {{ _("Disabled") | tojson }};
+            span.className = 'inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500';
+        }
+        return span;
+    }
+
+    function makeRow(b) {
+        const tr = document.createElement('tr');
+        const titleText = b.Title || b.Message;
+
+        const tdTitle = document.createElement('td');
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'font-medium';
+        titleSpan.textContent = titleText;
+        tdTitle.appendChild(titleSpan);
+        if (b.Title && b.Message) {
+            const sub = document.createElement('div');
+            sub.style.cssText = 'color:#64748b;font-size:12px;margin-top:2px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+            sub.textContent = b.Message;
+            tdTitle.appendChild(sub);
+        }
+
+        const tdWindow = document.createElement('td');
+        tdWindow.className = 'admin-mono';
+        tdWindow.style.fontSize = '12px';
+        tdWindow.textContent = formatRange(b.StartAt, b.EndAt);
+
+        const tdSev = document.createElement('td');
+        tdSev.appendChild(makeSeverityPill(b.Severity));
+
+        const tdActive = document.createElement('td');
+        tdActive.style.textAlign = 'center';
+        tdActive.appendChild(makeActiveBadge(b.Active, b.StartAt, b.EndAt));
+
+        const tdActions = document.createElement('td');
+        tdActions.className = 'align-right';
+        if (canEdit) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'admin-btn admin-btn-ghost';
+            editBtn.type = 'button';
+            editBtn.textContent = {{ _("Edit") | tojson }};
+            editBtn.addEventListener('click', () => openEditMaintModal(b));
+            const delBtn = document.createElement('button');
+            delBtn.className = 'admin-btn admin-btn-ghost';
+            delBtn.type = 'button';
+            delBtn.style.color = 'var(--a-danger)';
+            delBtn.textContent = {{ _("Delete") | tojson }};
+            delBtn.addEventListener('click', () => openDeleteModal(b.ID));
+            tdActions.appendChild(editBtn);
+            tdActions.appendChild(delBtn);
+        } else {
+            const span = document.createElement('span');
+            span.style.color = '#94a3b8';
+            span.textContent = '—';
+            tdActions.appendChild(span);
+        }
+
+        tr.appendChild(tdTitle);
+        tr.appendChild(tdWindow);
+        tr.appendChild(tdSev);
+        tr.appendChild(tdActive);
+        tr.appendChild(tdActions);
+        return tr;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('maint-tbody');
+        tbody.replaceChildren();
+        const term = (document.getElementById('maintSearchInput').value || '').toLowerCase();
+        const filtered = _allBanners.filter(b => {
+            if (!term) return true;
+            return (b.Title || '').toLowerCase().includes(term) || (b.Message || '').toLowerCase().includes(term);
+        });
+        if (!filtered.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 5;
+            td.style.cssText = 'text-align:center;padding:48px 0;color:#94a3b8';
+            td.textContent = {{ _("No banners found") | tojson }};
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+        for (const b of filtered) tbody.appendChild(makeRow(b));
+    }
+
+    function loadBanners() {
+        const tbody = document.getElementById('maint-tbody');
+        tbody.replaceChildren();
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.style.cssText = 'text-align:center;padding:48px 0';
+        const sp = document.createElement('i');
+        sp.className = 'fas fa-spinner fa-spin';
+        sp.style.cssText = 'color:#4f46e5;font-size:24px';
+        td.appendChild(sp);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+
+        fetch(API_PREFIX + 'api/admin/maintenance', { headers: { 'X-CSRFToken': csrfToken } })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) throw new Error(data.error || 'Error');
+                _allBanners = data.records || [];
+                renderTable();
+            })
+            .catch(e => {
+                tbody.replaceChildren();
+                const r = document.createElement('tr');
+                const c = document.createElement('td');
+                c.colSpan = 5;
+                c.style.cssText = 'text-align:center;padding:32px 0;color:#dc2626';
+                c.textContent = e.message || 'Network error';
+                r.appendChild(c);
+                tbody.appendChild(r);
+            });
+    }
+
+    // ----- modals -----
+    const maintModal = document.getElementById('maintModal');
+    const maintDeleteModal = document.getElementById('maintDeleteModal');
+    let _editingId = null;
+    let fpStart, fpEnd;
+
+    function openMaintModal() {
+        document.getElementById('maintForm').reset();
+        document.getElementById('maintActive').checked = true;
+        document.getElementById('maintSeverity').value = 'info';
+        document.getElementById('maintError').classList.add('hidden');
+        document.getElementById('maintModalTitle').textContent = {{ _("Add banner") | tojson }};
+        if (fpStart) fpStart.clear();
+        if (fpEnd)   fpEnd.clear();
+        _editingId = null;
+        maintModal.classList.remove('hidden');
+    }
+
+    function openEditMaintModal(b) {
+        document.getElementById('maintForm').reset();
+        document.getElementById('maintModalTitle').textContent = {{ _("Edit banner") | tojson }};
+        document.getElementById('maintTitle').value = b.Title || '';
+        document.getElementById('maintMessage').value = b.Message || '';
+        document.getElementById('maintSeverity').value = b.Severity || 'info';
+        document.getElementById('maintActive').checked = !!b.Active;
+        if (fpStart) fpStart.setDate(b.StartAt ? b.StartAt.replace('T', ' ').substring(0, 16) : '', true);
+        if (fpEnd)   fpEnd.setDate(b.EndAt   ? b.EndAt.replace('T', ' ').substring(0, 16)   : '', true);
+        document.getElementById('maintError').classList.add('hidden');
+        _editingId = b.ID;
+        maintModal.classList.remove('hidden');
+    }
+
+    function closeMaintModal() {
+        maintModal.classList.add('hidden');
+        _editingId = null;
+    }
+
+    function openDeleteModal(id) {
+        _pendingDeleteId = id;
+        maintDeleteModal.classList.remove('hidden');
+    }
+
+    function closeMaintDeleteModal() {
+        maintDeleteModal.classList.add('hidden');
+        _pendingDeleteId = null;
+    }
+
+    document.getElementById('maintForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById('maintError');
+        errEl.classList.add('hidden');
+
+        const payload = {
+            title:    document.getElementById('maintTitle').value.trim(),
+            message:  document.getElementById('maintMessage').value.trim(),
+            startAt:  document.getElementById('maintStartAt').value.trim(),
+            endAt:    document.getElementById('maintEndAt').value.trim(),
+            severity: document.getElementById('maintSeverity').value,
+            active:   document.getElementById('maintActive').checked,
+        };
+
+        if (!payload.message)  { errEl.textContent = {{ _("Message is required.") | tojson }}; errEl.classList.remove('hidden'); return; }
+        if (!payload.startAt || !payload.endAt) { errEl.textContent = {{ _("Start and end are required.") | tojson }}; errEl.classList.remove('hidden'); return; }
+        if (new Date(payload.startAt) >= new Date(payload.endAt)) { errEl.textContent = {{ _("End must be after start.") | tojson }}; errEl.classList.remove('hidden'); return; }
+
+        const url = _editingId
+            ? `${API_PREFIX}api/admin/maintenance/${_editingId}`
+            : `${API_PREFIX}api/admin/maintenance`;
+        const method = _editingId ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Error');
+            closeMaintModal();
+            showNotification(_editingId ? {{ _("Banner updated.") | tojson }} : {{ _("Banner created.") | tojson }});
+            loadBanners();
+        } catch (e) {
+            errEl.textContent = e.message || 'Error';
+            errEl.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('maintDeleteConfirm').addEventListener('click', async () => {
+        if (!_pendingDeleteId) return;
+        try {
+            const res = await fetch(`${API_PREFIX}api/admin/maintenance/${_pendingDeleteId}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Error');
+            closeMaintDeleteModal();
+            showNotification({{ _("Banner deleted.") | tojson }});
+            loadBanners();
+        } catch (e) {
+            showNotification(e.message || 'Error', 'error');
+        }
+    });
+
+    document.getElementById('maintSearchInput').addEventListener('input', renderTable);
+
+    [maintModal, maintDeleteModal].forEach(m => {
+        m.addEventListener('click', e => {
+            if (e.target === m) {
+                if (m === maintModal) closeMaintModal();
+                else closeMaintDeleteModal();
+            }
+        });
+    });
+
+    fpStart = flatpickr('#maintStartAt', { dateFormat: 'Y-m-d H:i', enableTime: true, time_24hr: true, allowInput: true });
+    fpEnd   = flatpickr('#maintEndAt',   { dateFormat: 'Y-m-d H:i', enableTime: true, time_24hr: true, allowInput: true });
+
+    loadBanners();
+</script>
