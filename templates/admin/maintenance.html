@@ -53,11 +53,12 @@
                     {'label': _('Title')},
                     {'label': _('Window')},
                     {'label': _('Severity'), 'width': '120px'},
+                    {'label': _('Block'), 'width': '90px', 'align': 'center'},
                     {'label': _('Active'), 'width': '100px', 'align': 'center'},
                     {'label': _('Actions'), 'align': 'right', 'width': '180px'}
                 ]) }}
                 <tbody id="maint-tbody">
-                    <tr><td colspan="5" style="text-align:center;padding:48px 0"><i class="fas fa-spinner fa-spin" style="color:#4f46e5;font-size:24px"></i></td></tr>
+                    <tr><td colspan="6" style="text-align:center;padding:48px 0"><i class="fas fa-spinner fa-spin" style="color:#4f46e5;font-size:24px"></i></td></tr>
                 </tbody>
             </table>
         </div>
@@ -109,6 +110,18 @@
                                 <span class="ml-toggle-slider"></span>
                             </label>
                             <span class="text-sm font-medium">{{ _("Active") }}</span>
+                        </div>
+                    </div>
+                    <div class="border border-red-200 rounded-lg p-3 bg-red-50">
+                        <div class="flex items-start gap-3">
+                            <label class="ml-toggle mt-0.5">
+                                <input type="checkbox" id="maintBlockAccess" />
+                                <span class="ml-toggle-slider"></span>
+                            </label>
+                            <div class="flex-1">
+                                <div class="text-sm font-semibold text-red-700">{{ _("Block access during window") }}</div>
+                                <p class="text-xs text-red-600 mt-1">{{ _("When enabled and the window is active, users without admin.maintenance.bypass are logged out and shown a maintenance page. Make sure you have the bypass permission before turning this on.") }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _("Maintenance - nexora") }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <style>
+        :root {
+            --info-bg: #eef2ff; --info-border: #c7d2fe; --info-fg: #3730a3;
+            --warn-bg: #fffbeb; --warn-border: #fde68a; --warn-fg: #92400e;
+            --crit-bg: #fef2f2; --crit-border: #fecaca; --crit-fg: #991b1b;
+        }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+            color: #1e293b;
+            padding: 24px;
+        }
+        .card {
+            max-width: 560px;
+            width: 100%;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+            padding: 40px 36px;
+            text-align: center;
+        }
+        .icon-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 32px;
+        }
+        .icon-info     { background: var(--info-bg); color: var(--info-fg); border: 1px solid var(--info-border); }
+        .icon-warning  { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-border); }
+        .icon-critical { background: var(--crit-bg); color: var(--crit-fg); border: 1px solid var(--crit-border); }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .lead {
+            color: #64748b;
+            font-size: 15px;
+            margin: 0 0 24px;
+        }
+        .message {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 18px;
+            text-align: left;
+            white-space: pre-wrap;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.55;
+            margin-bottom: 20px;
+        }
+        .window {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 9999px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 24px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        .window .sep { color: #94a3b8; }
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-ghost {
+            background: #fff;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+        .btn-ghost:hover { background: #f8fafc; }
+        .footer {
+            margin-top: 24px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        {% set sev = (maintenance.severity if maintenance else 'info') %}
+        <div class="icon-wrap icon-{{ sev }}">
+            {% if sev == 'critical' %}
+                <i class="fas fa-circle-exclamation"></i>
+            {% elif sev == 'warning' %}
+                <i class="fas fa-triangle-exclamation"></i>
+            {% else %}
+                <i class="fas fa-screwdriver-wrench"></i>
+            {% endif %}
+        </div>
+
+        <h1>{{ maintenance.title if (maintenance and maintenance.title) else _("Scheduled Maintenance") }}</h1>
+        <p class="lead">{{ _("The application is temporarily unavailable. Please check back shortly.") }}</p>
+
+        {% if maintenance and maintenance.message %}
+        <div class="message">{{ maintenance.message }}</div>
+        {% endif %}
+
+        {% if maintenance and maintenance.startAt and maintenance.endAt %}
+        <div class="window">
+            <i class="fas fa-clock"></i>
+            <span id="mp-window">
+                {{ maintenance.startAt|replace('T', ' ')|truncate(16, True, '') }}
+                <span class="sep">→</span>
+                {{ maintenance.endAt|replace('T', ' ')|truncate(16, True, '') }}
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <button type="button" class="btn btn-primary" onclick="window.location.reload()">
+                <i class="fas fa-rotate-right"></i>{{ _("Refresh") }}
+            </button>
+            <a class="btn btn-ghost" href="{{ url_for('login') }}">
+                <i class="fas fa-right-to-bracket"></i>{{ _("Login") }}
+            </a>
+        </div>
+
+        <div class="footer">
+            {% if maintenance and maintenance.endAt %}
+                {{ _("Expected to end at") }} <span id="mp-end-local">{{ maintenance.endAt|replace('T', ' ')|truncate(16, True, '') }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh once the window is over (reload every 30s to detect end)
+        (function() {
+            const endIso = {{ (maintenance.endAt if maintenance else None) | tojson }};
+            if (!endIso) return;
+            const endTs = Date.parse(endIso.replace(' ', 'T'));
+            if (isNaN(endTs)) return;
+            function check() {
+                if (Date.now() >= endTs) window.location.reload();
+            }
+            setInterval(check, 30000);
+        })();
+    </script>
+</body>
+</html>

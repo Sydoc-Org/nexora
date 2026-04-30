@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-# app.config['SESSION_COOKIE_SECURE'] = True 
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+app.config['SESSION_COOKIE_SECURE'] = True 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# app.config['SESSION_TYPE'] = 'filesystem'  
-# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-# app.config['SESSION_PERMANENT'] = True
-# app.config['SESSION_USE_SIGNER'] = True    
+app.config['SESSION_TYPE'] = 'filesystem'  
+app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True    
 
-# Session(app)
+Session(app)
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'base-uri': '\'self\'',         
-#     'object-src': '\'none\'',       
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+csp = {
+    'default-src': '\'self\'',
+    'base-uri': '\'self\'',         
+    'object-src': '\'none\'',       
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://cdn.tailwindcss.com',   
+        'https://cdnjs.cloudflare.com',  
+        'https://cdn.jsdelivr.net'       
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'',             
+        'https://fonts.googleapis.com',  
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com',     
+        'https://cdnjs.cloudflare.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'blob:',                         
+        'https://cdn.tailwindcss.com'
+    ],
+    'connect-src': [
+        '\'self\'',                     
+        'https://cdn.tailwindcss.com',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net'
+    ]
+}
+Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -376,6 +376,30 @@ def load_user_locale():
         except Exception as e:
             app.logger.error(f"load_user_locale error: {e}")
 
+
+@app.before_request
+def enforce_maintenance_lockout():
+    """When a banner with BlockAccess=1 is in its window, kick non-bypass users
+    out of every route except a tiny allowlist (login is handled inside login())."""
+    if request.path.startswith(_MAINTENANCE_LOCKOUT_SKIP_PATHS):
+        return
+    blocking = _get_blocking_maintenance()
+    if not blocking:
+        return
+    # Established session
+    if 'admin.maintenance.bypass' in (session.get('permissions') or []):
+        return
+    # Mid-login flow (after bcrypt success, before perms are loaded into session)
+    pending_uid = session.get('pre_2fa_userid') or session.get('pre_auth_userid')
+    if pending_uid and _user_has_maintenance_bypass(pending_uid):
+        return
+    # Drop their session so they can't keep working anywhere
+    if 'userid' in session:
+        session.clear()
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({'error': 'Maintenance', 'maintenance': blocking}), 503
+    return render_template('maintenance.html', maintenance=blocking), 503
+
 @app.after_request
 def log_every_request(response):
     if request.path.startswith('/static'):
@@ -503,6 +527,7 @@ def pageVisability():
     generaliImportStatusPerm = has_permission('generali.importstatus.view')
     adminMaintenanceViewPerm = has_permission('admin.maintenance.view')
     adminMaintenanceEditPerm = has_permission('admin.maintenance.edit')
+    adminMaintenanceBypassPerm = has_permission('admin.maintenance.bypass')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
@@ -515,7 +540,8 @@ def pageVisability():
             'generaliPDQMPerm': generaliPDQMPerm,
             'generaliImportStatusPerm': generaliImportStatusPerm,
             'adminMaintenanceViewPerm': adminMaintenanceViewPerm,
-            'adminMaintenanceEditPerm': adminMaintenanceEditPerm}
+            'adminMaintenanceEditPerm': adminMaintenanceEditPerm,
+            'adminMaintenanceBypassPerm': adminMaintenanceBypassPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -739,69 +765,80 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        if UID_REQUEST == '123' and PWD_REQUEST == '123':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            username, fullname, email, org_code, locale = row
+        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
+        #     blocking = _maintenance_blocks_user("1019")
+        #     if blocking:
+        #         return render_template('maintenance.html', maintenance=blocking), 503
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     username, fullname, email, org_code, locale = row
 
-            session.clear() 
-            session['userid'] = "1019"
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user("1019")
-            _record_active_session("1019")
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '321' and PWD_REQUEST == '321':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
+        #     session.clear()
+        #     session['userid'] = "1019"
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user("1019")
+        #     _record_active_session("1019")
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
+        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code, locale = row
 
-            session.clear() 
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '456' and PWD_REQUEST == '456':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
+        #     blocking = _maintenance_blocks_user(userid)
+        #     if blocking:
+        #         return render_template('maintenance.html', maintenance=blocking), 503
 
-            session.clear() 
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
+        #     session.clear()
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user(userid)
+        #     _record_active_session(userid)
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
+        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
+        #     conn = engineNexoraDB.raw_connection()
+        #     cursor = conn.cursor()
+        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+        #     row = cursor.fetchone()
+        #     cursor.close()
+        #     conn.close()
+        #     userid, username, fullname, email, org_code, locale = row
+
+        #     blocking = _maintenance_blocks_user(userid)
+        #     if blocking:
+        #         return render_template('maintenance.html', maintenance=blocking), 503
+
+        #     session.clear()
+        #     session['userid'] = userid
+        #     session['username'] = username
+        #     session['fullname'] = fullname
+        #     session['email'] = email
+        #     session['organizationcode'] = org_code
+        #     session['uuid'] = uuid.uuid4()
+        #     session['locale'] = locale
+        #     session['permissions'] = load_permissions_for_user(userid)
+        #     _record_active_session(userid)
+        #     pV = pageVisability()
+        #     return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials")), 401
 
@@ -825,6 +862,9 @@ def login():
                     stored_hash = stored_hash.encode('utf-8')
 
                 if bcrypt.checkpw(PWD_REQUEST.encode('utf-8'), stored_hash):
+                    blocking = _maintenance_blocks_user(stored_userid)
+                    if blocking:
+                        return render_template('maintenance.html', maintenance=blocking), 503
                     if not stored_initReset:
                         session['pre_auth_userid'] = str(stored_userid)
                         return redirect(url_for("init_reset"))
@@ -1175,7 +1215,81 @@ def _maintenance_row_to_dict(row, cols):
     for k in ('StartAt', 'EndAt', 'CreatedAt'):
         d[k] = _maintenance_iso(d.get(k))
     d['Active'] = bool(d.get('Active'))
+    if 'BlockAccess' in d:
+        d['BlockAccess'] = bool(d.get('BlockAccess'))
     return d
+
+
+# Cached lookup of active blocking maintenance — TTL'd so we don't hit the DB
+# on every request. Returns dict or None.
+_MAINTENANCE_BLOCK_CACHE = {'expires_at': 0.0, 'data': None}
+_MAINTENANCE_BLOCK_TTL = 5  # seconds
+
+
+def _get_blocking_maintenance():
+    now_ts = time.time()
+    if now_ts < _MAINTENANCE_BLOCK_CACHE['expires_at']:
+        return _MAINTENANCE_BLOCK_CACHE['data']
+    result = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity
+            FROM MaintenanceBanner
+            WHERE Active = 1 AND BlockAccess = 1
+              AND StartAt <= GETDATE() AND EndAt >= GETDATE()
+            ORDER BY StartAt DESC, ID DESC
+        """)
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            result = {
+                'id':       int(row[0]),
+                'title':    row[1],
+                'message':  row[2],
+                'startAt':  _maintenance_iso(row[3]),
+                'endAt':    _maintenance_iso(row[4]),
+                'severity': row[5],
+            }
+    except Exception as e:
+        app.logger.error(f"Maintenance lockout lookup failed: {e}")
+        # Fail open — never lock users out due to a transient DB blip
+        return None
+    _MAINTENANCE_BLOCK_CACHE['data'] = result
+    _MAINTENANCE_BLOCK_CACHE['expires_at'] = now_ts + _MAINTENANCE_BLOCK_TTL
+    return result
+
+
+def _user_has_maintenance_bypass(userid):
+    if userid is None:
+        return False
+    try:
+        perms = load_permissions_for_user(str(userid)) or []
+    except Exception as e:
+        app.logger.error(f"Bypass perm lookup failed: {e}")
+        return False
+    return 'admin.maintenance.bypass' in perms
+
+
+_MAINTENANCE_LOCKOUT_SKIP_PATHS = (
+    '/static',
+    '/maintenance',
+    '/api/maintenance/active',
+    '/login',
+    '/logout',
+)
+
+
+def _maintenance_blocks_user(userid):
+    """Returns the blocking banner if `userid` would be locked out, else None."""
+    blocking = _get_blocking_maintenance()
+    if not blocking:
+        return None
+    if _user_has_maintenance_bypass(userid):
+        return None
+    return blocking
 
 
 @app.route("/admin/maintenance")
@@ -1199,7 +1313,7 @@ def api_admin_maintenance_list():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, CreatedBy, CreatedAt
+            SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, CreatedBy, CreatedAt
             FROM MaintenanceBanner
             ORDER BY StartAt DESC, ID DESC
         """)
@@ -1215,12 +1329,13 @@ def api_admin_maintenance_list():
 
 
 def _maintenance_parse_payload(body):
-    title    = (body.get('title') or '').strip()
-    message  = (body.get('message') or '').strip()
-    start_at = (body.get('startAt') or '').strip().replace('T', ' ')
-    end_at   = (body.get('endAt') or '').strip().replace('T', ' ')
-    severity = (body.get('severity') or 'info').strip().lower()
-    active   = bool(body.get('active', True))
+    title       = (body.get('title') or '').strip()
+    message     = (body.get('message') or '').strip()
+    start_at    = (body.get('startAt') or '').strip().replace('T', ' ')
+    end_at      = (body.get('endAt') or '').strip().replace('T', ' ')
+    severity    = (body.get('severity') or 'info').strip().lower()
+    active      = bool(body.get('active', True))
+    block_access = bool(body.get('blockAccess', False))
 
     if not message:
         return None, ("message is required", 400)
@@ -1235,6 +1350,7 @@ def _maintenance_parse_payload(body):
         'end_at': end_at,
         'severity': severity,
         'active': 1 if active else 0,
+        'block_access': 1 if block_access else 0,
     }, None
 
 
@@ -1251,13 +1367,14 @@ def api_admin_maintenance_add():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, CreatedBy, CreatedAt)
+            INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, CreatedBy, CreatedAt)
             OUTPUT INSERTED.ID
-            VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
         """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
-              parsed['severity'], parsed['active'], session.get('userid')])
+              parsed['severity'], parsed['active'], parsed['block_access'], session.get('userid')])
         new_id = cursor.fetchone()[0]
         conn.commit()
+        _MAINTENANCE_BLOCK_CACHE['expires_at'] = 0.0
         return jsonify({"success": True, "id": int(new_id)})
     except Exception as e:
         app.logger.error(f"Maintenance add error: {e}")
@@ -1281,13 +1398,14 @@ def api_admin_maintenance_edit(banner_id):
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE MaintenanceBanner
-               SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?, Active = ?
+               SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?, Active = ?, BlockAccess = ?
              WHERE ID = ?
         """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
-              parsed['severity'], parsed['active'], banner_id])
+              parsed['severity'], parsed['active'], parsed['block_access'], banner_id])
         if cursor.rowcount == 0:
             return jsonify({"success": False, "error": "Banner not found"}), 404
         conn.commit()
+        _MAINTENANCE_BLOCK_CACHE['expires_at'] = 0.0
         return jsonify({"success": True})
     except Exception as e:
         app.logger.error(f"Maintenance edit error: {e}")
@@ -1308,6 +1426,7 @@ def api_admin_maintenance_delete(banner_id):
         if cursor.rowcount == 0:
             return jsonify({"success": False, "error": "Banner not found"}), 404
         conn.commit()
+        _MAINTENANCE_BLOCK_CACHE['expires_at'] = 0.0
         return jsonify({"success": True})
     except Exception as e:
         app.logger.error(f"Maintenance delete error: {e}")
@@ -1315,6 +1434,12 @@ def api_admin_maintenance_delete(banner_id):
     finally:
         if conn:
             conn.close()
+
+
+@app.route("/maintenance")
+def maintenance_page():
+    blocking = _get_blocking_maintenance()
+    return render_template('maintenance.html', maintenance=blocking), (503 if blocking else 200)
 
 
 @app.route("/api/maintenance/active", methods=['GET'])
@@ -8823,7 +8948,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

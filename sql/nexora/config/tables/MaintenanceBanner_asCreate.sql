@@ -15,6 +15,7 @@ CREATE TABLE [dbo].[MaintenanceBanner](
 	[EndAt] [datetime2](7) NOT NULL,
 	[Severity] [varchar](20) NOT NULL,
 	[Active] [bit] NOT NULL,
+	[BlockAccess] [bit] NOT NULL,
 	[CreatedBy] [int] NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 PRIMARY KEY CLUSTERED
@@ -30,8 +31,15 @@ GO
 ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT ((1)) FOR [Active]
 GO
 
+ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT ((0)) FOR [BlockAccess]
+GO
+
 ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT (getdate()) FOR [CreatedAt]
 GO
 
 CREATE INDEX [IX_MaintenanceBanner_Window] ON [dbo].[MaintenanceBanner]([Active], [StartAt], [EndAt])
 GO
+
+-- If the table already exists from the prior version, run this instead of recreating:
+-- ALTER TABLE [dbo].[MaintenanceBanner] ADD [BlockAccess] [bit] NOT NULL CONSTRAINT DF_MaintenanceBanner_BlockAccess DEFAULT ((0))
+-- GO
