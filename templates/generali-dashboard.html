@@ -11,6 +11,35 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    .trend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #4b5563;
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1;
+      transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+      cursor: pointer;
+    }
+    .trend-chip:hover { background: #f9fafb; }
+    .trend-chip[aria-pressed="true"] {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #4338ca;
+    }
+    .trend-chip-dot {
+      display: inline-block;
+      width: 0.625rem;
+      height: 0.625rem;
+      border-radius: 9999px;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
   {% set active_page = 'generali_dashboard' %} {% include '_header.html' %}
@@ -84,9 +113,33 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Daily Processing Volume") }}
-        </h3>
+        <div class="flex items-start justify-between mb-4 flex-wrap gap-2">
+          <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">
+            <i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Daily Processing Volume") }}
+          </h3>
+          <div class="flex items-center gap-2 flex-wrap" id="trendToggles">
+            <button type="button" data-series="total" class="trend-chip" aria-pressed="true">
+              <span class="trend-chip-dot" style="background:#4f46e5"></span>{{ _("Total") }}
+            </button>
+            <button type="button" data-series="expected" class="trend-chip" aria-pressed="false">
+              <span class="trend-chip-dot" style="background:#ef4444"></span>{{ _("Expected") }} (10000)
+            </button>
+            <div class="relative" id="kommWrap">
+              <button type="button" id="kommBtn" class="trend-chip" aria-pressed="false" aria-haspopup="true" aria-expanded="false">
+                {{ _("Kommunikation") }}
+                <span id="kommCount" class="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-700 text-[10px] font-semibold">0</span>
+                <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
+              </button>
+              <div id="kommMenu" class="hidden absolute right-0 mt-1 z-20 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg p-2">
+                <div class="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                  <button type="button" id="kommAll" class="text-[11px] font-semibold text-indigo-600 hover:underline">{{ _("Select all") }}</button>
+                  <button type="button" id="kommNone" class="text-[11px] font-semibold text-gray-500 hover:underline">{{ _("Clear") }}</button>
+                </div>
+                <div id="kommItems" class="space-y-0.5 text-sm"></div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="h-48 sm:h-64"><canvas id="trendChart"></canvas></div>
       </div>
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

@@ -102,11 +102,32 @@
         const start = document.getElementById('filterStartDate').value;
         const end   = document.getElementById('filterEndDate').value;
         const cat   = document.getElementById('filterCategory').value;
+        const org   = document.getElementById('filterOrganizationCode').value;
         if (start) p.set('startDate', start);
         if (end)   p.set('endDate', end);
         if (cat)   p.set('category', cat);
+        if (org)   p.set('organizationcode', org);
         p.set('page', page);
         return p;
+    }
+
+    function loadOrganizations() {
+        fetch(`${API_PREFIX}api/generali/reporting/organizations`, {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('filterOrganizationCode');
+            if (!sel) return;
+            (data.organizations || []).forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.code;
+                opt.textContent = o.name || o.code;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load organizations', e));
     }
 
     async function fetchRecords(page = 1) {
@@ -847,6 +868,7 @@
         fpFilterStart.clear();
         fpFilterEnd.clear();
         document.getElementById('filterCategory').value = '';
+        document.getElementById('filterOrganizationCode').value = '';
         fetchRecords(1);
     });
 
@@ -898,5 +920,6 @@
     }
 
     // ----------------------------- init ----------------------------- //
+    loadOrganizations();
     fetchRecords(1);
 </script>

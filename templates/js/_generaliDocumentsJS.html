@@ -3,7 +3,7 @@
 
     let currentPage = 1;
     let currentGroupBy = '';
-    let sortBy = 'DOC_DateCreated';
+    let sortBy = 'DOC_SCANDATUM';
     let sortDir = 'DESC';
     let detailCache = {};
     let _searchDebounce;
@@ -100,8 +100,8 @@
                 }
             }
 
-            const dateStr = doc.doc_datecreated
-                ? doc.doc_datecreated.replace('T', ' ').substring(0, 19)
+            const dateStr = doc.doc_scandatum
+                ? doc.doc_scandatum.replace('T', ' ').substring(0, 19)
                 : '—';
 
             const docRow = document.createElement('tr');
@@ -151,7 +151,7 @@
             },
             {
                 title: {{ _("Dates") | tojson }}, icon: 'fa-calendar',
-                fields: ['DOC_DateCreated', 'DOC_SCANDATUM', 'DOC_SCANDATUM_INITIAL', 'DOC_BELEGDATUM', 'DOC_GEBURTSDATUM']
+                fields: ['DOC_SCANDATUM', 'DOC_SCANDATUM_INITIAL', 'DOC_BELEGDATUM', 'DOC_GEBURTSDATUM']
             },
             {
                 title: {{ _("Classification") | tojson }}, icon: 'fa-tag',

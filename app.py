@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -500,6 +500,7 @@ def pageVisability():
     generaliBaseServicesPerm = has_permission('generali.baseservices.view')
     generaliProjectManagementPerm = has_permission('generali.projectmanagement.view')
     generaliPDQMPerm = has_permission('generali.pdqm.view')
+    generaliImportStatusPerm = has_permission('generali.importstatus.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
@@ -509,7 +510,8 @@ def pageVisability():
             'generaliAdditionalServicesPerm': generaliAdditionalServicesPerm,
             'generaliBaseServicesPerm': generaliBaseServicesPerm,
             'generaliProjectManagementPerm': generaliProjectManagementPerm,
-            'generaliPDQMPerm': generaliPDQMPerm}
+            'generaliPDQMPerm': generaliPDQMPerm,
+            'generaliImportStatusPerm': generaliImportStatusPerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -733,69 +735,69 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code, locale = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user("1019")
-        #     _record_active_session("1019")
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user("1019")
+            _record_active_session("1019")
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     _record_active_session(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '456' and PWD_REQUEST == '456':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     session.clear() 
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     _record_active_session(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
+            session.clear() 
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials")), 401
 
@@ -6494,10 +6496,10 @@ def api_generali_stats():
         date_params = []
 
         if start_date:
-            date_filter += " AND DOC_DateCreated >= ?"
+            date_filter += " AND DOC_SCANDATUM >= ?"
             date_params.append(start_date)
         if end_date:
-            date_filter += " AND DOC_DateCreated <= ?"
+            date_filter += " AND DOC_SCANDATUM <= ?"
             date_params.append(end_date)
 
         conn = engineGeneraliDB.raw_connection()
@@ -6522,21 +6524,35 @@ def api_generali_stats():
             "nk1_nk2_rate": round((kpi_row[3] / total) * 100, 1) if total > 0 else 0
         }
 
-        trend_where = "1=1" + date_filter if date_filter else "DOC_DateCreated >= DATEADD(day, -30, GETDATE())"
+        trend_where = "1=1" + date_filter if date_filter else "DOC_SCANDATUM >= DATEADD(day, -30, GETDATE())"
         cursor.execute(f"""
-            SELECT CAST(DOC_DateCreated AS DATE) as d, COUNT(*) as c
+            SELECT CAST(DOC_SCANDATUM AS DATE) as d,
+                   ISNULL(DOC_KOMMUNIKATION, 'Unknown') as k,
+                   COUNT(*) as c
             FROM [dbo].[v_ReportJobJoinDefinitions]
             WHERE {trend_where}
-            GROUP BY CAST(DOC_DateCreated AS DATE)
+            GROUP BY CAST(DOC_SCANDATUM AS DATE), ISNULL(DOC_KOMMUNIKATION, 'Unknown')
             ORDER BY d
         """, date_params)
         trend_rows = cursor.fetchall()
-        trend_data = {"labels": [str(r[0]) for r in trend_rows], "values": [r[1] for r in trend_rows]}
-        
-        kpis['avg_daily'] = round(total / len(trend_rows), 1) if total > 0 else 0
+
+        labels = sorted({str(r[0]) for r in trend_rows})
+        label_index = {d: i for i, d in enumerate(labels)}
+        totals = [0] * len(labels)
+        by_komm = {}
+        for d, k, c in trend_rows:
+            i = label_index[str(d)]
+            totals[i] += c
+            if k not in by_komm:
+                by_komm[k] = [0] * len(labels)
+            by_komm[k][i] += c
+
+        trend_data = {"labels": labels, "values": totals, "byKommunikation": by_komm}
+
+        kpis['avg_daily'] = round(total / len(labels), 1) if total > 0 and labels else 0
         
         cursor.execute(f"""
-            SELECT ISNULL(DOC_DOKUMENTENTYP, 'Unknown') as t, COUNT(*) as c
+            SELECT TOP 15 ISNULL(DOC_DOKUMENTENTYP, 'Unknown') as t, COUNT(*) as c
             FROM [dbo].[v_ReportJobJoinDefinitions]
             WHERE 1=1 {date_filter}
             GROUP BY DOC_DOKUMENTENTYP
@@ -6653,16 +6669,16 @@ def api_generali_documents():
         start_date = request.args.get('startDate')
         end_date = request.args.get('endDate')
         search = request.args.get('search', '').strip()
-        sort_by = request.args.get('sortBy', 'DOC_DateCreated')
+        sort_by = request.args.get('sortBy', 'DOC_SCANDATUM')
         sort_dir = request.args.get('sortDir', 'DESC').upper()
         group_by = request.args.get('groupBy', '')
 
         allowed_sort_cols = {
-            'DOC_DateCreated', 'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_SPRACHE',
+            'DOC_SCANDATUM', 'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_SPRACHE',
             'DOC_EINGANGSKANAL', 'DOC_NK1', 'DOC_NK2', 'DOC_BETRAG', 'DOC_KOMMUNIKATION'
         }
         if sort_by not in allowed_sort_cols:
-            sort_by = 'DOC_DateCreated'
+            sort_by = 'DOC_SCANDATUM'
         if sort_dir not in ('ASC', 'DESC'):
             sort_dir = 'DESC'
 
@@ -6697,10 +6713,10 @@ def api_generali_documents():
             where_clauses.append("DOC_KOMMUNIKATION = ?")
             params.append(kommunikation)
         if start_date:
-            where_clauses.append("DOC_DateCreated >= ?")
+            where_clauses.append("DOC_SCANDATUM >= ?")
             params.append(start_date)
         if end_date:
-            where_clauses.append("DOC_DateCreated <= ?")
+            where_clauses.append("DOC_SCANDATUM <= ?")
             params.append(end_date)
         if search:
             where_clauses.append("""(
@@ -6718,7 +6734,7 @@ def api_generali_documents():
             order_parts.append(f"{group_by} ASC")
         if sort_by != group_by:
             order_parts.append(f"{sort_by} {sort_dir}")
-        order_sql = ", ".join(order_parts) if order_parts else "DOC_DateCreated DESC"
+        order_sql = ", ".join(order_parts) if order_parts else "DOC_SCANDATUM DESC"
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
@@ -6729,7 +6745,7 @@ def api_generali_documents():
 
         cursor.execute(f"""
             SELECT
-                DOC_ID, CASE_ID, CASE_FOLDERNAME, DOC_DateCreated, DOC_DOKUMENTENTYP,
+                DOC_ID, CASE_ID, CASE_FOLDERNAME, DOC_SCANDATUM, DOC_DOKUMENTENTYP,
                 DOC_EMPFAENGER, DOC_SPRACHE, DOC_KOMMUNIKATION, DOC_EINGANGSKANAL,
                 DOC_BETRAG, DOC_WAEHRUNG, DOC_NK1, DOC_NK2, DOC_SCANORT,
                 DOC_BEZEICHNUNG, DOC_NOTIFIKATIONSSTATUS, DOC_RICHTUNG, DOC_PENDING
@@ -6740,7 +6756,7 @@ def api_generali_documents():
         """, params + [offset, per_page])
 
         cols = [
-            'doc_id', 'case_id', 'case_foldername', 'doc_datecreated', 'doc_dokumententyp',
+            'doc_id', 'case_id', 'case_foldername', 'doc_scandatum', 'doc_dokumententyp',
             'doc_empfaenger', 'doc_sprache', 'doc_kommunikation', 'doc_eingangskanal',
             'doc_betrag', 'doc_waehrung', 'doc_nk1', 'doc_nk2', 'doc_scanort',
             'doc_bezeichnung', 'doc_notifikationsstatus', 'doc_richtung', 'doc_pending'
@@ -6748,7 +6764,7 @@ def api_generali_documents():
         documents = []
         for row in cursor.fetchall():
             d = dict(zip(cols, row))
-            d['doc_datecreated'] = str(d['doc_datecreated']) if d['doc_datecreated'] else None
+            d['doc_scandatum'] = str(d['doc_scandatum']) if d['doc_scandatum'] else None
             documents.append(d)
 
         return jsonify({
@@ -6796,6 +6812,47 @@ def api_generali_document_detail(doc_id):
             conn.close()
 
 
+# ----------------------------- Generali shared org helpers ------------------ #
+def _generali_orgs_for_userids(user_ids):
+    if not user_ids:
+        return []
+    nx_conn = engineNexoraDB.raw_connection()
+    try:
+        nx_cur = nx_conn.cursor()
+        placeholders = ','.join(['?'] * len(user_ids))
+        nx_cur.execute(f"""
+            SELECT DISTINCT u.organizationcode, o.organization
+            FROM Users u
+            LEFT JOIN organizations o ON o.organizationcode = u.organizationcode
+            WHERE u.userid IN ({placeholders}) AND u.organizationcode IS NOT NULL
+            ORDER BY o.organization, u.organizationcode
+        """, user_ids)
+        return [{'code': r[0], 'name': r[1] or r[0]} for r in nx_cur.fetchall()]
+    finally:
+        nx_conn.close()
+
+
+def _generali_userids_in_org(org_code):
+    nx_conn = engineNexoraDB.raw_connection()
+    try:
+        nx_cur = nx_conn.cursor()
+        nx_cur.execute("SELECT userid FROM Users WHERE organizationcode = ?", [org_code])
+        return [r[0] for r in nx_cur.fetchall()]
+    finally:
+        nx_conn.close()
+
+
+def _empty_paginated_response(extra=None):
+    payload = {
+        'success': True,
+        'records': [],
+        'pagination': {'page': 1, 'per_page': 20, 'total_records': 0, 'total_pages': 1},
+    }
+    if extra:
+        payload.update(extra)
+    return jsonify(payload)
+
+
 # ----------------------------- Generali Reporting --------------------------- #
 REPORTING_CATEGORIES = {'export_post', 'export_post_scan', 'provision_archive', 'stray_document_digital', 'stray_document_physical'}
 @app.route("/generali/reporting")
@@ -6817,6 +6874,25 @@ def generali_reporting():
         return render_template('handlers/500.html'), 500
 
 
+@app.route("/api/generali/reporting/organizations", methods=["GET"])
+@require_permission('generali.reporting.view')
+def api_generali_reporting_organizations():
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL")
+        user_ids = [r[0] for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting Organizations Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/reporting", methods=["GET"])
 @require_permission('generali.reporting.view')
 def api_generali_reporting_list():
@@ -6829,6 +6905,7 @@ def api_generali_reporting_list():
         start_date = request.args.get('startDate', '').strip()
         end_date   = request.args.get('endDate', '').strip()
         category   = request.args.get('category', '').strip()
+        org_code   = request.args.get('organizationcode', '').strip()
 
         where_clauses = []
         params = []
@@ -6842,6 +6919,13 @@ def api_generali_reporting_list():
         if category and category in REPORTING_CATEGORIES:
             where_clauses.append("category = ?")
             params.append(category)
+        if org_code:
+            org_user_ids = _generali_userids_in_org(org_code)
+            if not org_user_ids:
+                return _empty_paginated_response()
+            placeholders = ','.join(['?'] * len(org_user_ids))
+            where_clauses.append(f"ReportByUserID IN ({placeholders})")
+            params.extend(org_user_ids)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -7144,6 +7228,33 @@ def api_generali_attendance_org_users():
             conn.close()
 
 
+@app.route("/api/generali/attendance/organizations", methods=["GET"])
+@require_permission('generali.additionalservices.view')
+def api_generali_attendance_organizations():
+    conn = None
+    try:
+        restrict_to_self = (not has_permission('generali.attendance.edit')
+                            and not has_permission('generali.attendance.edit.transorganizational'))
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        if restrict_to_self:
+            cursor.execute(
+                "SELECT DISTINCT UserID FROM [Generali].[dbo].[Attendance] WHERE UserID IS NOT NULL AND UserID = ?",
+                [session.get('userid')]
+            )
+        else:
+            cursor.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[Attendance] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance Organizations Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/attendance", methods=["GET"])
 @require_permission('generali.additionalservices.view')
 def api_generali_attendance_list():
@@ -7157,6 +7268,7 @@ def api_generali_attendance_list():
         end_date       = request.args.get('endDate', '').strip()
         parent_cat     = request.args.get('parentCategory', '').strip()
         sub_cat        = request.args.get('subCategory', '').strip()
+        org_code       = request.args.get('organizationcode', '').strip()
 
         where_clauses = []
         params = []
@@ -7177,6 +7289,14 @@ def api_generali_attendance_list():
         if not has_permission('generali.attendance.edit') and not has_permission('generali.attendance.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
+
+        if org_code:
+            org_user_ids = _generali_userids_in_org(org_code)
+            if not org_user_ids:
+                return _empty_paginated_response({'totalHours': 0.0})
+            placeholders = ','.join(['?'] * len(org_user_ids))
+            where_clauses.append(f"UserID IN ({placeholders})")
+            params.extend(org_user_ids)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -7428,6 +7548,33 @@ def api_generali_baseservices_org_users():
             conn.close()
 
 
+@app.route("/api/generali/baseservices/organizations", methods=["GET"])
+@require_permission('generali.baseservices.view')
+def api_generali_baseservices_organizations():
+    conn = None
+    try:
+        restrict_to_self = (not has_permission('generali.baseservices.edit')
+                            and not has_permission('generali.baseservices.edit.transorganizational'))
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        if restrict_to_self:
+            cursor.execute(
+                "SELECT DISTINCT UserID FROM [Generali].[dbo].[BaseServices] WHERE UserID IS NOT NULL AND UserID = ?",
+                [session.get('userid')]
+            )
+        else:
+            cursor.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[BaseServices] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
+    except Exception as e:
+        app.logger.error(f"Generali Base Services Organizations Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/baseservices", methods=["GET"])
 @require_permission('generali.baseservices.view')
 def api_generali_baseservices_list():
@@ -7440,6 +7587,7 @@ def api_generali_baseservices_list():
         start_date = request.args.get('startDate', '').strip()
         end_date   = request.args.get('endDate', '').strip()
         category   = request.args.get('category', '').strip()
+        org_code   = request.args.get('organizationcode', '').strip()
 
         where_clauses = []
         params = []
@@ -7457,6 +7605,14 @@ def api_generali_baseservices_list():
         if not has_permission('generali.baseservices.edit') and not has_permission('generali.baseservices.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
+
+        if org_code:
+            org_user_ids = _generali_userids_in_org(org_code)
+            if not org_user_ids:
+                return _empty_paginated_response({'totalHours': 0.0})
+            placeholders = ','.join(['?'] * len(org_user_ids))
+            where_clauses.append(f"UserID IN ({placeholders})")
+            params.extend(org_user_ids)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -7710,6 +7866,33 @@ def api_generali_projectmanagement_org_users():
             conn.close()
 
 
+@app.route("/api/generali/projectmanagement/organizations", methods=["GET"])
+@require_permission('generali.projectmanagement.view')
+def api_generali_projectmanagement_organizations():
+    conn = None
+    try:
+        restrict_to_self = (not has_permission('generali.projectmanagement.edit')
+                            and not has_permission('generali.projectmanagement.edit.transorganizational'))
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        if restrict_to_self:
+            cursor.execute(
+                "SELECT DISTINCT UserID FROM [Generali].[dbo].[ProjectManagement] WHERE UserID IS NOT NULL AND UserID = ?",
+                [session.get('userid')]
+            )
+        else:
+            cursor.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[ProjectManagement] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
+    except Exception as e:
+        app.logger.error(f"Generali Project Management Organizations Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/projectmanagement", methods=["GET"])
 @require_permission('generali.projectmanagement.view')
 def api_generali_projectmanagement_list():
@@ -7721,6 +7904,7 @@ def api_generali_projectmanagement_list():
 
         start_date = request.args.get('startDate', '').strip()
         end_date   = request.args.get('endDate', '').strip()
+        org_code   = request.args.get('organizationcode', '').strip()
 
         where_clauses = []
         params = []
@@ -7735,6 +7919,14 @@ def api_generali_projectmanagement_list():
         if not has_permission('generali.projectmanagement.edit') and not has_permission('generali.projectmanagement.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
+
+        if org_code:
+            org_user_ids = _generali_userids_in_org(org_code)
+            if not org_user_ids:
+                return _empty_paginated_response({'totalHours': 0.0})
+            placeholders = ','.join(['?'] * len(org_user_ids))
+            where_clauses.append(f"UserID IN ({placeholders})")
+            params.extend(org_user_ids)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -8005,6 +8197,25 @@ def api_generali_pdqm_categories():
             conn.close()
 
 
+@app.route("/api/generali/pdqm/organizations", methods=["GET"])
+@require_permission('generali.pdqm.view')
+def api_generali_pdqm_organizations():
+    conn = None
+    try:
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM Organizations Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/pdqm", methods=["GET"])
 @require_permission('generali.pdqm.view')
 def api_generali_pdqm_list():
@@ -8019,6 +8230,7 @@ def api_generali_pdqm_list():
         parent_cat     = request.args.get('parentCategory', '').strip()
         parent_sub_cat = request.args.get('parentSubCategory', None)  # None = not filtered; "" = IS NULL
         sub_cat        = request.args.get('subCategory', '').strip()
+        org_code       = request.args.get('organizationcode', '').strip()
 
         where_clauses = []
         params = []
@@ -8041,6 +8253,13 @@ def api_generali_pdqm_list():
         if sub_cat:
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
+        if org_code:
+            org_user_ids = _generali_userids_in_org(org_code)
+            if not org_user_ids:
+                return _empty_paginated_response({'totalQuantity': 0})
+            placeholders = ','.join(['?'] * len(org_user_ids))
+            where_clauses.append(f"UserID IN ({placeholders})")
+            params.extend(org_user_ids)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -8232,6 +8451,107 @@ def api_generali_pdqm_delete(record_id):
             conn.close()
 
 
+# ----------------------------- Generali Import Status ---------------------- #
+@app.route("/generali/importStatus")
+@require_permission('generali.importstatus.view')
+def generali_importStatus():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+        return render_template("generali_importstatus.html",
+                               logged_in_user=session.get('username'),
+                               userid=session.get('userid'),
+                               pageV=pageVisability(),
+                               organizationcode=session.get('organizationcode'))
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Import Status: {e}")
+        return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/importstatus", methods=["GET"])
+@require_permission('generali.importstatus.view')
+def api_generali_importstatus_list():
+    conn = None
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = 20
+        offset = (page - 1) * per_page
+
+        start_date = request.args.get('startDate', '').strip()
+        end_date   = request.args.get('endDate', '').strip()
+        status     = request.args.get('status', '').strip()
+        search     = request.args.get('search', '').strip()
+
+        where_clauses = []
+        params = []
+
+        if start_date:
+            where_clauses.append("StartedAt >= ?")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("StartedAt <= ?")
+            params.append(end_date)
+        if status in ('running', 'success', 'failed'):
+            where_clauses.append("[Status] = ?")
+            params.append(status)
+        if search:
+            where_clauses.append("FileName LIKE ?")
+            params.append(f"%{search}%")
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT COUNT(*) FROM [Generali].[dbo].[CSVImportLog] {where_sql}", params)
+        total_records = cursor.fetchone()[0] or 0
+        total_pages   = max(1, -(-total_records // per_page))
+
+        cursor.execute(f"""
+            SELECT ID, FileName, StartedAt, FinishedAt, CSVRowCount,
+                   RowsInserted, RowsUpdated, MinScanDatum, MaxScanDatum, [Status]
+            FROM [Generali].[dbo].[CSVImportLog]
+            {where_sql}
+            ORDER BY StartedAt DESC, ID DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, params + [offset, per_page])
+        rows = cursor.fetchall()
+        cursor.close()
+
+        records = []
+        for r in rows:
+            rec_id, fname, started_at, finished_at, csv_rows, ins, upd, min_scan, max_scan, st = r
+            records.append({
+                'id':            rec_id,
+                'fileName':      fname,
+                'startedAt':     started_at.isoformat() if started_at else None,
+                'finishedAt':    finished_at.isoformat() if finished_at else None,
+                'csvRowCount':   int(csv_rows) if csv_rows is not None else None,
+                'rowsInserted':  int(ins) if ins is not None else 0,
+                'rowsUpdated':   int(upd) if upd is not None else 0,
+                'minScanDatum':  min_scan.isoformat() if min_scan else None,
+                'maxScanDatum':  max_scan.isoformat() if max_scan else None,
+                'status':        st,
+            })
+
+        return jsonify({
+            'success': True,
+            'records': records,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_records': total_records,
+                'total_pages': total_pages,
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Generali Import Status List Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/dashboard/recent_activity")
 @require_permission('dashboard.view')
 @cache.cached(timeout=120, key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
@@ -8302,7 +8622,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

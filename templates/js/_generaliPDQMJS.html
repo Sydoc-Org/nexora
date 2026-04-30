@@ -143,6 +143,7 @@
         const parent    = document.getElementById('filterParentCategory').value;
         const parentSub = document.getElementById('filterParentSubCategory').value;
         const sub       = document.getElementById('filterSubCategory').value;
+        const org       = document.getElementById('filterOrganizationCode').value;
         if (start)     p.set('startDate', start);
         if (end)       p.set('endDate', end);
         if (parent)    p.set('parentCategory', parent);
@@ -151,8 +152,28 @@
             p.set('parentSubCategory', parentSub === NULL_SENTINEL ? '' : parentSub);
         }
         if (sub)       p.set('subCategory', sub);
+        if (org)       p.set('organizationcode', org);
         p.set('page', page);
         return p;
+    }
+
+    function loadOrganizations() {
+        fetch(API_PREFIX + 'api/generali/pdqm/organizations', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('filterOrganizationCode');
+            if (!sel) return;
+            (data.organizations || []).forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.code;
+                opt.textContent = o.name || o.code;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load organizations', e));
     }
 
     function renderRow(r) {
@@ -301,6 +322,7 @@
         const sc = document.getElementById('filterSubCategory');
         while (sc.options.length > 1) sc.remove(1);
         sc.value = '';
+        document.getElementById('filterOrganizationCode').value = '';
         loadRecords(1);
     });
 
@@ -631,5 +653,6 @@
 
     // ----------------------------- init ----------------------------- //
     loadCategories();
+    loadOrganizations();
     loadRecords(1);
 </script>

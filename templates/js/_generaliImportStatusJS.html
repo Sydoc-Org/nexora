@@ -1,0 +1,255 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+    let currentPage = 1;
+
+    function formatDateTime(dtStr) {
+        if (!dtStr) return '—';
+        return dtStr.replace('T', ' ').substring(0, 19);
+    }
+
+    function formatDate(dtStr) {
+        if (!dtStr) return '—';
+        return dtStr.split('T')[0];
+    }
+
+    const STATUS_META = {
+        'success': { cls: 'bg-emerald-50 text-emerald-700', label: {{ _("Success") | tojson }}, icon: 'fa-check' },
+        'running': { cls: 'bg-amber-50 text-amber-700',     label: {{ _("Running") | tojson }}, icon: 'fa-spinner fa-spin' },
+        'failed':  { cls: 'bg-red-50 text-red-700',         label: {{ _("Failed") | tojson }},  icon: 'fa-xmark' },
+    };
+
+    function makeStatusBadge(st) {
+        const s = STATUS_META[st] || { cls: 'bg-gray-100 text-gray-600', label: st || '—', icon: 'fa-circle-question' };
+        const span = document.createElement('span');
+        span.className = `inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${s.cls}`;
+        const i = document.createElement('i');
+        i.className = `fas ${s.icon} text-[10px]`;
+        span.appendChild(i);
+        span.appendChild(document.createTextNode(s.label));
+        return span;
+    }
+
+    function makeTextCell(text, classes) {
+        const td = document.createElement('td');
+        td.className = classes;
+        td.textContent = text;
+        return td;
+    }
+
+    function makeCountBadgeCell(value, color) {
+        const td = document.createElement('td');
+        td.className = 'px-4 py-3 text-center whitespace-nowrap';
+        if (value > 0) {
+            const span = document.createElement('span');
+            const colorMap = {
+                indigo: 'bg-indigo-50 text-indigo-700',
+                amber:  'bg-amber-50 text-amber-700',
+            };
+            span.className = `px-2 py-0.5 text-xs font-semibold rounded-full ${colorMap[color] || colorMap.indigo}`;
+            span.textContent = value.toLocaleString();
+            td.appendChild(span);
+        } else {
+            const span = document.createElement('span');
+            span.className = 'text-xs text-gray-300';
+            span.textContent = '0';
+            td.appendChild(span);
+        }
+        return td;
+    }
+
+    function makeScanRangeCell(min, max) {
+        const td = document.createElement('td');
+        td.className = 'px-4 py-3 text-center whitespace-nowrap';
+        if (!min && !max) {
+            const span = document.createElement('span');
+            span.className = 'text-gray-300';
+            span.textContent = '—';
+            td.appendChild(span);
+            return td;
+        }
+        const a = formatDate(min);
+        const b = formatDate(max);
+        const wrap = document.createElement('span');
+        wrap.className = 'text-sm text-gray-700';
+        if (a === b) {
+            wrap.textContent = a;
+        } else {
+            wrap.appendChild(document.createTextNode(a + ' '));
+            const arrow = document.createElement('span');
+            arrow.className = 'text-gray-400';
+            arrow.textContent = '→';
+            wrap.appendChild(arrow);
+            wrap.appendChild(document.createTextNode(' ' + b));
+        }
+        td.appendChild(wrap);
+        return td;
+    }
+
+    function makeStatusCell(st) {
+        const td = document.createElement('td');
+        td.className = 'px-4 py-3 text-center whitespace-nowrap';
+        td.appendChild(makeStatusBadge(st));
+        return td;
+    }
+
+    function makeRow(r) {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition';
+
+        tr.appendChild(makeTextCell(r.fileName, 'px-4 py-3 text-left text-sm font-semibold text-gray-800 break-all'));
+        tr.appendChild(makeTextCell(formatDateTime(r.startedAt),  'px-4 py-3 text-center whitespace-nowrap text-sm text-gray-700'));
+        tr.appendChild(makeTextCell(formatDateTime(r.finishedAt), 'px-4 py-3 text-center whitespace-nowrap text-xs text-gray-500'));
+        tr.appendChild(makeScanRangeCell(r.minScanDatum, r.maxScanDatum));
+
+        const csvText = (r.csvRowCount !== null && r.csvRowCount !== undefined) ? r.csvRowCount.toLocaleString() : '—';
+        tr.appendChild(makeTextCell(csvText, 'px-4 py-3 text-center whitespace-nowrap text-sm text-gray-700'));
+
+        tr.appendChild(makeCountBadgeCell(r.rowsInserted || 0, 'indigo'));
+        tr.appendChild(makeCountBadgeCell(r.rowsUpdated || 0, 'amber'));
+        tr.appendChild(makeStatusCell(r.status));
+
+        return tr;
+    }
+
+    function setEmptyRow(tbody, message) {
+        tbody.replaceChildren();
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.className = 'text-center py-16 text-gray-400 text-sm';
+        td.textContent = message;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    function setSpinnerRow(tbody) {
+        tbody.replaceChildren();
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.className = 'text-center py-16';
+        const i = document.createElement('i');
+        i.className = 'fas fa-spinner fa-spin text-3xl text-indigo-600';
+        td.appendChild(i);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    function setErrorRow(tbody, message) {
+        tbody.replaceChildren();
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.className = 'text-center py-10 text-red-500 text-sm';
+        td.textContent = message;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    function buildParams(page) {
+        const p = new URLSearchParams();
+        const start  = document.getElementById('filterStartDate').value;
+        const end    = document.getElementById('filterEndDate').value;
+        const status = document.getElementById('filterStatus').value;
+        const search = document.getElementById('filterSearch').value.trim();
+        if (start)  p.set('startDate', start);
+        if (end)    p.set('endDate', end);
+        if (status) p.set('status', status);
+        if (search) p.set('search', search);
+        p.set('page', page);
+        return p;
+    }
+
+    function loadRecords(page) {
+        currentPage = page;
+        const tbody = document.getElementById('importTbody');
+        setSpinnerRow(tbody);
+
+        const params = buildParams(page);
+        fetch(API_PREFIX + 'api/generali/importstatus?' + params.toString(), {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                setErrorRow(tbody, data.error || 'Error');
+                return;
+            }
+            if (!data.records.length) {
+                setEmptyRow(tbody, {{ _("No imports found") | tojson }});
+            } else {
+                tbody.replaceChildren();
+                for (const r of data.records) tbody.appendChild(makeRow(r));
+            }
+            const pg = data.pagination;
+            const showing = Math.min((pg.page - 1) * pg.per_page + data.records.length, pg.total_records);
+            document.getElementById('showingCount').textContent = showing;
+            document.getElementById('totalCount').textContent = pg.total_records;
+            renderPagination(pg.page, pg.total_pages);
+        })
+        .catch(e => {
+            setErrorRow(tbody, 'Network error');
+            console.error(e);
+        });
+    }
+
+    function makePagButton(label, targetPage, disabled, active) {
+        const b = document.createElement('button');
+        b.disabled = disabled;
+        b.className = [
+            'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
+            active   ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+            disabled ? 'opacity-40 cursor-not-allowed' : ''
+        ].join(' ');
+        if (typeof label === 'string') {
+            b.textContent = label;
+        } else {
+            const i = document.createElement('i');
+            i.className = label.iconClass;
+            b.appendChild(i);
+        }
+        if (!disabled) b.onclick = () => loadRecords(targetPage);
+        return b;
+    }
+
+    function renderPagination(page, totalPages) {
+        const container = document.getElementById('paginationControls');
+        container.replaceChildren();
+        if (totalPages <= 1) return;
+
+        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-left' }, page - 1, page === 1, false));
+        const pages = new Set([1, totalPages, page]);
+        if (page > 2) pages.add(page - 1);
+        if (page < totalPages - 1) pages.add(page + 1);
+        let prev = 0;
+        [...pages].sort((a,b) => a-b).forEach(p => {
+            if (p - prev > 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '…';
+                dots.className = 'px-2 text-gray-400 text-sm';
+                container.appendChild(dots);
+            }
+            container.appendChild(makePagButton(String(p), p, false, p === page));
+            prev = p;
+        });
+        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-right' }, page + 1, page === totalPages, false));
+    }
+
+    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        document.getElementById('filterStatus').value = '';
+        document.getElementById('filterSearch').value = '';
+        loadRecords(1);
+    });
+    document.getElementById('filterSearch').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadRecords(1);
+    });
+
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+
+    loadRecords(1);
+</script>
