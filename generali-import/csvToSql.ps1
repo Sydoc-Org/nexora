@@ -1,58 +1,70 @@
 $datafoldergen = "C:\Users\bes\OneDrive - TCG Informatik AG\Desktop\gen\post-2026-04-29"
-Get-ChildItem $datafoldergen -File | ForEach-Object {
-
-$csvFilePath = $_.FullName
-$csvFileNameShort = $_.Name
-$batchSize = 500
 $envVars = Get-Content -Raw "env.json" | ConvertFrom-Json
+$fullData = Get-ChildItem $datafoldergen -File
+$serverinstance = $envVars.SERVERINSTANCE
 
-$rows = Import-Csv $csvFilePath -Delimiter ";"
-$csvRows = $rows.Count
-$csvRowsInserted = 0
-$valuesList = [System.Collections.Generic.List[string]]::new()
+Write-host "Are you sure you want to merge the following $($fullData.count) file(s):"
+$fullData | % {Write-Host "-" $_.BaseName}
+$continue = Read-Host "[Y]es|[N]o"
+if ($continue -ne 'Y') {Write-Host "Aborting Execution" -ForegroundColor Red; Exit}
+Write-host "Is " -NoNewline
+if ($serverinstance -like "PRD*") {Write-host $serverinstance -ForegroundColor Red -NoNewline} else {Write-host $serverinstance -ForegroundColor cyan -NoNewline}
+Write-host " the correct environment serverinstance?"
+$continue = Read-Host "[Y]es|[N]o"
+if ($continue -ne 'Y') {Write-Host "Aborting Execution" -ForegroundColor Red; Exit}
 
-# import-status tracking
-$insertedTotal = 0
-$updatedTotal  = 0
-$minScan = $null
-$maxScan = $null
+$fullData | ForEach-Object {
+    $csvFilePath = $_.FullName
+    $csvFileNameShort = $_.Name
+    $batchSize = 500
 
-# log start of import
-$fileEsc = $csvFileNameShort.Replace("'","''")
-$startQuery = @"
+    $rows = Import-Csv $csvFilePath -Delimiter ";"
+    $csvRows = $rows.Count
+    $csvRowsInserted = 0
+    $valuesList = [System.Collections.Generic.List[string]]::new()
+
+    # import-status tracking
+    $insertedTotal = 0
+    $updatedTotal = 0
+    $minScan = $null
+    $maxScan = $null
+
+    # log start of import
+    $fileEsc = $csvFileNameShort.Replace("'", "''")
+    $startQuery = @"
 INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
 OUTPUT INSERTED.ID AS NewID
 VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
 "@
-$startResult = Invoke-Sqlcmd -ServerInstance $envVars.SERVERINSTANCE -Database $envVars.DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
-$importLogID = [int]$startResult.NewID
+    $startResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
+    $importLogID = [int]$startResult.NewID
 
-function Flush_Batch {
-    param($valuesList, $csvRowsInserted, $csvRows, $envVars)
-    $cols = @(
-        'CASE_ID','CASE_FOLDERNAME','DOC_ID','DOC_COUVERT_ID','DOC_CASE_ID','DOC_JOURNAL_ID',
-        'DOC_DateCreated','DOC_COUVERTDOCCOUNT','DOC_KOMMUNIKATION','DOC_INITIAL_USER',
-        'DOC_SCANDATUM_INITIAL','DOC_SCANDATUM','DOC_DOKUMENTENTYP','DOC_EMPFAENGER',
-        'DOC_EMPFAENGERADRESSE','DOC_SPRACHE','DOC_NOTIFIKATIONSSTATUS','DOC_VERTRAULICHKEIT',
-        'DOC_RICHTUNG','DOC_DOKUMENT_ID','DOC_DOKUMENTENORDER','DOC_DOKUMENTENSTATUS',
-        'DOC_DOKUMENT_URL','DOC_EINGANGSKANAL','DOC_ANTRAG_NR','DOC_ANTRAG_NR_MULTI',
-        'DOC_PARTNER_NR_SYRIUS','DOC_PARTNER_NR_GAV','DOC_PARTNER_NR_GPV','DOC_PARTNER_NR_RGI',
-        'DOC_PRODUKT_CODE','DOC_BEMERKUNG','DOC_SCANORT','DOC_SCANUSER','DOC_FORMULAR_NR',
-        'DOC_PERSONAL_NR','DOC_POLICEN_NR','DOC_POLICEN_NR_MULTI','DOC_SCHADEN_NR',
-        'DOC_VERFAHREN_NR','DOC_WAEHRUNG','DOC_BETRAG','DOC_BUCHUNGSKREIS_NR','DOC_ANZAHL',
-        'DOC_GESCHAEFTSART','DOC_KONTAKTPERSON','DOC_KREDITOREN_NR','DOC_OFFERTEN_NR',
-        'DOC_KONTONUMMER','DOC_BEZEICHNUNG','DOC_PENDING','DOC_ALFdpages','DOC_ALFpages',
-        'DOC_PageSize','DOC_SAPCompCharset','DOC_SAPCompCreated','DOC_SAPCompModified',
-        'DOC_SAPComps','DOC_SAPCompSize','DOC_SAPCompVersion','DOC_SAPContType',
-        'DOC_SAPDocDate','DOC_SAPDocId','DOC_SAPDocProt','DOC_SAPType','DOC_BARCODENR',
-        'DOC_BELEGDATUM','DOC_FONDSNAME','DOC_VERTRAGSNUMMER','DOC_VERTRAGSPARTNER',
-        'DOC_DOSSIER_NR','DOC_REFERENZNUMMER','DOC_ORIGIN','DOC_INTERFACE_LINK',
-        'DOC_NK1','DOC_NK2','SourceCSVFileName'
-    )
-    $bracketed  = ($cols | ForEach-Object { "[$_]" }) -join ', '
-    $updateSet  = ($cols | Where-Object { $_ -ne 'DOC_ID' } | ForEach-Object { "[$_] = s.[$_]" }) -join ",`n            "
-    $insertVals = ($cols | ForEach-Object { "s.[$_]" }) -join ', '
-    $query = @"
+    function Flush_Batch {
+        param($valuesList, $csvRowsInserted, $csvRows, $envVars)
+        $cols = @(
+            'CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID',
+            'DOC_DateCreated', 'DOC_COUVERTDOCCOUNT', 'DOC_KOMMUNIKATION', 'DOC_INITIAL_USER',
+            'DOC_SCANDATUM_INITIAL', 'DOC_SCANDATUM', 'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER',
+            'DOC_EMPFAENGERADRESSE', 'DOC_SPRACHE', 'DOC_NOTIFIKATIONSSTATUS', 'DOC_VERTRAULICHKEIT',
+            'DOC_RICHTUNG', 'DOC_DOKUMENT_ID', 'DOC_DOKUMENTENORDER', 'DOC_DOKUMENTENSTATUS',
+            'DOC_DOKUMENT_URL', 'DOC_EINGANGSKANAL', 'DOC_ANTRAG_NR', 'DOC_ANTRAG_NR_MULTI',
+            'DOC_PARTNER_NR_SYRIUS', 'DOC_PARTNER_NR_GAV', 'DOC_PARTNER_NR_GPV', 'DOC_PARTNER_NR_RGI',
+            'DOC_PRODUKT_CODE', 'DOC_BEMERKUNG', 'DOC_SCANORT', 'DOC_SCANUSER', 'DOC_FORMULAR_NR',
+            'DOC_PERSONAL_NR', 'DOC_POLICEN_NR', 'DOC_POLICEN_NR_MULTI', 'DOC_SCHADEN_NR',
+            'DOC_VERFAHREN_NR', 'DOC_WAEHRUNG', 'DOC_BETRAG', 'DOC_BUCHUNGSKREIS_NR', 'DOC_ANZAHL',
+            'DOC_GESCHAEFTSART', 'DOC_KONTAKTPERSON', 'DOC_KREDITOREN_NR', 'DOC_OFFERTEN_NR',
+            'DOC_KONTONUMMER', 'DOC_BEZEICHNUNG', 'DOC_PENDING', 'DOC_ALFdpages', 'DOC_ALFpages',
+            'DOC_PageSize', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified',
+            'DOC_SAPComps', 'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPContType',
+            'DOC_SAPDocDate', 'DOC_SAPDocId', 'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_BARCODENR',
+            'DOC_BELEGDATUM', 'DOC_FONDSNAME', 'DOC_VERTRAGSNUMMER', 'DOC_VERTRAGSPARTNER',
+            'DOC_DOSSIER_NR', 'DOC_REFERENZNUMMER', 'DOC_ORIGIN', 'DOC_INTERFACE_LINK',
+            'DOC_NK1', 'DOC_NK2', 'SourceCSVFileName'
+        )
+        $bracketed = ($cols | ForEach-Object { "[$_]" }) -join ', '
+        $updateSet = ($cols | Where-Object { $_ -ne 'DOC_ID' } | ForEach-Object { "[$_] = s.[$_]" }) -join ",`n            "
+        $insertVals = ($cols | ForEach-Object { "s.[$_]" }) -join ', '
+        $query = @"
 DECLARE @actions TABLE([action] NVARCHAR(10));
 WITH src AS (
     SELECT *,
@@ -77,43 +89,44 @@ SELECT
     ISNULL(SUM(CASE WHEN [action] = 'UPDATE' THEN 1 ELSE 0 END), 0) AS Updated
 FROM @actions;
 "@
-    $batchResult = Invoke-Sqlcmd -ServerInstance $envVars.SERVERINSTANCE -Database $envVars.DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
-    $valuesList.Clear()
-    return @{
-        Inserted = [int]$batchResult.Inserted
-        Updated  = [int]$batchResult.Updated
-        Query    = $query
+        $batchResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
+        $valuesList.Clear()
+        return @{
+            Inserted = [int]$batchResult.Inserted
+            Updated  = [int]$batchResult.Updated
+            Query    = $query
+        }
     }
-}
 
-try {
-foreach ($row in $rows) {
-        $DOC_DateCreated = $row.DOC_DateCreated -ne 'null' ? [datetime]::ParseExact($row.DOC_DateCreated, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
-        $DOC_SCANDATUM = $row.DOC_SCANDATUM -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
-        $DOC_SCANDATUM_INITIAL = $row.DOC_SCANDATUM_INITIAL -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM_INITIAL, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
+    try {
+        foreach ($row in $rows) {
+            $DOC_DateCreated = $row.DOC_DateCreated -ne 'null' ? [datetime]::ParseExact($row.DOC_DateCreated, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
+            $DOC_SCANDATUM = $row.DOC_SCANDATUM -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
+            $DOC_SCANDATUM_INITIAL = $row.DOC_SCANDATUM_INITIAL -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM_INITIAL, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
 
-        # track scandatum range from CSV input (independent of merge result)
-        if ($DOC_SCANDATUM -ne '') {
-            try {
-                $sd = [datetime]::ParseExact($DOC_SCANDATUM, 'yyyy-MM-dd HH:mm:ss', $null)
-                if ($null -eq $minScan -or $sd -lt $minScan) { $minScan = $sd }
-                if ($null -eq $maxScan -or $sd -gt $maxScan) { $maxScan = $sd }
-            } catch {}
-        }
-        $DOC_SAPCompCreated = ''
-        if ($row.DOC_SAPCompCreated -ne 'null') {
-            try { $DOC_SAPCompCreated = [datetime]::ParseExact(($row.DOC_SAPCompCreated -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
-        }
-        $DOC_SAPCompModified = ''
-        if ($row.DOC_SAPCompModified -ne 'null') {
-            try { $DOC_SAPCompModified = [datetime]::ParseExact(($row.DOC_SAPCompModified -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
-        }
-        $DOC_SAPDocDate = ''
-        if ($row.DOC_SAPDocDate -ne 'null') {
-            try { $DOC_SAPDocDate = [datetime]::ParseExact(($row.DOC_SAPDocDate -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
-        }
+            # track scandatum range from CSV input (independent of merge result)
+            if ($DOC_SCANDATUM -ne '') {
+                try {
+                    $sd = [datetime]::ParseExact($DOC_SCANDATUM, 'yyyy-MM-dd HH:mm:ss', $null)
+                    if ($null -eq $minScan -or $sd -lt $minScan) { $minScan = $sd }
+                    if ($null -eq $maxScan -or $sd -gt $maxScan) { $maxScan = $sd }
+                }
+                catch {}
+            }
+            $DOC_SAPCompCreated = ''
+            if ($row.DOC_SAPCompCreated -ne 'null') {
+                try { $DOC_SAPCompCreated = [datetime]::ParseExact(($row.DOC_SAPCompCreated -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
+            }
+            $DOC_SAPCompModified = ''
+            if ($row.DOC_SAPCompModified -ne 'null') {
+                try { $DOC_SAPCompModified = [datetime]::ParseExact(($row.DOC_SAPCompModified -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
+            }
+            $DOC_SAPDocDate = ''
+            if ($row.DOC_SAPDocDate -ne 'null') {
+                try { $DOC_SAPDocDate = [datetime]::ParseExact(($row.DOC_SAPDocDate -split '00')[0], 'yyyyMM', $null).ToString("yyyy-MM-dd") } catch {}
+            }
 
-        $values = @"
+            $values = @"
 (
         $($row.CASE_ID -eq 'null' ? 'NULL' : "'$($row.CASE_ID.Replace("'","''"))'"),
         $($row.CASE_FOLDERNAME -eq 'null' ? 'NULL' : "'$($row.CASE_FOLDERNAME.Replace("'","''"))'"),
@@ -194,28 +207,28 @@ foreach ($row in $rows) {
         '$csvFileNameShort'
 )
 "@
-        $valuesList.Add($values)
-        $csvRowsInserted++
-        Write-Host "`r[$([math]::Round(($csvRowsInserted / $csvRows * 100), 1))%] Inserting row $csvRowsInserted / $csvRows..." -NoNewline -ForegroundColor Yellow
+            $valuesList.Add($values)
+            $csvRowsInserted++
+            Write-Host "`r$($csvFileNameShort):[$([math]::Round(($csvRowsInserted / $csvRows * 100), 1))%] Inserting row $csvRowsInserted / $csvRows..." -NoNewline -ForegroundColor Green
 
-        if ($valuesList.Count -ge $batchSize) {
-            $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
-            $insertedTotal += $stats.Inserted
-            $updatedTotal  += $stats.Updated
+            if ($valuesList.Count -ge $batchSize) {
+                $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
+                $insertedTotal += $stats.Inserted
+                $updatedTotal += $stats.Updated
+            }
+
         }
 
-}
+        if ($valuesList.Count -gt 0) {
+            $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
+            $insertedTotal += $stats.Inserted
+            $updatedTotal += $stats.Updated
+        }
 
-if ($valuesList.Count -gt 0) {
-    $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
-    $insertedTotal += $stats.Inserted
-    $updatedTotal  += $stats.Updated
-}
-
-# log success
-$minScanSql = if ($null -eq $minScan) { 'NULL' } else { "'$($minScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
-$maxScanSql = if ($null -eq $maxScan) { 'NULL' } else { "'$($maxScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
-$endQuery = @"
+        # log success
+        $minScanSql = if ($null -eq $minScan) { 'NULL' } else { "'$($minScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
+        $maxScanSql = if ($null -eq $maxScan) { 'NULL' } else { "'$($maxScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
+        $endQuery = @"
 UPDATE CSVImportLog SET
     FinishedAt = GETDATE(),
     RowsInserted = $insertedTotal,
@@ -225,13 +238,13 @@ UPDATE CSVImportLog SET
     [Status] = 'success'
 WHERE ID = $importLogID;
 "@
-Invoke-Sqlcmd -ServerInstance $envVars.SERVERINSTANCE -Database $envVars.DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
-}
-catch {
-    Write-Host "`nInsert interrupted due to an Error. See 'error.log' for further Information" -ForegroundColor Red
-    $_ | Out-File "error.log" -Append
-    if ($null -ne $stats -and $null -ne $stats.Query) { $stats.Query | Out-File "error.log" -Append }
-    $failQuery = @"
+        Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
+    }
+    catch {
+        Write-Host "`nInsert interrupted due to an Error. See 'error.log' for further Information" -ForegroundColor Red
+        $_ | Out-File "error.log" -Append
+        if ($null -ne $stats -and $null -ne $stats.Query) { $stats.Query | Out-File "error.log" -Append }
+        $failQuery = @"
 UPDATE CSVImportLog SET
     FinishedAt = GETDATE(),
     RowsInserted = $insertedTotal,
@@ -239,12 +252,13 @@ UPDATE CSVImportLog SET
     [Status] = 'failed'
 WHERE ID = $importLogID;
 "@
-    try { Invoke-Sqlcmd -ServerInstance $envVars.SERVERINSTANCE -Database $envVars.DATABASE -TrustServerCertificate -Query $failQuery } catch {}
-    exit
-}
+        try { Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $failQuery } catch {}
+        exit
+    }
 
-Write-Host "`rDone! Inserted $csvRowsInserted / $csvRows rows. (new: $insertedTotal, updated: $updatedTotal)" -ForegroundColor Green
-    if ($envVars.SERVERINSTANCE -like 'INT*'){Copy-Item -Path $csvFilePath -Destination "$datafoldergen/doneINT" -Force}
-    else{Move-item -Path $csvFilePath -Destination "$datafoldergen/donePROD" -Force
-}
+    Write-Host "`rDone! Inserted $csvRowsInserted / $csvRows rows. (new: $insertedTotal, updated: $updatedTotal)" -ForegroundColor Green
+    if ($serverinstance -like 'INT*') { Copy-Item -Path $csvFilePath -Destination "$datafoldergen/doneINT" -Force }
+    else {
+        Move-item -Path $csvFilePath -Destination "$datafoldergen/donePROD" -Force
+    }
 }

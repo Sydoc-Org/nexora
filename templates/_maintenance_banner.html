@@ -4,12 +4,17 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 9999;
+    z-index: 35;
     display: none;
     padding: 10px 16px;
     font-size: 14px;
     font-weight: 500;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  /* When the sidebar is present (in-app pages), shift banner past the collapsed sidebar
+     and let the sidebar (z-index 40) expand over it on hover. */
+  @media (min-width: 769px) {
+    #maintenance-banner.mb-with-sidebar { left: 64px; }
   }
   #maintenance-banner.mb-show { display: flex; align-items: center; gap: 12px; }
   #maintenance-banner .mb-icon { flex: 0 0 auto; font-size: 16px; }
@@ -53,7 +58,8 @@
         if (sessionStorage.getItem(dismissedKey) === '1') return;
 
         banner.replaceChildren();
-        banner.className = 'mb-show mb-' + (b.severity || 'info');
+        const hasSidebar = !!document.getElementById('nexora-sidebar');
+        banner.className = 'mb-show mb-' + (b.severity || 'info') + (hasSidebar ? ' mb-with-sidebar' : '');
 
         const ico = document.createElement('i');
         ico.className = 'fas mb-icon ' + (SEVERITY_ICON[b.severity] || SEVERITY_ICON.info);
