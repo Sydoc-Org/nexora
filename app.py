@@ -1634,9 +1634,17 @@ def api_admin_logs_export():
                 if not rows:
                     break
                 for row in rows:
+                    # Some ODBC drivers return datetime2 as a string; normalize to ISO.
+                    ts = row.Timestamp
+                    if ts is None:
+                        ts_iso = ''
+                    elif hasattr(ts, 'isoformat'):
+                        ts_iso = ts.isoformat()
+                    else:
+                        ts_iso = str(ts).replace(' ', 'T', 1)
                     writer.writerow([
                         row.LogID,
-                        row.Timestamp.isoformat() if row.Timestamp else '',
+                        ts_iso,
                         row.Username or '',
                         row.HttpRequestMethod or '',
                         row.Path or '',
@@ -1853,8 +1861,16 @@ def api_admin_user_activity(user_id):
 
         entries = []
         for r in cursor.fetchall():
+            # Some ODBC drivers return datetime2 as a string; normalize to ISO.
+            ts = r.Timestamp
+            if ts is None:
+                ts_iso = None
+            elif hasattr(ts, 'isoformat'):
+                ts_iso = ts.isoformat()
+            else:
+                ts_iso = str(ts).replace(' ', 'T', 1)
             entries.append({
-                'Timestamp': r.Timestamp.isoformat() if r.Timestamp else None,
+                'Timestamp': ts_iso,
                 'HttpRequestMethod': r.HttpRequestMethod,
                 'Path': r.Path,
                 'HttpResponseCode': r.HttpResponseCode,

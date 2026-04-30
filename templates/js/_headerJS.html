@@ -33,7 +33,7 @@
             async function ping() {
                 if (stopped) return;
                 try {
-                    const r = await fetch('/api/session/heartbeat', {
+                    const r = await fetch("{{ url_for('session_heartbeat') }}", {
                         credentials: 'same-origin',
                         cache: 'no-store',
                         headers: { 'X-CSRFToken': csrfToken }

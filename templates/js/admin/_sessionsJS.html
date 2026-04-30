@@ -116,7 +116,7 @@
             if (!confirm(`{{ _("Revoke the active session for") }} "${username}"?`)) return;
             btn.disabled = true;
             try {
-                const res = await fetch(`/admin/sessions/${encodeURIComponent(sid)}/revoke`, {
+                const res = await fetch(`${API_PREFIX}admin/sessions/${encodeURIComponent(sid)}/revoke`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrfToken }
                 });

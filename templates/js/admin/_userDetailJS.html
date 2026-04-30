@@ -1,5 +1,5 @@
 <script>
-    // csrfToken is declared globally in _headerJS.html
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     function userDetailToast(msg, tone) {
         const container = document.getElementById('notification-container');
@@ -26,7 +26,7 @@
             if (!payload.password) delete payload.password;
 
             try {
-                const res = await fetch(`/admin/users/edit/${userId}`, {
+                const res = await fetch(`${API_PREFIX}admin/users/edit/${userId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -70,7 +70,7 @@
 
         // Load current overrides and apply to radios
         try {
-            const res = await fetch(`/api/admin/user_overrides/${userId}`, {
+            const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {
                 headers: { 'X-CSRFToken': csrfToken }
             });
             const data = await res.json().catch(() => ({}));
@@ -115,7 +115,7 @@
             });
 
             try {
-                const res = await fetch('/api/admin/user_overrides/save', {
+                const res = await fetch(`${API_PREFIX}api/admin/user_overrides/save`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -169,7 +169,7 @@
             const userId = btn.dataset.userId;
             ok.disabled = true;
             try {
-                const res = await fetch(`/admin/users/delete/${userId}`, {
+                const res = await fetch(`${API_PREFIX}admin/users/delete/${userId}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRFToken': csrfToken }
                 });
@@ -199,7 +199,7 @@
             if (!confirm(`{{ _("Sign out ALL active sessions for") }} "${uname}"? {{ _("They will be forced to log in again.") }}`)) return;
             btn.disabled = true;
             try {
-                const res = await fetch(`/admin/users/${btn.dataset.userId}/revoke_all`, {
+                const res = await fetch(`${API_PREFIX}admin/users/${btn.dataset.userId}/revoke_all`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrfToken }
                 });
@@ -289,7 +289,7 @@
             tbody.appendChild(loadingTr);
 
             try {
-                const res = await fetch('/api/admin/users/' + userId + '/effective_permissions', {
+                const res = await fetch(`${API_PREFIX}api/admin/users/${userId}/effective_permissions`, {
                     headers: { 'X-CSRFToken': csrfToken }
                 });
                 const data = await res.json().catch(() => ({}));
@@ -400,7 +400,7 @@
             loadingTr.appendChild(loadingTd);
             tbody.appendChild(loadingTr);
             try {
-                const res = await fetch('/api/admin/users/' + userId + '/activity?page=' + page, {
+                const res = await fetch(`${API_PREFIX}api/admin/users/${userId}/activity?page=${page}`, {
                     headers: { 'X-CSRFToken': csrfToken }
                 });
                 const data = await res.json().catch(() => ({}));
