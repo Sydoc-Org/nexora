@@ -12,9 +12,41 @@ jobs:
       - name: Stop app pool and service
         shell: powershell
         run: |
+          $ErrorActionPreference = 'Stop'
           Import-Module WebAdministration
-          Stop-WebAppPool -Name "DefaultAppPool" -ErrorAction SilentlyContinue
-          Stop-Service -Name "ngrok" -Force -ErrorAction SilentlyContinue
+
+          $pool = "DefaultAppPool"
+          Write-Host "App pool '$pool' initial state: $((Get-WebAppPoolState -Name $pool).Value)"
+
+          # Wait out any in-flight transition so we don't hit 0x80070425
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Started') {
+            Stop-WebAppPool -Name $pool
+          }
+
+          # Block until w3wp.exe has actually exited and handles are released
+          $deadline = (Get-Date).AddSeconds(120)
+          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Stopped') {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' did not stop within 120s (state: $((Get-WebAppPoolState -Name $pool).Value))"
+            }
+            Start-Sleep -Seconds 2
+          }
+          Write-Host "App pool '$pool' is Stopped."
+
+          $svc = Get-Service -Name 'ngrok' -ErrorAction SilentlyContinue
+          if ($svc -and $svc.Status -ne 'Stopped') {
+            Stop-Service -Name 'ngrok' -Force
+            $svc.WaitForStatus('Stopped', '00:01:00')
+          }
+          Write-Host "Service 'ngrok' is Stopped."
 
       - name: Sync to deploy folder
         shell: powershell
@@ -25,6 +57,32 @@ jobs:
       - name: Start app pool and service
         shell: powershell
         run: |
+          $ErrorActionPreference = 'Stop'
           Import-Module WebAdministration
-          Start-WebAppPool -Name "DefaultAppPool"
-          Start-Service -Name "ngrok"
+
+          $pool = "DefaultAppPool"
+          # Defensive: don't issue Start while in a transition
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Stopped') {
+            Start-WebAppPool -Name $pool
+          }
+
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' did not start within 60s (state: $((Get-WebAppPoolState -Name $pool).Value))"
+            }
+            Start-Sleep -Seconds 2
+          }
+          Write-Host "App pool '$pool' is Started."
+
+          Start-Service -Name 'ngrok'
+          (Get-Service -Name 'ngrok').WaitForStatus('Running', '00:01:00')
+          Write-Host "Service 'ngrok' is Running."

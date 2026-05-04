@@ -372,7 +372,7 @@
             const tr = document.createElement('tr');
             tr.className = 'is-clickable';
             tr.id = `user-row-${u.userID}`;
-            tr.onclick = () => { window.location.href = `/admin/users/${encodeURIComponent(u.userID)}`; };
+            tr.onclick = () => { window.location.href = `${API_PREFIX}admin/users/${encodeURIComponent(u.userID)}`; };
             tr.innerHTML = `
                 <td></td>
                 <td>
