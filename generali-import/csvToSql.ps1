@@ -1,18 +1,32 @@
-$datafoldergen = "C:\Users\bes\OneDrive - TCG Informatik AG\Desktop\gen\post-2026-04-29"
-$envVars = Get-Content -Raw "env.json" | ConvertFrom-Json
+$datafoldergen = "\\prdimpexp01\d$\sydoc\scripts\generali\import"
+$envVars = Get-Content -Raw "$datafoldergen\env.json" | ConvertFrom-Json
 $fullData = Get-ChildItem $datafoldergen -File
 $serverinstance = $envVars.SERVERINSTANCE
 
-Write-host "Are you sure you want to merge the following $($fullData.count) file(s):"
-$fullData | % {Write-Host "-" $_.BaseName}
-$continue = Read-Host "[Y]es|[N]o"
-if ($continue -ne 'Y') {Write-Host "Aborting Execution" -ForegroundColor Red; Exit}
-Write-host "Is " -NoNewline
-if ($serverinstance -like "PRD*") {Write-host $serverinstance -ForegroundColor Red -NoNewline} else {Write-host $serverinstance -ForegroundColor cyan -NoNewline}
-Write-host " the correct environment serverinstance?"
-$continue = Read-Host "[Y]es|[N]o"
-if ($continue -ne 'Y') {Write-Host "Aborting Execution" -ForegroundColor Red; Exit}
+function Get-IntLiteral {
+    param([string]$value, [string]$colName, [string]$docId)
+    if ([string]::IsNullOrEmpty($value) -or $value -eq 'null') { return 'NULL' }
+    $intVal = 0
+    if ([int]::TryParse($value, [ref]$intVal)) { return "$intVal" }
+    $script:dataQualityIssues.Add([pscustomobject]@{
+            DocId  = $docId
+            Column = $colName
+            Value  = $value
+        })
+    return 'NULL'
+}
 
+if ((Get-Location).Path -like "*bes*") {
+    Write-host "Are you sure you want to merge the following $($fullData.count) file(s):"
+    $fullData | % { Write-Host "-" $_.BaseName }
+    $continue = Read-Host "[Y]es|[N]o"
+    if ($continue -ne 'Y') { Write-Host "Aborting Execution" -ForegroundColor Red; Exit }
+    Write-host "Is " -NoNewline
+    if ($serverinstance -like "PRD*") { Write-host $serverinstance -ForegroundColor Red -NoNewline } else { Write-host $serverinstance -ForegroundColor cyan -NoNewline }
+    Write-host " the correct environment serverinstance?"
+    $continue = Read-Host "[Y]es|[N]o"
+    if ($continue -ne 'Y') { Write-Host "Aborting Execution" -ForegroundColor Red; Exit }
+}
 $fullData | ForEach-Object {
     $csvFilePath = $_.FullName
     $csvFileNameShort = $_.Name
@@ -28,8 +42,10 @@ $fullData | ForEach-Object {
     $updatedTotal = 0
     $minScan = $null
     $maxScan = $null
+    $docIdsInBatch = [System.Collections.Generic.List[string]]::new()
+    $script:lastQuery = $null
+    $script:dataQualityIssues = [System.Collections.Generic.List[psobject]]::new()
 
-    # log start of import
     $fileEsc = $csvFileNameShort.Replace("'", "''")
     $startQuery = @"
 INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
@@ -40,7 +56,7 @@ VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
     $importLogID = [int]$startResult.NewID
 
     function Flush_Batch {
-        param($valuesList, $csvRowsInserted, $csvRows, $envVars)
+        param($valuesList, $docIdsInBatch, $csvRowsInserted, $csvRows, $envVars)
         $cols = @(
             'CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID',
             'DOC_DateCreated', 'DOC_COUVERTDOCCOUNT', 'DOC_KOMMUNIKATION', 'DOC_INITIAL_USER',
@@ -89,8 +105,10 @@ SELECT
     ISNULL(SUM(CASE WHEN [action] = 'UPDATE' THEN 1 ELSE 0 END), 0) AS Updated
 FROM @actions;
 "@
+        $script:lastQuery = $query
         $batchResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
         $valuesList.Clear()
+        $docIdsInBatch.Clear()
         return @{
             Inserted = [int]$batchResult.Inserted
             Updated  = [int]$batchResult.Updated
@@ -104,7 +122,6 @@ FROM @actions;
             $DOC_SCANDATUM = $row.DOC_SCANDATUM -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
             $DOC_SCANDATUM_INITIAL = $row.DOC_SCANDATUM_INITIAL -ne 'null' ? [datetime]::ParseExact($row.DOC_SCANDATUM_INITIAL, [string[]]@('dd.MM.yyyy HH:mm', 'dd.MM.yyyy HH:mm:ss'), $null, [System.Globalization.DateTimeStyles]::None).ToString("yyyy-MM-dd HH:mm:ss") : ''
 
-            # track scandatum range from CSV input (independent of merge result)
             if ($DOC_SCANDATUM -ne '') {
                 try {
                     $sd = [datetime]::ParseExact($DOC_SCANDATUM, 'yyyy-MM-dd HH:mm:ss', $null)
@@ -135,23 +152,23 @@ FROM @actions;
         $($row.DOC_CASE_ID -eq 'null' ? 'NULL' : "'$($row.DOC_CASE_ID.Replace("'","''"))'"),
         $($row.DOC_JOURNAL_ID -eq 'null' ? 'NULL' : "'$($row.DOC_JOURNAL_ID.Replace("'","''"))'"),
         $($DOC_DateCreated -eq '' ? 'NULL' : "'$DOC_DateCreated'"),
-        $($row.DOC_COUVERTDOCCOUNT -eq 'null' ? 'NULL' : "'$($row.DOC_COUVERTDOCCOUNT.Replace("'","''"))'"),
-        $($row.DOC_KOMMUNIKATION -in @('null','') ? 'NULL' : "'$($row.DOC_KOMMUNIKATION.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_COUVERTDOCCOUNT 'DOC_COUVERTDOCCOUNT' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_KOMMUNIKATION 'DOC_KOMMUNIKATION' $row.DOC_ID),
         $($row.DOC_INITIAL_USER -eq 'null' ? 'NULL' : "'$($row.DOC_INITIAL_USER.Replace("'","''"))'"),
         $($DOC_SCANDATUM_INITIAL -eq '' ? 'NULL' : "'$DOC_SCANDATUM_INITIAL'"),
         $($DOC_SCANDATUM -eq '' ? 'NULL' : "'$DOC_SCANDATUM'"),
-        $($row.DOC_DOKUMENTENTYP -in @('null','') ? 'NULL' : "'$($row.DOC_DOKUMENTENTYP.Replace("'","''"))'"),
-        $($row.DOC_EMPFAENGER -in @('null','') ? 'NULL' : "'$($row.DOC_EMPFAENGER.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_DOKUMENTENTYP 'DOC_DOKUMENTENTYP' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_EMPFAENGER 'DOC_EMPFAENGER' $row.DOC_ID),
         $($row.DOC_EMPFAENGERADRESSE -eq 'null' ? 'NULL' : "'$($row.DOC_EMPFAENGERADRESSE.Replace("'","''"))'"),
-        $($row.DOC_SPRACHE -in @('null','') ? 'NULL' : "'$($row.DOC_SPRACHE.Replace("'","''"))'"),
-        $($row.DOC_NOTIFIKATIONSSTATUS -in @('null','') ? 'NULL' : "'$($row.DOC_NOTIFIKATIONSSTATUS.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_SPRACHE 'DOC_SPRACHE' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_NOTIFIKATIONSSTATUS 'DOC_NOTIFIKATIONSSTATUS' $row.DOC_ID),
         $($row.DOC_VERTRAULICHKEIT -eq 'null' ? 'NULL' : "'$($row.DOC_VERTRAULICHKEIT.Replace("'","''"))'"),
-        $($row.DOC_RICHTUNG -in @('null','') ? 'NULL' : "'$($row.DOC_RICHTUNG.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_RICHTUNG 'DOC_RICHTUNG' $row.DOC_ID),
         $($row.DOC_DOKUMENT_ID -eq 'null' ? 'NULL' : "'$($row.DOC_DOKUMENT_ID.Replace("'","''"))'"),
         $($row.DOC_DOKUMENTENORDER -eq 'null' ? 'NULL' : "'$($row.DOC_DOKUMENTENORDER.Replace("'","''"))'"),
-        $($row.DOC_DOKUMENTENSTATUS -in @('null','') ? 'NULL' : "'$($row.DOC_DOKUMENTENSTATUS.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_DOKUMENTENSTATUS 'DOC_DOKUMENTENSTATUS' $row.DOC_ID),
         $($row.DOC_DOKUMENT_URL -eq 'null' ? 'NULL' : "'$($row.DOC_DOKUMENT_URL.Replace("'","''"))'"),
-        $($row.DOC_EINGANGSKANAL -in @('null','') ? 'NULL' : "'$($row.DOC_EINGANGSKANAL.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_EINGANGSKANAL 'DOC_EINGANGSKANAL' $row.DOC_ID),
         $($row.DOC_ANTRAG_NR -eq 'null' ? 'NULL' : "'$($row.DOC_ANTRAG_NR.Replace("'","''"))'"),
         $($row.DOC_ANTRAG_NR_MULTI -eq 'null' ? 'NULL' : "'$($row.DOC_ANTRAG_NR_MULTI.Replace("'","''"))'"),
         $($row.DOC_PARTNER_NR_SYRIUS -eq 'null' ? 'NULL' : "'$($row.DOC_PARTNER_NR_SYRIUS.Replace("'","''"))'"),
@@ -160,7 +177,7 @@ FROM @actions;
         $($row.DOC_PARTNER_NR_RGI -eq 'null' ? 'NULL' : "'$($row.DOC_PARTNER_NR_RGI.Replace("'","''"))'"),
         $($row.DOC_PRODUKT_CODE -eq 'null' ? 'NULL' : "'$($row.DOC_PRODUKT_CODE.Replace("'","''"))'"),
         $($row.DOC_BEMERKUNG -eq 'null' ? 'NULL' : "'$($row.DOC_BEMERKUNG.Replace("'","''"))'"),
-        $($row.DOC_SCANORT -in @('null','') ? 'NULL' : "'$($row.DOC_SCANORT.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_SCANORT 'DOC_SCANORT' $row.DOC_ID),
         $($row.DOC_SCANUSER -eq 'null' ? 'NULL' : "'$($row.DOC_SCANUSER.Replace("'","''"))'"),
         $($row.DOC_FORMULAR_NR -eq 'null' ? 'NULL' : "'$($row.DOC_FORMULAR_NR.Replace("'","''"))'"),
         $($row.DOC_PERSONAL_NR -eq 'null' ? 'NULL' : "'$($row.DOC_PERSONAL_NR.Replace("'","''"))'"),
@@ -168,7 +185,7 @@ FROM @actions;
         $($row.DOC_POLICEN_NR_MULTI -eq 'null' ? 'NULL' : "'$($row.DOC_POLICEN_NR_MULTI.Replace("'","''"))'"),
         $($row.DOC_SCHADEN_NR -eq 'null' ? 'NULL' : "'$($row.DOC_SCHADEN_NR.Replace("'","''"))'"),
         $($row.DOC_VERFAHREN_NR -eq 'null' ? 'NULL' : "'$($row.DOC_VERFAHREN_NR.Replace("'","''"))'"),
-        $($row.DOC_WAEHRUNG -in @('null','') ? 'NULL' : "'$($row.DOC_WAEHRUNG.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_WAEHRUNG 'DOC_WAEHRUNG' $row.DOC_ID),
         $($row.DOC_BETRAG -eq 'null' ? 'NULL' : "'$($row.DOC_BETRAG.Replace("'","''"))'"),
         $($row.DOC_BUCHUNGSKREIS_NR -eq 'null' ? 'NULL' : "'$($row.DOC_BUCHUNGSKREIS_NR.Replace("'","''"))'"),
         $($row.DOC_ANZAHL -eq 'null' ? 'NULL' : "'$($row.DOC_ANZAHL.Replace("'","''"))'"),
@@ -200,19 +217,20 @@ FROM @actions;
         $($row.DOC_VERTRAGSPARTNER -eq 'null' ? 'NULL' : "'$($row.DOC_VERTRAGSPARTNER.Replace("'","''"))'"),
         $($row.DOC_DOSSIER_NR -eq 'null' ? 'NULL' : "'$($row.DOC_DOSSIER_NR.Replace("'","''"))'"),
         $($row.DOC_REFERENZNUMMER -eq 'null' ? 'NULL' : "'$($row.DOC_REFERENZNUMMER.Replace("'","''"))'"),
-        $($row.DOC_ORIGIN -in @('null','') ? 'NULL' : "'$($row.DOC_ORIGIN.Replace("'","''"))'"),
-        $($row.DOC_INTERFACE_LINK -in @('null','') ? 'NULL' : "'$($row.DOC_INTERFACE_LINK.Replace("'","''"))'"),
-        $($row.DOC_NK1 -in @('null','') ? 'NULL' : "'$($row.DOC_NK1.Replace("'","''"))'"),
-        $($row.DOC_NK2 -in @('null','') ? 'NULL' : "'$($row.DOC_NK2.Replace("'","''"))'"),
+        $(Get-IntLiteral $row.DOC_ORIGIN 'DOC_ORIGIN' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_INTERFACE_LINK 'DOC_INTERFACE_LINK' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_NK1 'DOC_NK1' $row.DOC_ID),
+        $(Get-IntLiteral $row.DOC_NK2 'DOC_NK2' $row.DOC_ID),
         '$csvFileNameShort'
 )
 "@
             $valuesList.Add($values)
+            $docIdsInBatch.Add($row.DOC_ID)
             $csvRowsInserted++
             Write-Host "`r$($csvFileNameShort):[$([math]::Round(($csvRowsInserted / $csvRows * 100), 1))%] Inserting row $csvRowsInserted / $csvRows..." -NoNewline -ForegroundColor Green
 
             if ($valuesList.Count -ge $batchSize) {
-                $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
+                $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows $envVars
                 $insertedTotal += $stats.Inserted
                 $updatedTotal += $stats.Updated
             }
@@ -220,7 +238,7 @@ FROM @actions;
         }
 
         if ($valuesList.Count -gt 0) {
-            $stats = Flush_Batch $valuesList $csvRowsInserted $csvRows $envVars
+            $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows $envVars
             $insertedTotal += $stats.Inserted
             $updatedTotal += $stats.Updated
         }
@@ -238,12 +256,53 @@ UPDATE CSVImportLog SET
     [Status] = 'success'
 WHERE ID = $importLogID;
 "@
+        $script:lastQuery = $endQuery
         Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
     }
     catch {
         Write-Host "`nInsert interrupted due to an Error. See 'error.log' for further Information" -ForegroundColor Red
+
+        $sep = '=' * 80
+        @(
+            ''
+            $sep
+            "Import error in $csvFileNameShort"
+            "Time:           $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            "Progress:       $csvRowsInserted / $csvRows rows enqueued from CSV"
+            "Failing batch:  $($docIdsInBatch.Count) row(s) in the batch that was being flushed"
+            "Inserted/Updated so far: $insertedTotal / $updatedTotal"
+            "Import log ID:  $importLogID"
+            $sep
+            ''
+            '----- Error -----'
+        ) | Out-File "error.log" -Append
         $_ | Out-File "error.log" -Append
-        if ($null -ne $stats -and $null -ne $stats.Query) { $stats.Query | Out-File "error.log" -Append }
+
+        if ($docIdsInBatch.Count -gt 0) {
+            @(
+                ''
+                "----- DOC_IDs in failing batch ($($docIdsInBatch.Count) row(s)) -----"
+                '(grep these IDs in the source CSV to inspect the offending rows)'
+            ) | Out-File "error.log" -Append
+            $docIdsInBatch | Out-File "error.log" -Append
+        }
+
+        if ($null -ne $script:lastQuery) {
+            @(
+                ''
+                '----- Failing SQL (last query attempted) -----'
+            ) | Out-File "error.log" -Append
+            $script:lastQuery | Out-File "error.log" -Append
+        }
+
+        if ($script:dataQualityIssues.Count -gt 0) {
+            @(
+                ''
+                "----- Data quality warnings ($($script:dataQualityIssues.Count) value(s) sanitized to NULL before failure) -----"
+            ) | Out-File "error.log" -Append
+            $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File "error.log" -Append
+        }
+
         $failQuery = @"
 UPDATE CSVImportLog SET
     FinishedAt = GETDATE(),
@@ -254,6 +313,20 @@ WHERE ID = $importLogID;
 "@
         try { Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $failQuery } catch {}
         exit
+    }
+
+    if ($script:dataQualityIssues.Count -gt 0) {
+        $sep = '=' * 80
+        @(
+            ''
+            $sep
+            "DATA QUALITY WARNINGS in $csvFileNameShort"
+            "Time:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            "Count: $($script:dataQualityIssues.Count) non-numeric value(s) sanitized to NULL in INT column(s)"
+            $sep
+        ) | Out-File "error.log" -Append
+        $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File "error.log" -Append
+        Write-Host "`nWARNING: $($script:dataQualityIssues.Count) non-numeric value(s) in INT columns were sanitized to NULL. See 'error.log'." -ForegroundColor Yellow
     }
 
     Write-Host "`rDone! Inserted $csvRowsInserted / $csvRows rows. (new: $insertedTotal, updated: $updatedTotal)" -ForegroundColor Green

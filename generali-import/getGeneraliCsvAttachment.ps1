@@ -1,4 +1,6 @@
-$envVars = Get-Content -Raw "env.json" | ConvertFrom-Json
+$root_location = "\\prdimpexp01\d$\sydoc\scripts\generali"
+$destDir = "$root_location\import"
+$envVars = Get-Content -Raw "$root_location\env.json" | ConvertFrom-Json
 
 $TENANT_ID = $envVars.TENANT_ID
 $CLIENT_ID = $envVars.CLIENT_ID
@@ -42,17 +44,34 @@ foreach ($message in $ListMailBoxMessagesRequest.Value){
     $attachment_request = Invoke-RestMethod -Method GET -Uri $attachment_request_uri -Headers $headers
     foreach($attachment in $attachment_request.value)
     {
-        if ($attachment.name -notlike "*.csv") { continue }
+        #if ($attachment.name -notlike "*.csv") { continue }
         $content_bytes = $attachment.contentBytes
         if (-not $content_bytes) {
             Write-Warning "No contentBytes for attachment '$($attachment.name)' — skipping"
             continue
         }
         $bytes = [Convert]::FromBase64String($content_bytes)
-        $outputPath = Join-Path (Get-Location) $attachment.name
+        $outputPath = Join-Path $root_location ((New-Guid).Guid + $attachment.name)
         [IO.File]::WriteAllBytes($outputPath, $bytes)
-        Write-Host "Saved: $outputPath"
+
+        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir | Out-Null }
+
+        if ($outputPath -like "*.gz") {
+            $outName  = [IO.Path]::GetFileNameWithoutExtension($outputPath)
+            $destFile = Join-Path $destDir $outName
+
+            $inStream  = [IO.File]::OpenRead($outputPath)
+            $gzStream  = New-Object IO.Compression.GZipStream($inStream, [IO.Compression.CompressionMode]::Decompress)
+            $outStream = [IO.File]::Create($destFile)
+            try   { $gzStream.CopyTo($outStream) }
+            finally {
+                $outStream.Dispose()
+                $gzStream.Dispose()
+                $inStream.Dispose()
+            }
+        }
+        Move-Item $outputPath $root_location\done -Force
     }
     $moveBody = @{destinationId = $GeneraliMailBoxChildGelöschtID} | ConvertTo-Json
-    Invoke-RestMethod -Method Post -Uri "$ListMailBoxMessagesURI/$messageid/moved" -Body $moveBody -Headers $headers -StatusCodeVariable statusCode
+    Invoke-RestMethod -Method Post -Uri "$ListMailBoxMessagesURI/$messageid/move" -Body $moveBody -Headers $headers -StatusCodeVariable statusCode
 }
