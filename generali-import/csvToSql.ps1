@@ -1,7 +1,82 @@
 $datafoldergen = "\\prdimpexp01\d$\sydoc\scripts\generali\import"
-$envVars = Get-Content -Raw "$datafoldergen\env.json" | ConvertFrom-Json
+$envVars = Get-Content -Raw "\\prdimpexp01\d$\sydoc\scripts\generali\env.json" | ConvertFrom-Json
 $fullData = Get-ChildItem $datafoldergen -File
 $serverinstance = $envVars.SERVERINSTANCE
+
+$logDir = "\\prdimpexp01\d$\sydoc\scripts\generali\logs"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+$logFile = Join-Path $logDir "csvToSql_$(Get-Date -Format 'yyyy-MM-dd').log"
+
+function get_access_token_graphAPI {
+    $headers = @{
+        "Content-Type" = "application/x-www-form-urlencoded"
+    }
+
+    $body = @{
+        "client_id"     = $envVars.CLIENT_ID
+        "username"      = $envVars.USERNAME
+        "password"      = $envVars.PASSWORD
+        "grant_type"    = $envVars.GRANT_TYPE
+        "scope"         = "Mail.Send"
+        "client_secret" = $envVars.CLIENT_SECRET
+    }
+
+    $tenant_id = $envVars.TENANT_ID
+    $uri = "https://login.microsoftonline.com/$tenant_id/oauth2/v2.0/token"
+    $tokenrequest = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body
+
+    return $tokenrequest.access_token
+}
+
+function send_email_graphAPI($subject) {
+    $access_token = get_access_token_graphAPI
+    $headers = @{
+        "Authorization" = "Bearer $access_token"
+        "Content-Type"  = "application/json"
+    }
+
+    $emailBody = @{
+        message         = @{
+            subject      = $subject
+            body         = @{
+                contentType = "HTML"
+                content     = $body_html
+            }
+            toRecipients = @(
+                @{
+                    emailAddress = @{
+                        address = "support.helpdesk@sydoc.ch"
+                    }
+                }
+            )
+        }
+        saveToSentItems = "true"
+    }
+
+    $jsonPayload = $emailBody | ConvertTo-Json -Depth 10
+
+    $uri = "https://graph.microsoft.com/v1.0/me/sendMail"
+    Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $jsonPayload 
+}
+
+
+function isLocal{
+    return (Get-Location).Path -like "*bes*"
+}
+
+function Log {
+    param([string]$message, [string]$level = 'INFO')
+    $line = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] [$level] $message"
+    Add-Content -Path $logFile -Value $line
+    if (isLocal) {
+        $color = switch ($level) {
+            'ERROR' { 'Red' }
+            'WARN'  { 'Yellow' }
+            default { 'Gray' }
+        }
+        Write-Host $line -ForegroundColor $color
+    }
+}
 
 function Get-IntLiteral {
     param([string]$value, [string]$colName, [string]$docId)
@@ -16,7 +91,7 @@ function Get-IntLiteral {
     return 'NULL'
 }
 
-if ((Get-Location).Path -like "*bes*") {
+if (isLocal) {
     Write-host "Are you sure you want to merge the following $($fullData.count) file(s):"
     $fullData | % { Write-Host "-" $_.BaseName }
     $continue = Read-Host "[Y]es|[N]o"
@@ -27,6 +102,7 @@ if ((Get-Location).Path -like "*bes*") {
     $continue = Read-Host "[Y]es|[N]o"
     if ($continue -ne 'Y') { Write-Host "Aborting Execution" -ForegroundColor Red; Exit }
 }
+Log "Script started: $($fullData.Count) file(s) on $serverinstance"
 $fullData | ForEach-Object {
     $csvFilePath = $_.FullName
     $csvFileNameShort = $_.Name
@@ -37,7 +113,6 @@ $fullData | ForEach-Object {
     $csvRowsInserted = 0
     $valuesList = [System.Collections.Generic.List[string]]::new()
 
-    # import-status tracking
     $insertedTotal = 0
     $updatedTotal = 0
     $minScan = $null
@@ -47,13 +122,15 @@ $fullData | ForEach-Object {
     $script:dataQualityIssues = [System.Collections.Generic.List[psobject]]::new()
 
     $fileEsc = $csvFileNameShort.Replace("'", "''")
+    $fileEsc -match "Report.+" | Out-Null
     $startQuery = @"
 INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
 OUTPUT INSERTED.ID AS NewID
-VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
+VALUES ('$($Matches[0])', GETDATE(), $csvRows, 0, 0, 'running');
 "@
     $startResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
     $importLogID = [int]$startResult.NewID
+    Log "Processing '$csvFileNameShort' (rows=$csvRows, import_log_id=$importLogID)"
 
     function Flush_Batch {
         param($valuesList, $docIdsInBatch, $csvRowsInserted, $csvRows, $envVars)
@@ -227,7 +304,9 @@ FROM @actions;
             $valuesList.Add($values)
             $docIdsInBatch.Add($row.DOC_ID)
             $csvRowsInserted++
-            Write-Host "`r$($csvFileNameShort):[$([math]::Round(($csvRowsInserted / $csvRows * 100), 1))%] Inserting row $csvRowsInserted / $csvRows..." -NoNewline -ForegroundColor Green
+            if (isLocal){
+                Write-Host "`r$($csvFileNameShort):[$([math]::Round(($csvRowsInserted / $csvRows * 100), 1))%] Inserting row $csvRowsInserted / $csvRows..." -NoNewline -ForegroundColor Green
+            }
 
             if ($valuesList.Count -ge $batchSize) {
                 $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows $envVars
@@ -260,7 +339,7 @@ WHERE ID = $importLogID;
         Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
     }
     catch {
-        Write-Host "`nInsert interrupted due to an Error. See 'error.log' for further Information" -ForegroundColor Red
+        Log "Insert interrupted due to an Error in '$csvFileNameShort' - see '$logFile' for full details" 'ERROR'
 
         $sep = '=' * 80
         @(
@@ -275,32 +354,32 @@ WHERE ID = $importLogID;
             $sep
             ''
             '----- Error -----'
-        ) | Out-File "error.log" -Append
-        $_ | Out-File "error.log" -Append
+        ) | Out-File $logFile -Append
+        $_ | Out-File $logFile -Append
 
         if ($docIdsInBatch.Count -gt 0) {
             @(
                 ''
                 "----- DOC_IDs in failing batch ($($docIdsInBatch.Count) row(s)) -----"
                 '(grep these IDs in the source CSV to inspect the offending rows)'
-            ) | Out-File "error.log" -Append
-            $docIdsInBatch | Out-File "error.log" -Append
+            ) | Out-File $logFile -Append
+            $docIdsInBatch | Out-File $logFile -Append
         }
 
         if ($null -ne $script:lastQuery) {
             @(
                 ''
                 '----- Failing SQL (last query attempted) -----'
-            ) | Out-File "error.log" -Append
-            $script:lastQuery | Out-File "error.log" -Append
+            ) | Out-File $logFile -Append
+            $script:lastQuery | Out-File $logFile -Append
         }
 
         if ($script:dataQualityIssues.Count -gt 0) {
             @(
                 ''
                 "----- Data quality warnings ($($script:dataQualityIssues.Count) value(s) sanitized to NULL before failure) -----"
-            ) | Out-File "error.log" -Append
-            $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File "error.log" -Append
+            ) | Out-File $logFile -Append
+            $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File $logFile -Append
         }
 
         $failQuery = @"
@@ -312,6 +391,30 @@ UPDATE CSVImportLog SET
 WHERE ID = $importLogID;
 "@
         try { Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $failQuery } catch {}
+
+        $errorText = ($_ | Out-String).Trim()
+        if ($_.ScriptStackTrace) { $errorText += "`n`nStack trace:`n" + $_.ScriptStackTrace }
+        $docIdsText = if ($docIdsInBatch.Count -gt 0) { ($docIdsInBatch -join "`n") } else { '' }
+        $dqText = if ($script:dataQualityIssues.Count -gt 0) { ($script:dataQualityIssues | Format-Table -AutoSize | Out-String).Trim() } else { '' }
+        $body_html = @"
+<h2>Generali CSV import &mdash; error in $csvFileNameShort</h2>
+<p><b>Time:</b> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
+<p><b>Host:</b> $env:COMPUTERNAME</p>
+<p><b>File:</b> $csvFileNameShort</p>
+<p><b>Progress:</b> $csvRowsInserted / $csvRows rows enqueued from CSV</p>
+<p><b>Failing batch:</b> $($docIdsInBatch.Count) row(s)</p>
+<p><b>Inserted/Updated so far:</b> $insertedTotal / $updatedTotal</p>
+<p><b>Import log ID:</b> $importLogID</p>
+<h3>Error</h3>
+<pre>$([System.Net.WebUtility]::HtmlEncode($errorText))</pre>
+$(if ($docIdsText) { "<h3>DOC_IDs in failing batch ($($docIdsInBatch.Count))</h3><pre>$([System.Net.WebUtility]::HtmlEncode($docIdsText))</pre>" })
+$(if ($script:lastQuery) { "<h3>Failing SQL (last query attempted)</h3><pre>$([System.Net.WebUtility]::HtmlEncode($script:lastQuery))</pre>" })
+$(if ($dqText) { "<h3>Data quality warnings ($($script:dataQualityIssues.Count))</h3><pre>$([System.Net.WebUtility]::HtmlEncode($dqText))</pre>" })
+<p>Full details written to <code>$logFile</code> on the import host.</p>
+"@
+        try { send_email_graphAPI "Generali CSV import - error in $csvFileNameShort" }
+        catch { Write-Host "Failed to send error notification email: $_" -ForegroundColor Yellow }
+
         exit
     }
 
@@ -324,12 +427,13 @@ WHERE ID = $importLogID;
             "Time:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
             "Count: $($script:dataQualityIssues.Count) non-numeric value(s) sanitized to NULL in INT column(s)"
             $sep
-        ) | Out-File "error.log" -Append
-        $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File "error.log" -Append
-        Write-Host "`nWARNING: $($script:dataQualityIssues.Count) non-numeric value(s) in INT columns were sanitized to NULL. See 'error.log'." -ForegroundColor Yellow
+        ) | Out-File $logFile -Append
+        $script:dataQualityIssues | Format-Table -AutoSize | Out-String | Out-File $logFile -Append
+        Log "$($script:dataQualityIssues.Count) non-numeric value(s) in INT columns sanitized to NULL in '$csvFileNameShort' - see '$logFile' for details" 'WARN'
     }
 
     Write-Host "`rDone! Inserted $csvRowsInserted / $csvRows rows. (new: $insertedTotal, updated: $updatedTotal)" -ForegroundColor Green
+    Log "Done with '$csvFileNameShort': inserted=$insertedTotal updated=$updatedTotal rows=$csvRowsInserted/$csvRows"
     if ($serverinstance -like 'INT*') { Copy-Item -Path $csvFilePath -Destination "$datafoldergen/doneINT" -Force }
     else {
         Move-item -Path $csvFilePath -Destination "$datafoldergen/donePROD" -Force

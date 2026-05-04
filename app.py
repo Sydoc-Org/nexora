@@ -7858,14 +7858,14 @@ def generali_baseServices():
                                can_add=has_permission('generali.baseservices.add'),
                                can_edit=has_permission('generali.baseservices.edit') or has_permission('generali.baseservices.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.baseservices.edit.transorganizational'),
-                               can_add_for_org=has_permission('generali.baseservices.addForOrg'))
+                               can_add_for_org=has_permission('generali.baseservices.add.organizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Base Services: {e}")
         return render_template('handlers/500.html'), 500
 
 
 @app.route("/api/generali/baseservices/orgUsers", methods=["GET"])
-@require_permission('generali.baseservices.addForOrg')
+@require_permission('generali.baseservices.add.organizational')
 def api_generali_baseservices_org_users():
     conn = None
     try:
@@ -8050,7 +8050,7 @@ def api_generali_baseservices_add():
         user_id    = caller_id
 
         if target_raw is not None and str(target_raw) != str(caller_id):
-            if not has_permission('generali.baseservices.addForOrg'):
+            if not has_permission('generali.baseservices.add.organizational'):
                 raise PermissionDenied()
             try:
                 target_id = int(target_raw)
@@ -8176,14 +8176,14 @@ def generali_projectManagement():
                                can_add=has_permission('generali.projectmanagement.add'),
                                can_edit=has_permission('generali.projectmanagement.edit') or has_permission('generali.projectmanagement.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.projectmanagement.edit.transorganizational'),
-                               can_add_for_org=has_permission('generali.projectmanagement.addForOrg'))
+                               can_add_for_org=has_permission('generali.projectmanagement.add.organizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Project Management: {e}")
         return render_template('handlers/500.html'), 500
 
 
 @app.route("/api/generali/projectmanagement/orgUsers", methods=["GET"])
-@require_permission('generali.projectmanagement.addForOrg')
+@require_permission('generali.projectmanagement.add.organizational')
 def api_generali_projectmanagement_org_users():
     conn = None
     try:
@@ -8363,7 +8363,7 @@ def api_generali_projectmanagement_add():
         user_id    = caller_id
 
         if target_raw is not None and str(target_raw) != str(caller_id):
-            if not has_permission('generali.projectmanagement.addForOrg'):
+            if not has_permission('generali.projectmanagement.add.organizational'):
                 raise PermissionDenied()
             try:
                 target_id = int(target_raw)
