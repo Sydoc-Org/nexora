@@ -7262,6 +7262,38 @@ def api_generali_reporting_organizations():
             conn.close()
 
 
+@app.route("/api/generali/reporting/filterUsers", methods=["GET"])
+@require_permission('generali.reporting.view')
+def api_generali_reporting_filter_users():
+    try:
+        transorg = has_permission('generali.reporting.edit.transorganizational')
+        org_edit  = has_permission('generali.reporting.edit.organizational')
+        if not transorg and not org_edit:
+            return jsonify({"success": True, "users": []})
+        gen_conn = engineGeneraliDB.raw_connection()
+        gen_cur  = gen_conn.cursor()
+        gen_cur.execute("SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL")
+        user_ids = [r[0] for r in gen_cur.fetchall()]
+        gen_cur.close()
+        gen_conn.close()
+        if not user_ids:
+            return jsonify({"success": True, "users": []})
+        placeholders = ','.join(['?'] * len(user_ids))
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname", user_ids)
+        else:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname", user_ids + [session.get('organizationcode')])
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Reporting FilterUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generali/reporting", methods=["GET"])
 @require_permission('generali.reporting.view')
 def api_generali_reporting_list():
@@ -7271,10 +7303,12 @@ def api_generali_reporting_list():
         per_page = 20
         offset = (page - 1) * per_page
 
-        start_date = request.args.get('startDate', '').strip()
-        end_date   = request.args.get('endDate', '').strip()
-        category   = request.args.get('category', '').strip()
-        org_code   = request.args.get('organizationcode', '').strip()
+        start_date  = request.args.get('startDate', '').strip()
+        end_date    = request.args.get('endDate', '').strip()
+        category    = request.args.get('category', '').strip()
+        org_code    = request.args.get('organizationcode', '').strip()
+        user_id     = request.args.get('userId', '').strip()
+        on_time_str = request.args.get('onTime', '').strip().lower()
 
         where_clauses = []
         params = []
@@ -7295,6 +7329,12 @@ def api_generali_reporting_list():
             placeholders = ','.join(['?'] * len(org_user_ids))
             where_clauses.append(f"ReportByUserID IN ({placeholders})")
             params.extend(org_user_ids)
+        if user_id:
+            where_clauses.append("ReportByUserID = ?")
+            params.append(user_id)
+        if on_time_str in ('true', 'false'):
+            where_clauses.append("ontime = ?")
+            params.append(1 if on_time_str == 'true' else 0)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -7635,6 +7675,38 @@ def api_generali_attendance_organizations():
             conn.close()
 
 
+@app.route("/api/generali/attendance/filterUsers", methods=["GET"])
+@require_permission('generali.additionalservices.view')
+def api_generali_attendance_filter_users():
+    try:
+        transorg = has_permission('generali.attendance.edit.transorganizational')
+        org_edit  = has_permission('generali.attendance.edit.organizational')
+        if not transorg and not org_edit:
+            return jsonify({"success": True, "users": []})
+        gen_conn = engineGeneraliDB.raw_connection()
+        gen_cur  = gen_conn.cursor()
+        gen_cur.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[Attendance] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in gen_cur.fetchall()]
+        gen_cur.close()
+        gen_conn.close()
+        if not user_ids:
+            return jsonify({"success": True, "users": []})
+        placeholders = ','.join(['?'] * len(user_ids))
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname", user_ids)
+        else:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname", user_ids + [session.get('organizationcode')])
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali Attendance FilterUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generali/attendance", methods=["GET"])
 @require_permission('generali.additionalservices.view')
 def api_generali_attendance_list():
@@ -7649,6 +7721,7 @@ def api_generali_attendance_list():
         parent_cat     = request.args.get('parentCategory', '').strip()
         sub_cat        = request.args.get('subCategory', '').strip()
         org_code       = request.args.get('organizationcode', '').strip()
+        user_id        = request.args.get('userId', '').strip()
 
         where_clauses = []
         params = []
@@ -7677,6 +7750,9 @@ def api_generali_attendance_list():
             placeholders = ','.join(['?'] * len(org_user_ids))
             where_clauses.append(f"UserID IN ({placeholders})")
             params.extend(org_user_ids)
+        if user_id:
+            where_clauses.append("UserID = ?")
+            params.append(user_id)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -7969,6 +8045,38 @@ def api_generali_baseservices_organizations():
             conn.close()
 
 
+@app.route("/api/generali/baseservices/filterUsers", methods=["GET"])
+@require_permission('generali.baseservices.view')
+def api_generali_baseservices_filter_users():
+    try:
+        transorg = has_permission('generali.baseservices.edit.transorganizational')
+        org_edit  = has_permission('generali.baseservices.edit.organizational')
+        if not transorg and not org_edit:
+            return jsonify({"success": True, "users": []})
+        gen_conn = engineGeneraliDB.raw_connection()
+        gen_cur  = gen_conn.cursor()
+        gen_cur.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[BaseServices] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in gen_cur.fetchall()]
+        gen_cur.close()
+        gen_conn.close()
+        if not user_ids:
+            return jsonify({"success": True, "users": []})
+        placeholders = ','.join(['?'] * len(user_ids))
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname", user_ids)
+        else:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname", user_ids + [session.get('organizationcode')])
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali BaseServices FilterUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generali/baseservices", methods=["GET"])
 @require_permission('generali.baseservices.view')
 def api_generali_baseservices_list():
@@ -7982,6 +8090,7 @@ def api_generali_baseservices_list():
         end_date   = request.args.get('endDate', '').strip()
         category   = request.args.get('category', '').strip()
         org_code   = request.args.get('organizationcode', '').strip()
+        user_id    = request.args.get('userId', '').strip()
 
         where_clauses = []
         params = []
@@ -8007,6 +8116,9 @@ def api_generali_baseservices_list():
             placeholders = ','.join(['?'] * len(org_user_ids))
             where_clauses.append(f"UserID IN ({placeholders})")
             params.extend(org_user_ids)
+        if user_id:
+            where_clauses.append("UserID = ?")
+            params.append(user_id)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -8301,6 +8413,38 @@ def api_generali_projectmanagement_organizations():
             conn.close()
 
 
+@app.route("/api/generali/projectmanagement/filterUsers", methods=["GET"])
+@require_permission('generali.projectmanagement.view')
+def api_generali_projectmanagement_filter_users():
+    try:
+        transorg = has_permission('generali.projectmanagement.edit.transorganizational')
+        org_edit  = has_permission('generali.projectmanagement.edit.organizational')
+        if not transorg and not org_edit:
+            return jsonify({"success": True, "users": []})
+        gen_conn = engineGeneraliDB.raw_connection()
+        gen_cur  = gen_conn.cursor()
+        gen_cur.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[ProjectManagement] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in gen_cur.fetchall()]
+        gen_cur.close()
+        gen_conn.close()
+        if not user_ids:
+            return jsonify({"success": True, "users": []})
+        placeholders = ','.join(['?'] * len(user_ids))
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname", user_ids)
+        else:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname", user_ids + [session.get('organizationcode')])
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali ProjectManagement FilterUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generali/projectmanagement", methods=["GET"])
 @require_permission('generali.projectmanagement.view')
 def api_generali_projectmanagement_list():
@@ -8313,6 +8457,7 @@ def api_generali_projectmanagement_list():
         start_date = request.args.get('startDate', '').strip()
         end_date   = request.args.get('endDate', '').strip()
         org_code   = request.args.get('organizationcode', '').strip()
+        user_id    = request.args.get('userId', '').strip()
 
         where_clauses = []
         params = []
@@ -8335,6 +8480,9 @@ def api_generali_projectmanagement_list():
             placeholders = ','.join(['?'] * len(org_user_ids))
             where_clauses.append(f"UserID IN ({placeholders})")
             params.extend(org_user_ids)
+        if user_id:
+            where_clauses.append("UserID = ?")
+            params.append(user_id)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -8665,6 +8813,38 @@ def api_generali_pdqm_organizations():
             conn.close()
 
 
+@app.route("/api/generali/pdqm/filterUsers", methods=["GET"])
+@require_permission('generali.pdqm.view')
+def api_generali_pdqm_filter_users():
+    try:
+        transorg = has_permission('generali.pdqm.edit.transorganizational')
+        org_edit  = has_permission('generali.pdqm.edit.organizational')
+        if not transorg and not org_edit:
+            return jsonify({"success": True, "users": []})
+        gen_conn = engineGeneraliDB.raw_connection()
+        gen_cur  = gen_conn.cursor()
+        gen_cur.execute("SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL")
+        user_ids = [r[0] for r in gen_cur.fetchall()]
+        gen_cur.close()
+        gen_conn.close()
+        if not user_ids:
+            return jsonify({"success": True, "users": []})
+        placeholders = ','.join(['?'] * len(user_ids))
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname", user_ids)
+        else:
+            cursor.execute(f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname", user_ids + [session.get('organizationcode')])
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM FilterUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/generali/pdqm", methods=["GET"])
 @require_permission('generali.pdqm.view')
 def api_generali_pdqm_list():
@@ -8680,6 +8860,7 @@ def api_generali_pdqm_list():
         parent_sub_cat = request.args.get('parentSubCategory', None)  # None = not filtered; "" = IS NULL
         sub_cat        = request.args.get('subCategory', '').strip()
         org_code       = request.args.get('organizationcode', '').strip()
+        user_id        = request.args.get('userId', '').strip()
 
         where_clauses = []
         params = []
@@ -8709,6 +8890,9 @@ def api_generali_pdqm_list():
             placeholders = ','.join(['?'] * len(org_user_ids))
             where_clauses.append(f"UserID IN ({placeholders})")
             params.extend(org_user_ids)
+        if user_id:
+            where_clauses.append("UserID = ?")
+            params.append(user_id)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 

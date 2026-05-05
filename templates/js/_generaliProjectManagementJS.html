@@ -47,12 +47,14 @@
 
     function buildParams(page) {
         const p = new URLSearchParams();
-        const start = document.getElementById('filterStartDate').value;
-        const end   = document.getElementById('filterEndDate').value;
-        const org   = document.getElementById('filterOrganizationCode').value;
-        if (start) p.set('startDate', start);
-        if (end)   p.set('endDate', end);
-        if (org)   p.set('organizationcode', org);
+        const start  = document.getElementById('filterStartDate').value;
+        const end    = document.getElementById('filterEndDate').value;
+        const org    = document.getElementById('filterOrganizationCode').value;
+        const userId = document.getElementById('filterUserId')?.value || '';
+        if (start)  p.set('startDate', start);
+        if (end)    p.set('endDate', end);
+        if (org)    p.set('organizationcode', org);
+        if (userId) p.set('userId', userId);
         p.set('page', page);
         return p;
     }
@@ -192,11 +194,34 @@
         document.getElementById('filterStartDate').value = '';
         document.getElementById('filterEndDate').value = '';
         document.getElementById('filterOrganizationCode').value = '';
+        const fu = document.getElementById('filterUserId');
+        if (fu) fu.value = '';
         loadRecords(1);
     });
 
     flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
     flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+
+    function loadFilterUsers() {
+        fetch(API_PREFIX + 'api/generali/projectmanagement/filterUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.users.length) return;
+            const wrapper = document.getElementById('filterUserWrapper');
+            const sel = document.getElementById('filterUserId');
+            if (!wrapper || !sel) return;
+            data.users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+            wrapper.style.display = '';
+        })
+        .catch(e => console.error('Failed to load filter users', e));
+    }
 
     {% if can_add %}
     function loadOrgUsers() {
@@ -447,5 +472,6 @@
 
     {% if can_add %}loadOrgUsers();{% endif %}
     loadOrganizations();
+    loadFilterUsers();
     loadRecords(1);
 </script>

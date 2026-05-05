@@ -108,14 +108,18 @@
     // ----------------------------- fetch ----------------------------- //
     function buildParams(page) {
         const p = new URLSearchParams();
-        const start = document.getElementById('filterStartDate').value;
-        const end   = document.getElementById('filterEndDate').value;
-        const cat   = document.getElementById('filterCategory').value;
-        const org   = document.getElementById('filterOrganizationCode').value;
-        if (start) p.set('startDate', start);
-        if (end)   p.set('endDate', end);
-        if (cat)   p.set('category', cat);
-        if (org)   p.set('organizationcode', org);
+        const start  = document.getElementById('filterStartDate').value;
+        const end    = document.getElementById('filterEndDate').value;
+        const cat    = document.getElementById('filterCategory').value;
+        const org    = document.getElementById('filterOrganizationCode').value;
+        const userId = document.getElementById('filterUserId')?.value || '';
+        const onTime = document.getElementById('filterOnTime')?.value || '';
+        if (start)  p.set('startDate', start);
+        if (end)    p.set('endDate', end);
+        if (cat)    p.set('category', cat);
+        if (org)    p.set('organizationcode', org);
+        if (userId) p.set('userId', userId);
+        if (onTime) p.set('onTime', onTime);
         p.set('page', page);
         return p;
     }
@@ -875,8 +879,33 @@
         fpFilterEnd.clear();
         document.getElementById('filterCategory').value = '';
         document.getElementById('filterOrganizationCode').value = '';
+        const fu = document.getElementById('filterUserId');
+        if (fu) fu.value = '';
+        const fo = document.getElementById('filterOnTime');
+        if (fo) fo.value = '';
         fetchRecords(1);
     });
+
+    function loadFilterUsers() {
+        fetch(`${API_PREFIX}api/generali/reporting/filterUsers`, {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.users.length) return;
+            const wrapper = document.getElementById('filterUserWrapper');
+            const sel = document.getElementById('filterUserId');
+            if (!wrapper || !sel) return;
+            data.users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+            wrapper.style.display = '';
+        })
+        .catch(e => console.error('Failed to load filter users', e));
+    }
 
     // ----------------------------- excel export ----------------------------- //
     function showExportError(msg) {
@@ -927,5 +956,6 @@
 
     // ----------------------------- init ----------------------------- //
     loadOrganizations();
+    loadFilterUsers();
     fetchRecords(1);
 </script>

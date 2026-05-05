@@ -155,6 +155,7 @@
         const parentSub = document.getElementById('filterParentSubCategory').value;
         const sub       = document.getElementById('filterSubCategory').value;
         const org       = document.getElementById('filterOrganizationCode').value;
+        const userId    = document.getElementById('filterUserId')?.value || '';
         if (start)     p.set('startDate', start);
         if (end)       p.set('endDate', end);
         if (parent)    p.set('parentCategory', parent);
@@ -164,6 +165,7 @@
         }
         if (sub)       p.set('subCategory', sub);
         if (org)       p.set('organizationcode', org);
+        if (userId)    p.set('userId', userId);
         p.set('page', page);
         return p;
     }
@@ -327,8 +329,31 @@
         while (sc.options.length > 1) sc.remove(1);
         sc.value = '';
         document.getElementById('filterOrganizationCode').value = '';
+        const fu = document.getElementById('filterUserId');
+        if (fu) fu.value = '';
         loadRecords(1);
     });
+
+    function loadFilterUsers() {
+        fetch(API_PREFIX + 'api/generali/pdqm/filterUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.users.length) return;
+            const wrapper = document.getElementById('filterUserWrapper');
+            const sel = document.getElementById('filterUserId');
+            if (!wrapper || !sel) return;
+            data.users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+            wrapper.style.display = '';
+        })
+        .catch(e => console.error('Failed to load filter users', e));
+    }
 
     document.getElementById('filterParentCategory').addEventListener('change', function() {
         const psc = document.getElementById('filterParentSubCategory');
@@ -687,5 +712,6 @@
     // ----------------------------- init ----------------------------- //
     loadCategories();
     loadOrganizations();
+    loadFilterUsers();
     loadRecords(1);
 </script>
