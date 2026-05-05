@@ -38,6 +38,7 @@ import urllib, csv
 app = Flask(__name__)
 load_dotenv()
 load_dotenv(dotenv_path=f'{os.environ.get("ENVIRONMENT")}.env')
+IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
 # ------------------------------- error handler ------------------------------ #
 @app.errorhandler(404)
 def page_not_found(e):
@@ -82,56 +83,58 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-# app.config['SESSION_COOKIE_SECURE'] = True 
-# app.config['SESSION_COOKIE_HTTPONLY'] = True
-# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# app.config['SESSION_TYPE'] = 'filesystem'  
-# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-# app.config['SESSION_PERMANENT'] = True
-# app.config['SESSION_USE_SIGNER'] = True    
-
-# Session(app)
+if IS_PROD:
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session')
+    app.config['SESSION_PERMANENT'] = True
+    app.config['SESSION_USE_SIGNER'] = True
+    Session(app)
 
 csrf = CSRFProtect(app)
-# csp = {
-#     'default-src': '\'self\'',
-#     'base-uri': '\'self\'',         
-#     'object-src': '\'none\'',       
-#     'script-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://cdn.tailwindcss.com',   
-#         'https://cdnjs.cloudflare.com',  
-#         'https://cdn.jsdelivr.net'       
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         '\'unsafe-inline\'',             
-#         'https://fonts.googleapis.com',  
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ],
-#     'font-src': [
-#         '\'self\'',
-#         'https://fonts.gstatic.com',     
-#         'https://cdnjs.cloudflare.com'
-#     ],
-#     'img-src': [
-#         '\'self\'',
-#         'data:',
-#         'blob:',                         
-#         'https://cdn.tailwindcss.com'
-#     ],
-#     'connect-src': [
-#         '\'self\'',                     
-#         'https://cdn.tailwindcss.com',
-#         'https://cdnjs.cloudflare.com',
-#         'https://cdn.jsdelivr.net'
-#     ]
-# }
-# Talisman(app, content_security_policy=csp)
+
+if IS_PROD:
+    csp = {
+        'default-src': '\'self\'',
+        'base-uri': '\'self\'',
+        'object-src': '\'none\'',
+        'script-src': [
+            '\'self\'',
+            '\'unsafe-inline\'',
+            'https://cdn.tailwindcss.com',
+            'https://cdnjs.cloudflare.com',
+            'https://cdn.jsdelivr.net'
+        ],
+        'style-src': [
+            '\'self\'',
+            '\'unsafe-inline\'',
+            'https://fonts.googleapis.com',
+            'https://cdnjs.cloudflare.com',
+            'https://cdn.jsdelivr.net'
+        ],
+        'font-src': [
+            '\'self\'',
+            'https://fonts.gstatic.com',
+            'https://cdnjs.cloudflare.com'
+        ],
+        'img-src': [
+            '\'self\'',
+            'data:',
+            'blob:',
+            'https://cdn.tailwindcss.com'
+        ],
+        'connect-src': [
+            '\'self\'',
+            'https://cdn.tailwindcss.com',
+            'https://cdnjs.cloudflare.com',
+            'https://cdn.jsdelivr.net'
+        ]
+    }
+    Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -761,87 +764,43 @@ def _record_active_session(user_id):
     except Exception as e:
         app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
 
+@app.route("/dev/login/<username>")
+def dev_login(username):
+    if IS_PROD:
+        abort(404)
+    conn = engineNexoraDB.raw_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = ?",
+            (username,)
+        )
+        row = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+    if not row:
+        abort(404)
+    uid, uname, fullname, email, org_code, locale = row
+    session.clear()
+    session['userid'] = str(uid)
+    session['username'] = uname
+    session['fullname'] = fullname
+    session['email'] = email
+    session['organizationcode'] = org_code
+    session['uuid'] = uuid.uuid4()
+    session['locale'] = locale
+    session['permissions'] = load_permissions_for_user(str(uid))
+    _record_active_session(str(uid))
+    pV = pageVisability()
+    return redirect(url_for(startpage_redirect_to(pV)))
+
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
-        # DEV ONLY!!!
-        if UID_REQUEST == '123' and PWD_REQUEST == '123':
-            blocking = _maintenance_blocks_user("1019")
-            if blocking:
-                return render_template('maintenance.html', maintenance=blocking), 503
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            username, fullname, email, org_code, locale = row
-
-            session.clear()
-            session['userid'] = "1019"
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user("1019")
-            _record_active_session("1019")
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '321' and PWD_REQUEST == '321':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
-
-            blocking = _maintenance_blocks_user(userid)
-            if blocking:
-                return render_template('maintenance.html', maintenance=blocking), 503
-
-            session.clear()
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
-        if UID_REQUEST == '456' and PWD_REQUEST == '456':
-            conn = engineNexoraDB.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-            row = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            userid, username, fullname, email, org_code, locale = row
-
-            blocking = _maintenance_blocks_user(userid)
-            if blocking:
-                return render_template('maintenance.html', maintenance=blocking), 503
-
-            session.clear()
-            session['userid'] = userid
-            session['username'] = username
-            session['fullname'] = fullname
-            session['email'] = email
-            session['organizationcode'] = org_code
-            session['uuid'] = uuid.uuid4()
-            session['locale'] = locale
-            session['permissions'] = load_permissions_for_user(userid)
-            _record_active_session(userid)
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials")), 401
 
@@ -9361,9 +9320,8 @@ def api_recent_activity():
         return jsonify([])
     finally:
         if conn: conn.close()
-# ------------------------------- ONLY FOR PROD -------------------------------- # 
-# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
-# ----------------------------- ONLY FOR PROD end ------------------------------ #
+if IS_PROD:
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 
 
 if __name__ == "__main__":
