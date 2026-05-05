@@ -1194,6 +1194,8 @@ def _maintenance_row_to_dict(row, cols):
     d['Active'] = bool(d.get('Active'))
     if 'BlockAccess' in d:
         d['BlockAccess'] = bool(d.get('BlockAccess'))
+    if 'AnnounceMinutesBefore' in d:
+        d['AnnounceMinutesBefore'] = int(d['AnnounceMinutesBefore'] or 0)
     return d
 
 
@@ -1290,7 +1292,7 @@ def api_admin_maintenance_list():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, CreatedBy, CreatedAt
+            SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, AnnounceMinutesBefore, CreatedBy, CreatedAt
             FROM MaintenanceBanner
             ORDER BY StartAt DESC, ID DESC
         """)
@@ -1306,13 +1308,17 @@ def api_admin_maintenance_list():
 
 
 def _maintenance_parse_payload(body):
-    title       = (body.get('title') or '').strip()
-    message     = (body.get('message') or '').strip()
-    start_at    = (body.get('startAt') or '').strip().replace('T', ' ')
-    end_at      = (body.get('endAt') or '').strip().replace('T', ' ')
-    severity    = (body.get('severity') or 'info').strip().lower()
-    active      = bool(body.get('active', True))
+    title        = (body.get('title') or '').strip()
+    message      = (body.get('message') or '').strip()
+    start_at     = (body.get('startAt') or '').strip().replace('T', ' ')
+    end_at       = (body.get('endAt') or '').strip().replace('T', ' ')
+    severity     = (body.get('severity') or 'info').strip().lower()
+    active       = bool(body.get('active', True))
     block_access = bool(body.get('blockAccess', False))
+    try:
+        announce_minutes = max(0, min(1440, int(body.get('announceMinutesBefore') or 0)))
+    except (TypeError, ValueError):
+        announce_minutes = 0
 
     if not message:
         return None, ("message is required", 400)
@@ -1328,6 +1334,7 @@ def _maintenance_parse_payload(body):
         'severity': severity,
         'active': 1 if active else 0,
         'block_access': 1 if block_access else 0,
+        'announce_minutes': announce_minutes,
     }, None
 
 
@@ -1344,11 +1351,12 @@ def api_admin_maintenance_add():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, CreatedBy, CreatedAt)
+            INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, AnnounceMinutesBefore, CreatedBy, CreatedAt)
             OUTPUT INSERTED.ID
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
         """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
-              parsed['severity'], parsed['active'], parsed['block_access'], session.get('userid')])
+              parsed['severity'], parsed['active'], parsed['block_access'],
+              parsed['announce_minutes'], session.get('userid')])
         new_id = cursor.fetchone()[0]
         conn.commit()
         _MAINTENANCE_BLOCK_CACHE['expires_at'] = 0.0
@@ -1375,10 +1383,12 @@ def api_admin_maintenance_edit(banner_id):
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE MaintenanceBanner
-               SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?, Active = ?, BlockAccess = ?
+               SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?,
+                   Active = ?, BlockAccess = ?, AnnounceMinutesBefore = ?
              WHERE ID = ?
         """, [parsed['title'], parsed['message'], parsed['start_at'], parsed['end_at'],
-              parsed['severity'], parsed['active'], parsed['block_access'], banner_id])
+              parsed['severity'], parsed['active'], parsed['block_access'],
+              parsed['announce_minutes'], banner_id])
         if cursor.rowcount == 0:
             return jsonify({"success": False, "error": "Banner not found"}), 404
         conn.commit()
@@ -1425,6 +1435,7 @@ def api_maintenance_active():
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
+        # Priority 1: currently active banner (window has started)
         cursor.execute("""
             SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity
             FROM MaintenanceBanner
@@ -1434,24 +1445,54 @@ def api_maintenance_active():
             ORDER BY StartAt DESC, ID DESC
         """)
         row = cursor.fetchone()
+        if row:
+            rec_id, title, message, start_at, end_at, severity = row
+            return jsonify({
+                "success": True,
+                "banner": {
+                    "id":       int(rec_id),
+                    "title":    title,
+                    "message":  message,
+                    "startAt":  _maintenance_iso(start_at),
+                    "endAt":    _maintenance_iso(end_at),
+                    "severity": severity,
+                    "upcoming": False,
+                }
+            })
+        # Priority 2: upcoming banner within its announcement window
+        cursor.execute("""
+            SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity
+            FROM MaintenanceBanner
+            WHERE Active = 1
+              AND StartAt > GETDATE()
+              AND AnnounceMinutesBefore > 0
+              AND DATEADD(minute, -AnnounceMinutesBefore, StartAt) <= GETDATE()
+            ORDER BY StartAt ASC, ID ASC
+        """)
+        row = cursor.fetchone()
         if not row:
             return jsonify({"success": True, "banner": None})
         rec_id, title, message, start_at, end_at, severity = row
         return jsonify({
             "success": True,
             "banner": {
-                "id": int(rec_id),
-                "title": title,
-                "message": message,
-                "startAt": _maintenance_iso(start_at),
-                "endAt":   _maintenance_iso(end_at),
+                "id":       int(rec_id),
+                "title":    title,
+                "message":  message,
+                "startAt":  _maintenance_iso(start_at),
+                "endAt":    _maintenance_iso(end_at),
                 "severity": severity,
+                "upcoming": True,
             }
         })
     except Exception as e:
         app.logger.error(f"Maintenance active error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "internal error"}), 500
     finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
         if conn:
             conn.close()
 

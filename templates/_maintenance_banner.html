@@ -43,36 +43,84 @@
 <div id="maintenance-banner" role="alert" aria-live="polite"></div>
 <script>
 (function() {
+    if (window.__maintenanceBannerInit) return;
+    window.__maintenanceBannerInit = true;
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const SEVERITY_ICON = { info: 'fa-circle-info', warning: 'fa-triangle-exclamation', critical: 'fa-circle-exclamation' };
     const banner = document.getElementById('maintenance-banner');
     if (!banner) return;
+
+    let _countdownInterval = null;
+    let _activeBannerKey = null;
 
     function fmt(iso) {
         if (!iso) return '';
         return iso.replace('T', ' ').substring(0, 16);
     }
 
+    function minutesUntil(isoStr) {
+        return Math.max(0, Math.ceil((new Date(isoStr) - Date.now()) / 60000));
+    }
+
+    function hide() {
+        _activeBannerKey = null;
+        if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+        banner.classList.remove('mb-show');
+        document.body.classList.remove('has-maintenance-banner');
+        banner.replaceChildren();
+    }
+
     function render(b) {
-        const dismissedKey = 'mb-dismissed-' + b.id;
-        if (sessionStorage.getItem(dismissedKey) === '1') return;
+        const upcoming = !!b.upcoming;
+        const dismissKey = upcoming ? ('mb-announced-' + b.id) : ('mb-dismissed-' + b.id);
+
+        if (sessionStorage.getItem(dismissKey) === '1') return;
+
+        const bannerKey = b.id + ':' + (upcoming ? 'up' : 'live');
+        if (_activeBannerKey === bannerKey) return;
+        _activeBannerKey = bannerKey;
+
+        if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
 
         banner.replaceChildren();
         const hasSidebar = !!document.getElementById('nexora-sidebar');
         banner.className = 'mb-show mb-' + (b.severity || 'info') + (hasSidebar ? ' mb-with-sidebar' : '');
 
         const ico = document.createElement('i');
-        ico.className = 'fas mb-icon ' + (SEVERITY_ICON[b.severity] || SEVERITY_ICON.info);
+        ico.className = 'fas mb-icon ' + (upcoming ? 'fa-clock' : (SEVERITY_ICON[b.severity] || SEVERITY_ICON.info));
         banner.appendChild(ico);
 
         const body = document.createElement('div');
         body.className = 'mb-body';
-        if (b.title) {
+
+        if (upcoming) {
+            const prefix = document.createElement('span');
+            prefix.className = 'mb-title';
+            prefix.appendChild(document.createTextNode({{ _('Maintenance in') | tojson }} + ' '));
+            const countSpan = document.createElement('span');
+            countSpan.id = 'mb-countdown';
+            countSpan.textContent = String(minutesUntil(b.startAt));
+            prefix.appendChild(countSpan);
+            prefix.appendChild(document.createTextNode(' ' + {{ _('min:') | tojson }} + ' '));
+            body.appendChild(prefix);
+
+            _countdownInterval = setInterval(function() {
+                const mins = minutesUntil(b.startAt);
+                const el = document.getElementById('mb-countdown');
+                if (el) el.textContent = String(mins);
+                if (mins === 0) {
+                    clearInterval(_countdownInterval);
+                    _countdownInterval = null;
+                    poll();
+                }
+            }, 60000);
+        } else if (b.title) {
             const t = document.createElement('span');
             t.className = 'mb-title';
             t.textContent = b.title;
             body.appendChild(t);
         }
+
         body.appendChild(document.createTextNode(b.message || ''));
         if (b.startAt && b.endAt) {
             const win = document.createElement('span');
@@ -89,21 +137,26 @@
         const x = document.createElement('i');
         x.className = 'fas fa-xmark';
         btn.appendChild(x);
-        btn.addEventListener('click', () => {
-            sessionStorage.setItem(dismissedKey, '1');
-            banner.classList.remove('mb-show');
-            document.body.classList.remove('has-maintenance-banner');
+        btn.addEventListener('click', function() {
+            sessionStorage.setItem(dismissKey, '1');
+            hide();
         });
         banner.appendChild(btn);
 
         document.body.classList.add('has-maintenance-banner');
     }
 
-    fetch(API_PREFIX + 'api/maintenance/active')
-        .then(r => r.json())
-        .then(data => {
-            if (data && data.success && data.banner) render(data.banner);
-        })
-        .catch(() => {});
+    function poll() {
+        fetch(API_PREFIX + 'api/maintenance/active')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success && data.banner) render(data.banner);
+                else hide();
+            })
+            .catch(function() {});
+    }
+
+    poll();
+    setInterval(poll, 60000);
 })();
 </script>

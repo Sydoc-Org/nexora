@@ -117,6 +117,21 @@
         tdBlock.style.textAlign = 'center';
         tdBlock.appendChild(makeBlockBadge(b.BlockAccess));
 
+        const tdAnnounce = document.createElement('td');
+        tdAnnounce.style.textAlign = 'center';
+        const amin = b.AnnounceMinutesBefore;
+        if (amin && amin > 0) {
+            const pill = document.createElement('span');
+            pill.style.cssText = 'font-size:12px;color:#4338ca;font-weight:600;';
+            pill.textContent = amin + ' min';
+            tdAnnounce.appendChild(pill);
+        } else {
+            const dash = document.createElement('span');
+            dash.style.color = '#94a3b8';
+            dash.textContent = '—';
+            tdAnnounce.appendChild(dash);
+        }
+
         const tdActive = document.createElement('td');
         tdActive.style.textAlign = 'center';
         tdActive.appendChild(makeActiveBadge(b.Active, b.StartAt, b.EndAt));
@@ -148,6 +163,7 @@
         tr.appendChild(tdWindow);
         tr.appendChild(tdSev);
         tr.appendChild(tdBlock);
+        tr.appendChild(tdAnnounce);
         tr.appendChild(tdActive);
         tr.appendChild(tdActions);
         return tr;
@@ -164,7 +180,7 @@
         if (!filtered.length) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
-            td.colSpan = 6;
+            td.colSpan = 7;
             td.style.cssText = 'text-align:center;padding:48px 0;color:#94a3b8';
             td.textContent = {{ _("No banners found") | tojson }};
             tr.appendChild(td);
@@ -179,7 +195,7 @@
         tbody.replaceChildren();
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 6;
+        td.colSpan = 7;
         td.style.cssText = 'text-align:center;padding:48px 0';
         const sp = document.createElement('i');
         sp.className = 'fas fa-spinner fa-spin';
@@ -199,7 +215,7 @@
                 tbody.replaceChildren();
                 const r = document.createElement('tr');
                 const c = document.createElement('td');
-                c.colSpan = 5;
+                c.colSpan = 7;
                 c.style.cssText = 'text-align:center;padding:32px 0;color:#dc2626';
                 c.textContent = e.message || 'Network error';
                 r.appendChild(c);
@@ -218,6 +234,7 @@
         document.getElementById('maintActive').checked = true;
         document.getElementById('maintBlockAccess').checked = false;
         document.getElementById('maintSeverity').value = 'info';
+        document.getElementById('maintAnnounce').value = 0;
         document.getElementById('maintError').classList.add('hidden');
         document.getElementById('maintModalTitle').textContent = {{ _("Add banner") | tojson }};
         if (fpStart) fpStart.clear();
@@ -234,6 +251,7 @@
         document.getElementById('maintSeverity').value = b.Severity || 'info';
         document.getElementById('maintActive').checked = !!b.Active;
         document.getElementById('maintBlockAccess').checked = !!b.BlockAccess;
+        document.getElementById('maintAnnounce').value = b.AnnounceMinutesBefore || 0;
         if (fpStart) fpStart.setDate(b.StartAt ? b.StartAt.replace('T', ' ').substring(0, 16) : '', true);
         if (fpEnd)   fpEnd.setDate(b.EndAt   ? b.EndAt.replace('T', ' ').substring(0, 16)   : '', true);
         document.getElementById('maintError').classList.add('hidden');
@@ -262,13 +280,14 @@
         errEl.classList.add('hidden');
 
         const payload = {
-            title:       document.getElementById('maintTitle').value.trim(),
-            message:     document.getElementById('maintMessage').value.trim(),
-            startAt:     document.getElementById('maintStartAt').value.trim(),
-            endAt:       document.getElementById('maintEndAt').value.trim(),
-            severity:    document.getElementById('maintSeverity').value,
-            active:      document.getElementById('maintActive').checked,
-            blockAccess: document.getElementById('maintBlockAccess').checked,
+            title:                document.getElementById('maintTitle').value.trim(),
+            message:              document.getElementById('maintMessage').value.trim(),
+            startAt:              document.getElementById('maintStartAt').value.trim(),
+            endAt:                document.getElementById('maintEndAt').value.trim(),
+            severity:             document.getElementById('maintSeverity').value,
+            active:               document.getElementById('maintActive').checked,
+            blockAccess:          document.getElementById('maintBlockAccess').checked,
+            announceMinutesBefore: Math.max(0, parseInt(document.getElementById('maintAnnounce').value) || 0),
         };
 
         if (!payload.message)  { errEl.textContent = {{ _("Message is required.") | tojson }}; errEl.classList.remove('hidden'); return; }

@@ -25,4 +25,3 @@ msgid "string2"
 msgstr "string2 in a new language"
 
 pybabel compile -d translations #complie
-deactivate

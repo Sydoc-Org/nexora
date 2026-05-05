@@ -16,6 +16,7 @@ CREATE TABLE [dbo].[MaintenanceBanner](
 	[Severity] [varchar](20) NOT NULL,
 	[Active] [bit] NOT NULL,
 	[BlockAccess] [bit] NOT NULL,
+	[AnnounceMinutesBefore] [int] NULL,
 	[CreatedBy] [int] NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 PRIMARY KEY CLUSTERED
@@ -34,6 +35,9 @@ GO
 ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT ((0)) FOR [BlockAccess]
 GO
 
+ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT ((0)) FOR [AnnounceMinutesBefore]
+GO
+
 ALTER TABLE [dbo].[MaintenanceBanner] ADD  DEFAULT (getdate()) FOR [CreatedAt]
 GO
 
@@ -42,4 +46,8 @@ GO
 
 -- If the table already exists from the prior version, run this instead of recreating:
 -- ALTER TABLE [dbo].[MaintenanceBanner] ADD [BlockAccess] [bit] NOT NULL CONSTRAINT DF_MaintenanceBanner_BlockAccess DEFAULT ((0))
+-- GO
+
+-- If the table already exists, run this instead of recreating:
+-- ALTER TABLE [dbo].[MaintenanceBanner] ADD [AnnounceMinutesBefore] [int] NULL CONSTRAINT DF_MaintenanceBanner_AnnounceMinutesBefore DEFAULT (0)
 -- GO
