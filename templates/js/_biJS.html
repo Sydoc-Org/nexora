@@ -1,0 +1,553 @@
+<script>
+
+const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#6b7280';
+
+const BI_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#f97316','#84cc16'];
+
+let biLayout = null;
+let biFieldMeta = [];
+const biCharts = new Map();
+let biEditingId = null;
+let biPanelType = 'kpi';
+
+// ── DOM helpers ─────────────────────────────────────────────────────────────
+
+function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+}
+
+function icon(cls) {
+    return el('i', cls);
+}
+
+function spinner() {
+    return icon('fas fa-circle-notch fa-spin text-gray-300 text-xl');
+}
+
+function setSpinner(container) {
+    container.replaceChildren(spinner());
+    container.style.minHeight = '';
+    container.classList.add('flex', 'items-center', 'justify-center');
+}
+
+function setError(container, msg) {
+    const p = el('p', 'text-xs text-red-400', msg);
+    container.replaceChildren(p);
+    container.style.minHeight = '';
+    container.classList.add('flex', 'items-center', 'justify-center');
+}
+
+// ── KPI formatting ──────────────────────────────────────────────────────────
+
+function formatKpiValue(value, unit) {
+    if (unit === 'seconds') {
+        const v = Math.round(value);
+        if (v < 60) return v + 's';
+        if (v < 3600) return Math.floor(v / 60) + 'min ' + (v % 60) + 's';
+        return Math.floor(v / 3600) + 'h ' + Math.floor((v % 3600) / 60) + 'min';
+    }
+    if (value >= 1_000_000) return (value / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (value >= 1_000) return (value / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return Number.isInteger(value) ? value.toLocaleString() : value.toFixed(2);
+}
+
+// ── Field metadata ──────────────────────────────────────────────────────────
+
+async function loadFieldMeta() {
+    try {
+        const res = await fetch(`${API_PREFIX}api/bi/field_metadata`);
+        biFieldMeta = await res.json();
+    } catch (e) {
+        biFieldMeta = [];
+    }
+}
+
+// ── Layout persistence ──────────────────────────────────────────────────────
+
+async function loadBiLayout() {
+    try {
+        const res = await fetch(`${API_PREFIX}api/bi/layout`);
+        biLayout = await res.json();
+    } catch (e) {
+        biLayout = { globalFilters: { process: 'all', datePreset: 'last_30d' }, grid: [] };
+    }
+    syncGlobalFiltersUI();
+    renderBiGrid();
+}
+
+async function saveBiLayout() {
+    try {
+        await fetch(`${API_PREFIX}api/bi/layout`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(biLayout),
+        });
+    } catch (e) {
+        console.error('Failed to save layout', e);
+    }
+}
+
+// ── Global filters ──────────────────────────────────────────────────────────
+
+function syncGlobalFiltersUI() {
+    const gf = biLayout.globalFilters || {};
+    const procEl = document.getElementById('bi-process-filter');
+    const dateEl = document.getElementById('bi-date-preset');
+    if (procEl && gf.process) procEl.value = gf.process;
+    if (dateEl && gf.datePreset) dateEl.value = gf.datePreset;
+}
+
+function bindGlobalFilters() {
+    document.getElementById('bi-process-filter')?.addEventListener('change', e => {
+        biLayout.globalFilters.process = e.target.value;
+        saveBiLayout();
+        refreshAllWidgets();
+    });
+    document.getElementById('bi-date-preset')?.addEventListener('change', e => {
+        biLayout.globalFilters.datePreset = e.target.value;
+        saveBiLayout();
+        refreshAllWidgets();
+    });
+}
+
+// ── Grid rendering ──────────────────────────────────────────────────────────
+
+function renderBiGrid() {
+    biCharts.forEach(c => c.destroy());
+    biCharts.clear();
+
+    const grid = document.getElementById('bi-grid');
+    const empty = document.getElementById('bi-empty');
+    grid.replaceChildren();
+
+    const widgets = (biLayout.grid || []).slice().sort((a, b) => a.y - b.y || a.x - b.x);
+
+    if (widgets.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+    }
+    empty.classList.add('hidden');
+
+    widgets.forEach(w => {
+        grid.appendChild(buildWidgetCard(w));
+        fetchAndRenderWidget(w);
+    });
+}
+
+function buildWidgetCard(widget) {
+    const card = document.createElement('div');
+    card.id = `bi-card-${widget.id}`;
+    card.className = `col-span-${widget.w} bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col`;
+
+    // Header
+    const header = el('div', 'flex items-center justify-between px-4 pt-3 pb-1 gap-2');
+
+    const titleSpan = el('span', 'text-sm font-semibold text-gray-700 truncate', widget.title);
+    header.appendChild(titleSpan);
+
+    const btnRow = el('div', 'flex gap-1 shrink-0');
+
+    const editBtn = document.createElement('button');
+    editBtn.title = '{{ _("Edit widget") }}';
+    editBtn.className = 'p-1.5 text-gray-300 hover:text-indigo-500 rounded-lg hover:bg-indigo-50 transition-colors';
+    editBtn.appendChild(icon('fas fa-pen text-xs'));
+    editBtn.addEventListener('click', () => openBiPanel(widget.id));
+    btnRow.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.title = '{{ _("Remove widget") }}';
+    delBtn.className = 'p-1.5 text-gray-300 hover:text-red-400 rounded-lg hover:bg-red-50 transition-colors';
+    delBtn.appendChild(icon('fas fa-trash text-xs'));
+    delBtn.addEventListener('click', () => removeBiWidget(widget.id));
+    btnRow.appendChild(delBtn);
+
+    header.appendChild(btnRow);
+    card.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.id = `bi-body-${widget.id}`;
+    body.className = 'flex-1 px-4 pb-4 flex items-center justify-center min-h-[130px]';
+    body.appendChild(spinner());
+    card.appendChild(body);
+
+    return card;
+}
+
+async function fetchAndRenderWidget(widget) {
+    const bodyEl = document.getElementById(`bi-body-${widget.id}`);
+    if (!bodyEl) return;
+    try {
+        const res = await fetch(`${API_PREFIX}api/bi/widget_data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ widget, globalFilters: biLayout.globalFilters }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            setError(bodyEl, data.error);
+            return;
+        }
+        renderWidgetContent(widget, data, bodyEl);
+    } catch (e) {
+        setError(bodyEl, '{{ _("Failed to load") }}');
+    }
+}
+
+function renderWidgetContent(widget, data, bodyEl) {
+    if (widget.type === 'kpi') {
+        const formatted = formatKpiValue(data.value ?? 0, data.unit);
+        const wrapper = el('div', 'text-center w-full py-2');
+        const valueEl = el('div', 'text-4xl font-bold text-gray-900 tabular-nums', formatted);
+        wrapper.appendChild(valueEl);
+        if (data.warnings?.includes('no_data_in_scope')) {
+            wrapper.appendChild(el('p', 'text-xs text-gray-400 mt-1', '{{ _("No data") }}'));
+        }
+        bodyEl.replaceChildren(wrapper);
+        bodyEl.classList.remove('flex', 'items-center', 'justify-center');
+        bodyEl.classList.add('flex', 'items-center', 'justify-center');
+        return;
+    }
+
+    // Destroy any existing chart
+    const prev = biCharts.get(widget.id);
+    if (prev) { prev.destroy(); biCharts.delete(widget.id); }
+
+    // Canvas wrapper
+    const canvasWrap = document.createElement('div');
+    canvasWrap.style.cssText = 'position:relative;height:220px;width:100%';
+    const canvas = document.createElement('canvas');
+    canvasWrap.appendChild(canvas);
+    bodyEl.replaceChildren(canvasWrap);
+    bodyEl.style.minHeight = '240px';
+    bodyEl.classList.remove('items-center', 'justify-center');
+
+    const ctx = canvas.getContext('2d');
+    const labels = data.labels || [];
+    const seriesData = data.series?.[0]?.data || [];
+    const seriesLabel = data.series?.[0]?.label || widget.title;
+    const chartType = widget.config?.chartType || 'line';
+
+    if (widget.type === 'timeseries') {
+        const isBar = chartType === 'bar';
+        const isArea = chartType === 'area';
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(99,102,241,0.2)');
+        gradient.addColorStop(1, 'rgba(99,102,241,0)');
+
+        biCharts.set(widget.id, new Chart(ctx, {
+            type: isBar ? 'bar' : 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: seriesLabel,
+                    data: seriesData,
+                    borderColor: BI_COLORS[0],
+                    backgroundColor: isBar ? 'rgba(99,102,241,0.15)' : (isArea ? gradient : 'transparent'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    borderRadius: isBar ? 4 : 0,
+                    borderSkipped: false,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#f3f4f6' } },
+                    x: { grid: { display: false } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        }));
+    }
+
+    if (widget.type === 'categorical') {
+        if (!labels.length) {
+            bodyEl.replaceChildren(el('p', 'text-gray-400 text-sm', '{{ _("No data") }}'));
+            bodyEl.classList.add('flex', 'items-center', 'justify-center');
+            return;
+        }
+        const isDoughnut = chartType === 'doughnut';
+        const isPie = chartType === 'pie';
+        const isHbar = chartType === 'hbar';
+        const colors = labels.map((_, i) => BI_COLORS[i % BI_COLORS.length]);
+
+        if (isDoughnut || isPie) {
+            biCharts.set(widget.id, new Chart(ctx, {
+                type: isDoughnut ? 'doughnut' : 'pie',
+                data: {
+                    labels,
+                    datasets: [{ data: seriesData, backgroundColor: colors, borderWidth: 1 }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    },
+                },
+            }));
+        } else {
+            biCharts.set(widget.id, new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: seriesLabel,
+                        data: seriesData,
+                        backgroundColor: colors,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }],
+                },
+                options: {
+                    indexAxis: isHbar ? 'y' : 'x',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#f3f4f6' } },
+                        x: { grid: { display: isHbar } },
+                    },
+                    plugins: { legend: { display: false } },
+                },
+            }));
+        }
+    }
+}
+
+function refreshAllWidgets() {
+    (biLayout.grid || []).forEach(w => {
+        const bodyEl = document.getElementById(`bi-body-${w.id}`);
+        if (!bodyEl) return;
+        const existing = biCharts.get(w.id);
+        if (existing) { existing.destroy(); biCharts.delete(w.id); }
+        setSpinner(bodyEl);
+        fetchAndRenderWidget(w);
+    });
+}
+
+function removeBiWidget(widgetId) {
+    const existing = biCharts.get(widgetId);
+    if (existing) { existing.destroy(); biCharts.delete(widgetId); }
+    biLayout.grid = biLayout.grid.filter(w => w.id !== widgetId);
+    saveBiLayout();
+    renderBiGrid();
+}
+
+// ── Config panel ────────────────────────────────────────────────────────────
+
+function openBiPanel(widgetId) {
+    biEditingId = widgetId || null;
+    const titleEl = document.getElementById('bi-panel-title');
+    const submitEl = document.getElementById('bi-panel-submit');
+
+    if (widgetId) {
+        const w = biLayout.grid.find(x => x.id === widgetId);
+        if (w) populatePanelFromWidget(w);
+        titleEl.textContent = '{{ _("Edit widget") }}';
+        submitEl.textContent = '{{ _("Save") }}';
+    } else {
+        resetPanel();
+        titleEl.textContent = '{{ _("Add widget") }}';
+        submitEl.textContent = '{{ _("Add widget") }}';
+    }
+
+    const panel = document.getElementById('bi-panel');
+    panel.classList.remove('hidden');
+    panel.classList.add('bi-panel-enter');
+    document.getElementById('bi-overlay').classList.remove('hidden');
+}
+
+function closeBiPanel() {
+    document.getElementById('bi-panel').classList.add('hidden');
+    document.getElementById('bi-overlay').classList.add('hidden');
+    biEditingId = null;
+}
+
+function resetPanel() {
+    selectBiPanelType('kpi');
+    document.getElementById('bi-cfg-title').value = '';
+    document.getElementById('bi-cfg-width').value = '6';
+    document.getElementById('bi-cfg-metric-kind').value = 'count';
+    document.getElementById('bi-cfg-agg-wrap').classList.add('hidden');
+    document.getElementById('bi-cfg-ts-chart').value = 'line';
+    document.getElementById('bi-cfg-ts-bucket').value = 'day';
+    document.getElementById('bi-cfg-ts-metric').value = 'count';
+    document.getElementById('bi-cfg-cat-chart').value = 'doughnut';
+    document.getElementById('bi-cfg-cat-topn').value = '8';
+    document.getElementById('bi-cfg-cat-sort').value = 'desc';
+    document.getElementById('bi-cfg-date-override').value = '';
+}
+
+function populatePanelFromWidget(w) {
+    selectBiPanelType(w.type);
+    document.getElementById('bi-cfg-title').value = w.title || '';
+    document.getElementById('bi-cfg-width').value = String(w.w || 6);
+    document.getElementById('bi-cfg-date-override').value = w.filterOverrides?.datePreset || '';
+
+    if (w.type === 'kpi') {
+        const kind = w.config?.metric?.kind || 'count';
+        document.getElementById('bi-cfg-metric-kind').value = kind;
+        const aggWrap = document.getElementById('bi-cfg-agg-wrap');
+        if (['sum', 'avg', 'min', 'max'].includes(kind)) {
+            aggWrap.classList.remove('hidden');
+            const aggField = document.getElementById('bi-cfg-agg-field');
+            if (w.config?.metric?.field) aggField.value = w.config.metric.field;
+        } else {
+            aggWrap.classList.add('hidden');
+        }
+    } else if (w.type === 'timeseries') {
+        document.getElementById('bi-cfg-ts-chart').value = w.config?.chartType || 'line';
+        document.getElementById('bi-cfg-ts-bucket').value = w.config?.bucket || 'day';
+        document.getElementById('bi-cfg-ts-metric').value = w.config?.metric?.kind || 'count';
+    } else if (w.type === 'categorical') {
+        document.getElementById('bi-cfg-cat-chart').value = w.config?.chartType || 'doughnut';
+        const dimSel = document.getElementById('bi-cfg-cat-dim');
+        if (w.config?.dimension) dimSel.value = w.config.dimension;
+        document.getElementById('bi-cfg-cat-topn').value = String(w.config?.topN || 8);
+        document.getElementById('bi-cfg-cat-sort').value = w.config?.sort || 'desc';
+    }
+}
+
+function submitBiPanel() {
+    const type = biPanelType;
+    const title = document.getElementById('bi-cfg-title').value.trim()
+        || (type === 'kpi' ? 'KPI' : type === 'timeseries' ? 'Trend' : 'Breakdown');
+    const w = parseInt(document.getElementById('bi-cfg-width').value) || 6;
+    const dateOverride = document.getElementById('bi-cfg-date-override').value;
+
+    let config = {};
+    if (type === 'kpi') {
+        const kind = document.getElementById('bi-cfg-metric-kind').value;
+        config.metric = { kind };
+        if (['sum', 'avg', 'min', 'max'].includes(kind)) {
+            config.metric.field = document.getElementById('bi-cfg-agg-field').value;
+        }
+    } else if (type === 'timeseries') {
+        config.chartType = document.getElementById('bi-cfg-ts-chart').value;
+        config.bucket = document.getElementById('bi-cfg-ts-bucket').value;
+        config.metric = { kind: document.getElementById('bi-cfg-ts-metric').value };
+        config.groupBy = null;
+    } else if (type === 'categorical') {
+        config.chartType = document.getElementById('bi-cfg-cat-chart').value;
+        config.dimension = document.getElementById('bi-cfg-cat-dim').value;
+        config.topN = document.getElementById('bi-cfg-cat-topn').value;
+        config.sort = document.getElementById('bi-cfg-cat-sort').value;
+        config.metric = { kind: 'count' };
+    }
+
+    const filterOverrides = dateOverride ? { datePreset: dateOverride } : null;
+
+    if (biEditingId) {
+        const idx = biLayout.grid.findIndex(x => x.id === biEditingId);
+        if (idx !== -1) {
+            biLayout.grid[idx] = { ...biLayout.grid[idx], title, w, type, config, filterOverrides };
+        }
+    } else {
+        const maxY = biLayout.grid.reduce((m, x) => Math.max(m, (x.y || 0) + (x.h || 2)), 0);
+        biLayout.grid.push({
+            id: 'bi_' + Date.now(),
+            x: 0, y: maxY,
+            w, h: type === 'kpi' ? 2 : 4,
+            type, title, config,
+            ignoreGlobalFilters: false,
+            filterOverrides,
+            compare: { enabled: false, shift: 'previous_period' },
+        });
+    }
+
+    closeBiPanel();
+    saveBiLayout();
+    renderBiGrid();
+}
+
+// ── Type selector ───────────────────────────────────────────────────────────
+
+function selectBiPanelType(type) {
+    biPanelType = type;
+    document.querySelectorAll('.bi-type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    document.getElementById('bi-cfg-kpi').classList.toggle('hidden', type !== 'kpi');
+    document.getElementById('bi-cfg-ts').classList.toggle('hidden', type !== 'timeseries');
+    document.getElementById('bi-cfg-cat').classList.toggle('hidden', type !== 'categorical');
+}
+
+function bindTypeSelector() {
+    document.querySelectorAll('.bi-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => selectBiPanelType(btn.dataset.type));
+    });
+}
+
+// ── Field selects ───────────────────────────────────────────────────────────
+
+function buildOptions(sel, items, emptyLabel) {
+    sel.replaceChildren();
+    if (!items.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = emptyLabel;
+        sel.appendChild(opt);
+        return;
+    }
+    items.forEach(({ value, label }) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        sel.appendChild(opt);
+    });
+}
+
+function populateAggFieldSelect() {
+    buildOptions(
+        document.getElementById('bi-cfg-agg-field'),
+        biFieldMeta.filter(f => f.aggregable).map(f => ({ value: f.field, label: f.label })),
+        '{{ _("No fields available") }}'
+    );
+}
+
+function populateCategoryDimensionSelect() {
+    buildOptions(
+        document.getElementById('bi-cfg-cat-dim'),
+        biFieldMeta.map(f => ({ value: f.field, label: f.label })),
+        '{{ _("No fields available") }}'
+    );
+}
+
+// KPI metric kind → show/hide field picker
+document.getElementById('bi-cfg-metric-kind')?.addEventListener('change', e => {
+    const wrap = document.getElementById('bi-cfg-agg-wrap');
+    wrap.classList.toggle('hidden', !['sum', 'avg', 'min', 'max'].includes(e.target.value));
+});
+
+// ── Bootstrap ───────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([loadFieldMeta(), loadBiLayout()]);
+    populateAggFieldSelect();
+    populateCategoryDimensionSelect();
+    bindGlobalFilters();
+    bindTypeSelector();
+
+    document.getElementById('bi-add-btn')?.addEventListener('click', () => openBiPanel(null));
+
+    document.getElementById('bi-reset-btn')?.addEventListener('click', async () => {
+        await fetch(`${API_PREFIX}api/bi/layout/reset`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+        });
+        await loadBiLayout();
+    });
+});
+
+</script>

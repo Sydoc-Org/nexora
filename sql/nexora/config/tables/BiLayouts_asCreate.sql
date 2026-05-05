@@ -1,0 +1,6 @@
+CREATE TABLE [dbo].[BiLayouts] (
+    [UserID]    INT            NOT NULL,
+    [LayoutJSON] NVARCHAR(MAX)  NOT NULL,
+    [UpdatedAt]  DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_BiLayouts] PRIMARY KEY CLUSTERED ([UserID] ASC)
+);

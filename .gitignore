@@ -9,7 +9,7 @@ docs/
 claude.md
 .claude/
 env.json
-
+manage_app.ps1
 .superpowers/
 ngrok.yaml
 # Distribution / packaging
@@ -146,6 +146,8 @@ celerybeat.pid
 uploads/
 session/
 logs/
+screenshots/
+.playwright-mcp/
 
 # Environments
 *.env

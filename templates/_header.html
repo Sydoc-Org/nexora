@@ -75,10 +75,11 @@
             {% endif %}
 
             {% set nav_items = [
-                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),      'active': active_page == 'chat'},
-                {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'), 'active': active_page == 'dashboard'},
-                {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),'active': active_page == 'workitems_overview'},
-                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'), 'active': active_page == 'invoices'},
+                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),                   'active': active_page == 'chat'},
+                {'perm': pageV.dashboardPagePerm, 'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': pageV.biPagePerm,        'url': url_for('bi_page'),             'icon': 'fa-chart-pie',           'label': _('Business Intelligence'),  'active': active_page == 'bi'},
+                {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
+                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'),               'active': active_page == 'invoices'},
             ] %}
 
             {% for item in nav_items %}

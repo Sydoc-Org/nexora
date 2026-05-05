@@ -82,56 +82,56 @@ limiter = Limiter(
 )
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_SECURE'] = True 
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-app.config['SESSION_TYPE'] = 'filesystem'  
-app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_USE_SIGNER'] = True    
+# app.config['SESSION_TYPE'] = 'filesystem'  
+# app.config['SESSION_FILE_DIR'] = os.path.join(app.root_path, 'session') 
+# app.config['SESSION_PERMANENT'] = True
+# app.config['SESSION_USE_SIGNER'] = True    
 
-Session(app)
+# Session(app)
 
 csrf = CSRFProtect(app)
-csp = {
-    'default-src': '\'self\'',
-    'base-uri': '\'self\'',         
-    'object-src': '\'none\'',       
-    'script-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://cdn.tailwindcss.com',   
-        'https://cdnjs.cloudflare.com',  
-        'https://cdn.jsdelivr.net'       
-    ],
-    'style-src': [
-        '\'self\'',
-        '\'unsafe-inline\'',             
-        'https://fonts.googleapis.com',  
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ],
-    'font-src': [
-        '\'self\'',
-        'https://fonts.gstatic.com',     
-        'https://cdnjs.cloudflare.com'
-    ],
-    'img-src': [
-        '\'self\'',
-        'data:',
-        'blob:',                         
-        'https://cdn.tailwindcss.com'
-    ],
-    'connect-src': [
-        '\'self\'',                     
-        'https://cdn.tailwindcss.com',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net'
-    ]
-}
-Talisman(app, content_security_policy=csp)
+# csp = {
+#     'default-src': '\'self\'',
+#     'base-uri': '\'self\'',         
+#     'object-src': '\'none\'',       
+#     'script-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://cdn.tailwindcss.com',   
+#         'https://cdnjs.cloudflare.com',  
+#         'https://cdn.jsdelivr.net'       
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         '\'unsafe-inline\'',             
+#         'https://fonts.googleapis.com',  
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ],
+#     'font-src': [
+#         '\'self\'',
+#         'https://fonts.gstatic.com',     
+#         'https://cdnjs.cloudflare.com'
+#     ],
+#     'img-src': [
+#         '\'self\'',
+#         'data:',
+#         'blob:',                         
+#         'https://cdn.tailwindcss.com'
+#     ],
+#     'connect-src': [
+#         '\'self\'',                     
+#         'https://cdn.tailwindcss.com',
+#         'https://cdnjs.cloudflare.com',
+#         'https://cdn.jsdelivr.net'
+#     ]
+# }
+# Talisman(app, content_security_policy=csp)
 
 
 DB_UID = os.environ.get("DB_UID")
@@ -407,7 +407,7 @@ def log_every_request(response):
     duration = time.time() - request.start_time if hasattr(request, 'start_time') else 0
 
     try:
-        LOGS_FOLDER = os.path.join(app.root_path, 'logs')
+        LOGS_FOLDER = os.path.join(app.root_path, 'logs', 'user')
         os.makedirs(LOGS_FOLDER, exist_ok=True)
 
         LOGS_HOUR_FOLDER = os.path.join(LOGS_FOLDER, datetime.now().strftime("%Y%m%d%H"))
@@ -495,6 +495,7 @@ def _check_generali_record_org(cursor, table, user_id_col, record_id):
 def startpage_redirect_to(pV):
     permToFunction = {
         'dashboardPagePerm': 'dashboard',
+        'biPagePerm': 'bi_page',
         'workitemsPagePerm': 'workitems_overview',
         'invoicesPagePerm': 'invoices',
         'generaliPagePerm': 'generali_evaluation',
@@ -528,6 +529,7 @@ def pageVisability():
     adminMaintenanceViewPerm = has_permission('admin.maintenance.view')
     adminMaintenanceEditPerm = has_permission('admin.maintenance.edit')
     adminMaintenanceBypassPerm = has_permission('admin.maintenance.bypass')
+    biPagePerm = has_permission('bi.view')
     return {'adminPagePerm': adminPagePerm, 'dashboardPagePerm': dashboardPagePerm,
             'workitemsPagePerm':workitemsPagePerm,
             'invoicesPagePerm': invoicesPagePerm, 'chatPagePerm': chatPagePerm,
@@ -541,7 +543,8 @@ def pageVisability():
             'generaliImportStatusPerm': generaliImportStatusPerm,
             'adminMaintenanceViewPerm': adminMaintenanceViewPerm,
             'adminMaintenanceEditPerm': adminMaintenanceEditPerm,
-            'adminMaintenanceBypassPerm': adminMaintenanceBypassPerm}
+            'adminMaintenanceBypassPerm': adminMaintenanceBypassPerm,
+            'biPagePerm': biPagePerm}
 
 @app.route('/init_2FA', methods=['GET', 'POST'])
 def init_2FA():
@@ -765,80 +768,80 @@ def login():
         UID_REQUEST = request.form["username"]
         PWD_REQUEST = request.form["password"]
         # DEV ONLY!!!
-        # if UID_REQUEST == '123' and PWD_REQUEST == '123':
-        #     blocking = _maintenance_blocks_user("1019")
-        #     if blocking:
-        #         return render_template('maintenance.html', maintenance=blocking), 503
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     username, fullname, email, org_code, locale = row
+        if UID_REQUEST == '123' and PWD_REQUEST == '123':
+            blocking = _maintenance_blocks_user("1019")
+            if blocking:
+                return render_template('maintenance.html', maintenance=blocking), 503
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, fullname, email, organizationcode, locale FROM Users WHERE userid = 1019")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            username, fullname, email, org_code, locale = row
 
-        #     session.clear()
-        #     session['userid'] = "1019"
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user("1019")
-        #     _record_active_session("1019")
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '321' and PWD_REQUEST == '321':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear()
+            session['userid'] = "1019"
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user("1019")
+            _record_active_session("1019")
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '321' and PWD_REQUEST == '321':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     blocking = _maintenance_blocks_user(userid)
-        #     if blocking:
-        #         return render_template('maintenance.html', maintenance=blocking), 503
+            blocking = _maintenance_blocks_user(userid)
+            if blocking:
+                return render_template('maintenance.html', maintenance=blocking), 503
 
-        #     session.clear()
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     _record_active_session(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
-        # if UID_REQUEST == '456' and PWD_REQUEST == '456':
-        #     conn = engineNexoraDB.raw_connection()
-        #     cursor = conn.cursor()
-        #     cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
-        #     row = cursor.fetchone()
-        #     cursor.close()
-        #     conn.close()
-        #     userid, username, fullname, email, org_code, locale = row
+            session.clear()
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
+        if UID_REQUEST == '456' and PWD_REQUEST == '456':
+            conn = engineNexoraDB.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT userid, username, fullname, email, organizationcode, locale FROM Users WHERE username = 'demo.user2'")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            userid, username, fullname, email, org_code, locale = row
 
-        #     blocking = _maintenance_blocks_user(userid)
-        #     if blocking:
-        #         return render_template('maintenance.html', maintenance=blocking), 503
+            blocking = _maintenance_blocks_user(userid)
+            if blocking:
+                return render_template('maintenance.html', maintenance=blocking), 503
 
-        #     session.clear()
-        #     session['userid'] = userid
-        #     session['username'] = username
-        #     session['fullname'] = fullname
-        #     session['email'] = email
-        #     session['organizationcode'] = org_code
-        #     session['uuid'] = uuid.uuid4()
-        #     session['locale'] = locale
-        #     session['permissions'] = load_permissions_for_user(userid)
-        #     _record_active_session(userid)
-        #     pV = pageVisability()
-        #     return redirect(url_for(startpage_redirect_to(pV)))
+            session.clear()
+            session['userid'] = userid
+            session['username'] = username
+            session['fullname'] = fullname
+            session['email'] = email
+            session['organizationcode'] = org_code
+            session['uuid'] = uuid.uuid4()
+            session['locale'] = locale
+            session['permissions'] = load_permissions_for_user(userid)
+            _record_active_session(userid)
+            pV = pageVisability()
+            return redirect(url_for(startpage_redirect_to(pV)))
         if not UID_REQUEST or not PWD_REQUEST:
             return render_template('index.html', error=_("Invalid credentials")), 401
 
@@ -3914,10 +3917,10 @@ def _build_kpi_sql(widget, filters, configs, mobscan_set):
             where = []
             if start_date is not None and status != 'Ready':
                 where.append(f"CAST({export_col} AS DATE) >= ?")
-                params.append(start_date)
+                params.append(start_date.isoformat())
             if end_date is not None and status != 'Ready':
                 where.append(f"CAST({export_col} AS DATE) <= ?")
-                params.append(end_date)
+                params.append(end_date.isoformat())
             for f in (filters.get('docFilters') or []):
                 col = _resolve_aggregation_column(row.ProcessName, f['field'])
                 if not col:
@@ -4000,9 +4003,9 @@ def _build_timeseries_sql(widget, filters, configs, mobscan_set):
                     continue
             where = []
             if start_date is not None:
-                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date)
+                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
             if end_date is not None:
-                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date)
+                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
             where += _doc_filter_clauses(filters, row.ProcessName, params)
             where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
             sub_qs.append(
@@ -4063,9 +4066,9 @@ def _build_categorical_sql(widget, filters, configs, mobscan_set):
 
             where = []
             if start_date is not None:
-                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date)
+                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
             if end_date is not None:
-                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date)
+                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
             where += _doc_filter_clauses(filters, row.ProcessName, params)
             where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
 
@@ -4326,6 +4329,401 @@ def dashboard_widget_compare():
 
 
 # ------------------------------- dashboard end ------------------------------ #
+
+# ================================ Business Intelligence ================================ #
+
+def bi_default_layout():
+    return {
+        "schemaVersion": DASHBOARD_LAYOUT_SCHEMA_VERSION,
+        "globalFilters": {
+            "process": "all",
+            "datePreset": "last_30d",
+            "dateFrom": None,
+            "dateTo": None,
+            "docFilters": [],
+        },
+        "grid": [
+            {
+                "id": "bi_kpi_imported",
+                "x": 0, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Imported today"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {"datePreset": "today"},
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "bi_kpi_processed",
+                "x": 3, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Processed today"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {"status": "Done", "datePreset": "today"},
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "bi_kpi_backlog",
+                "x": 6, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Current backlog"),
+                "config": {"metric": {"kind": "count"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": {"status": "Ready", "datePreset": None},
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "bi_kpi_avgtime",
+                "x": 9, "y": 0, "w": 3, "h": 2,
+                "type": "kpi",
+                "title": _("Avg processing time"),
+                "config": {"metric": {"kind": "proc_time_avg"}},
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "bi_timeseries_main",
+                "x": 0, "y": 2, "w": 8, "h": 4,
+                "type": "timeseries",
+                "title": _("Documents Processed Over Time"),
+                "config": {
+                    "chartType": "line",
+                    "bucket": "day",
+                    "metric": {"kind": "count"},
+                    "groupBy": None,
+                },
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+            {
+                "id": "bi_categorical_doctype",
+                "x": 8, "y": 2, "w": 4, "h": 4,
+                "type": "categorical",
+                "title": _("Top document types"),
+                "config": {
+                    "chartType": "doughnut",
+                    "dimension": "doctype",
+                    "metric": {"kind": "count"},
+                    "topN": 8,
+                    "sort": "desc",
+                },
+                "ignoreGlobalFilters": False,
+                "filterOverrides": None,
+                "compare": {"enabled": False, "shift": "previous_period"},
+            },
+        ],
+    }
+
+
+@app.route("/bi")
+@require_permission('bi.view')
+def bi_page():
+    if 'username' not in session:
+        return redirect(url_for("login"))
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+    return render_template(
+        "bi.html",
+        logged_in_user=session.get('username'),
+        userid=session.get('userid'),
+        fullname=session.get('fullname'),
+        allowed_processes=allowed_processes,
+        pageV=pageVisability(),
+    )
+
+
+@app.route("/api/bi/layout")
+@require_permission('bi.view')
+def bi_get_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT LayoutJSON FROM BiLayouts WHERE UserID = ?", (userid,))
+        row = cur.fetchone()
+        if row:
+            return jsonify(json.loads(row.LayoutJSON))
+        return jsonify(bi_default_layout())
+    except Exception as e:
+        app.logger.error(f"/api/bi/layout GET error: {e}")
+        return jsonify(bi_default_layout())
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/bi/layout", methods=["PUT"])
+@require_permission('bi.view')
+def bi_put_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = {
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    }
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT FieldKey, Aggregable FROM FieldMetadata")
+            rows = cur.fetchall()
+            valid_fields = {r.FieldKey for r in rows}
+            aggregable_fields = {r.FieldKey for r in rows if r.Aggregable}
+        except Exception:
+            valid_fields = set()
+            aggregable_fields = set()
+        if valid_fields:
+            try:
+                validate_dashboard_layout(payload, allowed_processes, valid_fields, aggregable_fields)
+            except DashboardLayoutError as e:
+                return jsonify({"error": str(e)}), 400
+        layout_str = json.dumps(payload, ensure_ascii=False)
+        cur.execute("""
+            MERGE BiLayouts AS t
+            USING (SELECT ? AS UserID, ? AS LayoutJSON) AS s
+            ON t.UserID = s.UserID
+            WHEN MATCHED THEN UPDATE SET LayoutJSON = s.LayoutJSON, UpdatedAt = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (UserID, LayoutJSON) VALUES (s.UserID, s.LayoutJSON);
+        """, (userid, layout_str))
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        app.logger.error(f"/api/bi/layout PUT error: {e}")
+        return jsonify({"error": _("Could not save layout")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/bi/layout/reset", methods=["POST"])
+@require_permission('bi.view')
+def bi_reset_layout():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM BiLayouts WHERE UserID = ?", (userid,))
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        app.logger.error(f"/api/bi/layout/reset error: {e}")
+        return jsonify({"error": _("Could not reset layout")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/bi/field_metadata")
+@require_permission('bi.view')
+@cache.cached(timeout=3600, key_prefix=lambda: f"bi_fieldmeta_{session.get('userid')}_{str(get_locale())}")
+def bi_field_metadata():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+    conn = None
+    try:
+        conn = engineNexoraDB.raw_connection()
+        cur = conn.cursor()
+        locale = str(get_locale())
+        lang_col = {"de": "LabelDE", "fr": "LabelFR", "it": "LabelIT"}.get(locale, "LabelEN")
+
+        # Primary path: FieldMetadata table
+        meta_by_key = {}
+        try:
+            cur.execute(f"""
+                SELECT fm.FieldKey, fm.DataType, fm.Aggregable, fm.Sortable,
+                       COALESCE(fl.{lang_col}, fl.LabelEN, fm.FieldKey) AS Label
+                FROM FieldMetadata fm
+                LEFT JOIN Search_Field_Labels fl ON fl.FieldKey = fm.FieldKey
+            """)
+            for r in cur.fetchall():
+                meta_by_key[r.FieldKey] = {
+                    "field": r.FieldKey, "type": r.DataType,
+                    "aggregable": bool(r.Aggregable), "sortable": bool(r.Sortable),
+                    "label": r.Label,
+                }
+        except Exception:
+            pass  # FieldMetadata absent — fall through to SearchConfig fallback
+
+        if meta_by_key:
+            try:
+                if allowed_processes:
+                    placeholders = ','.join(['?'] * len(allowed_processes))
+                    cur.execute(
+                        f"SELECT DISTINCT FieldKey, ProcessName FROM SearchConfig WHERE ProcessName IN ({placeholders})",
+                        allowed_processes,
+                    )
+                else:
+                    cur.execute("SELECT DISTINCT FieldKey, ProcessName FROM SearchConfig")
+                availability = {}
+                for r in cur.fetchall():
+                    availability.setdefault(r.FieldKey, set()).add(r.ProcessName)
+            except Exception:
+                availability = {k: set() for k in meta_by_key}
+            out = []
+            for fk, meta in meta_by_key.items():
+                if fk not in availability:
+                    continue
+                entry = dict(meta)
+                entry["processes"] = sorted(availability[fk])
+                out.append(entry)
+            out.sort(key=lambda e: e["label"])
+            return jsonify(out)
+
+        # Fallback: derive fields from SearchConfig col_* columns
+        labels = {}
+        try:
+            cur.execute(
+                f"SELECT FieldKey, COALESCE({lang_col}, LabelEN, FieldKey) AS Label FROM Search_Field_Labels"
+            )
+            for r in cur.fetchall():
+                labels[r.FieldKey] = r.Label
+        except Exception:
+            pass
+
+        cur.execute("SELECT TOP 0 * FROM SearchConfig")
+        sc_cols = [c[0] for c in cur.description if c[0].startswith('col_')]
+        if not sc_cols:
+            return jsonify([])
+
+        if allowed_processes:
+            placeholders = ','.join(['?'] * len(allowed_processes))
+            cur.execute(
+                f"SELECT ProcessName, {','.join(sc_cols)} FROM SearchConfig WHERE ProcessName IN ({placeholders})",
+                allowed_processes,
+            )
+        else:
+            cur.execute(f"SELECT ProcessName, {','.join(sc_cols)} FROM SearchConfig")
+
+        availability = {}
+        for row in cur.fetchall():
+            for i, col in enumerate(sc_cols):
+                if row[i + 1]:
+                    fk = col[len('col_'):]
+                    availability.setdefault(fk, set()).add(row.ProcessName)
+
+        out = []
+        for fk, procs in availability.items():
+            out.append({
+                "field": fk,
+                "type": "string",
+                "aggregable": False,
+                "sortable": True,
+                "label": labels.get(fk, fk),
+                "processes": sorted(procs),
+            })
+        out.sort(key=lambda e: e["label"])
+        return jsonify(out)
+    except Exception as e:
+        app.logger.error(f"/api/bi/field_metadata error: {e}")
+        return jsonify([])
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/api/bi/widget_data", methods=["POST"])
+@require_permission('bi.view')
+@limiter.limit("120 per minute")
+def bi_widget_data():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    userid = session.get('userid')
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+    payload = request.get_json(silent=True) or {}
+    widget = payload.get('widget')
+    global_filters = payload.get('globalFilters') or {}
+    if not isinstance(widget, dict) or widget.get('type') not in DASHBOARD_WIDGET_TYPES:
+        return jsonify({"error": _("Invalid widget")}), 400
+    cache_ttl = 60 if widget['type'] == 'kpi' else 300
+    cache_key = f"bi_widget_{_hash_widget_request(userid, widget, global_filters, allowed_processes)}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+    try:
+        queries = build_widget_query(widget, global_filters, allowed_processes)
+    except DashboardLayoutError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        app.logger.error(f"bi/widget_data build error: {e}")
+        return jsonify({"error": _("Could not build query")}), 500
+    try:
+        result = _run_widget_queries(widget, queries)
+    except Exception as e:
+        app.logger.error(f"bi/widget_data run error: {e}")
+        return jsonify({"error": _("Could not run query")}), 500
+    cache.set(cache_key, result, timeout=cache_ttl)
+    return jsonify(result)
+
+
+@app.route("/api/bi/widget_compare", methods=["POST"])
+@require_permission('bi.view')
+@limiter.limit("60 per minute")
+def bi_widget_compare():
+    if 'username' not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+    payload = request.get_json(silent=True) or {}
+    widget = payload.get('widget')
+    global_filters = payload.get('globalFilters') or {}
+    if not isinstance(widget, dict) or widget.get('type') not in DASHBOARD_WIDGET_TYPES:
+        return jsonify({"error": _("Invalid widget")}), 400
+    filters = _effective_filters(widget, global_filters)
+    s, e = _resolve_date_range(filters.get('datePreset'), filters.get('dateFrom'), filters.get('dateTo'))
+    if s is None or e is None:
+        return jsonify({"labels": [], "series": [], "warnings": ["compare_unavailable_no_date_range"]})
+    span_days = (e - s).days + 1
+    new_e = s - timedelta(days=1)
+    new_s = new_e - timedelta(days=span_days - 1)
+    shifted_widget = json.loads(json.dumps(widget))
+    shifted_widget['filterOverrides'] = dict(shifted_widget.get('filterOverrides') or {})
+    shifted_widget['filterOverrides']['datePreset'] = 'custom'
+    shifted_widget['filterOverrides']['dateFrom'] = new_s.isoformat()
+    shifted_widget['filterOverrides']['dateTo'] = new_e.isoformat()
+    perms = session.get('permissions', [])
+    prefix = "dashboard.filter.process."
+    allowed_processes = sorted({
+        (p.split('.')[-2] + '.' + p.split('.')[-1])
+        for p in perms if p.startswith(prefix)
+    })
+    try:
+        queries = build_widget_query(shifted_widget, global_filters, allowed_processes)
+        result = _run_widget_queries(shifted_widget, queries, label_override=_("Previous period"))
+    except Exception as ex:
+        app.logger.error(f"bi/widget_compare error: {ex}")
+        return jsonify({"error": _("Could not build comparison")}), 500
+    return jsonify(result)
+
+# ============================== Business Intelligence end ============================== #
 
 # ----------------------------- workitem overview ---------------------------- #
 @app.route('/api/config/fields')
@@ -8964,7 +9362,7 @@ def api_recent_activity():
     finally:
         if conn: conn.close()
 # ------------------------------- ONLY FOR PROD -------------------------------- # 
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
+# app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/nexora')
 # ----------------------------- ONLY FOR PROD end ------------------------------ #
 
 

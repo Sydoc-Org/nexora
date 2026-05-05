@@ -1,4 +1,4 @@
-$nexoraLogFolder = 'D:\sydoc\nexora\logs'
+$nexoraLogFolder = 'D:\sydoc\nexora\logs\user'
 $dbServer = 'PRDSQL01'
 $dbName = 'nexora'
 $dbTable = 'Logs'

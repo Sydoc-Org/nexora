@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-28 14:19+0200\n"
+"POT-Creation-Date: 2026-05-04 19:42+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,205 +18,206 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:541
+#: app.py:576
 msgid "Session expired, please try again"
 msgstr "Sitzung abgelaufen, bitte versuchen Sie es erneut"
 
-#: app.py:581
+#: app.py:616
 msgid "Database error"
 msgstr "Datenbankfehler"
 
-#: app.py:589
+#: app.py:624
 msgid "Invalid code. Please try again."
 msgstr "Ungültiger Code. Bitte versuchen Sie es erneut."
 
-#: app.py:632
+#: app.py:667
 msgid "Invalid code"
 msgstr "Ungültiger Code"
 
-#: app.py:646 app.py:2318 templates/js/_profileJS.html:5
+#: app.py:681 app.py:2665 templates/js/_profileJS.html:5
 msgid "Passwords do not match"
 msgstr "Passwörter stimmen nicht überein"
 
-#: app.py:648 app.py:2320
+#: app.py:683 app.py:2667
 msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt sein"
 
-#: app.py:650 app.py:2322 app.py:6018
+#: app.py:685 app.py:2669 app.py:6570
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 8 Zeichen lang sein und darf keine "
 "Leerzeichen enthalten"
 
-#: app.py:669 app.py:2340
+#: app.py:704 app.py:2687
 msgid "New Password musn't be previously used password"
 msgstr "Das neue Passwort darf kein zuvor verwendetes Passwort sein"
 
-#: app.py:800 app.py:835
+#: app.py:846 app.py:884
 msgid "Invalid credentials"
 msgstr "Ungültige Anmeldedaten"
 
-#: app.py:839
+#: app.py:888
 msgid "Login temporarily unavailable"
 msgstr "Anmeldung vorübergehend nicht verfügbar"
 
-#: app.py:872 app.py:901
+#: app.py:921 app.py:950
 msgid "Not authenticated"
 msgstr "Nicht authentifiziert"
 
-#: app.py:891
+#: app.py:940
 msgid "Could not fetch notifications"
 msgstr "Benachrichtigungen konnten nicht abgerufen werden"
 
-#: app.py:907
+#: app.py:956
 msgid "Invalid payload"
 msgstr "Ungültige Nutzlast"
 
-#: app.py:926
+#: app.py:975
 msgid "Notifications marked as read."
 msgstr "Benachrichtigungen als gelesen markiert."
 
-#: app.py:929
+#: app.py:978
 msgid "Could not update notifications"
 msgstr "Benachrichtigungen konnten nicht aktualisiert werden"
 
-#: app.py:1055 app.py:1356
+#: app.py:1104 app.py:1695
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
-#: app.py:1070
+#: app.py:1119
 msgid "Organization created successfully."
 msgstr "Organisation erfolgreich erstellt."
 
-#: app.py:1072
+#: app.py:1121
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: app.py:1075 app.py:1376 app.py:5592 app.py:5634 app.py:5672 app.py:5845
-#: app.py:5873
+#: app.py:1124 app.py:1715 app.py:6144 app.py:6186 app.py:6224 app.py:6397
+#: app.py:6425
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: app.py:1098
+#: app.py:1147
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: app.py:1101 app.py:1128 app.py:1420 app.py:1601
+#: app.py:1150 app.py:1177 app.py:1759 app.py:1948
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
-#: app.py:1122
+#: app.py:1171
 msgid "Organization not found."
 msgstr "Organisation nicht gefunden."
 
-#: app.py:1125
+#: app.py:1174
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: app.py:1371 templates/js/admin/_accessControlJS.html:449
+#: app.py:1710 templates/js/admin/_accessControlJS.html:449
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: app.py:1373
+#: app.py:1712
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail-Adresse bereits vorhanden."
 
-#: app.py:1401
+#: app.py:1740
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: app.py:1417
+#: app.py:1756
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: app.py:1560
+#: app.py:1907
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: app.py:1596
+#: app.py:1943
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: app.py:1598
+#: app.py:1945
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: app.py:1751
+#: app.py:2098
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: app.py:1791
+#: app.py:2138
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: app.py:1849 app.py:2101 app.py:2128 app.py:2165 app.py:2196 app.py:2226
-#: app.py:2257 app.py:2662 app.py:2752 app.py:2867 app.py:2955 app.py:3355
-#: app.py:3425 app.py:3447 app.py:3496 app.py:4047 app.py:4091 app.py:4558
-#: app.py:5035 app.py:5260 app.py:5437 app.py:5475 app.py:5557 app.py:5602
-#: app.py:5644 app.py:5682 app.py:5808 app.py:5855 app.py:6307 app.py:6390
+#: app.py:2196 app.py:2448 app.py:2475 app.py:2512 app.py:2543 app.py:2573
+#: app.py:2604 app.py:3009 app.py:3099 app.py:3214 app.py:3302 app.py:3657
+#: app.py:3727 app.py:3749 app.py:3798 app.py:4251 app.py:4295 app.py:4446
+#: app.py:4469 app.py:4519 app.py:4541 app.py:4608 app.py:4647 app.py:5110
+#: app.py:5587 app.py:5812 app.py:5989 app.py:6027 app.py:6109 app.py:6154
+#: app.py:6196 app.py:6234 app.py:6360 app.py:6407 app.py:6859 app.py:6942
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: app.py:1888 app.py:5465
+#: app.py:2235 app.py:6017
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: app.py:1926
+#: app.py:2273
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: app.py:1943
+#: app.py:2290
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: app.py:2087
+#: app.py:2434
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: app.py:2137 app.py:2243 app.py:2274
+#: app.py:2484 app.py:2590 app.py:2621
 #, fuzzy
 msgid "Permission not found"
 msgstr "Organisation nicht gefunden."
 
-#: app.py:2202 app.py:2232
+#: app.py:2549 app.py:2579
 msgid "Code and description are required"
 msgstr ""
 
-#: app.py:2214
+#: app.py:2561
 #, fuzzy
 msgid "Permission created successfully"
 msgstr "Benutzer erfolgreich erstellt."
 
-#: app.py:2245
+#: app.py:2592
 #, fuzzy
 msgid "Permission updated successfully"
 msgstr "Passwort erfolgreich aktualisiert!"
 
-#: app.py:2270
+#: app.py:2617
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: app.py:2276
+#: app.py:2623
 #, fuzzy
 msgid "Permission deleted successfully"
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: app.py:2355
+#: app.py:2702
 msgid "Password changed"
 msgstr "Passwort geändert"
 
-#: app.py:2421
+#: app.py:2768
 msgid "nexora Password Reset Request"
 msgstr "nexora Passwort-Zurücksetzungsanfrage"
 
-#: app.py:2456
+#: app.py:2803
 msgid "Hello,"
 msgstr "Hallo,"
 
-#: app.py:2458
+#: app.py:2805
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -225,7 +226,7 @@ msgstr ""
 "erhalten. Sie können Ihr Passwort zurücksetzen, indem Sie auf die "
 "Schaltfläche unten klicken."
 
-#: app.py:2459
+#: app.py:2806
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -233,415 +234,436 @@ msgstr ""
 "Wenn Sie keine Passwortzurücksetzung angefordert haben, ignorieren Sie "
 "bitte diese E-Mail. Dieser Link ist 15 Minuten lang gültig."
 
-#: app.py:2462
+#: app.py:2809
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Mit freundlichen Grüßen,<br>Das Sydoc-Team"
 
-#: app.py:2470
+#: app.py:2817
 msgid "Reset Your Password"
 msgstr "Passwort zurücksetzen"
 
-#: app.py:2532
+#: app.py:2879
 msgid "A password reset link has been sent to your email"
 msgstr "Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet"
 
-#: app.py:2534 app.py:2538
+#: app.py:2881 app.py:2885
 msgid "Unexpected error occurred"
 msgstr "Unerwarteter Fehler aufgetreten"
 
-#: app.py:2535
+#: app.py:2882
 msgid "Invalid Email Address"
 msgstr "Ungültige E-Mail-Adresse"
 
-#: app.py:3137
-msgid "Imported documents"
-msgstr "Importierte Dokumente"
+#: app.py:3484 app.py:4350
+#, fuzzy
+msgid "Imported today"
+msgstr "Gemeldet um"
 
-#: app.py:3147
-msgid "Processed (last 7 days)"
+#: app.py:3494 app.py:4360
+#, fuzzy
+msgid "Processed today"
 msgstr "Verarbeitet (letzte 7 Tage)"
 
-#: app.py:3157 templates/js/_dashboardJS.html:511
+#: app.py:3504 app.py:4370
+#, fuzzy
+msgid "Current backlog"
+msgstr "Aktuelles Passwort"
+
+#: app.py:3514 app.py:4380 templates/bi.html:151 templates/bi.html:191
 msgid "Avg processing time"
 msgstr "Durchschn. Verarbeitungszeit"
 
-#: app.py:3167
-msgid "Avg processing time (30d)"
-msgstr "Durchschn. Verarbeitungszeit (30 Tage)"
-
-#: app.py:3177
-msgid "Documents processed over time"
+#: app.py:3524 app.py:4390 templates/dashboard.html:100
+#, fuzzy
+msgid "Documents Processed Over Time"
 msgstr "Verarbeitete Dokumente im Zeitverlauf"
 
-#: app.py:3196
-msgid "Top doctypes"
+#: app.py:3543
+#, fuzzy
+msgid "Top doctypes today"
 msgstr "Top-Doctypes"
 
-#: app.py:3416
+#: app.py:3718
 #, fuzzy
 msgid "Could not fetch field metadata"
 msgstr "Workitem-Daten konnten nicht abgerufen werden"
 
-#: app.py:3438
+#: app.py:3740
 #, fuzzy
 msgid "Could not load layout"
 msgstr "Medien konnten nicht geladen werden."
 
-#: app.py:3458
+#: app.py:3760 app.py:4479
 #, fuzzy
 msgid "Invalid JSON body"
 msgstr "Ungültiger Code"
 
-#: app.py:3487
+#: app.py:3789 app.py:4509
 #, fuzzy
 msgid "Could not save layout"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: app.py:3507
+#: app.py:3809 app.py:4530
 #, fuzzy
 msgid "Could not reset layout"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: app.py:3978
-msgid "(none)"
-msgstr "(keine)"
-
-#: app.py:4060 app.py:4096
+#: app.py:4264 app.py:4300 app.py:4620 app.py:4652
 #, fuzzy
 msgid "Invalid widget"
 msgstr "Ungültiger Code"
 
-#: app.py:4074
+#: app.py:4278 app.py:4632
 #, fuzzy
 msgid "Could not build query"
 msgstr "Historie konnte nicht geladen werden"
 
-#: app.py:4080
+#: app.py:4284 app.py:4637
 #, fuzzy
 msgid "Could not run query"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: app.py:4120
+#: app.py:4324 app.py:4673
 msgid "Previous period"
 msgstr "Vorheriger Zeitraum"
 
-#: app.py:4123
+#: app.py:4327 app.py:4676
 #, fuzzy
 msgid "Could not build comparison"
 msgstr "Kommentare konnten nicht geladen werden."
 
-#: app.py:4643
+#: app.py:4405
+#, fuzzy
+msgid "Top document types"
+msgstr "Dokumenttyp"
+
+#: app.py:5195
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht abgerufen werden"
 
-#: app.py:4983
+#: app.py:5535
 msgid "No file part in the request."
 msgstr "Kein Dateiteil in der Anfrage."
 
-#: app.py:4990
+#: app.py:5542
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: app.py:4994
+#: app.py:5546
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: app.py:5006
+#: app.py:5558
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, in diesen Prozess zu importieren."
 
-#: app.py:5023
+#: app.py:5575
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: app.py:5026
+#: app.py:5578
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: app.py:5028
+#: app.py:5580
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie eine gültige PDF-Datei hoch."
 
-#: app.py:5078
+#: app.py:5630
 msgid "Could not fetch workitem data"
 msgstr "Workitem-Daten konnten nicht abgerufen werden"
 
-#: app.py:5277 app.py:5315
+#: app.py:5829 app.py:5867
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: app.py:5304 app.py:5366
+#: app.py:5856 app.py:5918
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: app.py:5326
+#: app.py:5878
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: app.py:5350
+#: app.py:5902
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: app.py:5385
+#: app.py:5937
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
-#: app.py:5429
+#: app.py:5981
 msgid "Failed to fetch audit history"
 msgstr "Prüfhistorie konnte nicht abgerufen werden"
 
-#: app.py:5431
+#: app.py:5983
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: app.py:5519
+#: app.py:6071
 msgid "No data found for this workitem."
 msgstr "Keine Daten für dieses Workitem gefunden."
 
-#: app.py:5547
+#: app.py:6099
 msgid "Could not fetch interactions"
 msgstr "Interaktionen konnten nicht abgerufen werden"
 
-#: app.py:5562
+#: app.py:6114
 msgid "Comment cannot be empty."
 msgstr "Kommentar darf nicht leer sein."
 
-#: app.py:5589
+#: app.py:6141
 msgid "Comment added."
 msgstr "Kommentar hinzugefügt."
 
-#: app.py:5607
+#: app.py:6159
 msgid "Invalid assignment."
 msgstr "Ungültige Zuweisung."
 
-#: app.py:5630
+#: app.py:6182
 msgid "assigned you on workitem"
 msgstr "hat Sie einem Workitem zugewiesen"
 
-#: app.py:5631
+#: app.py:6183
 msgid "Assignment updated."
 msgstr "Zuweisung aktualisiert."
 
-#: app.py:5649
+#: app.py:6201
 msgid "Invalid priority level."
 msgstr "Ungültige Prioritätsstufe."
 
-#: app.py:5669
+#: app.py:6221
 msgid "Priority updated."
 msgstr "Priorität aktualisiert."
 
-#: app.py:5698
+#: app.py:6250
 msgid "Could not fetch tags"
 msgstr "Tags konnten nicht abgerufen werden"
 
-#: app.py:5815
+#: app.py:6367
 msgid "Tag name cannot be empty."
 msgstr "Tag-Name darf nicht leer sein."
 
-#: app.py:5834
+#: app.py:6386
 msgid "Workitem already has this tag."
 msgstr "Workitem hat diesen Tag bereits."
 
-#: app.py:5841
+#: app.py:6393
 msgid "Tag added successfully."
 msgstr "Tag erfolgreich hinzugefügt."
 
-#: app.py:5866
+#: app.py:6418
 msgid "Tag association not found."
 msgstr "Tag-Zuordnung nicht gefunden."
 
-#: app.py:5870
+#: app.py:6422
 msgid "Tag removed successfully."
 msgstr "Tag erfolgreich entfernt."
 
-#: app.py:5937
+#: app.py:6489
 msgid "Email Adress is not valid"
 msgstr "E-Mail-Adresse ist ungültig"
 
-#: app.py:5944
+#: app.py:6496
 msgid "Email Adress is already in use"
 msgstr "E-Mail-Adresse wird bereits verwendet"
 
-#: app.py:5963 app.py:5984
+#: app.py:6515 app.py:6536
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Ungültiges Dateiformat. Bitte laden Sie ein gültiges Bild hoch."
 
-#: app.py:5986
+#: app.py:6538
 msgid "Profile updated successfully!"
 msgstr "Profil erfolgreich aktualisiert!"
 
-#: app.py:5989
+#: app.py:6541
 msgid "Unexpected error"
 msgstr "Unerwarteter Fehler"
 
-#: app.py:6012
+#: app.py:6564
 msgid "New passwords do not match"
 msgstr "Neue Passwörter stimmen nicht überein"
 
-#: app.py:6015
+#: app.py:6567
 msgid "All fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt sein"
 
-#: app.py:6049
+#: app.py:6601
 msgid "Password updated successfully!"
 msgstr "Passwort erfolgreich aktualisiert!"
 
-#: app.py:6052
+#: app.py:6604
 msgid "Current password is incorrect"
 msgstr "Aktuelles Passwort ist falsch"
 
-#: app.py:6055 app.py:6068 app.py:6081
+#: app.py:6607 app.py:6620 app.py:6633
 msgid "Unexpected Error"
 msgstr "Unerwarteter Fehler"
 
-#: app.py:6077
+#: app.py:6629
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
-#: app.py:6235 templates/invoices.html:81
+#: app.py:6787 templates/invoices.html:81
 msgid "Paid"
 msgstr "Bezahlt"
 
-#: app.py:6237 templates/invoices.html:82
+#: app.py:6789 templates/invoices.html:82
 msgid "Open"
 msgstr "Offen"
 
-#: app.py:6360
+#: app.py:6912
 msgid "Could not download PDF. File not found or API error."
 msgstr ""
 "PDF konnte nicht heruntergeladen werden. Datei nicht gefunden oder API-"
 "Fehler."
 
-#: app.py:6365
+#: app.py:6917
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Beim Herunterladen des PDF ist ein unerwarteter Fehler aufgetreten."
 
-#: app.py:6421
+#: app.py:6973
 msgid "No messages yet"
 msgstr "Noch keine Nachrichten"
 
-#: templates/_header.html:19
+#: templates/_header.html:20
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
-#: templates/_header.html:36 templates/js/_headerJS.html:60
+#: templates/_header.html:37 templates/js/_headerJS.html:60
 #: templates/js/_headerJS.html:61 templates/js/_headerJS.html:62
 #: templates/js/_headerJS.html:63 templates/js/_headerJS.html:64
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:43
+#: templates/_header.html:44
 msgid "Overview"
 msgstr "Übersicht"
 
-#: templates/_header.html:48 templates/admin/accessControl.html:26
+#: templates/_header.html:49 templates/admin/accessControl.html:26
 #: templates/admin/adminOverview.html:58 templates/js/_headerJS.html:61
 msgid "Access Control"
 msgstr "Zugriffskontrolle"
 
-#: templates/_header.html:53 templates/admin/adminOverview.html:68
+#: templates/_header.html:54 templates/admin/adminOverview.html:68
 #: templates/admin/organizations.html:20 templates/js/_headerJS.html:62
 msgid "Organizations"
 msgstr "Organisationen"
 
-#: templates/_header.html:58
+#: templates/_header.html:59
 msgid "Sessions"
 msgstr "Sitzungen"
 
-#: templates/_header.html:63
+#: templates/_header.html:64
 msgid "Logs"
 msgstr "Protokolle"
 
-#: templates/_header.html:70 templates/js/_headerJS.html:82
+#: templates/_header.html:70
+#, fuzzy
+msgid "Maintenance"
+msgstr "Anwesenheit hinzufügen"
+
+#: templates/_header.html:78 templates/js/_headerJS.html:85
 msgid "Chat"
 msgstr "Chat"
 
-#: templates/_header.html:71 templates/_header.html:99
+#: templates/_header.html:79 templates/_header.html:108
 #: templates/generali_documents.html:34 templates/generali_reporting.html:45
-#: templates/js/_headerJS.html:73 templates/js/_headerJS.html:85
+#: templates/js/_headerJS.html:73 templates/js/_headerJS.html:88
 msgid "Dashboard"
 msgstr "Dashboard"
 
-#: templates/_header.html:72
+#: templates/_header.html:80 templates/bi.html:40
+#: templates/js/_headerJS.html:76
+msgid "Business Intelligence"
+msgstr "Business Intelligence"
+
+#: templates/_header.html:81
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:73 templates/js/_headerJS.html:79
+#: templates/_header.html:82 templates/js/_headerJS.html:82
 msgid "Invoices"
 msgstr "Rechnungen"
 
-#: templates/_header.html:106 templates/generali-dashboard.html:29
-#: templates/generali_reporting.html:41 templates/js/_headerJS.html:88
+#: templates/_header.html:115 templates/generali-dashboard.html:58
+#: templates/generali_reporting.html:41 templates/js/_headerJS.html:91
 msgid "Document List"
 msgstr "Dokumentenliste"
 
-#: templates/_header.html:113 templates/generali-dashboard.html:33
+#: templates/_header.html:122 templates/generali-dashboard.html:62
 #: templates/generali_additionalservices.html:41
 #: templates/generali_baseservices.html:41 templates/generali_documents.html:38
-#: templates/generali_projectmanagement.html:41 templates/js/_headerJS.html:91
+#: templates/generali_projectmanagement.html:41 templates/js/_headerJS.html:94
 msgid "Reporting"
 msgstr "Reporting"
 
-#: templates/_header.html:120 templates/js/_headerJS.html:94
+#: templates/_header.html:129 templates/js/_headerJS.html:97
 msgid "Additional Services"
 msgstr "Zusätzliche Leistungen"
 
-#: templates/_header.html:127 templates/js/_headerJS.html:97
+#: templates/_header.html:136 templates/js/_headerJS.html:100
 msgid "Base Services"
 msgstr "Basisleistungen"
 
-#: templates/_header.html:134 templates/js/_headerJS.html:100
+#: templates/_header.html:143 templates/js/_headerJS.html:103
 msgid "Project Management"
 msgstr "Projektmanagement"
 
-#: templates/_header.html:141 templates/js/_headerJS.html:103
+#: templates/_header.html:150 templates/js/_headerJS.html:106
 msgid "PDQM"
 msgstr "PDQM"
 
-#: templates/_header.html:159 templates/_header.html:165
+#: templates/_header.html:157 templates/generali_importstatus.html:24
+#, fuzzy
+msgid "Data Import Status"
+msgstr "Dokumentstatus"
+
+#: templates/_header.html:175 templates/_header.html:181
 msgid "Notifications"
 msgstr "Benachrichtigungen"
 
-#: templates/_header.html:173 templates/js/_headerJS.html:105
+#: templates/_header.html:189 templates/js/_headerJS.html:108
 msgid "Toggle dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/_header.html:175
+#: templates/_header.html:191
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:183 templates/js/_workitems_overviewJS.html:276
+#: templates/_header.html:199 templates/js/_workitems_overviewJS.html:276
 #: templates/profile.html:42 templates/profile.html:117
 msgid "Profile Picture"
 msgstr "Profilbild"
 
-#: templates/_header.html:193
+#: templates/_header.html:209
 msgid "Your profile"
 msgstr "Ihr Profil"
 
-#: templates/_header.html:198 templates/js/_headerJS.html:106
+#: templates/_header.html:214 templates/js/_headerJS.html:109
 #: templates/profile.html:76
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:209
+#: templates/_header.html:225
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:213
+#: templates/_header.html:229
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:218
+#: templates/_header.html:234
 msgid "navigate"
 msgstr "Navigieren"
 
-#: templates/_header.html:219
+#: templates/_header.html:235
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:220
+#: templates/_header.html:236
 msgid "close"
 msgstr "schließen"
 
@@ -672,6 +694,240 @@ msgstr "Kontakt"
 #: templates/_small_footer.html:28
 msgid "Help"
 msgstr "Hilfe"
+
+#: templates/bi.html:7
+msgid "Business Intelligence - nexora"
+msgstr "Business Intelligence - nexora"
+
+#: templates/bi.html:41
+msgid "Your customizable analytics workspace"
+msgstr "Ihr anpassbarer Analyse-Arbeitsbereich"
+
+#: templates/bi.html:47
+msgid "All processes"
+msgstr "Alle Prozesse"
+
+#: templates/admin/logs.html:46 templates/bi.html:55 templates/bi.html:243
+msgid "Today"
+msgstr "Heute"
+
+#: templates/bi.html:56 templates/bi.html:244
+msgid "Yesterday"
+msgstr "Gestern"
+
+#: templates/admin/logs.html:47 templates/bi.html:57 templates/bi.html:245
+msgid "Last 7 days"
+msgstr "Letzte 7 Tage"
+
+#: templates/admin/logs.html:48 templates/bi.html:58 templates/bi.html:246
+msgid "Last 30 days"
+msgstr "Letzte 30 Tage"
+
+#: templates/bi.html:59 templates/bi.html:247
+msgid "This month"
+msgstr "Diesen Monat"
+
+#: templates/bi.html:65 templates/bi.html:96 templates/bi.html:261
+#: templates/js/_biJS.html:356 templates/js/_biJS.html:357
+msgid "Add widget"
+msgstr "Widget hinzufügen"
+
+#: templates/bi.html:68
+msgid "Reset to default layout"
+msgstr "Layout zurücksetzen"
+
+#: templates/bi.html:81
+msgid "No widgets yet"
+msgstr "Noch keine Widgets"
+
+#: templates/bi.html:82
+msgid "Click 'Add widget' to get started"
+msgstr "Klicken Sie auf 'Widget hinzufügen', um zu beginnen"
+
+#: templates/bi.html:107
+msgid "Widget type"
+msgstr "Widget-Typ"
+
+#: templates/bi.html:111
+msgid "KPI"
+msgstr "KPI"
+
+#: templates/bi.html:115
+msgid "Trend"
+msgstr "Trend"
+
+#: templates/bi.html:119
+msgid "Breakdown"
+msgstr "Aufschlüsselung"
+
+#: templates/admin/maintenance.html:53 templates/admin/maintenance.html:76
+#: templates/bi.html:126
+msgid "Title"
+msgstr "Titel"
+
+#: templates/bi.html:127
+msgid "Widget title"
+msgstr "Widget-Titel"
+
+#: templates/bi.html:133
+msgid "Width"
+msgstr "Breite"
+
+#: templates/bi.html:147 templates/bi.html:187
+msgid "Metric"
+msgstr "Kennzahl"
+
+#: templates/bi.html:150 templates/bi.html:190
+msgid "Count"
+msgstr "Anzahl"
+
+#: templates/bi.html:152
+msgid "Sum"
+msgstr "Summe"
+
+#: templates/bi.html:153
+msgid "Average"
+msgstr "Durchschnitt"
+
+#: templates/bi.html:154
+msgid "Minimum"
+msgstr "Minimum"
+
+#: templates/bi.html:155
+msgid "Maximum"
+msgstr "Maximum"
+
+#: templates/bi.html:159
+msgid "Field"
+msgstr "Feld"
+
+#: templates/bi.html:168 templates/bi.html:199
+msgid "Chart type"
+msgstr "Diagrammtyp"
+
+#: templates/bi.html:171
+msgid "Line"
+msgstr "Linie"
+
+#: templates/bi.html:172
+msgid "Area"
+msgstr "Fläche"
+
+#: templates/bi.html:173 templates/bi.html:204
+msgid "Bar"
+msgstr "Balken"
+
+#: templates/bi.html:177
+msgid "Time bucket"
+msgstr "Zeitraster"
+
+#: templates/bi.html:180
+#, fuzzy
+msgid "Hour"
+msgstr "Stunden"
+
+#: templates/bi.html:181
+msgid "Day"
+msgstr "Tag"
+
+#: templates/bi.html:182
+msgid "Week"
+msgstr "Woche"
+
+#: templates/bi.html:183
+msgid "Month"
+msgstr "Monat"
+
+#: templates/bi.html:202
+msgid "Doughnut"
+msgstr "Donut"
+
+#: templates/bi.html:203
+msgid "Pie"
+msgstr "Kreisdiagramm"
+
+#: templates/bi.html:205
+msgid "Horizontal bar"
+msgstr "Horizontaler Balken"
+
+#: templates/bi.html:209
+msgid "Dimension"
+msgstr "Dimension"
+
+#: templates/bi.html:215
+msgid "Top N"
+msgstr "Top N"
+
+#: templates/admin/accessControl.html:62 templates/admin/accessControl.html:71
+#: templates/admin/logs.html:69 templates/admin/logs.html:85
+#: templates/admin/logs.html:93 templates/bi.html:222
+#: templates/generali_additionalservices.html:64
+#: templates/generali_additionalservices.html:76
+#: templates/generali_baseservices.html:64
+#: templates/generali_documents.html:133
+#: templates/generali_importstatus.html:47 templates/generali_pdqm.html:60
+#: templates/generali_pdqm.html:72 templates/generali_pdqm.html:84
+#: templates/js/_generaliAdditionalServicesJS.html:78
+#: templates/js/_generaliAdditionalServicesJS.html:269
+#: templates/js/_generaliPDQMJS.html:77 templates/js/_generaliPDQMJS.html:90
+#: templates/js/_generaliPDQMJS.html:99 templates/js/_generaliPDQMJS.html:119
+#: templates/js/_generaliPDQMJS.html:320 templates/js/_generaliPDQMJS.html:337
+#: templates/js/_generaliPDQMJS.html:346 templates/js/_generaliPDQMJS.html:358
+msgid "All"
+msgstr "Alle"
+
+#: templates/bi.html:226
+msgid "Sort"
+msgstr "Sortierung"
+
+#: templates/bi.html:229
+msgid "Descending"
+msgstr "Absteigend"
+
+#: templates/bi.html:230
+msgid "Ascending"
+msgstr "Aufsteigend"
+
+#: templates/bi.html:231
+msgid "Alphabetical"
+msgstr "Alphabetisch"
+
+#: templates/bi.html:239
+msgid "Date override"
+msgstr "Datum überschreiben"
+
+#: templates/bi.html:242
+msgid "Use global date"
+msgstr "Globales Datum verwenden"
+
+#: templates/admin/accessControl.html:235
+#: templates/admin/accessControl.html:254
+#: templates/admin/accessControl.html:294
+#: templates/admin/accessControl.html:399 templates/admin/maintenance.html:131
+#: templates/admin/maintenance.html:149
+#: templates/admin/modals/_mobscn_modals.html:13
+#: templates/admin/modals/_mobscn_modals.html:47
+#: templates/admin/modals/_organizations_modals.html:13
+#: templates/admin/modals/_organizations_modals.html:41
+#: templates/admin/modals/_user_modals.html:13
+#: templates/admin/modals/_user_modals.html:81
+#: templates/admin/userDetail.html:74 templates/admin/userDetail.html:256
+#: templates/bi.html:257 templates/chat.html:90
+#: templates/generali_additionalservices.html:236
+#: templates/generali_additionalservices.html:295
+#: templates/generali_additionalservices.html:320
+#: templates/generali_baseservices.html:209
+#: templates/generali_baseservices.html:256
+#: templates/generali_baseservices.html:281 templates/generali_pdqm.html:248
+#: templates/generali_pdqm.html:320 templates/generali_pdqm.html:345
+#: templates/generali_projectmanagement.html:202
+#: templates/generali_projectmanagement.html:242
+#: templates/generali_projectmanagement.html:267
+#: templates/generali_reporting.html:191 templates/generali_reporting.html:277
+#: templates/generali_reporting.html:302 templates/workitems_overview.html:452
+#: templates/workitems_overview.html:548
+msgid "Cancel"
+msgstr "Abbrechen"
 
 #: templates/chat.html:8
 msgid "Direct Chat - nexora"
@@ -705,145 +961,55 @@ msgstr "Neuen Chat starten"
 msgid "No other users available."
 msgstr "Keine weiteren Benutzer verfügbar."
 
-#: templates/admin/accessControl.html:235
-#: templates/admin/accessControl.html:254
-#: templates/admin/accessControl.html:294
-#: templates/admin/accessControl.html:399
-#: templates/admin/modals/_mobscn_modals.html:13
-#: templates/admin/modals/_mobscn_modals.html:47
-#: templates/admin/modals/_organizations_modals.html:13
-#: templates/admin/modals/_organizations_modals.html:41
-#: templates/admin/modals/_user_modals.html:13
-#: templates/admin/modals/_user_modals.html:81
-#: templates/admin/userDetail.html:74 templates/admin/userDetail.html:256
-#: templates/chat.html:90 templates/dashboard.html:144
-#: templates/generali_additionalservices.html:224
-#: templates/generali_additionalservices.html:283
-#: templates/generali_additionalservices.html:308
-#: templates/generali_baseservices.html:197
-#: templates/generali_baseservices.html:244
-#: templates/generali_baseservices.html:269 templates/generali_pdqm.html:236
-#: templates/generali_pdqm.html:308 templates/generali_pdqm.html:333
-#: templates/generali_projectmanagement.html:190
-#: templates/generali_projectmanagement.html:230
-#: templates/generali_projectmanagement.html:255
-#: templates/generali_reporting.html:179 templates/generali_reporting.html:265
-#: templates/generali_reporting.html:290 templates/workitems_overview.html:452
-#: templates/workitems_overview.html:548
-msgid "Cancel"
-msgstr "Abbrechen"
-
 #: templates/dashboard.html:7
 msgid "Dashboard - nexora"
 msgstr "Dashboard - nexora"
 
-#: templates/dashboard.html:28
+#: templates/dashboard.html:24
 msgid "Welcome back"
 msgstr "Willkommen zurück"
 
-#: templates/dashboard.html:31
-msgid "Drag, resize, and configure widgets to make this dashboard your own."
-msgstr "Ziehen, vergrößern und konfigurieren Sie Widgets, um Ihr Dashboard ganz nach Ihren Wünschen zu gestalten."
+#: templates/dashboard.html:27
+msgid "Here's a real-time overview of your document processing activity."
+msgstr ""
 
-#: templates/dashboard.html:38 templates/js/_dashboardJS.html:647
-#: templates/workitems_overview.html:77
+#: templates/dashboard.html:34 templates/workitems_overview.html:77
 msgid "Process"
 msgstr "Prozess"
 
-#: templates/dashboard.html:40 templates/js/_dashboardJS.html:646
-#: templates/workitems_overview.html:81
+#: templates/dashboard.html:38 templates/workitems_overview.html:81
 msgid "All Processes"
 msgstr "Alle Prozesse"
 
-#: templates/dashboard.html:51 templates/js/_dashboardJS.html:681
-#: templates/workitems_overview.html:285
-msgid "Add filter"
-msgstr "Filter hinzufügen"
+#: templates/dashboard.html:51
+#, fuzzy
+msgid "Imported Today"
+msgstr "Gemeldet um"
 
-#: templates/dashboard.html:55
-msgid "Refresh now"
-msgstr "Jetzt aktualisieren"
-
-#: templates/dashboard.html:61 templates/generali-dashboard.html:55
-#: templates/generali_additionalservices.html:90
-#: templates/generali_baseservices.html:78
-#: templates/generali_documents.html:202 templates/generali_pdqm.html:98
-#: templates/generali_projectmanagement.html:66
-#: templates/generali_reporting.html:87 templates/invoices.html:94
-#: templates/workitems_overview.html:299
-msgid "Reset"
-msgstr "Zurücksetzen"
-
-#: templates/admin/accessControl.html:162
-#: templates/admin/archive/mobscn_processmanagement.html:45
-#: templates/admin/archive/userManagement.html:54
-#: templates/admin/organizations.html:41 templates/dashboard.html:65
-#: templates/js/_dashboardJS.html:130
-#: templates/js/admin/_accessControlJS.html:507
-#: templates/js/admin/_organizationsJS.html:96
-#: templates/js/admin/_userManagementJS.html:110
-msgid "Edit"
-msgstr "Bearbeiten"
+#: templates/dashboard.html:62
+#, fuzzy
+msgid "Processed Today"
+msgstr "Verarbeitet (letzte 7 Tage)"
 
 #: templates/dashboard.html:73
-msgid "Add widget"
-msgstr "Widget hinzufügen"
+#, fuzzy
+msgid "Current Backlog"
+msgstr "Aktuelles Passwort"
 
-#: templates/dashboard.html:83
-msgid "Add a widget"
-msgstr "Ein Widget hinzufügen"
+#: templates/dashboard.html:84
+#, fuzzy
+msgid "Avg. Processing Time"
+msgstr "Durchschn. Verarbeitungszeit"
 
-#: templates/dashboard.html:89
-msgid "KPI card"
-msgstr "KPI-Karte"
+#: templates/dashboard.html:110
+#, fuzzy
+msgid "Recent Validations"
+msgstr "Validierung"
 
-#: templates/dashboard.html:90
-msgid "Single big metric for an at-a-glance summary."
-msgstr "Eine einzelne große Kennzahl für einen schnellen Überblick."
-
-#: templates/dashboard.html:94
-msgid "Time-series chart"
-msgstr "Zeitreihendiagramm"
-
-#: templates/dashboard.html:95
-msgid "Trend over time as line, area, or bar."
-msgstr "Verlauf über Zeit als Linie, Fläche oder Balken."
-
-#: templates/dashboard.html:99
-msgid "Categorical chart"
-msgstr "Kategoriediagramm"
-
-#: templates/dashboard.html:100
-msgid "Bar or pie split by a dimension (doctype, currency, ...)."
-msgstr "Balken- oder Kreisdiagramm aufgeteilt nach einer Dimension (Doctype, Währung, …)."
-
-#: templates/dashboard.html:112
-msgid "Settings"
-msgstr "Einstellungen"
-
-#: templates/dashboard.html:113
-msgid "Remove"
-msgstr "Entfernen"
-
-#: templates/dashboard.html:138
-msgid "Data"
-msgstr "Daten"
-
-#: templates/dashboard.html:139
-msgid "Filters"
-msgstr "Filter"
-
-#: templates/dashboard.html:140
-msgid "Display"
-msgstr "Anzeige"
-
-#: templates/dashboard.html:145 templates/generali-dashboard.html:51
-#: templates/generali_additionalservices.html:86
-#: templates/generali_baseservices.html:74 templates/generali_pdqm.html:94
-#: templates/generali_projectmanagement.html:62
-#: templates/generali_reporting.html:83 templates/js/admin/_logsJS.html:159
-msgid "Apply"
-msgstr "Anwenden"
+#: templates/dashboard.html:125
+#, fuzzy
+msgid "Documents Processed by Hour (Today)"
+msgstr "Verarbeitete Dokumente im Zeitverlauf"
 
 #: templates/forgot_password.html:7
 msgid "Forgot password - nexora"
@@ -878,63 +1044,109 @@ msgstr "Zurück zur Anmeldung"
 msgid "Generali Dashboard - nexora"
 msgstr "Generali Dashboard - nexora"
 
-#: templates/generali-dashboard.html:23
+#: templates/generali-dashboard.html:52
 msgid "Generali Dashboard"
 msgstr "Generali Dashboard"
 
-#: templates/generali-dashboard.html:24
+#: templates/generali-dashboard.html:53
 msgid "Dashboard for Generali Document processing"
 msgstr "Dashboard für die Generali Dokumentenverarbeitung"
 
-#: templates/generali-dashboard.html:40
+#: templates/generali-dashboard.html:69
 msgid "From"
 msgstr "Von"
 
-#: templates/generali-dashboard.html:45
+#: templates/generali-dashboard.html:74
 msgid "To"
 msgstr "Bis"
 
-#: templates/generali-dashboard.html:64
+#: templates/generali-dashboard.html:80
+#: templates/generali_additionalservices.html:98
+#: templates/generali_baseservices.html:86
+#: templates/generali_importstatus.html:65 templates/generali_pdqm.html:106
+#: templates/generali_projectmanagement.html:74
+#: templates/generali_reporting.html:95 templates/js/admin/_logsJS.html:159
+msgid "Apply"
+msgstr "Anwenden"
+
+#: templates/generali-dashboard.html:84
+#: templates/generali_additionalservices.html:102
+#: templates/generali_baseservices.html:90
+#: templates/generali_documents.html:202
+#: templates/generali_importstatus.html:69 templates/generali_pdqm.html:110
+#: templates/generali_projectmanagement.html:78
+#: templates/generali_reporting.html:99 templates/invoices.html:94
+#: templates/workitems_overview.html:299
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: templates/generali-dashboard.html:93
 msgid "Total Documents"
 msgstr "Dokumente gesamt"
 
-#: templates/generali-dashboard.html:68
+#: templates/generali-dashboard.html:97
 msgid "NK1 Pass Rate"
 msgstr "NK1 Erfolgsrate"
 
-#: templates/generali-dashboard.html:72
+#: templates/generali-dashboard.html:101
 msgid "NK2 Pass Rate"
 msgstr "NK2 Erfolgsrate"
 
-#: templates/generali-dashboard.html:76
+#: templates/generali-dashboard.html:105
 msgid "NK1 & NK2 Pass Rate"
 msgstr "NK1 & NK2 Erfolgsrate"
 
-#: templates/generali-dashboard.html:80
+#: templates/generali-dashboard.html:109
 msgid "Avg Daily Documents"
 msgstr "Durchschn. tägliche Dokumente"
 
-#: templates/generali-dashboard.html:88
+#: templates/generali-dashboard.html:118
 msgid "Daily Processing Volume"
 msgstr "Tägliches Verarbeitungsvolumen"
 
-#: templates/generali-dashboard.html:94
+#: templates/generali-dashboard.html:122 templates/generali_documents.html:29
+#: templates/js/_generali-dashboardJS.html:16
+#: templates/workitems_overview.html:64
+msgid "Total"
+msgstr "Gesamt"
+
+#: templates/generali-dashboard.html:125
+#: templates/js/_generali-dashboardJS.html:17
+#, fuzzy
+msgid "Expected"
+msgstr "ausgewählt"
+
+#: templates/generali-dashboard.html:129
+#, fuzzy
+msgid "Kommunikation"
+msgstr "Kommunikation"
+
+#: templates/generali-dashboard.html:135 templates/workitems_overview.html:341
+msgid "Select all"
+msgstr "Alle auswählen"
+
+#: templates/generali-dashboard.html:136
+#, fuzzy
+msgid "Clear"
+msgstr "Schließen"
+
+#: templates/generali-dashboard.html:147
 msgid "Document Type Distribution"
 msgstr "Dokumenttyp-Verteilung"
 
-#: templates/generali-dashboard.html:104
+#: templates/generali-dashboard.html:157
 msgid "Recipient Distribution"
 msgstr "Empfänger-Verteilung"
 
-#: templates/generali-dashboard.html:110
+#: templates/generali-dashboard.html:163
 msgid "NK1 / NK2 Quality Control"
 msgstr "NK1 / NK2 Qualitätskontrolle"
 
-#: templates/generali-dashboard.html:120
+#: templates/generali-dashboard.html:173
 msgid "Language Distribution"
 msgstr "Sprachverteilung"
 
-#: templates/generali-dashboard.html:126
+#: templates/generali-dashboard.html:179
 msgid "Entry Channel"
 msgstr "Eingangskanal"
 
@@ -952,7 +1164,7 @@ msgid "Daily effort tracking by category"
 msgstr "Tägliche Aufwandsverfolgung nach Kategorie"
 
 #: templates/generali_additionalservices.html:32
-#: templates/generali_additionalservices.html:165
+#: templates/generali_additionalservices.html:177
 msgid "Add Attendance"
 msgstr "Anwesenheit hinzufügen"
 
@@ -965,7 +1177,8 @@ msgstr "Excel exportieren"
 
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50
-#: templates/generali_documents.html:160 templates/generali_pdqm.html:46
+#: templates/generali_documents.html:160
+#: templates/generali_importstatus.html:33 templates/generali_pdqm.html:46
 #: templates/generali_projectmanagement.html:50
 #: templates/generali_reporting.html:54 templates/invoices.html:56
 #: templates/workitems_overview.html:149
@@ -974,7 +1187,8 @@ msgstr "Von Datum"
 
 #: templates/generali_additionalservices.html:55
 #: templates/generali_baseservices.html:55
-#: templates/generali_documents.html:165 templates/generali_pdqm.html:51
+#: templates/generali_documents.html:165
+#: templates/generali_importstatus.html:38 templates/generali_pdqm.html:51
 #: templates/generali_projectmanagement.html:55
 #: templates/generali_reporting.html:59 templates/invoices.html:66
 #: templates/workitems_overview.html:159
@@ -982,82 +1196,85 @@ msgid "To Date"
 msgstr "Bis Datum"
 
 #: templates/generali_additionalservices.html:60
-#: templates/generali_additionalservices.html:119
-#: templates/generali_additionalservices.html:192
-#: templates/generali_additionalservices.html:250
-#: templates/generali_pdqm.html:56 templates/generali_pdqm.html:128
-#: templates/generali_pdqm.html:192 templates/generali_pdqm.html:263
+#: templates/generali_additionalservices.html:131
+#: templates/generali_additionalservices.html:204
+#: templates/generali_additionalservices.html:262
+#: templates/generali_pdqm.html:56 templates/generali_pdqm.html:140
+#: templates/generali_pdqm.html:204 templates/generali_pdqm.html:275
 msgid "Parent Category"
 msgstr "Übergeordnete Kategorie"
 
-#: templates/admin/accessControl.html:62 templates/admin/accessControl.html:71
-#: templates/admin/logs.html:69 templates/admin/logs.html:85
-#: templates/admin/logs.html:93 templates/generali_additionalservices.html:64
-#: templates/generali_additionalservices.html:76
-#: templates/generali_baseservices.html:64
-#: templates/generali_documents.html:133 templates/generali_pdqm.html:60
-#: templates/generali_pdqm.html:72 templates/generali_pdqm.html:84
-#: templates/js/_generaliAdditionalServicesJS.html:78
-#: templates/js/_generaliAdditionalServicesJS.html:247
-#: templates/js/_generaliPDQMJS.html:77 templates/js/_generaliPDQMJS.html:90
-#: templates/js/_generaliPDQMJS.html:99 templates/js/_generaliPDQMJS.html:119
-#: templates/js/_generaliPDQMJS.html:299 templates/js/_generaliPDQMJS.html:315
-#: templates/js/_generaliPDQMJS.html:324 templates/js/_generaliPDQMJS.html:336
-msgid "All"
-msgstr "Alle"
-
 #: templates/generali_additionalservices.html:72
-#: templates/generali_additionalservices.html:122
-#: templates/generali_additionalservices.html:204
-#: templates/generali_additionalservices.html:262
-#: templates/generali_pdqm.html:80 templates/generali_pdqm.html:134
-#: templates/generali_pdqm.html:216 templates/generali_pdqm.html:287
+#: templates/generali_additionalservices.html:134
+#: templates/generali_additionalservices.html:216
+#: templates/generali_additionalservices.html:274
+#: templates/generali_pdqm.html:80 templates/generali_pdqm.html:146
+#: templates/generali_pdqm.html:228 templates/generali_pdqm.html:299
 msgid "Sub Category"
 msgstr "Unterkategorie"
 
-#: templates/generali_additionalservices.html:97
-#: templates/generali_baseservices.html:85
-#: templates/generali_projectmanagement.html:73
+#: templates/admin/accessControl.html:69 templates/admin/accessControl.html:99
+#: templates/admin/accessControl.html:219
+#: templates/admin/archive/userManagement.html:41 templates/admin/logs.html:91
+#: templates/admin/modals/_user_modals.html:62
+#: templates/admin/userDetail.html:61
+#: templates/generali_additionalservices.html:84
+#: templates/generali_baseservices.html:72 templates/generali_pdqm.html:92
+#: templates/generali_projectmanagement.html:60
+#: templates/generali_reporting.html:81
+msgid "Organization"
+msgstr "Organisation"
+
+#: templates/generali_additionalservices.html:88
+#: templates/generali_baseservices.html:76 templates/generali_pdqm.html:96
+#: templates/generali_projectmanagement.html:64
+#: templates/generali_reporting.html:85
+#, fuzzy
+msgid "All Organizations"
+msgstr "Organisationen"
+
+#: templates/generali_additionalservices.html:109
+#: templates/generali_baseservices.html:97
+#: templates/generali_projectmanagement.html:85
 msgid "Total hours (filtered):"
 msgstr "Gesamtstunden (gefiltert):"
 
-#: templates/generali_additionalservices.html:113
-#: templates/generali_additionalservices.html:187
-#: templates/generali_additionalservices.html:245
-#: templates/generali_baseservices.html:101
-#: templates/generali_baseservices.html:172
-#: templates/generali_baseservices.html:218
-#: templates/generali_documents.html:216 templates/generali_pdqm.html:122
-#: templates/generali_pdqm.html:187 templates/generali_pdqm.html:258
-#: templates/generali_projectmanagement.html:89
-#: templates/generali_projectmanagement.html:160
-#: templates/generali_projectmanagement.html:211
-#: templates/generali_reporting.html:104 templates/invoices.html:120
-#: templates/js/_dashboardJS.html:662
+#: templates/generali_additionalservices.html:125
+#: templates/generali_additionalservices.html:199
+#: templates/generali_additionalservices.html:257
+#: templates/generali_baseservices.html:113
+#: templates/generali_baseservices.html:184
+#: templates/generali_baseservices.html:230
+#: templates/generali_documents.html:216 templates/generali_pdqm.html:134
+#: templates/generali_pdqm.html:199 templates/generali_pdqm.html:270
+#: templates/generali_projectmanagement.html:101
+#: templates/generali_projectmanagement.html:172
+#: templates/generali_projectmanagement.html:223
+#: templates/generali_reporting.html:116 templates/invoices.html:120
 msgid "Date"
 msgstr "Datum"
 
 #: templates/admin/accessControl.html:97 templates/admin/logs.html:113
-#: templates/admin/logs.html:145 templates/generali_additionalservices.html:116
-#: templates/generali_additionalservices.html:174
-#: templates/generali_baseservices.html:104
-#: templates/generali_baseservices.html:159 templates/generali_pdqm.html:125
-#: templates/generali_projectmanagement.html:92
-#: templates/generali_projectmanagement.html:147
-#: templates/generali_reporting.html:107
+#: templates/admin/logs.html:145 templates/generali_additionalservices.html:128
+#: templates/generali_additionalservices.html:186
+#: templates/generali_baseservices.html:116
+#: templates/generali_baseservices.html:171 templates/generali_pdqm.html:137
+#: templates/generali_projectmanagement.html:104
+#: templates/generali_projectmanagement.html:159
+#: templates/generali_reporting.html:119
 #: templates/js/admin/_accessControlJS.html:585
 msgid "User"
 msgstr "Benutzer"
 
-#: templates/generali_additionalservices.html:125
-#: templates/generali_baseservices.html:110
-#: templates/generali_projectmanagement.html:95
+#: templates/generali_additionalservices.html:137
+#: templates/generali_baseservices.html:122
+#: templates/generali_projectmanagement.html:107
 msgid "Hours"
 msgstr "Stunden"
 
-#: templates/generali_additionalservices.html:128
-#: templates/generali_baseservices.html:113 templates/generali_pdqm.html:140
-#: templates/generali_projectmanagement.html:101
+#: templates/generali_additionalservices.html:140
+#: templates/generali_baseservices.html:125 templates/generali_pdqm.html:152
+#: templates/generali_projectmanagement.html:113
 msgid "Recorded At"
 msgstr "Erfasst am"
 
@@ -1065,105 +1282,110 @@ msgstr "Erfasst am"
 #: templates/admin/accessControl.html:133
 #: templates/admin/archive/mobscn_processmanagement.html:36
 #: templates/admin/archive/userManagement.html:42
-#: templates/admin/organizations.html:33 templates/admin/sessions.html:31
-#: templates/generali_additionalservices.html:132
-#: templates/generali_baseservices.html:117 templates/generali_pdqm.html:144
-#: templates/generali_projectmanagement.html:105
-#: templates/generali_reporting.html:120 templates/invoices.html:123
+#: templates/admin/maintenance.html:58 templates/admin/organizations.html:33
+#: templates/admin/sessions.html:31
+#: templates/generali_additionalservices.html:144
+#: templates/generali_baseservices.html:129 templates/generali_pdqm.html:156
+#: templates/generali_projectmanagement.html:117
+#: templates/generali_reporting.html:132 templates/invoices.html:123
 msgid "Actions"
 msgstr "Aktionen"
 
-#: templates/generali_additionalservices.html:150
-#: templates/generali_baseservices.html:135
-#: templates/generali_documents.html:273 templates/generali_pdqm.html:163
-#: templates/generali_projectmanagement.html:123
-#: templates/generali_reporting.html:139 templates/workitems_overview.html:411
+#: templates/generali_additionalservices.html:162
+#: templates/generali_baseservices.html:147
+#: templates/generali_documents.html:273
+#: templates/generali_importstatus.html:121 templates/generali_pdqm.html:175
+#: templates/generali_projectmanagement.html:135
+#: templates/generali_reporting.html:151 templates/workitems_overview.html:411
 msgid "Showing"
 msgstr "Anzeige"
 
-#: templates/generali_additionalservices.html:152
-#: templates/generali_baseservices.html:137
-#: templates/generali_documents.html:275 templates/generali_pdqm.html:165
-#: templates/generali_projectmanagement.html:125
-#: templates/generali_reporting.html:141 templates/js/admin/_logsJS.html:99
+#: templates/generali_additionalservices.html:164
+#: templates/generali_baseservices.html:149
+#: templates/generali_documents.html:275
+#: templates/generali_importstatus.html:123 templates/generali_pdqm.html:177
+#: templates/generali_projectmanagement.html:137
+#: templates/generali_reporting.html:153 templates/js/admin/_logsJS.html:99
 #: templates/js/admin/_userDetailJS.html:466
 #: templates/workitems_overview.html:413
 msgid "of"
 msgstr "von"
 
-#: templates/generali_additionalservices.html:154
-#: templates/generali_baseservices.html:139
-#: templates/generali_documents.html:277 templates/generali_pdqm.html:167
-#: templates/generali_projectmanagement.html:127
-#: templates/generali_reporting.html:143 templates/workitems_overview.html:415
+#: templates/generali_additionalservices.html:166
+#: templates/generali_baseservices.html:151
+#: templates/generali_documents.html:277
+#: templates/generali_importstatus.html:125 templates/generali_pdqm.html:179
+#: templates/generali_projectmanagement.html:139
+#: templates/generali_reporting.html:155 templates/workitems_overview.html:415
 msgid "results"
 msgstr "Ergebnissen"
 
-#: templates/generali_additionalservices.html:178
-#: templates/generali_baseservices.html:163
-#: templates/generali_projectmanagement.html:151
+#: templates/generali_additionalservices.html:190
+#: templates/generali_baseservices.html:175
+#: templates/generali_projectmanagement.html:163
 msgid "Myself"
 msgstr "Ich selbst"
 
-#: templates/generali_additionalservices.html:196
-#: templates/generali_additionalservices.html:254
-#: templates/generali_baseservices.html:181
-#: templates/generali_baseservices.html:227 templates/generali_pdqm.html:196
-#: templates/generali_pdqm.html:267
+#: templates/generali_additionalservices.html:208
+#: templates/generali_additionalservices.html:266
+#: templates/generali_baseservices.html:193
+#: templates/generali_baseservices.html:239 templates/generali_pdqm.html:208
+#: templates/generali_pdqm.html:279
 #: templates/js/_generaliAdditionalServicesJS.html:55
 #: templates/js/_generaliPDQMJS.html:41 templates/js/_generaliPDQMJS.html:99
 msgid "Select…"
 msgstr "Auswählen…"
 
-#: templates/generali_additionalservices.html:208
-#: templates/generali_additionalservices.html:266
-#: templates/generali_pdqm.html:208 templates/generali_pdqm.html:279
+#: templates/generali_additionalservices.html:220
+#: templates/generali_additionalservices.html:278
+#: templates/generali_pdqm.html:220 templates/generali_pdqm.html:291
 #: templates/js/_generaliAdditionalServicesJS.html:36
 #: templates/js/_generaliPDQMJS.html:41
 msgid "Select parent first"
 msgstr "Zuerst übergeordnete Kategorie auswählen"
 
-#: templates/generali_additionalservices.html:216
-#: templates/generali_additionalservices.html:274
-#: templates/generali_baseservices.html:189
-#: templates/generali_baseservices.html:235
-#: templates/generali_projectmanagement.html:177
-#: templates/generali_projectmanagement.html:216
+#: templates/generali_additionalservices.html:228
+#: templates/generali_additionalservices.html:286
+#: templates/generali_baseservices.html:201
+#: templates/generali_baseservices.html:247
+#: templates/generali_projectmanagement.html:189
+#: templates/generali_projectmanagement.html:228
 msgid "Effort (hours)"
 msgstr "Aufwand (Stunden)"
 
-#: templates/generali_additionalservices.html:228
-#: templates/generali_baseservices.html:201 templates/generali_pdqm.html:240
-#: templates/generali_projectmanagement.html:194
-#: templates/generali_reporting.html:183
-#: templates/js/_generaliReportingJS.html:593
+#: templates/generali_additionalservices.html:240
+#: templates/generali_baseservices.html:213 templates/generali_pdqm.html:252
+#: templates/generali_projectmanagement.html:206
+#: templates/generali_reporting.html:195
+#: templates/js/_generaliReportingJS.html:614
 msgid "Submit"
 msgstr "Absenden"
 
-#: templates/generali_additionalservices.html:238
+#: templates/generali_additionalservices.html:250
 msgid "Edit Attendance"
 msgstr "Anwesenheit bearbeiten"
 
-#: templates/admin/accessControl.html:296
-#: templates/generali_additionalservices.html:287
-#: templates/generali_baseservices.html:248 templates/generali_pdqm.html:312
-#: templates/generali_projectmanagement.html:234
-#: templates/generali_reporting.html:269
-#: templates/js/_generaliReportingJS.html:779
+#: templates/admin/accessControl.html:296 templates/admin/maintenance.html:133
+#: templates/generali_additionalservices.html:299
+#: templates/generali_baseservices.html:260 templates/generali_pdqm.html:324
+#: templates/generali_projectmanagement.html:246
+#: templates/generali_reporting.html:281 templates/js/_biJS.html:353
+#: templates/js/_generaliReportingJS.html:800
 msgid "Save"
 msgstr "Speichern"
 
-#: templates/generali_additionalservices.html:301
-#: templates/generali_baseservices.html:262 templates/generali_pdqm.html:326
-#: templates/generali_projectmanagement.html:248
-#: templates/generali_reporting.html:283
+#: templates/generali_additionalservices.html:313
+#: templates/generali_baseservices.html:274 templates/generali_pdqm.html:338
+#: templates/generali_projectmanagement.html:260
+#: templates/generali_reporting.html:295
 msgid "Delete record"
 msgstr "Eintrag löschen"
 
-#: templates/generali_additionalservices.html:302
-#: templates/generali_baseservices.html:263 templates/generali_pdqm.html:327
-#: templates/generali_projectmanagement.html:249
-#: templates/generali_reporting.html:284
+#: templates/admin/maintenance.html:146
+#: templates/generali_additionalservices.html:314
+#: templates/generali_baseservices.html:275 templates/generali_pdqm.html:339
+#: templates/generali_projectmanagement.html:261
+#: templates/generali_reporting.html:296
 #: templates/js/admin/_userDetailJS.html:164
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
@@ -1171,21 +1393,23 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/admin/accessControl.html:256
 #: templates/admin/archive/mobscn_processmanagement.html:46
 #: templates/admin/archive/userManagement.html:55
-#: templates/admin/organizations.html:42 templates/admin/userDetail.html:259
-#: templates/generali_additionalservices.html:312
-#: templates/generali_baseservices.html:273 templates/generali_pdqm.html:337
-#: templates/generali_projectmanagement.html:259
-#: templates/generali_reporting.html:294
-#: templates/js/_generaliAdditionalServicesJS.html:456
-#: templates/js/_generaliAdditionalServicesJS.html:470
-#: templates/js/_generaliBaseServicesJS.html:376
-#: templates/js/_generaliBaseServicesJS.html:389
-#: templates/js/_generaliPDQMJS.html:563 templates/js/_generaliPDQMJS.html:577
-#: templates/js/_generaliProjectManagementJS.html:357
-#: templates/js/_generaliProjectManagementJS.html:370
-#: templates/js/_generaliReportingJS.html:822
-#: templates/js/_generaliReportingJS.html:836
+#: templates/admin/maintenance.html:151 templates/admin/organizations.html:42
+#: templates/admin/userDetail.html:259
+#: templates/generali_additionalservices.html:324
+#: templates/generali_baseservices.html:285 templates/generali_pdqm.html:349
+#: templates/generali_projectmanagement.html:271
+#: templates/generali_reporting.html:306
+#: templates/js/_generaliAdditionalServicesJS.html:478
+#: templates/js/_generaliAdditionalServicesJS.html:492
+#: templates/js/_generaliBaseServicesJS.html:398
+#: templates/js/_generaliBaseServicesJS.html:411
+#: templates/js/_generaliPDQMJS.html:585 templates/js/_generaliPDQMJS.html:599
+#: templates/js/_generaliProjectManagementJS.html:379
+#: templates/js/_generaliProjectManagementJS.html:392
+#: templates/js/_generaliReportingJS.html:843
+#: templates/js/_generaliReportingJS.html:857
 #: templates/js/admin/_accessControlJS.html:511
+#: templates/js/admin/_maintenanceJS.html:136
 #: templates/js/admin/_organizationsJS.html:97
 #: templates/js/admin/_userManagementJS.html:111
 msgid "Delete"
@@ -1200,24 +1424,24 @@ msgid "Generali Base Services"
 msgstr "Generali Basisleistungen"
 
 #: templates/generali_baseservices.html:32
-#: templates/generali_baseservices.html:150 templates/generali_pdqm.html:32
-#: templates/generali_pdqm.html:179
+#: templates/generali_baseservices.html:162 templates/generali_pdqm.html:32
+#: templates/generali_pdqm.html:191
 #: templates/generali_projectmanagement.html:32
-#: templates/generali_projectmanagement.html:138
+#: templates/generali_projectmanagement.html:150
 msgid "Add Entry"
 msgstr "Eintrag hinzufügen"
 
 #: templates/generali_baseservices.html:60
-#: templates/generali_baseservices.html:107
-#: templates/generali_baseservices.html:177
-#: templates/generali_baseservices.html:223
-#: templates/generali_projectmanagement.html:165
-#: templates/generali_reporting.html:64 templates/generali_reporting.html:110
+#: templates/generali_baseservices.html:119
+#: templates/generali_baseservices.html:189
+#: templates/generali_baseservices.html:235
+#: templates/generali_projectmanagement.html:177
+#: templates/generali_reporting.html:64 templates/generali_reporting.html:122
 msgid "Category"
 msgstr "Kategorie"
 
-#: templates/generali_baseservices.html:211 templates/generali_pdqm.html:251
-#: templates/generali_projectmanagement.html:204
+#: templates/generali_baseservices.html:223 templates/generali_pdqm.html:263
+#: templates/generali_projectmanagement.html:216
 msgid "Edit Entry"
 msgstr "Eintrag bearbeiten"
 
@@ -1232,10 +1456,6 @@ msgstr "Generali Dokumente"
 #: templates/generali_documents.html:25
 msgid "Browse and filter all documents"
 msgstr "Alle Dokumente durchsuchen und filtern"
-
-#: templates/generali_documents.html:29 templates/workitems_overview.html:64
-msgid "Total"
-msgstr "Gesamt"
 
 #: templates/generali_documents.html:50 templates/generali_documents.html:146
 msgid "Document Type"
@@ -1312,6 +1532,88 @@ msgstr "Spr."
 msgid "Amount"
 msgstr "Betrag"
 
+#: templates/generali_importstatus.html:6
+#, fuzzy
+msgid "Data Import Status - nexora"
+msgstr "Direktnachrichten - nexora"
+
+#: templates/generali_importstatus.html:25
+#, fuzzy
+msgid "CSV imports into the document database"
+msgstr "Importierte Dokumente"
+
+#: templates/admin/logs.html:83 templates/admin/logs.html:115
+#: templates/admin/userDetail.html:202 templates/generali_importstatus.html:43
+#: templates/generali_importstatus.html:103 templates/invoices.html:75
+#: templates/invoices.html:122 templates/workitems_overview.html:125
+#: templates/workitems_overview.html:355
+msgid "Status"
+msgstr "Status"
+
+#: templates/generali_importstatus.html:48
+#: templates/js/_generaliImportStatusJS.html:17
+#: templates/js/admin/_mobscnJS.html:97 templates/js/admin/_mobscnJS.html:151
+#: templates/js/admin/_organizationsJS.html:138
+#: templates/js/admin/_organizationsJS.html:192
+#: templates/js/admin/_userManagementJS.html:152
+#: templates/js/admin/_userManagementJS.html:202
+msgid "Success"
+msgstr "Erfolgreich"
+
+#: templates/generali_importstatus.html:49
+#: templates/js/_generaliImportStatusJS.html:18
+msgid "Running"
+msgstr ""
+
+#: templates/generali_importstatus.html:50
+#: templates/js/_generaliImportStatusJS.html:19
+#, fuzzy
+msgid "Failed"
+msgstr "Feld"
+
+#: templates/generali_importstatus.html:58
+#, fuzzy
+msgid "File name"
+msgstr "Profilname"
+
+#: templates/generali_importstatus.html:59
+#, fuzzy
+msgid "Search…"
+msgstr "Suche"
+
+#: templates/generali_importstatus.html:82
+#, fuzzy
+msgid "File Name"
+msgstr "Profilname"
+
+#: templates/generali_importstatus.html:85
+#, fuzzy
+msgid "Imported At"
+msgstr "Gemeldet um"
+
+#: templates/generali_importstatus.html:88
+#, fuzzy
+msgid "Finished At"
+msgstr "Beenden"
+
+#: templates/generali_importstatus.html:91
+msgid "Scan Date Range"
+msgstr ""
+
+#: templates/generali_importstatus.html:94
+#, fuzzy
+msgid "CSV Rows"
+msgstr "Prozess speichern"
+
+#: templates/generali_importstatus.html:97
+#, fuzzy
+msgid "New"
+msgstr "neu"
+
+#: templates/generali_importstatus.html:100
+msgid "Updated"
+msgstr "Aktualisiert"
+
 #: templates/generali_pdqm.html:6
 msgid "Generali PDQM - nexora"
 msgstr "Generali PDQM - nexora"
@@ -1324,21 +1626,21 @@ msgstr "Generali PDQM"
 msgid "Daily document quantity tracking by category"
 msgstr "Tägliche Mengenerfassung von Dokumenten nach Kategorie"
 
-#: templates/generali_pdqm.html:68 templates/generali_pdqm.html:131
-#: templates/generali_pdqm.html:204 templates/generali_pdqm.html:275
+#: templates/generali_pdqm.html:68 templates/generali_pdqm.html:143
+#: templates/generali_pdqm.html:216 templates/generali_pdqm.html:287
 msgid "Parent Sub Category"
 msgstr "Übergeordnete Unterkategorie"
 
-#: templates/generali_pdqm.html:106
+#: templates/generali_pdqm.html:118
 msgid "Total documents (filtered):"
 msgstr "Dokumente gesamt (gefiltert):"
 
-#: templates/generali_pdqm.html:137 templates/generali_pdqm.html:228
-#: templates/generali_pdqm.html:299
+#: templates/generali_pdqm.html:149 templates/generali_pdqm.html:240
+#: templates/generali_pdqm.html:311
 msgid "Quantity"
 msgstr "Menge"
 
-#: templates/generali_pdqm.html:220 templates/generali_pdqm.html:291
+#: templates/generali_pdqm.html:232 templates/generali_pdqm.html:303
 #: templates/js/_generaliPDQMJS.html:77
 msgid "Select parent sub first"
 msgstr "Zuerst übergeordnete Unterkategorie auswählen"
@@ -1355,23 +1657,24 @@ msgstr "Generali Projektmanagement"
 msgid "Daily effort tracking"
 msgstr "Tägliche Aufwandsverfolgung"
 
-#: templates/generali_projectmanagement.html:98
-#: templates/generali_projectmanagement.html:182
-#: templates/generali_projectmanagement.html:221
+#: templates/generali_projectmanagement.html:110
+#: templates/generali_projectmanagement.html:194
+#: templates/generali_projectmanagement.html:233
 msgid "Comment"
 msgstr "Kommentar"
 
-#: templates/generali_projectmanagement.html:169
+#: templates/generali_projectmanagement.html:181
 msgid "Project Effort"
 msgstr "Projektaufwand"
 
-#: templates/generali_projectmanagement.html:182
-#: templates/generali_projectmanagement.html:221
+#: templates/admin/maintenance.html:76
+#: templates/generali_projectmanagement.html:194
+#: templates/generali_projectmanagement.html:233
 msgid "optional"
 msgstr "optional"
 
-#: templates/generali_projectmanagement.html:183
-#: templates/generali_projectmanagement.html:222
+#: templates/generali_projectmanagement.html:195
+#: templates/generali_projectmanagement.html:234
 msgid "Enter comment…"
 msgstr "Kommentar eingeben…"
 
@@ -1387,7 +1690,7 @@ msgstr "Generali Reporting"
 msgid "Daily task completion reporting"
 msgstr "Tägliche Aufgabenabschluss-Berichterstattung"
 
-#: templates/generali_reporting.html:32 templates/generali_reporting.html:157
+#: templates/generali_reporting.html:32 templates/generali_reporting.html:169
 msgid "Add Report"
 msgstr "Bericht hinzufügen"
 
@@ -1397,78 +1700,78 @@ msgstr "Alle Kategorien"
 
 #: templates/generali_reporting.html:69
 #: templates/js/_generaliReportingJS.html:14
-#: templates/js/_generaliReportingJS.html:246
+#: templates/js/_generaliReportingJS.html:267
 msgid "KPI 1: Delivery physical post"
 msgstr "KPI 1: Zustellung physische Post"
 
 #: templates/generali_reporting.html:70
 #: templates/js/_generaliReportingJS.html:15
-#: templates/js/_generaliReportingJS.html:247
+#: templates/js/_generaliReportingJS.html:268
 msgid "KPI 2: Delivery physical post with scanning"
 msgstr "KPI 2: Zustellung physische Post mit Scanning"
 
 #: templates/generali_reporting.html:71
 #: templates/js/_generaliReportingJS.html:16
-#: templates/js/_generaliReportingJS.html:248
+#: templates/js/_generaliReportingJS.html:269
 msgid "KPI 3: Provision of Archival Records"
 msgstr "KPI 3: Bereitstellung Archivakten"
 
 #: templates/generali_reporting.html:72
 #: templates/js/_generaliReportingJS.html:17
-#: templates/js/_generaliReportingJS.html:249
+#: templates/js/_generaliReportingJS.html:270
 msgid "KPI 12: Stray document (digital)"
 msgstr "KPI 12: Irrläufer (digital)"
 
 #: templates/generali_reporting.html:73
 #: templates/js/_generaliReportingJS.html:18
-#: templates/js/_generaliReportingJS.html:250
+#: templates/js/_generaliReportingJS.html:271
 msgid "KPI 13: Stray document (physical)"
 msgstr "KPI 13: Irrläufer (physisch)"
 
-#: templates/generali_reporting.html:113 templates/generali_reporting.html:238
-#: templates/generali_reporting.html:241
+#: templates/generali_reporting.html:125 templates/generali_reporting.html:250
+#: templates/generali_reporting.html:253
 #: templates/js/_generaliReportingJS.html:26
-#: templates/js/_generaliReportingJS.html:265
-#: templates/js/_generaliReportingJS.html:274
-#: templates/js/_generaliReportingJS.html:335
-#: templates/js/_generaliReportingJS.html:679
-#: templates/js/_generaliReportingJS.html:690
-#: templates/js/_generaliReportingJS.html:706
+#: templates/js/_generaliReportingJS.html:286
+#: templates/js/_generaliReportingJS.html:295
+#: templates/js/_generaliReportingJS.html:356
+#: templates/js/_generaliReportingJS.html:700
+#: templates/js/_generaliReportingJS.html:711
+#: templates/js/_generaliReportingJS.html:727
 msgid "On Time"
 msgstr "Pünktlich"
 
-#: templates/generali_reporting.html:116
+#: templates/generali_reporting.html:128
 msgid "Reported At"
 msgstr "Gemeldet um"
 
-#: templates/generali_reporting.html:171
+#: templates/generali_reporting.html:183
 msgid "Add Date"
 msgstr "Datum hinzufügen"
 
-#: templates/generali_reporting.html:226
+#: templates/generali_reporting.html:238
 msgid "Edit Report"
 msgstr "Bericht bearbeiten"
 
-#: templates/generali_reporting.html:233
-#: templates/js/_generaliReportingJS.html:445
+#: templates/generali_reporting.html:245
+#: templates/js/_generaliReportingJS.html:466
 msgid "Report Date"
 msgstr "Berichtsdatum"
 
-#: templates/generali_reporting.html:245
-#: templates/js/_generaliReportingJS.html:313
-#: templates/js/_generaliReportingJS.html:354
-#: templates/js/_generaliReportingJS.html:619
-#: templates/js/_generaliReportingJS.html:712
+#: templates/generali_reporting.html:257
+#: templates/js/_generaliReportingJS.html:334
+#: templates/js/_generaliReportingJS.html:375
+#: templates/js/_generaliReportingJS.html:640
+#: templates/js/_generaliReportingJS.html:733
 msgid "Email Received"
 msgstr "E-Mail erhalten"
 
-#: templates/generali_reporting.html:250 templates/hero.html:134
-#: templates/js/_generaliReportingJS.html:317
+#: templates/generali_reporting.html:262 templates/hero.html:134
+#: templates/js/_generaliReportingJS.html:338
 msgid "Delivery"
 msgstr "Zustellung"
 
-#: templates/generali_reporting.html:255
-#: templates/js/_generaliReportingJS.html:322
+#: templates/generali_reporting.html:267
+#: templates/js/_generaliReportingJS.html:343
 msgid "Latest Delivery"
 msgstr "Späteste Zustellung"
 
@@ -1703,30 +2006,30 @@ msgstr "Anmeldung - nexora"
 #: templates/admin/accessControl.html:193
 #: templates/admin/archive/userManagement.html:37 templates/admin/logs.html:61
 #: templates/admin/modals/_user_modals.html:33 templates/admin/sessions.html:27
-#: templates/admin/userDetail.html:41 templates/index.html:38
+#: templates/admin/userDetail.html:41 templates/index.html:40
 #: templates/profile.html:132
 msgid "Username"
 msgstr "Benutzername"
 
-#: templates/index.html:45
+#: templates/index.html:47
 msgid "Your Username"
 msgstr "Ihr Benutzername"
 
 #: templates/admin/accessControl.html:229
-#: templates/admin/modals/_user_modals.html:72 templates/index.html:49
+#: templates/admin/modals/_user_modals.html:72 templates/index.html:51
 #: templates/profile.html:64
 msgid "Password"
 msgstr "Passwort"
 
-#: templates/index.html:63
+#: templates/index.html:65
 msgid "Remember me"
 msgstr "Angemeldet bleiben"
 
-#: templates/index.html:66
+#: templates/index.html:68
 msgid "Forgot password"
 msgstr "Passwort vergessen"
 
-#: templates/index.html:70
+#: templates/index.html:72
 msgid "Sign in"
 msgstr "Anmelden"
 
@@ -1824,13 +2127,6 @@ msgstr "Kunde"
 msgid "All Clients"
 msgstr "Alle Kunden"
 
-#: templates/admin/logs.html:83 templates/admin/logs.html:115
-#: templates/admin/userDetail.html:202 templates/invoices.html:75
-#: templates/invoices.html:122 templates/workitems_overview.html:125
-#: templates/workitems_overview.html:355
-msgid "Status"
-msgstr "Status"
-
 #: templates/invoices.html:80
 msgid "All Statuses"
 msgstr "Alle Status"
@@ -1849,6 +2145,33 @@ msgstr "Rechnung #"
 #: templates/invoices.html:130 templates/js/_invoicesJS.html:89
 msgid "Loading invoices..."
 msgstr "Rechnungen werden geladen..."
+
+#: templates/maintenance.html:6
+#, fuzzy
+msgid "Maintenance - nexora"
+msgstr "Rechnungen - nexora"
+
+#: templates/maintenance.html:134
+#, fuzzy
+msgid "Scheduled Maintenance"
+msgstr "Anwesenheit hinzufügen"
+
+#: templates/maintenance.html:135
+msgid "The application is temporarily unavailable. Please check back shortly."
+msgstr ""
+
+#: templates/admin/sessions.html:21 templates/maintenance.html:154
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: templates/maintenance.html:157
+#, fuzzy
+msgid "Login"
+msgstr "Angemeldet"
+
+#: templates/maintenance.html:163
+msgid "Expected to end at"
+msgstr ""
 
 #: templates/profile.html:7
 msgid "Profile settings - nexora"
@@ -2060,9 +2383,9 @@ msgstr "Feld suchen…"
 msgid "Type to search…"
 msgstr "Zum Suchen tippen…"
 
-#: templates/workitems_overview.html:341
-msgid "Select all"
-msgstr "Alle auswählen"
+#: templates/workitems_overview.html:285
+msgid "Add filter"
+msgstr "Filter hinzufügen"
 
 #: templates/workitems_overview.html:363
 msgid "Last movement at"
@@ -2206,14 +2529,6 @@ msgstr "Suche"
 msgid "Name, email..."
 msgstr "Name, E-Mail..."
 
-#: templates/admin/accessControl.html:69 templates/admin/accessControl.html:99
-#: templates/admin/accessControl.html:219
-#: templates/admin/archive/userManagement.html:41 templates/admin/logs.html:91
-#: templates/admin/modals/_user_modals.html:62
-#: templates/admin/userDetail.html:61
-msgid "Organization"
-msgstr "Organisation"
-
 #: templates/admin/accessControl.html:80
 msgid "Clear filters"
 msgstr "Filter zurücksetzen"
@@ -2283,6 +2598,17 @@ msgstr "Profil"
 msgid "Add Profile"
 msgstr "Profil"
 
+#: templates/admin/accessControl.html:162
+#: templates/admin/archive/mobscn_processmanagement.html:45
+#: templates/admin/archive/userManagement.html:54
+#: templates/admin/organizations.html:41
+#: templates/js/admin/_accessControlJS.html:507
+#: templates/js/admin/_maintenanceJS.html:130
+#: templates/js/admin/_organizationsJS.html:96
+#: templates/js/admin/_userManagementJS.html:110
+msgid "Edit"
+msgstr "Bearbeiten"
+
 #: templates/admin/accessControl.html:169
 #, fuzzy
 msgid "user(s)"
@@ -2338,7 +2664,6 @@ msgid "Permission"
 msgstr "Berechtigung"
 
 #: templates/admin/accessControl.html:359 templates/admin/userDetail.html:152
-#: templates/js/_dashboardJS.html:548
 #: templates/js/_workitems_overviewJS.html:475
 #: templates/js/_workitems_overviewJS.html:487
 msgid "None"
@@ -2462,21 +2787,6 @@ msgstr "Nach Benutzer, Datum, Methode, Status oder Organisation filtern"
 msgid "Last hour"
 msgstr "Letzte Stunde"
 
-#: templates/admin/logs.html:46 templates/js/_dashboardJS.html:409
-#: templates/js/_dashboardJS.html:824
-msgid "Today"
-msgstr "Heute"
-
-#: templates/admin/logs.html:47 templates/js/_dashboardJS.html:411
-#: templates/js/_dashboardJS.html:826
-msgid "Last 7 days"
-msgstr "Letzte 7 Tage"
-
-#: templates/admin/logs.html:48 templates/js/_dashboardJS.html:412
-#: templates/js/_dashboardJS.html:827
-msgid "Last 30 days"
-msgstr "Letzte 30 Tage"
-
 #: templates/admin/logs.html:52
 msgid "Saved filters"
 msgstr "Gespeicherte Filter"
@@ -2523,7 +2833,7 @@ msgstr "Aktion"
 msgid "IP"
 msgstr "IP"
 
-#: templates/admin/logs.html:117 templates/js/_generaliReportingJS.html:156
+#: templates/admin/logs.html:117 templates/js/_generaliReportingJS.html:177
 msgid "Details"
 msgstr "Details"
 
@@ -2535,7 +2845,7 @@ msgstr "Vorherige"
 
 #: templates/admin/logs.html:125 templates/admin/userDetail.html:213
 #: templates/js/_generaliDocumentsJS.html:269
-#: templates/js/_generaliReportingJS.html:234
+#: templates/js/_generaliReportingJS.html:255
 #: templates/js/_workitems_overviewJS.html:1633
 #: templates/js/archive/_tourJS.html:17
 msgid "Next"
@@ -2552,6 +2862,95 @@ msgstr "Kopieren"
 #: templates/admin/logs.html:157
 msgid "Close"
 msgstr "Schließen"
+
+#: templates/admin/maintenance.html:6
+#, fuzzy
+msgid "Maintenance Banners - nexora"
+msgstr "Rechnungen - nexora"
+
+#: templates/admin/maintenance.html:42
+msgid "Maintenance Banners"
+msgstr ""
+
+#: templates/admin/maintenance.html:43
+msgid "Schedule downtime announcements shown to all users"
+msgstr ""
+
+#: templates/admin/maintenance.html:45 templates/admin/maintenance.html:70
+#: templates/js/admin/_maintenanceJS.html:222
+#, fuzzy
+msgid "Add banner"
+msgstr "Benutzer hinzufügen"
+
+#: templates/admin/maintenance.html:48
+#, fuzzy
+msgid "Search title or message..."
+msgstr "Alle Benutzer & Berechtigungen"
+
+#: templates/admin/maintenance.html:54
+msgid "Window"
+msgstr ""
+
+#: templates/admin/maintenance.html:55 templates/admin/maintenance.html:99
+#, fuzzy
+msgid "Severity"
+msgstr "Zustellung"
+
+#: templates/admin/maintenance.html:56
+#, fuzzy
+msgid "Block"
+msgstr "Zurück"
+
+#: templates/admin/maintenance.html:57 templates/admin/maintenance.html:112
+#, fuzzy
+msgid "Active"
+msgstr "Aktivität"
+
+#: templates/admin/maintenance.html:81
+#, fuzzy
+msgid "Message"
+msgstr "Nachrichten"
+
+#: templates/admin/maintenance.html:87
+#, fuzzy
+msgid "Start"
+msgstr "Status"
+
+#: templates/admin/maintenance.html:92
+#, fuzzy
+msgid "End"
+msgstr "Senden"
+
+#: templates/admin/maintenance.html:102
+#: templates/js/admin/_maintenanceJS.html:6
+msgid "Info"
+msgstr ""
+
+#: templates/admin/maintenance.html:103
+#: templates/js/admin/_maintenanceJS.html:7
+msgid "Warning"
+msgstr ""
+
+#: templates/admin/maintenance.html:104
+#: templates/js/admin/_maintenanceJS.html:8
+msgid "Critical"
+msgstr ""
+
+#: templates/admin/maintenance.html:122
+msgid "Block access during window"
+msgstr ""
+
+#: templates/admin/maintenance.html:123
+msgid ""
+"When enabled and the window is active, users without "
+"admin.maintenance.bypass are logged out and shown a maintenance page. "
+"Make sure you have the bypass permission before turning this on."
+msgstr ""
+
+#: templates/admin/maintenance.html:145
+#, fuzzy
+msgid "Delete banner"
+msgstr "Benutzer löschen"
 
 #: templates/admin/organizations.html:6
 #, fuzzy
@@ -2578,10 +2977,6 @@ msgstr "Aktive Sitzungen - nexora"
 #: templates/admin/sessions.html:19
 msgid "Users active within the last 30 minutes"
 msgstr "In den letzten 30 Minuten aktive Benutzer"
-
-#: templates/admin/sessions.html:21
-msgid "Refresh"
-msgstr "Aktualisieren"
 
 #: templates/admin/sessions.html:28
 msgid "User ID"
@@ -2835,218 +3230,106 @@ msgstr "Hoppla, etwas ist schiefgelaufen"
 msgid "What does an 500 Error mean?"
 msgstr "Was bedeutet ein 500-Fehler?"
 
-#: templates/js/_dashboardJS.html:113
-msgid "Remove this widget?"
-msgstr "Dieses Widget entfernen?"
-
-#: templates/js/_dashboardJS.html:130
-msgid "Done"
-msgstr "Fertig"
-
-#: templates/js/_dashboardJS.html:139
-msgid "Reset layout to defaults?"
-msgstr "Layout auf Standardwerte zurücksetzen?"
-
-#: templates/js/_dashboardJS.html:189 templates/js/_dashboardJS.html:240
-#: templates/js/_dashboardJS.html:348
-msgid "Could not load"
-msgstr "Konnte nicht geladen werden"
-
-#: templates/js/_dashboardJS.html:410 templates/js/_dashboardJS.html:825
-msgid "Yesterday"
-msgstr "Gestern"
-
-#: templates/js/_dashboardJS.html:413 templates/js/_dashboardJS.html:828
-msgid "This month"
-msgstr "Diesen Monat"
-
-#: templates/js/_dashboardJS.html:414 templates/js/_dashboardJS.html:651
-msgid "Custom range"
-msgstr "Benutzerdefinierter Zeitraum"
-
-#: templates/js/_dashboardJS.html:510
-msgid "Count"
-msgstr "Anzahl"
-
-#: templates/js/_dashboardJS.html:510
-msgid "Sum"
-msgstr "Summe"
-
-#: templates/js/_dashboardJS.html:510
-msgid "Average"
-msgstr "Durchschnitt"
-
-#: templates/js/_dashboardJS.html:511
-msgid "Min"
-msgstr "Min"
-
-#: templates/js/_dashboardJS.html:511
-msgid "Max"
-msgstr "Max"
-
-#: templates/js/_dashboardJS.html:520
-msgid "Title"
-msgstr "Titel"
-
-#: templates/js/_dashboardJS.html:523
-msgid "Field"
-msgstr "Feld"
-
-#: templates/js/_dashboardJS.html:528
-msgid "Metric"
-msgstr "Kennzahl"
-
-#: templates/js/_dashboardJS.html:542 templates/js/_dashboardJS.html:551
-msgid "Chart type"
-msgstr "Diagrammtyp"
-
-#: templates/js/_dashboardJS.html:544
-msgid "Time bucket"
-msgstr "Zeitraster"
-
-#: templates/js/_dashboardJS.html:547
-msgid "Group by (optional)"
-msgstr "Gruppieren nach (optional)"
-
-#: templates/js/_dashboardJS.html:553
-msgid "Dimension"
-msgstr "Dimension"
-
-#: templates/js/_dashboardJS.html:556
-msgid "Top N"
-msgstr "Top N"
-
-#: templates/js/_dashboardJS.html:559
-msgid "Sort"
-msgstr "Sortierung"
-
-#: templates/js/_dashboardJS.html:567
-msgid "Filters tab implemented in T18"
-msgstr "Filter"
-
-#: templates/js/_dashboardJS.html:573
-msgid "Display tab implemented in T19"
-msgstr "Anzeige"
-
-#: templates/js/_dashboardJS.html:594
+#: templates/js/_biJS.html:157 templates/js/_biJS.html:352
 msgid "Edit widget"
 msgstr "Widget bearbeiten"
 
-#: templates/js/_dashboardJS.html:635
-msgid "Use dashboard filters"
-msgstr "Dashboard-Filter verwenden"
+#: templates/js/_biJS.html:164
+msgid "Remove widget"
+msgstr "Widget entfernen"
 
-#: templates/js/_dashboardJS.html:684
-msgid "Doc filters"
-msgstr "Dokumentfilter"
+#: templates/js/_biJS.html:199
+msgid "Failed to load"
+msgstr "Laden fehlgeschlagen"
 
-#: templates/js/_dashboardJS.html:732
-msgid "Compare to previous period"
-msgstr "Mit vorherigem Zeitraum vergleichen"
+#: templates/js/_biJS.html:210
+msgid "No data"
+msgstr "Keine Daten"
 
-#: templates/js/_dashboardJS.html:740
-msgid "Overlays the previous period's data for comparison."
-msgstr "Blendet die Daten des vorherigen Zeitraums zum Vergleich ein."
+#: templates/js/_biJS.html:510 templates/js/_biJS.html:518
+#: templates/js/_workitems_overviewJS.html:1047
+msgid "No fields available"
+msgstr "Keine Felder verfügbar"
 
-#: templates/js/_dashboardJS.html:769 templates/js/_dashboardJS.html:774
-msgid "vs prev"
-msgstr "vs. vorher"
+#: templates/js/_dashboardJS.html:144 templates/js/_dashboardJS.html:191
+#, fuzzy
+msgid "Documents Processed"
+msgstr "Verarbeitete Dokumente im Zeitverlauf"
 
-#: templates/js/_dashboardJS.html:770
-msgid "new"
-msgstr "neu"
+#: templates/js/_generali-dashboardJS.html:18
+msgid "Unknown"
+msgstr ""
 
-#: templates/js/_dashboardJS.html:798
-msgid "New KPI"
-msgstr "Neuer KPI"
-
-#: templates/js/_dashboardJS.html:799
-msgid "New time-series"
-msgstr "Neue Zeitreihe"
-
-#: templates/js/_dashboardJS.html:800
-msgid "New chart"
-msgstr "Neues Diagramm"
-
-#: templates/js/_dashboardJS.html:829
-msgid "Custom"
-msgstr "Benutzerdefiniert"
-
-#: templates/js/_dashboardJS.html:1006
-msgid "Updated"
-msgstr "Aktualisiert"
-
-#: templates/js/_generali-dashboardJS.html:70
-#: templates/js/_generali-dashboardJS.html:97
-#: templates/js/_generali-dashboardJS.html:166
+#: templates/js/_generali-dashboardJS.html:129
+#: templates/js/_generali-dashboardJS.html:205
 msgid "Documents"
 msgstr "Dokumente"
 
-#: templates/js/_generaliAdditionalServicesJS.html:178
-#: templates/js/_generaliBaseServicesJS.html:128
-#: templates/js/_generaliPDQMJS.html:232
-#: templates/js/_generaliProjectManagementJS.html:110
+#: templates/js/_generaliAdditionalServicesJS.html:199
+#: templates/js/_generaliBaseServicesJS.html:149
+#: templates/js/_generaliPDQMJS.html:253
+#: templates/js/_generaliProjectManagementJS.html:131
 msgid "No records found"
 msgstr "Keine Einträge gefunden."
 
-#: templates/js/_generaliAdditionalServicesJS.html:310
-#: templates/js/_generaliAdditionalServicesJS.html:395
-#: templates/js/_generaliBaseServicesJS.html:245
-#: templates/js/_generaliBaseServicesJS.html:316
-#: templates/js/_generaliPDQMJS.html:392 templates/js/_generaliPDQMJS.html:495
-#: templates/js/_generaliProjectManagementJS.html:226
-#: templates/js/_generaliProjectManagementJS.html:297
+#: templates/js/_generaliAdditionalServicesJS.html:332
+#: templates/js/_generaliAdditionalServicesJS.html:417
+#: templates/js/_generaliBaseServicesJS.html:267
+#: templates/js/_generaliBaseServicesJS.html:338
+#: templates/js/_generaliPDQMJS.html:414 templates/js/_generaliPDQMJS.html:517
+#: templates/js/_generaliProjectManagementJS.html:248
+#: templates/js/_generaliProjectManagementJS.html:319
 msgid "Please fill in all fields."
 msgstr "Bitte alle Felder ausfüllen."
 
-#: templates/js/_generaliAdditionalServicesJS.html:334
-#: templates/js/_generaliAdditionalServicesJS.html:413
-#: templates/js/_generaliBaseServicesJS.html:269
-#: templates/js/_generaliBaseServicesJS.html:334
-#: templates/js/_generaliPDQMJS.html:416 templates/js/_generaliPDQMJS.html:519
-#: templates/js/_generaliProjectManagementJS.html:250
-#: templates/js/_generaliProjectManagementJS.html:315
+#: templates/js/_generaliAdditionalServicesJS.html:356
+#: templates/js/_generaliAdditionalServicesJS.html:435
+#: templates/js/_generaliBaseServicesJS.html:291
+#: templates/js/_generaliBaseServicesJS.html:356
+#: templates/js/_generaliPDQMJS.html:438 templates/js/_generaliPDQMJS.html:541
+#: templates/js/_generaliProjectManagementJS.html:272
+#: templates/js/_generaliProjectManagementJS.html:337
 msgid "Error saving record."
 msgstr "Fehler beim Speichern des Eintrags."
 
-#: templates/js/_generaliAdditionalServicesJS.html:340
-#: templates/js/_generaliAdditionalServicesJS.html:419
-#: templates/js/_generaliBaseServicesJS.html:275
-#: templates/js/_generaliBaseServicesJS.html:340
-#: templates/js/_generaliPDQMJS.html:422 templates/js/_generaliPDQMJS.html:525
-#: templates/js/_generaliProjectManagementJS.html:256
-#: templates/js/_generaliProjectManagementJS.html:321
+#: templates/js/_generaliAdditionalServicesJS.html:362
+#: templates/js/_generaliAdditionalServicesJS.html:441
+#: templates/js/_generaliBaseServicesJS.html:297
+#: templates/js/_generaliBaseServicesJS.html:362
+#: templates/js/_generaliPDQMJS.html:444 templates/js/_generaliPDQMJS.html:547
+#: templates/js/_generaliProjectManagementJS.html:278
+#: templates/js/_generaliProjectManagementJS.html:343
 #: templates/js/admin/_sessionsJS.html:130
 msgid "Network error."
 msgstr "Netzwerkfehler."
 
-#: templates/js/_generaliAdditionalServicesJS.html:448
-#: templates/js/_generaliBaseServicesJS.html:368
-#: templates/js/_generaliPDQMJS.html:555
-#: templates/js/_generaliProjectManagementJS.html:349
-#: templates/js/_generaliReportingJS.html:814
+#: templates/js/_generaliAdditionalServicesJS.html:470
+#: templates/js/_generaliBaseServicesJS.html:390
+#: templates/js/_generaliPDQMJS.html:577
+#: templates/js/_generaliProjectManagementJS.html:371
+#: templates/js/_generaliReportingJS.html:835
 msgid "Deleting…"
 msgstr "Löschen…"
 
-#: templates/js/_generaliAdditionalServicesJS.html:463
-#: templates/js/_generaliBaseServicesJS.html:382
-#: templates/js/_generaliPDQMJS.html:570
-#: templates/js/_generaliProjectManagementJS.html:363
-#: templates/js/_generaliReportingJS.html:829
+#: templates/js/_generaliAdditionalServicesJS.html:485
+#: templates/js/_generaliBaseServicesJS.html:404
+#: templates/js/_generaliPDQMJS.html:592
+#: templates/js/_generaliProjectManagementJS.html:385
+#: templates/js/_generaliReportingJS.html:850
 msgid "Error deleting record."
 msgstr "Fehler beim Löschen des Eintrags."
 
-#: templates/js/_generaliAdditionalServicesJS.html:517
-#: templates/js/_generaliBaseServicesJS.html:437
-#: templates/js/_generaliPDQMJS.html:625
-#: templates/js/_generaliProjectManagementJS.html:416
-#: templates/js/_generaliReportingJS.html:893
+#: templates/js/_generaliAdditionalServicesJS.html:539
+#: templates/js/_generaliBaseServicesJS.html:459
+#: templates/js/_generaliPDQMJS.html:647
+#: templates/js/_generaliProjectManagementJS.html:438
+#: templates/js/_generaliReportingJS.html:915
 #, fuzzy
 msgid "Export failed."
 msgstr "Datei importieren"
 
 #: templates/js/_generaliDocumentsJS.html:62
-#: templates/js/_generaliReportingJS.html:128
+#: templates/js/_generaliReportingJS.html:149
 #: templates/js/_workitems_overviewJS.html:1345
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
@@ -3099,93 +3382,98 @@ msgstr "SAP / ALF"
 msgid "Could not load details."
 msgstr "Details konnten nicht geladen werden."
 
+#: templates/js/_generaliImportStatusJS.html:180
+#, fuzzy
+msgid "No imports found"
+msgstr "Keine Workitems gefunden"
+
 #: templates/js/_generaliReportingJS.html:28
-#: templates/js/_generaliReportingJS.html:265
-#: templates/js/_generaliReportingJS.html:274
-#: templates/js/_generaliReportingJS.html:335
-#: templates/js/_generaliReportingJS.html:470
-#: templates/js/_generaliReportingJS.html:679
-#: templates/js/_generaliReportingJS.html:690
-#: templates/js/_generaliReportingJS.html:706
+#: templates/js/_generaliReportingJS.html:286
+#: templates/js/_generaliReportingJS.html:295
+#: templates/js/_generaliReportingJS.html:356
+#: templates/js/_generaliReportingJS.html:491
+#: templates/js/_generaliReportingJS.html:700
+#: templates/js/_generaliReportingJS.html:711
+#: templates/js/_generaliReportingJS.html:727
 msgid "Late"
 msgstr "Verspätet"
 
-#: templates/js/_generaliReportingJS.html:139
+#: templates/js/_generaliReportingJS.html:160
 msgid "No records found for the selected criteria."
 msgstr "Keine Einträge für die ausgewählten Kriterien gefunden."
 
-#: templates/js/_generaliReportingJS.html:227
+#: templates/js/_generaliReportingJS.html:248
 msgid "Prev"
 msgstr "Vorh."
 
-#: templates/js/_generaliReportingJS.html:231
+#: templates/js/_generaliReportingJS.html:252
 #: templates/js/admin/_logsJS.html:99 templates/js/admin/_userDetailJS.html:466
 msgid "Page"
 msgstr "Seite"
 
-#: templates/js/_generaliReportingJS.html:298
+#: templates/js/_generaliReportingJS.html:319
 msgid "Select category…"
 msgstr "Kategorie auswählen…"
 
-#: templates/js/_generaliReportingJS.html:355
-#: templates/js/_generaliReportingJS.html:619
-#: templates/js/_generaliReportingJS.html:712
+#: templates/js/_generaliReportingJS.html:376
+#: templates/js/_generaliReportingJS.html:640
+#: templates/js/_generaliReportingJS.html:733
 msgid "Mailroom Request"
 msgstr "Poststelle-Anfrage"
 
-#: templates/js/_generaliReportingJS.html:454
+#: templates/js/_generaliReportingJS.html:475
 msgid "Add another category"
 msgstr "Weitere Kategorie hinzufügen"
 
-#: templates/js/_generaliReportingJS.html:533
+#: templates/js/_generaliReportingJS.html:554
 msgid "Please select a date."
 msgstr "Bitte wählen Sie ein Datum aus."
 
-#: templates/js/_generaliReportingJS.html:538
+#: templates/js/_generaliReportingJS.html:559
 msgid "Please select a category for each entry."
 msgstr "Bitte wählen Sie für jeden Eintrag eine Kategorie aus."
 
-#: templates/js/_generaliReportingJS.html:547
+#: templates/js/_generaliReportingJS.html:568
 msgid "Please set the Request timestamp for this category."
 msgstr "Bitte setzen Sie den Anfrage-Zeitstempel für diese Kategorie."
 
-#: templates/js/_generaliReportingJS.html:548
+#: templates/js/_generaliReportingJS.html:569
 msgid "Please set the Delivery timestamp for this category."
 msgstr "Bitte setzen Sie den Lieferungs-Zeitstempel für diese Kategorie."
 
-#: templates/js/_generaliReportingJS.html:560
+#: templates/js/_generaliReportingJS.html:581
 msgid "Duplicate categories in submission."
 msgstr "Doppelte Kategorien in der Übermittlung."
 
-#: templates/js/_generaliReportingJS.html:570
+#: templates/js/_generaliReportingJS.html:591
 msgid "Duplicate date + category combination found."
 msgstr "Doppelte Kategorien in der Übermittlung."
 
-#: templates/js/_generaliReportingJS.html:575
+#: templates/js/_generaliReportingJS.html:596
 msgid "Submitting…"
 msgstr "Wird übermittelt…"
 
-#: templates/js/_generaliReportingJS.html:588
+#: templates/js/_generaliReportingJS.html:609
 msgid "Network error for"
 msgstr "Netzwerkfehler für"
 
-#: templates/js/_generaliReportingJS.html:617
+#: templates/js/_generaliReportingJS.html:638
 msgid "Provision Archive Details"
 msgstr "Details zum Bereitstellungsarchiv"
 
-#: templates/js/_generaliReportingJS.html:617
+#: templates/js/_generaliReportingJS.html:638
 msgid "Stray Document Details"
 msgstr "Irrläufer-Details"
 
-#: templates/js/_generaliReportingJS.html:742
+#: templates/js/_generaliReportingJS.html:763
 msgid "Report date is required."
 msgstr "Berichtsdatum ist erforderlich."
 
-#: templates/js/_generaliReportingJS.html:762
+#: templates/js/_generaliReportingJS.html:783
 msgid "Saving…"
 msgstr "Speichern…"
 
-#: templates/js/_generaliReportingJS.html:775
+#: templates/js/_generaliReportingJS.html:796
 msgid "Save failed. Please try again."
 msgstr "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."
 
@@ -3203,58 +3491,59 @@ msgstr "Benutzer hinzufügen"
 
 #: templates/js/_headerJS.html:73 templates/js/_headerJS.html:76
 #: templates/js/_headerJS.html:79 templates/js/_headerJS.html:82
+#: templates/js/_headerJS.html:85
 msgid "Workspace"
 msgstr "Arbeitsbereich"
 
-#: templates/js/_headerJS.html:76
+#: templates/js/_headerJS.html:79
 msgid "Work items"
 msgstr "Workitems"
 
-#: templates/js/_headerJS.html:105
+#: templates/js/_headerJS.html:108
 msgid "Quick action"
 msgstr "Schnellaktion"
 
-#: templates/js/_headerJS.html:106
+#: templates/js/_headerJS.html:109
 msgid "Account"
 msgstr "Konto"
 
-#: templates/js/_headerJS.html:150
+#: templates/js/_headerJS.html:153
 msgid "No matching commands."
 msgstr "Keine passenden Befehle."
 
-#: templates/js/_headerJS.html:282 templates/js/admin/_sessionsJS.html:18
+#: templates/js/_headerJS.html:285 templates/js/admin/_sessionsJS.html:18
 msgid "years ago"
 msgstr "vor Jahren"
 
-#: templates/js/_headerJS.html:285 templates/js/admin/_sessionsJS.html:21
+#: templates/js/_headerJS.html:288 templates/js/admin/_sessionsJS.html:21
 msgid "months ago"
 msgstr "vor Monaten"
 
-#: templates/js/_headerJS.html:288 templates/js/admin/_sessionsJS.html:24
+#: templates/js/_headerJS.html:291 templates/js/admin/_sessionsJS.html:24
 msgid "days ago"
 msgstr "vor Tagen"
 
-#: templates/js/_headerJS.html:291 templates/js/admin/_sessionsJS.html:27
+#: templates/js/_headerJS.html:294 templates/js/admin/_sessionsJS.html:27
 msgid "hours ago"
 msgstr "vor Stunden"
 
-#: templates/js/_headerJS.html:294 templates/js/admin/_sessionsJS.html:30
+#: templates/js/_headerJS.html:297 templates/js/admin/_sessionsJS.html:30
 msgid "minutes ago"
 msgstr "vor Minuten"
 
-#: templates/js/_headerJS.html:296 templates/js/admin/_sessionsJS.html:32
+#: templates/js/_headerJS.html:299 templates/js/admin/_sessionsJS.html:32
 msgid "Just now"
 msgstr "Gerade eben"
 
-#: templates/js/_headerJS.html:298 templates/js/admin/_sessionsJS.html:34
+#: templates/js/_headerJS.html:301 templates/js/admin/_sessionsJS.html:34
 msgid "seconds ago"
 msgstr "vor Sekunden"
 
-#: templates/js/_headerJS.html:313
+#: templates/js/_headerJS.html:316
 msgid "Could not load notifications."
 msgstr "Benachrichtigungen konnten nicht geladen werden."
 
-#: templates/js/_headerJS.html:331
+#: templates/js/_headerJS.html:334
 msgid "No new notifications."
 msgstr "Keine neuen Benachrichtigungen."
 
@@ -3436,10 +3725,6 @@ msgstr "Bitte wählen Sie gültige PDF-Dateien aus."
 #: templates/js/_workitems_overviewJS.html:861
 msgid "files selected"
 msgstr "Dateien ausgewählt"
-
-#: templates/js/_workitems_overviewJS.html:1047
-msgid "No fields available"
-msgstr "Keine Felder verfügbar"
 
 #: templates/js/_workitems_overviewJS.html:1321
 msgid "Loading workitems..."
@@ -3692,6 +3977,66 @@ msgstr "Name für diese Filter-Voreinstellung:"
 msgid "No arguments provided."
 msgstr "Keine Argumente angegeben."
 
+#: templates/js/admin/_maintenanceJS.html:61
+#, fuzzy
+msgid "Live now"
+msgstr "Live"
+
+#: templates/js/admin/_maintenanceJS.html:65
+msgid "Scheduled"
+msgstr ""
+
+#: templates/js/admin/_maintenanceJS.html:65
+#, fuzzy
+msgid "Past"
+msgstr "Pfad"
+
+#: templates/js/admin/_maintenanceJS.html:70
+msgid "Disabled"
+msgstr ""
+
+#: templates/js/admin/_maintenanceJS.html:79
+msgid "Locks app"
+msgstr ""
+
+#: templates/js/admin/_maintenanceJS.html:169
+#, fuzzy
+msgid "No banners found"
+msgstr "Keine Benutzer gefunden."
+
+#: templates/js/admin/_maintenanceJS.html:231
+#, fuzzy
+msgid "Edit banner"
+msgstr "Benutzer bearbeiten"
+
+#: templates/js/admin/_maintenanceJS.html:274
+#, fuzzy
+msgid "Message is required."
+msgstr "Name ist erforderlich"
+
+#: templates/js/admin/_maintenanceJS.html:275
+#, fuzzy
+msgid "Start and end are required."
+msgstr "Alle Felder sind erforderlich."
+
+#: templates/js/admin/_maintenanceJS.html:276
+msgid "End must be after start."
+msgstr ""
+
+#: templates/js/admin/_maintenanceJS.html:292
+#, fuzzy
+msgid "Banner updated."
+msgstr "Zuweisung aktualisiert."
+
+#: templates/js/admin/_maintenanceJS.html:292
+msgid "Banner created."
+msgstr ""
+
+#: templates/js/admin/_maintenanceJS.html:310
+#, fuzzy
+msgid "Banner deleted."
+msgstr "Bestätigen"
+
 #: templates/js/admin/_mobscnJS.html:68
 msgid "Edit process"
 msgstr "Prozess bearbeiten"
@@ -3701,14 +4046,6 @@ msgstr "Prozess bearbeiten"
 #: templates/js/admin/_userManagementJS.html:145
 msgid "You do not have permission to perform this action."
 msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
-
-#: templates/js/admin/_mobscnJS.html:97 templates/js/admin/_mobscnJS.html:151
-#: templates/js/admin/_organizationsJS.html:138
-#: templates/js/admin/_organizationsJS.html:192
-#: templates/js/admin/_userManagementJS.html:152
-#: templates/js/admin/_userManagementJS.html:202
-msgid "Success"
-msgstr "Erfolgreich"
 
 #: templates/js/admin/_mobscnJS.html:104 templates/js/admin/_mobscnJS.html:158
 #: templates/js/admin/_organizationsJS.html:145
@@ -4382,4 +4719,102 @@ msgstr ""
 
 #~ msgid "from overrides"
 #~ msgstr "aus Overrides"
+
+#~ msgid "Avg processing time (30d)"
+#~ msgstr "Durchschn. Verarbeitungszeit (30 Tage)"
+
+#~ msgid "(none)"
+#~ msgstr "(keine)"
+
+#~ msgid "Drag, resize, and configure widgets to make this dashboard your own."
+#~ msgstr ""
+#~ "Ziehen, vergrößern und konfigurieren Sie "
+#~ "Widgets, um Ihr Dashboard ganz nach "
+#~ "Ihren Wünschen zu gestalten."
+
+#~ msgid "Refresh now"
+#~ msgstr "Jetzt aktualisieren"
+
+#~ msgid "Add a widget"
+#~ msgstr "Ein Widget hinzufügen"
+
+#~ msgid "KPI card"
+#~ msgstr "KPI-Karte"
+
+#~ msgid "Single big metric for an at-a-glance summary."
+#~ msgstr "Eine einzelne große Kennzahl für einen schnellen Überblick."
+
+#~ msgid "Time-series chart"
+#~ msgstr "Zeitreihendiagramm"
+
+#~ msgid "Trend over time as line, area, or bar."
+#~ msgstr "Verlauf über Zeit als Linie, Fläche oder Balken."
+
+#~ msgid "Categorical chart"
+#~ msgstr "Kategoriediagramm"
+
+#~ msgid "Bar or pie split by a dimension (doctype, currency, ...)."
+#~ msgstr ""
+#~ "Balken- oder Kreisdiagramm aufgeteilt nach "
+#~ "einer Dimension (Doctype, Währung, …)."
+
+#~ msgid "Settings"
+#~ msgstr "Einstellungen"
+
+#~ msgid "Remove"
+#~ msgstr "Entfernen"
+
+#~ msgid "Filters"
+#~ msgstr "Filter"
+
+#~ msgid "Display"
+#~ msgstr "Anzeige"
+
+#~ msgid "Done"
+#~ msgstr "Fertig"
+
+#~ msgid "Could not load"
+#~ msgstr "Konnte nicht geladen werden"
+
+#~ msgid "Custom range"
+#~ msgstr "Benutzerdefinierter Zeitraum"
+
+#~ msgid "Min"
+#~ msgstr "Min"
+
+#~ msgid "Max"
+#~ msgstr "Max"
+
+#~ msgid "Group by (optional)"
+#~ msgstr "Gruppieren nach (optional)"
+
+#~ msgid "Filters tab implemented in T18"
+#~ msgstr "Filter"
+
+#~ msgid "Display tab implemented in T19"
+#~ msgstr "Anzeige"
+
+#~ msgid "Use dashboard filters"
+#~ msgstr "Dashboard-Filter verwenden"
+
+#~ msgid "Doc filters"
+#~ msgstr "Dokumentfilter"
+
+#~ msgid "Compare to previous period"
+#~ msgstr "Mit vorherigem Zeitraum vergleichen"
+
+#~ msgid "Overlays the previous period's data for comparison."
+#~ msgstr "Blendet die Daten des vorherigen Zeitraums zum Vergleich ein."
+
+#~ msgid "vs prev"
+#~ msgstr "vs. vorher"
+
+#~ msgid "New time-series"
+#~ msgstr "Neue Zeitreihe"
+
+#~ msgid "New chart"
+#~ msgstr "Neues Diagramm"
+
+#~ msgid "Custom"
+#~ msgstr "Benutzerdefiniert"
 
