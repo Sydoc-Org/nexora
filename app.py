@@ -1773,7 +1773,20 @@ def admin_user_detail(user_id):
             if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
         ]
 
-        cursor.execute("SELECT PermissionID, Code, Description, SortingCode FROM Permission ORDER BY SortingCode, Code")
+        cursor.execute("""
+            SELECT PermissionID, Code, Description FROM Permission
+            ORDER BY
+                LEFT(Code, LEN(Code) - CHARINDEX('.', REVERSE(Code))),
+                CASE
+                    WHEN Code LIKE '%.view'    THEN 1
+                    WHEN Code LIKE '%.add'     THEN 2
+                    WHEN Code LIKE '%.add.%'   THEN 3
+                    WHEN Code LIKE '%.edit%'   THEN 4
+                    WHEN Code LIKE '%.delete%' THEN 5
+                    ELSE 6
+                END,
+                Code
+        """)
         all_permissions = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
 
         return render_template(
@@ -2131,7 +2144,20 @@ def admin_access_control():
         """)
         profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
-        cursor.execute("SELECT PermissionID, Code, Description FROM Permission ORDER BY sortingcode")
+        cursor.execute("""
+            SELECT PermissionID, Code, Description FROM Permission
+            ORDER BY
+                LEFT(Code, LEN(Code) - CHARINDEX('.', REVERSE(Code))),
+                CASE
+                    WHEN Code LIKE '%.view'    THEN 1
+                    WHEN Code LIKE '%.add'     THEN 2
+                    WHEN Code LIKE '%.add.%'   THEN 3
+                    WHEN Code LIKE '%.edit%'   THEN 4
+                    WHEN Code LIKE '%.delete%' THEN 5
+                    ELSE 6
+                END,
+                Code
+        """)
         all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
 
         organizations = []
@@ -2334,7 +2360,17 @@ def api_admin_user_effective_permissions(user_id):
             LEFT JOIN UserPermissionOverride uo
                    ON uo.PermissionID = p.PermissionID
                   AND uo.UserID = ?
-            ORDER BY p.sortingcode, p.Code
+            ORDER BY
+                LEFT(p.Code, LEN(p.Code) - CHARINDEX('.', REVERSE(p.Code))),
+                CASE
+                    WHEN p.Code LIKE '%.view'    THEN 1
+                    WHEN p.Code LIKE '%.add'     THEN 2
+                    WHEN p.Code LIKE '%.add.%'   THEN 3
+                    WHEN p.Code LIKE '%.edit%'   THEN 4
+                    WHEN p.Code LIKE '%.delete%' THEN 5
+                    ELSE 6
+                END,
+                p.Code
         """, (u.AccessID, user_id))
 
         granted = []
@@ -2427,11 +2463,21 @@ def api_admin_permissions_list():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
-                p.PermissionID, p.Code, p.Description, p.SortingCode,
+                p.PermissionID, p.Code, p.Description,
                 (SELECT COUNT(*) FROM AccessProfilePermission a WHERE a.PermissionID = p.PermissionID) AS ProfileCount,
                 (SELECT COUNT(*) FROM UserPermissionOverride o WHERE o.PermissionID = p.PermissionID) AS OverrideCount
             FROM Permission p
-            ORDER BY p.SortingCode, p.Code
+            ORDER BY
+                LEFT(p.Code, LEN(p.Code) - CHARINDEX('.', REVERSE(p.Code))),
+                CASE
+                    WHEN p.Code LIKE '%.view'    THEN 1
+                    WHEN p.Code LIKE '%.add'     THEN 2
+                    WHEN p.Code LIKE '%.add.%'   THEN 3
+                    WHEN p.Code LIKE '%.edit%'   THEN 4
+                    WHEN p.Code LIKE '%.delete%' THEN 5
+                    ELSE 6
+                END,
+                p.Code
         """)
         perms = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(perms)

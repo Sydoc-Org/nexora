@@ -85,6 +85,10 @@
         }
 
         updateOverrideSummary();
+        {% if can_edit_overrides %}
+        const _gwTbody = document.getElementById('overridesTbody');
+        if (_gwTbody) setupViewGating(_gwTbody, true);
+        {% endif %}
 
         // Keep summary current
         form.addEventListener('change', (e) => {
@@ -96,9 +100,23 @@
         if (search) {
             search.addEventListener('input', () => {
                 const q = search.value.trim().toLowerCase();
-                form.querySelectorAll('tr[data-search]').forEach(tr => {
-                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
-                });
+                if (q) {
+                    form.querySelectorAll('tr[data-perm-group], tr[data-perm-sub-group]').forEach(h => h.style.display = '');
+                    form.querySelectorAll('tr[data-search]').forEach(tr => {
+                        tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+                    });
+                } else {
+                    form.querySelectorAll('#overridesTbody tr').forEach(tr => tr.style.display = '');
+                    form.querySelectorAll('tr[data-perm-group][data-collapsed="1"]').forEach(h => {
+                        let next = h.nextElementSibling;
+                        while (next && !next.hasAttribute('data-perm-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+                    });
+                    form.querySelectorAll('tr[data-perm-sub-group][data-collapsed="1"]').forEach(h => {
+                        if (h.style.display === 'none') return;
+                        let next = h.nextElementSibling;
+                        while (next && !next.hasAttribute('data-perm-group') && !next.hasAttribute('data-perm-sub-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+                    });
+                }
             });
         }
 
@@ -137,6 +155,35 @@
         });
     });
 
+    function permGroupToggle(tr) {
+        const wasCollapsed = tr.dataset.collapsed === '1';
+        tr.dataset.collapsed = wasCollapsed ? '0' : '1';
+        const icon = tr.querySelector('.perm-chevron');
+        if (icon) icon.style.transform = wasCollapsed ? '' : 'rotate(-90deg)';
+        const isGroup = tr.hasAttribute('data-perm-group');
+        let next = tr.nextElementSibling;
+        while (next) {
+            if (isGroup && next.hasAttribute('data-perm-group')) break;
+            if (!isGroup && (next.hasAttribute('data-perm-group') || next.hasAttribute('data-perm-sub-group'))) break;
+            if (wasCollapsed) {
+                if (next.hasAttribute('data-perm-sub-group')) {
+                    next.style.display = '';
+                } else {
+                    let prev = next.previousElementSibling, parentSubCollapsed = false;
+                    while (prev) {
+                        if (prev.hasAttribute('data-perm-sub-group')) { parentSubCollapsed = prev.dataset.collapsed === '1'; break; }
+                        if (prev.hasAttribute('data-perm-group')) break;
+                        prev = prev.previousElementSibling;
+                    }
+                    if (!parentSubCollapsed) next.style.display = '';
+                }
+            } else {
+                next.style.display = 'none';
+            }
+            next = next.nextElementSibling;
+        }
+    }
+
     function updateOverrideSummary() {
         const form = document.getElementById('overridesForm');
         const el = document.getElementById('overrideSummary');
@@ -149,6 +196,49 @@
             else if (checked?.value === 'D') deny++;
         });
         el.textContent = `${allow} {{ _("allow") }} · ${deny} {{ _("deny") }}`;
+    }
+
+    // ─── View permission gating ─────────────────────────────────────────
+    function setupViewGating(tbody, isOverrideMode) {
+        function groupOf(code) {
+            const p = code.split('.');
+            return p[0] === 'generali' ? p.slice(0,2).join('.') : p[0];
+        }
+        function applyGating() {
+            const viewState = {};
+            Array.from(tbody.children).forEach(tr => {
+                const code = tr.dataset.permCode;
+                if (!code || !tr.dataset.permId) return;
+                const group = groupOf(code);
+                if (code !== group + '.view') return;
+                const permId = tr.dataset.permId;
+                const checked = tr.querySelector(`input[name="perm_${permId}"]:checked`);
+                const val = checked ? checked.value : null;
+                viewState[group] = isOverrideMode ? (val !== 'D') : (val === 'A');
+            });
+            Array.from(tbody.children).forEach(tr => {
+                const code = tr.dataset.permCode;
+                if (!code || !tr.dataset.permId) return;
+                const group = groupOf(code);
+                if (!(group in viewState)) return;
+                if (code === group + '.view') return;
+                const ok = viewState[group];
+                const radios = tr.querySelectorAll('input[type=radio]');
+                if (ok) {
+                    radios.forEach(r => { r.disabled = false; });
+                    tr.style.opacity = '';
+                    tr.removeAttribute('title');
+                } else {
+                    radios.forEach(r => { r.disabled = true; });
+                    tr.style.opacity = '0.4';
+                    tr.title = 'Requires view permission';
+                }
+            });
+        }
+        if (tbody._viewGatingHandler) tbody.removeEventListener('change', tbody._viewGatingHandler);
+        tbody._viewGatingHandler = e => { if (e.target.type === 'radio') applyGating(); };
+        tbody.addEventListener('change', tbody._viewGatingHandler);
+        applyGating();
     }
 
     // ─── Delete user (Danger zone) ──────────────────────────────────────
@@ -236,10 +326,48 @@
             return span;
         }
 
-        function renderRows(entries, isDenied) {
+        const esc = s => (s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+
+        function _makeEffHeader(tag, text) {
+            const tr = document.createElement('tr');
+            tr.setAttribute(tag, text);
+            tr.setAttribute('onclick', 'permGroupToggle(this)');
+            tr.style.cssText = 'cursor:pointer;user-select:none;background:var(--a-bg-alt)';
+            const td = document.createElement('td');
+            td.setAttribute('colspan', '2');
+            const isGroup = tag === 'data-perm-group';
+            td.style.cssText = isGroup
+                ? 'padding:6px 12px;font-size:11px;font-weight:700;color:var(--a-text-sec);text-transform:uppercase;letter-spacing:0.6px'
+                : 'padding:4px 24px;font-size:11px;font-weight:600;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.5px;background:var(--a-bg)';
+            const chevron = document.createElement('span');
+            chevron.className = 'perm-chevron';
+            chevron.style.cssText = 'display:inline-block;margin-right:5px;transition:transform 0.15s' + (isGroup ? '' : ';font-size:10px');
+            chevron.textContent = '▾';
+            td.appendChild(chevron);
+            td.appendChild(document.createTextNode(text));
+            tr.appendChild(td);
+            return tr;
+        }
+
+        function renderRows(entries, isDenied, state) {
             entries.forEach(e => {
+                const parts = (e.Code || '').split('.');
+                const group = parts[0];
+                const action = parts.length > 1 ? parts[1] : '';
+                const sub = group + '.' + action;
+
+                if (group !== state.prevGroup) {
+                    state.prevGroup = group; state.prevSub = '';
+                    tbody.appendChild(_makeEffHeader('data-perm-group', group));
+                }
+                if (action && sub !== state.prevSub) {
+                    state.prevSub = sub;
+                    tbody.appendChild(_makeEffHeader('data-perm-sub-group', sub.split('.').pop()));
+                }
+
                 const tr = document.createElement('tr');
                 tr.dataset.search = ((e.Code || '') + ' ' + (e.Description || '')).toLowerCase();
+                tr.style.paddingLeft = '36px';
                 if (isDenied) tr.style.opacity = '0.55';
 
                 const tdPerm = document.createElement('td');
@@ -272,9 +400,23 @@
 
         function applySearch() {
             const q = (search?.value || '').trim().toLowerCase();
-            tbody.querySelectorAll('tr[data-search]').forEach(tr => {
-                tr.style.display = (!q || tr.dataset.search.includes(q)) ? '' : 'none';
-            });
+            if (q) {
+                tbody.querySelectorAll('tr[data-perm-group], tr[data-perm-sub-group]').forEach(h => h.style.display = '');
+                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                    tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+                });
+            } else {
+                tbody.querySelectorAll('tr').forEach(tr => tr.style.display = '');
+                tbody.querySelectorAll('tr[data-perm-group][data-collapsed="1"]').forEach(h => {
+                    let next = h.nextElementSibling;
+                    while (next && !next.hasAttribute('data-perm-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+                });
+                tbody.querySelectorAll('tr[data-perm-sub-group][data-collapsed="1"]').forEach(h => {
+                    if (h.style.display === 'none') return;
+                    let next = h.nextElementSibling;
+                    while (next && !next.hasAttribute('data-perm-group') && !next.hasAttribute('data-perm-sub-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+                });
+            }
         }
 
         loadEffectivePermissions = async function () {
@@ -319,8 +461,9 @@
                     tr.appendChild(td);
                     tbody.appendChild(tr);
                 } else {
-                    renderRows(granted, false);
-                    renderRows(denied, true);
+                    const state = { prevGroup: '', prevSub: '' };
+                    renderRows(granted, false, state);
+                    renderRows(denied, true, state);
                 }
 
                 const fromProfile  = granted.filter(g => g.source === 'profile').length;

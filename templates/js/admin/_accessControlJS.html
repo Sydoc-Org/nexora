@@ -117,6 +117,8 @@
 
         setupAutoPermissionLogic();
         updateDrawerSelectedCount();
+        const _gwTbody = document.querySelector('#permissionDrawer tbody');
+        if (_gwTbody) setupViewGating(_gwTbody, mode === 'user');
 
         drawerOverlay.classList.remove('hidden');
         setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
@@ -129,13 +131,56 @@
         setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
     }
 
+    function permGroupToggle(tr) {
+        const wasCollapsed = tr.dataset.collapsed === '1';
+        tr.dataset.collapsed = wasCollapsed ? '0' : '1';
+        const icon = tr.querySelector('.perm-chevron');
+        if (icon) icon.style.transform = wasCollapsed ? '' : 'rotate(-90deg)';
+        const isGroup = tr.hasAttribute('data-perm-group');
+        let next = tr.nextElementSibling;
+        while (next) {
+            if (isGroup && next.hasAttribute('data-perm-group')) break;
+            if (!isGroup && (next.hasAttribute('data-perm-group') || next.hasAttribute('data-perm-sub-group'))) break;
+            if (wasCollapsed) {
+                if (next.hasAttribute('data-perm-sub-group')) {
+                    next.style.display = '';
+                } else {
+                    let prev = next.previousElementSibling, parentSubCollapsed = false;
+                    while (prev) {
+                        if (prev.hasAttribute('data-perm-sub-group')) { parentSubCollapsed = prev.dataset.collapsed === '1'; break; }
+                        if (prev.hasAttribute('data-perm-group')) break;
+                        prev = prev.previousElementSibling;
+                    }
+                    if (!parentSubCollapsed) next.style.display = '';
+                }
+            } else {
+                next.style.display = 'none';
+            }
+            next = next.nextElementSibling;
+        }
+    }
+
     function filterDrawerPerms() {
         const q = document.getElementById('drawerPermSearch').value.toLowerCase();
-        document.querySelectorAll('.permission-row').forEach(row => {
-            const code = (row.dataset.permCode || '').toLowerCase();
-            const desc = row.querySelector('.text-gray-500')?.innerText.toLowerCase() || '';
-            row.style.display = (!q || code.includes(q) || desc.includes(q)) ? '' : 'none';
-        });
+        if (q) {
+            document.querySelectorAll('#permissionDrawer tr[data-perm-group], #permissionDrawer tr[data-perm-sub-group]').forEach(h => h.style.display = '');
+            document.querySelectorAll('.permission-row').forEach(row => {
+                const code = (row.dataset.permCode || '').toLowerCase();
+                const desc = row.querySelector('.text-gray-500')?.innerText.toLowerCase() || '';
+                row.style.display = (code.includes(q) || desc.includes(q)) ? '' : 'none';
+            });
+        } else {
+            document.querySelectorAll('#permissionDrawer tbody tr').forEach(tr => tr.style.display = '');
+            document.querySelectorAll('#permissionDrawer tr[data-perm-group][data-collapsed="1"]').forEach(h => {
+                let next = h.nextElementSibling;
+                while (next && !next.hasAttribute('data-perm-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+            });
+            document.querySelectorAll('#permissionDrawer tr[data-perm-sub-group][data-collapsed="1"]').forEach(h => {
+                if (h.style.display === 'none') return;
+                let next = h.nextElementSibling;
+                while (next && !next.hasAttribute('data-perm-group') && !next.hasAttribute('data-perm-sub-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+            });
+        }
     }
 
     function updateDrawerSelectedCount() {
@@ -180,6 +225,8 @@
                     if (r) r.checked = true;
                 });
                 updateDrawerSelectedCount();
+                const _ep = document.querySelector('#permissionDrawer tbody');
+                if (_ep) setupViewGating(_ep, false);
             }
         } catch (e) { console.error(e); }
     }
@@ -206,6 +253,8 @@
                     if (r) r.checked = true;
                 }
                 updateDrawerSelectedCount();
+                const _uo = document.querySelector('#permissionDrawer tbody');
+                if (_uo) setupViewGating(_uo, true);
             }
         } catch (e) { console.error(e); }
     }
@@ -257,6 +306,49 @@
         } catch (e) {
             showNotification({{ _("Network error") | tojson }}, 'error');
         }
+    }
+
+    // ── View permission gating ────────────────────────────────────────
+    function setupViewGating(tbody, isOverrideMode) {
+        function groupOf(code) {
+            const p = code.split('.');
+            return p[0] === 'generali' ? p.slice(0,2).join('.') : p[0];
+        }
+        function applyGating() {
+            const viewState = {};
+            Array.from(tbody.children).forEach(tr => {
+                const code = tr.dataset.permCode;
+                if (!code || !tr.dataset.permId) return;
+                const group = groupOf(code);
+                if (code !== group + '.view') return;
+                const permId = tr.dataset.permId;
+                const checked = tr.querySelector(`input[name="perm_${permId}"]:checked`);
+                const val = checked ? checked.value : null;
+                viewState[group] = isOverrideMode ? (val !== 'D') : (val === 'A');
+            });
+            Array.from(tbody.children).forEach(tr => {
+                const code = tr.dataset.permCode;
+                if (!code || !tr.dataset.permId) return;
+                const group = groupOf(code);
+                if (!(group in viewState)) return;
+                if (code === group + '.view') return;
+                const ok = viewState[group];
+                const radios = tr.querySelectorAll('input[type=radio]');
+                if (ok) {
+                    radios.forEach(r => { r.disabled = false; });
+                    tr.style.opacity = '';
+                    tr.removeAttribute('title');
+                } else {
+                    radios.forEach(r => { r.disabled = true; });
+                    tr.style.opacity = '0.4';
+                    tr.title = 'Requires view permission';
+                }
+            });
+        }
+        if (tbody._viewGatingHandler) tbody.removeEventListener('change', tbody._viewGatingHandler);
+        tbody._viewGatingHandler = e => { if (e.target.type === 'radio') applyGating(); };
+        tbody.addEventListener('change', tbody._viewGatingHandler);
+        applyGating();
     }
 
     // ── Auto permission logic (view/process filter sync) ──────────────
@@ -471,6 +563,24 @@
         }
     }
 
+    function _makePermHeader(tag, colspan, cls, style, text) {
+        const tr = document.createElement('tr');
+        tr.setAttribute(tag, text);
+        tr.setAttribute('onclick', 'permGroupToggle(this)');
+        tr.style.cssText = (style || '') + ';cursor:pointer;user-select:none';
+        tr.className = cls;
+        const td = document.createElement('td');
+        td.setAttribute('colspan', String(colspan));
+        const chevron = document.createElement('span');
+        chevron.className = 'perm-chevron';
+        chevron.style.cssText = 'display:inline-block;margin-right:5px;transition:transform 0.15s';
+        chevron.textContent = '▾';
+        td.appendChild(chevron);
+        td.appendChild(document.createTextNode(text));
+        tr.appendChild(td);
+        return tr;
+    }
+
     function renderPermissionsTable(perms) {
         const tbody = document.getElementById('permissionsTableBody');
         if (!perms.length) {
@@ -478,9 +588,27 @@
             return;
         }
         tbody.innerHTML = '';
+        let prevGroup = '', prevSub = '';
         perms.forEach(p => {
             permissionsMap[p.PermissionID] = p;
-            const sortLabel = p.SortingCode ? `<div class="text-xs text-gray-400">#${escapeHtml(p.SortingCode)}</div>` : '';
+            const parts = p.Code.split('.');
+            const group = parts[0];
+            const action = parts.length > 1 ? parts[1] : '';
+            const sub = group + '.' + action;
+
+            if (group !== prevGroup) {
+                prevGroup = group; prevSub = '';
+                const htr = _makePermHeader('data-perm-group', 6, 'bg-gray-100 border-b border-gray-200', '', group);
+                htr.querySelector('td').className = 'px-4 py-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider';
+                tbody.appendChild(htr);
+            }
+            if (action && sub !== prevSub) {
+                prevSub = sub;
+                const shtr = _makePermHeader('data-perm-sub-group', 6, 'bg-gray-50 border-b border-gray-100', '', action);
+                shtr.querySelector('td').className = 'px-8 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide';
+                tbody.appendChild(shtr);
+            }
+
             const tr = document.createElement('tr');
             tr.className = "bg-white border-b hover:bg-gray-50 transition";
             tr.id = `perm-row-${p.PermissionID}`;
@@ -491,9 +619,8 @@
                         <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
                     </button>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4 pl-12">
                     <div class="font-mono text-sm font-medium text-gray-900">${escapeHtml(p.Code)}</div>
-                    ${sortLabel}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(p.Description)}</td>
                 <td class="px-6 py-4 text-center">

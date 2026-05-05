@@ -306,7 +306,7 @@
      onclick="closeDrawer()"></div>
 
 <div id="permissionDrawer"
-     class="fixed right-0 top-0 bottom-0 w-full sm:max-w-2xl z-50 bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
+     class="fixed right-0 top-0 bottom-0 w-full sm:max-w-3xl z-50 bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
 
     <!-- Drawer header -->
     <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-start flex-shrink-0 bg-white">
@@ -362,9 +362,31 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% set ns = namespace(prev_group='', prev_sub='') %}
                     {% for perm in all_permissions %}
+                    {% set parts = perm.Code.split('.') %}
+                    {% set group = parts[0] %}
+                    {% set action = parts[1] if parts|length > 1 else '' %}
+                    {% set sub = group ~ '.' ~ action %}
+                    {% if group != ns.prev_group %}
+                    {% set ns.prev_group = group %}
+                    {% set ns.prev_sub = '' %}
+                    <tr class="bg-gray-200 border-b border-gray-300" data-perm-group="{{ group }}" onclick="permGroupToggle(this)" style="cursor:pointer;user-select:none">
+                        <td colspan="4" class="px-4 py-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s">▾</span>{{ group }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if action and sub != ns.prev_sub %}
+                    {% set ns.prev_sub = sub %}
+                    <tr class="bg-gray-50 border-b border-gray-200" data-perm-sub-group="{{ sub }}" onclick="permGroupToggle(this)" style="cursor:pointer;user-select:none">
+                        <td colspan="4" class="px-8 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                            <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s;font-size:10px">▾</span>{{ action }}
+                        </td>
+                    </tr>
+                    {% endif %}
                     <tr class="border-b hover:bg-gray-50 permission-row" data-perm-id="{{ perm.PermissionID }}" data-perm-code="{{ perm.Code }}">
-                        <td class="px-5 py-3">
+                        <td class="pl-12 pr-5 py-3">
                             <div class="font-medium text-gray-900 text-xs font-mono">{{ perm.Code }}</div>
                             <div class="text-xs text-gray-500 mt-0.5">{{ perm.Description }}</div>
                         </td>

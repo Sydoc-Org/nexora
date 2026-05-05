@@ -155,9 +155,31 @@
                             </tr>
                         </thead>
                         <tbody id="overridesTbody">
+                            {% set ns = namespace(prev_group='', prev_sub='') %}
                             {% for perm in all_permissions %}
-                            <tr data-perm-id="{{ perm.PermissionID }}" data-search="{{ ((perm.Code or '') ~ ' ' ~ (perm.Description or ''))|lower }}">
-                                <td>
+                            {% set parts = perm.Code.split('.') %}
+                            {% set group = parts[0] %}
+                            {% set action = parts[1] if parts|length > 1 else '' %}
+                            {% set sub = group ~ '.' ~ action %}
+                            {% if group != ns.prev_group %}
+                            {% set ns.prev_group = group %}
+                            {% set ns.prev_sub = '' %}
+                            <tr data-perm-group="{{ group }}" style="background:var(--a-bg-alt);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                                <td colspan="4" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--a-text-sec);text-transform:uppercase;letter-spacing:0.6px">
+                                    <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s">▾</span>{{ group }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if action and sub != ns.prev_sub %}
+                            {% set ns.prev_sub = sub %}
+                            <tr data-perm-sub-group="{{ sub }}" style="background:var(--a-bg);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                                <td colspan="4" style="padding:4px 24px;font-size:11px;font-weight:600;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.5px">
+                                    <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s;font-size:10px">▾</span>{{ action }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            <tr data-perm-id="{{ perm.PermissionID }}" data-perm-code="{{ perm.Code }}" data-search="{{ ((perm.Code or '') ~ ' ' ~ (perm.Description or ''))|lower }}">
+                                <td style="padding-left:36px">
                                     <div><span class="admin-mono">{{ perm.Code }}</span></div>
                                     <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
                                 </td>
