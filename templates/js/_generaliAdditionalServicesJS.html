@@ -5,6 +5,7 @@
     const currentOrgCode   = document.getElementById('attendanceTable').dataset.orgCode || null;
     const canAdd           = document.getElementById('attendanceTable').dataset.canAdd  === 'true';
     const canAddForOrg     = document.getElementById('attendanceTable').dataset.canAddForOrg === 'true';
+    const canAddTransOrg   = document.getElementById('attendanceTable').dataset.canAddTransorg === 'true';
     function canEditRecord(r) {
         return canEdit && (canEditTransOrg || r.orgCode === currentOrgCode);
     }
@@ -274,7 +275,7 @@
 
     {% if can_add %}
     function loadOrgUsers() {
-        if (!canAddForOrg) return;
+        if (!canAddForOrg && !canAddTransOrg) return;
         fetch(API_PREFIX + 'api/generali/attendance/orgUsers', {
             headers: { 'X-CSRFToken': csrfToken }
         })

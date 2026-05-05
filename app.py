@@ -7454,7 +7454,8 @@ def generali_additionalServices():
                                can_add=has_permission('generali.attendance.add'),
                                can_edit=has_permission('generali.attendance.edit') or has_permission('generali.attendance.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.attendance.edit.transorganizational'),
-                               can_add_for_org=has_permission('generali.attendance.addForOrg'))
+                               can_add_for_org=has_permission('generali.attendance.add.organizational'),
+                               can_add_transorg=has_permission('generali.attendance.add.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Attendance: {e}")
         return render_template('handlers/500.html'), 500
@@ -7505,20 +7506,24 @@ def api_generali_attendance_categories():
 
 
 @app.route("/api/generali/attendance/orgUsers", methods=["GET"])
-@require_permission('generali.attendance.addForOrg')
+@require_any_permission('generali.attendance.add.organizational', 'generali.attendance.add.transorganizational')
 def api_generali_attendance_org_users():
     conn = None
     try:
+        transorg = has_permission('generali.attendance.add.transorganizational')
         org_code = session.get('organizationcode')
-        if not org_code:
+        if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
-            [org_code]
-        )
+        if transorg:
+            cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
+        else:
+            cursor.execute(
+                "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+                [org_code]
+            )
         users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
         cursor.close()
         return jsonify({"success": True, "users": users})
@@ -7694,21 +7699,24 @@ def api_generali_attendance_add():
         user_id       = caller_id
 
         if target_raw is not None and str(target_raw) != str(caller_id):
-            if not has_permission('generali.attendance.addForOrg'):
+            has_org_perm     = has_permission('generali.attendance.add.organizational')
+            has_transorg_perm = has_permission('generali.attendance.add.transorganizational')
+            if not has_org_perm and not has_transorg_perm:
                 raise PermissionDenied()
             try:
                 target_id = int(target_raw)
             except (TypeError, ValueError):
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
-            nx_conn = engineNexoraDB.raw_connection()
-            nx_cur = nx_conn.cursor()
-            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
-            row = nx_cur.fetchone()
-            nx_cur.close()
-            nx_conn.close()
-            if not row or row[0] != session.get('organizationcode'):
-                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            if not has_transorg_perm:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+                row = nx_cur.fetchone()
+                nx_cur.close()
+                nx_conn.close()
+                if not row or row[0] != session.get('organizationcode'):
+                    return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
         if not for_date or not parent_cat or effort is None:
@@ -7818,27 +7826,32 @@ def generali_baseServices():
                                can_add=has_permission('generali.baseservices.add'),
                                can_edit=has_permission('generali.baseservices.edit') or has_permission('generali.baseservices.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.baseservices.edit.transorganizational'),
-                               can_add_for_org=has_permission('generali.baseservices.add.organizational'))
+                               can_add_for_org=has_permission('generali.baseservices.add.organizational'),
+                               can_add_transorg=has_permission('generali.baseservices.add.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Base Services: {e}")
         return render_template('handlers/500.html'), 500
 
 
 @app.route("/api/generali/baseservices/orgUsers", methods=["GET"])
-@require_permission('generali.baseservices.add.organizational')
+@require_any_permission('generali.baseservices.add.organizational', 'generali.baseservices.add.transorganizational')
 def api_generali_baseservices_org_users():
     conn = None
     try:
+        transorg = has_permission('generali.baseservices.add.transorganizational')
         org_code = session.get('organizationcode')
-        if not org_code:
+        if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
-            [org_code]
-        )
+        if transorg:
+            cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
+        else:
+            cursor.execute(
+                "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+                [org_code]
+            )
         users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
         cursor.close()
         return jsonify({"success": True, "users": users})
@@ -8010,21 +8023,24 @@ def api_generali_baseservices_add():
         user_id    = caller_id
 
         if target_raw is not None and str(target_raw) != str(caller_id):
-            if not has_permission('generali.baseservices.add.organizational'):
+            has_org_perm      = has_permission('generali.baseservices.add.organizational')
+            has_transorg_perm = has_permission('generali.baseservices.add.transorganizational')
+            if not has_org_perm and not has_transorg_perm:
                 raise PermissionDenied()
             try:
                 target_id = int(target_raw)
             except (TypeError, ValueError):
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
-            nx_conn = engineNexoraDB.raw_connection()
-            nx_cur = nx_conn.cursor()
-            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
-            row = nx_cur.fetchone()
-            nx_cur.close()
-            nx_conn.close()
-            if not row or row[0] != session.get('organizationcode'):
-                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            if not has_transorg_perm:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+                row = nx_cur.fetchone()
+                nx_cur.close()
+                nx_conn.close()
+                if not row or row[0] != session.get('organizationcode'):
+                    return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
         if not for_date or not category or effort is None:
@@ -8136,27 +8152,32 @@ def generali_projectManagement():
                                can_add=has_permission('generali.projectmanagement.add'),
                                can_edit=has_permission('generali.projectmanagement.edit') or has_permission('generali.projectmanagement.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.projectmanagement.edit.transorganizational'),
-                               can_add_for_org=has_permission('generali.projectmanagement.add.organizational'))
+                               can_add_for_org=has_permission('generali.projectmanagement.add.organizational'),
+                               can_add_transorg=has_permission('generali.projectmanagement.add.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Project Management: {e}")
         return render_template('handlers/500.html'), 500
 
 
 @app.route("/api/generali/projectmanagement/orgUsers", methods=["GET"])
-@require_permission('generali.projectmanagement.add.organizational')
+@require_any_permission('generali.projectmanagement.add.organizational', 'generali.projectmanagement.add.transorganizational')
 def api_generali_projectmanagement_org_users():
     conn = None
     try:
+        transorg = has_permission('generali.projectmanagement.add.transorganizational')
         org_code = session.get('organizationcode')
-        if not org_code:
+        if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
-            [org_code]
-        )
+        if transorg:
+            cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
+        else:
+            cursor.execute(
+                "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+                [org_code]
+            )
         users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
         cursor.close()
         return jsonify({"success": True, "users": users})
@@ -8323,21 +8344,24 @@ def api_generali_projectmanagement_add():
         user_id    = caller_id
 
         if target_raw is not None and str(target_raw) != str(caller_id):
-            if not has_permission('generali.projectmanagement.add.organizational'):
+            has_org_perm      = has_permission('generali.projectmanagement.add.organizational')
+            has_transorg_perm = has_permission('generali.projectmanagement.add.transorganizational')
+            if not has_org_perm and not has_transorg_perm:
                 raise PermissionDenied()
             try:
                 target_id = int(target_raw)
             except (TypeError, ValueError):
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
-            nx_conn = engineNexoraDB.raw_connection()
-            nx_cur = nx_conn.cursor()
-            nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
-            row = nx_cur.fetchone()
-            nx_cur.close()
-            nx_conn.close()
-            if not row or row[0] != session.get('organizationcode'):
-                return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            if not has_transorg_perm:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+                row = nx_cur.fetchone()
+                nx_cur.close()
+                nx_conn.close()
+                if not row or row[0] != session.get('organizationcode'):
+                    return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
         if not for_date or effort is None:
@@ -8445,10 +8469,42 @@ def generali_pdqm():
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.pdqm.add'),
                                can_edit=has_permission('generali.pdqm.edit') or has_permission('generali.pdqm.edit.transorganizational'),
-                               can_edit_transorg=has_permission('generali.pdqm.edit.transorganizational'))
+                               can_edit_transorg=has_permission('generali.pdqm.edit.transorganizational'),
+                               can_add_for_org=has_permission('generali.pdqm.add.organizational'),
+                               can_add_transorg=has_permission('generali.pdqm.add.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali PDQM: {e}")
         return render_template('handlers/500.html'), 500
+
+
+@app.route("/api/generali/pdqm/orgUsers", methods=["GET"])
+@require_any_permission('generali.pdqm.add.organizational', 'generali.pdqm.add.transorganizational')
+def api_generali_pdqm_org_users():
+    conn = None
+    try:
+        transorg = has_permission('generali.pdqm.add.transorganizational')
+        org_code = session.get('organizationcode')
+        if not transorg and not org_code:
+            return jsonify({"success": False, "error": "No organization on session"}), 400
+
+        conn = engineNexoraDB.raw_connection()
+        cursor = conn.cursor()
+        if transorg:
+            cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
+        else:
+            cursor.execute(
+                "SELECT userid, fullname FROM Users WHERE organizationcode = ? ORDER BY fullname",
+                [org_code]
+            )
+        users = [{'userId': row[0], 'fullname': row[1]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        app.logger.error(f"Generali PDQM OrgUsers Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route("/api/generali/pdqm/categories", methods=["GET"])
@@ -8654,7 +8710,30 @@ def api_generali_pdqm_add():
         sub_cat_raw    = body.get('subCategory')
         sub_cat        = sub_cat_raw.strip() if sub_cat_raw else None
         quantity       = body.get('quantity')
-        user_id        = session.get('userid')
+        caller_id      = session.get('userid')
+        target_raw     = body.get('userId')
+        user_id        = caller_id
+
+        if target_raw is not None and str(target_raw) != str(caller_id):
+            has_org_perm      = has_permission('generali.pdqm.add.organizational')
+            has_transorg_perm = has_permission('generali.pdqm.add.transorganizational')
+            if not has_org_perm and not has_transorg_perm:
+                raise PermissionDenied()
+            try:
+                target_id = int(target_raw)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Invalid userId"}), 400
+
+            if not has_transorg_perm:
+                nx_conn = engineNexoraDB.raw_connection()
+                nx_cur = nx_conn.cursor()
+                nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
+                row = nx_cur.fetchone()
+                nx_cur.close()
+                nx_conn.close()
+                if not row or row[0] != session.get('organizationcode'):
+                    return jsonify({"success": False, "error": "Target user not in your organization"}), 403
+            user_id = target_id
 
         if not for_date or not parent_cat or quantity is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400

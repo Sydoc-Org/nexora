@@ -4,6 +4,8 @@
     const canEditTransOrg  = document.getElementById('pdqmTable').dataset.canEditTransorg === 'true';
     const currentOrgCode   = document.getElementById('pdqmTable').dataset.orgCode || null;
     const canAdd           = document.getElementById('pdqmTable').dataset.canAdd  === 'true';
+    const canAddForOrg     = document.getElementById('pdqmTable').dataset.canAddForOrg === 'true';
+    const canAddTransOrg   = document.getElementById('pdqmTable').dataset.canAddTransorg === 'true';
     const colSpan = canEdit ? 8 : 7;
     function canEditRecord(r) {
         return canEdit && (canEditTransOrg || r.orgCode === currentOrgCode);
@@ -372,6 +374,9 @@
         document.getElementById('addQuantity').value = '';
         document.getElementById('addModalError').classList.add('hidden');
         document.getElementById('addModalError').textContent = '';
+        {% if can_add_for_org or can_add_transorg %}
+        loadOrgUsers();
+        {% endif %}
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('addModal').classList.add('flex');
     }
@@ -400,6 +405,28 @@
 
     flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
 
+    {% if can_add_for_org or can_add_transorg %}
+    function loadOrgUsers() {
+        fetch(API_PREFIX + 'api/generali/pdqm/orgUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('addUserId');
+            if (!sel) return;
+            while (sel.options.length > 1) sel.remove(1);
+            (data.users || []).forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load org users', e));
+    }
+    {% endif %}
+
     document.getElementById('submitAddBtn').addEventListener('click', function() {
         const forDate    = document.getElementById('addForDate').value.trim();
         const parent     = document.getElementById('addParentCategory').value;
@@ -407,6 +434,8 @@
         const sub        = document.getElementById('addSubCategory').value;
         const quantity   = document.getElementById('addQuantity').value;
         const errEl      = document.getElementById('addModalError');
+        const userIdEl   = document.getElementById('addUserId');
+        const userId     = userIdEl ? (userIdEl.value || null) : null;
 
         const addParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
         const addSubs = (categoriesData[parent] && categoriesData[parent][addParentSubKey]) ? categoriesData[parent][addParentSubKey] : [];
@@ -417,16 +446,18 @@
         }
 
         this.disabled = true;
+        const payload = {
+            forDate,
+            parentCategory: parent,
+            parentSubCategory: parentSub === NULL_SENTINEL ? '' : parentSub,
+            subCategory: sub || null,
+            quantity: parseInt(quantity, 10)
+        };
+        if (userId) payload.userId = parseInt(userId, 10);
         fetch(API_PREFIX + 'api/generali/pdqm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({
-                forDate,
-                parentCategory: parent,
-                parentSubCategory: parentSub === NULL_SENTINEL ? '' : parentSub,
-                subCategory: sub || null,
-                quantity: parseInt(quantity, 10)
-            })
+            body: JSON.stringify(payload)
         })
         .then(r => r.json())
         .then(data => {

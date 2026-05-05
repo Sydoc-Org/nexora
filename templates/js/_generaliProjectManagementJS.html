@@ -5,6 +5,7 @@
     const currentOrgCode   = document.getElementById('recordsTable').dataset.orgCode || null;
     const canAdd           = document.getElementById('recordsTable').dataset.canAdd  === 'true';
     const canAddForOrg     = document.getElementById('recordsTable').dataset.canAddForOrg === 'true';
+    const canAddTransOrg   = document.getElementById('recordsTable').dataset.canAddTransorg === 'true';
     const colSpan = canEdit ? 6 : 5;
     function canEditRecord(r) {
         return canEdit && (canEditTransOrg || r.orgCode === currentOrgCode);
@@ -197,7 +198,7 @@
 
     {% if can_add %}
     function loadOrgUsers() {
-        if (!canAddForOrg) return;
+        if (!canAddForOrg && !canAddTransOrg) return;
         fetch(API_PREFIX + 'api/generali/projectmanagement/orgUsers', {
             headers: { 'X-CSRFToken': csrfToken }
         })
