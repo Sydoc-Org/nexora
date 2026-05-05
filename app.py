@@ -495,6 +495,24 @@ def _check_generali_record_org(cursor, table, user_id_col, record_id):
     if not org_row or org_row[0] != session.get('organizationcode'):
         raise PermissionDenied()
 
+def _get_add_min_date():
+    today = date.today()
+    if today.day <= 3:
+        return date(today.year if today.month > 1 else today.year - 1,
+                    today.month - 1 if today.month > 1 else 12, 1)
+    return date(today.year, today.month, 1)
+
+def _check_add_deadline(for_date_str, bypass_perm_code):
+    if has_permission(bypass_perm_code):
+        return None
+    try:
+        entry_date = date.fromisoformat(for_date_str)
+    except (ValueError, TypeError):
+        return _("Invalid date")
+    if entry_date < _get_add_min_date():
+        return _("Date is outside the allowed entry window")
+    return None
+
 def startpage_redirect_to(pV):
     permToFunction = {
         'dashboardPagePerm': 'dashboard',
@@ -7169,8 +7187,11 @@ def generali_reporting():
                                pageV=pageVisability(),
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.reporting.add'),
-                               can_edit=has_permission('generali.reporting.edit') or has_permission('generali.reporting.edit.transorganizational'),
-                               can_edit_transorg=has_permission('generali.reporting.edit.transorganizational'))
+                               can_add_bypass_deadline=has_permission('generali.reporting.add.bypass.deadline'),
+                               can_edit=has_permission('generali.reporting.edit.organizational') or has_permission('generali.reporting.edit.transorganizational'),
+                               can_edit_transorg=has_permission('generali.reporting.edit.transorganizational'),
+                               can_delete=has_permission('generali.reporting.delete.organizational') or has_permission('generali.reporting.delete.transorganizational'),
+                               can_delete_transorg=has_permission('generali.reporting.delete.transorganizational'))
     except Exception as e:
         app.logger.error(f"Error loading Generali Reporting: {e}")
         return render_template('handlers/500.html'), 500
@@ -7336,6 +7357,9 @@ def api_generali_reporting_add():
             return jsonify({"success": False, "error": "reportForDate is required"}), 400
         if category not in REPORTING_CATEGORIES:
             return jsonify({"success": False, "error": "Invalid category"}), 400
+        deadline_err = _check_add_deadline(report_for_date, 'generali.reporting.add.bypass.deadline')
+        if deadline_err:
+            return jsonify({"success": False, "error": deadline_err}), 403
 
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
@@ -7370,7 +7394,7 @@ def api_generali_reporting_add():
 
 
 @app.route("/api/generali/reporting", methods=["PUT"])
-@require_any_permission('generali.reporting.edit', 'generali.reporting.edit.transorganizational')
+@require_any_permission('generali.reporting.edit.organizational', 'generali.reporting.edit.transorganizational')
 def api_generali_reporting_edit():
     conn = None
     try:
@@ -7419,13 +7443,13 @@ def api_generali_reporting_edit():
 
 
 @app.route("/api/generali/reporting/<int:record_id>", methods=["DELETE"])
-@require_any_permission('generali.reporting.edit', 'generali.reporting.edit.transorganizational')
+@require_any_permission('generali.reporting.delete.organizational', 'generali.reporting.delete.transorganizational')
 def api_generali_reporting_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
-        if not has_permission('generali.reporting.edit.transorganizational'):
+        if not has_permission('generali.reporting.delete.transorganizational'):
             _check_generali_record_org(cursor, '[dbo].[reportingiss]', 'ReportByUserID', record_id)
         cursor.execute("DELETE FROM [dbo].[reportingiss] WHERE ID = ?", [record_id])
         conn.commit()
@@ -7452,8 +7476,11 @@ def generali_additionalServices():
                                pageV=pageVisability(),
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.attendance.add'),
-                               can_edit=has_permission('generali.attendance.edit') or has_permission('generali.attendance.edit.transorganizational'),
+                               can_add_bypass_deadline=has_permission('generali.attendance.add.bypass.deadline'),
+                               can_edit=has_permission('generali.attendance.edit.organizational') or has_permission('generali.attendance.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.attendance.edit.transorganizational'),
+                               can_delete=has_permission('generali.attendance.delete.organizational') or has_permission('generali.attendance.delete.transorganizational'),
+                               can_delete_transorg=has_permission('generali.attendance.delete.transorganizational'),
                                can_add_for_org=has_permission('generali.attendance.add.organizational'),
                                can_add_transorg=has_permission('generali.attendance.add.transorganizational'))
     except Exception as e:
@@ -7540,7 +7567,7 @@ def api_generali_attendance_org_users():
 def api_generali_attendance_organizations():
     conn = None
     try:
-        restrict_to_self = (not has_permission('generali.attendance.edit')
+        restrict_to_self = (not has_permission('generali.attendance.edit.organizational')
                             and not has_permission('generali.attendance.edit.transorganizational'))
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
@@ -7593,7 +7620,7 @@ def api_generali_attendance_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission('generali.attendance.edit') and not has_permission('generali.attendance.edit.transorganizational'):
+        if not has_permission('generali.attendance.edit.organizational') and not has_permission('generali.attendance.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -7719,6 +7746,9 @@ def api_generali_attendance_add():
                     return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
+        deadline_err = _check_add_deadline(for_date, 'generali.attendance.add.bypass.deadline')
+        if deadline_err:
+            return jsonify({"success": False, "error": deadline_err}), 403
         if not for_date or not parent_cat or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
@@ -7748,7 +7778,7 @@ def api_generali_attendance_add():
 
 
 @app.route("/api/generali/attendance/<int:record_id>", methods=["PUT"])
-@require_any_permission('generali.attendance.edit', 'generali.attendance.edit.transorganizational')
+@require_any_permission('generali.attendance.edit.organizational', 'generali.attendance.edit.transorganizational')
 def api_generali_attendance_edit(record_id):
     conn = None
     try:
@@ -7790,13 +7820,13 @@ def api_generali_attendance_edit(record_id):
 
 
 @app.route("/api/generali/attendance/<int:record_id>", methods=["DELETE"])
-@require_any_permission('generali.attendance.edit', 'generali.attendance.edit.transorganizational')
+@require_any_permission('generali.attendance.delete.organizational', 'generali.attendance.delete.transorganizational')
 def api_generali_attendance_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
-        if not has_permission('generali.attendance.edit.transorganizational'):
+        if not has_permission('generali.attendance.delete.transorganizational'):
             _check_generali_record_org(cursor, '[Generali].[dbo].[Attendance]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[Attendance] WHERE ID = ?", [record_id])
         conn.commit()
@@ -7824,8 +7854,11 @@ def generali_baseServices():
                                pageV=pageVisability(),
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.baseservices.add'),
-                               can_edit=has_permission('generali.baseservices.edit') or has_permission('generali.baseservices.edit.transorganizational'),
+                               can_add_bypass_deadline=has_permission('generali.baseservices.add.bypass.deadline'),
+                               can_edit=has_permission('generali.baseservices.edit.organizational') or has_permission('generali.baseservices.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.baseservices.edit.transorganizational'),
+                               can_delete=has_permission('generali.baseservices.delete.organizational') or has_permission('generali.baseservices.delete.transorganizational'),
+                               can_delete_transorg=has_permission('generali.baseservices.delete.transorganizational'),
                                can_add_for_org=has_permission('generali.baseservices.add.organizational'),
                                can_add_transorg=has_permission('generali.baseservices.add.transorganizational'))
     except Exception as e:
@@ -7868,7 +7901,7 @@ def api_generali_baseservices_org_users():
 def api_generali_baseservices_organizations():
     conn = None
     try:
-        restrict_to_self = (not has_permission('generali.baseservices.edit')
+        restrict_to_self = (not has_permission('generali.baseservices.edit.organizational')
                             and not has_permission('generali.baseservices.edit.transorganizational'))
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
@@ -7917,7 +7950,7 @@ def api_generali_baseservices_list():
             where_clauses.append("Category = ?")
             params.append(category)
 
-        if not has_permission('generali.baseservices.edit') and not has_permission('generali.baseservices.edit.transorganizational'):
+        if not has_permission('generali.baseservices.edit.organizational') and not has_permission('generali.baseservices.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -8043,6 +8076,9 @@ def api_generali_baseservices_add():
                     return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
+        deadline_err = _check_add_deadline(for_date, 'generali.baseservices.add.bypass.deadline')
+        if deadline_err:
+            return jsonify({"success": False, "error": deadline_err}), 403
         if not for_date or not category or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         if category not in VALID_BASE_CATEGORIES:
@@ -8074,7 +8110,7 @@ def api_generali_baseservices_add():
 
 
 @app.route("/api/generali/baseservices/<int:record_id>", methods=["PUT"])
-@require_any_permission('generali.baseservices.edit', 'generali.baseservices.edit.transorganizational')
+@require_any_permission('generali.baseservices.edit.organizational', 'generali.baseservices.edit.transorganizational')
 def api_generali_baseservices_edit(record_id):
     conn = None
     try:
@@ -8116,13 +8152,13 @@ def api_generali_baseservices_edit(record_id):
 
 
 @app.route("/api/generali/baseservices/<int:record_id>", methods=["DELETE"])
-@require_any_permission('generali.baseservices.edit', 'generali.baseservices.edit.transorganizational')
+@require_any_permission('generali.baseservices.delete.organizational', 'generali.baseservices.delete.transorganizational')
 def api_generali_baseservices_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
-        if not has_permission('generali.baseservices.edit.transorganizational'):
+        if not has_permission('generali.baseservices.delete.transorganizational'):
             _check_generali_record_org(cursor, '[Generali].[dbo].[BaseServices]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[BaseServices] WHERE ID = ?", [record_id])
         conn.commit()
@@ -8150,8 +8186,11 @@ def generali_projectManagement():
                                pageV=pageVisability(),
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.projectmanagement.add'),
-                               can_edit=has_permission('generali.projectmanagement.edit') or has_permission('generali.projectmanagement.edit.transorganizational'),
+                               can_add_bypass_deadline=has_permission('generali.projectmanagement.add.bypass.deadline'),
+                               can_edit=has_permission('generali.projectmanagement.edit.organizational') or has_permission('generali.projectmanagement.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.projectmanagement.edit.transorganizational'),
+                               can_delete=has_permission('generali.projectmanagement.delete.organizational') or has_permission('generali.projectmanagement.delete.transorganizational'),
+                               can_delete_transorg=has_permission('generali.projectmanagement.delete.transorganizational'),
                                can_add_for_org=has_permission('generali.projectmanagement.add.organizational'),
                                can_add_transorg=has_permission('generali.projectmanagement.add.transorganizational'))
     except Exception as e:
@@ -8194,7 +8233,7 @@ def api_generali_projectmanagement_org_users():
 def api_generali_projectmanagement_organizations():
     conn = None
     try:
-        restrict_to_self = (not has_permission('generali.projectmanagement.edit')
+        restrict_to_self = (not has_permission('generali.projectmanagement.edit.organizational')
                             and not has_permission('generali.projectmanagement.edit.transorganizational'))
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
@@ -8239,7 +8278,7 @@ def api_generali_projectmanagement_list():
             where_clauses.append("ForDate <= ?")
             params.append(end_date)
 
-        if not has_permission('generali.projectmanagement.edit') and not has_permission('generali.projectmanagement.edit.transorganizational'):
+        if not has_permission('generali.projectmanagement.edit.organizational') and not has_permission('generali.projectmanagement.edit.transorganizational'):
             where_clauses.append("UserID = ?")
             params.append(session.get('userid'))
 
@@ -8364,6 +8403,9 @@ def api_generali_projectmanagement_add():
                     return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
+        deadline_err = _check_add_deadline(for_date, 'generali.projectmanagement.add.bypass.deadline')
+        if deadline_err:
+            return jsonify({"success": False, "error": deadline_err}), 403
         if not for_date or effort is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
@@ -8393,7 +8435,7 @@ def api_generali_projectmanagement_add():
 
 
 @app.route("/api/generali/projectmanagement/<int:record_id>", methods=["PUT"])
-@require_any_permission('generali.projectmanagement.edit', 'generali.projectmanagement.edit.transorganizational')
+@require_any_permission('generali.projectmanagement.edit.organizational', 'generali.projectmanagement.edit.transorganizational')
 def api_generali_projectmanagement_edit(record_id):
     conn = None
     try:
@@ -8434,13 +8476,13 @@ def api_generali_projectmanagement_edit(record_id):
 
 
 @app.route("/api/generali/projectmanagement/<int:record_id>", methods=["DELETE"])
-@require_any_permission('generali.projectmanagement.edit', 'generali.projectmanagement.edit.transorganizational')
+@require_any_permission('generali.projectmanagement.delete.organizational', 'generali.projectmanagement.delete.transorganizational')
 def api_generali_projectmanagement_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
-        if not has_permission('generali.projectmanagement.edit.transorganizational'):
+        if not has_permission('generali.projectmanagement.delete.transorganizational'):
             _check_generali_record_org(cursor, '[Generali].[dbo].[ProjectManagement]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[ProjectManagement] WHERE ID = ?", [record_id])
         conn.commit()
@@ -8468,8 +8510,11 @@ def generali_pdqm():
                                pageV=pageVisability(),
                                organizationcode=session.get('organizationcode'),
                                can_add=has_permission('generali.pdqm.add'),
-                               can_edit=has_permission('generali.pdqm.edit') or has_permission('generali.pdqm.edit.transorganizational'),
+                               can_add_bypass_deadline=has_permission('generali.pdqm.add.bypass.deadline'),
+                               can_edit=has_permission('generali.pdqm.edit.organizational') or has_permission('generali.pdqm.edit.transorganizational'),
                                can_edit_transorg=has_permission('generali.pdqm.edit.transorganizational'),
+                               can_delete=has_permission('generali.pdqm.delete.organizational') or has_permission('generali.pdqm.delete.transorganizational'),
+                               can_delete_transorg=has_permission('generali.pdqm.delete.transorganizational'),
                                can_add_for_org=has_permission('generali.pdqm.add.organizational'),
                                can_add_transorg=has_permission('generali.pdqm.add.transorganizational'))
     except Exception as e:
@@ -8735,6 +8780,9 @@ def api_generali_pdqm_add():
                     return jsonify({"success": False, "error": "Target user not in your organization"}), 403
             user_id = target_id
 
+        deadline_err = _check_add_deadline(for_date, 'generali.pdqm.add.bypass.deadline')
+        if deadline_err:
+            return jsonify({"success": False, "error": deadline_err}), 403
         if not for_date or not parent_cat or quantity is None:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
         try:
@@ -8766,7 +8814,7 @@ def api_generali_pdqm_add():
 
 
 @app.route("/api/generali/pdqm/<int:record_id>", methods=["PUT"])
-@require_any_permission('generali.pdqm.edit', 'generali.pdqm.edit.transorganizational')
+@require_any_permission('generali.pdqm.edit.organizational', 'generali.pdqm.edit.transorganizational')
 def api_generali_pdqm_edit(record_id):
     conn = None
     try:
@@ -8811,13 +8859,13 @@ def api_generali_pdqm_edit(record_id):
 
 
 @app.route("/api/generali/pdqm/<int:record_id>", methods=["DELETE"])
-@require_any_permission('generali.pdqm.edit', 'generali.pdqm.edit.transorganizational')
+@require_any_permission('generali.pdqm.delete.organizational', 'generali.pdqm.delete.transorganizational')
 def api_generali_pdqm_delete(record_id):
     conn = None
     try:
         conn = engineGeneraliDB.raw_connection()
         cursor = conn.cursor()
-        if not has_permission('generali.pdqm.edit.transorganizational'):
+        if not has_permission('generali.pdqm.delete.transorganizational'):
             _check_generali_record_org(cursor, '[Generali].[dbo].[PDQMReport]', 'UserID', record_id)
         cursor.execute("DELETE FROM [Generali].[dbo].[PDQMReport] WHERE ID = ?", [record_id])
         conn.commit()
