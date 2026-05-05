@@ -72,10 +72,7 @@
                 {% if pageV.dashboardPagePerm %}
                 { section: "{{ _('Workspace') }}", label: "{{ _('Dashboard') }}",              icon: 'fa-chart-line', url: "{{ url_for('dashboard') }}" },
                 {% endif %}
-                {% if pageV.biPagePerm %}
-                { section: "{{ _('Workspace') }}", label: "{{ _('Business Intelligence') }}", icon: 'fa-chart-pie',  url: "{{ url_for('bi_page') }}" },
-                {% endif %}
-                {% if pageV.workitemsPagePerm %}
+{% if pageV.workitemsPagePerm %}
                 { section: "{{ _('Workspace') }}", label: "{{ _('Work items') }}", icon: 'fa-list-check', url: "{{ url_for('workitems_overview') }}" },
                 {% endif %}
                 {% if pageV.invoicesPagePerm %}
