@@ -7221,6 +7221,13 @@ def _empty_paginated_response(extra=None):
 
 # ----------------------------- Generali Reporting --------------------------- #
 REPORTING_CATEGORIES = {'export_post', 'export_post_scan', 'provision_archive', 'stray_document_digital', 'stray_document_physical'}
+REPORTING_CATEGORY_LABELS = {
+    'export_post':             'KPI 1: Delivery physical post',
+    'export_post_scan':        'KPI 2: Delivery physical post with scanning',
+    'provision_archive':       'KPI 3: Provision of Archival Records',
+    'stray_document_digital':  'KPI 12: Stray document (digital)',
+    'stray_document_physical': 'KPI 13: Stray document (physical)',
+}
 @app.route("/generali/reporting")
 @require_permission('generali.reporting.view')
 def generali_reporting():
@@ -7241,6 +7248,86 @@ def generali_reporting():
     except Exception as e:
         app.logger.error(f"Error loading Generali Reporting: {e}")
         return render_template('handlers/500.html'), 500
+
+
+@app.route("/generali/reporting/monthreport")
+@require_permission('generali.reporting.view')
+def generali_reporting_monthreport():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        today = date.today()
+        try:
+            year  = int(request.args.get('year',  today.year))
+            month = int(request.args.get('month', today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+        month = max(1, min(12, month))
+        year = max(2000, min(today.year, year))
+
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year  = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year  = year if month < 12 else year + 1
+        is_current_month = (year == today.year and month == today.month)
+        month_label = first_day.strftime('%B %Y')
+
+        conn = None
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT category,
+                   COUNT(*) AS entries,
+                   SUM(CAST(ontime AS INT)) AS on_time_count
+            FROM [dbo].[reportingiss]
+            WHERE ReportForDate >= ? AND ReportForDate <= ?
+            GROUP BY category
+            ORDER BY category
+        """, [str(first_day), str(last_day)])
+        rows_raw = cursor.fetchall()
+        cursor.close()
+
+        rows = [{
+            'category': REPORTING_CATEGORY_LABELS.get(r[0], r[0]),
+            'entries':  r[1],
+            'on_time':  r[2] or 0,
+            'late':     r[1] - (r[2] or 0),
+            'pct':      round((r[2] or 0) / r[1] * 100, 1) if r[1] else 0.0,
+        } for r in rows_raw]
+
+        total_on_time = sum(r['on_time'] for r in rows)
+        total_entries = sum(r['entries'] for r in rows)
+        summary = {
+            'total_entries': total_entries,
+            'on_time':       total_on_time,
+            'late':          total_entries - total_on_time,
+            'pct_on_time':   round(total_on_time / total_entries * 100, 1) if total_entries else 0.0,
+        }
+
+        return render_template('generali_monthreport.html',
+            logged_in_user=session.get('username'),
+            pageV=pageVisability(),
+            section='reporting',
+            section_title='Generali Reporting',
+            back_url=url_for('generali_reporting'),
+            year=year, month=month, month_label=month_label,
+            prev_year=prev_year, prev_month=prev_month,
+            next_year=next_year, next_month=next_month,
+            is_current_month=is_current_month,
+            summary=summary, rows=rows)
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Reporting Month Report: {e}")
+        return render_template('handlers/500.html'), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route("/api/generali/reporting/organizations", methods=["GET"])
@@ -7572,6 +7659,88 @@ def generali_additionalServices():
     except Exception as e:
         app.logger.error(f"Error loading Generali Attendance: {e}")
         return render_template('handlers/500.html'), 500
+
+
+@app.route("/generali/additionalServices/monthreport")
+@require_permission('generali.additionalservices.view')
+def generali_additionalservices_monthreport():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        today = date.today()
+        try:
+            year  = int(request.args.get('year',  today.year))
+            month = int(request.args.get('month', today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+        month = max(1, min(12, month))
+        year  = max(2000, min(today.year, year))
+
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year  = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year  = year if month < 12 else year + 1
+        is_current_month = (year == today.year and month == today.month)
+        month_label = first_day.strftime('%B %Y')
+
+        where_clauses = ["ForDate >= ?", "ForDate <= ?"]
+        params = [str(first_day), str(last_day)]
+        if not has_permission('generali.attendance.edit.organizational') and \
+           not has_permission('generali.attendance.edit.transorganizational'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        conn = None
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT ParentCategory,
+                   COUNT(*) AS entries,
+                   ISNULL(SUM(EffortInHours), 0) AS total_hours
+            FROM [Generali].[dbo].[Attendance]
+            {where_sql}
+            GROUP BY ParentCategory
+            ORDER BY ParentCategory
+        """, params)
+        rows_raw = cursor.fetchall()
+        cursor.close()
+
+        rows = [{
+            'category':    r[0] or '—',
+            'entries':     r[1],
+            'total_hours': round(float(r[2] or 0), 2),
+        } for r in rows_raw]
+
+        summary = {
+            'total_entries': sum(r['entries']     for r in rows),
+            'total_hours':   round(sum(r['total_hours'] for r in rows), 2),
+        }
+
+        return render_template('generali_monthreport.html',
+            logged_in_user=session.get('username'),
+            pageV=pageVisability(),
+            section='additionalservices',
+            section_title='Generali Additional Services',
+            back_url=url_for('generali_additionalServices'),
+            year=year, month=month, month_label=month_label,
+            prev_year=prev_year, prev_month=prev_month,
+            next_year=next_year, next_month=next_month,
+            is_current_month=is_current_month,
+            summary=summary, rows=rows)
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Additional Services Month Report: {e}")
+        return render_template('handlers/500.html'), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route("/api/generali/attendance/categories", methods=["GET"])
@@ -7988,6 +8157,88 @@ def generali_baseServices():
         return render_template('handlers/500.html'), 500
 
 
+@app.route("/generali/baseServices/monthreport")
+@require_permission('generali.baseservices.view')
+def generali_baseservices_monthreport():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        today = date.today()
+        try:
+            year  = int(request.args.get('year',  today.year))
+            month = int(request.args.get('month', today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+        month = max(1, min(12, month))
+        year  = max(2000, min(today.year, year))
+
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year  = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year  = year if month < 12 else year + 1
+        is_current_month = (year == today.year and month == today.month)
+        month_label = first_day.strftime('%B %Y')
+
+        where_clauses = ["ForDate >= ?", "ForDate <= ?"]
+        params = [str(first_day), str(last_day)]
+        if not has_permission('generali.baseservices.edit.organizational') and \
+           not has_permission('generali.baseservices.edit.transorganizational'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        conn = None
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT Category,
+                   COUNT(*) AS entries,
+                   ISNULL(SUM(EffortInHours), 0) AS total_hours
+            FROM [Generali].[dbo].[BaseServices]
+            {where_sql}
+            GROUP BY Category
+            ORDER BY Category
+        """, params)
+        rows_raw = cursor.fetchall()
+        cursor.close()
+
+        rows = [{
+            'category':    r[0] or '—',
+            'entries':     r[1],
+            'total_hours': round(float(r[2] or 0), 2),
+        } for r in rows_raw]
+
+        summary = {
+            'total_entries': sum(r['entries']     for r in rows),
+            'total_hours':   round(sum(r['total_hours'] for r in rows), 2),
+        }
+
+        return render_template('generali_monthreport.html',
+            logged_in_user=session.get('username'),
+            pageV=pageVisability(),
+            section='baseservices',
+            section_title='Generali Base Services',
+            back_url=url_for('generali_baseServices'),
+            year=year, month=month, month_label=month_label,
+            prev_year=prev_year, prev_month=prev_month,
+            next_year=next_year, next_month=next_month,
+            is_current_month=is_current_month,
+            summary=summary, rows=rows)
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Base Services Month Report: {e}")
+        return render_template('handlers/500.html'), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/baseservices/orgUsers", methods=["GET"])
 @require_any_permission('generali.baseservices.add.organizational', 'generali.baseservices.add.transorganizational')
 def api_generali_baseservices_org_users():
@@ -8356,6 +8607,79 @@ def generali_projectManagement():
         return render_template('handlers/500.html'), 500
 
 
+@app.route("/generali/projectManagement/monthreport")
+@require_permission('generali.projectmanagement.view')
+def generali_projectmanagement_monthreport():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        today = date.today()
+        try:
+            year  = int(request.args.get('year',  today.year))
+            month = int(request.args.get('month', today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+        month = max(1, min(12, month))
+        year  = max(2000, min(today.year, year))
+
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year  = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year  = year if month < 12 else year + 1
+        is_current_month = (year == today.year and month == today.month)
+        month_label = first_day.strftime('%B %Y')
+
+        where_clauses = ["ForDate >= ?", "ForDate <= ?"]
+        params = [str(first_day), str(last_day)]
+        if not has_permission('generali.projectmanagement.edit.organizational') and \
+           not has_permission('generali.projectmanagement.edit.transorganizational'):
+            where_clauses.append("UserID = ?")
+            params.append(session.get('userid'))
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        conn = None
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT COUNT(*) AS entries,
+                   ISNULL(SUM(EffortInHours), 0) AS total_hours
+            FROM [Generali].[dbo].[ProjectManagement]
+            {where_sql}
+        """, params)
+        row = cursor.fetchone()
+        cursor.close()
+
+        summary = {
+            'total_entries': row[0] or 0,
+            'total_hours':   round(float(row[1] or 0), 2),
+        }
+
+        return render_template('generali_monthreport.html',
+            logged_in_user=session.get('username'),
+            pageV=pageVisability(),
+            section='projectmanagement',
+            section_title='Generali Project Management',
+            back_url=url_for('generali_projectManagement'),
+            year=year, month=month, month_label=month_label,
+            prev_year=prev_year, prev_month=prev_month,
+            next_year=next_year, next_month=next_month,
+            is_current_month=is_current_month,
+            summary=summary, rows=[])
+    except Exception as e:
+        app.logger.error(f"Error loading Generali Project Management Month Report: {e}")
+        return render_template('handlers/500.html'), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route("/api/generali/projectmanagement/orgUsers", methods=["GET"])
 @require_any_permission('generali.projectmanagement.add.organizational', 'generali.projectmanagement.add.transorganizational')
 def api_generali_projectmanagement_org_users():
@@ -8714,6 +9038,80 @@ def generali_pdqm():
     except Exception as e:
         app.logger.error(f"Error loading Generali PDQM: {e}")
         return render_template('handlers/500.html'), 500
+
+
+@app.route("/generali/pdqm/monthreport")
+@require_permission('generali.pdqm.view')
+def generali_pdqm_monthreport():
+    try:
+        if 'username' not in session:
+            return redirect(url_for("login"))
+
+        today = date.today()
+        try:
+            year  = int(request.args.get('year',  today.year))
+            month = int(request.args.get('month', today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+        month = max(1, min(12, month))
+        year  = max(2000, min(today.year, year))
+
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        prev_month = month - 1 if month > 1 else 12
+        prev_year  = year if month > 1 else year - 1
+        next_month = month + 1 if month < 12 else 1
+        next_year  = year if month < 12 else year + 1
+        is_current_month = (year == today.year and month == today.month)
+        month_label = first_day.strftime('%B %Y')
+
+        conn = None
+        conn = engineGeneraliDB.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT ParentCategory,
+                   COUNT(*) AS entries,
+                   ISNULL(SUM(Quantity), 0) AS total_quantity
+            FROM [Generali].[dbo].[PDQMReport]
+            WHERE ForDate >= ? AND ForDate <= ?
+            GROUP BY ParentCategory
+            ORDER BY ParentCategory
+        """, [str(first_day), str(last_day)])
+        rows_raw = cursor.fetchall()
+        cursor.close()
+
+        rows = [{
+            'category':       r[0] or '—',
+            'entries':        r[1],
+            'total_quantity': int(r[2] or 0),
+        } for r in rows_raw]
+
+        summary = {
+            'total_entries':  sum(r['entries']       for r in rows),
+            'total_quantity': sum(r['total_quantity'] for r in rows),
+        }
+
+        return render_template('generali_monthreport.html',
+            logged_in_user=session.get('username'),
+            pageV=pageVisability(),
+            section='pdqm',
+            section_title='Generali PDQM',
+            back_url=url_for('generali_pdqm'),
+            year=year, month=month, month_label=month_label,
+            prev_year=prev_year, prev_month=prev_month,
+            next_year=next_year, next_month=next_month,
+            is_current_month=is_current_month,
+            summary=summary, rows=rows)
+    except Exception as e:
+        app.logger.error(f"Error loading Generali PDQM Month Report: {e}")
+        return render_template('handlers/500.html'), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route("/api/generali/pdqm/orgUsers", methods=["GET"])
