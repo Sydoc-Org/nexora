@@ -9,6 +9,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify prod env files
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $deployDir = "D:\sydoc\nexora"
+          $envFile = "$deployDir\.env"
+          $prodEnvFile = "$deployDir\PROD.env"
+
+          if (-not (Test-Path $envFile)) {
+            throw "Aborting deploy: $envFile not found."
+          }
+          $envLine = Get-Content $envFile | Where-Object { $_ -match '^\s*ENVIRONMENT\s*=' } | Select-Object -First 1
+          if ($envLine -notmatch '^\s*ENVIRONMENT\s*=\s*"?PROD"?\s*$') {
+            throw "Aborting deploy: $envFile must contain 'ENVIRONMENT=PROD'. Found: '$envLine'"
+          }
+          Write-Host "Verified: $envFile has ENVIRONMENT=PROD"
+
+          if (-not (Test-Path $prodEnvFile)) {
+            throw "Aborting deploy: $prodEnvFile not found. The app will fail to load secrets without it."
+          }
+          Write-Host "Verified: $prodEnvFile exists"
+
       - name: Stop app pool and service
         shell: powershell
         run: |
@@ -51,7 +73,9 @@ jobs:
       - name: Sync to deploy folder
         shell: powershell
         run: |
-          robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 /XD .git .github session logs uploads __pycache__ .vscode .idea /XF *.env ngrok.yaml
+          robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
+            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts export-help news sql `
+            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql howtobabel.txt howtoiis.txt howtongrok.txt requirements.txt README.md
           if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
 
       - name: Start app pool and service
