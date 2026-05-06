@@ -323,6 +323,7 @@ def start_timer():
 _SESSION_ENFORCE_SKIP_PATHS = (
     '/static', '/login', '/logout', '/forgot_password', '/set_new_password',
     '/init_reset', '/init_2FA', '/verify_2fa', '/reset_password',
+    '/dev/login',
 )
 
 @app.before_request
