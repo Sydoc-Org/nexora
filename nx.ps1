@@ -1,8 +1,8 @@
-# No param() block — $args used directly so PowerShell doesn't intercept -v/--verbose etc.
+﻿# No param() block — $args used directly so PowerShell doesn't intercept -v/--verbose etc.
 
 $AppDir    = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
-$AppPy     = Join-Path $AppDir "app.py"
+$AppPy     = Join-Path $AppDir "nx_main.py"
 $LogDir    = Join-Path $AppDir "logs\system"
 $null      = New-Item -ItemType Directory -Force -Path $LogDir
 $StderrLog    = "$LogDir\app_stderr.log"
@@ -29,12 +29,14 @@ function Show-Help {
     Write-Host "    -r, --restart   Restart nexora"
     Write-Host "    -l, --logs      Stream live logs  " -NoNewline
     Write-Host "(requires a running instance)" -ForegroundColor Gray
+    Write-Host "    -md, --maindir  cd into the nexora project directory"
+    Write-Host "    --routes [pat]  List Flask routes (optional substring filter)"
     Write-Host ""
     Write-Host "  Options:" -ForegroundColor Gray
-    Write-Host "    -?, --help             Show this help"
-    Write-Host "    -v, --verbose          Also stream logs after start / restart"
-    Write-Host "    -b, --browser              Open browser  " -NoNewline
-    Write-Host "(standalone or with -u / -r)" -ForegroundColor Gray
+    Write-Host "    -?, --help                 Show this help"
+    Write-Host "    -v, --verbose              Also stream logs after start / restart"
+    Write-Host "    -b, --browser [route]      Open browser  " -NoNewline
+    Write-Host "(standalone or with -u / -r; optional route path)" -ForegroundColor Gray
     Write-Host "    --loginas:<username>       Switch to user in browser  " -NoNewline
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
@@ -45,22 +47,28 @@ function Show-Help {
     Write-Host "    nx -u                           start"
     Write-Host "    nx -u -v                        start and stream logs"
     Write-Host "    nx -u -b                        start and open browser"
+    Write-Host "    nx -b /admin/users              open browser to /admin/users"
+    Write-Host "    nx -u -b /admin --loginas:bes   start, log in as bes, navigate to /admin"
+    Write-Host "    nx --routes                     list all Flask routes"
+    Write-Host "    nx --routes admin               list routes matching 'admin'"
     Write-Host "    nx --env                        show current env from .env"
     Write-Host "    nx -u --env:staging             start with STAGING env"
-    Write-Host "    nx -u -b --loginas:username     start, open browser, log in as username"
     Write-Host "    nx --loginas:username           switch browser session to username"
     Write-Host "    nx -r --verbose                 restart and stream logs"
     Write-Host "    nx -l                           watch live logs"
+    Write-Host "    nx -md                          cd into the nexora project directory"
     Write-Host ""
 }
 
 # ── flag parsing ──────────────────────────────────────────────────────────────
-$action      = $null
-$verbose     = $false
-$browser     = $false
-$loginAs     = $null
-$envOverride = $null
-$unknown     = @()
+$action        = $null
+$verbose       = $false
+$browser       = $false
+$browserRoute  = $null
+$routesPattern = $null
+$loginAs       = $null
+$envOverride   = $null
+$unknown       = @()
 
 for ($i = 0; $i -lt $args.Count; $i++) {
     $arg = $args[$i]
@@ -81,6 +89,36 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $envOverride = $Matches[1].ToUpper()
         continue
     }
+    # -b / --browser [route]  (supports -b:/route, -b /route, or bare -b)
+    if ($arg -match '^(?:-b|--browser)(?::(.*))?$') {
+        $browser = $true
+        $inline = $Matches[1]
+        if ($inline) {
+            $browserRoute = $inline
+        } else {
+            $next = if (($i + 1) -lt $args.Count) { $args[$i + 1] } else { $null }
+            if ($next -and -not $next.StartsWith('-')) {
+                $browserRoute = $next
+                $i++
+            }
+        }
+        continue
+    }
+    # --routes [pattern]  (supports --routes:pat, --routes pat, or bare --routes)
+    if ($arg -match '^--routes(?::(.*))?$') {
+        $action = 'routes'
+        $inline = $Matches[1]
+        if ($inline) {
+            $routesPattern = $inline
+        } else {
+            $next = if (($i + 1) -lt $args.Count) { $args[$i + 1] } else { $null }
+            if ($next -and -not $next.StartsWith('-')) {
+                $routesPattern = $next
+                $i++
+            }
+        }
+        continue
+    }
     switch -Exact ($arg.ToLower()) {
         '-u'        { $action = 'start'   }
         '--up'      { $action = 'start'   }
@@ -90,10 +128,10 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--down'    { $action = 'stop'    }
         '-l'        { $action = 'logs'    }
         '--logs'    { $action = 'logs'    }
+        '-md'       { $action = 'maindir' }
+        '--maindir' { $action = 'maindir' }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
-        '-b'        { $browser = $true      }
-        '--browser' { $browser = $true      }
         '-?'        { Show-Help; exit 0     }
         '--help'    { Show-Help; exit 0     }
         default     { $unknown += $arg      }
@@ -124,8 +162,8 @@ if ($envOverride) {
         Write-Fail "--env: must be one of int, staging (got '$($envOverride.ToLower())')"
         exit 1
     }
-    if ($action -notin @('start', 'restart')) {
-        Write-Fail "--env:<value> can only be used with -u / --up or -r / --restart"
+    if ($action -notin @('start', 'restart', 'routes')) {
+        Write-Fail "--env:<value> can only be used with -u / --up, -r / --restart, or --routes"
         exit 1
     }
 }
@@ -230,9 +268,73 @@ function Show-StartupError {
 }
 
 function Open-Browser {
-    $url = if ($loginAs) { "http://127.0.0.1:8000/dev/login/$loginAs" } else { "http://127.0.0.1:8000" }
-    Write-Info "Opening $url..."
-    Start-Process $url
+    $base = "http://127.0.0.1:8000"
+    $path = ""
+    if ($browserRoute) {
+        $path = $browserRoute.Trim()
+        if ($path -and -not $path.StartsWith('/')) { $path = "/$path" }
+    }
+    if ($loginAs) {
+        $loginUrl = "$base/dev/login/$loginAs"
+        Write-Info "Opening $loginUrl..."
+        Start-Process $loginUrl
+        if ($path) {
+            Start-Sleep -Milliseconds 1500
+            $target = "$base$path"
+            Write-Info "Navigating to $target..."
+            Start-Process $target
+        }
+    } else {
+        $url = "$base$path"
+        Write-Info "Opening $url..."
+        Start-Process $url
+    }
+}
+
+function Show-Routes {
+    param([string]$Pattern)
+    $envValue = if ($envOverride) { $envOverride } else { "INT" }
+    $py = @'
+import sys, os
+pattern = sys.argv[1].lower() if len(sys.argv) > 1 and sys.argv[1] else None
+try:
+    from nx_main import app
+except Exception as exc:
+    print(f"failed to import nx_main: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+rules = sorted(app.url_map.iter_rules(), key=lambda r: r.rule)
+total, shown = 0, 0
+for rule in rules:
+    total += 1
+    if pattern and pattern not in rule.rule.lower() and pattern not in rule.endpoint.lower():
+        continue
+    methods = ",".join(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS")))
+    print(f"{methods:<15} {rule.rule:<55} -> {rule.endpoint}")
+    shown += 1
+print()
+if pattern:
+    print(f"{shown} of {total} routes matching '{pattern}'")
+else:
+    print(f"{total} routes total")
+'@
+    $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    $prevPyEnc = $env:PYTHONIOENCODING
+    try {
+        $env:ENVIRONMENT = $envValue
+        $env:PYTHONIOENCODING = "utf-8"
+        Push-Location -LiteralPath $AppDir
+        try {
+            $patternArg = if ($Pattern) { $Pattern } else { '' }
+            & $Python -c $py $patternArg
+        } finally {
+            Pop-Location
+        }
+    } finally {
+        if ($null -eq $prev) { Remove-Item Env:ENVIRONMENT -ErrorAction SilentlyContinue }
+        else                  { $env:ENVIRONMENT = $prev }
+        if ($null -eq $prevPyEnc) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue }
+        else                       { $env:PYTHONIOENCODING = $prevPyEnc }
+    }
 }
 
 function Watch-Logs {
@@ -282,6 +384,13 @@ switch ($action) {
         Open-Browser
     }
     'stop'     { Stop-App }
+    'maindir'  {
+        # NOTE: when invoked as `nx -md` via the profile function, that wrapper
+        # intercepts this flag and runs Set-Location in the caller's scope.
+        # The Set-Location below is only a fallback for dot-sourced invocations.
+        Set-Location -LiteralPath $AppDir
+        Write-Ok "cd $AppDir"
+    }
     'env-show' { Show-CurrentEnv }
     'logs' {
         $p = Find-AppProcess
@@ -299,4 +408,5 @@ switch ($action) {
             Write-Warn "Not running  — use -u / --up to start"
         }
     }
+    'routes' { Show-Routes -Pattern $routesPattern }
 }
