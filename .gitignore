@@ -8,6 +8,11 @@ __pycache__/
 docs/
 claude.md
 .claude/
+.claude-flow
+.idea/
+.swarm/
+node_modules/
+test-results/
 env.json
 .superpowers/
 ngrok.yaml
@@ -36,6 +41,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
 
 # Installer logs
 pip-log.txt
@@ -228,3 +234,8 @@ static/images/confused-john-travolta.gif
 static/images/Privera-Icon.png
 static/images/StadtBiel-Icon.svg
 static/images/ElektroMaterial-Icon.png
+.mcp.json
+.gitignore
+AGENTS.md
+.gitignore
+ruvector.db
