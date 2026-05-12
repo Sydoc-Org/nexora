@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Regenerate sql/ from INT before each commit; block commit on drift.
+# Skip with: SQL_SYNC_SKIP=1 git commit ...   or   git commit --no-verify
+set -e
+
+repo="$(git rev-parse --show-toplevel)"
+cd "$repo"
+
+if [ -x "venv/Scripts/python.exe" ]; then
+    PY="venv/Scripts/python.exe"
+elif [ -x "venv/bin/python" ]; then
+    PY="venv/bin/python"
+else
+    PY="python"
+fi
+
+echo "[pre-commit] syncing sql/ from INT..."
+"$PY" sql/sync-from-db.py --check
