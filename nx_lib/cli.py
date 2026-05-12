@@ -8,16 +8,19 @@ still goes through nx.ps1 directly.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Callable
+
+_NX_VERSION = "2.5.58"
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.history import FileHistory
+from prompt_toolkit.history import FileHistory, ThreadedHistory
 from prompt_toolkit.shortcuts import clear as pt_clear
 from prompt_toolkit.styles import Style
 
@@ -25,124 +28,159 @@ from prompt_toolkit.styles import Style
 APP_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = APP_DIR / "logs" / "system"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOGO_PNG = APP_DIR / "static" / "images" / "nexora-logo.png"
-LOGO_CACHE = LOG_DIR / "logo_cache.txt"
 HISTORY_FILE = LOG_DIR / "cli_history.txt"
 ENV_STATE = LOG_DIR / "current_env"
 NX_PS1 = APP_DIR / "nx.ps1"
 
-LOGO_WIDTH = 70
-BG_RGB = (0, 0, 0)
-BG_THRESHOLD = 14
+
+# ── logo (pixel-art black hole, no PIL) ────────────────────────────────────
+
+_LOGO_TEXT: str | None = None
 
 
-# ── logo rendering ─────────────────────────────────────────────────────────
+def _build_logo() -> str:
+    """Pixel-art nexora mark: inner violet disc + ring around it. Pure Python, ~1ms."""
+    import math
 
-def _render_logo(png_path: Path, width: int) -> str:
-    from PIL import Image
+    W, H = 32, 13
+    cx = (W - 1) / 2.0
+    cy = (H - 1) / 2.0
 
-    img = Image.open(png_path).convert("RGBA")
-    px = img.load()
-    w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if a == 0 or (r > 235 and g > 235 and b > 235):
-                px[x, y] = (0, 0, 0, 0)
-    bbox = img.getbbox()
-    if bbox:
-        img = img.crop(bbox)
-    w, h = img.size
+    # Color palette (24-bit RGB) — nexora violet, lighter highlight, dim edge
+    INNER       = "\x1b[38;2;138;110;255m"   # core violet (brand)
+    INNER_EDGE  = "\x1b[38;2;100;78;200m"    # disc edge
+    RING_BRIGHT = "\x1b[38;2;205;180;255m"   # main ring (lighter violet)
+    RING_EDGE   = "\x1b[38;2;110;88;195m"    # ring edge
+    HALO        = "\x1b[38;2;55;48;110m"     # outer halo
+    RESET       = "\x1b[0m"
 
-    new_w = width
-    new_h = max(2, round(h * new_w / w))
-    if new_h % 2:
-        new_h += 1
-    img = img.resize((new_w, new_h), Image.LANCZOS)
-    composite = Image.new("RGB", img.size, BG_RGB)
-    composite.paste(img, mask=img.split()[3])
-    cpx = composite.load()
+    rows: list[str] = []
+    for y in range(H):
+        parts: list[str] = []
+        last_ansi: str | None = None
+        for x in range(W):
+            dx = (x - cx) * 0.52  # squish x — char cells are ~2:1 tall
+            dy = y - cy
+            d = math.hypot(dx, dy)
 
-    def is_bg(rgb):
-        return (
-            rgb[0] < BG_THRESHOLD
-            and rgb[1] < BG_THRESHOLD
-            and rgb[2] < BG_THRESHOLD
-        )
+            ansi: str | None = None
+            glyph = " "
 
-    lines: list[str] = []
-    for y in range(0, new_h, 2):
-        out: list[str] = []
-        last_fg = None
-        last_bg = None
-        for x in range(new_w):
-            top = cpx[x, y]
-            bot = cpx[x, y + 1]
-            top_bg = is_bg(top)
-            bot_bg = is_bg(bot)
-            if top_bg and bot_bg:
-                if last_fg is not None or last_bg is not None:
-                    out.append("\x1b[0m")
-                    last_fg = last_bg = None
-                out.append(" ")
+            if d > 6.6:
+                ansi = None                              # empty
+            elif d > 6.0:
+                ansi, glyph = HALO, "░"                  # faint halo
+            elif d > 5.3:
+                ansi, glyph = RING_EDGE, "▓"             # ring outer edge
+            elif d > 4.3:
+                ansi, glyph = RING_BRIGHT, "█"           # main ring
+            elif d > 3.9:
+                ansi, glyph = RING_EDGE, "▓"             # ring inner edge
+            elif d > 2.8:
+                ansi = None                              # gap between disc and ring
+            elif d > 2.2:
+                ansi, glyph = INNER_EDGE, "▓"            # disc outer edge
+            else:
+                ansi, glyph = INNER, "█"                 # core disc
+
+            if ansi is None:
+                if last_ansi is not None:
+                    parts.append(RESET)
+                    last_ansi = None
+                parts.append(" ")
                 continue
-            if top_bg:
-                if last_bg is not None:
-                    out.append("\x1b[49m")
-                    last_bg = None
-                if bot != last_fg:
-                    out.append(f"\x1b[38;2;{bot[0]};{bot[1]};{bot[2]}m")
-                    last_fg = bot
-                out.append("▄")
-                continue
-            if bot_bg:
-                if last_bg is not None:
-                    out.append("\x1b[49m")
-                    last_bg = None
-                if top != last_fg:
-                    out.append(f"\x1b[38;2;{top[0]};{top[1]};{top[2]}m")
-                    last_fg = top
-                out.append("▀")
-                continue
-            if bot != last_bg:
-                out.append(f"\x1b[48;2;{bot[0]};{bot[1]};{bot[2]}m")
-                last_bg = bot
-            if top != last_fg:
-                out.append(f"\x1b[38;2;{top[0]};{top[1]};{top[2]}m")
-                last_fg = top
-            out.append("▀")
-        out.append("\x1b[0m")
-        lines.append("".join(out))
-    return "\n".join(lines)
+
+            if ansi != last_ansi:
+                parts.append(ansi)
+                last_ansi = ansi
+            parts.append(glyph)
+
+        if last_ansi is not None:
+            parts.append(RESET)
+        rows.append("".join(parts))
+    return "\n".join(rows)
 
 
 def _logo_text() -> str:
-    if not LOGO_PNG.exists():
-        return ""
-    try:
-        if (
-            LOGO_CACHE.exists()
-            and LOGO_CACHE.stat().st_mtime >= LOGO_PNG.stat().st_mtime
-        ):
-            return LOGO_CACHE.read_text(encoding="utf-8")
-    except OSError:
-        pass
-    try:
-        rendered = _render_logo(LOGO_PNG, LOGO_WIDTH)
-    except Exception as exc:
-        return f"  [logo render failed: {exc}]"
-    try:
-        LOGO_CACHE.write_text(rendered, encoding="utf-8")
-    except OSError:
-        pass
-    return rendered
+    global _LOGO_TEXT
+    if _LOGO_TEXT is None:
+        try:
+            _LOGO_TEXT = _build_logo()
+        except Exception:
+            _LOGO_TEXT = ""
+    return _LOGO_TEXT
 
 
-# ── state helpers ──────────────────────────────────────────────────────────
+# ── boxed-panel layout helpers (Claude-Code-style cage) ────────────────────
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _visible_len(s: str) -> int:
+    return len(_ANSI_RE.sub("", s))
+
+
+def _pad_visible(s: str, width: int) -> str:
+    pad = max(0, width - _visible_len(s))
+    return s + "\x1b[0m" + " " * pad
+
+
+def _center_visible(s: str, width: int) -> str:
+    vlen = _visible_len(s)
+    if vlen >= width:
+        return s
+    left = (width - vlen) // 2
+    right = width - vlen - left
+    return " " * left + s + "\x1b[0m" + " " * right
+
+
+def _build_panel(
+    title: str,
+    inner_lines: list[str],
+    inner_width: int,
+    border_color: str,
+    title_color: str,
+) -> list[str]:
+    """Render a Claude-Code-style panel: rounded corners, dashed border, inline title."""
+    OFF = "\x1b[0m"
+    title_visible = _visible_len(title)
+    dashes_n = max(0, inner_width - 4 - title_visible)
+    top = (
+        f"{border_color}╭╴{OFF} "
+        f"{title_color}{title}{OFF}"
+        f" {border_color}╶{'╌' * dashes_n}╮{OFF}"
+    )
+    bottom = f"{border_color}╰{'╌' * inner_width}╯{OFF}"
+    rows = [
+        f"{border_color}│{OFF}{_pad_visible(ln, inner_width)}{border_color}│{OFF}"
+        for ln in inner_lines
+    ]
+    return [top] + rows + [bottom]
+
+
+# ── state helpers (TTL-cached so bottom toolbar stays snappy) ──────────────
+
+_STATE_TTL = 3.0
+_port_pid_ts: float = 0.0
+_port_pid_val: int | None = None
+_env_ts: float = 0.0
+_env_val: str | None = None
+
+
+def _invalidate_state_cache() -> None:
+    """Force the next _port_pid / _current_env to hit disk/PowerShell."""
+    global _port_pid_ts, _env_ts
+    _port_pid_ts = 0.0
+    _env_ts = 0.0
+
 
 def _port_pid(port: int = 8000) -> int | None:
+    global _port_pid_ts, _port_pid_val
     if os.name != "nt":
         return None
+    now = time.monotonic()
+    if now - _port_pid_ts < _STATE_TTL:
+        return _port_pid_val
     try:
         out = subprocess.run(
             [
@@ -156,18 +194,27 @@ def _port_pid(port: int = 8000) -> int | None:
             text=True,
             timeout=4,
         ).stdout.strip()
-        return int(out) if out.isdigit() else None
+        _port_pid_val = int(out) if out.isdigit() else None
     except Exception:
-        return None
+        _port_pid_val = None
+    _port_pid_ts = now
+    return _port_pid_val
 
 
 def _current_env() -> str | None:
+    global _env_ts, _env_val
+    now = time.monotonic()
+    if now - _env_ts < _STATE_TTL:
+        return _env_val
+    val: str | None = None
     if ENV_STATE.exists():
         try:
-            return ENV_STATE.read_text(encoding="utf-8").strip() or None
+            val = ENV_STATE.read_text(encoding="utf-8").strip() or None
         except OSError:
-            return None
-    return None
+            val = None
+    _env_val = val
+    _env_ts = now
+    return val
 
 
 # ── ps1 dispatch ───────────────────────────────────────────────────────────
@@ -229,6 +276,19 @@ def _load_routes() -> list[str]:
     except Exception:
         pass
     return _routes_cache
+
+
+def _prewarm_caches() -> None:
+    """Eagerly load routes + users on a daemon thread so the first Tab
+    after `open ` / `loginas ` doesn't freeze importing Flask or hitting the DB."""
+    try:
+        _load_routes()
+    except Exception:
+        pass
+    try:
+        _load_users()
+    except Exception:
+        pass
 
 
 def _load_users() -> list[str]:
@@ -319,16 +379,19 @@ def cmd_start(args: list[str]) -> None:
     extra = [f"--env:{args[0].lower()}"] if args else []
     _run_ps1("-u", *extra)
     _routes_cache.clear()
+    _invalidate_state_cache()
 
 
 def cmd_stop(_args: list[str]) -> None:
     _run_ps1("-d")
+    _invalidate_state_cache()
 
 
 def cmd_restart(args: list[str]) -> None:
     extra = [f"--env:{args[0].lower()}"] if args else []
     _run_ps1("-r", *extra)
     _routes_cache.clear()
+    _invalidate_state_cache()
 
 
 def cmd_logs(_args: list[str]) -> None:
@@ -425,6 +488,8 @@ class NxCompleter(Completer):
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
         stripped = text.lstrip("/")
+
+        # First word — command names. Tiny list, safe to show while typing.
         if " " not in stripped:
             word = stripped.lower()
             for name in sorted(COMMAND_HELP.keys()):
@@ -436,6 +501,12 @@ class NxCompleter(Completer):
                         display_meta=COMMAND_HELP[name],
                     )
             return
+
+        # Arguments — routes/users can be hundreds of entries. Defer to
+        # explicit Tab so the popup doesn't re-render on each keystroke.
+        if not complete_event.completion_requested:
+            return
+
         head, _, tail = stripped.partition(" ")
         head = head.lower()
         if head == "open":
@@ -454,56 +525,124 @@ class NxCompleter(Completer):
 
 # ── splash + repl ──────────────────────────────────────────────────────────
 
-def _splash() -> None:
-    logo = _logo_text()
-    if logo:
-        sys.stdout.write(logo + "\n")
-    _print()
-    _print(
-        f"  {C_BOLD}{C_CYAN}nexora dev CLI{C_OFF}   "
-        f"{C_DIM}· interactive · type `help` or `?`{C_OFF}"
+def _build_splash() -> str:
+    BORDER = "\x1b[38;2;100;88;160m"     # dim violet for box edges
+    TITLE  = "\x1b[1;38;2;205;180;255m"  # bold light violet for panel titles
+    BRIGHT = "\x1b[1;38;2;230;225;255m"  # bold near-white emphasis
+    DIM    = "\x1b[38;2;125;120;160m"    # dim gray-violet helper text
+    CMD    = "\x1b[38;2;180;160;240m"    # command word
+    DESC   = "\x1b[38;2;160;160;180m"    # command description
+    OFF    = "\x1b[0m"
+
+    # ── LEFT: logo cage ─────────────────────────────────────────────────
+    LEFT_INNER = 44
+    logo_lines = _logo_text().split("\n")
+    user = os.environ.get("USERNAME") or os.environ.get("USER") or ""
+    env = _current_env() or "INT"
+
+    left_lines: list[str] = [""]
+    if user:
+        left_lines.append(_center_visible(f"{BRIGHT}Welcome back, {user}!{OFF}", LEFT_INNER))
+    left_lines.append("")
+    for ln in logo_lines:
+        left_lines.append(_center_visible(ln, LEFT_INNER))
+    left_lines.append("")
+    left_lines.append(_center_visible(f"{BRIGHT}nexora{OFF} {DIM}·{OFF} {BRIGHT}{env}{OFF}", LEFT_INNER))
+    left_lines.append(_center_visible(f"{DIM}powered by sydoc{OFF}", LEFT_INNER))
+    left_lines.append("")
+
+    # ── RIGHT: quick start ──────────────────────────────────────────────
+    RIGHT_INNER = 40
+    cmds = [
+        ("start",          "start nexora"),
+        ("status",         "show running status"),
+        ("open <route>",   "open in browser"),
+        ("loginas <user>", "login & open"),
+        ("routes [regex]", "list endpoints"),
+        ("logs",           "stream logs"),
+        ("help",           "all commands"),
+    ]
+    right_lines: list[str] = [""]
+    for cmd, desc in cmds:
+        right_lines.append(f"  {CMD}{cmd:<16}{OFF}  {DESC}{desc}{OFF}")
+    right_lines.append("")
+    right_lines.append(f"  {DIM}Tab to autocomplete{OFF}")
+    right_lines.append(f"  {DIM}↑/↓ to walk history{OFF}")
+    right_lines.append(f"  {DIM}Ctrl+C ×2 to exit{OFF}")
+    right_lines.append("")
+
+    left = _build_panel(
+        f"nexora dev CLI v{_NX_VERSION}", left_lines, LEFT_INNER, BORDER, TITLE
     )
-    _print()
+    right = _build_panel("Quick start", right_lines, RIGHT_INNER, BORDER, TITLE)
+
+    # Match heights for side-by-side stacking
+    max_h = max(len(left), len(right))
+    blank_left = " " * (LEFT_INNER + 2)
+    blank_right = " " * (RIGHT_INNER + 2)
+    while len(left) < max_h:
+        left.append(blank_left)
+    while len(right) < max_h:
+        right.append(blank_right)
+
+    return "\n".join(f"{l}  {r}" for l, r in zip(left, right))
 
 
-def _bottom_toolbar():
+def _splash() -> None:
+    sys.stdout.write(_build_splash())
+    sys.stdout.write("\n\n")
+    sys.stdout.flush()
+
+
+def _prompt_message() -> list[tuple[str, str]]:
+    """Build the prompt prefix. Called once per command iteration (not per keystroke)
+    so it stays cheap and shows current status without any per-keystroke work."""
     pid = _port_pid()
     env = _current_env() or "—"
-    if pid:
-        return HTML(
-            f' <style fg="ansigreen">●</style> running   '
-            f'pid <b>{pid}</b>   env <b>{env}</b>   port 8000 '
-        )
-    return HTML(
-        f' <style fg="ansiyellow">○</style> stopped   '
-        f'env <b>{env}</b> '
-    )
+    dot_class = "class:status-on" if pid else "class:status-off"
+    dot = "●" if pid else "○"
+    return [
+        (dot_class, f" {dot} "),
+        ("class:env-label", f"{env} "),
+        ("class:prompt", "nexora › "),
+    ]
 
 
 def repl() -> int:
+    import threading
+
     _splash()
+    threading.Thread(target=_prewarm_caches, daemon=True, name="nx-prewarm").start()
     style = Style.from_dict(
         {
             "prompt": "ansicyan bold",
+            "status-on": "ansigreen bold",
+            "status-off": "ansiyellow",
+            "env-label": "ansibrightblack",
             "completion-menu.completion": "bg:#1a1a1a #cccccc",
             "completion-menu.completion.current": "bg:#5a3eff #ffffff bold",
             "completion-menu.meta.completion": "bg:#1a1a1a #888888",
             "completion-menu.meta.completion.current": "bg:#5a3eff #dddddd",
-            "bottom-toolbar": "bg:#262626 #cccccc",
         }
     )
     session: PromptSession = PromptSession(
-        history=FileHistory(str(HISTORY_FILE)),
+        history=ThreadedHistory(FileHistory(str(HISTORY_FILE))),
         auto_suggest=AutoSuggestFromHistory(),
         completer=NxCompleter(),
         complete_while_typing=True,
-        bottom_toolbar=_bottom_toolbar,
         style=style,
     )
+    ctrl_c_pending = False
     while True:
         try:
-            line = session.prompt([("class:prompt", "nexora › ")]).strip()
+            line = session.prompt(_prompt_message()).strip()
+            ctrl_c_pending = False
         except KeyboardInterrupt:
+            if ctrl_c_pending:
+                _print()
+                return 0
+            ctrl_c_pending = True
+            _print(f"  {C_DIM}(press Ctrl+C again to exit){C_OFF}")
             continue
         except EOFError:
             _print()
@@ -526,6 +665,7 @@ def repl() -> int:
             else:
                 _run_ps1("-u", f"--env:{value}")
             _routes_cache.clear()
+            _invalidate_state_cache()
             continue
         handler = COMMANDS.get(cmd)
         if not handler:

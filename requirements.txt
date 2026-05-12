@@ -38,3 +38,6 @@ requests==2.32.4
 # --- Files / images ---
 pillow==11.3.0
 python-magic-bin==0.4.14
+
+# --- Dev CLI (interactive nx) ---
+prompt_toolkit==3.0.51

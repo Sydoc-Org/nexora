@@ -230,11 +230,19 @@ def load_nexora_config(env_name: str):
 
 
 def git_unstaged_under_sql() -> str:
-    res = subprocess.run(
-        ["git", "status", "--porcelain", "--", "sql/"],
+    """Return only true drift under sql/: worktree differs from index, plus
+    any new untracked files the sync produced. Already-staged changes are not
+    drift — they're what the user is about to commit."""
+    modified = subprocess.run(
+        ["git", "diff", "--name-only", "--", "sql/"],
         capture_output=True, text=True, cwd=str(REPO_ROOT),
-    )
-    return res.stdout.strip()
+    ).stdout.strip().splitlines()
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", "--", "sql/"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    ).stdout.strip().splitlines()
+    lines = [f" M {p}" for p in modified] + [f"?? {p}" for p in untracked]
+    return "\n".join(lines)
 
 
 def main() -> int:

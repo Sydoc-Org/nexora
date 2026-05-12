@@ -9,6 +9,25 @@ $StderrLog    = "$LogDir\app_stderr.log"
 $StdoutLog    = "$LogDir\app_stdout.log"
 $EnvStateFile = "$LogDir\current_env"
 
+# Zero-arg → interactive nexora TUI
+if ($args.Count -eq 0) {
+    $prevEnc    = [Console]::OutputEncoding
+    $prevPyEnc  = $env:PYTHONIOENCODING
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+    $env:PYTHONIOENCODING = "utf-8"
+    Push-Location -LiteralPath $AppDir
+    try {
+        & $Python -m nx_lib.cli
+        $code = $LASTEXITCODE
+    } finally {
+        Pop-Location
+        [Console]::OutputEncoding = $prevEnc
+        if ($null -eq $prevPyEnc) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue }
+        else                       { $env:PYTHONIOENCODING = $prevPyEnc }
+    }
+    exit $code
+}
+
 # ── output helpers ────────────────────────────────────────────────────────────
 function Write-Ok   ($msg) { Write-Host "  ✓  $msg" -ForegroundColor DarkGreen  }
 function Write-Fail ($msg) { Write-Host "  ✗  $msg" -ForegroundColor DarkRed    }
@@ -21,7 +40,8 @@ function Show-Help {
     Write-Host "  nexora dev CLI" -ForegroundColor Blue
     Write-Host ""
     Write-Host "  Usage:" -ForegroundColor Gray
-    Write-Host "    nx <command> [options]"
+    Write-Host "    nx                       launch interactive TUI (splash + REPL)"
+    Write-Host "    nx <command> [options]   one-shot mode"
     Write-Host ""
     Write-Host "  Commands:" -ForegroundColor Gray
     Write-Host "    -u, --up              Start nexora"
