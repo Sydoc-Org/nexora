@@ -67,38 +67,6 @@ def get_activityinstancesToIgnore():
             conn.close()
 
 
-def get_mobscan_clients():
-    cache_key = "mobscan_client_list"
-    clients = cache.get(cache_key)
-    if clients is not None:
-        return clients
-
-    conn = None
-    cursor = None
-    try:
-        conn = engineNexoraDB.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT processName FROM mobscnClients")
-        clients = [row[0] for row in cursor.fetchall()]
-        cache.set(cache_key, clients, timeout=3600)
-        return clients
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch Mobscan clients: {e}")
-        return []
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-def split_processes_by_server(process_list):
-    mobscan_set = set(get_mobscan_clients())
-    regular = [p for p in process_list if p not in mobscan_set]
-    mobscan = [p for p in process_list if p in mobscan_set]
-    return regular, mobscan
-
-
 def get_params_from_process_list(process_list):
     proc_params = sorted({p.split(".")[-1] for p in process_list if "." in p})
     cli_params = sorted({p.split(".")[0] for p in process_list if "." in p})

@@ -47,13 +47,6 @@ engineStatisticsDB = create_engine(
     pool_timeout=30,
     pool_recycle=1800,
 )
-engineStatisticsDBMobscan = create_engine(
-    getDBUrl(cfg.DB_STATISTICS, cfg.DB_SERVER_PRD_MOBSCAN),
-    pool_size=5,
-    max_overflow=10,
-    pool_timeout=30,
-    pool_recycle=1800,
-)
 engineGeneraliDB = create_engine(
     getDBUrl(cfg.DB_GENERALI),
     pool_size=10,

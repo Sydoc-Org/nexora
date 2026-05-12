@@ -16,7 +16,7 @@ from werkzeug.exceptions import HTTPException
 
 from ..db import (
     engineGeneraliDB, engineNexoraDB, engineOctoDB, engineStatisticsDB,
-    engineStatisticsDBMobscan, ping_dbs_parallel,
+    ping_dbs_parallel,
 )
 from ..maintenance import (
     _MAINTENANCE_BLOCK_CACHE,
@@ -91,11 +91,10 @@ def admin_dashboard():
             pass
 
     db_health = ping_dbs_parallel([
-        (engineNexoraDB,            "Nexora"),
-        (engineOctoDB,              "Octo"),
-        (engineStatisticsDB,        "Stats"),
-        (engineStatisticsDBMobscan, "Stats-Mobscan"),
-        (engineGeneraliDB,          "Generali"),
+        (engineNexoraDB,     "Nexora"),
+        (engineOctoDB,       "Octo"),
+        (engineStatisticsDB, "Stats"),
+        (engineGeneraliDB,   "Generali"),
     ], timeout_s=0.8)
 
     return render_template(

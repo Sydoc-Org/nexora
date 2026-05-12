@@ -166,6 +166,10 @@ env.bak/
 venv.bak/
 environment_transfer_queries.tmp.sql
 
+# sql sync intermediate state (atomic swap during sync-from-db.py)
+sql/.*.staging/
+sql/.*.bak/
+
 # Spyder project settings
 .spyderproject
 .spyproject

@@ -10,18 +10,13 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from ..config import (
-    DB_STATISTICS, OCTO_DOMAIN, OCTO_DOMAIN_MOBSCN, RUNTIME_TBL_MOBSCAN,
-)
-from ..db import (
-    engineNexoraDB, engineOctoDB, engineStatisticsDB, engineStatisticsDBMobscan,
-)
+from ..config import DB_STATISTICS, OCTO_DOMAIN
+from ..db import engineNexoraDB, engineOctoDB, engineStatisticsDB
 from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
-    get_activityinstancesToIgnore, get_mobscan_clients,
-    get_params_from_process_list, split_processes_by_server,
+    get_activityinstancesToIgnore, get_params_from_process_list,
 )
 from ..security import pageVisability, require_permission
 
@@ -261,40 +256,27 @@ def dashboard_processed_over_time():
         if not configs:
             return jsonify({"labels": [], "data": []})
 
-        mobscan_set = set(get_mobscan_clients())
-        regular_configs = [r for r in configs if r.ProcessName not in mobscan_set]
-        mobscan_configs = [r for r in configs if r.ProcessName in mobscan_set]
-
-        def build_pot_sub_queries(cfg_rows):
-            sub_qs = []
-            for row in cfg_rows:
-                convert = "convert" in str(row.ExportColumn).lower()
-                date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
-                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                sub_qs.append(f"""
-                    SELECT {date_col} as d, COUNT(*) as c
-                    FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
-                    GROUP BY {date_col}
-                """)
-            return sub_qs
+        sub_queries = []
+        for row in configs:
+            convert = "convert" in str(row.ExportColumn).lower()
+            date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT {date_col} as d, COUNT(*) as c
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
+                GROUP BY {date_col}
+            """)
 
         counts = {}
-
-        for engine, cfg_group in [
-            (engineStatisticsDB, regular_configs),
-            (engineStatisticsDBMobscan, mobscan_configs),
-        ]:
-            sub_queries = build_pot_sub_queries(cfg_group)
-            if not sub_queries:
-                continue
+        if sub_queries:
             full_query = f"""
                 SELECT d, SUM(c) as total_count
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined_data
                 GROUP BY d
                 ORDER BY d
             """
-            conn = engine.raw_connection()
+            conn = engineStatisticsDB.raw_connection()
             cursor = conn.cursor()
             cursor.execute(full_query)
             for row in cursor.fetchall():
@@ -356,63 +338,43 @@ def dashboard_kpi_stats():
         configs = cursor_nex.fetchall()
 
         if configs:
-            mobscan_set = set(get_mobscan_clients())
-            regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
-            mobscan_cfgs = [r for r in configs if r.ProcessName in mobscan_set]
+            sub_queries = []
+            for row in configs:
+                colExport = row.ExportColumn
+                colImport = row.ImportColumn
+                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+                sub_queries.append(f"""
+                    SELECT
+                        SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
+                        SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
+                    FROM [{DB_STATISTICS}].{row.TableName}
+                    WHERE CAST({colImport} as date) = cast(GETDATE() as date)
+                    {condition}
+                """)
 
-            def build_kpi_sub_queries(cfg_rows):
-                sub_qs = []
-                for row in cfg_rows:
-                    colExport = row.ExportColumn
-                    colImport = row.ImportColumn
-                    condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                    sub_qs.append(f"""
-                        SELECT
-                            SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
-                            SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
-                        FROM [{DB_STATISTICS}].{row.TableName}
-                        WHERE CAST({colImport} as date) = cast(GETDATE() as date)
-                        {condition}
-                    """)
-                return sub_qs
-
-            for engine, cfg_group in [
-                (engineStatisticsDB, regular_cfgs),
-                (engineStatisticsDBMobscan, mobscan_cfgs),
-            ]:
-                sub_queries = build_kpi_sub_queries(cfg_group)
-                if not sub_queries:
-                    continue
+            if sub_queries:
                 full_stat_query = f"""
                     SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
                     FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 """
-                conn_stat = engine.raw_connection()
+                conn_stat = engineStatisticsDB.raw_connection()
                 cursor_stat = conn_stat.cursor()
                 cursor_stat.execute(full_stat_query)
                 row = cursor_stat.fetchone()
                 if row:
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
-                conn_stat = None
-
-        regular_procs, mobscan_procs = split_processes_by_server(target_processes)
 
         conn_octo = engineOctoDB.raw_connection()
         cursor_octo = conn_octo.cursor()
 
-        for tbl_prefix, procs in [
-            ("", regular_procs),
-            (RUNTIME_TBL_MOBSCAN, mobscan_procs),
-        ]:
-            if not procs:
-                continue
-            p_params, p_ph, c_ph = get_params_from_process_list(procs)
+        if target_processes:
+            p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
             cursor_octo.execute(f"""
-                SELECT COUNT(*) FROM {tbl_prefix}t_WorkItems w
-                LEFT JOIN {tbl_prefix}t_ActivityInstances a on a.id = w.ActivityInstanceID
-                LEFT JOIN {tbl_prefix}t_Processes p on p.id = a.ProcessID
-                LEFT JOIN {tbl_prefix}t_ActivityTypes act on act.id = a.ActivityTypeID
+                SELECT COUNT(*) FROM t_WorkItems w
+                LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
+                LEFT JOIN t_Processes p on p.id = a.ProcessID
+                LEFT JOIN t_ActivityTypes act on act.id = a.ActivityTypeID
                 WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND act.Name = 'C+A';
             """, p_params)
             current_backlog += cursor_octo.fetchone()[0]
@@ -470,38 +432,26 @@ def dashboard_hourly_stats():
         if not configs:
             return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
-        mobscan_set = set(get_mobscan_clients())
-        regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
-        mobscan_cfgs = [r for r in configs if r.ProcessName in mobscan_set]
-
-        def build_hourly_sub_queries(cfg_rows):
-            sub_qs = []
-            for row in cfg_rows:
-                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                sub_qs.append(f"""
-                    SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
-                    FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
-                    GROUP BY DATEPART(hour, {row.ExportColumn})
-                """)
-            return sub_qs
+        sub_queries = []
+        for row in configs:
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
+                GROUP BY DATEPART(hour, {row.ExportColumn})
+            """)
 
         hourly = {}
 
-        for engine, cfg_group in [
-            (engineStatisticsDB, regular_cfgs),
-            (engineStatisticsDBMobscan, mobscan_cfgs),
-        ]:
-            sub_queries = build_hourly_sub_queries(cfg_group)
-            if not sub_queries:
-                continue
+        if sub_queries:
             full_query = f"""
                 SELECT h, SUM(c) as total
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 GROUP BY h
                 ORDER BY h
             """
-            conn_stat = engine.raw_connection()
+            conn_stat = engineStatisticsDB.raw_connection()
             cursor_stat = conn_stat.cursor()
             cursor_stat.execute(full_query)
             for row in cursor_stat.fetchall():
@@ -554,41 +504,29 @@ def dashboard_avg_processing_time():
         )
         configs = cursor_nex.fetchall()
 
-        mobscan_set = set(get_mobscan_clients())
-        regular_cfgs = [r for r in configs if r.ProcessName not in mobscan_set]
-        mobscan_cfgs = [r for r in configs if r.ProcessName in mobscan_set]
-
-        def build_avg_sub_queries(cfg_rows):
-            sub_qs = []
-            for row in cfg_rows:
-                if not row.ImportColumn:
-                    continue
-                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                sub_qs.append(f"""
-                    SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
-                    FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
-                    AND {row.ImportColumn} IS NOT NULL
-                    AND {row.ExportColumn} > {row.ImportColumn}
-                    {condition}
-                """)
-            return sub_qs
+        sub_queries = []
+        for row in configs:
+            if not row.ImportColumn:
+                continue
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
+                AND {row.ImportColumn} IS NOT NULL
+                AND {row.ExportColumn} > {row.ImportColumn}
+                {condition}
+            """)
 
         avg_values = []
 
-        for engine, cfg_group in [
-            (engineStatisticsDB, regular_cfgs),
-            (engineStatisticsDBMobscan, mobscan_cfgs),
-        ]:
-            sub_queries = build_avg_sub_queries(cfg_group)
-            if not sub_queries:
-                continue
+        if sub_queries:
             full_query = f"""
                 SELECT AVG(avg_sec) as overall_avg
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 WHERE avg_sec IS NOT NULL
             """
-            conn_stat = engine.raw_connection()
+            conn_stat = engineStatisticsDB.raw_connection()
             cursor_stat = conn_stat.cursor()
             cursor_stat.execute(full_query)
             row = cursor_stat.fetchone()
@@ -917,60 +855,55 @@ def _resolve_aggregation_column(process_name, field_key):
         conn.close()
 
 
-def _build_kpi_sql(widget, filters, configs, mobscan_set):
+def _build_kpi_sql(widget, filters, configs):
     metric = widget["config"]["metric"]
     kind = metric["kind"]
     field = metric.get("field")
     start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
     status = filters.get("status")
 
-    def build_for(cfgs):
-        if not cfgs:
-            return "", []
-        sub_qs = []
-        params = []
-        for row in cfgs:
-            tbl = row.TableName
-            export_col = row.ExportColumn
-            import_col = row.ImportColumn
-            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+    if not configs:
+        return "", []
+    sub_qs = []
+    params = []
+    for row in configs:
+        tbl = row.TableName
+        export_col = row.ExportColumn
+        import_col = row.ImportColumn
+        cond = f" {row.additionalCondition}" if row.additionalCondition else ""
 
-            if kind == "count":
-                expr = "COUNT(*)"
-            elif kind == "proc_time_avg":
-                expr = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
-            elif kind in ("sum", "avg", "min", "max"):
-                col_actual = _resolve_aggregation_column(row.ProcessName, field)
-                if not col_actual:
-                    continue
-                expr = f"{kind.upper()}(CAST({col_actual} AS DECIMAL(18,4)))"
-            else:
+        if kind == "count":
+            expr = "COUNT(*)"
+        elif kind == "proc_time_avg":
+            expr = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
+        elif kind in ("sum", "avg", "min", "max"):
+            col_actual = _resolve_aggregation_column(row.ProcessName, field)
+            if not col_actual:
                 continue
+            expr = f"{kind.upper()}(CAST({col_actual} AS DECIMAL(18,4)))"
+        else:
+            continue
 
-            where = []
-            if start_date is not None and status != "Ready":
-                where.append(f"CAST({export_col} AS DATE) >= ?")
-                params.append(start_date.isoformat())
-            if end_date is not None and status != "Ready":
-                where.append(f"CAST({export_col} AS DATE) <= ?")
-                params.append(end_date.isoformat())
-            for f in (filters.get("docFilters") or []):
-                col = _resolve_aggregation_column(row.ProcessName, f["field"])
-                if not col:
-                    continue
-                where.append(f"{col} = ?")
-                params.append(f["value"])
-            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
-            sub_qs.append(f"SELECT {expr} AS v FROM [{DB_STATISTICS}].{tbl}{where_sql}")
-        if not sub_qs:
-            return "", []
-        outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[kind]
-        full = f"SELECT {outer_agg}(v) FROM ({' UNION ALL '.join(sub_qs)}) t"
-        return full, params
-
-    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
-    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
-    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
+        where = []
+        if start_date is not None and status != "Ready":
+            where.append(f"CAST({export_col} AS DATE) >= ?")
+            params.append(start_date.isoformat())
+        if end_date is not None and status != "Ready":
+            where.append(f"CAST({export_col} AS DATE) <= ?")
+            params.append(end_date.isoformat())
+        for f in (filters.get("docFilters") or []):
+            col = _resolve_aggregation_column(row.ProcessName, f["field"])
+            if not col:
+                continue
+            where.append(f"{col} = ?")
+            params.append(f["value"])
+        where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+        sub_qs.append(f"SELECT {expr} AS v FROM [{DB_STATISTICS}].{tbl}{where_sql}")
+    if not sub_qs:
+        return "", []
+    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[kind]
+    full = f"SELECT {outer_agg}(v) FROM ({' UNION ALL '.join(sub_qs)}) t"
+    return full, params
 
 
 def _bucket_expr(col, bucket):
@@ -1011,56 +944,51 @@ def _doc_filter_clauses(filters, process_name, params_out):
     return clauses
 
 
-def _build_timeseries_sql(widget, filters, configs, mobscan_set):
+def _build_timeseries_sql(widget, filters, configs):
     cfg = widget["config"]
     bucket = cfg["bucket"]
     metric = cfg["metric"]
     start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
 
-    def build_for(cfgs):
-        if not cfgs:
-            return "", []
-        sub_qs = []
-        params = []
-        for row in cfgs:
-            tbl = row.TableName
-            export_col = row.ExportColumn
-            import_col = row.ImportColumn
-            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
-            bucket_sql = _bucket_expr(export_col, bucket)
-            if metric["kind"] == "proc_time_avg":
-                metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
-            else:
-                metric_sql = _metric_expr(metric, row.ProcessName)
-                if metric_sql is None:
-                    continue
-            where = []
-            if start_date is not None:
-                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
-            if end_date is not None:
-                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
-            where += _doc_filter_clauses(filters, row.ProcessName, params)
-            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
-            sub_qs.append(
-                f"SELECT {bucket_sql} AS bucket, {metric_sql} AS v "
-                f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {bucket_sql}"
-            )
-        if not sub_qs:
-            return "", []
-        outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
-        full = (
-            f"SELECT bucket, {outer_agg}(v) AS v "
-            f"FROM ({' UNION ALL '.join(sub_qs)}) t "
-            f"GROUP BY bucket ORDER BY bucket"
+    if not configs:
+        return "", []
+    sub_qs = []
+    params = []
+    for row in configs:
+        tbl = row.TableName
+        export_col = row.ExportColumn
+        import_col = row.ImportColumn
+        cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+        bucket_sql = _bucket_expr(export_col, bucket)
+        if metric["kind"] == "proc_time_avg":
+            metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {import_col}, {export_col}) AS BIGINT))"
+        else:
+            metric_sql = _metric_expr(metric, row.ProcessName)
+            if metric_sql is None:
+                continue
+        where = []
+        if start_date is not None:
+            where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
+        if end_date is not None:
+            where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
+        where += _doc_filter_clauses(filters, row.ProcessName, params)
+        where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+        sub_qs.append(
+            f"SELECT {bucket_sql} AS bucket, {metric_sql} AS v "
+            f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {bucket_sql}"
         )
-        return full, params
+    if not sub_qs:
+        return "", []
+    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
+    full = (
+        f"SELECT bucket, {outer_agg}(v) AS v "
+        f"FROM ({' UNION ALL '.join(sub_qs)}) t "
+        f"GROUP BY bucket ORDER BY bucket"
+    )
+    return full, params
 
-    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
-    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
-    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
 
-
-def _build_categorical_sql(widget, filters, configs, mobscan_set):
+def _build_categorical_sql(widget, filters, configs):
     cfg = widget["config"]
     dim = cfg["dimension"]
     metric = cfg["metric"]
@@ -1068,62 +996,57 @@ def _build_categorical_sql(widget, filters, configs, mobscan_set):
     sort = cfg.get("sort", "desc")
     start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
 
-    def build_for(cfgs):
-        if not cfgs:
-            return "", []
-        sub_qs = []
-        params = []
-        for row in cfgs:
-            tbl = row.TableName
-            export_col = row.ExportColumn
-            cond = f" {row.additionalCondition}" if row.additionalCondition else ""
+    if not configs:
+        return "", []
+    sub_qs = []
+    params = []
+    for row in configs:
+        tbl = row.TableName
+        export_col = row.ExportColumn
+        cond = f" {row.additionalCondition}" if row.additionalCondition else ""
 
-            if dim == "processname":
-                dim_sql = "?"
-                params.append(row.ProcessName)
-            elif dim == "status":
+        if dim == "processname":
+            dim_sql = "?"
+            params.append(row.ProcessName)
+        elif dim == "status":
+            continue
+        else:
+            dim_col = _resolve_aggregation_column(row.ProcessName, dim)
+            if not dim_col:
                 continue
-            else:
-                dim_col = _resolve_aggregation_column(row.ProcessName, dim)
-                if not dim_col:
-                    continue
-                dim_sql = dim_col
+            dim_sql = dim_col
 
-            if metric["kind"] == "proc_time_avg":
-                metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {row.ImportColumn}, {export_col}) AS BIGINT))"
-            else:
-                metric_sql = _metric_expr(metric, row.ProcessName)
-                if metric_sql is None:
-                    continue
+        if metric["kind"] == "proc_time_avg":
+            metric_sql = f"AVG(CAST(DATEDIFF(SECOND, {row.ImportColumn}, {export_col}) AS BIGINT))"
+        else:
+            metric_sql = _metric_expr(metric, row.ProcessName)
+            if metric_sql is None:
+                continue
 
-            where = []
-            if start_date is not None:
-                where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
-            if end_date is not None:
-                where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
-            where += _doc_filter_clauses(filters, row.ProcessName, params)
-            where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
+        where = []
+        if start_date is not None:
+            where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
+        if end_date is not None:
+            where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
+        where += _doc_filter_clauses(filters, row.ProcessName, params)
+        where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
 
-            group_by = dim_sql if dim_sql != "?" else "1"
-            sub_qs.append(
-                f"SELECT {dim_sql} AS dim, {metric_sql} AS v "
-                f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {group_by}"
-            )
-        if not sub_qs:
-            return "", []
-        outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
-        order_sql = {"desc": "v DESC", "asc": "v ASC", "alpha": "dim ASC"}[sort]
-        top_sql = "" if top_n == "all" else f"TOP {int(top_n)} "
-        full = (
-            f"SELECT {top_sql}dim, {outer_agg}(v) AS v "
-            f"FROM ({' UNION ALL '.join(sub_qs)}) t "
-            f"GROUP BY dim ORDER BY {order_sql}"
+        group_by = dim_sql if dim_sql != "?" else "1"
+        sub_qs.append(
+            f"SELECT {dim_sql} AS dim, {metric_sql} AS v "
+            f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {group_by}"
         )
-        return full, params
-
-    regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
-    mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
-    return (*build_for(regular_cfgs), *build_for(mobscan_cfgs))
+    if not sub_qs:
+        return "", []
+    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
+    order_sql = {"desc": "v DESC", "asc": "v ASC", "alpha": "dim ASC"}[sort]
+    top_sql = "" if top_n == "all" else f"TOP {int(top_n)} "
+    full = (
+        f"SELECT {top_sql}dim, {outer_agg}(v) AS v "
+        f"FROM ({' UNION ALL '.join(sub_qs)}) t "
+        f"GROUP BY dim ORDER BY {order_sql}"
+    )
+    return full, params
 
 
 def build_widget_query(widget, global_filters, allowed_processes):
@@ -1148,20 +1071,13 @@ def build_widget_query(widget, global_filters, allowed_processes):
     if not configs:
         return []
 
-    mobscan_set = set(get_mobscan_clients())
-
     builder = {
         "kpi": _build_kpi_sql,
         "timeseries": _build_timeseries_sql,
         "categorical": _build_categorical_sql,
     }[widget["type"]]
-    reg_sql, reg_params, mob_sql, mob_params = builder(widget, filters, configs, mobscan_set)
-    out = []
-    if reg_sql:
-        out.append((engineStatisticsDB, reg_sql, reg_params))
-    if mob_sql:
-        out.append((engineStatisticsDBMobscan, mob_sql, mob_params))
-    return out
+    sql, params = builder(widget, filters, configs)
+    return [(engineStatisticsDB, sql, params)] if sql else []
 
 
 def _run_widget_queries(widget, queries, label_override=None):
@@ -1378,40 +1294,29 @@ def api_recent_activity():
         if not target_processes:
             return jsonify([])
 
-        regular_procs, mobscan_procs = split_processes_by_server(target_processes)
-
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
         activityinstancesToIgnore = get_activityinstancesToIgnore()
 
-        raw_rows = []
-        for tbl_prefix, procs, domain in [
-            ("", regular_procs, OCTO_DOMAIN),
-            (RUNTIME_TBL_MOBSCAN, mobscan_procs, OCTO_DOMAIN_MOBSCN),
-        ]:
-            if not procs:
-                continue
-            p_params, p_ph, c_ph = get_params_from_process_list(procs)
-            query = f"""
-                SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
-                FROM {tbl_prefix}t_WorkItems twi
-                JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE twi.Status <> 2
-                  AND tp.Name IN ({p_ph})
-                  AND tp.ClientName IN ({c_ph})
-                  AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
-                ORDER BY twi.ModifiedAt DESC
-            """
-            cursor.execute(query, p_params)
-            raw_rows.extend((row, domain) for row in cursor.fetchall())
-
-        raw_rows.sort(key=lambda x: x[0].ModifiedAt, reverse=True)
+        p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
+        cursor.execute(f"""
+            SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
+            FROM t_WorkItems twi
+            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            WHERE twi.Status <> 2
+              AND tp.Name IN ({p_ph})
+              AND tp.ClientName IN ({c_ph})
+              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+            ORDER BY twi.ModifiedAt DESC
+        """, p_params)
+        raw_rows = list(cursor.fetchall())
+        raw_rows.sort(key=lambda r: r.ModifiedAt, reverse=True)
 
         activity = []
-        for row, domain in raw_rows[:3]:
-            workitemdata, doc_id = get_workitemdata_param(row.ID, domain)
-            _ext, _urls, fields = get_extensions_urls_fields(workitemdata, doc_id, domain)
+        for row in raw_rows[:3]:
+            workitemdata, doc_id = get_workitemdata_param(row.ID, OCTO_DOMAIN)
+            _ext, _urls, fields = get_extensions_urls_fields(workitemdata, doc_id, OCTO_DOMAIN)
             fields = {k: v for k, v in fields.items() if v}
             activity.append({
                 "id": row.ID,

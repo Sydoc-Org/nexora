@@ -21,10 +21,8 @@ from flask import (
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 
-from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN, RUNTIME_TBL_MOBSCAN
-from ..db import (
-    engineNexoraDB, engineOctoDB, engineStatisticsDB, engineStatisticsDBMobscan,
-)
+from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN
+from ..db import engineNexoraDB, engineOctoDB, engineStatisticsDB
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
@@ -34,9 +32,8 @@ from ..octo import (
     get_extensions_urls_fields, get_media, get_workitemdata_param,
 )
 from ..process_helpers import (
-    get_activityinstancesToIgnore, get_mobscan_clients,
-    get_params_from_process_list, prepare_process_selection_sql,
-    split_processes_by_server,
+    get_activityinstancesToIgnore, get_params_from_process_list,
+    prepare_process_selection_sql,
 )
 from ..security import has_permission, pageVisability, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
@@ -229,15 +226,12 @@ def _get_workitems_data(args, export_all=False):
             where_clauses.append("wim.AssignedUserID = ?")
             params.append(assigned_user)
 
-    regular_extra_clauses = []
-    regular_extra_params = []
-    mobscan_extra_clauses = []
-    mobscan_extra_params = []
+    extra_clauses = []
+    extra_params = []
     _docfield_temp_tables = []  # [(temp_name, [ids])] for large ID sets
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
-        mobscan_set_docfield = set(get_mobscan_clients())
 
         conn_nex = None
         cursor_nex = None
@@ -265,75 +259,68 @@ def _get_workitems_data(args, export_all=False):
                 """
                 configs = cursor_nex.execute(query, target_processes).fetchall()
 
-                reg_cfgs = [c for c in configs if c.ProcessName not in mobscan_set_docfield]
-                mob_cfgs = [c for c in configs if c.ProcessName in mobscan_set_docfield]
+                if not configs:
+                    continue
 
-                for stat_engine, cfgs, extra_clauses, extra_params in [
-                    (engineStatisticsDB,        reg_cfgs, regular_extra_clauses, regular_extra_params),
-                    (engineStatisticsDBMobscan, mob_cfgs, mobscan_extra_clauses, mobscan_extra_params),
-                ]:
-                    if not cfgs:
+                id_parts = []
+                id_params = []
+                for config in configs:
+                    tbl = config.TableName
+                    alias = config.TableAlias
+                    db_column = getattr(config, target_config_col)
+                    time_filter = config.TimeFilter
+                    safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+
+                    id_col = None
+                    for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
+                        if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
+                            id_col = part.strip()
+                            break
+
+                    if not id_col:
+                        current_app.logger.warning(
+                            f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
+                        )
                         continue
 
-                    id_parts = []
-                    id_params = []
-                    for config in cfgs:
-                        tbl = config.TableName
-                        alias = config.TableAlias
-                        db_column = getattr(config, target_config_col)
-                        time_filter = config.TimeFilter
-                        safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                    id_parts.append(f"""
+                        SELECT DISTINCT {id_col} AS id
+                        FROM {tbl} {alias}
+                        WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
+                        AND {time_filter}
+                    """)
+                    id_params.append(f"%{docvalue}%")
 
-                        id_col = None
-                        for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
-                            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                                id_col = part.strip()
-                                break
+                if not id_parts:
+                    continue
 
-                        if not id_col:
-                            current_app.logger.warning(
-                                f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
-                            )
-                            continue
+                stat_conn = None
+                try:
+                    stat_conn = engineStatisticsDB.raw_connection()
+                    stat_cur = stat_conn.cursor()
+                    union_sql = " UNION ALL ".join(id_parts)
+                    stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                    matching_ids = [row[0] for row in stat_cur.fetchall()]
+                except Exception as e:
+                    current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                    matching_ids = None
+                finally:
+                    if stat_conn:
+                        stat_conn.close()
 
-                        id_parts.append(f"""
-                            SELECT DISTINCT {id_col} AS id
-                            FROM {tbl} {alias}
-                            WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
-                            AND {time_filter}
-                        """)
-                        id_params.append(f"%{docvalue}%")
-
-                    if not id_parts:
-                        continue
-
-                    stat_conn = None
-                    try:
-                        stat_conn = stat_engine.raw_connection()
-                        stat_cur = stat_conn.cursor()
-                        union_sql = " UNION ALL ".join(id_parts)
-                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
-                        matching_ids = [row[0] for row in stat_cur.fetchall()]
-                    except Exception as e:
-                        current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
-                        matching_ids = None
-                    finally:
-                        if stat_conn:
-                            stat_conn.close()
-
-                    if matching_ids is None:
-                        continue
-                    if not matching_ids:
-                        extra_clauses.append("1=0")
-                    elif len(matching_ids) > 500:
-                        # Avoid SQL Server's 2100-param limit by using a temp table
-                        temp_name = f"#docf{len(_docfield_temp_tables)}"
-                        _docfield_temp_tables.append((temp_name, matching_ids))
-                        extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
-                    else:
-                        ph = ",".join(["?"] * len(matching_ids))
-                        extra_clauses.append(f"twi.ID IN ({ph})")
-                        extra_params.extend(matching_ids)
+                if matching_ids is None:
+                    continue
+                if not matching_ids:
+                    extra_clauses.append("1=0")
+                elif len(matching_ids) > 500:
+                    # Avoid SQL Server's 2100-param limit by using a temp table
+                    temp_name = f"#docf{len(_docfield_temp_tables)}"
+                    _docfield_temp_tables.append((temp_name, matching_ids))
+                    extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
+                else:
+                    ph = ",".join(["?"] * len(matching_ids))
+                    extra_clauses.append(f"twi.ID IN ({ph})")
+                    extra_params.extend(matching_ids)
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
@@ -342,12 +329,6 @@ def _get_workitems_data(args, export_all=False):
                 cursor_nex.close()
             if conn_nex:
                 conn_nex.close()
-
-    n_pc_params = process_placeholders.count("?") + client_placeholders.count("?")
-    common_params = list(params[n_pc_params:])
-    common_where_clauses_part = where_clauses[2:]
-
-    regular_procs, mobscan_procs = split_processes_by_server(target_processes)
 
     workitems_list = []
     total_items = 0
@@ -366,92 +347,66 @@ def _get_workitems_data(args, export_all=False):
                     batch,
                 )
 
+        full_where = " AND ".join(where_clauses + extra_clauses)
+        full_params = list(params) + extra_params
+
         # count pass
-        for tbl_prefix, procs, extra_cls, extra_pms in [
-            ("",                 regular_procs, regular_extra_clauses, regular_extra_params),
-            (RUNTIME_TBL_MOBSCAN, mobscan_procs, mobscan_extra_clauses, mobscan_extra_params),
-        ]:
-            if not procs:
-                continue
-            grp_pc, grp_proc_ph, grp_cli_ph = get_params_from_process_list(procs)
-            grp_where = " AND ".join(
-                [f"tp.Name IN ({grp_proc_ph})", f"tp.ClientName IN ({grp_cli_ph})"]
-                + common_where_clauses_part
-                + extra_cls
-            )
-            grp_params = grp_pc + common_params + extra_pms
-            cursor.execute(f"""
-                SELECT COUNT(twi.ID)
-                FROM {tbl_prefix}t_WorkItems twi
-                INNER JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-                WHERE {grp_where}
-            """, grp_params)
-            total_items += cursor.fetchone()[0] or 0
+        cursor.execute(f"""
+            SELECT COUNT(twi.ID)
+            FROM t_WorkItems twi
+            INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+            INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+            LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
+            WHERE {full_where}
+        """, full_params)
+        total_items = cursor.fetchone()[0] or 0
 
         # data pass
-        for tbl_prefix, procs, extra_cls, extra_pms in [
-            ("",                 regular_procs, regular_extra_clauses, regular_extra_params),
-            (RUNTIME_TBL_MOBSCAN, mobscan_procs, mobscan_extra_clauses, mobscan_extra_params),
-        ]:
-            if not procs:
-                continue
-            grp_pc, grp_proc_ph, grp_cli_ph = get_params_from_process_list(procs)
-            grp_where = " AND ".join(
-                [f"tp.Name IN ({grp_proc_ph})", f"tp.ClientName IN ({grp_cli_ph})"]
-                + common_where_clauses_part
-                + extra_cls
+        cursor.execute(f"""
+            WITH WorkitemCTE AS (
+                SELECT
+                    twi.ModifiedAt, twi.ID AS WorkItemID,
+                    CASE
+                        WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS Status,
+                    CASE
+                        WHEN twi.Status = 5 THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
+                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
+                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
+                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
+                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS CurrentStage,
+                    wim.Priority,
+                    (
+                        SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
+                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
+                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
+                        WHERE wt.WorkItemID = twi.ID
+                        FOR JSON PATH
+                    ) AS TagsJSON,
+                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
+                FROM t_WorkItems twi
+                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
+                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
+                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
+                WHERE {full_where}
             )
-            grp_params = grp_pc + common_params + extra_pms
-            cursor.execute(f"""
-                WITH WorkitemCTE AS (
-                    SELECT
-                        twi.ModifiedAt, twi.ID AS WorkItemID,
-                        CASE
-                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
-                        END AS Status,
-                        CASE
-                            WHEN twi.Status = 5 THEN 'Delivery'
-                            WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-                            WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-                            WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-                            WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                            WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
-                            ELSE 'Extraction'
-                        END AS CurrentStage,
-                        wim.Priority,
-                        (
-                            SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                            FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                            JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                            WHERE wt.WorkItemID = twi.ID
-                            FOR JSON PATH
-                        ) AS TagsJSON,
-                        ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                    FROM {tbl_prefix}t_WorkItems twi
-                    INNER JOIN {tbl_prefix}t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                    INNER JOIN {tbl_prefix}t_Processes tp ON tp.ID = tai.ProcessID
-                    LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
-                    WHERE {grp_where}
-                )
-                SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
-                FROM WorkitemCTE WHERE rn = 1
-                ORDER BY ModifiedAt DESC
-                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-            """, grp_params + [offset, per_page])
-            for row in cursor.fetchall():
-                workitems_list.append({
-                    "modifiedat": row.ModifiedAt,
-                    "workitemid": row.WorkItemID,
-                    "status": row.Status,
-                    "current_stage": row.CurrentStage,
-                    "priority": row.Priority or 0,
-                    "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-                })
-
-        workitems_list.sort(key=lambda x: x["modifiedat"], reverse=True)
-        workitems_list = workitems_list[:per_page]
+            SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
+            FROM WorkitemCTE WHERE rn = 1
+            ORDER BY ModifiedAt DESC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        """, full_params + [offset, per_page])
+        for row in cursor.fetchall():
+            workitems_list.append({
+                "modifiedat": row.ModifiedAt,
+                "workitemid": row.WorkItemID,
+                "status": row.Status,
+                "current_stage": row.CurrentStage,
+                "priority": row.Priority or 0,
+                "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
+            })
 
     except Exception as e:
         current_app.logger.error(f"Database error in _get_workitems_data: {e}")
@@ -506,56 +461,42 @@ def api_docfield_values():
         if not configs:
             return jsonify([])
 
-        mobscan_set = set(get_mobscan_clients())
-        regular_cfgs = [c for c in configs if c.ProcessName not in mobscan_set]
-        mobscan_cfgs = [c for c in configs if c.ProcessName in mobscan_set]
-
         cache_key = f"docfield_vals_{process}_{field}"
         all_vals = cache.get(cache_key)
 
         if all_vals is None:
-            def build_union(cfg_rows):
-                parts = []
-                for config in cfg_rows:
-                    tbl = config.TableName
-                    col_name = getattr(config, target_col_name)
-                    time_filter = config.SuggestionTimeFilter
-                    safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
-                    parts.append(f"""
-                        SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
-                        FROM [{DB_STATISTICS}].{tbl}
-                        WHERE {col_name} IS NOT NULL
-                          AND {safe_col} <> ''
-                          AND {time_filter}
-                    """)
-                return parts
+            parts = []
+            for config in configs:
+                tbl = config.TableName
+                col_name = getattr(config, target_col_name)
+                time_filter = config.SuggestionTimeFilter
+                safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
+                parts.append(f"""
+                    SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
+                    FROM [{DB_STATISTICS}].{tbl}
+                    WHERE {col_name} IS NOT NULL
+                      AND {safe_col} <> ''
+                      AND {time_filter}
+                """)
 
             raw_vals = []
-            stat_conn = None
-            try:
-                for engine, cfg_group in [
-                    (engineStatisticsDB, regular_cfgs),
-                    (engineStatisticsDBMobscan, mobscan_cfgs),
-                ]:
-                    parts = build_union(cfg_group)
-                    if not parts:
-                        continue
+            if parts:
+                stat_conn = None
+                try:
                     full_union_sql = " UNION ALL ".join(parts)
                     final_sql = f"""
                         SELECT DISTINCT TOP 500 Val
                         FROM ({full_union_sql}) t
                         ORDER BY Val
                     """
-                    stat_conn = engine.raw_connection()
+                    stat_conn = engineStatisticsDB.raw_connection()
                     stat_cur = stat_conn.cursor()
                     stat_cur.execute(final_sql)
                     raw_vals.extend(row.Val for row in stat_cur.fetchall())
                     stat_cur.close()
-                    stat_conn.close()
-                    stat_conn = None
-            finally:
-                if stat_conn:
-                    stat_conn.close()
+                finally:
+                    if stat_conn:
+                        stat_conn.close()
 
             all_vals = sorted(set(raw_vals))
             cache.set(cache_key, all_vals, timeout=600)

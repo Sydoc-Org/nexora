@@ -63,20 +63,18 @@ from werkzeug.utils import secure_filename
 from nx_lib import create_app
 from nx_lib.config import (
     IS_PROD,
-    DB_UID, DB_PWD, DB_SERVER_PRD, DB_SERVER_PRD_MOBSCAN,
-    DB_NEXORA, DB_STATISTICS, DB_STATISTICS_MOBSCAN,
-    DB_OCTO_RUNTIME, DB_OCTO_RUNTIME_MOBSCAN, DB_GENERALI,
-    RUNTIME_TBL_MOBSCAN,
+    DB_UID, DB_PWD, DB_SERVER_PRD,
+    DB_NEXORA, DB_STATISTICS,
+    DB_OCTO_RUNTIME, DB_GENERALI,
     GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_USERNAME,
     GRAPH_PASSWORD, GRAPH_CLIENT_SECRET,
     OCTO_CLIENT_SECRET, OCTO_CLIENT_ID,
-    OCTO_CLIENT_SECRET_MOBSCN, OCTO_CLIENT_ID_MOBSCN,
-    OCTO_GRANT_TYPE, OCTO_DOMAIN, OCTO_DOMAIN_MOBSCN,
+    OCTO_GRANT_TYPE, OCTO_DOMAIN,
     BEXIO_PAT,
 )
 from nx_lib.db import (
     engineOctoDB, engineNexoraDB, engineStatisticsDB,
-    engineStatisticsDBMobscan, engineGeneraliDB,
+    engineGeneraliDB,
     ping_db, ping_dbs_parallel, getDBUrl,
 )
 from nx_lib.extensions import limiter, cache, csrf, s
@@ -104,9 +102,8 @@ from nx_lib.octo import (
     get_workitemdata_param,
 )
 from nx_lib.process_helpers import (
-    build_stat_query, get_activityinstancesToIgnore, get_mobscan_clients,
+    build_stat_query, get_activityinstancesToIgnore,
     get_params_from_process_list, prepare_process_selection_sql,
-    split_processes_by_server,
 )
 
 # Build the Flask app via the package factory. All routes live in nx_lib/views/.

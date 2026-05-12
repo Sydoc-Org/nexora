@@ -1,8 +1,6 @@
 """Octopus runtime API client.
 
-Wraps the auth, document, and configuration services exposed by Octopus. The
-nx_lib and mobscan domains are addressed through the same helpers — pass
-``domain=OCTO_DOMAIN_MOBSCN`` to talk to the mobscan tenant.
+Wraps the auth, document, and configuration services exposed by Octopus.
 """
 
 import base64
@@ -13,13 +11,10 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from .config import (
-    OCTO_CLIENT_ID, OCTO_CLIENT_ID_MOBSCN, OCTO_CLIENT_SECRET,
-    OCTO_CLIENT_SECRET_MOBSCN, OCTO_DOMAIN, OCTO_DOMAIN_MOBSCN, OCTO_GRANT_TYPE,
-    RUNTIME_TBL_MOBSCAN,
+    OCTO_CLIENT_ID, OCTO_CLIENT_SECRET, OCTO_DOMAIN, OCTO_GRANT_TYPE,
 )
-from .db import engineNexoraDB, engineOctoDB
+from .db import engineNexoraDB
 from .extensions import cache
-from .process_helpers import get_mobscan_clients
 
 
 def get_access_token(domain=None):
@@ -30,10 +25,6 @@ def get_access_token(domain=None):
     if token:
         return token
 
-    is_mobscn = domain == OCTO_DOMAIN_MOBSCN
-    client_id = OCTO_CLIENT_ID_MOBSCN if is_mobscn else OCTO_CLIENT_ID
-    client_secret = OCTO_CLIENT_SECRET_MOBSCN if is_mobscn else OCTO_CLIENT_SECRET
-
     url = f"https://{domain}/auth/connect/token"
     headers = {
         "Accept": "application/json",
@@ -41,8 +32,8 @@ def get_access_token(domain=None):
     }
     body = {
         "grant_type": OCTO_GRANT_TYPE,
-        "client_id": client_id,
-        "client_secret": client_secret,
+        "client_id": OCTO_CLIENT_ID,
+        "client_secret": OCTO_CLIENT_SECRET,
     }
 
     try:
@@ -60,45 +51,7 @@ def get_access_token(domain=None):
 
 
 def get_domain_for_workitem(workitem_id):
-    cache_key = f"workitem_domain_{workitem_id}"
-    cached = cache.get(cache_key)
-    if cached:
-        return cached
-
-    mobscan_set = set(get_mobscan_clients())
-    conn = None
-    try:
-        conn = engineOctoDB.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT TOP 1 tp.ClientName + '.' + tp.Name
-            FROM t_WorkItems twi
-            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE twi.ID = ?
-            """,
-            workitem_id,
-        )
-        row = cursor.fetchone()
-        if row and row[0] in mobscan_set:
-            domain = OCTO_DOMAIN_MOBSCN
-        elif row:
-            domain = OCTO_DOMAIN
-        else:
-            cursor.execute(
-                f"SELECT TOP 1 1 FROM {RUNTIME_TBL_MOBSCAN}t_WorkItems WHERE ID = ?",
-                workitem_id,
-            )
-            domain = OCTO_DOMAIN_MOBSCN if cursor.fetchone() else OCTO_DOMAIN
-        cache.set(cache_key, domain, timeout=3600)
-        return domain
-    except Exception as e:
-        current_app.logger.error(f"Failed to determine domain for workitem {workitem_id}: {e}")
-        return OCTO_DOMAIN
-    finally:
-        if conn:
-            conn.close()
+    return OCTO_DOMAIN
 
 
 def get_workitemdata_param(workitem_id, domain=None):
