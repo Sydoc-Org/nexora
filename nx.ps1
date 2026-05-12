@@ -24,39 +24,40 @@ function Show-Help {
     Write-Host "    nx <command> [options]"
     Write-Host ""
     Write-Host "  Commands:" -ForegroundColor Gray
-    Write-Host "    -u, --up        Start nexora"
-    Write-Host "    -d, --down      Stop nexora"
-    Write-Host "    -r, --restart   Restart nexora"
-    Write-Host "    -l, --logs      Stream live logs  " -NoNewline
+    Write-Host "    -u, --up              Start nexora"
+    Write-Host "    -d, --down            Stop nexora"
+    Write-Host "    -r, --restart         Restart nexora"
+    Write-Host "    -l, --logs            Stream live logs  " -NoNewline
     Write-Host "(requires a running instance)" -ForegroundColor Gray
-    Write-Host "    -md, --maindir  cd into the nexora project directory"
-    Write-Host "    --routes [pat]  List Flask routes (optional substring filter)"
+    Write-Host "    -md, --maindir        cd into the nexora project directory"
+    Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
     Write-Host ""
     Write-Host "  Options:" -ForegroundColor Gray
     Write-Host "    -?, --help                 Show this help"
     Write-Host "    -v, --verbose              Also stream logs after start / restart"
-    Write-Host "    -b, --browser [route]      Open browser  " -NoNewline
+    Write-Host "    -b, --browser[:<route>]    Open browser  " -NoNewline
     Write-Host "(standalone or with -u / -r; optional route path)" -ForegroundColor Gray
     Write-Host "    --loginas:<username>       Switch to user in browser  " -NoNewline
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
-    Write-Host "(requires -u / -r, prod not allowed)" -ForegroundColor Gray
+    Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Examples:" -ForegroundColor Gray
-    Write-Host "    nx -u                           start"
-    Write-Host "    nx -u -v                        start and stream logs"
-    Write-Host "    nx -u -b                        start and open browser"
-    Write-Host "    nx -b /admin/users              open browser to /admin/users"
-    Write-Host "    nx -u -b /admin --loginas:bes   start, log in as bes, navigate to /admin"
-    Write-Host "    nx --routes                     list all Flask routes"
-    Write-Host "    nx --routes admin               list routes matching 'admin'"
-    Write-Host "    nx --env                        show current env from .env"
-    Write-Host "    nx -u --env:staging             start with STAGING env"
-    Write-Host "    nx --loginas:username           switch browser session to username"
-    Write-Host "    nx -r --verbose                 restart and stream logs"
-    Write-Host "    nx -l                           watch live logs"
-    Write-Host "    nx -md                          cd into the nexora project directory"
+    Write-Host "    nx -u                                start"
+    Write-Host "    nx -u -v                             start and stream logs"
+    Write-Host "    nx -u -b                             start and open browser"
+    Write-Host "    nx -b:/admin/users                   open browser to /admin/users"
+    Write-Host "    nx -u -b:/admin --loginas:username   start, log in as username, navigate to /admin"
+    Write-Host "    nx --routes                          list all Flask routes"
+    Write-Host "    nx --routes:admin                    list routes matching regex /admin/i"
+    Write-Host "    nx --routes:^/api                    list routes whose path starts with /api"
+    Write-Host "    nx --env                             show current env from .env"
+    Write-Host "    nx -u --env:staging                  start with STAGING env"
+    Write-Host "    nx --loginas:username                switch browser session to username"
+    Write-Host "    nx -r --verbose                      restart and stream logs"
+    Write-Host "    nx -l                                watch live logs"
+    Write-Host "    nx -md                               cd into the nexora project directory"
     Write-Host ""
 }
 
@@ -89,34 +90,16 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $envOverride = $Matches[1].ToUpper()
         continue
     }
-    # -b / --browser [route]  (supports -b:/route, -b /route, or bare -b)
+    # -b / --browser[:route]  (colon-form only; bare -b opens root)
     if ($arg -match '^(?:-b|--browser)(?::(.*))?$') {
         $browser = $true
-        $inline = $Matches[1]
-        if ($inline) {
-            $browserRoute = $inline
-        } else {
-            $next = if (($i + 1) -lt $args.Count) { $args[$i + 1] } else { $null }
-            if ($next -and -not $next.StartsWith('-')) {
-                $browserRoute = $next
-                $i++
-            }
-        }
+        if ($Matches[1]) { $browserRoute = $Matches[1] }
         continue
     }
-    # --routes [pattern]  (supports --routes:pat, --routes pat, or bare --routes)
+    # --routes[:regex]  (colon-form only; bare --routes lists all)
     if ($arg -match '^--routes(?::(.*))?$') {
         $action = 'routes'
-        $inline = $Matches[1]
-        if ($inline) {
-            $routesPattern = $inline
-        } else {
-            $next = if (($i + 1) -lt $args.Count) { $args[$i + 1] } else { $null }
-            if ($next -and -not $next.StartsWith('-')) {
-                $routesPattern = $next
-                $i++
-            }
-        }
+        if ($Matches[1]) { $routesPattern = $Matches[1] }
         continue
     }
     switch -Exact ($arg.ToLower()) {
@@ -163,7 +146,7 @@ if ($envOverride) {
         exit 1
     }
     if ($action -notin @('start', 'restart', 'routes')) {
-        Write-Fail "--env:<value> can only be used with -u / --up, -r / --restart, or --routes"
+        Write-Fail "--env:<value> can only be used with -u / --up, --restart, or -r / --routes"
         exit 1
     }
 }
@@ -295,25 +278,64 @@ function Show-Routes {
     param([string]$Pattern)
     $envValue = if ($envOverride) { $envOverride } else { "INT" }
     $py = @'
-import sys, os
-pattern = sys.argv[1].lower() if len(sys.argv) > 1 and sys.argv[1] else None
+import sys, os, warnings, re, inspect
+warnings.filterwarnings("ignore")
+pattern = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else None
+regex = None
+if pattern:
+    try:
+        regex = re.compile(pattern, re.IGNORECASE)
+    except re.error as exc:
+        print(f"invalid regex '{pattern}': {exc}", file=sys.stderr)
+        raise SystemExit(2)
 try:
     from nx_main import app
 except Exception as exc:
     print(f"failed to import nx_main: {exc}", file=sys.stderr)
     raise SystemExit(1)
+
+root = os.getcwd()
+
+def origin(endpoint):
+    fn = app.view_functions.get(endpoint)
+    if not fn:
+        return ""
+    try:
+        fn = inspect.unwrap(fn)
+        src = inspect.getsourcefile(fn) or ""
+        line = inspect.getsourcelines(fn)[1]
+    except (OSError, TypeError, ValueError):
+        return ""
+    if not src:
+        return ""
+    try:
+        rel = os.path.relpath(src, root)
+        if not rel.startswith(".."):
+            src = rel
+    except ValueError:
+        pass
+    return f"{src}:{line}"
+
 rules = sorted(app.url_map.iter_rules(), key=lambda r: r.rule)
-total, shown = 0, 0
+rows = []
+total = 0
 for rule in rules:
     total += 1
-    if pattern and pattern not in rule.rule.lower() and pattern not in rule.endpoint.lower():
+    if regex and not regex.search(rule.rule) and not regex.search(rule.endpoint):
         continue
     methods = ",".join(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS")))
-    print(f"{methods:<15} {rule.rule:<55} -> {rule.endpoint}")
-    shown += 1
+    rows.append((methods, rule.rule, rule.endpoint, origin(rule.endpoint)))
+
+mw = max((len(r[0]) for r in rows), default=6)
+rw = max((len(r[1]) for r in rows), default=4)
+ew = max((len(r[2]) for r in rows), default=8)
+
+for methods, rule_path, endpoint, where in rows:
+    print(f"{methods:<{mw}}  {rule_path:<{rw}}  {endpoint:<{ew}}  {where}")
+
 print()
 if pattern:
-    print(f"{shown} of {total} routes matching '{pattern}'")
+    print(f"{len(rows)} of {total} routes matching /{pattern}/i")
 else:
     print(f"{total} routes total")
 '@
