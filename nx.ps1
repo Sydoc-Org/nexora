@@ -47,6 +47,7 @@ function Show-Help {
     Write-Host "    -u, --up              Start nexora"
     Write-Host "    -d, --down            Stop nexora"
     Write-Host "    -r, --restart         Restart nexora"
+    Write-Host "    -s, --status          Show running status (PID, env, port)"
     Write-Host "    -l, --logs            Stream live logs  " -NoNewline
     Write-Host "(requires a running instance)" -ForegroundColor Gray
     Write-Host "    -md, --maindir        cd into the nexora project directory"
@@ -131,6 +132,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--down'    { $action = 'stop'    }
         '-l'        { $action = 'logs'    }
         '--logs'    { $action = 'logs'    }
+        '-s'        { $action = 'status'  }
+        '--status'  { $action = 'status'  }
         '-md'       { $action = 'maindir' }
         '--maindir' { $action = 'maindir' }
         '-v'        { $verbose = $true      }
@@ -297,68 +300,6 @@ function Open-Browser {
 function Show-Routes {
     param([string]$Pattern)
     $envValue = if ($envOverride) { $envOverride } else { "INT" }
-    $py = @'
-import sys, os, warnings, re, inspect
-warnings.filterwarnings("ignore")
-pattern = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else None
-regex = None
-if pattern:
-    try:
-        regex = re.compile(pattern, re.IGNORECASE)
-    except re.error as exc:
-        print(f"invalid regex '{pattern}': {exc}", file=sys.stderr)
-        raise SystemExit(2)
-try:
-    from nx_main import app
-except Exception as exc:
-    print(f"failed to import nx_main: {exc}", file=sys.stderr)
-    raise SystemExit(1)
-
-root = os.getcwd()
-
-def origin(endpoint):
-    fn = app.view_functions.get(endpoint)
-    if not fn:
-        return ""
-    try:
-        fn = inspect.unwrap(fn)
-        src = inspect.getsourcefile(fn) or ""
-        line = inspect.getsourcelines(fn)[1]
-    except (OSError, TypeError, ValueError):
-        return ""
-    if not src:
-        return ""
-    try:
-        rel = os.path.relpath(src, root)
-        if not rel.startswith(".."):
-            src = rel
-    except ValueError:
-        pass
-    return f"{src}:{line}"
-
-rules = sorted(app.url_map.iter_rules(), key=lambda r: r.rule)
-rows = []
-total = 0
-for rule in rules:
-    total += 1
-    if regex and not regex.search(rule.rule) and not regex.search(rule.endpoint):
-        continue
-    methods = ",".join(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS")))
-    rows.append((methods, rule.rule, rule.endpoint, origin(rule.endpoint)))
-
-mw = max((len(r[0]) for r in rows), default=6)
-rw = max((len(r[1]) for r in rows), default=4)
-ew = max((len(r[2]) for r in rows), default=8)
-
-for methods, rule_path, endpoint, where in rows:
-    print(f"{methods:<{mw}}  {rule_path:<{rw}}  {endpoint:<{ew}}  {where}")
-
-print()
-if pattern:
-    print(f"{len(rows)} of {total} routes matching /{pattern}/i")
-else:
-    print(f"{total} routes total")
-'@
     $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
     $prevPyEnc = $env:PYTHONIOENCODING
     try {
@@ -366,8 +307,15 @@ else:
         $env:PYTHONIOENCODING = "utf-8"
         Push-Location -LiteralPath $AppDir
         try {
-            $patternArg = if ($Pattern) { $Pattern } else { '' }
-            & $Python -c $py $patternArg
+            # Single source of truth lives in nx_lib/cli.py::print_routes().
+            # Avoid `python -c` here — PowerShell silently mangles embedded
+            # double quotes when forming the argv, which produced a
+            # SyntaxError on f-strings.
+            if ($Pattern) {
+                & $Python -m nx_lib.cli routes $Pattern
+            } else {
+                & $Python -m nx_lib.cli routes
+            }
         } finally {
             Pop-Location
         }
@@ -445,7 +393,10 @@ switch ($action) {
     'status' {
         $p = Find-AppProcess
         if ($p) {
-            Write-Ok "Running  (PID $($p.Id)  ·  port 8000)"
+            $envName = if (Test-Path $EnvStateFile) {
+                (Get-Content $EnvStateFile -Raw).Trim()
+            } else { '?' }
+            Write-Ok "Running  (PID $($p.Id)  ·  env $envName  ·  port 8000)"
         } else {
             Write-Warn "Not running  — use -u / --up to start"
         }
