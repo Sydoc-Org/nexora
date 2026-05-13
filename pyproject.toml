@@ -17,4 +17,7 @@ markers = [
 filterwarnings = [
     "ignore::DeprecationWarning:flask_session.*",
     "ignore::DeprecationWarning:flask_limiter.*",
+    # in-memory storage is fine for the test suite; production concern is
+    # tracked via the TODO in nx_lib/extensions.py.
+    "ignore::UserWarning:flask_limiter.*",
 ]

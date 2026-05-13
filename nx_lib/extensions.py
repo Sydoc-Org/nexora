@@ -16,8 +16,11 @@ from .i18n import get_locale, get_timezone
 
 
 babel = Babel()
+# TODO: under IIS FastCGI each worker process gets its own in-memory rate-limit
+# counter, so @limiter.limit(...) is enforced per-worker rather than globally.
+# For real protection wire storage_uri to NexoraDB (SQLAlchemy) or Redis.
 limiter = Limiter(key_func=get_remote_address)
-cache = Cache(config={"CACHE_TYPE": "simple", "CACHE_DEFAULT_TIMEOUT": 300})
+cache = Cache(config={"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 300})
 csrf = CSRFProtect()
 
 # Token signer for password-reset links. Safe to construct here because
