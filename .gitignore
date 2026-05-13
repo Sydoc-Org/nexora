@@ -65,6 +65,8 @@ cover/
 # Translations
 # *.mo (dont see why you would want to ignore these)
 *.pot
+# but: commit messages.pot so the translation-hygiene test can verify it's in sync
+!messages.pot
 
 # Django stuff:
 *.log
