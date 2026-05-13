@@ -10,8 +10,10 @@ Three independent checks:
    has a non-empty msgstr AND is not marked ``#, fuzzy``. One sub-test per
    locale so failures are scoped.
 
-3. ``test_mo_files_up_to_date`` — every ``.po`` has a corresponding ``.mo``
-   that is no older than the ``.po``.
+3. ``test_mo_files_up_to_date`` — every translated entry in ``.po`` appears
+   in the corresponding ``.mo`` with the same translation. Compares content,
+   not mtimes (mtimes are unreliable: git checkout writes files in sequence,
+   so .po routinely ends up a few ms newer than .mo even when they match).
 
 If any of these fail, the fix is one of:
     pybabel extract -F babel.cfg -o messages.pot .
@@ -25,6 +27,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from babel.messages.mofile import read_mo
 from babel.messages.pofile import read_po
 
 
@@ -135,9 +138,37 @@ def test_all_strings_translated(locale):
         pytest.fail("\n".join(lines))
 
 
+def _translations_map(catalog):
+    """Map (msgid, ctx) -> msgstr for entries with a non-empty translation.
+
+    For plural forms msgid is a tuple and msgstr is a tuple of strings.
+    Header (empty msgid) and untranslated entries are skipped, since pybabel
+    compile omits untranslated entries from the .mo by default.
+    """
+    out = {}
+    for msg in catalog:
+        if not msg.id:
+            continue
+        key = (msg.id if isinstance(msg.id, str) else tuple(msg.id), msg.context)
+        if isinstance(msg.string, tuple):
+            if not any(msg.string):
+                continue
+            out[key] = tuple(msg.string)
+        else:
+            if not msg.string:
+                continue
+            out[key] = msg.string
+    return out
+
+
 @pytest.mark.parametrize("locale", LOCALES)
 def test_mo_files_up_to_date(locale):
-    """Every .po must have a .mo that is no older than the .po."""
+    """Every translated entry in .po must appear in .mo with the same msgstr.
+
+    Content comparison instead of mtime: when both files are checked out by
+    git, their mtimes reflect checkout order, not whether the .mo was
+    actually compiled from the current .po.
+    """
     po_path = TRANSLATIONS_DIR / locale / "LC_MESSAGES" / "messages.po"
     mo_path = TRANSLATIONS_DIR / locale / "LC_MESSAGES" / "messages.mo"
 
@@ -148,11 +179,38 @@ def test_mo_files_up_to_date(locale):
             "    Run: pybabel compile -d translations"
         )
 
-    po_mtime = po_path.stat().st_mtime
-    mo_mtime = mo_path.stat().st_mtime
-    if mo_mtime < po_mtime:
-        pytest.fail(
-            f"[{locale}] {mo_path.relative_to(REPO_ROOT)} is older than its .po "
-            f"(po={po_mtime}, mo={mo_mtime})\n"
-            "    Run: pybabel compile -d translations"
-        )
+    po_translations = _translations_map(_read_catalog(po_path))
+    with open(mo_path, "rb") as f:
+        mo_translations = _translations_map(read_mo(f))
+
+    missing = [k for k in po_translations if k not in mo_translations]
+    mismatched = [
+        k for k in po_translations
+        if k in mo_translations and po_translations[k] != mo_translations[k]
+    ]
+
+    if missing or mismatched:
+        lines = [
+            f"[{locale}] {mo_path.relative_to(REPO_ROOT)} is out of sync with "
+            f"{po_path.relative_to(REPO_ROOT)}",
+            "    Run: pybabel compile -d translations",
+            "",
+        ]
+        if missing:
+            lines.append(f"MISSING from .mo ({len(missing)}):")
+            for mid, ctx in missing[:10]:
+                lines.append(f"  - {mid!r}" + (f" [ctx={ctx!r}]" if ctx else ""))
+            if len(missing) > 10:
+                lines.append(f"  ... and {len(missing) - 10} more")
+            lines.append("")
+        if mismatched:
+            lines.append(f"DIFFERENT translation in .mo vs .po ({len(mismatched)}):")
+            for mid, ctx in mismatched[:10]:
+                lines.append(
+                    f"  - {mid!r}" + (f" [ctx={ctx!r}]" if ctx else "")
+                    + f"\n      .po: {po_translations[(mid, ctx)]!r}"
+                    + f"\n      .mo: {mo_translations[(mid, ctx)]!r}"
+                )
+            if len(mismatched) > 10:
+                lines.append(f"  ... and {len(mismatched) - 10} more")
+        pytest.fail("\n".join(lines))
