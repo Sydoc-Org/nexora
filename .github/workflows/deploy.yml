@@ -2,9 +2,74 @@ name: Deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python deps
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements.txt
+          D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-dev.txt
+
+      - name: Install Playwright chromium
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe -m playwright install chromium
+
+      - name: Copy TEST.env into workspace
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $src = "C:\sydoc\runner-secrets\TEST.env"
+          if (-not (Test-Path $src)) {
+            throw "Runner is missing $src. Provision it once on the runner machine."
+          }
+          Copy-Item $src "${{ github.workspace }}\TEST.env" -Force
+
+      - name: Verify TEST.env
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $testEnv = "${{ github.workspace }}\TEST.env"
+          $envLine = Get-Content $testEnv | Where-Object { $_ -match '^\s*ENVIRONMENT\s*=' } | Select-Object -First 1
+          if ($envLine -notmatch '^\s*ENVIRONMENT\s*=\s*"?TEST"?\s*$') {
+            throw "TEST.env must contain 'ENVIRONMENT=TEST'. Found: '$envLine'"
+          }
+
+      - name: Reset NEXORA_TEST database
+        shell: powershell
+        run: .\scripts\test-db-reset.ps1
+
+      - name: Run pytest
+        shell: powershell
+        env:
+          ENVIRONMENT: TEST
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe -m pytest tests `
+            --reruns 2 --only-rerun flaky_e2e `
+            -p no:cacheprovider `
+            -o junit_logging=all
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          if-no-files-found: warn
+
   deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -74,8 +139,8 @@ jobs:
         shell: powershell
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts export-help news sql `
-            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql howtobabel.txt howtoiis.txt howtongrok.txt requirements.txt README.md
+            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts export-help news sql tests test-results docs `
+            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql howtobabel.txt howtoiis.txt howtongrok.txt requirements.txt requirements-dev.txt README.md pyproject.toml
           if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
 
       - name: Start app pool and service
