@@ -1,0 +1,23 @@
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--junitxml=test-results/junit.xml",
+    "--html=test-results/report.html",
+    "--self-contained-html",
+]
+markers = [
+    "flaky_e2e: end-to-end browser tests that may be retried via pytest-rerunfailures",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:flask_session.*",
+    "ignore::DeprecationWarning:flask_limiter.*",
+    # in-memory storage is fine for the test suite; production concern is
+    # tracked via the TODO in nx_lib/extensions.py.
+    "ignore::UserWarning:flask_limiter.*",
+]

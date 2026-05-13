@@ -8,6 +8,11 @@ __pycache__/
 docs/
 claude.md
 .claude/
+.claude-flow
+.idea/
+.swarm/
+node_modules/
+test-results/
 env.json
 .superpowers/
 ngrok.yaml
@@ -37,6 +42,7 @@ MANIFEST
 *.manifest
 *.spec
 
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -59,6 +65,8 @@ cover/
 # Translations
 # *.mo (dont see why you would want to ignore these)
 *.pot
+# but: commit messages.pot so the translation-hygiene test can verify it's in sync
+!messages.pot
 
 # Django stuff:
 *.log
@@ -160,6 +168,10 @@ env.bak/
 venv.bak/
 environment_transfer_queries.tmp.sql
 
+# sql sync intermediate state (atomic swap during sync-from-db.py)
+sql/.*.staging/
+sql/.*.bak/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -228,3 +240,8 @@ static/images/confused-john-travolta.gif
 static/images/Privera-Icon.png
 static/images/StadtBiel-Icon.svg
 static/images/ElektroMaterial-Icon.png
+.mcp.json
+.gitignore
+AGENTS.md
+.gitignore
+ruvector.db

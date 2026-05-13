@@ -1,6 +1,6 @@
 import os, requests, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app import GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_USERNAME, GRAPH_PASSWORD, GRAPH_CLIENT_SECRET, engineNexoraDB
+from nx_main import GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_USERNAME, GRAPH_PASSWORD, GRAPH_CLIENT_SECRET, engineNexoraDB
 
 def sendReleaseNotice(email, FullName):
 
