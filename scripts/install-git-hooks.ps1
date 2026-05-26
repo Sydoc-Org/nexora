@@ -27,5 +27,10 @@ Get-ChildItem -Path $src -File | ForEach-Object {
 }
 
 Write-Host ""
-Write-Host "Done. Pre-commit will now run 'python sql/sync-from-db.py --check'."
-Write-Host "Make sure mssql-scripter is installed:  pip install -r sql/requirements.txt"
+Write-Host "Done. Pre-commit will run:"
+Write-Host "  - python scripts/db-migrate.py --env INT --check  (unapplied migrations)"
+Write-Host "  - python sql/sync-from-db.py --check              (drift from INT)"
+Write-Host ""
+Write-Host "Prerequisites on PATH:"
+Write-Host "  - mssql-scripter: pip install -r sql/requirements.txt"
+Write-Host "  - sqlcmd (ships with SQL Server Command Line Utilities / SSMS)"

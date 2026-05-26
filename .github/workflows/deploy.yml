@@ -96,6 +96,23 @@ jobs:
           }
           Write-Host "Verified: $prodEnvFile exists"
 
+      - name: Apply DB migrations to PROD
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Runs BEFORE the app pool stop so a failed migration leaves the
+          # existing app serving old code on old schema -- nothing breaks.
+          # The runner reads PROD.env from CWD; PROD.env lives at the deploy
+          # target (gitignored), so copy it into the workspace temporarily.
+          $envSrc = "D:\sydoc\nexora\PROD.env"
+          $envDst = "${{ github.workspace }}\PROD.env"
+          Copy-Item $envSrc $envDst -Force
+          try {
+            D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
+          } finally {
+            Remove-Item $envDst -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Stop app pool and service
         shell: powershell
         run: |
