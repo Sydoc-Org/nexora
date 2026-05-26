@@ -11,15 +11,15 @@ Tests live in `tests/` (`unit/`, `integration/`, `e2e/`) and run against a dedic
    pip install -r requirements-dev.txt
    python -m playwright install chromium
    ```
-2. Apply the NEXORA_TEST DDL block from `environment_transfer_queries.tmp.sql` to the SQL Server (creates the database + scoped login).
+2. Create the `NEXORA_TEST` database and scoped login on your SQL Server (one-time, manual). The schema/seed are loaded by step 4; only the database + login need to exist first.
 3. Copy `TEST.env.example` to `TEST.env` and fill in your test SQL Server credentials.
 4. Reset NEXORA_TEST to a clean state:
    ```powershell
    .\scripts\test-db-reset.ps1
    ```
-5. Install the local pre-push git hook:
+5. Install the local git hooks (pre-commit migrations + pre-push branch guard & tests):
    ```powershell
-   .\scripts\install-hooks.ps1
+   .\scripts\install-git-hooks.ps1
    ```
 
 ### Running tests locally

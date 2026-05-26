@@ -28,8 +28,12 @@ Get-ChildItem -Path $src -File | ForEach-Object {
 
 Write-Host ""
 Write-Host "Done. Pre-commit will run:"
-Write-Host "  - python scripts/db-migrate.py --env INT --check  (unapplied migrations)"
+Write-Host "  - python scripts/db-migrate.py --env INT          (apply pending INT migrations)"
 Write-Host "  - python sql/sync-from-db.py --check              (drift from INT)"
+Write-Host ""
+Write-Host "Pre-push will run:"
+Write-Host "  - branch-name guard: must be 'main' or 'feature/<x.y.z>'"
+Write-Host "  - python -m pytest tests -q --reruns 2 --only-rerun flaky_e2e"
 Write-Host ""
 Write-Host "Prerequisites on PATH:"
 Write-Host "  - mssql-scripter: pip install -r sql/requirements.txt"
