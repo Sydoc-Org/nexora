@@ -1,8 +1,0 @@
-Download: https://www.iis.net/downloads/microsoft/url-rewrite
-Install CGI in Server Manager
-py -m pip install wfastcgi
-cd .\python\scripts
-wfastcgi-enable.exe
-Install all modules
-Add to IIS 
-Edit Middleware Prefix if nessasarry

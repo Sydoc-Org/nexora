@@ -5,11 +5,12 @@
 * text=auto
 
 # Force LF for files where CRLF would break things.
-*.sh          text eol=lf
-*.py          text eol=lf
-*.yml         text eol=lf
-*.yaml        text eol=lf
-.git/hooks/*  text eol=lf
+*.sh                  text eol=lf
+*.py                  text eol=lf
+*.yml                 text eol=lf
+*.yaml                text eol=lf
+scripts/git-hooks/*   text eol=lf
+.git/hooks/*          text eol=lf
 
 # Treat these as binary so git never tries to normalize them.
 *.png  binary

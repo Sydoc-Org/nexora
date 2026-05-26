@@ -1,9 +1,0 @@
-Navigate to ngrok directory:
-    cd /d "D:\sydoc\tools\ngrok"
-
-Run Manually on SYAPP01:
-    ngrok start --config="D:\sydoc\nexora\ngrok.yaml" --all
-
-Install and Run via Service (run as administrator):
-    ngrok service install --config="D:\sydoc\nexora\ngrok.yaml"
-    ngrok service start
