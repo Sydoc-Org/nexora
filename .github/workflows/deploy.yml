@@ -96,6 +96,23 @@ jobs:
           }
           Write-Host "Verified: $prodEnvFile exists"
 
+      - name: Apply DB migrations to PROD
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Runs BEFORE the app pool stop so a failed migration leaves the
+          # existing app serving old code on old schema -- nothing breaks.
+          # The runner reads PROD.env from CWD; PROD.env lives at the deploy
+          # target (gitignored), so copy it into the workspace temporarily.
+          $envSrc = "D:\sydoc\nexora\PROD.env"
+          $envDst = "${{ github.workspace }}\PROD.env"
+          Copy-Item $envSrc $envDst -Force
+          try {
+            D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
+          } finally {
+            Remove-Item $envDst -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Stop app pool and service
         shell: powershell
         run: |
@@ -139,8 +156,8 @@ jobs:
         shell: powershell
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts export-help news sql tests test-results docs `
-            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql howtobabel.txt howtoiis.txt howtongrok.txt requirements.txt requirements-dev.txt README.md pyproject.toml
+            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts sql tests test-results docs `
+            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql requirements.txt requirements-dev.txt README.md pyproject.toml
           if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
 
       - name: Start app pool and service

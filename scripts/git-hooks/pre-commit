@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Regenerate sql/ from INT before each commit; block commit on drift.
-# Skip with: SQL_SYNC_SKIP=1 git commit ...   or   git commit --no-verify
+# Before each commit:
+#   1. Apply any pending sql/_migrations/<Db>/*.sql to INT (block on SQL errors).
+#   2. Regenerate sql/<Db>/ from INT and block if it drifted.
+# Skip both with: SQL_SYNC_SKIP=1 git commit ...   or   git commit --no-verify
 set -e
 
 repo="$(git rev-parse --show-toplevel)"
@@ -13,6 +15,9 @@ elif [ -x "venv/bin/python" ]; then
 else
     PY="python"
 fi
+
+echo "[pre-commit] applying any pending migrations to INT..."
+"$PY" scripts/db-migrate.py --env INT
 
 echo "[pre-commit] syncing sql/ from INT..."
 "$PY" sql/sync-from-db.py --check

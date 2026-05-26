@@ -14,8 +14,9 @@ reorganizes the flat output into an SSMS Object Explorer-style folder tree:
             Types/
         Security/Schemas/
 
-Hand-written migration scripts live separately under sql/_migrations/ and
-sql/environment_transfer_queries.tmp.sql; this script never touches those.
+Hand-written migration scripts live separately under sql/_migrations/<Db>/;
+this script never touches those. To apply or verify migrations, use
+scripts/db-migrate.py.
 
 Usage:
     python sql/sync-from-db.py                  # sync all tracked DBs from INT

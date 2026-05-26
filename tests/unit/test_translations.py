@@ -58,7 +58,7 @@ def test_pot_is_in_sync(tmp_path):
     """messages.pot must contain exactly the msgids that pybabel extract finds."""
     fresh_pot = tmp_path / "messages.pot"
 
-    # Use the same invocation as howtobabel.txt
+    # Use the same invocation as docs/howto/babel.md
     result = subprocess.run(
         [sys.executable, "-m", "babel.messages.frontend", "extract",
          "-F", str(BABEL_CFG), "-o", str(fresh_pot), "."],

@@ -5,10 +5,11 @@ __pycache__/
 
 # C extensions
 *.so
-docs/
-claude.md
+
+# AI tooling state — kept local, not committed
 .claude/
-.claude-flow
+.claude-flow/
+.gitnexus/
 .idea/
 .swarm/
 node_modules/
@@ -147,13 +148,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-.yaml
-.yml
-
+# Runtime data (per-environment, not source)
 uploads/
 session/
 logs/
 screenshots/
+backups/
 .playwright-mcp/
 
 
@@ -240,8 +240,9 @@ static/images/confused-john-travolta.gif
 static/images/Privera-Icon.png
 static/images/StadtBiel-Icon.svg
 static/images/ElektroMaterial-Icon.png
-.mcp.json
-.gitignore
-AGENTS.md
-.gitignore
 ruvector.db
+
+# AI tooling state — kept local, not committed
+CLAUDE.md
+AGENTS.md
+.mcp.json
