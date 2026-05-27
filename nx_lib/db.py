@@ -118,19 +118,31 @@ def ping_dbs_parallel(targets, timeout_s=2.0):
     for label, fut, started in futures:
         try:
             fut.result(timeout=timeout_s)
-            results.append({
-                "label": label, "ok": True, "error": None,
-                "latency_ms": int((time.monotonic() - started) * 1000),
-            })
+            results.append(
+                {
+                    "label": label,
+                    "ok": True,
+                    "error": None,
+                    "latency_ms": int((time.monotonic() - started) * 1000),
+                }
+            )
         except FuturesTimeoutError:
-            results.append({
-                "label": label, "ok": False, "error": "timeout",
-                "latency_ms": int(timeout_s * 1000),
-            })
+            results.append(
+                {
+                    "label": label,
+                    "ok": False,
+                    "error": "timeout",
+                    "latency_ms": int(timeout_s * 1000),
+                }
+            )
         except Exception as e:
             msg = (str(e).splitlines()[0] if str(e) else "error")[:140]
-            results.append({
-                "label": label, "ok": False, "error": msg,
-                "latency_ms": int((time.monotonic() - started) * 1000),
-            })
+            results.append(
+                {
+                    "label": label,
+                    "ok": False,
+                    "error": msg,
+                    "latency_ms": int((time.monotonic() - started) * 1000),
+                }
+            )
     return results

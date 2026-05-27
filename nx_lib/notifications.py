@@ -22,9 +22,7 @@ def create_notification(user_id, message, link=None, icon="fa-info-circle"):
         )
         conn.commit()
     except Exception as e:
-        current_app.logger.error(
-            f"Failed to create notification for UserID {user_id}: {e}"
-        )
+        current_app.logger.error(f"Failed to create notification for UserID {user_id}: {e}")
     finally:
         if cursor:
             cursor.close()

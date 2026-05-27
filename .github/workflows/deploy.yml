@@ -18,6 +18,16 @@ jobs:
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements.txt
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-dev.txt
 
+      - name: Ruff lint (advisory)
+        shell: powershell
+        continue-on-error: true
+        run: D:\sydoc\tools\py\python.exe -m ruff check nx_lib nx_main.py tests
+
+      - name: Ruff format check (advisory)
+        shell: powershell
+        continue-on-error: true
+        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py tests
+
       - name: Install Playwright chromium
         shell: powershell
         run: |

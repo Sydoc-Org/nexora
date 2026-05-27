@@ -50,8 +50,16 @@ def create_app():
     # original endpoint names ("login", "logout", "profile", ...) are preserved
     # — every url_for(...) call in templates continues to resolve unchanged.
     from .views import (
-        admin, auth, chat, core, dashboard, generali, invoices, notifications,
-        profile, workitems,
+        admin,
+        auth,
+        chat,
+        core,
+        dashboard,
+        generali,
+        invoices,
+        notifications,
+        profile,
+        workitems,
     )
 
     core.register_routes(app)
@@ -67,6 +75,7 @@ def create_app():
 
     if cfg.IS_PROD:
         from .middleware import PrefixMiddleware
+
         app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/nexora")
 
     return app

@@ -11,7 +11,10 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from .config import (
-    OCTO_CLIENT_ID, OCTO_CLIENT_SECRET, OCTO_DOMAIN, OCTO_GRANT_TYPE,
+    OCTO_CLIENT_ID,
+    OCTO_CLIENT_SECRET,
+    OCTO_DOMAIN,
+    OCTO_GRANT_TYPE,
 )
 from .db import engineNexoraDB
 from .extensions import cache
@@ -57,7 +60,9 @@ def get_domain_for_workitem(workitem_id):
 def get_workitemdata_param(workitem_id, domain=None):
     if domain is None:
         domain = OCTO_DOMAIN
-    url = f"https://{domain}/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load"
+    url = (
+        f"https://{domain}/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load"
+    )
     access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}",

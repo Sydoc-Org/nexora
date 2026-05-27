@@ -44,7 +44,9 @@ def require_permission(code):
             if not has_permission(code):
                 raise PermissionDenied()
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -57,7 +59,9 @@ def require_any_permission(*codes):
             if not any(has_permission(c) for c in codes):
                 raise PermissionDenied()
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -163,16 +167,18 @@ def _revoke_session_by_id(session_id):
         deleted = cursor.rowcount
         conn.commit()
     except Exception as e:
-        current_app.logger.warning(
-            f"Could not delete ActiveSessions row for {session_id}: {e}"
-        )
+        current_app.logger.warning(f"Could not delete ActiveSessions row for {session_id}: {e}")
     finally:
         if cursor:
-            try: cursor.close()
-            except Exception: pass
+            try:
+                cursor.close()
+            except Exception:
+                pass
         if conn:
-            try: conn.close()
-            except Exception: pass
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     # Best-effort: nuke the server-side session data via Flask-Session's
     # internal store. Works for filesystem, cachelib, redis, etc. Falls back
@@ -184,8 +190,6 @@ def _revoke_session_by_id(session_id):
         if callable(get_store_id) and callable(delete_session):
             delete_session(get_store_id(str(session_id)))
     except Exception as e:
-        current_app.logger.warning(
-            f"Could not delete session store entry for {session_id}: {e}"
-        )
+        current_app.logger.warning(f"Could not delete session store entry for {session_id}: {e}")
 
     return deleted > 0

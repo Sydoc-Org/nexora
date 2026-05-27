@@ -9,7 +9,14 @@ import time
 from datetime import datetime
 
 from flask import (
-    current_app, g, jsonify, redirect, render_template, request, session, url_for,
+    current_app,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 
 from .db import engineNexoraDB
@@ -28,8 +35,15 @@ from .users import resolve_user_icon_url
 
 
 _SESSION_ENFORCE_SKIP_PATHS = (
-    "/static", "/login", "/logout", "/forgot_password", "/set_new_password",
-    "/init_reset", "/init_2FA", "/verify_2fa", "/reset_password",
+    "/static",
+    "/login",
+    "/logout",
+    "/forgot_password",
+    "/set_new_password",
+    "/init_reset",
+    "/init_2FA",
+    "/verify_2fa",
+    "/reset_password",
     "/dev/login",
 )
 
@@ -135,23 +149,32 @@ def _log_every_request(response):
 
         with open(f"{LOGS_HOUR_FOLDER}/nexora_logs.csv", "a", newline="") as csvfile:
             fieldnames = [
-                "SessionID", "RequestIpAddress", "UserID", "Username",
-                "HttpRequestMethod", "Path", "HttpResponseCode", "Args", "durationSeconds",
+                "SessionID",
+                "RequestIpAddress",
+                "UserID",
+                "Username",
+                "HttpRequestMethod",
+                "Path",
+                "HttpResponseCode",
+                "Args",
+                "durationSeconds",
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if csvfile.tell() == 0:
                 writer.writeheader()
-            writer.writerow({
-                "SessionID": session.get("uuid"),
-                "RequestIpAddress": get_ip(),
-                "UserID": session.get("userid"),
-                "Username": session.get("username"),
-                "HttpRequestMethod": request.method,
-                "Path": request.path,
-                "HttpResponseCode": response.status_code,
-                "Args": request.args.to_dict(),
-                "durationSeconds": round(duration, 4),
-            })
+            writer.writerow(
+                {
+                    "SessionID": session.get("uuid"),
+                    "RequestIpAddress": get_ip(),
+                    "UserID": session.get("userid"),
+                    "Username": session.get("username"),
+                    "HttpRequestMethod": request.method,
+                    "Path": request.path,
+                    "HttpResponseCode": response.status_code,
+                    "Args": request.args.to_dict(),
+                    "durationSeconds": round(duration, 4),
+                }
+            )
     except Exception as e:
         current_app.logger.error(f"Logging failed: {e}")
     return response

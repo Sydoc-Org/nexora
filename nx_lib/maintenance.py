@@ -95,11 +95,11 @@ def _get_blocking_maintenance():
         conn.close()
         if row:
             result = {
-                "id":       int(row[0]),
-                "title":    row[1],
-                "message":  row[2],
-                "startAt":  _maintenance_iso(row[3]),
-                "endAt":    _maintenance_iso(row[4]),
+                "id": int(row[0]),
+                "title": row[1],
+                "message": row[2],
+                "startAt": _maintenance_iso(row[3]),
+                "endAt": _maintenance_iso(row[4]),
                 "severity": row[5],
             }
     except Exception as e:

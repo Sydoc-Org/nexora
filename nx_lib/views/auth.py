@@ -14,20 +14,33 @@ import pyotp
 import qrcode
 import requests
 from flask import (
-    abort, current_app, flash, redirect, render_template, request, session, url_for,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 
 from ..config import (
-    GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_PASSWORD, GRAPH_TENANT_ID,
-    GRAPH_USERNAME, IS_PROD,
+    GRAPH_CLIENT_ID,
+    GRAPH_CLIENT_SECRET,
+    GRAPH_PASSWORD,
+    GRAPH_TENANT_ID,
+    GRAPH_USERNAME,
+    IS_PROD,
 )
 from ..db import engineNexoraDB
 from ..extensions import limiter, s
 from ..hooks import get_ip
 from ..maintenance import _maintenance_blocks_user
 from ..security import (
-    _revoke_session_by_id, load_permissions_for_user, pageVisability,
+    _revoke_session_by_id,
+    load_permissions_for_user,
+    pageVisability,
     startpage_redirect_to,
 )
 
@@ -37,6 +50,7 @@ def _record_active_session(user_id):
     No-op on failure - session tracking is non-critical to login success."""
     try:
         import uuid as _uuid
+
         sid = getattr(session, "sid", None)
         if not sid:
             # Dev fallback (signed-cookie sessions have no server-side SID):
@@ -64,9 +78,7 @@ def _record_active_session(user_id):
         cursor.close()
         conn.close()
     except Exception as e:
-        current_app.logger.warning(
-            f"Failed to record active session for user {user_id}: {e}"
-        )
+        current_app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
 
 
 def send_reset_email(email):
@@ -97,7 +109,9 @@ def send_reset_email(email):
     link = get_link()
     try:
         FONT_FAMILY = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
-        CONTAINER_STYLE = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
+        CONTAINER_STYLE = (
+            "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
+        )
         BUTTON_STYLE = (
             "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
             "text-decoration: none; border-radius: 8px; font-weight: bold; "
@@ -187,9 +201,7 @@ def send_reset_email(email):
     </html>
                     """,
                 },
-                "toRecipients": [
-                    {"emailAddress": {"address": email}}
-                ],
+                "toRecipients": [{"emailAddress": {"address": email}}],
             },
             "saveToSentItems": True,
         }
@@ -350,7 +362,10 @@ def init_reset_password():
         if not new_password or not confirm_password:
             return render_template("init_reset.html", error=_("All Fields must be filled"))
         if not re.search(r"^\S{8,200}$", new_password):
-            return render_template("init_reset.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
+            return render_template(
+                "init_reset.html",
+                error=_("New password has to be atleast 8 characters long, with no whitespaces"),
+            )
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
@@ -368,7 +383,9 @@ def init_reset_password():
             stored_hash = stored_hash.encode("utf-8")
 
         if bcrypt.checkpw(new_password.encode("utf-8"), stored_hash):
-            return render_template("init_reset.html", error=_("New Password musn't be previously used password"))
+            return render_template(
+                "init_reset.html", error=_("New Password musn't be previously used password")
+            )
 
         salt = bcrypt.gensalt()
         hash_bytes = bcrypt.hashpw(new_password.encode("utf-8"), salt)
@@ -520,7 +537,10 @@ def set_new_password():
         if not new_password or not confirm_password:
             return render_template("reset_password.html", error=_("All Fields must be filled"))
         if not re.search(r"^\S{8,200}$", new_password):
-            return render_template("reset_password.html", error=_("New password has to be atleast 8 characters long, with no whitespaces"))
+            return render_template(
+                "reset_password.html",
+                error=_("New password has to be atleast 8 characters long, with no whitespaces"),
+            )
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
@@ -536,7 +556,9 @@ def set_new_password():
             stored_hash = stored_hash.encode("utf-8")
 
         if bcrypt.checkpw(new_password.encode("utf-8"), stored_hash):
-            return render_template("reset_password.html", error=_("New Password musn't be previously used password"))
+            return render_template(
+                "reset_password.html", error=_("New Password musn't be previously used password")
+            )
 
         salt = bcrypt.gensalt()
         hash_bytes = bcrypt.hashpw(new_password.encode("utf-8"), salt)
@@ -586,7 +608,10 @@ def request_password_reset():
         if rows:
             sendreset = send_reset_email(request_email)
             if sendreset:
-                return render_template("forgot_password.html", message=_("A password reset link has been sent to your email"))
+                return render_template(
+                    "forgot_password.html",
+                    message=_("A password reset link has been sent to your email"),
+                )
             return render_template("forgot_password.html", error=_("Unexpected error occurred"))
         return render_template("forgot_password.html", error=_("Invalid Email Address"))
     except Exception as e:
@@ -601,13 +626,30 @@ def request_password_reset():
 
 def register_routes(app):
     app.add_url_rule("/init_2FA", endpoint="init_2FA", view_func=init_2FA, methods=["GET", "POST"])
-    app.add_url_rule("/verify_2fa", endpoint="verify_2fa", view_func=verify_2fa, methods=["GET", "POST"])
+    app.add_url_rule(
+        "/verify_2fa", endpoint="verify_2fa", view_func=verify_2fa, methods=["GET", "POST"]
+    )
     app.add_url_rule("/init_reset", endpoint="init_reset", view_func=init_reset)
-    app.add_url_rule("/init_reset_password", endpoint="init_reset_password", view_func=init_reset_password, methods=["POST", "GET"])
+    app.add_url_rule(
+        "/init_reset_password",
+        endpoint="init_reset_password",
+        view_func=init_reset_password,
+        methods=["POST", "GET"],
+    )
     app.add_url_rule("/dev/login/<username>", endpoint="dev_login", view_func=dev_login)
     app.add_url_rule("/login", endpoint="login", view_func=login, methods=["GET", "POST"])
     app.add_url_rule("/logout", endpoint="logout", view_func=logout)
     app.add_url_rule("/forgot_password", endpoint="forgot_password", view_func=forgot_password)
-    app.add_url_rule("/set_new_password", endpoint="set_new_password", view_func=set_new_password, methods=["POST", "GET"])
+    app.add_url_rule(
+        "/set_new_password",
+        endpoint="set_new_password",
+        view_func=set_new_password,
+        methods=["POST", "GET"],
+    )
     app.add_url_rule("/reset_password/<token>", endpoint="reset_password", view_func=reset_password)
-    app.add_url_rule("/request-password-reset", endpoint="request_password_reset", view_func=request_password_reset, methods=["GET", "POST"])
+    app.add_url_rule(
+        "/request-password-reset",
+        endpoint="request_password_reset",
+        view_func=request_password_reset,
+        methods=["GET", "POST"],
+    )

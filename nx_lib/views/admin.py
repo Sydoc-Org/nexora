@@ -8,14 +8,24 @@ from datetime import datetime
 import bcrypt
 import pyodbc
 from flask import (
-    Response, abort, current_app, jsonify, redirect, render_template, request,
-    session, url_for,
+    Response,
+    abort,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from ..db import (
-    engineGeneraliDB, engineNexoraDB, engineOctoDB, engineStatisticsDB,
+    engineGeneraliDB,
+    engineNexoraDB,
+    engineOctoDB,
+    engineStatisticsDB,
     ping_dbs_parallel,
 )
 from ..maintenance import (
@@ -24,8 +34,11 @@ from ..maintenance import (
     _maintenance_row_to_dict,
 )
 from ..security import (
-    _revoke_session_by_id, has_permission, load_permissions_for_user,
-    pageVisability, require_permission,
+    _revoke_session_by_id,
+    has_permission,
+    load_permissions_for_user,
+    pageVisability,
+    require_permission,
 )
 
 
@@ -90,12 +103,15 @@ def admin_dashboard():
         except Exception:
             pass
 
-    db_health = ping_dbs_parallel([
-        (engineNexoraDB,     "Nexora"),
-        (engineOctoDB,       "Octo"),
-        (engineStatisticsDB, "Stats"),
-        (engineGeneraliDB,   "Generali"),
-    ], timeout_s=0.8)
+    db_health = ping_dbs_parallel(
+        [
+            (engineNexoraDB, "Nexora"),
+            (engineOctoDB, "Octo"),
+            (engineStatisticsDB, "Stats"),
+            (engineGeneraliDB, "Generali"),
+        ],
+        timeout_s=0.8,
+    )
 
     return render_template(
         "admin/adminOverview.html",
@@ -121,7 +137,10 @@ def admin_organizations_view():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
-        organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        organizations = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
 
         return render_template(
             "admin/organizations.html",
@@ -143,6 +162,7 @@ def admin_organizations_view():
 @require_permission("admin.add.organization")
 def admin_add_organization():
     import re as _re
+
     data = request.get_json()
     organization = data.get("organizationname")
 
@@ -152,7 +172,7 @@ def admin_add_organization():
     clean_name = _re.sub(r"[^A-Z0-9]", "", organization.upper())
     consonants = _re.sub(r"[AEIOU]", "", clean_name)
     vowels = _re.sub(r"[^AEIOU]", "", clean_name)
-    code = (consonants + vowels)
+    code = consonants + vowels
     organizationcode = code[:4].ljust(4, "X")
 
     conn = None
@@ -235,7 +255,9 @@ def api_admin_organizations_list():
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT organizationcode, organization FROM organizations ORDER BY organization")
+        cursor.execute(
+            "SELECT organizationcode, organization FROM organizations ORDER BY organization"
+        )
         orgs = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
         return jsonify(orgs)
     except Exception as e:
@@ -298,15 +320,24 @@ def api_admin_maintenance_add():
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO MaintenanceBanner (Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, AnnounceMinutesBefore, CreatedBy, CreatedAt)
             OUTPUT INSERTED.ID
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
-        """, [
-            parsed["title"], parsed["message"], parsed["start_at"], parsed["end_at"],
-            parsed["severity"], parsed["active"], parsed["block_access"],
-            parsed["announce_minutes"], session.get("userid"),
-        ])
+        """,
+            [
+                parsed["title"],
+                parsed["message"],
+                parsed["start_at"],
+                parsed["end_at"],
+                parsed["severity"],
+                parsed["active"],
+                parsed["block_access"],
+                parsed["announce_minutes"],
+                session.get("userid"),
+            ],
+        )
         new_id = cursor.fetchone()[0]
         conn.commit()
         _MAINTENANCE_BLOCK_CACHE["expires_at"] = 0.0
@@ -330,16 +361,25 @@ def api_admin_maintenance_edit(banner_id):
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE MaintenanceBanner
                SET Title = ?, Message = ?, StartAt = ?, EndAt = ?, Severity = ?,
                    Active = ?, BlockAccess = ?, AnnounceMinutesBefore = ?
              WHERE ID = ?
-        """, [
-            parsed["title"], parsed["message"], parsed["start_at"], parsed["end_at"],
-            parsed["severity"], parsed["active"], parsed["block_access"],
-            parsed["announce_minutes"], banner_id,
-        ])
+        """,
+            [
+                parsed["title"],
+                parsed["message"],
+                parsed["start_at"],
+                parsed["end_at"],
+                parsed["severity"],
+                parsed["active"],
+                parsed["block_access"],
+                parsed["announce_minutes"],
+                banner_id,
+            ],
+        )
         if cursor.rowcount == 0:
             return jsonify({"success": False, "error": "Banner not found"}), 404
         conn.commit()
@@ -385,7 +425,10 @@ def admin_logs_view():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
-        organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        organizations = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
     except Exception as e:
         current_app.logger.error(f"Failed to load organizations for logs page: {e}")
     finally:
@@ -477,24 +520,28 @@ def api_admin_logs_search():
 
         logs = []
         for row in cursor.fetchall():
-            logs.append({
-                "LogID": row.LogID,
-                "Timestamp": row.Timestamp,
-                "Username": row.Username,
-                "HttpRequestMethod": row.HttpRequestMethod,
-                "Path": row.Path,
-                "HttpResponseCode": row.HttpResponseCode,
-                "Args": row.Args,
-                "RequestIpAddress": row.RequestIpAddress,
-                "durationSeconds": row.durationSeconds,
-            })
+            logs.append(
+                {
+                    "LogID": row.LogID,
+                    "Timestamp": row.Timestamp,
+                    "Username": row.Username,
+                    "HttpRequestMethod": row.HttpRequestMethod,
+                    "Path": row.Path,
+                    "HttpResponseCode": row.HttpResponseCode,
+                    "Args": row.Args,
+                    "RequestIpAddress": row.RequestIpAddress,
+                    "durationSeconds": row.durationSeconds,
+                }
+            )
 
-        return jsonify({
-            "logs": logs,
-            "total": total_count,
-            "page": page,
-            "pages": math.ceil(total_count / per_page),
-        })
+        return jsonify(
+            {
+                "logs": logs,
+                "total": total_count,
+                "page": page,
+                "pages": math.ceil(total_count / per_page),
+            }
+        )
     except Exception as e:
         current_app.logger.error(f"Log search error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -522,14 +569,25 @@ def api_admin_logs_export():
 
     def generate():
         import io as _io
+
         buf = _io.StringIO()
         writer = csv.writer(buf, quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([
-            "LogID", "Timestamp", "Username", "Method", "Path",
-            "StatusCode", "IPAddress", "DurationSeconds", "Args",
-        ])
+        writer.writerow(
+            [
+                "LogID",
+                "Timestamp",
+                "Username",
+                "Method",
+                "Path",
+                "StatusCode",
+                "IPAddress",
+                "DurationSeconds",
+                "Args",
+            ]
+        )
         yield buf.getvalue()
-        buf.seek(0); buf.truncate(0)
+        buf.seek(0)
+        buf.truncate(0)
 
         conn = engineNexoraDB.raw_connection()
         try:
@@ -547,19 +605,22 @@ def api_admin_logs_export():
                         ts_iso = ts.isoformat()
                     else:
                         ts_iso = str(ts).replace(" ", "T", 1)
-                    writer.writerow([
-                        row.LogID,
-                        ts_iso,
-                        row.Username or "",
-                        row.HttpRequestMethod or "",
-                        row.Path or "",
-                        row.HttpResponseCode if row.HttpResponseCode is not None else "",
-                        row.RequestIpAddress or "",
-                        row.durationSeconds if row.durationSeconds is not None else "",
-                        row.Args or "",
-                    ])
+                    writer.writerow(
+                        [
+                            row.LogID,
+                            ts_iso,
+                            row.Username or "",
+                            row.HttpRequestMethod or "",
+                            row.Path or "",
+                            row.HttpResponseCode if row.HttpResponseCode is not None else "",
+                            row.RequestIpAddress or "",
+                            row.durationSeconds if row.durationSeconds is not None else "",
+                            row.Args or "",
+                        ]
+                    )
                 yield buf.getvalue()
-                buf.seek(0); buf.truncate(0)
+                buf.seek(0)
+                buf.truncate(0)
             cursor.close()
         finally:
             conn.close()
@@ -610,7 +671,9 @@ def admin_add_user():
         cursor = conn.cursor()
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
-        cursor.execute("select organizationcode from organizations where organization = ?", organization)
+        cursor.execute(
+            "select organizationcode from organizations where organization = ?", organization
+        )
         organizationcode = cursor.fetchone()[0]
         cursor.execute(
             "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
@@ -649,15 +712,21 @@ def admin_edit_user(user_id):
             current_app.logger.error(
                 f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
             )
-            return jsonify({"success": False, "message": _("Permission Denied for this action.")}), 403
+            return jsonify(
+                {"success": False, "message": _("Permission Denied for this action.")}
+            ), 403
 
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
-        cursor.execute("select organizationcode from organizations where organization = ?", organization)
+        cursor.execute(
+            "select organizationcode from organizations where organization = ?", organization
+        )
         organizationcode = cursor.fetchone()[0]
 
         if password:
-            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
+                "utf-8"
+            )
             cursor.execute(
                 "UPDATE Users SET username=?, fullname=?, email=?, password=?, organizationcode=?,accessid=? WHERE userID=?",
                 (username, fullname, email, hashed_password, organizationcode, accessid, user_id),
@@ -691,7 +760,8 @@ def admin_user_detail(user_id):
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT u.userID, u.username, u.fullname, u.email,
                    ap.Name AS AccessProfileName,
                    o.organization, o.organizationcode
@@ -699,19 +769,28 @@ def admin_user_detail(user_id):
             LEFT JOIN AccessProfile ap ON u.accessid = ap.AccessID
             LEFT JOIN Organizations o ON u.organizationcode = o.organizationcode
             WHERE u.userID = ?
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         row = cursor.fetchone()
         if not row:
             abort(404)
         user = dict(zip([c[0] for c in cursor.description], row))
 
-        cursor.execute("SELECT organizationcode, organization FROM Organizations ORDER BY organization")
-        organizations = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+        cursor.execute(
+            "SELECT organizationcode, organization FROM Organizations ORDER BY organization"
+        )
+        organizations = [
+            dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()
+        ]
 
-        cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name")
+        cursor.execute(
+            "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
+        )
         all_ap = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
         assignable_profiles = [
-            ap for ap in all_ap
+            ap
+            for ap in all_ap
             if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
         ]
 
@@ -729,7 +808,9 @@ def admin_user_detail(user_id):
                 END,
                 Code
         """)
-        all_permissions = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+        all_permissions = [
+            dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()
+        ]
 
         return render_template(
             "admin/userDetail.html",
@@ -775,21 +856,27 @@ def api_admin_user_activity(user_id):
             return jsonify({"entries": [], "total": 0, "page": page, "pages": 0})
         username = row[0]
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM Logs
             WHERE Username = ?
               AND Timestamp >= DATEADD(day, -7, GETDATE())
-        """, (username,))
+        """,
+            (username,),
+        )
         total = (cursor.fetchone() or [0])[0] or 0
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT Timestamp, HttpRequestMethod, Path, HttpResponseCode
             FROM Logs
             WHERE Username = ?
               AND Timestamp >= DATEADD(day, -7, GETDATE())
             ORDER BY Timestamp DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, (username, offset, per_page))
+        """,
+            (username, offset, per_page),
+        )
 
         entries = []
         for r in cursor.fetchall():
@@ -800,31 +887,39 @@ def api_admin_user_activity(user_id):
                 ts_iso = ts.isoformat()
             else:
                 ts_iso = str(ts).replace(" ", "T", 1)
-            entries.append({
-                "Timestamp": ts_iso,
-                "HttpRequestMethod": r.HttpRequestMethod,
-                "Path": r.Path,
-                "HttpResponseCode": r.HttpResponseCode,
-            })
+            entries.append(
+                {
+                    "Timestamp": ts_iso,
+                    "HttpRequestMethod": r.HttpRequestMethod,
+                    "Path": r.Path,
+                    "HttpResponseCode": r.HttpResponseCode,
+                }
+            )
 
         pages = max(1, math.ceil(total / per_page)) if total else 0
 
-        return jsonify({
-            "entries": entries,
-            "total": int(total),
-            "page": page,
-            "pages": pages,
-        })
+        return jsonify(
+            {
+                "entries": entries,
+                "total": int(total),
+                "page": page,
+                "pages": pages,
+            }
+        )
     except Exception as e:
         current_app.logger.error(f"Failed to load activity for user {user_id}: {e}")
         return jsonify({"error": str(e), "entries": [], "total": 0, "page": page, "pages": 0}), 500
     finally:
         if cursor:
-            try: cursor.close()
-            except Exception: pass
+            try:
+                cursor.close()
+            except Exception:
+                pass
         if conn:
-            try: conn.close()
-            except Exception: pass
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @require_permission("admin.delete.user")
@@ -841,7 +936,10 @@ def admin_delete_user(user_id):
         cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
         cursor.commit()
 
-        cursor.execute("delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?", (user_id, user_id))
+        cursor.execute(
+            "delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?",
+            (user_id, user_id),
+        )
         cursor.commit()
 
         cursor.execute("delete from userpermissionoverride where userid = ?", (user_id,))
@@ -906,11 +1004,15 @@ def admin_revoke_all_sessions(user_id):
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         if cursor:
-            try: cursor.close()
-            except Exception: pass
+            try:
+                cursor.close()
+            except Exception:
+                pass
         if conn:
-            try: conn.close()
-            except Exception: pass
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     revoked = 0
     for sid in sids:
@@ -967,12 +1069,14 @@ def admin_recent_logs():
         """)
         logs = []
         for row in cursor.fetchall():
-            logs.append({
-                "Timestamp": row.Timestamp,
-                "Username": row.Username,
-                "ActionType": f"{row.HttpRequestMethod} {row.Path}",
-                "ActionStatus": "SUCCESS" if 200 <= row.HttpResponseCode < 300 else "FAILURE",
-            })
+            logs.append(
+                {
+                    "Timestamp": row.Timestamp,
+                    "Username": row.Username,
+                    "ActionType": f"{row.HttpRequestMethod} {row.Path}",
+                    "ActionStatus": "SUCCESS" if 200 <= row.HttpResponseCode < 300 else "FAILURE",
+                }
+            )
         return jsonify(logs)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch recent logs: {e}")
@@ -1004,16 +1108,18 @@ def admin_active_sessions():
         """)
         sessions = []
         for r in cursor.fetchall():
-            sessions.append({
-                "SessionID": r[0],
-                "Userid":    r[1],
-                "Username":  r[2],
-                "IPAddress": r[3],
-                # Emit ISO-8601 explicitly so the client can pass it straight
-                # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
-                # which doesn't survive the +'Z' timezone-suffix hack.
-                "LoggedInAt": r[4].isoformat() if r[4] else None,
-            })
+            sessions.append(
+                {
+                    "SessionID": r[0],
+                    "Userid": r[1],
+                    "Username": r[2],
+                    "IPAddress": r[3],
+                    # Emit ISO-8601 explicitly so the client can pass it straight
+                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                    # which doesn't survive the +'Z' timezone-suffix hack.
+                    "LoggedInAt": r[4].isoformat() if r[4] else None,
+                }
+            )
         return jsonify(sessions)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch active sessions: {e}")
@@ -1041,7 +1147,10 @@ def admin_access_control():
             GROUP BY ap.AccessID, ap.Name, ap.Description
             ORDER BY ap.Name
         """)
-        profiles = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        profiles = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
 
         cursor.execute("""
             SELECT PermissionID, Code, Description FROM Permission
@@ -1057,15 +1166,28 @@ def admin_access_control():
                 END,
                 Code
         """)
-        all_permissions = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        all_permissions = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
 
         organizations = []
         assignable_profiles = []
         if has_permission("admin.view.users"):
-            cursor.execute("SELECT organizationcode, organization FROM Organizations ORDER BY organization")
-            organizations = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
-            cursor.execute("SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name")
-            all_ap = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            cursor.execute(
+                "SELECT organizationcode, organization FROM Organizations ORDER BY organization"
+            )
+            organizations = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in cursor.fetchall()
+            ]
+            cursor.execute(
+                "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
+            )
+            all_ap = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in cursor.fetchall()
+            ]
             for ap in all_ap:
                 if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}'):
                     assignable_profiles.append(ap)
@@ -1134,7 +1256,10 @@ def get_users_admin_access_control():
         """
         cursor.execute(query, params)
 
-        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        users = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
         return jsonify(users)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch users for access control: {e}")
@@ -1161,7 +1286,10 @@ def get_profile_details(access_id):
             """,
             (access_id,),
         )
-        assigned_perms = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        assigned_perms = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
         return jsonify({"success": True, "permissions": assigned_perms})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -1232,17 +1360,24 @@ def get_user_overrides(user_id):
         if not row:
             return jsonify({"success": False, "message": "User not found"}), 404
         base_access_id = row[0]
-        cursor.execute("SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,))
+        cursor.execute(
+            "SELECT PermissionID, Effect FROM UserPermissionOverride WHERE UserID = ?", (user_id,)
+        )
         overrides = {row.PermissionID: row.Effect for row in cursor.fetchall()}
         base_perms = {}
         if base_access_id:
-            cursor.execute("SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?", (base_access_id,))
+            cursor.execute(
+                "SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?",
+                (base_access_id,),
+            )
             base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
-        return jsonify({
-            "success": True,
-            "overrides": overrides,
-            "base_permissions": base_perms,
-        })
+        return jsonify(
+            {
+                "success": True,
+                "overrides": overrides,
+                "base_permissions": base_perms,
+            }
+        )
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
@@ -1263,17 +1398,21 @@ def api_admin_user_effective_permissions(user_id):
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT u.userID, u.username, u.AccessID, ap.Name AS ProfileName
             FROM Users u
             LEFT JOIN AccessProfile ap ON ap.AccessID = u.AccessID
             WHERE u.userID = ?
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         u = cursor.fetchone()
         if not u:
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT p.PermissionID, p.Code, p.Description,
                    ap_perm.Effect AS ProfileEffect,
                    uo.Effect      AS OverrideEffect
@@ -1295,7 +1434,9 @@ def api_admin_user_effective_permissions(user_id):
                     ELSE 6
                 END,
                 p.Code
-        """, (u.AccessID, user_id))
+        """,
+            (u.AccessID, user_id),
+        )
 
         granted = []
         denied = []
@@ -1303,13 +1444,17 @@ def api_admin_user_effective_permissions(user_id):
             override = r.OverrideEffect
             profile = r.ProfileEffect
             if override == "A":
-                source = "override-allow"; effective = True
+                source = "override-allow"
+                effective = True
             elif override == "D":
-                source = "override-deny";  effective = False
+                source = "override-deny"
+                effective = False
             elif profile == "A":
-                source = "profile";        effective = True
+                source = "profile"
+                effective = True
             elif profile == "D":
-                source = "profile-deny";   effective = False
+                source = "profile-deny"
+                effective = False
             else:
                 continue  # No grant, no override — irrelevant
 
@@ -1321,28 +1466,32 @@ def api_admin_user_effective_permissions(user_id):
             }
             (granted if effective else denied).append(entry)
 
-        return jsonify({
-            "success": True,
-            "user": {
-                "userID": u.userID,
-                "username": u.username,
-                "profile": u.ProfileName,
-            },
-            "granted": granted,
-            "denied": denied,
-        })
-    except Exception as e:
-        current_app.logger.error(
-            f"Failed to compute effective permissions for user {user_id}: {e}"
+        return jsonify(
+            {
+                "success": True,
+                "user": {
+                    "userID": u.userID,
+                    "username": u.username,
+                    "profile": u.ProfileName,
+                },
+                "granted": granted,
+                "denied": denied,
+            }
         )
+    except Exception as e:
+        current_app.logger.error(f"Failed to compute effective permissions for user {user_id}: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         if cursor:
-            try: cursor.close()
-            except Exception: pass
+            try:
+                cursor.close()
+            except Exception:
+                pass
         if conn:
-            try: conn.close()
-            except Exception: pass
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @require_permission("admin.edit.user.override")
@@ -1409,7 +1558,9 @@ def api_admin_permissions_list():
                 END,
                 p.Code
         """)
-        perms = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        perms = [
+            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+        ]
         return jsonify(perms)
     except Exception as e:
         current_app.logger.error(f"Error listing permissions: {e}")
@@ -1435,7 +1586,8 @@ def api_admin_permission_users(perm_id):
         if not row:
             return jsonify({"success": False, "message": _("Permission not found")}), 404
         perm_code = row[0]
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 u.userID, u.username, u.fullname,
                 ap.Name AS AccessProfileName,
@@ -1447,8 +1599,12 @@ def api_admin_permission_users(perm_id):
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = u.userID AND upo.PermissionID = ?
             LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = ?
             ORDER BY u.fullname
-        """, (perm_code, perm_id, perm_id))
-        users = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        """,
+            (perm_code, perm_id, perm_id),
+        )
+        users = [
+            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+        ]
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Error fetching users for permission {perm_id}: {e}")
@@ -1469,7 +1625,8 @@ def api_admin_user_all_permissions(user_id):
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 p.PermissionID, p.Code, p.Description, p.SortingCode,
                 CAST(dbo.fnUserHasPermission(?, p.Code) AS INT) AS IsEffective,
@@ -1480,8 +1637,12 @@ def api_admin_user_all_permissions(user_id):
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = ? AND upo.PermissionID = p.PermissionID
             LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = p.PermissionID
             ORDER BY p.SortingCode, p.Code
-        """, (user_id, user_id, user_id))
-        perms = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        """,
+            (user_id, user_id, user_id),
+        )
+        perms = [
+            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+        ]
         return jsonify({"success": True, "permissions": perms})
     except Exception as e:
         current_app.logger.error(f"Error fetching all permissions for user {user_id}: {e}")
@@ -1514,7 +1675,13 @@ def api_admin_permission_add():
         )
         new_id = cursor.fetchone()[0]
         conn.commit()
-        return jsonify({"success": True, "message": _("Permission created successfully"), "permissionId": new_id})
+        return jsonify(
+            {
+                "success": True,
+                "message": _("Permission created successfully"),
+                "permissionId": new_id,
+            }
+        )
     except Exception as e:
         current_app.logger.error(f"Error creating permission: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
@@ -1567,15 +1734,24 @@ def api_admin_permission_delete(perm_id):
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,))
+        cursor.execute(
+            "SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,)
+        )
         profile_refs = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM UserPermissionOverride WHERE PermissionID=?", (perm_id,))
+        cursor.execute(
+            "SELECT COUNT(*) FROM UserPermissionOverride WHERE PermissionID=?", (perm_id,)
+        )
         override_refs = cursor.fetchone()[0]
         if profile_refs > 0 or override_refs > 0:
-            return jsonify({
-                "success": False,
-                "message": _("Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all assignments first.") % {"p": profile_refs, "o": override_refs},
-            }), 400
+            return jsonify(
+                {
+                    "success": False,
+                    "message": _(
+                        "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all assignments first."
+                    )
+                    % {"p": profile_refs, "o": override_refs},
+                }
+            ), 400
         cursor.execute("DELETE FROM Permission WHERE PermissionID=?", (perm_id,))
         if cursor.rowcount == 0:
             return jsonify({"success": False, "message": _("Permission not found")}), 404
@@ -1596,48 +1772,194 @@ def register_routes(app):
     app.add_url_rule("/admin", endpoint="admin_dashboard", view_func=admin_dashboard)
 
     # organizations
-    app.add_url_rule("/admin/organizations", endpoint="admin_organizations_view", view_func=admin_organizations_view)
-    app.add_url_rule("/admin/organizations/add", endpoint="admin_add_organization", view_func=admin_add_organization, methods=["POST"])
-    app.add_url_rule("/admin/organizations/edit/<organizationcode>", endpoint="admin_edit_organization", view_func=admin_edit_organization, methods=["POST"])
-    app.add_url_rule("/admin/organizations/delete/<organizationcode>", endpoint="admin_delete_organization", view_func=admin_delete_organization, methods=["DELETE"])
-    app.add_url_rule("/api/admin/organizations/list", endpoint="api_admin_organizations_list", view_func=api_admin_organizations_list)
+    app.add_url_rule(
+        "/admin/organizations",
+        endpoint="admin_organizations_view",
+        view_func=admin_organizations_view,
+    )
+    app.add_url_rule(
+        "/admin/organizations/add",
+        endpoint="admin_add_organization",
+        view_func=admin_add_organization,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/organizations/edit/<organizationcode>",
+        endpoint="admin_edit_organization",
+        view_func=admin_edit_organization,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/organizations/delete/<organizationcode>",
+        endpoint="admin_delete_organization",
+        view_func=admin_delete_organization,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/admin/organizations/list",
+        endpoint="api_admin_organizations_list",
+        view_func=api_admin_organizations_list,
+    )
 
     # maintenance banner
-    app.add_url_rule("/admin/maintenance", endpoint="admin_maintenance_view", view_func=admin_maintenance_view)
-    app.add_url_rule("/api/admin/maintenance", endpoint="api_admin_maintenance_list", view_func=api_admin_maintenance_list, methods=["GET"])
-    app.add_url_rule("/api/admin/maintenance", endpoint="api_admin_maintenance_add", view_func=api_admin_maintenance_add, methods=["POST"])
-    app.add_url_rule("/api/admin/maintenance/<int:banner_id>", endpoint="api_admin_maintenance_edit", view_func=api_admin_maintenance_edit, methods=["PUT"])
-    app.add_url_rule("/api/admin/maintenance/<int:banner_id>", endpoint="api_admin_maintenance_delete", view_func=api_admin_maintenance_delete, methods=["DELETE"])
+    app.add_url_rule(
+        "/admin/maintenance", endpoint="admin_maintenance_view", view_func=admin_maintenance_view
+    )
+    app.add_url_rule(
+        "/api/admin/maintenance",
+        endpoint="api_admin_maintenance_list",
+        view_func=api_admin_maintenance_list,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/admin/maintenance",
+        endpoint="api_admin_maintenance_add",
+        view_func=api_admin_maintenance_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/maintenance/<int:banner_id>",
+        endpoint="api_admin_maintenance_edit",
+        view_func=api_admin_maintenance_edit,
+        methods=["PUT"],
+    )
+    app.add_url_rule(
+        "/api/admin/maintenance/<int:banner_id>",
+        endpoint="api_admin_maintenance_delete",
+        view_func=api_admin_maintenance_delete,
+        methods=["DELETE"],
+    )
 
     # logs
     app.add_url_rule("/admin/logs", endpoint="admin_logs_view", view_func=admin_logs_view)
-    app.add_url_rule("/api/admin/logs/search", endpoint="api_admin_logs_search", view_func=api_admin_logs_search)
-    app.add_url_rule("/api/admin/logs/export.csv", endpoint="api_admin_logs_export", view_func=api_admin_logs_export)
+    app.add_url_rule(
+        "/api/admin/logs/search", endpoint="api_admin_logs_search", view_func=api_admin_logs_search
+    )
+    app.add_url_rule(
+        "/api/admin/logs/export.csv",
+        endpoint="api_admin_logs_export",
+        view_func=api_admin_logs_export,
+    )
 
     # sessions & users
-    app.add_url_rule("/admin/sessions", endpoint="admin_sessions_view", view_func=admin_sessions_view)
-    app.add_url_rule("/admin/users/add", endpoint="admin_add_user", view_func=admin_add_user, methods=["POST"])
-    app.add_url_rule("/admin/users/edit/<int:user_id>", endpoint="admin_edit_user", view_func=admin_edit_user, methods=["POST"])
-    app.add_url_rule("/admin/users/<int:user_id>", endpoint="admin_user_detail", view_func=admin_user_detail)
-    app.add_url_rule("/api/admin/users/<int:user_id>/activity", endpoint="api_admin_user_activity", view_func=api_admin_user_activity)
-    app.add_url_rule("/admin/users/delete/<int:user_id>", endpoint="admin_delete_user", view_func=admin_delete_user, methods=["DELETE"])
-    app.add_url_rule("/admin/sessions/<string:session_id>/revoke", endpoint="admin_revoke_session", view_func=admin_revoke_session, methods=["POST"])
-    app.add_url_rule("/admin/users/<int:user_id>/revoke_all", endpoint="admin_revoke_all_sessions", view_func=admin_revoke_all_sessions, methods=["POST"])
-    app.add_url_rule("/api/admin/users/list", endpoint="api_admin_users_list", view_func=api_admin_users_list)
-    app.add_url_rule("/api/admin/recent_logs", endpoint="admin_recent_logs", view_func=admin_recent_logs)
-    app.add_url_rule("/api/admin/active_sessions", endpoint="admin_active_sessions", view_func=admin_active_sessions)
+    app.add_url_rule(
+        "/admin/sessions", endpoint="admin_sessions_view", view_func=admin_sessions_view
+    )
+    app.add_url_rule(
+        "/admin/users/add", endpoint="admin_add_user", view_func=admin_add_user, methods=["POST"]
+    )
+    app.add_url_rule(
+        "/admin/users/edit/<int:user_id>",
+        endpoint="admin_edit_user",
+        view_func=admin_edit_user,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/users/<int:user_id>", endpoint="admin_user_detail", view_func=admin_user_detail
+    )
+    app.add_url_rule(
+        "/api/admin/users/<int:user_id>/activity",
+        endpoint="api_admin_user_activity",
+        view_func=api_admin_user_activity,
+    )
+    app.add_url_rule(
+        "/admin/users/delete/<int:user_id>",
+        endpoint="admin_delete_user",
+        view_func=admin_delete_user,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/admin/sessions/<string:session_id>/revoke",
+        endpoint="admin_revoke_session",
+        view_func=admin_revoke_session,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/users/<int:user_id>/revoke_all",
+        endpoint="admin_revoke_all_sessions",
+        view_func=admin_revoke_all_sessions,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/users/list", endpoint="api_admin_users_list", view_func=api_admin_users_list
+    )
+    app.add_url_rule(
+        "/api/admin/recent_logs", endpoint="admin_recent_logs", view_func=admin_recent_logs
+    )
+    app.add_url_rule(
+        "/api/admin/active_sessions",
+        endpoint="admin_active_sessions",
+        view_func=admin_active_sessions,
+    )
 
     # access control & permissions
-    app.add_url_rule("/admin/access_control", endpoint="admin_access_control", view_func=admin_access_control)
-    app.add_url_rule("/api/admin/users", endpoint="get_users_admin_access_control", view_func=get_users_admin_access_control)
-    app.add_url_rule("/api/admin/access_profile/<int:access_id>/details", endpoint="get_profile_details", view_func=get_profile_details, methods=["GET"])
-    app.add_url_rule("/api/admin/access_profile/save", endpoint="save_access_profile", view_func=save_access_profile, methods=["POST"])
-    app.add_url_rule("/api/admin/user_overrides/<int:user_id>", endpoint="get_user_overrides", view_func=get_user_overrides, methods=["GET"])
-    app.add_url_rule("/api/admin/users/<int:user_id>/effective_permissions", endpoint="api_admin_user_effective_permissions", view_func=api_admin_user_effective_permissions)
-    app.add_url_rule("/api/admin/user_overrides/save", endpoint="save_user_overrides", view_func=save_user_overrides, methods=["POST"])
-    app.add_url_rule("/api/admin/permissions/list", endpoint="api_admin_permissions_list", view_func=api_admin_permissions_list)
-    app.add_url_rule("/api/admin/permissions/<int:perm_id>/users", endpoint="api_admin_permission_users", view_func=api_admin_permission_users)
-    app.add_url_rule("/api/admin/users/<int:user_id>/all_permissions", endpoint="api_admin_user_all_permissions", view_func=api_admin_user_all_permissions)
-    app.add_url_rule("/api/admin/permissions/add", endpoint="api_admin_permission_add", view_func=api_admin_permission_add, methods=["POST"])
-    app.add_url_rule("/api/admin/permissions/edit/<int:perm_id>", endpoint="api_admin_permission_edit", view_func=api_admin_permission_edit, methods=["POST"])
-    app.add_url_rule("/api/admin/permissions/delete/<int:perm_id>", endpoint="api_admin_permission_delete", view_func=api_admin_permission_delete, methods=["DELETE"])
+    app.add_url_rule(
+        "/admin/access_control", endpoint="admin_access_control", view_func=admin_access_control
+    )
+    app.add_url_rule(
+        "/api/admin/users",
+        endpoint="get_users_admin_access_control",
+        view_func=get_users_admin_access_control,
+    )
+    app.add_url_rule(
+        "/api/admin/access_profile/<int:access_id>/details",
+        endpoint="get_profile_details",
+        view_func=get_profile_details,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/admin/access_profile/save",
+        endpoint="save_access_profile",
+        view_func=save_access_profile,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/user_overrides/<int:user_id>",
+        endpoint="get_user_overrides",
+        view_func=get_user_overrides,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/admin/users/<int:user_id>/effective_permissions",
+        endpoint="api_admin_user_effective_permissions",
+        view_func=api_admin_user_effective_permissions,
+    )
+    app.add_url_rule(
+        "/api/admin/user_overrides/save",
+        endpoint="save_user_overrides",
+        view_func=save_user_overrides,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/list",
+        endpoint="api_admin_permissions_list",
+        view_func=api_admin_permissions_list,
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/<int:perm_id>/users",
+        endpoint="api_admin_permission_users",
+        view_func=api_admin_permission_users,
+    )
+    app.add_url_rule(
+        "/api/admin/users/<int:user_id>/all_permissions",
+        endpoint="api_admin_user_all_permissions",
+        view_func=api_admin_user_all_permissions,
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/add",
+        endpoint="api_admin_permission_add",
+        view_func=api_admin_permission_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/edit/<int:perm_id>",
+        endpoint="api_admin_permission_edit",
+        view_func=api_admin_permission_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/delete/<int:perm_id>",
+        endpoint="api_admin_permission_delete",
+        view_func=api_admin_permission_delete,
+        methods=["DELETE"],
+    )

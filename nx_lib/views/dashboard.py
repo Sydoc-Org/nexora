@@ -6,7 +6,13 @@ import json
 from datetime import date, datetime, timedelta
 
 from flask import (
-    current_app, jsonify, redirect, render_template, request, session, url_for,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 
@@ -16,7 +22,8 @@ from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
-    get_activityinstancesToIgnore, get_params_from_process_list,
+    get_activityinstancesToIgnore,
+    get_params_from_process_list,
 )
 from ..security import pageVisability, require_permission
 
@@ -38,6 +45,7 @@ DASHBOARD_METRIC_KINDS = {"count", "sum", "avg", "min", "max", "proc_time_avg"}
 
 class DashboardLayoutError(ValueError):
     """Raised by validate_dashboard_layout when the JSON shape is bad."""
+
     pass
 
 
@@ -58,7 +66,10 @@ def dashboard_default_layout():
         "grid": [
             {
                 "id": "wid_starter_imported",
-                "x": 0, "y": 0, "w": 3, "h": 2,
+                "x": 0,
+                "y": 0,
+                "w": 3,
+                "h": 2,
                 "type": "kpi",
                 "title": _("Imported today"),
                 "config": {"metric": {"kind": "count"}},
@@ -68,7 +79,10 @@ def dashboard_default_layout():
             },
             {
                 "id": "wid_starter_processed",
-                "x": 3, "y": 0, "w": 3, "h": 2,
+                "x": 3,
+                "y": 0,
+                "w": 3,
+                "h": 2,
                 "type": "kpi",
                 "title": _("Processed today"),
                 "config": {"metric": {"kind": "count"}},
@@ -78,7 +92,10 @@ def dashboard_default_layout():
             },
             {
                 "id": "wid_starter_backlog",
-                "x": 6, "y": 0, "w": 3, "h": 2,
+                "x": 6,
+                "y": 0,
+                "w": 3,
+                "h": 2,
                 "type": "kpi",
                 "title": _("Current backlog"),
                 "config": {"metric": {"kind": "count"}},
@@ -88,7 +105,10 @@ def dashboard_default_layout():
             },
             {
                 "id": "wid_starter_avgtime",
-                "x": 9, "y": 0, "w": 3, "h": 2,
+                "x": 9,
+                "y": 0,
+                "w": 3,
+                "h": 2,
                 "type": "kpi",
                 "title": _("Avg processing time"),
                 "config": {"metric": {"kind": "proc_time_avg"}},
@@ -98,7 +118,10 @@ def dashboard_default_layout():
             },
             {
                 "id": "wid_starter_overtime",
-                "x": 0, "y": 2, "w": 8, "h": 4,
+                "x": 0,
+                "y": 2,
+                "w": 8,
+                "h": 4,
                 "type": "timeseries",
                 "title": _("Documents Processed Over Time"),
                 "config": {
@@ -117,7 +140,10 @@ def dashboard_default_layout():
             },
             {
                 "id": "wid_starter_topdoctypes",
-                "x": 8, "y": 2, "w": 4, "h": 4,
+                "x": 8,
+                "y": 2,
+                "w": 4,
+                "h": 4,
                 "type": "categorical",
                 "title": _("Top doctypes today"),
                 "config": {
@@ -181,7 +207,9 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
                 raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
             if kind in {"sum", "avg", "min", "max"}:
                 if metric.get("field") not in aggregable_field_keys:
-                    raise DashboardLayoutError(f"widget {wid}: metric.field must be an aggregable numeric field")
+                    raise DashboardLayoutError(
+                        f"widget {wid}: metric.field must be an aggregable numeric field"
+                    )
         elif w["type"] == "timeseries":
             if cfg.get("chartType") not in DASHBOARD_CHART_TYPES["timeseries"]:
                 raise DashboardLayoutError(f"widget {wid}: chartType invalid")
@@ -190,7 +218,10 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
             metric = cfg.get("metric") or {}
             if metric.get("kind") not in DASHBOARD_METRIC_KINDS:
                 raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
-            if metric.get("kind") in {"sum", "avg", "min", "max"} and metric.get("field") not in aggregable_field_keys:
+            if (
+                metric.get("kind") in {"sum", "avg", "min", "max"}
+                and metric.get("field") not in aggregable_field_keys
+            ):
                 raise DashboardLayoutError(f"widget {wid}: metric.field must be aggregable")
             if cfg.get("groupBy") is not None and cfg["groupBy"] not in valid_field_keys:
                 raise DashboardLayoutError(f"widget {wid}: groupBy field unknown")
@@ -202,7 +233,10 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
             metric = cfg.get("metric") or {}
             if metric.get("kind") not in DASHBOARD_METRIC_KINDS:
                 raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
-            if metric.get("kind") in {"sum", "avg", "min", "max"} and metric.get("field") not in aggregable_field_keys:
+            if (
+                metric.get("kind") in {"sum", "avg", "min", "max"}
+                and metric.get("field") not in aggregable_field_keys
+            ):
                 raise DashboardLayoutError(f"widget {wid}: metric.field must be aggregable")
             topn = cfg.get("topN", 10)
             if topn != "all" and (not isinstance(topn, int) or topn < 1 or topn > 100):
@@ -212,7 +246,9 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
 
         compare = w.get("compare") or {}
         if compare.get("enabled") and compare.get("shift") != "previous_period":
-            raise DashboardLayoutError(f"widget {wid}: compare.shift only 'previous_period' supported in v1")
+            raise DashboardLayoutError(
+                f"widget {wid}: compare.shift only 'previous_period' supported in v1"
+            )
 
 
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
@@ -225,11 +261,13 @@ def dashboard_processed_over_time():
 
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
-    allowed_processes = sorted({
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {
+            (perm.split(".")[-2] + "." + perm.split(".")[-1])
+            for perm in perms
+            if perm.startswith(prefix)
+        }
+    )
     process_name = session.get("process_name_dashboard", "all")
 
     target_processes = allowed_processes if process_name == "all" else [process_name]
@@ -296,24 +334,31 @@ def dashboard_processed_over_time():
             conn.close()
 
 
-@cache.cached(timeout=60, key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
+@cache.cached(
+    timeout=60,
+    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+)
 def dashboard_kpi_stats():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
     prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted({
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {
+            (perm.split(".")[-2] + "." + perm.split(".")[-1])
+            for perm in perms
+            if perm.startswith(prefix)
+        }
+    )
     process_name = session.get("process_name_dashboard", "all")
 
     target_processes = allowed_processes if process_name == "all" else [process_name]
 
     if not target_processes:
-        return jsonify({"processed_today": 0, "processed_week": 0, "current_backlog": 0, "imported_today": 0})
+        return jsonify(
+            {"processed_today": 0, "processed_week": 0, "current_backlog": 0, "imported_today": 0}
+        )
 
     processed_today = 0
     imported_today = 0
@@ -370,45 +415,61 @@ def dashboard_kpi_stats():
 
         if target_processes:
             p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-            cursor_octo.execute(f"""
+            cursor_octo.execute(
+                f"""
                 SELECT COUNT(*) FROM t_WorkItems w
                 LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p on p.id = a.ProcessID
                 LEFT JOIN t_ActivityTypes act on act.id = a.ActivityTypeID
                 WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND act.Name = 'C+A';
-            """, p_params)
+            """,
+                p_params,
+            )
             current_backlog += cursor_octo.fetchone()[0]
 
-        return jsonify({
-            "processed_today": processed_today,
-            "imported_today": imported_today,
-            "current_backlog": current_backlog,
-        })
+        return jsonify(
+            {
+                "processed_today": processed_today,
+                "imported_today": imported_today,
+                "current_backlog": current_backlog,
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor_nex: cursor_nex.close()
-        if cursor_stat: cursor_stat.close()
-        if cursor_octo: cursor_octo.close()
-        if conn_nex: conn_nex.close()
-        if conn_stat: conn_stat.close()
-        if conn_octo: conn_octo.close()
+        if cursor_nex:
+            cursor_nex.close()
+        if cursor_stat:
+            cursor_stat.close()
+        if cursor_octo:
+            cursor_octo.close()
+        if conn_nex:
+            conn_nex.close()
+        if conn_stat:
+            conn_stat.close()
+        if conn_octo:
+            conn_octo.close()
 
 
-@cache.cached(timeout=120, key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
+@cache.cached(
+    timeout=120,
+    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+)
 def dashboard_hourly_stats():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
     prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted({
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {
+            (perm.split(".")[-2] + "." + perm.split(".")[-1])
+            for perm in perms
+            if perm.startswith(prefix)
+        }
+    )
     process_name = session.get("process_name_dashboard", "all")
     target_processes = allowed_processes if process_name == "all" else [process_name]
 
@@ -457,33 +518,44 @@ def dashboard_hourly_stats():
             for row in cursor_stat.fetchall():
                 hourly[row.h] = hourly.get(row.h, 0) + row.total
 
-        return jsonify({
-            "labels": [f"{h:02d}:00" for h in range(24)],
-            "data": [hourly.get(h, 0) for h in range(24)],
-        })
+        return jsonify(
+            {
+                "labels": [f"{h:02d}:00" for h in range(24)],
+                "data": [hourly.get(h, 0) for h in range(24)],
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch hourly_stats: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor_nex: cursor_nex.close()
-        if cursor_stat: cursor_stat.close()
-        if conn_nex: conn_nex.close()
-        if conn_stat: conn_stat.close()
+        if cursor_nex:
+            cursor_nex.close()
+        if cursor_stat:
+            cursor_stat.close()
+        if conn_nex:
+            conn_nex.close()
+        if conn_stat:
+            conn_stat.close()
 
 
-@cache.cached(timeout=300, key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
+@cache.cached(
+    timeout=300,
+    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+)
 def dashboard_avg_processing_time():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
     prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted({
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {
+            (perm.split(".")[-2] + "." + perm.split(".")[-1])
+            for perm in perms
+            if perm.startswith(prefix)
+        }
+    )
     process_name = session.get("process_name_dashboard", "all")
     target_processes = allowed_processes if process_name == "all" else [process_name]
 
@@ -552,10 +624,14 @@ def dashboard_avg_processing_time():
         current_app.logger.error(f"Failed to fetch avg_processing_time: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
-        if cursor_nex: cursor_nex.close()
-        if cursor_stat: cursor_stat.close()
-        if conn_nex: conn_nex.close()
-        if conn_stat: conn_stat.close()
+        if cursor_nex:
+            cursor_nex.close()
+        if cursor_stat:
+            cursor_stat.close()
+        if conn_nex:
+            conn_nex.close()
+        if conn_stat:
+            conn_stat.close()
 
 
 # ----------------------------- dashboard page + filter ----------------------------- #
@@ -573,11 +649,13 @@ def dashboard():
         fullname = session.get("fullname")
 
         prefix = "dashboard.filter.process."
-        allowed_processes = sorted({
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        })
+        allowed_processes = sorted(
+            {
+                (perm.split(".")[-2] + "." + perm.split(".")[-1])
+                for perm in perms
+                if perm.startswith(prefix)
+            }
+        )
 
         process_name = request.args.get("prcfD", "all")
         if process_name != "all" and process_name not in allowed_processes:
@@ -604,11 +682,13 @@ def dashboard_set_filter():
         return jsonify({"error": "Not authorized"}), 401
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
-    allowed_processes = sorted({
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {
+            (perm.split(".")[-2] + "." + perm.split(".")[-1])
+            for perm in perms
+            if perm.startswith(prefix)
+        }
+    )
     process_name = request.json.get("process_name", "all")
     if process_name != "all" and process_name not in allowed_processes:
         process_name = "all"
@@ -620,20 +700,23 @@ def dashboard_set_filter():
 
 
 @require_permission("dashboard.view")
-@cache.cached(timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{str(get_locale())}")
+@cache.cached(
+    timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{str(get_locale())}"
+)
 def dashboard_field_metadata():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
-    allowed_processes = sorted({
-        (p.split(".")[-2] + "." + p.split(".")[-1])
-        for p in perms if p.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {(p.split(".")[-2] + "." + p.split(".")[-1]) for p in perms if p.startswith(prefix)}
+    )
 
     current_lang = str(get_locale())
-    lang_col = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}.get(current_lang, "EnglishLabel")
+    lang_col = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}.get(
+        current_lang, "EnglishLabel"
+    )
 
     conn = None
     try:
@@ -642,14 +725,19 @@ def dashboard_field_metadata():
 
         cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
         meta_rows = cur.fetchall()
-        meta_by_key = {r.FieldKey: {
-            "field": r.FieldKey,
-            "type": r.DataType,
-            "aggregable": bool(r.Aggregable),
-            "sortable": bool(r.Sortable),
-        } for r in meta_rows}
+        meta_by_key = {
+            r.FieldKey: {
+                "field": r.FieldKey,
+                "type": r.DataType,
+                "aggregable": bool(r.Aggregable),
+                "sortable": bool(r.Sortable),
+            }
+            for r in meta_rows
+        }
 
-        cur.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
+        cur.execute(
+            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
+        )
         for r in cur.fetchall():
             if r.FieldKey in meta_by_key:
                 meta_by_key[r.FieldKey]["label"] = getattr(r, lang_col) or r.EnglishLabel
@@ -664,7 +752,7 @@ def dashboard_field_metadata():
                 continue
             for i, col in enumerate(cols):
                 if row[i + 1]:
-                    fk = col[len("col_"):]
+                    fk = col[len("col_") :]
                     availability.setdefault(fk, []).append(row.ProcessName)
 
         for fk in ("processname", "status"):
@@ -720,8 +808,7 @@ def dashboard_put_layout():
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
     allowed_processes = {
-        (p.split(".")[-2] + "." + p.split(".")[-1])
-        for p in perms if p.startswith(prefix)
+        (p.split(".")[-2] + "." + p.split(".")[-1]) for p in perms if p.startswith(prefix)
     }
 
     payload = request.get_json(silent=True)
@@ -744,13 +831,16 @@ def dashboard_put_layout():
 
         layout_str = json.dumps(payload, ensure_ascii=False)
 
-        cur.execute("""
+        cur.execute(
+            """
             MERGE DashboardLayouts AS t
             USING (SELECT ? AS UserID, ? AS LayoutJSON) AS s
             ON t.UserID = s.UserID
             WHEN MATCHED THEN UPDATE SET LayoutJSON = s.LayoutJSON, UpdatedAt = SYSUTCDATETIME()
             WHEN NOT MATCHED THEN INSERT (UserID, LayoutJSON) VALUES (s.UserID, s.LayoutJSON);
-        """, (userid, layout_str))
+        """,
+            (userid, layout_str),
+        )
         conn.commit()
         return jsonify({"ok": True})
     except Exception as e:
@@ -839,7 +929,9 @@ def _resolve_aggregation_column(process_name, field_key):
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cur.description if c[0].startswith("col_")]
         select_cols = ", ".join(cols)
-        cur.execute(f"SELECT {select_cols} FROM SearchConfig WHERE ProcessName = ?", (process_name,))
+        cur.execute(
+            f"SELECT {select_cols} FROM SearchConfig WHERE ProcessName = ?", (process_name,)
+        )
         row = cur.fetchone()
         if not row:
             _search_config_cache[process_name] = {}
@@ -848,7 +940,7 @@ def _resolve_aggregation_column(process_name, field_key):
         for i, col in enumerate(cols):
             val = row[i]
             if val:
-                mapping[col[len("col_"):]] = val
+                mapping[col[len("col_") :]] = val
         _search_config_cache[process_name] = mapping
         return mapping.get(field_key)
     finally:
@@ -859,7 +951,9 @@ def _build_kpi_sql(widget, filters, configs):
     metric = widget["config"]["metric"]
     kind = metric["kind"]
     field = metric.get("field")
-    start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
+    start_date, end_date = _resolve_date_range(
+        filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo")
+    )
     status = filters.get("status")
 
     if not configs:
@@ -891,7 +985,7 @@ def _build_kpi_sql(widget, filters, configs):
         if end_date is not None and status != "Ready":
             where.append(f"CAST({export_col} AS DATE) <= ?")
             params.append(end_date.isoformat())
-        for f in (filters.get("docFilters") or []):
+        for f in filters.get("docFilters") or []:
             col = _resolve_aggregation_column(row.ProcessName, f["field"])
             if not col:
                 continue
@@ -901,7 +995,14 @@ def _build_kpi_sql(widget, filters, configs):
         sub_qs.append(f"SELECT {expr} AS v FROM [{DB_STATISTICS}].{tbl}{where_sql}")
     if not sub_qs:
         return "", []
-    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[kind]
+    outer_agg = {
+        "count": "SUM",
+        "sum": "SUM",
+        "avg": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+        "proc_time_avg": "AVG",
+    }[kind]
     full = f"SELECT {outer_agg}(v) FROM ({' UNION ALL '.join(sub_qs)}) t"
     return full, params
 
@@ -935,7 +1036,7 @@ def _metric_expr(metric, process_name):
 
 def _doc_filter_clauses(filters, process_name, params_out):
     clauses = []
-    for f in (filters.get("docFilters") or []):
+    for f in filters.get("docFilters") or []:
         col = _resolve_aggregation_column(process_name, f["field"])
         if not col:
             continue
@@ -948,7 +1049,9 @@ def _build_timeseries_sql(widget, filters, configs):
     cfg = widget["config"]
     bucket = cfg["bucket"]
     metric = cfg["metric"]
-    start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
+    start_date, end_date = _resolve_date_range(
+        filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo")
+    )
 
     if not configs:
         return "", []
@@ -968,9 +1071,11 @@ def _build_timeseries_sql(widget, filters, configs):
                 continue
         where = []
         if start_date is not None:
-            where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
+            where.append(f"CAST({export_col} AS DATE) >= ?")
+            params.append(start_date.isoformat())
         if end_date is not None:
-            where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
+            where.append(f"CAST({export_col} AS DATE) <= ?")
+            params.append(end_date.isoformat())
         where += _doc_filter_clauses(filters, row.ProcessName, params)
         where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
         sub_qs.append(
@@ -979,7 +1084,14 @@ def _build_timeseries_sql(widget, filters, configs):
         )
     if not sub_qs:
         return "", []
-    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
+    outer_agg = {
+        "count": "SUM",
+        "sum": "SUM",
+        "avg": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+        "proc_time_avg": "AVG",
+    }[metric["kind"]]
     full = (
         f"SELECT bucket, {outer_agg}(v) AS v "
         f"FROM ({' UNION ALL '.join(sub_qs)}) t "
@@ -994,7 +1106,9 @@ def _build_categorical_sql(widget, filters, configs):
     metric = cfg["metric"]
     top_n = cfg.get("topN", 10)
     sort = cfg.get("sort", "desc")
-    start_date, end_date = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
+    start_date, end_date = _resolve_date_range(
+        filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo")
+    )
 
     if not configs:
         return "", []
@@ -1025,9 +1139,11 @@ def _build_categorical_sql(widget, filters, configs):
 
         where = []
         if start_date is not None:
-            where.append(f"CAST({export_col} AS DATE) >= ?"); params.append(start_date.isoformat())
+            where.append(f"CAST({export_col} AS DATE) >= ?")
+            params.append(start_date.isoformat())
         if end_date is not None:
-            where.append(f"CAST({export_col} AS DATE) <= ?"); params.append(end_date.isoformat())
+            where.append(f"CAST({export_col} AS DATE) <= ?")
+            params.append(end_date.isoformat())
         where += _doc_filter_clauses(filters, row.ProcessName, params)
         where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
 
@@ -1038,7 +1154,14 @@ def _build_categorical_sql(widget, filters, configs):
         )
     if not sub_qs:
         return "", []
-    outer_agg = {"count": "SUM", "sum": "SUM", "avg": "AVG", "min": "MIN", "max": "MAX", "proc_time_avg": "AVG"}[metric["kind"]]
+    outer_agg = {
+        "count": "SUM",
+        "sum": "SUM",
+        "avg": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+        "proc_time_avg": "AVG",
+    }[metric["kind"]]
     order_sql = {"desc": "v DESC", "asc": "v ASC", "alpha": "dim ASC"}[sort]
     top_sql = "" if top_n == "all" else f"TOP {int(top_n)} "
     full = (
@@ -1087,9 +1210,18 @@ def _run_widget_queries(widget, queries, label_override=None):
 
     if not queries:
         if widget["type"] == "kpi":
-            return {"value": 0, "unit": "seconds" if widget["config"]["metric"]["kind"] == "proc_time_avg" else None,
-                    "warnings": ["no_data_in_scope"]}
-        return {"labels": [], "series": [{"label": series_label, "data": []}], "warnings": ["no_data_in_scope"]}
+            return {
+                "value": 0,
+                "unit": "seconds"
+                if widget["config"]["metric"]["kind"] == "proc_time_avg"
+                else None,
+                "warnings": ["no_data_in_scope"],
+            }
+        return {
+            "labels": [],
+            "series": [{"label": series_label, "data": []}],
+            "warnings": ["no_data_in_scope"],
+        }
 
     if widget["type"] == "kpi":
         kind = widget["config"]["metric"]["kind"]
@@ -1171,7 +1303,7 @@ def _run_widget_queries(widget, queries, label_override=None):
     else:
         items.sort(key=lambda kv: str(kv[0]))
     if top_n != "all":
-        items = items[:int(top_n)]
+        items = items[: int(top_n)]
     return {
         "labels": [str(k) for k, _v in items],
         "series": [{"label": series_label, "data": [v for _k, v in items]}],
@@ -1196,10 +1328,9 @@ def dashboard_widget_data():
     userid = session.get("userid")
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
-    allowed_processes = sorted({
-        (p.split(".")[-2] + "." + p.split(".")[-1])
-        for p in perms if p.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {(p.split(".")[-2] + "." + p.split(".")[-1]) for p in perms if p.startswith(prefix)}
+    )
 
     payload = request.get_json(silent=True) or {}
     widget = payload.get("widget")
@@ -1208,7 +1339,9 @@ def dashboard_widget_data():
         return jsonify({"error": _("Invalid widget")}), 400
 
     cache_ttl = 60 if widget["type"] == "kpi" else 300
-    cache_key = f"dash_widget_{_hash_widget_request(userid, widget, global_filters, allowed_processes)}"
+    cache_key = (
+        f"dash_widget_{_hash_widget_request(userid, widget, global_filters, allowed_processes)}"
+    )
     cached = cache.get(cache_key)
     if cached is not None:
         return jsonify(cached)
@@ -1243,9 +1376,13 @@ def dashboard_widget_compare():
         return jsonify({"error": _("Invalid widget")}), 400
 
     filters = _effective_filters(widget, global_filters)
-    s, e = _resolve_date_range(filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo"))
+    s, e = _resolve_date_range(
+        filters.get("datePreset"), filters.get("dateFrom"), filters.get("dateTo")
+    )
     if s is None or e is None:
-        return jsonify({"labels": [], "series": [], "warnings": ["compare_unavailable_no_date_range"]})
+        return jsonify(
+            {"labels": [], "series": [], "warnings": ["compare_unavailable_no_date_range"]}
+        )
     span_days = (e - s).days + 1
     new_e = s - timedelta(days=1)
     new_s = new_e - timedelta(days=span_days - 1)
@@ -1258,10 +1395,9 @@ def dashboard_widget_compare():
 
     perms = session.get("permissions", [])
     prefix = "dashboard.filter.process."
-    allowed_processes = sorted({
-        (p.split(".")[-2] + "." + p.split(".")[-1])
-        for p in perms if p.startswith(prefix)
-    })
+    allowed_processes = sorted(
+        {(p.split(".")[-2] + "." + p.split(".")[-1]) for p in perms if p.startswith(prefix)}
+    )
     try:
         queries = build_widget_query(shifted_widget, global_filters, allowed_processes)
         result = _run_widget_queries(shifted_widget, queries, label_override=_("Previous period"))
@@ -1275,7 +1411,10 @@ def dashboard_widget_compare():
 
 
 @require_permission("dashboard.view")
-@cache.cached(timeout=120, key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}")
+@cache.cached(
+    timeout=120,
+    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+)
 def api_recent_activity():
     conn = None
     try:
@@ -1283,12 +1422,17 @@ def api_recent_activity():
         process_name = session.get("process_name_dashboard", "all")
 
         perms = session.get("permissions", [])
-        allowed_processes = sorted({
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms if perm.startswith(prefix)
-        })
-        target_processes = allowed_processes if process_name == "all" else (
-            [process_name] if process_name in allowed_processes else []
+        allowed_processes = sorted(
+            {
+                (perm.split(".")[-2] + "." + perm.split(".")[-1])
+                for perm in perms
+                if perm.startswith(prefix)
+            }
+        )
+        target_processes = (
+            allowed_processes
+            if process_name == "all"
+            else ([process_name] if process_name in allowed_processes else [])
         )
 
         if not target_processes:
@@ -1299,7 +1443,8 @@ def api_recent_activity():
         activityinstancesToIgnore = get_activityinstancesToIgnore()
 
         p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
             SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
             FROM t_WorkItems twi
             JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
@@ -1309,7 +1454,9 @@ def api_recent_activity():
               AND tp.ClientName IN ({c_ph})
               AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
             ORDER BY twi.ModifiedAt DESC
-        """, p_params)
+        """,
+            p_params,
+        )
         raw_rows = list(cursor.fetchall())
         raw_rows.sort(key=lambda r: r.ModifiedAt, reverse=True)
 
@@ -1318,12 +1465,14 @@ def api_recent_activity():
             workitemdata, doc_id = get_workitemdata_param(row.ID, OCTO_DOMAIN)
             _ext, _urls, fields = get_extensions_urls_fields(workitemdata, doc_id, OCTO_DOMAIN)
             fields = {k: v for k, v in fields.items() if v}
-            activity.append({
-                "id": row.ID,
-                "time": row.ModifiedAt.strftime("%H:%M"),
-                "process": row.ProcessName,
-                "fields": fields,
-            })
+            activity.append(
+                {
+                    "id": row.ID,
+                    "time": row.ModifiedAt.strftime("%H:%M"),
+                    "process": row.ProcessName,
+                    "fields": fields,
+                }
+            )
 
         return jsonify(activity)
     except Exception as e:
@@ -1336,24 +1485,73 @@ def api_recent_activity():
 
 def register_routes(app):
     # legacy KPI endpoints
-    app.add_url_rule("/api/dashboard/processed_over_time", endpoint="dashboard_processed_over_time", view_func=dashboard_processed_over_time)
-    app.add_url_rule("/api/dashboard/kpi_stats", endpoint="dashboard_kpi_stats", view_func=dashboard_kpi_stats)
-    app.add_url_rule("/api/dashboard/hourly_stats", endpoint="dashboard_hourly_stats", view_func=dashboard_hourly_stats)
-    app.add_url_rule("/api/dashboard/avg_processing_time", endpoint="dashboard_avg_processing_time", view_func=dashboard_avg_processing_time)
+    app.add_url_rule(
+        "/api/dashboard/processed_over_time",
+        endpoint="dashboard_processed_over_time",
+        view_func=dashboard_processed_over_time,
+    )
+    app.add_url_rule(
+        "/api/dashboard/kpi_stats", endpoint="dashboard_kpi_stats", view_func=dashboard_kpi_stats
+    )
+    app.add_url_rule(
+        "/api/dashboard/hourly_stats",
+        endpoint="dashboard_hourly_stats",
+        view_func=dashboard_hourly_stats,
+    )
+    app.add_url_rule(
+        "/api/dashboard/avg_processing_time",
+        endpoint="dashboard_avg_processing_time",
+        view_func=dashboard_avg_processing_time,
+    )
 
     # dashboard page + filter
     app.add_url_rule("/dashboard", endpoint="dashboard", view_func=dashboard)
-    app.add_url_rule("/api/dashboard/set_filter", endpoint="dashboard_set_filter", view_func=dashboard_set_filter, methods=["POST"])
+    app.add_url_rule(
+        "/api/dashboard/set_filter",
+        endpoint="dashboard_set_filter",
+        view_func=dashboard_set_filter,
+        methods=["POST"],
+    )
 
     # field metadata + layout
-    app.add_url_rule("/api/dashboard/field_metadata", endpoint="dashboard_field_metadata", view_func=dashboard_field_metadata)
-    app.add_url_rule("/api/dashboard/layout", endpoint="dashboard_get_layout", view_func=dashboard_get_layout)
-    app.add_url_rule("/api/dashboard/layout", endpoint="dashboard_put_layout", view_func=dashboard_put_layout, methods=["PUT"])
-    app.add_url_rule("/api/dashboard/layout/reset", endpoint="dashboard_reset_layout", view_func=dashboard_reset_layout, methods=["POST"])
+    app.add_url_rule(
+        "/api/dashboard/field_metadata",
+        endpoint="dashboard_field_metadata",
+        view_func=dashboard_field_metadata,
+    )
+    app.add_url_rule(
+        "/api/dashboard/layout", endpoint="dashboard_get_layout", view_func=dashboard_get_layout
+    )
+    app.add_url_rule(
+        "/api/dashboard/layout",
+        endpoint="dashboard_put_layout",
+        view_func=dashboard_put_layout,
+        methods=["PUT"],
+    )
+    app.add_url_rule(
+        "/api/dashboard/layout/reset",
+        endpoint="dashboard_reset_layout",
+        view_func=dashboard_reset_layout,
+        methods=["POST"],
+    )
 
     # widget engine
-    app.add_url_rule("/api/dashboard/widget_data", endpoint="dashboard_widget_data", view_func=dashboard_widget_data, methods=["POST"])
-    app.add_url_rule("/api/dashboard/widget_compare", endpoint="dashboard_widget_compare", view_func=dashboard_widget_compare, methods=["POST"])
+    app.add_url_rule(
+        "/api/dashboard/widget_data",
+        endpoint="dashboard_widget_data",
+        view_func=dashboard_widget_data,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/dashboard/widget_compare",
+        endpoint="dashboard_widget_compare",
+        view_func=dashboard_widget_compare,
+        methods=["POST"],
+    )
 
     # recent activity
-    app.add_url_rule("/api/dashboard/recent_activity", endpoint="api_recent_activity", view_func=api_recent_activity)
+    app.add_url_rule(
+        "/api/dashboard/recent_activity",
+        endpoint="api_recent_activity",
+        view_func=api_recent_activity,
+    )

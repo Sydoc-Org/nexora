@@ -15,8 +15,17 @@ from datetime import datetime
 import requests
 from PIL import Image
 from flask import (
-    Response, current_app, flash, jsonify, make_response, redirect,
-    render_template, request, send_file, session, url_for,
+    Response,
+    current_app,
+    flash,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
@@ -28,11 +37,16 @@ from ..files import is_file_allowed
 from ..i18n import get_locale
 from ..notifications import create_notification
 from ..octo import (
-    get_access_token, get_activity_type_name, get_domain_for_workitem,
-    get_extensions_urls_fields, get_media, get_workitemdata_param,
+    get_access_token,
+    get_activity_type_name,
+    get_domain_for_workitem,
+    get_extensions_urls_fields,
+    get_media,
+    get_workitemdata_param,
 )
 from ..process_helpers import (
-    get_activityinstancesToIgnore, get_params_from_process_list,
+    get_activityinstancesToIgnore,
+    get_params_from_process_list,
     prepare_process_selection_sql,
 )
 from ..security import has_permission, pageVisability, require_permission
@@ -75,7 +89,9 @@ def api_config_fields():
         cursor = conn.cursor()
 
         try:
-            cursor.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
+            cursor.execute(
+                "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
+            )
             for row in cursor.fetchall():
                 translated_label = getattr(row, target_column) or row.EnglishLabel
                 db_labels_map[row.FieldKey] = translated_label
@@ -101,10 +117,12 @@ def api_config_fields():
                     field_key = col_name.replace("col_", "")
                     nice_label = db_labels_map.get(field_key, field_key.replace("_", " ").title())
 
-                    fields.append({
-                        "value": field_key,
-                        "label": nice_label,
-                    })
+                    fields.append(
+                        {
+                            "value": field_key,
+                            "label": nice_label,
+                        }
+                    )
             fields.sort(key=lambda x: x["label"])
             search_options[proc_name] = fields
 
@@ -341,7 +359,7 @@ def _get_workitems_data(args, export_all=False):
         for temp_name, ids in _docfield_temp_tables:
             cursor.execute(f"CREATE TABLE {temp_name} (id NVARCHAR(255))")
             for i in range(0, len(ids), 1000):
-                batch = ids[i:i + 1000]
+                batch = ids[i : i + 1000]
                 cursor.execute(
                     f"INSERT INTO {temp_name}(id) VALUES {','.join(['(?)'] * len(batch))}",
                     batch,
@@ -351,18 +369,22 @@ def _get_workitems_data(args, export_all=False):
         full_params = list(params) + extra_params
 
         # count pass
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
             SELECT COUNT(twi.ID)
             FROM t_WorkItems twi
             INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
             INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
             LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
             WHERE {full_where}
-        """, full_params)
+        """,
+            full_params,
+        )
         total_items = cursor.fetchone()[0] or 0
 
         # data pass
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
             WITH WorkitemCTE AS (
                 SELECT
                     twi.ModifiedAt, twi.ID AS WorkItemID,
@@ -397,16 +419,20 @@ def _get_workitems_data(args, export_all=False):
             FROM WorkitemCTE WHERE rn = 1
             ORDER BY ModifiedAt DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """, full_params + [offset, per_page])
+        """,
+            full_params + [offset, per_page],
+        )
         for row in cursor.fetchall():
-            workitems_list.append({
-                "modifiedat": row.ModifiedAt,
-                "workitemid": row.WorkItemID,
-                "status": row.Status,
-                "current_stage": row.CurrentStage,
-                "priority": row.Priority or 0,
-                "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-            })
+            workitems_list.append(
+                {
+                    "modifiedat": row.ModifiedAt,
+                    "workitemid": row.WorkItemID,
+                    "status": row.Status,
+                    "current_stage": row.CurrentStage,
+                    "priority": row.Priority or 0,
+                    "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
+                }
+            )
 
     except Exception as e:
         current_app.logger.error(f"Database error in _get_workitems_data: {e}")
@@ -539,7 +565,9 @@ def export_workitems_csv():
     include_images = "images" in include_set and has_permission("workitems.details.view.images")
 
     ids_param = request.args.get("ids", "").strip()
-    specific_ids = set(int(i) for i in ids_param.split(",") if i.strip().isdigit()) if ids_param else set()
+    specific_ids = (
+        set(int(i) for i in ids_param.split(",") if i.strip().isdigit()) if ids_param else set()
+    )
 
     try:
         result = _get_workitems_data(request.args, export_all=True)
@@ -586,11 +614,17 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+                            extensions, urls, fields = get_extensions_urls_fields(
+                                workitemdata, document_id, domain
+                            )
                             detail["fields"] = fields
-                            cache.set(f"media_info_{wid}", {"fields": fields, "media_count": len(urls)})
+                            cache.set(
+                                f"media_info_{wid}", {"fields": fields, "media_count": len(urls)}
+                            )
                             if urls:
-                                cache.set(f"media_data_{wid}", {"extensions": extensions, "urls": urls})
+                                cache.set(
+                                    f"media_data_{wid}", {"extensions": extensions, "urls": urls}
+                                )
                     if _include_images:
                         cached_media = cache.get(f"media_data_{wid}")
                         if cached_media:
@@ -608,7 +642,9 @@ def export_workitems_csv():
                                         img_bytes = buf.getvalue()
                                 detail["images"].append(base64.b64encode(img_bytes).decode("utf-8"))
                             except Exception as img_err:
-                                _app.logger.warning(f"Export: image {i} for {wid} failed: {img_err}")
+                                _app.logger.warning(
+                                    f"Export: image {i} for {wid} failed: {img_err}"
+                                )
                 except Exception as e:
                     _app.logger.error(f"Export: doc fields error for {wid}: {e}")
 
@@ -623,19 +659,27 @@ def export_workitems_csv():
                             f"WorkItemAudits?WorkItemID={wid}&VerifyAuditSignatures=true"
                         )
                         token = get_access_token(domain)
-                        resp = requests.get(audit_url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
+                        resp = requests.get(
+                            audit_url, headers={"Authorization": f"Bearer {token}"}, timeout=15
+                        )
                         resp.raise_for_status()
                         audits_data = resp.json()
                         unique_acts = {}
-                        for audit in (audits_data.get("Audits", []) if isinstance(audits_data, dict) else []):
+                        for audit in (
+                            audits_data.get("Audits", []) if isinstance(audits_data, dict) else []
+                        ):
                             aid = audit.get("ActivityInstanceID")
                             if aid and aid not in unique_acts:
-                                unique_acts[aid] = datetime.fromisoformat(audit["TimeStamp"]).strftime("%Y-%m-%d %H:%M:%S")
+                                unique_acts[aid] = datetime.fromisoformat(
+                                    audit["TimeStamp"]
+                                ).strftime("%Y-%m-%d %H:%M:%S")
                         history_list = []
                         total = len(unique_acts)
                         for i, (aid, ts) in enumerate(unique_acts.items()):
                             name = get_activity_type_name(aid, domain)
-                            history_list.append({"Activity": name, "DateTime": ts, "Step": total - i})
+                            history_list.append(
+                                {"Activity": name, "DateTime": ts, "Step": total - i}
+                            )
                         cache.set(f"audithistory_{wid}", history_list, timeout=1800)
                         detail["history"] = history_list
                 except Exception as e:
@@ -668,7 +712,9 @@ def export_workitems_csv():
     max_images = 0
     if include_images:
         for w in workitems:
-            max_images = max(max_images, len(details_map.get(w["workitemid"], {}).get("images", [])))
+            max_images = max(
+                max_images, len(details_map.get(w["workitemid"], {}).get("images", []))
+            )
 
     priority_label = {3: "High", 2: "Medium", 1: "Low"}
     headers = ["Workitem ID", "Status", "Stage", "Last Movement At", "Priority", "Tags"]
@@ -687,7 +733,9 @@ def export_workitems_csv():
         wid = w["workitemid"]
         detail = details_map.get(wid, {"fields": {}, "history": [], "images": []})
         ts = w.get("modifiedat")
-        date_str = ts.strftime("%Y-%m-%d %H:%M:%S") if hasattr(ts, "strftime") else str(ts or "")[:19]
+        date_str = (
+            ts.strftime("%Y-%m-%d %H:%M:%S") if hasattr(ts, "strftime") else str(ts or "")[:19]
+        )
 
         row = [
             wid,
@@ -701,8 +749,12 @@ def export_workitems_csv():
             fields = detail["fields"]
             row.extend(fields.get(k, "") for k in all_field_keys)
         if include_history:
-            history = sorted(detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True)
-            row.append("; ".join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history))
+            history = sorted(
+                detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True
+            )
+            row.append(
+                "; ".join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history)
+            )
         if include_images:
             images = detail.get("images", [])
             row.extend(images[i] if i < len(images) else "" for i in range(max_images))
@@ -748,11 +800,13 @@ def workitems_overview():
 
         perms = session.get("permissions", [])
         prefix = "workitems.filter.process."
-        allowed_processes = sorted({
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        })
+        allowed_processes = sorted(
+            {
+                (perm.split(".")[-2] + "." + perm.split(".")[-1])
+                for perm in perms
+                if perm.startswith(prefix)
+            }
+        )
 
         process_name = request.args.get("prcfW", "all")
         if process_name != "all" and process_name not in allowed_processes:
@@ -856,7 +910,10 @@ def import_workitems():
 
         try:
             file.save(file_path)
-            flash(_("File '{}' successfully imported into {}.").format(filename, process_name), "success")
+            flash(
+                _("File '{}' successfully imported into {}.").format(filename, process_name),
+                "success",
+            )
         except Exception as e:
             current_app.logger.error(f"Error saving imported file: {e}")
             flash(_("An error occurred while saving the file."), "error")
@@ -996,7 +1053,9 @@ def api_get_media_raw(workitem_id, media_index):
             _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
             cached_jpeg = cache.get(_tif_cache_key)
             if cached_jpeg is not None:
-                return send_file(io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False)
+                return send_file(
+                    io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False
+                )
 
             raw_media_bytes = get_media(target_url, domain)
             try:
@@ -1008,7 +1067,9 @@ def api_get_media_raw(workitem_id, media_index):
                     img.save(buffer, format="JPEG", quality=85)
                     jpeg_bytes = buffer.getvalue()
                     cache.set(_tif_cache_key, jpeg_bytes, timeout=3600)
-                    return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
+                    return send_file(
+                        io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False
+                    )
             except Exception as e:
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500
@@ -1055,7 +1116,9 @@ def get_audithistory(workitem_id):
         for audit in audits.get("Audits", []):
             activity_id = audit.get("ActivityInstanceID")
             if activity_id and activity_id not in unique_activities:
-                unique_activities[activity_id] = datetime.fromisoformat(audit["TimeStamp"]).strftime("%Y-%m-%d %H:%M:%S")
+                unique_activities[activity_id] = datetime.fromisoformat(
+                    audit["TimeStamp"]
+                ).strftime("%Y-%m-%d %H:%M:%S")
 
         complete_array = []
         total_steps = len(unique_activities)
@@ -1109,7 +1172,10 @@ def get_users_for_mentions():
                     """,
                     _org,
                 )
-        users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        users = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
         cache.set(_cache_key, users, timeout=900)
         return jsonify(users)
     except Exception as e:
@@ -1165,28 +1231,36 @@ def get_workitem_interactions(workitemid):
         meta_row = cursor.fetchone()
 
         if meta_row is None and not comments_data and not tags_data:
-            return jsonify({
-                "priority": 0,
-                "assigneduserid": "None",
-                "comments": [],
-                "tags": [],
-                "message": _("No data found for this workitem."),
-            }), 200
+            return jsonify(
+                {
+                    "priority": 0,
+                    "assigneduserid": "None",
+                    "comments": [],
+                    "tags": [],
+                    "message": _("No data found for this workitem."),
+                }
+            ), 200
 
         priority = meta_row[0] if (meta_row and meta_row[0] is not None) else 0
         assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else "None"
-        tags = [{"id": trow.TagID, "name": trow.TagName, "color": trow.TagColor} for trow in tags_data] if tags_data else []
+        tags = (
+            [{"id": trow.TagID, "name": trow.TagName, "color": trow.TagColor} for trow in tags_data]
+            if tags_data
+            else []
+        )
 
         comments = []
         if comments_data:
             for crow in comments_data:
-                comments.append({
-                    "CommentText": crow.CommentText,
-                    "Timestamp": crow.Timestamp.isoformat(),
-                    "username": crow.username,
-                    "userID": crow.userID,
-                    "userIcon": resolve_user_icon_url(crow.userID),
-                })
+                comments.append(
+                    {
+                        "CommentText": crow.CommentText,
+                        "Timestamp": crow.Timestamp.isoformat(),
+                        "username": crow.username,
+                        "userID": crow.userID,
+                        "userIcon": resolve_user_icon_url(crow.userID),
+                    }
+                )
         result = {
             "priority": priority,
             "assigneduserid": assigneduserid,
@@ -1245,7 +1319,9 @@ def add_workitem_comment(workitemid):
                     "INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)",
                     (comment_id, user.userID),
                 )
-                notification_link = url_for("workitems_overview", search=workitemid, _external=False)
+                notification_link = url_for(
+                    "workitems_overview", search=workitemid, _external=False
+                )
                 create_notification(
                     user.userID,
                     f"{session['username']} mentioned you on workitem {workitemid}",
@@ -1372,7 +1448,10 @@ def get_all_tags():
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-        tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        tags = [
+            dict(zip([column[0] for column in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
         cache.set("all_tags", tags, timeout=1800)
         return jsonify(tags)
     except Exception as e:
@@ -1397,7 +1476,10 @@ def api_workitems_page_init():
             conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-            tags = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+            tags = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in cursor.fetchall()
+            ]
             cache.set("all_tags", tags, timeout=1800)
         except Exception as e:
             current_app.logger.error(f"page_init: failed to fetch tags: {e}")
@@ -1427,7 +1509,10 @@ def api_workitems_page_init():
                         """,
                         _org,
                     )
-                users = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+                users = [
+                    dict(zip([column[0] for column in cursor.description], row))
+                    for row in cursor.fetchall()
+                ]
             else:
                 users = []
             cache.set(_users_key, users, timeout=900)
@@ -1442,13 +1527,19 @@ def api_workitems_page_init():
     prefix = "workitems.filter.process."
     allowed_processes = {
         (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms if perm.startswith(prefix)
+        for perm in perms
+        if perm.startswith(prefix)
     }
     current_lang = str(get_locale())
     _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
     field_config = cache.get(_fields_key)
     if field_config is None:
-        lang_column_map = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel", "en": "EnglishLabel"}
+        lang_column_map = {
+            "de": "GermanLabel",
+            "fr": "FrenchLabel",
+            "it": "ItalianLabel",
+            "en": "EnglishLabel",
+        }
         target_column = lang_column_map.get(current_lang, "EnglishLabel")
         search_options = {}
         db_labels_map = {}
@@ -1457,7 +1548,9 @@ def api_workitems_page_init():
             conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
             try:
-                cursor.execute("SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels")
+                cursor.execute(
+                    "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
+                )
                 for row in cursor.fetchall():
                     translated_label = getattr(row, target_column) or row.EnglishLabel
                     db_labels_map[row.FieldKey] = translated_label
@@ -1475,7 +1568,9 @@ def api_workitems_page_init():
                 for i, col_name in enumerate(cols):
                     if row[i + 1]:
                         field_key = col_name.replace("col_", "")
-                        nice_label = db_labels_map.get(field_key, field_key.replace("_", " ").title())
+                        nice_label = db_labels_map.get(
+                            field_key, field_key.replace("_", " ").title()
+                        )
                         fields.append({"value": field_key, "label": nice_label})
                 fields.sort(key=lambda x: x["label"])
                 search_options[proc_name] = fields
@@ -1519,20 +1614,26 @@ def add_tag_to_workitem(workitemid):
             )
             tag_id = cursor.fetchone().TagID
 
-        cursor.execute("SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id))
+        cursor.execute(
+            "SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id)
+        )
         if cursor.fetchone():
             return jsonify({"success": False, "message": _("Workitem already has this tag.")}), 409
 
-        cursor.execute("INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id))
+        cursor.execute(
+            "INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id)
+        )
         conn.commit()
         cache.delete(f"interactions_{workitemid}")
         cache.delete("all_tags")
 
-        return jsonify({
-            "success": True,
-            "message": _("Tag added successfully."),
-            "tag": {"TagID": tag_id, "TagName": tag_name, "TagColor": tag_color},
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": _("Tag added successfully."),
+                "tag": {"TagID": tag_id, "TagName": tag_name, "TagColor": tag_color},
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Error adding tag to workitem {workitemid}: {e}")
@@ -1577,22 +1678,84 @@ def remove_tag_from_workitem(workitemid, tag_id):
 
 
 def register_routes(app):
-    app.add_url_rule("/api/config/fields", endpoint="api_config_fields", view_func=api_config_fields)
-    app.add_url_rule("/api/docfield_values", endpoint="api_docfield_values", view_func=api_docfield_values)
+    app.add_url_rule(
+        "/api/config/fields", endpoint="api_config_fields", view_func=api_config_fields
+    )
+    app.add_url_rule(
+        "/api/docfield_values", endpoint="api_docfield_values", view_func=api_docfield_values
+    )
     app.add_url_rule("/api/workitems", endpoint="api_workitems", view_func=api_workitems)
-    app.add_url_rule("/api/export/workitems/csv", endpoint="export_workitems_csv", view_func=export_workitems_csv)
+    app.add_url_rule(
+        "/api/export/workitems/csv", endpoint="export_workitems_csv", view_func=export_workitems_csv
+    )
     app.add_url_rule("/workitems", endpoint="workitems_overview", view_func=workitems_overview)
-    app.add_url_rule("/import_workitems", endpoint="import_workitems", view_func=import_workitems, methods=["POST"])
-    app.add_url_rule("/api/workitem/<int:workitemid>", endpoint="get_single_workitem", view_func=get_single_workitem)
-    app.add_url_rule("/api/get_media_info/<int:workitem_id>", endpoint="api_get_media_info", view_func=api_get_media_info)
-    app.add_url_rule("/api/get_media_raw/<int:workitem_id>/<int:media_index>", endpoint="api_get_media_raw", view_func=api_get_media_raw)
-    app.add_url_rule("/api/get_audithistory/<int:workitem_id>", endpoint="get_audithistory", view_func=get_audithistory)
-    app.add_url_rule("/api/users", endpoint="get_users_for_mentions", view_func=get_users_for_mentions)
-    app.add_url_rule("/api/workitem/<int:workitemid>/interactions", endpoint="get_workitem_interactions", view_func=get_workitem_interactions)
-    app.add_url_rule("/api/workitem/<int:workitemid>/comment", endpoint="add_workitem_comment", view_func=add_workitem_comment, methods=["POST"])
-    app.add_url_rule("/api/workitem/<int:workitemid>/assign", endpoint="assign_workitem", view_func=assign_workitem, methods=["POST"])
-    app.add_url_rule("/api/workitem/<int:workitemid>/priority", endpoint="set_workitem_priority", view_func=set_workitem_priority, methods=["POST"])
+    app.add_url_rule(
+        "/import_workitems",
+        endpoint="import_workitems",
+        view_func=import_workitems,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>",
+        endpoint="get_single_workitem",
+        view_func=get_single_workitem,
+    )
+    app.add_url_rule(
+        "/api/get_media_info/<int:workitem_id>",
+        endpoint="api_get_media_info",
+        view_func=api_get_media_info,
+    )
+    app.add_url_rule(
+        "/api/get_media_raw/<int:workitem_id>/<int:media_index>",
+        endpoint="api_get_media_raw",
+        view_func=api_get_media_raw,
+    )
+    app.add_url_rule(
+        "/api/get_audithistory/<int:workitem_id>",
+        endpoint="get_audithistory",
+        view_func=get_audithistory,
+    )
+    app.add_url_rule(
+        "/api/users", endpoint="get_users_for_mentions", view_func=get_users_for_mentions
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/interactions",
+        endpoint="get_workitem_interactions",
+        view_func=get_workitem_interactions,
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/comment",
+        endpoint="add_workitem_comment",
+        view_func=add_workitem_comment,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/assign",
+        endpoint="assign_workitem",
+        view_func=assign_workitem,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/priority",
+        endpoint="set_workitem_priority",
+        view_func=set_workitem_priority,
+        methods=["POST"],
+    )
     app.add_url_rule("/api/tags", endpoint="get_all_tags", view_func=get_all_tags)
-    app.add_url_rule("/api/workitems_page_init", endpoint="api_workitems_page_init", view_func=api_workitems_page_init)
-    app.add_url_rule("/api/workitem/<int:workitemid>/tags", endpoint="add_tag_to_workitem", view_func=add_tag_to_workitem, methods=["POST"])
-    app.add_url_rule("/api/workitem/<int:workitemid>/tags/<int:tag_id>", endpoint="remove_tag_from_workitem", view_func=remove_tag_from_workitem, methods=["DELETE"])
+    app.add_url_rule(
+        "/api/workitems_page_init",
+        endpoint="api_workitems_page_init",
+        view_func=api_workitems_page_init,
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/tags",
+        endpoint="add_tag_to_workitem",
+        view_func=add_tag_to_workitem,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/workitem/<int:workitemid>/tags/<int:tag_id>",
+        endpoint="remove_tag_from_workitem",
+        view_func=remove_tag_from_workitem,
+        methods=["DELETE"],
+    )

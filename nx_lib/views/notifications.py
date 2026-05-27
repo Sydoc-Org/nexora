@@ -81,5 +81,12 @@ def mark_notifications_as_read():
 
 
 def register_routes(app):
-    app.add_url_rule("/api/notifications", endpoint="get_notifications", view_func=get_notifications)
-    app.add_url_rule("/api/notifications/mark_as_read", endpoint="mark_notifications_as_read", view_func=mark_notifications_as_read, methods=["POST"])
+    app.add_url_rule(
+        "/api/notifications", endpoint="get_notifications", view_func=get_notifications
+    )
+    app.add_url_rule(
+        "/api/notifications/mark_as_read",
+        endpoint="mark_notifications_as_read",
+        view_func=mark_notifications_as_read,
+        methods=["POST"],
+    )

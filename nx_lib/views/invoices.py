@@ -6,8 +6,15 @@ from datetime import datetime, timedelta
 
 import requests
 from flask import (
-    Response, current_app, flash, jsonify, redirect, render_template,
-    request, session, url_for,
+    Response,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 
@@ -23,11 +30,7 @@ def get_allowed_client_details():
     try:
         perms = session.get("permissions", [])
         prefix = "invoices.view."
-        allowed_names = sorted({
-            perm.split(".")[-1]
-            for perm in perms
-            if perm.startswith(prefix)
-        })
+        allowed_names = sorted({perm.split(".")[-1] for perm in perms if perm.startswith(prefix)})
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
@@ -90,7 +93,9 @@ def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None
                 status_map = {"Paid": [9], "Open": [8]}
                 target_status_ids = status_map.get(status, [])
                 if target_status_ids:
-                    invoices = [inv for inv in invoices if inv.get("kb_item_status_id") in target_status_ids]
+                    invoices = [
+                        inv for inv in invoices if inv.get("kb_item_status_id") in target_status_ids
+                    ]
 
             for inv in invoices:
                 inv["status_info"] = map_invoice_status(inv.get("kb_item_status_id"))
@@ -147,11 +152,9 @@ def getBexioClientIds():
     try:
         perms = session.get("permissions", [])
         prefix = "invoices.view."
-        allowed_client_invoice_views = sorted({
-            perm.split(".")[-1]
-            for perm in perms
-            if perm.startswith(prefix)
-        })
+        allowed_client_invoice_views = sorted(
+            {perm.split(".")[-1] for perm in perms if perm.startswith(prefix)}
+        )
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
@@ -192,8 +195,18 @@ def invoices():
         status_perm = has_permission("invoices.filter.status")
         status = request.args.get("status", "") if status_perm else None
         date_perm = has_permission("invoices.filter.date")
-        dateFrom = request.args.get("dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")) if date_perm else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-        dateTo = request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d")) if date_perm else datetime.now().strftime("%Y-%m-%d")
+        dateFrom = (
+            request.args.get(
+                "dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+            )
+            if date_perm
+            else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+        )
+        dateTo = (
+            request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d"))
+            if date_perm
+            else datetime.now().strftime("%Y-%m-%d")
+        )
 
         return render_template(
             "invoices.html",
@@ -220,10 +233,24 @@ def api_invoices():
             return jsonify({"error": _("Not authorized")}), 401
 
         selected_client_id = request.args.get("client_id")
-        search_nr = request.args.get("search", "") if has_permission("invoices.filter.invoiceid") else None
-        status = request.args.get("status", "") if has_permission("invoices.filter.status") else None
-        dateFrom = request.args.get("dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")) if has_permission("invoices.filter.date") else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-        dateTo = request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d")) if has_permission("invoices.filter.date") else datetime.now().strftime("%Y-%m-%d")
+        search_nr = (
+            request.args.get("search", "") if has_permission("invoices.filter.invoiceid") else None
+        )
+        status = (
+            request.args.get("status", "") if has_permission("invoices.filter.status") else None
+        )
+        dateFrom = (
+            request.args.get(
+                "dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+            )
+            if has_permission("invoices.filter.date")
+            else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+        )
+        dateTo = (
+            request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d"))
+            if has_permission("invoices.filter.date")
+            else datetime.now().strftime("%Y-%m-%d")
+        )
 
         allowed_ids = getBexioClientIds()
         target_ids = []
@@ -281,4 +308,8 @@ def download_invoice_pdf(invoice_id):
 def register_routes(app):
     app.add_url_rule("/invoices", endpoint="invoices", view_func=invoices)
     app.add_url_rule("/api/invoices", endpoint="api_invoices", view_func=api_invoices)
-    app.add_url_rule("/invoice/<int:invoice_id>/pdf", endpoint="download_invoice_pdf", view_func=download_invoice_pdf)
+    app.add_url_rule(
+        "/invoice/<int:invoice_id>/pdf",
+        endpoint="download_invoice_pdf",
+        view_func=download_invoice_pdf,
+    )

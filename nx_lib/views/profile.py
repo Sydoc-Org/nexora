@@ -6,7 +6,13 @@ import re
 
 import bcrypt
 from flask import (
-    current_app, flash, redirect, render_template, request, session, url_for,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 from PIL import Image
@@ -51,7 +57,10 @@ def update_profile():
             conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
 
-            if not re.search(r"^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
+            if (
+                not re.search(r"^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email)
+                or len(email) >= 50
+            ):
                 flash(_("Email Adress is not valid"), "failure_updateProfile")
                 return redirect(url_for("profile"))
 
@@ -79,7 +88,10 @@ def update_profile():
             if "file" in request.files and request.files["file"].filename != "":
                 f = request.files["file"]
                 if not is_file_allowed(f.filename, f.stream):
-                    flash(_("Invalid file format. Please upload a valid image."), "failure_updateProfile")
+                    flash(
+                        _("Invalid file format. Please upload a valid image."),
+                        "failure_updateProfile",
+                    )
                     return redirect(url_for("profile"))
                 try:
                     in_memory_file = io.BytesIO()
@@ -100,7 +112,10 @@ def update_profile():
                         disk_file.write(in_memory_file.read())
                 except Exception as e:
                     current_app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
-                    flash(_("Invalid file format. Please upload a valid image."), "failure_updateProfile")
+                    flash(
+                        _("Invalid file format. Please upload a valid image."),
+                        "failure_updateProfile",
+                    )
                     return redirect(url_for("profile"))
             flash(_("Profile updated successfully!"), "success_updateProfile")
             return redirect(url_for("profile"))
@@ -136,7 +151,10 @@ def change_password():
                 flash(_("All fields must be filled"), "failure_changePW")
                 return redirect(url_for("profile"))
             if not re.search(r"^\S{8,200}$", newPassword):
-                flash(_("New password has to be atleast 8 characters long, with no whitespaces"), "failure_changePW")
+                flash(
+                    _("New password has to be atleast 8 characters long, with no whitespaces"),
+                    "failure_changePW",
+                )
                 return redirect(url_for("profile"))
             conn = engineNexoraDB.raw_connection()
             cursor = conn.cursor()
@@ -205,6 +223,16 @@ def set_language(lang=None):
 
 def register_routes(app):
     app.add_url_rule("/profile", endpoint="profile", view_func=profile)
-    app.add_url_rule("/update_profile", endpoint="update_profile", view_func=update_profile, methods=["POST", "GET"])
-    app.add_url_rule("/change_password", endpoint="change_password", view_func=change_password, methods=["POST", "GET"])
+    app.add_url_rule(
+        "/update_profile",
+        endpoint="update_profile",
+        view_func=update_profile,
+        methods=["POST", "GET"],
+    )
+    app.add_url_rule(
+        "/change_password",
+        endpoint="change_password",
+        view_func=change_password,
+        methods=["POST", "GET"],
+    )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
