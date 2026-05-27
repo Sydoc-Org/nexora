@@ -163,7 +163,7 @@ def get_media(url, domain=None):
 
 
 @cache.memoize()
-def get_activity_type_name(activity_instance_id: str, domain: str = None) -> str:
+def get_activity_type_name(activity_instance_id: str, domain: str | None = None) -> str:
     if domain is None:
         domain = OCTO_DOMAIN
     activity_instances_url = (

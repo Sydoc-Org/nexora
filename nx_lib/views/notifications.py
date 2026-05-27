@@ -27,7 +27,7 @@ def get_notifications():
         )
 
         notifications = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         return jsonify(notifications)
@@ -65,7 +65,7 @@ def mark_notifications_as_read():
             WHERE UserID = ? AND NotificationID IN ({placeholders})
         """
 
-        params = [session["userid"]] + notification_ids
+        params = [session["userid"], *notification_ids]
         cursor.execute(query, params)
         conn.commit()
 
