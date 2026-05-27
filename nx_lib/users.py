@@ -8,14 +8,14 @@ from .db import engineNexoraDB
 from .security import has_permission
 
 
-def get_all_portal_users(fromRequest, action):
+def get_all_portal_users(from_request, action):
     conn = None
     cursor = None
     try:
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
 
-        if has_permission(f"{fromRequest}.{action}"):
+        if has_permission(f"{from_request}.{action}"):
             if has_permission("admin.interact.users.all"):
                 cursor.execute("SELECT userID, fullname FROM Users")
             else:
@@ -25,7 +25,7 @@ def get_all_portal_users(fromRequest, action):
                 )
 
         users = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         return users

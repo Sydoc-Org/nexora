@@ -22,7 +22,6 @@ from ..config import BEXIO_PAT
 from ..db import engineNexoraDB
 from ..security import has_permission, pageVisability, require_permission
 
-
 # --------------------------------- bexio ---------------------------------- #
 
 
@@ -62,23 +61,23 @@ def map_invoice_status(status_id):
     return {"text": _("Open"), "color": "blue"}
 
 
-def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None):
+def search_bexio_invoices(client_ids, date_from, date_to, search_nr=None, status=None):
     url = "https://api.bexio.com/2.0/kb_invoice/search"
-    accessToken = BEXIO_PAT
-    if not accessToken:
+    access_token = BEXIO_PAT
+    if not access_token:
         current_app.logger.error("BEXIO_PAT is not set.")
         return []
 
     headers = {
         "Accept": "application/json",
-        "Authorization": f"Bearer {accessToken}",
+        "Authorization": f"Bearer {access_token}",
     }
     all_invoices = []
-    for clientId in clientIds:
+    for client_id in client_ids:
         payload = [
-            {"field": "contact_id", "value": str(clientId), "criteria": "="},
-            {"field": "is_valid_from", "value": dateFrom, "criteria": ">="},
-            {"field": "is_valid_to", "value": dateTo, "criteria": "<="},
+            {"field": "contact_id", "value": str(client_id), "criteria": "="},
+            {"field": "is_valid_from", "value": date_from, "criteria": ">="},
+            {"field": "is_valid_to", "value": date_to, "criteria": "<="},
         ]
 
         if search_nr:
@@ -114,16 +113,16 @@ def searchBexioInvoices(clientIds, dateFrom, dateTo, search_nr=None, status=None
     return all_invoices
 
 
-def getBexioInvoicePDF(invoice_id):
+def get_bexio_invoice_pdf(invoice_id):
     url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}/pdf"
-    accessToken = BEXIO_PAT
-    if not accessToken:
+    access_token = BEXIO_PAT
+    if not access_token:
         current_app.logger.error("BEXIO_PAT is not set.")
         return None, None
 
     headers = {
         "Accept": "application/json",
-        "Authorization": f"Bearer {accessToken}",
+        "Authorization": f"Bearer {access_token}",
     }
 
     try:
@@ -146,7 +145,7 @@ def getBexioInvoicePDF(invoice_id):
         return None, None
 
 
-def getBexioClientIds():
+def get_bexio_client_ids():
     conn = None
     cursor = None
     try:
@@ -158,7 +157,7 @@ def getBexioClientIds():
 
         conn = engineNexoraDB.raw_connection()
         cursor = conn.cursor()
-        clientIds = []
+        client_ids = []
         for aciv in allowed_client_invoice_views:
             cursor.execute(
                 "SELECT bexioClientId FROM ClientInvoices WHERE ClientName = ?",
@@ -166,8 +165,8 @@ def getBexioClientIds():
             )
             row = cursor.fetchone()
             if row:
-                clientIds.append(row[0])
-        return clientIds
+                client_ids.append(row[0])
+        return client_ids
     except Exception as e:
         print(e)
     finally:
@@ -195,14 +194,14 @@ def invoices():
         status_perm = has_permission("invoices.filter.status")
         status = request.args.get("status", "") if status_perm else None
         date_perm = has_permission("invoices.filter.date")
-        dateFrom = (
+        date_from = (
             request.args.get(
                 "dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
             )
             if date_perm
             else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
         )
-        dateTo = (
+        date_to = (
             request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d"))
             if date_perm
             else datetime.now().strftime("%Y-%m-%d")
@@ -214,8 +213,8 @@ def invoices():
             userid=userid,
             search=search_nr,
             status=status,
-            dateFrom=dateFrom,
-            dateTo=dateTo,
+            dateFrom=date_from,
+            dateTo=date_to,
             search_nr_perm=search_nr_perm,
             status_perm=status_perm,
             date_perm=date_perm,
@@ -239,20 +238,20 @@ def api_invoices():
         status = (
             request.args.get("status", "") if has_permission("invoices.filter.status") else None
         )
-        dateFrom = (
+        date_from = (
             request.args.get(
                 "dateFrom", (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
             )
             if has_permission("invoices.filter.date")
             else (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
         )
-        dateTo = (
+        date_to = (
             request.args.get("dateTo", datetime.now().strftime("%Y-%m-%d"))
             if has_permission("invoices.filter.date")
             else datetime.now().strftime("%Y-%m-%d")
         )
 
-        allowed_ids = getBexioClientIds()
+        allowed_ids = get_bexio_client_ids()
         target_ids = []
         if selected_client_id:
             try:
@@ -269,10 +268,10 @@ def api_invoices():
         if not target_ids:
             return jsonify([])
 
-        invoices_list = searchBexioInvoices(
-            clientIds=target_ids,
-            dateFrom=dateFrom,
-            dateTo=dateTo,
+        invoices_list = search_bexio_invoices(
+            client_ids=target_ids,
+            date_from=date_from,
+            date_to=date_to,
             search_nr=search_nr,
             status=status,
         )
@@ -288,7 +287,7 @@ def download_invoice_pdf(invoice_id):
         return redirect(url_for("login"))
 
     try:
-        pdf_content, pdf_name = getBexioInvoicePDF(invoice_id)
+        pdf_content, pdf_name = get_bexio_invoice_pdf(invoice_id)
 
         if pdf_content and pdf_name:
             return Response(

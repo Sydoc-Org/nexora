@@ -140,17 +140,17 @@ def change_password():
             username = session["username"]
             userid = session["userid"]  # noqa: F841 (kept for parity)
 
-            currentPassword = request.form["currentPassword"]
-            newPassword = request.form["newPassword"]
-            confirmPassword = request.form["confirmPassword"]
+            current_password = request.form["currentPassword"]
+            new_password = request.form["newPassword"]
+            confirm_password = request.form["confirmPassword"]
 
-            if newPassword != confirmPassword:
+            if new_password != confirm_password:
                 flash(_("New passwords do not match"), "failure_changePW")
                 return redirect(url_for("profile"))
-            if not newPassword or not confirmPassword or not currentPassword:
+            if not new_password or not confirm_password or not current_password:
                 flash(_("All fields must be filled"), "failure_changePW")
                 return redirect(url_for("profile"))
-            if not re.search(r"^\S{8,200}$", newPassword):
+            if not re.search(r"^\S{8,200}$", new_password):
                 flash(
                     _("New password has to be atleast 8 characters long, with no whitespaces"),
                     "failure_changePW",
@@ -166,9 +166,9 @@ def change_password():
             if isinstance(stored_hash, str):
                 stored_hash = stored_hash.encode("utf-8")
 
-            if bcrypt.checkpw(currentPassword.encode("utf-8"), stored_hash):
+            if bcrypt.checkpw(current_password.encode("utf-8"), stored_hash):
                 salt = bcrypt.gensalt()
-                hash_bytes = bcrypt.hashpw(newPassword.encode("utf-8"), salt)
+                hash_bytes = bcrypt.hashpw(new_password.encode("utf-8"), salt)
                 hash_str = hash_bytes.decode("utf-8")
 
                 cursor.execute(
