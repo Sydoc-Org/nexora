@@ -52,6 +52,8 @@ function Show-Help {
     Write-Host "(requires a running instance)" -ForegroundColor Gray
     Write-Host "    -md, --maindir        cd into the nexora project directory"
     Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
+    Write-Host "    --doctor              Run preflight health checks " -NoNewline
+    Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Options:" -ForegroundColor Gray
     Write-Host "    -?, --help                 Show this help"
@@ -63,6 +65,10 @@ function Show-Help {
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
+    Write-Host "    --fast                     Skip externals + drift  " -NoNewline
+    Write-Host "(only with --doctor)" -ForegroundColor Gray
+    Write-Host "    --fix                      Auto-repair fixable warnings  " -NoNewline
+    Write-Host "(only with --doctor)" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Examples:" -ForegroundColor Gray
     Write-Host "    nx -u                                start"
@@ -73,6 +79,9 @@ function Show-Help {
     Write-Host "    nx --routes                          list all Flask routes"
     Write-Host "    nx --routes:admin                    list routes matching regex /admin/i"
     Write-Host "    nx --routes:^/api                    list routes whose path starts with /api"
+    Write-Host "    nx --doctor                          full preflight (env, DBs, migrations, services)"
+    Write-Host "    nx --doctor --fast                   skip external service calls"
+    Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
     Write-Host "    nx --env                             show current env from .env"
     Write-Host "    nx -u --env:staging                  start with STAGING env"
     Write-Host "    nx --loginas:username                switch browser session to username"
@@ -90,6 +99,8 @@ $browserRoute  = $null
 $routesPattern = $null
 $loginAs       = $null
 $envOverride   = $null
+$doctorFast    = $false
+$doctorFix     = $false
 $unknown       = @()
 
 for ($i = 0; $i -lt $args.Count; $i++) {
@@ -121,6 +132,19 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     if ($arg -match '^--routes(?::(.*))?$') {
         $action = 'routes'
         if ($Matches[1]) { $routesPattern = $Matches[1] }
+        continue
+    }
+    # --doctor [--fast] [--fix]
+    if ($arg -match '^--doctor$') {
+        $action = 'doctor'
+        continue
+    }
+    if ($arg -match '^--fast$') {
+        $doctorFast = $true
+        continue
+    }
+    if ($arg -match '^--fix$') {
+        $doctorFix = $true
         continue
     }
     switch -Exact ($arg.ToLower()) {
@@ -156,6 +180,11 @@ if (-not $action) { $action = if ($browser) { 'browser' } else { 'status' } }
 
 if ($verbose -and $action -notin @('start', 'restart')) {
     Write-Fail "-v / --verbose can only be used with -u / --up or -r / --restart"
+    exit 1
+}
+
+if (($doctorFast -or $doctorFix) -and $action -ne 'doctor') {
+    Write-Fail "--fast / --fix can only be used with --doctor"
     exit 1
 }
 
@@ -327,6 +356,36 @@ function Show-Routes {
     }
 }
 
+function Run-Doctor {
+    # No explicit `return` — anything emitted via return/Write-Output would
+    # be captured by an outer `$x = Run-Doctor` assignment and silently
+    # swallow the python subprocess output. Mirror the Show-Routes pattern:
+    # call & $Python and let its stdout flow through to the host. Exit code
+    # propagates via the automatic $LASTEXITCODE.
+    param([bool]$Fast, [bool]$Fix)
+    $envValue = if ($envOverride) { $envOverride } else { "INT" }
+    $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    $prevPyEnc = $env:PYTHONIOENCODING
+    try {
+        $env:ENVIRONMENT = $envValue
+        $env:PYTHONIOENCODING = "utf-8"
+        $extra = @()
+        if ($Fast) { $extra += '--fast' }
+        if ($Fix)  { $extra += '--fix'  }
+        Push-Location -LiteralPath $AppDir
+        try {
+            & $Python -m nx_lib.cli doctor @extra
+        } finally {
+            Pop-Location
+        }
+    } finally {
+        if ($null -eq $prev) { Remove-Item Env:ENVIRONMENT -ErrorAction SilentlyContinue }
+        else                  { $env:ENVIRONMENT = $prev }
+        if ($null -eq $prevPyEnc) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue }
+        else                       { $env:PYTHONIOENCODING = $prevPyEnc }
+    }
+}
+
 function Watch-Logs {
     Write-Dim "Streaming logs — Ctrl+C to stop watching, nexora keeps running"
     Write-Host ""
@@ -402,4 +461,10 @@ switch ($action) {
         }
     }
     'routes' { Show-Routes -Pattern $routesPattern }
+    'doctor' {
+        Run-Doctor -Fast:$doctorFast -Fix:$doctorFix
+        # $LASTEXITCODE was set by the python subprocess inside Run-Doctor
+        # and survives the function return (script-scope automatic variable).
+        exit $LASTEXITCODE
+    }
 }
