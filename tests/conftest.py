@@ -10,12 +10,11 @@ import os
 # caller deliberately set a different environment (e.g. for debug).
 os.environ.setdefault("ENVIRONMENT", "TEST")
 
-import pytest  # noqa: E402
-import pyotp  # noqa: E402
+import pyotp
+import pytest
 
-from nx_lib import create_app  # noqa: E402
-from nx_lib.db import engineNexoraDB  # noqa: E402
-
+from nx_lib import create_app
+from nx_lib.db import engineNexoraDB
 
 # Pinned TOTP secrets — must match sql/test/seed.sql exactly.
 TOTP_SECRETS = {
@@ -63,9 +62,11 @@ def db_conn():
 @pytest.fixture()
 def totp_for():
     """Compute the current TOTP code for a seeded test user."""
+
     def _totp(username):
         secret = TOTP_SECRETS[username]
         return pyotp.TOTP(secret).now()
+
     return _totp
 
 
@@ -79,6 +80,7 @@ def login(client, totp_for):
       2. POST /verify_2fa with the current TOTP code.
          - On success, session.clear() is called and full session state is set.
     """
+
     def _login(username="user@test.local", password=TEST_PASSWORD):
         resp = client.post(
             "/login",
@@ -105,4 +107,5 @@ def login(client, totp_for):
             )
 
         return client
+
     return _login

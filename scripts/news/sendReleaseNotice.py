@@ -1,31 +1,40 @@
-import os, requests, sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from nx_main import GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_USERNAME, GRAPH_PASSWORD, GRAPH_CLIENT_SECRET, engineNexoraDB
+import os
+import sys
+
+import requests
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+from nx_main import (
+    GRAPH_CLIENT_ID,
+    GRAPH_CLIENT_SECRET,
+    GRAPH_PASSWORD,
+    GRAPH_TENANT_ID,
+    GRAPH_USERNAME,
+    engineNexoraDB,
+)
+
 
 def sendReleaseNotice(email, FullName):
-
     def get_access_token():
-        uri = f'https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token'
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        uri = f"https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token"
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
         body = {
             "client_id": GRAPH_CLIENT_ID,
             "username": GRAPH_USERNAME,
             "password": GRAPH_PASSWORD,
             "grant_type": "password",
             "scope": "Mail.Send",
-            "client_secret": GRAPH_CLIENT_SECRET
+            "client_secret": GRAPH_CLIENT_SECRET,
         }
         try:
-            response  = requests.post(uri, headers=headers, data=body, timeout=10)
-            return response.json()['access_token']
+            response = requests.post(uri, headers=headers, data=body, timeout=10)
+            return response.json()["access_token"]
         except Exception as e:
             print(e)
 
-    uri = 'https://graph.microsoft.com/v1.0/me/sendMail'
+    uri = "https://graph.microsoft.com/v1.0/me/sendMail"
     access_token = get_access_token()
-    headers = { 'Authorization': f'Bearer {access_token}' }
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     FONT_FAMILY = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
     CONTAINER_STYLE = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
@@ -37,7 +46,7 @@ def sendReleaseNotice(email, FullName):
     LINK_STYLE = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
     TEXT_STYLE = "color: #4b5563; line-height: 1.6; font-size: 16px;"
 
-    LOGO_URL = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif" 
+    LOGO_URL = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
     LOGO_BANNER_URL = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
 
     html_content = f"""
@@ -48,13 +57,13 @@ def sendReleaseNotice(email, FullName):
         <title>Nexora Update</title>
     </head>
     <body style="margin: 0; padding: 0; background-color: #f3f4f6; {FONT_FAMILY}">
-        
+
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
             <tr>
                 <td align="center">
-                    
+
                     <table width="600" border="0" cellspacing="0" cellpadding="0" style="{CONTAINER_STYLE} border-radius: 8px;">
-                        
+
                         <tr>
                             <td align="center" style="padding-bottom: 20px;">
                                 <a href="https://nexora.sydoc.ch"><img src="{LOGO_URL}" alt="Nexora Logo" width="600" style="display: block;"></a>
@@ -80,7 +89,7 @@ def sendReleaseNotice(email, FullName):
                                 Mit diesem Update führen wir eine neue Chat‑Funktion ein, die die Kommunikation innerhalb von nexora deutlich vereinfacht.
                                     Zusätzlich könnt ihr nun Arbeitselemente direkt im Chat referenzieren, indem ihr die entsprechende ID im Format
                                     <strong>"/workitemid"</strong>
-                                    eingebt. 
+                                    eingebt.
                                     Weitere Verbesserungen und Optimierungen sind ebenfalls Teil dieses Updates, um eure Nutzungserfahrung noch effizienter und angenehmer zu gestalten.
                                 </p>
                                 <p style="{TEXT_STYLE}">
@@ -103,9 +112,9 @@ def sendReleaseNotice(email, FullName):
                             </td>
                         </tr>
 
-                        
 
-                        
+
+
                         <tr>
                             <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
                                 <a href="https://sydoc.ch"><img src="{LOGO_BANNER_URL}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
@@ -120,7 +129,7 @@ def sendReleaseNotice(email, FullName):
                         </tr>
 
                     </table>
-                    
+
                 </td>
             </tr>
         </table>
@@ -132,13 +141,10 @@ def sendReleaseNotice(email, FullName):
         body = {
             "message": {
                 "subject": "Update verfügbar: nexora 2.3.3 ist da!",
-                "body": {
-                    "contentType": "HTML",
-                    "content": html_content
-                },
-                "toRecipients": [{"emailAddress": {"address": email}}]
+                "body": {"contentType": "HTML", "content": html_content},
+                "toRecipients": [{"emailAddress": {"address": email}}],
             },
-            "saveToSentItems": True
+            "saveToSentItems": True,
         }
 
         response = requests.post(uri, headers=headers, json=body, timeout=10)
@@ -147,6 +153,7 @@ def sendReleaseNotice(email, FullName):
     except Exception as e:
         print(f"Error: {e}")
         return False
+
 
 conn = engineNexoraDB.raw_connection()
 cur = conn.cursor()

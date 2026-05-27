@@ -30,7 +30,6 @@ import pytest
 from babel.messages.mofile import read_mo
 from babel.messages.pofile import read_po
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TRANSLATIONS_DIR = REPO_ROOT / "translations"
 POT_PATH = REPO_ROOT / "messages.pot"
@@ -60,8 +59,17 @@ def test_pot_is_in_sync(tmp_path):
 
     # Use the same invocation as docs/howto/babel.md
     result = subprocess.run(
-        [sys.executable, "-m", "babel.messages.frontend", "extract",
-         "-F", str(BABEL_CFG), "-o", str(fresh_pot), "."],
+        [
+            sys.executable,
+            "-m",
+            "babel.messages.frontend",
+            "extract",
+            "-F",
+            str(BABEL_CFG),
+            "-o",
+            str(fresh_pot),
+            ".",
+        ],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -75,10 +83,12 @@ def test_pot_is_in_sync(tmp_path):
     only_in_fresh = fresh - committed
 
     if only_in_committed or only_in_fresh:
-        msg = ["messages.pot is out of sync with the source. Run:",
-               "    pybabel extract -F babel.cfg -o messages.pot .",
-               "    pybabel update -i messages.pot -d translations",
-               ""]
+        msg = [
+            "messages.pot is out of sync with the source. Run:",
+            "    pybabel extract -F babel.cfg -o messages.pot .",
+            "    pybabel update -i messages.pot -d translations",
+            "",
+        ]
         if only_in_fresh:
             msg.append(f"NEW strings in source but not in messages.pot ({len(only_in_fresh)}):")
             for mid, ctx in sorted(only_in_fresh, key=lambda x: str(x[0]))[:20]:
@@ -185,7 +195,8 @@ def test_mo_files_up_to_date(locale):
 
     missing = [k for k in po_translations if k not in mo_translations]
     mismatched = [
-        k for k in po_translations
+        k
+        for k in po_translations
         if k in mo_translations and po_translations[k] != mo_translations[k]
     ]
 
@@ -207,7 +218,8 @@ def test_mo_files_up_to_date(locale):
             lines.append(f"DIFFERENT translation in .mo vs .po ({len(mismatched)}):")
             for mid, ctx in mismatched[:10]:
                 lines.append(
-                    f"  - {mid!r}" + (f" [ctx={ctx!r}]" if ctx else "")
+                    f"  - {mid!r}"
+                    + (f" [ctx={ctx!r}]" if ctx else "")
                     + f"\n      .po: {po_translations[(mid, ctx)]!r}"
                     + f"\n      .mo: {mo_translations[(mid, ctx)]!r}"
                 )

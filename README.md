@@ -3,13 +3,11 @@
 Internal Sydoc portal: workitems, invoices, chat, admin, tenant-specific pages.
 Flask 3 / Python 3.13 / SQL Server / IIS (PROD).
 
-**Full product documentation:** https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774
-
 ## Quick start
 
 ```powershell
 # 1. Clone to a short path (not OneDrive)
-git clone <repo-url> C:\dev\nexora
+git clone https://github.com/Sydoc-Code/nexora.git C:\dev\nexora
 cd C:\dev\nexora
 
 # 2. Set up Python venv and dependencies (uv)
