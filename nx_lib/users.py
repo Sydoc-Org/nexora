@@ -4,7 +4,7 @@ import os
 
 from flask import current_app, session, url_for
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .security import has_permission
 
 
@@ -12,7 +12,7 @@ def get_all_portal_users(from_request, action):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         if has_permission(f"{from_request}.{action}"):

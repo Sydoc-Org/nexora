@@ -10,7 +10,7 @@ error handlers, security helpers, maintenance lockout) lives in the
 subsequent passes.
 
 Backwards compatibility: ``scripts/news/sendReleaseNotice.py`` does
-``from app import GRAPH_TENANT_ID, ..., engineNexoraDB``. Those names are
+``from app import GRAPH_TENANT_ID, ..., engine_nexora_db``. Those names are
 re-exported here via the ``from nx_lib.* import ...`` lines below.
 """
 

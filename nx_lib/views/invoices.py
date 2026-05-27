@@ -19,7 +19,7 @@ from flask import (
 from flask_babel import gettext as _
 
 from ..config import BEXIO_PAT
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..security import has_permission, page_visibility, require_permission
 
 # --------------------------------- bexio ---------------------------------- #
@@ -31,7 +31,7 @@ def get_allowed_client_details():
         prefix = "invoices.view."
         allowed_names = sorted({perm.split(".")[-1] for perm in perms if perm.startswith(prefix)})
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         clients = []
 
@@ -155,7 +155,7 @@ def get_bexio_client_ids():
             {perm.split(".")[-1] for perm in perms if perm.startswith(prefix)}
         )
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         client_ids = []
         for aciv in allowed_client_invoice_views:

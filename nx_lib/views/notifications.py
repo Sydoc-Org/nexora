@@ -3,7 +3,7 @@
 from flask import current_app, jsonify, request, session
 from flask_babel import gettext as _
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 
 
 def get_notifications():
@@ -13,7 +13,7 @@ def get_notifications():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -54,7 +54,7 @@ def mark_notifications_as_read():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         placeholders = ",".join(["?" for _id in notification_ids])

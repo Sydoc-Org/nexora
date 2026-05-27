@@ -18,7 +18,7 @@ from flask import (
     url_for,
 )
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .i18n import get_locale
 from .maintenance import (
     _MAINTENANCE_LOCKOUT_SKIP_PATHS,
@@ -68,7 +68,7 @@ def _enforce_active_session():
     if not sid:
         return
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT 1 FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
         row = cursor.fetchone()
@@ -98,7 +98,7 @@ def _reload_user_permissions():
 def _load_user_locale():
     if "userid" in session and "locale" not in session:
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT locale FROM Users WHERE userid = ?", [session["userid"]])
             row = cursor.fetchone()

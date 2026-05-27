@@ -33,7 +33,7 @@ from ..config import (
     GRAPH_USERNAME,
     IS_PROD,
 )
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..extensions import limiter, s
 from ..hooks import get_ip
 from ..maintenance import _maintenance_blocks_user
@@ -58,7 +58,7 @@ def _record_active_session(user_id):
             sid = session.get("_dev_sid") or _uuid.uuid4().hex
             session["_dev_sid"] = sid
         ip = (get_ip() or "")[:45]
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         # Upsert: a re-login with the same SID should refresh the row, not collide on PK.
         cursor.execute("DELETE FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
@@ -250,7 +250,7 @@ def init_2fa():
         totp = pyotp.TOTP(secret)
         if totp.verify(code):
             try:
-                conn = engineNexoraDB.raw_connection()
+                conn = engine_nexora_db.raw_connection()
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -313,7 +313,7 @@ def verify_2fa():
         code = request.form.get("code")
         user_id = session["pre_2fa_userid"]
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT TwoFASecret, username, fullname, email, organizationcode, locale FROM Users WHERE userid = ?",
@@ -367,7 +367,7 @@ def init_reset_password():
                 error=_("New password has to be atleast 8 characters long, with no whitespaces"),
             )
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -416,7 +416,7 @@ def init_reset_password():
 def dev_login(username):
     if IS_PROD:
         abort(404)
-    conn = engineNexoraDB.raw_connection()
+    conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -453,7 +453,7 @@ def login():
             return render_template("index.html", error=_("Invalid credentials")), 401
 
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute(
@@ -542,7 +542,7 @@ def set_new_password():
                 error=_("New password has to be atleast 8 characters long, with no whitespaces"),
             )
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -600,7 +600,7 @@ def request_password_reset():
     cursor = None
     try:
         request_email = request.form["email"]
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email,))
         rows = cursor.fetchone()

@@ -17,7 +17,7 @@ from flask import (
 from flask_babel import gettext as _
 from PIL import Image
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..files import is_file_allowed
 from ..security import page_visibility
 
@@ -54,7 +54,7 @@ def update_profile():
             fullname = request.form["fullName"]
             email = request.form["email"]
 
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
 
             if (
@@ -156,7 +156,7 @@ def change_password():
                     "failure_changePW",
                 )
                 return redirect(url_for("profile"))
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute("SELECT password FROM Users WHERE username = ?", username)
@@ -205,7 +205,7 @@ def set_language(lang=None):
             return redirect(url_for("profile"))
         userid = session["userid"]
         session["locale"] = lang
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE Users SET locale = ? WHERE userid = ?", [lang, userid])
         conn.commit()

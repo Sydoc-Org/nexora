@@ -31,7 +31,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN
-from ..db import engineNexoraDB, engineOctoDB, engineStatisticsDB
+from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
@@ -83,7 +83,7 @@ def api_config_fields():
     db_labels_map = {}
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         try:
@@ -139,7 +139,7 @@ def api_config_fields():
 def get_valid_search_columns():
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TOP 0 * FROM SearchConfig")
         valid_cols = [c[0].lower() for c in cursor.description if c[0].lower().startswith("col_")]
@@ -252,7 +252,7 @@ def _get_workitems_data(args, export_all=False):
         conn_nex = None
         cursor_nex = None
         try:
-            conn_nex = engineNexoraDB.raw_connection()
+            conn_nex = engine_nexora_db.raw_connection()
             cursor_nex = conn_nex.cursor()
 
             for docfield, docvalue in zip(docfields, docvalues, strict=False):
@@ -312,7 +312,7 @@ def _get_workitems_data(args, export_all=False):
 
                 stat_conn = None
                 try:
-                    stat_conn = engineStatisticsDB.raw_connection()
+                    stat_conn = engine_statistics_db.raw_connection()
                     stat_cur = stat_conn.cursor()
                     union_sql = " UNION ALL ".join(id_parts)
                     stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
@@ -351,7 +351,7 @@ def _get_workitems_data(args, export_all=False):
     conn = None
     cursor = None
     try:
-        conn = engineOctoDB.raw_connection()
+        conn = engine_octo_db.raw_connection()
         cursor = conn.cursor()
 
         for temp_name, ids in _docfield_temp_tables:
@@ -471,7 +471,7 @@ def api_docfield_values():
     conn = None
     cur = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
         query = f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL"
@@ -513,7 +513,7 @@ def api_docfield_values():
                         FROM ({full_union_sql}) t
                         ORDER BY Val
                     """
-                    stat_conn = engineStatisticsDB.raw_connection()
+                    stat_conn = engine_statistics_db.raw_connection()
                     stat_cur = stat_conn.cursor()
                     stat_cur.execute(final_sql)
                     raw_vals.extend(row.Val for row in stat_cur.fetchall())
@@ -930,7 +930,7 @@ def get_single_workitem(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineOctoDB.raw_connection()
+        conn = engine_octo_db.raw_connection()
         cursor = conn.cursor()
 
         query = f"""
@@ -1159,7 +1159,7 @@ def get_users_for_mentions():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if has_permission("workitems.details.add.comment"):
             if _all_users:
@@ -1200,7 +1200,7 @@ def get_workitem_interactions(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         sql_query = """
@@ -1291,7 +1291,7 @@ def add_workitem_comment(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1354,7 +1354,7 @@ def assign_workitem(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1404,7 +1404,7 @@ def set_workitem_priority(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1445,7 +1445,7 @@ def get_all_tags():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
         tags = [
@@ -1473,7 +1473,7 @@ def api_workitems_page_init():
     if tags is None:
         conn = None
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
             tags = [
@@ -1496,7 +1496,7 @@ def api_workitems_page_init():
     if users is None:
         conn = None
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             if has_permission("workitems.details.add.comment"):
                 if _all_users:
@@ -1545,7 +1545,7 @@ def api_workitems_page_init():
         db_labels_map = {}
         conn = None
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             try:
                 cursor.execute(
@@ -1599,7 +1599,7 @@ def add_tag_to_workitem(workitemid):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
@@ -1652,7 +1652,7 @@ def remove_tag_from_workitem(workitemid, tag_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(

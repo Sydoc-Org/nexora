@@ -4,14 +4,14 @@ view modules."""
 
 from flask import current_app
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 
 
 def create_notification(user_id, message, link=None, icon="fa-info-circle"):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """

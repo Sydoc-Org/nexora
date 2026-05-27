@@ -23,10 +23,10 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from ..db import (
-    engineGeneraliDB,
-    engineNexoraDB,
-    engineOctoDB,
-    engineStatisticsDB,
+    engine_generali_db,
+    engine_nexora_db,
+    engine_octo_db,
+    engine_statistics_db,
     ping_dbs_parallel,
 )
 from ..maintenance import (
@@ -58,7 +58,7 @@ def admin_dashboard():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("SELECT COUNT(*) FROM Users")
@@ -105,10 +105,10 @@ def admin_dashboard():
 
     db_health = ping_dbs_parallel(
         [
-            (engineNexoraDB, "Nexora"),
-            (engineOctoDB, "Octo"),
-            (engineStatisticsDB, "Stats"),
-            (engineGeneraliDB, "Generali"),
+            (engine_nexora_db, "Nexora"),
+            (engine_octo_db, "Octo"),
+            (engine_statistics_db, "Stats"),
+            (engine_generali_db, "Generali"),
         ],
         timeout_s=0.8,
     )
@@ -134,7 +134,7 @@ def admin_organizations_view():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
         organizations = [
@@ -178,7 +178,7 @@ def admin_add_organization():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization))
         conn.commit()
@@ -204,7 +204,7 @@ def admin_edit_organization(organizationcode):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE organizations SET organization=? WHERE organizationcode=?",
@@ -227,7 +227,7 @@ def admin_delete_organization(organizationcode):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM organizations WHERE organizationcode=?", (organizationcode,))
         conn.commit()
@@ -253,7 +253,7 @@ def api_admin_organizations_list():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT organizationcode, organization FROM organizations ORDER BY organization"
@@ -294,7 +294,7 @@ def admin_maintenance_view():
 def api_admin_maintenance_list():
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT ID, Title, Message, StartAt, EndAt, Severity, Active, BlockAccess, AnnounceMinutesBefore, CreatedBy, CreatedAt
@@ -321,7 +321,7 @@ def api_admin_maintenance_add():
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -362,7 +362,7 @@ def api_admin_maintenance_edit(banner_id):
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -400,7 +400,7 @@ def api_admin_maintenance_edit(banner_id):
 def api_admin_maintenance_delete(banner_id):
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM MaintenanceBanner WHERE ID = ?", [banner_id])
         if cursor.rowcount == 0:
@@ -425,7 +425,7 @@ def admin_logs_view():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
         organizations = [
@@ -505,7 +505,7 @@ def api_admin_logs_search():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM Logs WHERE {where_clause}", params)
@@ -592,7 +592,7 @@ def api_admin_logs_export():
         buf.seek(0)
         buf.truncate(0)
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         try:
             cursor = conn.cursor()
             cursor.execute(sql, params)
@@ -670,7 +670,7 @@ def admin_add_user():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessid = cursor.fetchone()[0]
@@ -709,7 +709,7 @@ def admin_edit_user(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
             current_app.logger.error(
@@ -760,7 +760,7 @@ def admin_user_detail(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -855,7 +855,7 @@ def api_admin_user_activity(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("SELECT username FROM Users WHERE userID = ?", (user_id,))
@@ -935,7 +935,7 @@ def admin_delete_user(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
         cursor.commit()
@@ -999,7 +999,7 @@ def admin_revoke_all_sessions(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT SessionID FROM ActiveSessions WHERE UserID = ?", (user_id,))
         sids = [row[0] for row in cursor.fetchall()]
@@ -1035,7 +1035,7 @@ def api_admin_users_list():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT userID, username, fullname, email, ap.name accessprofile, o.organization organization
@@ -1063,7 +1063,7 @@ def api_admin_users_list():
 def admin_recent_logs():
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT TOP 20 Timestamp, Username, HttpRequestMethod, Path, HttpResponseCode
@@ -1095,7 +1095,7 @@ def admin_active_sessions():
     Filtered to the last 24 hours so abandoned rows fall off naturally."""
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
@@ -1140,7 +1140,7 @@ def admin_access_control():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -1231,7 +1231,7 @@ def get_users_admin_access_control():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         where_parts = ["1=1"]
@@ -1279,7 +1279,7 @@ def get_profile_details(access_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1317,7 +1317,7 @@ def save_access_profile():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if access_id:
             cursor.execute(
@@ -1356,7 +1356,7 @@ def get_user_overrides(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT AccessID FROM Users WHERE UserID = ?", (user_id,))
         row = cursor.fetchone()
@@ -1398,7 +1398,7 @@ def api_admin_user_effective_permissions(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1505,7 +1505,7 @@ def save_user_overrides():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute("DELETE FROM UserPermissionOverride WHERE UserID=?", (user_id,))
@@ -1537,7 +1537,7 @@ def api_admin_permissions_list():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT
@@ -1579,7 +1579,7 @@ def api_admin_permission_users(perm_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT Code FROM Permission WHERE PermissionID = ?", (perm_id,))
         row = cursor.fetchone()
@@ -1624,7 +1624,7 @@ def api_admin_user_all_permissions(user_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1669,7 +1669,7 @@ def api_admin_permission_add():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO Permission (Code, Description, SortingCode) OUTPUT INSERTED.PermissionID VALUES (?, ?, ?)",
@@ -1707,7 +1707,7 @@ def api_admin_permission_edit(perm_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE Permission SET Code=?, Description=?, SortingCode=? WHERE PermissionID=?",
@@ -1734,7 +1734,7 @@ def api_admin_permission_delete(perm_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,)

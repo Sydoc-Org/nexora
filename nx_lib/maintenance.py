@@ -4,7 +4,7 @@ import time
 
 from flask import current_app
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .security import load_permissions_for_user
 
 MAINTENANCE_SEVERITIES = {"info", "warning", "critical"}
@@ -80,7 +80,7 @@ def _get_blocking_maintenance():
         return _MAINTENANCE_BLOCK_CACHE["data"]
     result = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity

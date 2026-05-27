@@ -16,7 +16,7 @@ from flask import (
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..files import is_file_allowed
 from ..notifications import create_notification
 from ..security import page_visibility, require_permission
@@ -49,7 +49,7 @@ def get_conversations():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         query = """
@@ -100,7 +100,7 @@ def start_conversation(target_user_id):
     current_user_id = session["userid"]
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         check_query = """
@@ -144,7 +144,7 @@ def get_chat_messages(conversation_id):
     userid = session["userid"]
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -202,7 +202,7 @@ def send_chat_message(conversation_id):
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -276,7 +276,7 @@ def upload_chat_file(conversation_id):
 
         conn = None
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             cursor.execute(
                 """

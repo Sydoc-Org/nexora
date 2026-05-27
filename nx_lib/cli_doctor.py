@@ -275,10 +275,10 @@ def _check_filesystem() -> list[CheckResult]:
 def _check_databases() -> list[CheckResult]:
     try:
         from .db import (
-            engineGeneraliDB,
-            engineNexoraDB,
-            engineOctoDB,
-            engineStatisticsDB,
+            engine_generali_db,
+            engine_nexora_db,
+            engine_octo_db,
+            engine_statistics_db,
             ping_dbs_parallel,
         )
     except Exception as exc:
@@ -292,10 +292,10 @@ def _check_databases() -> list[CheckResult]:
         ]
 
     targets = [
-        (engineNexoraDB, "NexoraDB"),
-        (engineOctoDB, "OctoDB"),
-        (engineStatisticsDB, "StatisticsDB"),
-        (engineGeneraliDB, "GeneraliDB"),
+        (engine_nexora_db, "NexoraDB"),
+        (engine_octo_db, "OctoDB"),
+        (engine_statistics_db, "StatisticsDB"),
+        (engine_generali_db, "GeneraliDB"),
     ]
     pings = ping_dbs_parallel(targets, timeout_s=3.0)
     pings_by_label = {p["label"]: p for p in pings}

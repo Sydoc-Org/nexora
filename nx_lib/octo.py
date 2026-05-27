@@ -16,7 +16,7 @@ from .config import (
     OCTO_DOMAIN,
     OCTO_GRANT_TYPE,
 )
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .extensions import cache
 
 
@@ -82,7 +82,7 @@ def get_index_field_mappings():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT SourceFieldName, TargetKey FROM IndexFieldMappings")
         for row in cursor.fetchall():

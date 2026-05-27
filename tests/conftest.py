@@ -14,7 +14,7 @@ import pyotp
 import pytest
 
 from nx_lib import create_app
-from nx_lib.db import engineNexoraDB
+from nx_lib.db import engine_nexora_db
 
 # Pinned TOTP secrets — must match sql/test/seed.sql exactly.
 TOTP_SECRETS = {
@@ -50,7 +50,7 @@ def db_conn():
     Anything written through this connection is rolled back at end-of-test,
     so tests can mutate freely without polluting other tests.
     """
-    conn = engineNexoraDB.connect()
+    conn = engine_nexora_db.connect()
     trans = conn.begin()
     try:
         yield conn

@@ -1,20 +1,21 @@
 """SQL Server engine factory and DB health-check helpers.
 
 Engines are created once at module-import time using credentials already
-loaded into nexora.config. Imports of ``engineNexoraDB`` etc. resolve to the
-same singleton objects everywhere.
+loaded into nexora.config. Imports of ``engine_nexora_db`` etc. resolve to
+the same singleton objects everywhere.
 """
 
 import time
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 from sqlalchemy import create_engine
 
 from . import config as cfg
 
 
-def getDBUrl(d, s=None):
+def get_db_url(d, s=None):
     server = s if s is not None else cfg.DB_SERVER_PRD
     params = urllib.parse.quote_plus(
         f"DRIVER={{SQL Server}};"
@@ -26,29 +27,29 @@ def getDBUrl(d, s=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-engineOctoDB = create_engine(
-    getDBUrl(cfg.DB_OCTO_RUNTIME),
+engine_octo_db = create_engine(
+    get_db_url(cfg.DB_OCTO_RUNTIME),
     pool_size=10,
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
 )
-engineNexoraDB = create_engine(
-    getDBUrl(cfg.DB_NEXORA),
+engine_nexora_db = create_engine(
+    get_db_url(cfg.DB_NEXORA),
     pool_size=10,
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
 )
-engineStatisticsDB = create_engine(
-    getDBUrl(cfg.DB_STATISTICS),
+engine_statistics_db = create_engine(
+    get_db_url(cfg.DB_STATISTICS),
     pool_size=10,
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
 )
-engineGeneraliDB = create_engine(
-    getDBUrl(cfg.DB_GENERALI),
+engine_generali_db = create_engine(
+    get_db_url(cfg.DB_GENERALI),
     pool_size=10,
     max_overflow=20,
     pool_timeout=30,

@@ -14,7 +14,7 @@ from flask import (
     url_for,
 )
 
-from ..db import engineGeneraliDB, engineNexoraDB
+from ..db import engine_generali_db, engine_nexora_db
 from ..i18n import get_locale
 from ..security import (
     PermissionDenied,
@@ -78,7 +78,7 @@ def api_generali_stats():
             date_filter += " AND DOC_SCANDATUM <= ?"
             date_params.append(end_date)
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -227,7 +227,7 @@ def api_generali_stats():
 def api_generali_filter_options():
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         result = {}
         for col, key in [
@@ -350,7 +350,7 @@ def api_generali_documents():
             order_parts.append(f"{sort_by} {sort_dir}")
         order_sql = ", ".join(order_parts) if order_parts else "DOC_SCANDATUM DESC"
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -425,7 +425,7 @@ def api_generali_documents():
 def api_generali_document_detail(doc_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -454,7 +454,7 @@ def api_generali_document_detail(doc_id):
 def _generali_orgs_for_userids(user_ids):
     if not user_ids:
         return []
-    nx_conn = engineNexoraDB.raw_connection()
+    nx_conn = engine_nexora_db.raw_connection()
     try:
         nx_cur = nx_conn.cursor()
         placeholders = ",".join(["?"] * len(user_ids))
@@ -474,7 +474,7 @@ def _generali_orgs_for_userids(user_ids):
 
 
 def _generali_userids_in_org(org_code):
-    nx_conn = engineNexoraDB.raw_connection()
+    nx_conn = engine_nexora_db.raw_connection()
     try:
         nx_cur = nx_conn.cursor()
         nx_cur.execute("SELECT userid FROM Users WHERE organizationcode = ?", [org_code])
@@ -565,7 +565,7 @@ def generali_reporting_monthreport():
         month_label = first_day.strftime("%B %Y")
 
         conn = None
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -632,7 +632,7 @@ def generali_reporting_monthreport():
 def api_generali_reporting_organizations():
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL"
@@ -655,7 +655,7 @@ def api_generali_reporting_filter_users():
         org_edit = has_permission("generali.reporting.edit.organizational")
         if not transorg and not org_edit:
             return jsonify({"success": True, "users": []})
-        gen_conn = engineGeneraliDB.raw_connection()
+        gen_conn = engine_generali_db.raw_connection()
         gen_cur = gen_conn.cursor()
         gen_cur.execute(
             "SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL"
@@ -666,7 +666,7 @@ def api_generali_reporting_filter_users():
         if not user_ids:
             return jsonify({"success": True, "users": []})
         placeholders = ",".join(["?"] * len(user_ids))
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute(
@@ -730,7 +730,7 @@ def api_generali_reporting_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM [dbo].[reportingiss] {where_sql}", params)
@@ -759,7 +759,7 @@ def api_generali_reporting_list():
         user_map = {}
         if user_ids:
             try:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 placeholders = ",".join(["?"] * len(user_ids))
                 nx_cur.execute(
@@ -844,7 +844,7 @@ def api_generali_reporting_add():
         if deadline_err:
             return jsonify({"success": False, "error": deadline_err}), 403
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         multi_allowed = {"provision_archive", "stray_document_digital", "stray_document_physical"}
@@ -914,7 +914,7 @@ def api_generali_reporting_edit():
         # if delivery:        delivery        = delivery.replace('T', ' ')
         # if latest_delivery: latest_delivery = latest_delivery.replace('T', ' ')
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.reporting.edit.transorganizational"):
             _check_generali_record_org(cursor, "[dbo].[reportingiss]", "ReportByUserID", record_id)
@@ -953,7 +953,7 @@ def api_generali_reporting_edit():
 def api_generali_reporting_delete(record_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.reporting.delete.transorganizational"):
             _check_generali_record_org(cursor, "[dbo].[reportingiss]", "ReportByUserID", record_id)
@@ -1035,7 +1035,7 @@ def generali_additionalservices_monthreport():
         where_sql = "WHERE " + " AND ".join(where_clauses)
 
         conn = None
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -1096,7 +1096,7 @@ def generali_additionalservices_monthreport():
 def api_generali_attendance_categories():
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT ParentCategory, SubCategory
@@ -1149,7 +1149,7 @@ def api_generali_attendance_org_users():
         if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
@@ -1176,7 +1176,7 @@ def api_generali_attendance_organizations():
         restrict_to_self = not has_permission(
             "generali.attendance.edit.organizational"
         ) and not has_permission("generali.attendance.edit.transorganizational")
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if restrict_to_self:
             cursor.execute(
@@ -1205,7 +1205,7 @@ def api_generali_attendance_filter_users():
         org_edit = has_permission("generali.attendance.edit.organizational")
         if not transorg and not org_edit:
             return jsonify({"success": True, "users": []})
-        gen_conn = engineGeneraliDB.raw_connection()
+        gen_conn = engine_generali_db.raw_connection()
         gen_cur = gen_conn.cursor()
         gen_cur.execute(
             "SELECT DISTINCT UserID FROM [Generali].[dbo].[Attendance] WHERE UserID IS NOT NULL"
@@ -1216,7 +1216,7 @@ def api_generali_attendance_filter_users():
         if not user_ids:
             return jsonify({"success": True, "users": []})
         placeholders = ",".join(["?"] * len(user_ids))
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute(
@@ -1287,7 +1287,7 @@ def api_generali_attendance_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1320,7 +1320,7 @@ def api_generali_attendance_list():
         user_map = {}
         if user_ids:
             try:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 placeholders = ",".join(["?"] * len(user_ids))
                 nx_cur.execute(
@@ -1398,7 +1398,7 @@ def api_generali_attendance_add():
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
             if not has_transorg_perm:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
                 row = nx_cur.fetchone()
@@ -1422,7 +1422,7 @@ def api_generali_attendance_add():
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1466,7 +1466,7 @@ def api_generali_attendance_edit(record_id):
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.attendance.edit.transorganizational"):
             _check_generali_record_org(cursor, "[Generali].[dbo].[Attendance]", "UserID", record_id)
@@ -1496,7 +1496,7 @@ def api_generali_attendance_edit(record_id):
 def api_generali_attendance_delete(record_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.attendance.delete.transorganizational"):
             _check_generali_record_org(cursor, "[Generali].[dbo].[Attendance]", "UserID", record_id)
@@ -1579,7 +1579,7 @@ def generali_baseservices_monthreport():
         where_sql = "WHERE " + " AND ".join(where_clauses)
 
         conn = None
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -1647,7 +1647,7 @@ def api_generali_baseservices_org_users():
         if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
@@ -1674,7 +1674,7 @@ def api_generali_baseservices_organizations():
         restrict_to_self = not has_permission(
             "generali.baseservices.edit.organizational"
         ) and not has_permission("generali.baseservices.edit.transorganizational")
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if restrict_to_self:
             cursor.execute(
@@ -1703,7 +1703,7 @@ def api_generali_baseservices_filter_users():
         org_edit = has_permission("generali.baseservices.edit.organizational")
         if not transorg and not org_edit:
             return jsonify({"success": True, "users": []})
-        gen_conn = engineGeneraliDB.raw_connection()
+        gen_conn = engine_generali_db.raw_connection()
         gen_cur = gen_conn.cursor()
         gen_cur.execute(
             "SELECT DISTINCT UserID FROM [Generali].[dbo].[BaseServices] WHERE UserID IS NOT NULL"
@@ -1714,7 +1714,7 @@ def api_generali_baseservices_filter_users():
         if not user_ids:
             return jsonify({"success": True, "users": []})
         placeholders = ",".join(["?"] * len(user_ids))
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute(
@@ -1781,7 +1781,7 @@ def api_generali_baseservices_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -1814,7 +1814,7 @@ def api_generali_baseservices_list():
         user_map = {}
         if user_ids:
             try:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 placeholders = ",".join(["?"] * len(user_ids))
                 nx_cur.execute(
@@ -1892,7 +1892,7 @@ def api_generali_baseservices_add():
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
             if not has_transorg_perm:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
                 row = nx_cur.fetchone()
@@ -1918,7 +1918,7 @@ def api_generali_baseservices_add():
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1962,7 +1962,7 @@ def api_generali_baseservices_edit(record_id):
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.baseservices.edit.transorganizational"):
             _check_generali_record_org(
@@ -1995,7 +1995,7 @@ def api_generali_baseservices_edit(record_id):
 def api_generali_baseservices_delete(record_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.baseservices.delete.transorganizational"):
             _check_generali_record_org(
@@ -2084,7 +2084,7 @@ def generali_projectmanagement_monthreport():
         where_sql = "WHERE " + " AND ".join(where_clauses)
 
         conn = None
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             f"""
@@ -2141,7 +2141,7 @@ def api_generali_projectmanagement_org_users():
         if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
@@ -2168,7 +2168,7 @@ def api_generali_projectmanagement_organizations():
         restrict_to_self = not has_permission(
             "generali.projectmanagement.edit.organizational"
         ) and not has_permission("generali.projectmanagement.edit.transorganizational")
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if restrict_to_self:
             cursor.execute(
@@ -2197,7 +2197,7 @@ def api_generali_projectmanagement_filter_users():
         org_edit = has_permission("generali.projectmanagement.edit.organizational")
         if not transorg and not org_edit:
             return jsonify({"success": True, "users": []})
-        gen_conn = engineGeneraliDB.raw_connection()
+        gen_conn = engine_generali_db.raw_connection()
         gen_cur = gen_conn.cursor()
         gen_cur.execute(
             "SELECT DISTINCT UserID FROM [Generali].[dbo].[ProjectManagement] WHERE UserID IS NOT NULL"
@@ -2208,7 +2208,7 @@ def api_generali_projectmanagement_filter_users():
         if not user_ids:
             return jsonify({"success": True, "users": []})
         placeholders = ",".join(["?"] * len(user_ids))
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute(
@@ -2271,7 +2271,7 @@ def api_generali_projectmanagement_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -2304,7 +2304,7 @@ def api_generali_projectmanagement_list():
         user_map = {}
         if user_ids:
             try:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 placeholders = ",".join(["?"] * len(user_ids))
                 nx_cur.execute(
@@ -2381,7 +2381,7 @@ def api_generali_projectmanagement_add():
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
             if not has_transorg_perm:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
                 row = nx_cur.fetchone()
@@ -2407,7 +2407,7 @@ def api_generali_projectmanagement_add():
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -2451,7 +2451,7 @@ def api_generali_projectmanagement_edit(record_id):
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "Invalid effort value"}), 400
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.projectmanagement.edit.transorganizational"):
             _check_generali_record_org(
@@ -2484,7 +2484,7 @@ def api_generali_projectmanagement_edit(record_id):
 def api_generali_projectmanagement_delete(record_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.projectmanagement.delete.transorganizational"):
             _check_generali_record_org(
@@ -2560,7 +2560,7 @@ def generali_pdqm_monthreport():
         month_label = first_day.strftime("%B %Y")
 
         conn = None
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -2626,7 +2626,7 @@ def api_generali_pdqm_org_users():
         if not transorg and not org_code:
             return jsonify({"success": False, "error": "No organization on session"}), 400
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute("SELECT userid, fullname FROM Users ORDER BY fullname")
@@ -2650,7 +2650,7 @@ def api_generali_pdqm_org_users():
 def api_generali_pdqm_categories():
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT ParentCategory, ParentSubCategory, SubCategory
@@ -2700,7 +2700,7 @@ def api_generali_pdqm_categories():
 def api_generali_pdqm_organizations():
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL"
@@ -2723,7 +2723,7 @@ def api_generali_pdqm_filter_users():
         org_edit = has_permission("generali.pdqm.edit.organizational")
         if not transorg and not org_edit:
             return jsonify({"success": True, "users": []})
-        gen_conn = engineGeneraliDB.raw_connection()
+        gen_conn = engine_generali_db.raw_connection()
         gen_cur = gen_conn.cursor()
         gen_cur.execute(
             "SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL"
@@ -2734,7 +2734,7 @@ def api_generali_pdqm_filter_users():
         if not user_ids:
             return jsonify({"success": True, "users": []})
         placeholders = ",".join(["?"] * len(user_ids))
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if transorg:
             cursor.execute(
@@ -2807,7 +2807,7 @@ def api_generali_pdqm_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -2839,7 +2839,7 @@ def api_generali_pdqm_list():
         user_map = {}
         if user_ids:
             try:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 placeholders = ",".join(["?"] * len(user_ids))
                 nx_cur.execute(
@@ -2919,7 +2919,7 @@ def api_generali_pdqm_add():
                 return jsonify({"success": False, "error": "Invalid userId"}), 400
 
             if not has_transorg_perm:
-                nx_conn = engineNexoraDB.raw_connection()
+                nx_conn = engine_nexora_db.raw_connection()
                 nx_cur = nx_conn.cursor()
                 nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [target_id])
                 row = nx_cur.fetchone()
@@ -2945,7 +2945,7 @@ def api_generali_pdqm_add():
 
         db_parent_sub = parent_sub_cat if parent_sub_cat != "" else None
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -2992,7 +2992,7 @@ def api_generali_pdqm_edit(record_id):
 
         db_parent_sub = parent_sub_cat if parent_sub_cat != "" else None
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.pdqm.edit.transorganizational"):
             _check_generali_record_org(cursor, "[Generali].[dbo].[PDQMReport]", "UserID", record_id)
@@ -3022,7 +3022,7 @@ def api_generali_pdqm_edit(record_id):
 def api_generali_pdqm_delete(record_id):
     conn = None
     try:
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("generali.pdqm.delete.transorganizational"):
             _check_generali_record_org(cursor, "[Generali].[dbo].[PDQMReport]", "UserID", record_id)
@@ -3088,7 +3088,7 @@ def api_generali_importstatus_list():
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-        conn = engineGeneraliDB.raw_connection()
+        conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM [Generali].[dbo].[CSVImportLog] {where_sql}", params)

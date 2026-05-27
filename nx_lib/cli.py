@@ -487,9 +487,9 @@ def _load_users() -> list[str]:
         return _users_cache
     os.environ.setdefault("ENVIRONMENT", "INT")
     try:
-        from nx_lib.db import engineNexoraDB
+        from nx_lib.db import engine_nexora_db
 
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         try:
             cur = conn.cursor()
             cur.execute("SELECT username FROM Users WHERE username IS NOT NULL ORDER BY username")

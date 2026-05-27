@@ -17,7 +17,7 @@ from flask import (
 from flask_babel import gettext as _
 
 from ..config import DB_STATISTICS, OCTO_DOMAIN
-from ..db import engineNexoraDB, engineOctoDB, engineStatisticsDB
+from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
 from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
@@ -278,7 +278,7 @@ def dashboard_processed_over_time():
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         placeholders = ",".join(["?"] * len(target_processes))
@@ -315,7 +315,7 @@ def dashboard_processed_over_time():
                 GROUP BY d
                 ORDER BY d
             """
-            conn = engineStatisticsDB.raw_connection()
+            conn = engine_statistics_db.raw_connection()
             cursor = conn.cursor()
             cursor.execute(full_query)
             for row in cursor.fetchall():
@@ -373,7 +373,7 @@ def dashboard_kpi_stats():
     cursor_octo = None
 
     try:
-        conn_nex = engineNexoraDB.raw_connection()
+        conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
 
@@ -403,7 +403,7 @@ def dashboard_kpi_stats():
                     SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
                     FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 """
-                conn_stat = engineStatisticsDB.raw_connection()
+                conn_stat = engine_statistics_db.raw_connection()
                 cursor_stat = conn_stat.cursor()
                 cursor_stat.execute(full_stat_query)
                 row = cursor_stat.fetchone()
@@ -411,7 +411,7 @@ def dashboard_kpi_stats():
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
 
-        conn_octo = engineOctoDB.raw_connection()
+        conn_octo = engine_octo_db.raw_connection()
         cursor_octo = conn_octo.cursor()
 
         if target_processes:
@@ -482,7 +482,7 @@ def dashboard_hourly_stats():
     cursor_nex = None
     cursor_stat = None
     try:
-        conn_nex = engineNexoraDB.raw_connection()
+        conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
@@ -513,7 +513,7 @@ def dashboard_hourly_stats():
                 GROUP BY h
                 ORDER BY h
             """
-            conn_stat = engineStatisticsDB.raw_connection()
+            conn_stat = engine_statistics_db.raw_connection()
             cursor_stat = conn_stat.cursor()
             cursor_stat.execute(full_query)
             for row in cursor_stat.fetchall():
@@ -568,7 +568,7 @@ def dashboard_avg_processing_time():
     cursor_nex = None
     cursor_stat = None
     try:
-        conn_nex = engineNexoraDB.raw_connection()
+        conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
@@ -599,7 +599,7 @@ def dashboard_avg_processing_time():
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 WHERE avg_sec IS NOT NULL
             """
-            conn_stat = engineStatisticsDB.raw_connection()
+            conn_stat = engine_statistics_db.raw_connection()
             cursor_stat = conn_stat.cursor()
             cursor_stat.execute(full_query)
             row = cursor_stat.fetchone()
@@ -721,7 +721,7 @@ def dashboard_field_metadata():
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
         cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
@@ -786,7 +786,7 @@ def dashboard_get_layout():
     userid = session.get("userid")
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("SELECT LayoutJSON FROM DashboardLayouts WHERE UserID = ?", (userid,))
         row = cur.fetchone()
@@ -818,7 +818,7 @@ def dashboard_put_layout():
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("SELECT FieldKey, Aggregable FROM FieldMetadata")
         rows = cur.fetchall()
@@ -859,7 +859,7 @@ def dashboard_reset_layout():
     userid = session.get("userid")
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("DELETE FROM DashboardLayouts WHERE UserID = ?", (userid,))
         conn.commit()
@@ -921,7 +921,7 @@ def _resolve_aggregation_column(process_name, field_key):
     Returns None if the process or field isn't mapped."""
     if process_name in _search_config_cache:
         return _search_config_cache[process_name].get(field_key)
-    conn = engineNexoraDB.raw_connection()
+    conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
@@ -1177,7 +1177,7 @@ def build_widget_query(widget, global_filters, allowed_processes):
     if not target_processes:
         return []
 
-    conn = engineNexoraDB.raw_connection()
+    conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
@@ -1198,7 +1198,7 @@ def build_widget_query(widget, global_filters, allowed_processes):
         "categorical": _build_categorical_sql,
     }[widget["type"]]
     sql, params = builder(widget, filters, configs)
-    return [(engineStatisticsDB, sql, params)] if sql else []
+    return [(engine_statistics_db, sql, params)] if sql else []
 
 
 def _run_widget_queries(widget, queries, label_override=None):
@@ -1436,7 +1436,7 @@ def api_recent_activity():
         if not target_processes:
             return jsonify([])
 
-        conn = engineOctoDB.raw_connection()
+        conn = engine_octo_db.raw_connection()
         cursor = conn.cursor()
         activity_instances_to_ignore = get_activity_instances_to_ignore()
 

@@ -3,7 +3,7 @@ public maintenance view, session liveness probe."""
 
 from flask import current_app, jsonify, redirect, render_template, session, url_for
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
 from ..security import require_permission
 
@@ -28,7 +28,7 @@ def api_maintenance_active():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         # Priority 1: currently active banner (window has started)
         cursor.execute(

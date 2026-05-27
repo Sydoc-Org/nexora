@@ -10,7 +10,7 @@ from nx_main import (
     GRAPH_PASSWORD,
     GRAPH_TENANT_ID,
     GRAPH_USERNAME,
-    engineNexoraDB,
+    engine_nexora_db,
 )
 
 
@@ -155,7 +155,7 @@ def send_release_notice(email, full_name):
         return False
 
 
-conn = engineNexoraDB.raw_connection()
+conn = engine_nexora_db.raw_connection()
 cur = conn.cursor()
 
 cur.execute("SELECT Email, Fullname FROM USERS WHERE username <> 'demo.user'")
