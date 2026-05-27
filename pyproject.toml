@@ -70,9 +70,6 @@ ignore = [
     "RUF001", "RUF002", "RUF003",  # intentional Unicode (× α › —) in 3D render scene + UI strings
 ]
 "nx_lib/cli_doctor.py" = ["RUF001"]  # intentional en-dash – in the "skip" glyph
-# Pre-existing naming violations deferred to PR 5 (snake_case rename pass).
-# Remove these once PR 5 lands.
-"scripts/news/**" = ["N802", "N803", "N806", "RUF001"]
 
 [tool.ruff.format]
 quote-style = "double"
