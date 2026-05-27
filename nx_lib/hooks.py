@@ -10,7 +10,6 @@ from datetime import datetime
 
 from flask import (
     current_app,
-    g,
     jsonify,
     redirect,
     render_template,
@@ -32,7 +31,6 @@ from .security import (
     load_permissions_for_user,
 )
 from .users import resolve_user_icon_url
-
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
@@ -141,13 +139,13 @@ def _log_every_request(response):
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 
     try:
-        LOGS_FOLDER = os.path.join(current_app.root_path, "logs", "user")
-        os.makedirs(LOGS_FOLDER, exist_ok=True)
+        logs_folder = os.path.join(current_app.root_path, "logs", "user")
+        os.makedirs(logs_folder, exist_ok=True)
 
-        LOGS_HOUR_FOLDER = os.path.join(LOGS_FOLDER, datetime.now().strftime("%Y%m%d%H"))
-        os.makedirs(LOGS_HOUR_FOLDER, exist_ok=True)
+        logs_hour_folder = os.path.join(logs_folder, datetime.now().strftime("%Y%m%d%H"))
+        os.makedirs(logs_hour_folder, exist_ok=True)
 
-        with open(f"{LOGS_HOUR_FOLDER}/nexora_logs.csv", "a", newline="") as csvfile:
+        with open(f"{logs_hour_folder}/nexora_logs.csv", "a", newline="") as csvfile:
             fieldnames = [
                 "SessionID",
                 "RequestIpAddress",
