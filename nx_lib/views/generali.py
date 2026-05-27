@@ -1,6 +1,7 @@
 """Generali tenant: documents/evaluation/stats/filter, reporting, attendance,
 additional services, base services, project management, PDQM, import status."""
 
+import math
 from datetime import date, timedelta
 
 from flask import (
@@ -12,7 +13,6 @@ from flask import (
     session,
     url_for,
 )
-from flask_babel import gettext as _
 
 from ..db import engineGeneraliDB, engineNexoraDB
 from ..i18n import get_locale
@@ -25,9 +25,6 @@ from ..security import (
     require_any_permission,
     require_permission,
 )
-
-import math  # noqa: E402
-
 
 # ----------------------------- Generali Evaluation -------------------------- #
 
@@ -374,7 +371,7 @@ def api_generali_documents():
             ORDER BY {order_sql}
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """,
-            params + [offset, per_page],
+            [*params, offset, per_page],
         )
 
         cols = [
@@ -399,7 +396,7 @@ def api_generali_documents():
         ]
         documents = []
         for row in cursor.fetchall():
-            d = dict(zip(cols, row))
+            d = dict(zip(cols, row, strict=False))
             d["doc_scandatum"] = str(d["doc_scandatum"]) if d["doc_scandatum"] else None
             documents.append(d)
 
@@ -442,7 +439,7 @@ def api_generali_document_detail(doc_id):
             return jsonify({"success": False, "error": "Not found"}), 404
         cols = [desc[0] for desc in cursor.description]
         doc = {}
-        for k, v in zip(cols, row):
+        for k, v in zip(cols, row, strict=False):
             doc[k] = str(v) if v is not None else None
         return jsonify({"success": True, "document": doc})
     except Exception as e:
@@ -679,7 +676,7 @@ def api_generali_reporting_filter_users():
         else:
             cursor.execute(
                 f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                user_ids + [session.get("organizationcode")],
+                [*user_ids, session.get("organizationcode")],
             )
         users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
         cursor.close()
@@ -742,7 +739,7 @@ def api_generali_reporting_list():
 
         fetch_all = request.args.get("all", "").lower() == "true"
         pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else params + [offset, per_page]
+        sql_params = params if fetch_all else [*params, offset, per_page]
         cursor.execute(
             f"""
             SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
@@ -974,7 +971,7 @@ def api_generali_reporting_delete(record_id):
 
 # ----------------------------- Generali Additional Services -------------------------- #
 @require_permission("generali.additionalservices.view")
-def generali_additionalServices():
+def generali_additional_services():
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -1229,7 +1226,7 @@ def api_generali_attendance_filter_users():
         else:
             cursor.execute(
                 f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                user_ids + [session.get("organizationcode")],
+                [*user_ids, session.get("organizationcode")],
             )
         users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
         cursor.close()
@@ -1304,7 +1301,7 @@ def api_generali_attendance_list():
 
         fetch_all = request.args.get("all", "").lower() == "true"
         pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else params + [offset, per_page]
+        sql_params = params if fetch_all else [*params, offset, per_page]
         cursor.execute(
             f"""
             SELECT ID, EffortInHours, UserID, ForDate, ParentCategory, SubCategory, RecordDateTime
@@ -1518,7 +1515,7 @@ def api_generali_attendance_delete(record_id):
 
 # ----------------------------- Generali Base Services ----------------------- #
 @require_permission("generali.baseservices.view")
-def generali_baseServices():
+def generali_base_services():
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -1727,7 +1724,7 @@ def api_generali_baseservices_filter_users():
         else:
             cursor.execute(
                 f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                user_ids + [session.get("organizationcode")],
+                [*user_ids, session.get("organizationcode")],
             )
         users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
         cursor.close()
@@ -1798,7 +1795,7 @@ def api_generali_baseservices_list():
 
         fetch_all = request.args.get("all", "").lower() == "true"
         pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else params + [offset, per_page]
+        sql_params = params if fetch_all else [*params, offset, per_page]
         cursor.execute(
             f"""
             SELECT ID, EffortInHours, UserID, ForDate, Category, RecordDateTime
@@ -2019,7 +2016,7 @@ def api_generali_baseservices_delete(record_id):
 
 # ----------------------------- Generali Project Management ------------------ #
 @require_permission("generali.projectmanagement.view")
-def generali_projectManagement():
+def generali_project_management():
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -2221,7 +2218,7 @@ def api_generali_projectmanagement_filter_users():
         else:
             cursor.execute(
                 f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                user_ids + [session.get("organizationcode")],
+                [*user_ids, session.get("organizationcode")],
             )
         users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
         cursor.close()
@@ -2288,7 +2285,7 @@ def api_generali_projectmanagement_list():
 
         fetch_all = request.args.get("all", "").lower() == "true"
         pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else params + [offset, per_page]
+        sql_params = params if fetch_all else [*params, offset, per_page]
         cursor.execute(
             f"""
             SELECT ID, EffortInHours, UserID, ForDate, Category, Comment, RecordDateTime
@@ -2747,7 +2744,7 @@ def api_generali_pdqm_filter_users():
         else:
             cursor.execute(
                 f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                user_ids + [session.get("organizationcode")],
+                [*user_ids, session.get("organizationcode")],
             )
         users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
         cursor.close()
@@ -2823,7 +2820,7 @@ def api_generali_pdqm_list():
 
         fetch_all = request.args.get("all", "").lower() == "true"
         pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else params + [offset, per_page]
+        sql_params = params if fetch_all else [*params, offset, per_page]
         cursor.execute(
             f"""
             SELECT ID, Quantity, UserID, ForDate, ParentCategory, ParentSubCategory, SubCategory, RecordDateTime
@@ -3044,7 +3041,7 @@ def api_generali_pdqm_delete(record_id):
 
 # ----------------------------- Generali Import Status ---------------------- #
 @require_permission("generali.importstatus.view")
-def generali_importStatus():
+def generali_import_status():
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -3107,7 +3104,7 @@ def api_generali_importstatus_list():
             ORDER BY StartedAt DESC, ID DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """,
-            params + [offset, per_page],
+            [*params, offset, per_page],
         )
         rows = cursor.fetchall()
         cursor.close()
@@ -3222,7 +3219,7 @@ def register_routes(app):
     app.add_url_rule(
         "/generali/additionalServices",
         endpoint="generali_additionalServices",
-        view_func=generali_additionalServices,
+        view_func=generali_additional_services,
     )
     app.add_url_rule(
         "/generali/additionalServices/monthreport",
@@ -3278,7 +3275,7 @@ def register_routes(app):
         methods=["DELETE"],
     )
     app.add_url_rule(
-        "/generali/baseServices", endpoint="generali_baseServices", view_func=generali_baseServices
+        "/generali/baseServices", endpoint="generali_baseServices", view_func=generali_base_services
     )
     app.add_url_rule(
         "/generali/baseServices/monthreport",
@@ -3330,7 +3327,7 @@ def register_routes(app):
     app.add_url_rule(
         "/generali/projectManagement",
         endpoint="generali_projectManagement",
-        view_func=generali_projectManagement,
+        view_func=generali_project_management,
     )
     app.add_url_rule(
         "/generali/projectManagement/monthreport",
@@ -3434,7 +3431,7 @@ def register_routes(app):
         methods=["DELETE"],
     )
     app.add_url_rule(
-        "/generali/importStatus", endpoint="generali_importStatus", view_func=generali_importStatus
+        "/generali/importStatus", endpoint="generali_importStatus", view_func=generali_import_status
     )
     app.add_url_rule(
         "/api/generali/importstatus",

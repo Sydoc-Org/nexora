@@ -13,7 +13,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 import requests
-from PIL import Image
 from flask import (
     Response,
     current_app,
@@ -28,6 +27,7 @@ from flask import (
     url_for,
 )
 from flask_babel import gettext as _
+from PIL import Image
 from werkzeug.utils import secure_filename
 
 from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN
@@ -46,12 +46,10 @@ from ..octo import (
 )
 from ..process_helpers import (
     get_activityinstancesToIgnore,
-    get_params_from_process_list,
     prepare_process_selection_sql,
 )
 from ..security import has_permission, pageVisability, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
-
 
 # ---------------------------- field/config helpers ---------------------------- #
 
@@ -173,7 +171,7 @@ def _get_workitems_data(args, export_all=False):
         if per_page not in (40, 100, 200, 500, 1000):
             per_page = 40
         offset = (page - 1) * per_page
-    activityinstancesToIgnore = get_activityinstancesToIgnore()
+    activity_instances_to_ignore = get_activityinstancesToIgnore()
 
     process_name = args.get("prcfW", "all")
     session["process_name_workitemOverview"] = process_name
@@ -205,7 +203,7 @@ def _get_workitems_data(args, export_all=False):
         f"tp.Name IN ({process_placeholders})",
         f"tp.ClientName IN ({client_placeholders})",
         "twi.Status <> 2",
-        f"tai.ActivityInstanceName not in ({activityinstancesToIgnore})",
+        f"tai.ActivityInstanceName not in ({activity_instances_to_ignore})",
     ]
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
@@ -257,7 +255,7 @@ def _get_workitems_data(args, export_all=False):
             conn_nex = engineNexoraDB.raw_connection()
             cursor_nex = conn_nex.cursor()
 
-            for docfield, docvalue in zip(docfields, docvalues):
+            for docfield, docvalue in zip(docfields, docvalues, strict=False):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
 
@@ -420,7 +418,7 @@ def _get_workitems_data(args, export_all=False):
             ORDER BY ModifiedAt DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """,
-            full_params + [offset, per_page],
+            [*full_params, offset, per_page],
         )
         for row in cursor.fetchall():
             workitems_list.append(
@@ -630,7 +628,9 @@ def export_workitems_csv():
                         if cached_media:
                             urls = cached_media.get("urls", [])
                             extensions = cached_media.get("extensions", [])
-                        for i, (img_url, ext) in enumerate(zip(urls[:5], extensions[:5])):
+                        for i, (img_url, ext) in enumerate(
+                            zip(urls[:5], extensions[:5], strict=False)
+                        ):
                             try:
                                 img_bytes = get_media(img_url, domain)
                                 if str(ext).lower() in (".tif", ".tiff"):
@@ -812,9 +812,9 @@ def workitems_overview():
         if process_name != "all" and process_name not in allowed_processes:
             process_name = "all"
 
-        docFieldsValues_perm = has_permission("workitems.filter.documentfields")
-        docfields = request.args.getlist("docfield") if docFieldsValues_perm else None
-        docvalues = request.args.getlist("docvalue") if docFieldsValues_perm else None
+        doc_fields_values_perm = has_permission("workitems.filter.documentfields")
+        docfields = request.args.getlist("docfield") if doc_fields_values_perm else None
+        docvalues = request.args.getlist("docvalue") if doc_fields_values_perm else None
 
         details_view_perm = has_permission("workitems.details.view")
         details_images_perm = has_permission("workitems.details.view.images")
@@ -826,7 +826,7 @@ def workitems_overview():
         details_assign_users_perm = has_permission("workitems.details.assign.users")
         details_add_comment_perm = has_permission("workitems.details.add.comment")
 
-        portal_assignedUsers_filter = get_all_portal_users("workitems", "filter.assignedUser")
+        portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
             "workitems_overview.html",
             logged_in_user=logged_in_user,
@@ -839,7 +839,7 @@ def workitems_overview():
             endDate=end_date,
             priority=priority,
             assignedUser=assigned_user,
-            portal_assignedUsers_filter=portal_assignedUsers_filter,
+            portal_assignedUsers_filter=portal_assigned_users_filter,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
             pageV=pageVisability(),
@@ -850,7 +850,7 @@ def workitems_overview():
             datetime_perm=datetime_perm,
             priority_perm=priority_perm,
             assigned_user_perm=assigned_user_perm,
-            docFieldsValues_perm=docFieldsValues_perm,
+            doc_fields_values_perm=doc_fields_values_perm,
             details_view_perm=details_view_perm,
             details_images_perm=details_images_perm,
             details_audit_perm=details_audit_perm,
@@ -900,13 +900,13 @@ def import_workitems():
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4()}_{session.get('username')}_{filename}"
 
-        UPLOAD_FOLDER = os.path.join(current_app.root_path, "uploads")
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        upload_folder = os.path.join(current_app.root_path, "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
 
-        PROCESS_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, process_name.replace(".", "_"))
-        os.makedirs(PROCESS_UPLOAD_FOLDER, exist_ok=True)
+        process_upload_folder = os.path.join(upload_folder, process_name.replace(".", "_"))
+        os.makedirs(process_upload_folder, exist_ok=True)
 
-        file_path = os.path.join(PROCESS_UPLOAD_FOLDER, unique_filename)
+        file_path = os.path.join(process_upload_folder, unique_filename)
 
         try:
             file.save(file_path)
@@ -1173,7 +1173,7 @@ def get_users_for_mentions():
                     _org,
                 )
         users = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         cache.set(_cache_key, users, timeout=900)
@@ -1346,11 +1346,11 @@ def assign_workitem(workitemid):
         return jsonify({"error": _("Not authorized")}), 401
 
     data = request.get_json()
-    assignedUserID = data.get("assignedUserID")
-    if assignedUserID is None:
+    assigned_user_id = data.get("assignedUserID")
+    if assigned_user_id is None:
         return jsonify({"success": False, "message": _("Invalid assignment.")}), 400
-    elif assignedUserID == "None":
-        assignedUserID = None
+    elif assigned_user_id == "None":
+        assigned_user_id = None
     conn = None
     cursor = None
     try:
@@ -1368,15 +1368,15 @@ def assign_workitem(workitemid):
                 INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
                 VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
             """,
-            (workitemid, assignedUserID, session["userid"]),
+            (workitemid, assigned_user_id, session["userid"]),
         )
 
         conn.commit()
         cache.delete(f"interactions_{workitemid}")
-        if assignedUserID is not None and assignedUserID != session["userid"]:
+        if assigned_user_id is not None and assigned_user_id != session["userid"]:
             notification_link = url_for("workitems_overview", search=workitemid, _external=False)
             create_notification(
-                assignedUserID,
+                assigned_user_id,
                 f"{session['username']} {_('assigned you on workitem')} {workitemid}",
                 link=notification_link,
                 icon="fa-people-carry-box",
@@ -1449,7 +1449,7 @@ def get_all_tags():
         cursor = conn.cursor()
         cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
         tags = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         cache.set("all_tags", tags, timeout=1800)
@@ -1477,7 +1477,7 @@ def api_workitems_page_init():
             cursor = conn.cursor()
             cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
             tags = [
-                dict(zip([column[0] for column in cursor.description], row))
+                dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
             cache.set("all_tags", tags, timeout=1800)
@@ -1510,7 +1510,7 @@ def api_workitems_page_init():
                         _org,
                     )
                 users = [
-                    dict(zip([column[0] for column in cursor.description], row))
+                    dict(zip([column[0] for column in cursor.description], row, strict=False))
                     for row in cursor.fetchall()
                 ]
             else:
