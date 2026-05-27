@@ -205,11 +205,12 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
             kind = metric.get("kind")
             if kind not in DASHBOARD_METRIC_KINDS:
                 raise DashboardLayoutError(f"widget {wid}: metric.kind invalid")
-            if kind in {"sum", "avg", "min", "max"}:
-                if metric.get("field") not in aggregable_field_keys:
-                    raise DashboardLayoutError(
-                        f"widget {wid}: metric.field must be an aggregable numeric field"
-                    )
+            if kind in {"sum", "avg", "min", "max"} and (
+                metric.get("field") not in aggregable_field_keys
+            ):
+                raise DashboardLayoutError(
+                    f"widget {wid}: metric.field must be an aggregable numeric field"
+                )
         elif w["type"] == "timeseries":
             if cfg.get("chartType") not in DASHBOARD_CHART_TYPES["timeseries"]:
                 raise DashboardLayoutError(f"widget {wid}: chartType invalid")
@@ -385,15 +386,15 @@ def dashboard_kpi_stats():
         if configs:
             sub_queries = []
             for row in configs:
-                colExport = row.ExportColumn
-                colImport = row.ImportColumn
+                col_export = row.ExportColumn
+                col_import = row.ImportColumn
                 condition = f" {row.additionalCondition}" if row.additionalCondition else ""
                 sub_queries.append(f"""
                     SELECT
-                        SUM(CASE WHEN CAST({colExport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
-                        SUM(CASE WHEN CAST({colImport} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
+                        SUM(CASE WHEN CAST({col_export} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
+                        SUM(CASE WHEN CAST({col_import} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
                     FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE CAST({colImport} as date) = cast(GETDATE() as date)
+                    WHERE CAST({col_import} as date) = cast(GETDATE() as date)
                     {condition}
                 """)
 
@@ -701,7 +702,7 @@ def dashboard_set_filter():
 
 @require_permission("dashboard.view")
 @cache.cached(
-    timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{str(get_locale())}"
+    timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{get_locale()!s}"
 )
 def dashboard_field_metadata():
     if "username" not in session:
@@ -899,10 +900,7 @@ def _resolve_date_range(date_preset, date_from=None, date_to=None):
 
 
 def _effective_filters(widget, global_filters):
-    if widget.get("ignoreGlobalFilters"):
-        base = {}
-    else:
-        base = dict(global_filters or {})
+    base = {} if widget.get("ignoreGlobalFilters") else dict(global_filters or {})
     overrides = widget.get("filterOverrides") or {}
     base.update(overrides)
     return base
@@ -1440,7 +1438,7 @@ def api_recent_activity():
 
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        activityinstancesToIgnore = get_activityinstancesToIgnore()
+        activity_instances_to_ignore = get_activityinstancesToIgnore()
 
         p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
         cursor.execute(
@@ -1452,7 +1450,7 @@ def api_recent_activity():
             WHERE twi.Status <> 2
               AND tp.Name IN ({p_ph})
               AND tp.ClientName IN ({c_ph})
-              AND tai.ActivityInstanceName not in ({activityinstancesToIgnore})
+              AND tai.ActivityInstanceName not in ({activity_instances_to_ignore})
             ORDER BY twi.ModifiedAt DESC
         """,
             p_params,

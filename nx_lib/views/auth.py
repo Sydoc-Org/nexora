@@ -108,20 +108,20 @@ def send_reset_email(email):
     headers = {"Authorization": f"Bearer {access_token}"}
     link = get_link()
     try:
-        FONT_FAMILY = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
-        CONTAINER_STYLE = (
+        font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
+        container_style = (
             "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
         )
-        BUTTON_STYLE = (
+        button_style = (
             "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
             "text-decoration: none; border-radius: 8px; font-weight: bold; "
             "display: inline-block; mso-padding-alt: 12px 24px;"
         )
-        LINK_STYLE = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
-        TEXT_STYLE = "color: #4b5563; line-height: 1.6; font-size: 16px;"
+        link_style = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
+        text_style = "color: #4b5563; line-height: 1.6; font-size: 16px;"
 
-        LOGO_URL = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
-        LOGO_BANNER_URL = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
+        logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
+        logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
 
         body = {
             "message": {
@@ -135,37 +135,37 @@ def send_reset_email(email):
         <meta charset="UTF-8">
         <title>Nexora Update</title>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #f3f4f6; {FONT_FAMILY}">
+    <body style="margin: 0; padding: 0; background-color: #f3f4f6; {font_family}">
 
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
             <tr>
                 <td align="center">
 
-                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="{CONTAINER_STYLE} border-radius: 8px;">
+                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="{container_style} border-radius: 8px;">
 
                         <tr>
                             <td align="center" style="padding-bottom: 20px;">
-                                <a href="https://sydoc.ch"><img src="{LOGO_URL}" alt="Sydoc Logo" width="600" style="display: block;"></a>
+                                <a href="https://sydoc.ch"><img src="{logo_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>
                             </td>
                         </tr>
 
                         <tr>
                             <td align="center" style="padding-bottom: 60px;">
-                                <a href="https://sydoc.ch/ueber-sydoc/news/" style="{LINK_STYLE}">News</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{LINK_STYLE}">Magazin</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/team/" style="{LINK_STYLE}">Team</a>
-                                <a href="mailto:support.helpdesk@sydoc.ch" style="{LINK_STYLE}">Support</a>
+                                <a href="https://sydoc.ch/ueber-sydoc/news/" style="{link_style}">News</a>
+                                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{link_style}">Magazin</a>
+                                <a href="https://sydoc.ch/ueber-sydoc/team/" style="{link_style}">Team</a>
+                                <a href="mailto:support.helpdesk@sydoc.ch" style="{link_style}">Support</a>
                             </td>
                         </tr>
 
                         <tr>
                             <td style="padding: 0 10px;">
                                 <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
-                                <p style="{TEXT_STYLE}">
+                                <p style="{text_style}">
                                     {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
                                    {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
                                 </p>
-                                <p style="{TEXT_STYLE}">
+                                <p style="{text_style}">
                                     {_("Thanks,<br>The Sydoc Team")}
                                 </p>
                             </td>
@@ -173,7 +173,7 @@ def send_reset_email(email):
 
                         <tr>
                             <td align="left" style="padding: 10px 10px 30px;">
-                                <a href="{link}" style="{BUTTON_STYLE}">
+                                <a href="{link}" style="{button_style}">
                                     {_("Reset Your Password")}
                                 </a>
                             </td>
@@ -181,7 +181,7 @@ def send_reset_email(email):
 
                         <tr>
                             <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
-                                <a href="https://sydoc.ch"><img src="{LOGO_BANNER_URL}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
+                                <a href="https://sydoc.ch"><img src="{logo_banner_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
                         </tr>
 
                         <tr>
@@ -218,7 +218,7 @@ def send_reset_email(email):
         return False
 
 
-def init_2FA():
+def init_2fa():
     if "pre_2fa_userid" not in session:
         return redirect(url_for("login"))
     user_id = session["pre_2fa_userid"]
@@ -286,8 +286,8 @@ def init_2FA():
                 _record_active_session(user_id)
                 if user_locale in ["de", "en", "fr", "it"]:
                     session["locale"] = user_locale
-                pV = pageVisability()
-                return redirect(url_for(startpage_redirect_to(pV)))
+                page_v = pageVisability()
+                return redirect(url_for(startpage_redirect_to(page_v)))
             except Exception as e:
                 current_app.logger.error(f"2FA Setup DB Error: {e}")
                 return render_template("init_2FA.html", error=_("Database error"))
@@ -341,8 +341,8 @@ def verify_2fa():
             _record_active_session(user_id)
             if user_locale in ["de", "en", "fr", "it"]:
                 session["locale"] = user_locale
-            pV = pageVisability()
-            return redirect(url_for(startpage_redirect_to(pV)))
+            page_v = pageVisability()
+            return redirect(url_for(startpage_redirect_to(page_v)))
         else:
             flash(_("Invalid code"), "error")
             return render_template("verify_2fa.html"), 401
@@ -376,7 +376,7 @@ def init_reset_password():
         )
         row = cursor.fetchone()
         stored_hash = row[0]
-        stored_2FA = row[1]
+        stored_2fa = row[1]
         stored_username = row[2]
 
         if isinstance(stored_hash, str):
@@ -404,7 +404,7 @@ def init_reset_password():
         cursor.close()
         conn.close()
 
-        if not stored_2FA:
+        if not stored_2fa:
             session["pre_2fa_userid"] = pre_auth_userid
             session["pre_2fa_username"] = stored_username
             return redirect(url_for("init_2FA"))
@@ -440,16 +440,16 @@ def dev_login(username):
     session["locale"] = locale
     session["permissions"] = load_permissions_for_user(str(uid))
     _record_active_session(str(uid))
-    pV = pageVisability()
-    return redirect(url_for(startpage_redirect_to(pV)))
+    page_v = pageVisability()
+    return redirect(url_for(startpage_redirect_to(page_v)))
 
 
 @limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
-        UID_REQUEST = request.form["username"]
-        PWD_REQUEST = request.form["password"]
-        if not UID_REQUEST or not PWD_REQUEST:
+        username_request = request.form["username"]
+        password_request = request.form["password"]
+        if not username_request or not password_request:
             return render_template("index.html", error=_("Invalid credentials")), 401
 
         try:
@@ -458,7 +458,7 @@ def login():
 
             cursor.execute(
                 "SELECT userid, password, username, initreset, twoFA FROM Users WHERE username = ?",
-                (UID_REQUEST,),
+                (username_request,),
             )
             user_record = cursor.fetchone()
 
@@ -466,20 +466,20 @@ def login():
                 stored_userid = user_record[0]
                 stored_hash = user_record[1]
                 stored_username = user_record[2]
-                stored_initReset = user_record[3]
-                stored_2FA = user_record[4]
+                stored_init_reset = user_record[3]
+                stored_2fa = user_record[4]
 
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode("utf-8")
 
-                if bcrypt.checkpw(PWD_REQUEST.encode("utf-8"), stored_hash):
+                if bcrypt.checkpw(password_request.encode("utf-8"), stored_hash):
                     blocking = _maintenance_blocks_user(stored_userid)
                     if blocking:
                         return render_template("maintenance.html", maintenance=blocking), 503
-                    if not stored_initReset:
+                    if not stored_init_reset:
                         session["pre_auth_userid"] = str(stored_userid)
                         return redirect(url_for("init_reset"))
-                    if not stored_2FA:
+                    if not stored_2fa:
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("init_2FA"))
@@ -625,7 +625,7 @@ def request_password_reset():
 
 
 def register_routes(app):
-    app.add_url_rule("/init_2FA", endpoint="init_2FA", view_func=init_2FA, methods=["GET", "POST"])
+    app.add_url_rule("/init_2FA", endpoint="init_2FA", view_func=init_2fa, methods=["GET", "POST"])
     app.add_url_rule(
         "/verify_2fa", endpoint="verify_2fa", view_func=verify_2fa, methods=["GET", "POST"]
     )

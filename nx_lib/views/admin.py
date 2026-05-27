@@ -3,6 +3,7 @@ user CRUD, access control, permissions."""
 
 import csv
 import math
+from contextlib import suppress
 from datetime import datetime
 
 import bcrypt
@@ -40,7 +41,6 @@ from ..security import (
     pageVisability,
     require_permission,
 )
-
 
 # ----------------------------------- overview ---------------------------------- #
 
@@ -138,7 +138,7 @@ def admin_organizations_view():
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
         organizations = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
 
@@ -199,7 +199,7 @@ def admin_add_organization():
 def admin_edit_organization(organizationcode):
     data = request.get_json()
     organization = data.get("organizationname")
-    currentUserId = session["userid"]
+    current_user_id = session["userid"]
 
     conn = None
     cursor = None
@@ -213,7 +213,7 @@ def admin_edit_organization(organizationcode):
         conn.commit()
         return jsonify({"success": True, "message": _("Organization updated successfully.")})
     except Exception as e:
-        current_app.logger.error(f"Error editing Organization {currentUserId}: {e}")
+        current_app.logger.error(f"Error editing Organization {current_user_id}: {e}")
         return jsonify({"success": False, "message": _("An error occurred.")}), 500
     finally:
         if cursor:
@@ -258,7 +258,10 @@ def api_admin_organizations_list():
         cursor.execute(
             "SELECT organizationcode, organization FROM organizations ORDER BY organization"
         )
-        orgs = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        orgs = [
+            dict(zip([c[0] for c in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
         return jsonify(orgs)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch organizations list: {e}")
@@ -426,7 +429,7 @@ def admin_logs_view():
         cursor = conn.cursor()
         cursor.execute("select organizationcode, organization from organizations")
         organizations = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
     except Exception as e:
@@ -516,7 +519,7 @@ def api_admin_logs_search():
             ORDER BY Timestamp DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
-        cursor.execute(sql, params + [offset, per_page])
+        cursor.execute(sql, [*params, offset, per_page])
 
         logs = []
         for row in cursor.fetchall():
@@ -556,11 +559,11 @@ def api_admin_logs_search():
 def api_admin_logs_export():
     """Stream the filtered log set as CSV. Capped at 50k rows so a wide-open
     filter doesn't yank the whole table."""
-    MAX_ROWS = 50000
+    max_rows = 50000
     where_clause, params = _build_logs_where_clause()
 
     sql = f"""
-        SELECT TOP ({MAX_ROWS}) LogID, Timestamp, Username, HttpRequestMethod, Path,
+        SELECT TOP ({max_rows}) LogID, Timestamp, Username, HttpRequestMethod, Path,
                HttpResponseCode, RequestIpAddress, durationSeconds, Args
         FROM Logs
         WHERE {where_clause}
@@ -775,19 +778,23 @@ def admin_user_detail(user_id):
         row = cursor.fetchone()
         if not row:
             abort(404)
-        user = dict(zip([c[0] for c in cursor.description], row))
+        user = dict(zip([c[0] for c in cursor.description], row, strict=False))
 
         cursor.execute(
             "SELECT organizationcode, organization FROM Organizations ORDER BY organization"
         )
         organizations = [
-            dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()
+            dict(zip([c[0] for c in cursor.description], r, strict=False))
+            for r in cursor.fetchall()
         ]
 
         cursor.execute(
             "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
         )
-        all_ap = [dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()]
+        all_ap = [
+            dict(zip([c[0] for c in cursor.description], r, strict=False))
+            for r in cursor.fetchall()
+        ]
         assignable_profiles = [
             ap
             for ap in all_ap
@@ -809,7 +816,8 @@ def admin_user_detail(user_id):
                 Code
         """)
         all_permissions = [
-            dict(zip([c[0] for c in cursor.description], r)) for r in cursor.fetchall()
+            dict(zip([c[0] for c in cursor.description], r, strict=False))
+            for r in cursor.fetchall()
         ]
 
         return render_template(
@@ -911,15 +919,11 @@ def api_admin_user_activity(user_id):
         return jsonify({"error": str(e), "entries": [], "total": 0, "page": page, "pages": 0}), 500
     finally:
         if cursor:
-            try:
+            with suppress(Exception):
                 cursor.close()
-            except Exception:
-                pass
         if conn:
-            try:
+            with suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
 
 
 @require_permission("admin.delete.user")
@@ -1004,15 +1008,11 @@ def admin_revoke_all_sessions(user_id):
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         if cursor:
-            try:
+            with suppress(Exception):
                 cursor.close()
-            except Exception:
-                pass
         if conn:
-            try:
+            with suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
 
     revoked = 0
     for sid in sids:
@@ -1044,7 +1044,10 @@ def api_admin_users_list():
             JOIN organizations o ON o.organizationcode = u.organizationcode
             ORDER BY username
         """)
-        users = [dict(zip([c[0] for c in cursor.description], row)) for row in cursor.fetchall()]
+        users = [
+            dict(zip([c[0] for c in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
         return jsonify(users)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch users list: {e}")
@@ -1148,7 +1151,7 @@ def admin_access_control():
             ORDER BY ap.Name
         """)
         profiles = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
 
@@ -1167,7 +1170,7 @@ def admin_access_control():
                 Code
         """)
         all_permissions = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
 
@@ -1178,14 +1181,14 @@ def admin_access_control():
                 "SELECT organizationcode, organization FROM Organizations ORDER BY organization"
             )
             organizations = [
-                dict(zip([column[0] for column in cursor.description], row))
+                dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
             cursor.execute(
                 "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
             )
             all_ap = [
-                dict(zip([column[0] for column in cursor.description], row))
+                dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
             for ap in all_ap:
@@ -1257,7 +1260,7 @@ def get_users_admin_access_control():
         cursor.execute(query, params)
 
         users = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         return jsonify(users)
@@ -1287,7 +1290,7 @@ def get_profile_details(access_id):
             (access_id,),
         )
         assigned_perms = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         return jsonify({"success": True, "permissions": assigned_perms})
@@ -1483,15 +1486,11 @@ def api_admin_user_effective_permissions(user_id):
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         if cursor:
-            try:
+            with suppress(Exception):
                 cursor.close()
-            except Exception:
-                pass
         if conn:
-            try:
+            with suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
 
 
 @require_permission("admin.edit.user.override")
@@ -1559,7 +1558,8 @@ def api_admin_permissions_list():
                 p.Code
         """)
         perms = [
-            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+            dict(zip([col[0] for col in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
         ]
         return jsonify(perms)
     except Exception as e:
@@ -1603,7 +1603,8 @@ def api_admin_permission_users(perm_id):
             (perm_code, perm_id, perm_id),
         )
         users = [
-            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+            dict(zip([col[0] for col in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
         ]
         return jsonify({"success": True, "users": users})
     except Exception as e:
@@ -1641,7 +1642,8 @@ def api_admin_user_all_permissions(user_id):
             (user_id, user_id, user_id),
         )
         perms = [
-            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+            dict(zip([col[0] for col in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
         ]
         return jsonify({"success": True, "permissions": perms})
     except Exception as e:
