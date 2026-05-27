@@ -21,7 +21,7 @@ from ..security import (
     _check_add_deadline,
     _check_generali_record_org,
     has_permission,
-    pageVisability,
+    page_visibility,
     require_any_permission,
     require_permission,
 )
@@ -38,7 +38,7 @@ def generali_evaluation():
             "generali-dashboard.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Evaluation: {e}")
@@ -54,7 +54,7 @@ def generali_documents():
             "generali_documents.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Documents: {e}")
@@ -520,7 +520,7 @@ def generali_reporting():
             "generali_reporting.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
             can_add=has_permission("generali.reporting.add"),
             can_add_bypass_deadline=has_permission("generali.reporting.add.bypass.deadline"),
@@ -605,7 +605,7 @@ def generali_reporting_monthreport():
         return render_template(
             "generali_monthreport.html",
             logged_in_user=session.get("username"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             section="reporting",
             section_title="Generali Reporting",
             back_url=url_for("generali_reporting"),
@@ -979,7 +979,7 @@ def generali_additional_services():
             "generali_additionalservices.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
             can_add=has_permission("generali.attendance.add"),
             can_add_bypass_deadline=has_permission("generali.attendance.add.bypass.deadline"),
@@ -1069,7 +1069,7 @@ def generali_additionalservices_monthreport():
         return render_template(
             "generali_monthreport.html",
             logged_in_user=session.get("username"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             section="additionalservices",
             section_title="Generali Additional Services",
             back_url=url_for("generali_additionalServices"),
@@ -1523,7 +1523,7 @@ def generali_base_services():
             "generali_baseservices.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
             can_add=has_permission("generali.baseservices.add"),
             can_add_bypass_deadline=has_permission("generali.baseservices.add.bypass.deadline"),
@@ -1613,7 +1613,7 @@ def generali_baseservices_monthreport():
         return render_template(
             "generali_monthreport.html",
             logged_in_user=session.get("username"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             section="baseservices",
             section_title="Generali Base Services",
             back_url=url_for("generali_baseServices"),
@@ -2024,7 +2024,7 @@ def generali_project_management():
             "generali_projectmanagement.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
             can_add=has_permission("generali.projectmanagement.add"),
             can_add_bypass_deadline=has_permission(
@@ -2106,7 +2106,7 @@ def generali_projectmanagement_monthreport():
         return render_template(
             "generali_monthreport.html",
             logged_in_user=session.get("username"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             section="projectmanagement",
             section_title="Generali Project Management",
             back_url=url_for("generali_projectManagement"),
@@ -2513,7 +2513,7 @@ def generali_pdqm():
             "generali_pdqm.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
             can_add=has_permission("generali.pdqm.add"),
             can_add_bypass_deadline=has_permission("generali.pdqm.add.bypass.deadline"),
@@ -2594,7 +2594,7 @@ def generali_pdqm_monthreport():
         return render_template(
             "generali_monthreport.html",
             logged_in_user=session.get("username"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             section="pdqm",
             section_title="Generali PDQM",
             back_url=url_for("generali_pdqm"),
@@ -3049,7 +3049,7 @@ def generali_import_status():
             "generali_importstatus.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             organizationcode=session.get("organizationcode"),
         )
     except Exception as e:

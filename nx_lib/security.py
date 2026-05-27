@@ -5,6 +5,7 @@ The ``PermissionDenied`` exception and ``@require_permission`` /
 them without dragging in the rest of the app.
 """
 
+from contextlib import suppress
 from datetime import date
 from functools import wraps
 
@@ -107,8 +108,8 @@ def _check_add_deadline(for_date_str, bypass_perm_code):
     return None
 
 
-def startpage_redirect_to(pV):
-    permToFunction = {
+def startpage_redirect_to(page_v):
+    perm_to_function = {
         "dashboardPagePerm": "dashboard",
         "workitemsPagePerm": "workitems_overview",
         "invoicesPagePerm": "invoices",
@@ -122,13 +123,13 @@ def startpage_redirect_to(pV):
         "chatPagePerm": "chat_page",
         "adminPagePerm": "admin_dashboard",
     }
-    for pTF in permToFunction:
-        if pV[pTF]:
-            return permToFunction[pTF]
+    for perm_key in perm_to_function:
+        if page_v[perm_key]:
+            return perm_to_function[perm_key]
     return "login"
 
 
-def pageVisability():
+def page_visibility():
     return {
         "adminPagePerm": has_permission("admin.view"),
         "dashboardPagePerm": has_permission("dashboard.view"),
@@ -170,15 +171,11 @@ def _revoke_session_by_id(session_id):
         current_app.logger.warning(f"Could not delete ActiveSessions row for {session_id}: {e}")
     finally:
         if cursor:
-            try:
+            with suppress(Exception):
                 cursor.close()
-            except Exception:
-                pass
         if conn:
-            try:
+            with suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
 
     # Best-effort: nuke the server-side session data via Flask-Session's
     # internal store. Works for filesystem, cachelib, redis, etc. Falls back

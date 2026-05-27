@@ -40,7 +40,7 @@ from ..maintenance import _maintenance_blocks_user
 from ..security import (
     _revoke_session_by_id,
     load_permissions_for_user,
-    pageVisability,
+    page_visibility,
     startpage_redirect_to,
 )
 
@@ -286,7 +286,7 @@ def init_2fa():
                 _record_active_session(user_id)
                 if user_locale in ["de", "en", "fr", "it"]:
                     session["locale"] = user_locale
-                page_v = pageVisability()
+                page_v = page_visibility()
                 return redirect(url_for(startpage_redirect_to(page_v)))
             except Exception as e:
                 current_app.logger.error(f"2FA Setup DB Error: {e}")
@@ -341,7 +341,7 @@ def verify_2fa():
             _record_active_session(user_id)
             if user_locale in ["de", "en", "fr", "it"]:
                 session["locale"] = user_locale
-            page_v = pageVisability()
+            page_v = page_visibility()
             return redirect(url_for(startpage_redirect_to(page_v)))
         else:
             flash(_("Invalid code"), "error")
@@ -440,7 +440,7 @@ def dev_login(username):
     session["locale"] = locale
     session["permissions"] = load_permissions_for_user(str(uid))
     _record_active_session(str(uid))
-    page_v = pageVisability()
+    page_v = page_visibility()
     return redirect(url_for(startpage_redirect_to(page_v)))
 
 

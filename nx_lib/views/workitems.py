@@ -48,7 +48,7 @@ from ..process_helpers import (
     get_activity_instances_to_ignore,
     prepare_process_selection_sql,
 )
-from ..security import has_permission, pageVisability, require_permission
+from ..security import has_permission, page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
 
 # ---------------------------- field/config helpers ---------------------------- #
@@ -842,7 +842,7 @@ def workitems_overview():
             portal_assignedUsers_filter=portal_assigned_users_filter,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,
             status_perm=status_perm,

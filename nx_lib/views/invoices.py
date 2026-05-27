@@ -20,7 +20,7 @@ from flask_babel import gettext as _
 
 from ..config import BEXIO_PAT
 from ..db import engineNexoraDB
-from ..security import has_permission, pageVisability, require_permission
+from ..security import has_permission, page_visibility, require_permission
 
 # --------------------------------- bexio ---------------------------------- #
 
@@ -218,7 +218,7 @@ def invoices():
             search_nr_perm=search_nr_perm,
             status_perm=status_perm,
             date_perm=date_perm,
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             clients=clients,
         )
     except Exception:

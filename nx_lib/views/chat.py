@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 from ..db import engineNexoraDB
 from ..files import is_file_allowed
 from ..notifications import create_notification
-from ..security import pageVisability, require_permission
+from ..security import page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
 
 
@@ -37,7 +37,7 @@ def chat_page():
         logged_in_user=session.get("username"),
         userid=current_user_id,
         available_users=available_users,
-        pageV=pageVisability(),
+        pageV=page_visibility(),
     )
 
 

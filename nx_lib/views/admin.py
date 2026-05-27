@@ -38,7 +38,7 @@ from ..security import (
     _revoke_session_by_id,
     has_permission,
     load_permissions_for_user,
-    pageVisability,
+    page_visibility,
     require_permission,
 )
 
@@ -122,7 +122,7 @@ def admin_dashboard():
         db_health=db_health,
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
-        pageV=pageVisability(),
+        pageV=page_visibility(),
     )
 
 
@@ -147,7 +147,7 @@ def admin_organizations_view():
             organizations=organizations,
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception as e:
         current_app.logger.error(f"Failed to fetch organizations: {e}")
@@ -283,7 +283,7 @@ def admin_maintenance_view():
             "admin/maintenance.html",
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception as e:
         current_app.logger.error(f"Failed to load maintenance page: {e}")
@@ -450,7 +450,7 @@ def admin_logs_view():
         organizations=organizations,
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
-        pageV=pageVisability(),
+        pageV=page_visibility(),
     )
 
 
@@ -648,7 +648,7 @@ def admin_sessions_view():
         "admin/sessions.html",
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
-        pageV=pageVisability(),
+        pageV=page_visibility(),
     )
 
 
@@ -831,7 +831,7 @@ def admin_user_detail(user_id):
             can_edit_overrides=has_permission("admin.edit.user.override"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except HTTPException:
         raise
@@ -1208,7 +1208,7 @@ def admin_access_control():
             can_delete_user=has_permission("admin.delete.user"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading access control: {e}")

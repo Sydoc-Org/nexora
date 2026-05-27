@@ -19,7 +19,7 @@ from PIL import Image
 
 from ..db import engineNexoraDB
 from ..files import is_file_allowed
-from ..security import pageVisability
+from ..security import page_visibility
 
 
 def profile():
@@ -36,7 +36,7 @@ def profile():
             logged_in_user=logged_in_user,
             fullname=fullname,
             email=email,
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception:
         return render_template("500.html")

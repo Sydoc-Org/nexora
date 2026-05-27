@@ -25,7 +25,7 @@ from ..process_helpers import (
     get_activity_instances_to_ignore,
     get_params_from_process_list,
 )
-from ..security import pageVisability, require_permission
+from ..security import page_visibility, require_permission
 
 
 def make_cache_key(*args, **kwargs):
@@ -670,7 +670,7 @@ def dashboard():
             userid=userid,
             process_name=process_name,
             allowed_processes=allowed_processes,
-            pageV=pageVisability(),
+            pageV=page_visibility(),
             fullname=fullname,
         )
     except Exception:
