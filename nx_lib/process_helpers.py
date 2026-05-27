@@ -44,7 +44,7 @@ def prepare_process_selection_sql(prefix, process_name):
         raise
 
 
-def get_activityinstancesToIgnore():
+def get_activity_instances_to_ignore():
     cached = cache.get("activity_instances_ignore")
     if cached is not None:
         return cached

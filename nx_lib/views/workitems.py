@@ -45,7 +45,7 @@ from ..octo import (
     get_workitemdata_param,
 )
 from ..process_helpers import (
-    get_activityinstancesToIgnore,
+    get_activity_instances_to_ignore,
     prepare_process_selection_sql,
 )
 from ..security import has_permission, pageVisability, require_permission
@@ -171,7 +171,7 @@ def _get_workitems_data(args, export_all=False):
         if per_page not in (40, 100, 200, 500, 1000):
             per_page = 40
         offset = (page - 1) * per_page
-    activity_instances_to_ignore = get_activityinstancesToIgnore()
+    activity_instances_to_ignore = get_activity_instances_to_ignore()
 
     process_name = args.get("prcfW", "all")
     session["process_name_workitemOverview"] = process_name

@@ -22,7 +22,7 @@ from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
-    get_activityinstancesToIgnore,
+    get_activity_instances_to_ignore,
     get_params_from_process_list,
 )
 from ..security import pageVisability, require_permission
@@ -1438,7 +1438,7 @@ def api_recent_activity():
 
         conn = engineOctoDB.raw_connection()
         cursor = conn.cursor()
-        activity_instances_to_ignore = get_activityinstancesToIgnore()
+        activity_instances_to_ignore = get_activity_instances_to_ignore()
 
         p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
         cursor.execute(
