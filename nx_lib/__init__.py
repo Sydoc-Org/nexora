@@ -15,7 +15,6 @@ from flask_talisman import Talisman
 from . import config as cfg
 from . import extensions, hooks
 
-
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 

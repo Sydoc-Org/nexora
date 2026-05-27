@@ -3,7 +3,6 @@ the client-reported content type."""
 
 import magic
 
-
 ALLOWED_MIME_TYPES = {
     "pdf": ["application/pdf"],
     "png": ["image/png"],

@@ -13,10 +13,9 @@ import re
 import subprocess
 import sys
 import time
+from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
-from typing import Callable
-
-_NX_VERSION = "2.5.58"
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -25,6 +24,7 @@ from prompt_toolkit.history import FileHistory, ThreadedHistory
 from prompt_toolkit.shortcuts import clear as pt_clear
 from prompt_toolkit.styles import Style
 
+_NX_VERSION = "2.5.60"
 
 APP_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = APP_DIR / "logs" / "system"
@@ -108,10 +108,7 @@ def _build_logo() -> str:
         nl = sx_n * LX + sy_n * LY + nz * LZ
         # Compressed diffuse range — even the brightest sphere point stays
         # noticeably darker than the surrounding ring, so the ring dominates.
-        if nl < 0.0:
-            diff = 0.06
-        else:
-            diff = 0.08 + 0.55 * nl  # peak ≈ 0.63 (vs. ring peak ≈ 1.0)
+        diff = 0.06 if nl < 0.0 else 0.08 + 0.55 * nl  # peak ≈ 0.63 (vs. ring peak ≈ 1.0)
         if diff >= 0.45:
             col = lerp(SPHERE_BASE, SPHERE_LIGHT, (diff - 0.45) / 0.18)
         else:
@@ -270,7 +267,7 @@ def _build_panel(
         f"{border_color}│{OFF}{_pad_visible(ln, inner_width)}{border_color}│{OFF}"
         for ln in inner_lines
     ]
-    return [top] + rows + [bottom]
+    return [top, *rows, bottom]
 
 
 # ── state helpers (TTL-cached so bottom toolbar stays snappy) ──────────────
@@ -479,14 +476,10 @@ def _run_python_module(*args: str) -> int:
 def _prewarm_caches() -> None:
     """Eagerly load routes + users on a daemon thread so the first Tab
     after `browser ` / `loginas ` doesn't freeze importing Flask or hitting the DB."""
-    try:
+    with suppress(Exception):
         _load_routes()
-    except Exception:
-        pass
-    try:
+    with suppress(Exception):
         _load_users()
-    except Exception:
-        pass
 
 
 def _load_users() -> list[str]:
@@ -594,10 +587,8 @@ def cmd_logs(_args: list[str]) -> None:
     if not _port_pid():
         _print(f"  {C_RED}✗{C_OFF}  nexora is not running")
         return
-    try:
+    with suppress(KeyboardInterrupt):
         _run_ps1("-l")
-    except KeyboardInterrupt:
-        pass
 
 
 def cmd_routes(args: list[str]) -> None:
@@ -810,7 +801,7 @@ def _build_splash() -> str:
     left = _build_panel(f"nexora dev CLI v{_NX_VERSION}", left_lines, LEFT_INNER, BORDER, TITLE)
     right = _build_panel("Quick start", right_lines, RIGHT_INNER, BORDER, TITLE)
 
-    return "\n".join(f"{l}  {r}" for l, r in zip(left, right))
+    return "\n".join(f"{lt}  {rt}" for lt, rt in zip(left, right, strict=False))
 
 
 def _splash() -> None:

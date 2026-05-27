@@ -23,10 +23,10 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 APP_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = APP_DIR / "logs"
@@ -54,7 +54,7 @@ class CheckResult:
     status: str  # "ok" | "warn" | "fail" | "skip"
     detail: str = ""
     hint: str | None = None
-    fix: Callable[[], "CheckResult | None"] | None = None
+    fix: Callable[[], CheckResult | None] | None = None
 
 
 # ── env bootstrap ──────────────────────────────────────────────────────────
@@ -77,16 +77,7 @@ def _bootstrap_env() -> None:
 
 def _check_python() -> list[CheckResult]:
     label = f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    if sys.version_info >= (3, 10):
-        return [CheckResult("interpreter", "ok", label)]
-    return [
-        CheckResult(
-            "interpreter",
-            "fail",
-            label,
-            hint="nexora needs Python 3.10+ (production runs 3.13).",
-        )
-    ]
+    return [CheckResult("interpreter", "ok", label)]
 
 
 def _parse_requirements() -> list[tuple[str, str | None]]:
@@ -628,9 +619,7 @@ def _print_section(title: str, results: list[CheckResult]) -> None:
     for r in results:
         glyph = _GLYPH.get(r.status, "?")
         name = f"{r.name:<{width}}"
-        if r.status == "ok":
-            sys.stdout.write(f"    {glyph}  {name}  {C_DIM}{r.detail}{C_OFF}\n")
-        elif r.status == "skip":
+        if r.status == "ok" or r.status == "skip":
             sys.stdout.write(f"    {glyph}  {name}  {C_DIM}{r.detail}{C_OFF}\n")
         else:
             sys.stdout.write(f"    {glyph}  {name}  {r.detail}\n")

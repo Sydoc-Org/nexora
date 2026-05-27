@@ -4,7 +4,6 @@ from io import BytesIO
 
 from nx_lib.files import is_file_allowed
 
-
 # Tiny but valid PDF (1.4) — accepted by libmagic as application/pdf
 PDF_BYTES = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer<<>>\n%%EOF\n"
 

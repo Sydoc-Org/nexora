@@ -65,7 +65,11 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N802", "N803"]      # allow camelCase fixtures
 "nx_main.py" = ["E402"]            # late imports after Flask app setup
-"nx_lib/cli.py" = ["N806"]         # intentional UPPER_SNAKE for animation / render-loop constants
+"nx_lib/cli.py" = [
+    "N806",                        # intentional UPPER_SNAKE for animation / render-loop constants
+    "RUF001", "RUF002", "RUF003",  # intentional Unicode (× α › —) in 3D render scene + UI strings
+]
+"nx_lib/cli_doctor.py" = ["RUF001"]  # intentional en-dash – in the "skip" glyph
 # Pre-existing naming violations deferred to PR 5 (snake_case rename pass).
 # Remove these once PR 5 lands.
 "scripts/news/**" = ["N802", "N803", "N806", "RUF001"]

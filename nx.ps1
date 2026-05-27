@@ -174,7 +174,7 @@ if ($unknown.Count -gt 0) {
     exit 1
 }
 
-if ($loginAs) { $browser = $true }  
+if ($loginAs) { $browser = $true }
 
 if (-not $action) { $action = if ($browser) { 'browser' } else { 'status' } }
 

@@ -7,7 +7,6 @@ from flask import current_app
 from .db import engineNexoraDB
 from .security import load_permissions_for_user
 
-
 MAINTENANCE_SEVERITIES = {"info", "warning", "critical"}
 
 # Cached lookup of active blocking maintenance — TTL'd so we don't hit the DB
@@ -33,7 +32,7 @@ def _maintenance_iso(v):
 
 
 def _maintenance_row_to_dict(row, cols):
-    d = dict(zip(cols, row))
+    d = dict(zip(cols, row, strict=False))
     for k in ("StartAt", "EndAt", "CreatedAt"):
         d[k] = _maintenance_iso(d.get(k))
     d["Active"] = bool(d.get("Active"))
