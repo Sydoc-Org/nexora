@@ -17,6 +17,16 @@ jobs:
           $ErrorActionPreference = 'Stop'
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements.txt
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-dev.txt
+          # Self-hosted runner: `pip install --quiet -r` can no-op when a
+          # newer ruff is already installed system-wide, causing the format
+          # check to diverge from dev. Force the pinned version explicitly.
+          D:\sydoc\tools\py\python.exe -m pip install --quiet --force-reinstall ruff==0.7.4
+
+      - name: Show tool versions
+        shell: powershell
+        run: |
+          D:\sydoc\tools\py\python.exe --version
+          D:\sydoc\tools\py\python.exe -m ruff --version
 
       - name: Ruff lint
         shell: powershell
