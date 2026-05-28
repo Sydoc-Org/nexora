@@ -145,7 +145,7 @@ pybabel compile -d translations
 
 This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 3142 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> First-time setup after cloning: run `npx gitnexus analyze` to build the local index. The `.gitnexus/` folder is gitignored — it's a derived cache, regenerated on demand. Re-run the same command if any tool later warns the index is stale.
 
 ## Always Do
 
