@@ -114,7 +114,7 @@ def admin_dashboard():
     )
 
     return render_template(
-        "admin/adminOverview.html",
+        "admin/admin_overview.html",
         user_count=user_count,
         org_count=org_count,
         active_sessions_count=active_sessions_count,
@@ -821,7 +821,7 @@ def admin_user_detail(user_id):
         ]
 
         return render_template(
-            "admin/userDetail.html",
+            "admin/user_detail.html",
             user=user,
             organizations=organizations,
             assignable_profiles=assignable_profiles,
@@ -1196,7 +1196,7 @@ def admin_access_control():
                     assignable_profiles.append(ap)
 
         return render_template(
-            "admin/accessControl.html",
+            "admin/access_control.html",
             profiles=profiles,
             all_permissions=all_permissions,
             organizations=organizations,
