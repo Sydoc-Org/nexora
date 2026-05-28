@@ -1,4 +1,4 @@
-$nexoraLogFolder = 'D:\sydoc\nexora\logs\user'
+$nexoraLogFolder = 'D:\sydoc\nexora\var\logs\user'
 $dbServer = 'PRDSQL01'
 $dbName = 'nexora'
 $dbTable = 'Logs'
@@ -25,4 +25,3 @@ Get-ChildItem -Directory $nexoraLogFolder | ForEach-Object  {
         }
     Remove-Item $_.FullName -Recurse -Force
 }
-

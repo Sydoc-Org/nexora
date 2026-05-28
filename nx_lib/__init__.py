@@ -34,7 +34,7 @@ def create_app():
         app.config["SESSION_COOKIE_HTTPONLY"] = True
         app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
         app.config["SESSION_TYPE"] = "filesystem"
-        app.config["SESSION_FILE_DIR"] = os.path.join(app.root_path, "session")
+        app.config["SESSION_FILE_DIR"] = str(cfg.PATHS.session)
         app.config["SESSION_PERMANENT"] = True
         app.config["SESSION_USE_SIGNER"] = True
         Session(app)

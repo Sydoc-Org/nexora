@@ -6,7 +6,6 @@ import csv
 import io
 import json
 import math
-import os
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -30,7 +29,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN
+from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN, PATHS
 from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
 from ..extensions import cache
 from ..files import is_file_allowed
@@ -900,13 +899,10 @@ def import_workitems():
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4()}_{session.get('username')}_{filename}"
 
-        upload_folder = os.path.join(current_app.root_path, "uploads")
-        os.makedirs(upload_folder, exist_ok=True)
+        process_upload_folder = PATHS.uploads / process_name.replace(".", "_")
+        process_upload_folder.mkdir(parents=True, exist_ok=True)
 
-        process_upload_folder = os.path.join(upload_folder, process_name.replace(".", "_"))
-        os.makedirs(process_upload_folder, exist_ok=True)
-
-        file_path = os.path.join(process_upload_folder, unique_filename)
+        file_path = process_upload_folder / unique_filename
 
         try:
             file.save(file_path)

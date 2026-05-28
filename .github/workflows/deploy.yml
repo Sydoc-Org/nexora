@@ -62,7 +62,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           D:\sydoc\tools\py\python.exe -m playwright install chromium
 
-      - name: Copy TEST.env into workspace
+      - name: Copy TEST.env into workspace env/
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
@@ -70,16 +70,18 @@ jobs:
           if (-not (Test-Path $src)) {
             throw "Runner is missing $src. Provision it once on the runner machine."
           }
-          Copy-Item $src "${{ github.workspace }}\TEST.env" -Force
+          # env/ already exists in the workspace via env/*.env.example tracking.
+          # config.py loads env/{ENVIRONMENT}.env (PR 8 of dev-env upgrade).
+          Copy-Item $src "${{ github.workspace }}\env\TEST.env" -Force
 
-      - name: Verify TEST.env
+      - name: Verify env/TEST.env
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $testEnv = "${{ github.workspace }}\TEST.env"
+          $testEnv = "${{ github.workspace }}\env\TEST.env"
           $envLine = Get-Content $testEnv | Where-Object { $_ -match '^\s*ENVIRONMENT\s*=' } | Select-Object -First 1
           if ($envLine -notmatch '^\s*ENVIRONMENT\s*=\s*"?TEST"?\s*$') {
-            throw "TEST.env must contain 'ENVIRONMENT=TEST'. Found: '$envLine'"
+            throw "env/TEST.env must contain 'ENVIRONMENT=TEST'. Found: '$envLine'"
           }
 
       - name: Reset NEXORA_TEST database
@@ -102,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: test-results/
+          path: var/test-results/
           if-no-files-found: warn
 
   deploy:
@@ -117,8 +119,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $deployDir = "D:\sydoc\nexora"
+          # The root-level .env stays put — it is the env-selector that
+          # sets ENVIRONMENT=PROD so the loader picks the right secrets file.
           $envFile = "$deployDir\.env"
-          $prodEnvFile = "$deployDir\PROD.env"
+          # PROD.env moved into env/ in PR 8 of the dev-env upgrade. The
+          # loader in nx_lib/config.py still has a one-release fallback to
+          # the legacy root location (emits a DeprecationWarning), so a
+          # missed move on SYAPP01 won't take the site down.
+          $prodEnvFile = "$deployDir\env\PROD.env"
+          $legacyProdEnvFile = "$deployDir\PROD.env"
 
           if (-not (Test-Path $envFile)) {
             throw "Aborting deploy: $envFile not found."
@@ -129,10 +138,13 @@ jobs:
           }
           Write-Host "Verified: $envFile has ENVIRONMENT=PROD"
 
-          if (-not (Test-Path $prodEnvFile)) {
-            throw "Aborting deploy: $prodEnvFile not found. The app will fail to load secrets without it."
+          if (Test-Path $prodEnvFile) {
+            Write-Host "Verified: $prodEnvFile exists"
+          } elseif (Test-Path $legacyProdEnvFile) {
+            Write-Warning "PROD.env is still at the legacy root location ($legacyProdEnvFile). Move it to $prodEnvFile to silence the DeprecationWarning the app emits at startup."
+          } else {
+            throw "Aborting deploy: neither $prodEnvFile nor $legacyProdEnvFile exists. The app will fail to load secrets without one of them."
           }
-          Write-Host "Verified: $prodEnvFile exists"
 
       - name: Apply DB migrations to PROD
         shell: powershell
@@ -140,11 +152,27 @@ jobs:
           $ErrorActionPreference = 'Stop'
           # Runs BEFORE the app pool stop so a failed migration leaves the
           # existing app serving old code on old schema -- nothing breaks.
-          # The runner reads PROD.env from CWD; PROD.env lives at the deploy
-          # target (gitignored), so copy it into the workspace temporarily.
-          $envSrc = "D:\sydoc\nexora\PROD.env"
-          $envDst = "${{ github.workspace }}\PROD.env"
-          Copy-Item $envSrc $envDst -Force
+          # The runner reads env/PROD.env from CWD; PROD.env lives at the
+          # deploy target (gitignored), so copy it into the workspace's
+          # env/ temporarily. Fall back to the legacy root location if PR 8
+          # files haven't been moved on SYAPP01 yet.
+          $envSrcNew = "D:\sydoc\nexora\env\PROD.env"
+          $envSrcLegacy = "D:\sydoc\nexora\PROD.env"
+          $envDst = "${{ github.workspace }}\env\PROD.env"
+          if (Test-Path $envSrcNew) {
+            Copy-Item $envSrcNew $envDst -Force
+          } elseif (Test-Path $envSrcLegacy) {
+            Write-Warning "Using legacy PROD.env at $envSrcLegacy (move it to $envSrcNew to silence the DeprecationWarning)."
+            Copy-Item $envSrcLegacy $envDst -Force
+          } else {
+            throw "Neither $envSrcNew nor $envSrcLegacy exists on SYAPP01."
+          }
+          # The runner service inherits the System PATH from when it was last
+          # started. If SqlCmd was added after that, shutil.which("sqlcmd") in
+          # db-migrate.py returns None until the runner service is restarted.
+          # Prepend the well-known install dir defensively (db-migrate.py also
+          # has an in-Python fallback for the same reason).
+          $env:PATH = "C:\Program Files\SqlCmd;$env:PATH"
           try {
             D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
           } finally {
@@ -194,7 +222,7 @@ jobs:
         shell: powershell
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ session logs uploads screenshots scripts sql tests test-results docs `
+            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs `
             /XF *.env ngrok.yaml .gitignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt README.md pyproject.toml
           if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
 

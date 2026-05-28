@@ -28,9 +28,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
+from .config import PATHS
+
 APP_DIR = Path(__file__).resolve().parent.parent
-LOG_DIR = APP_DIR / "logs"
-SESSION_DIR = APP_DIR / "session"
+LOG_DIR = PATHS.logs
+SESSION_DIR = PATHS.session
 TRANSLATIONS_DIR = APP_DIR / "translations"
 REQUIREMENTS_FILE = APP_DIR / "requirements.txt"
 GIT_HOOKS_SRC = APP_DIR / "scripts" / "git-hooks"

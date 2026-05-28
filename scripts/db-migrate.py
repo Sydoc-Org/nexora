@@ -63,14 +63,31 @@ def load_nexora_config(env_name: str):
     return cfg
 
 
+_SQLCMD_FALLBACK_DIRS = (
+    r"C:\Program Files\SqlCmd",
+    r"C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn",
+    r"C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn",
+    r"C:\Program Files (x86)\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn",
+    r"C:\Program Files (x86)\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn",
+)
+
+
 def find_sqlcmd() -> str:
+    """Locate sqlcmd, with a fallback for hosts where the System PATH set after
+    a service started doesn't yet reflect the install dir (GitHub Actions
+    self-hosted runner pattern — see 2026-05-28 deploy postmortem)."""
     exe = shutil.which("sqlcmd") or shutil.which("sqlcmd.exe")
-    if not exe:
-        raise RuntimeError(
-            "sqlcmd not found on PATH. Install SQL Server Command Line Utilities "
-            "(ships with SSMS / mssql-tools)."
-        )
-    return exe
+    if exe:
+        return exe
+    for d in _SQLCMD_FALLBACK_DIRS:
+        candidate = Path(d) / "sqlcmd.exe"
+        if candidate.is_file():
+            return str(candidate)
+    raise RuntimeError(
+        "sqlcmd not found on PATH or in common install dirs. Install SQL "
+        "Server Command Line Utilities (ships with SSMS / mssql-tools). "
+        f"Searched fallbacks: {', '.join(_SQLCMD_FALLBACK_DIRS)}"
+    )
 
 
 def connect(server: str, db: str, uid: str, pwd: str):

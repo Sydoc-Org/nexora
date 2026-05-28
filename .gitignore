@@ -17,7 +17,6 @@ __pycache__/
 .idea/
 .swarm/
 node_modules/
-test-results/
 env.json
 .superpowers/
 ngrok.yaml
@@ -33,7 +32,6 @@ lib/
 lib64/
 parts/
 sdist/
-var/
 wheels/
 share/python-wheels/
 *.egg-info/
@@ -152,22 +150,24 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Runtime data (per-environment, not source)
-uploads/
-session/
-logs/
-screenshots/
-backups/
+# Runtime data — consolidated under var/, gitignored except .gitkeep markers
+var/*
+!var/.gitkeep
+!var/*/
+var/*/*
+!var/*/.gitkeep
 .playwright-mcp/
+
+# Flask-served public chat uploads (user content; never committed)
+static/uploads/
 
 
 # Environments
 *.env
+!env/*.env.example
 .envrc
 .venv
-env/
 venv/
-ENV/
 env.bak/
 venv.bak/
 environment_transfer_queries.tmp.sql

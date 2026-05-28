@@ -4,7 +4,6 @@ All these functions are registered against the Flask app inside ``init_app``.
 """
 
 import csv
-import os
 import time
 from datetime import datetime
 
@@ -18,6 +17,7 @@ from flask import (
     url_for,
 )
 
+from .config import PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
 from .maintenance import (
@@ -139,13 +139,10 @@ def _log_every_request(response):
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 
     try:
-        logs_folder = os.path.join(current_app.root_path, "logs", "user")
-        os.makedirs(logs_folder, exist_ok=True)
+        logs_hour_folder = PATHS.logs / "user" / datetime.now().strftime("%Y%m%d%H")
+        logs_hour_folder.mkdir(parents=True, exist_ok=True)
 
-        logs_hour_folder = os.path.join(logs_folder, datetime.now().strftime("%Y%m%d%H"))
-        os.makedirs(logs_hour_folder, exist_ok=True)
-
-        with open(f"{logs_hour_folder}/nexora_logs.csv", "a", newline="") as csvfile:
+        with (logs_hour_folder / "nexora_logs.csv").open("a", newline="") as csvfile:
             fieldnames = [
                 "SessionID",
                 "RequestIpAddress",
