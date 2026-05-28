@@ -76,6 +76,12 @@ Never hand-edit files under `sql/<Database>/<TableOrView>/...` — those are aut
 
 The previous `environment_transfer_queries.tmp.sql` workflow is deprecated and replaced by `sql/_migrations/`.
 
+## Deploy artifacts
+
+The deploy workflow at `.github/workflows/deploy.yml` mirrors the repo to `D:\sydoc\nexora` via `robocopy /MIR` after stopping the IIS app pool. The Flask app only needs `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, and `web.config` at runtime — everything else (tests, scripts, docs, dev tooling, AI configs, build artifacts) is dev-side.
+
+**Rule:** when committing a new top-level file or directory that is **not** needed by the running app, also add it to the robocopy exclude list in `deploy.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod on the next deploy.
+
 ## Architectural conventions
 
 - **Auth & sessions:** Flask-Session with filesystem backend in `./session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.
