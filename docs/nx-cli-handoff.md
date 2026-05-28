@@ -24,8 +24,8 @@ The single-purpose `nx.ps1` script has been turned into a multi-functional CLI w
 | `nx.ps1` | modified | Zero-arg dispatch to `python -m nx_lib.cli`; flag parser; help text; `Show-Routes` was removed and replaced by routes living in the Python CLI module (the one-shot `--routes:` form still works via embedded Python). |
 | `nx_lib/cli.py` | new | prompt_toolkit REPL. Logo renderer (Pillow → Unicode `▀` half-blocks, 24-bit color, alpha-keyed for transparency). Command dispatch shells back to `nx.ps1` for process lifecycle. |
 | `requirements.txt` | modified | Added `prompt_toolkit==3.0.51`. Pillow was already present. |
-| `logs/system/logo_cache.txt` | runtime cache | Rendered logo art. Auto-rebuilt when `nexora-logo.png` mtime is newer. |
-| `logs/system/cli_history.txt` | runtime data | REPL command history. |
+| `var/logs/system/logo_cache.txt` | runtime cache | Rendered logo art. Auto-rebuilt when `nexora-logo.png` mtime is newer. |
+| `var/logs/system/cli_history.txt` | runtime data | REPL command history. |
 
 Note: the embedded Python in `nx.ps1` (`Show-Routes` function) still exists for the one-shot `nx --routes:...` flow. It is the source of truth for route listing — the REPL's `routes` command shells back to `nx.ps1 --routes:<pat>` so the formatting and unwrap logic stay in one place. If you refactor, consider moving the route-listing logic from `nx.ps1` into `nx_lib/cli.py` and having `nx.ps1` call into Python for both modes.
 
@@ -44,7 +44,7 @@ nx.ps1   ──┬─ args empty?  ──► python -m nx_lib.cli   (interactive
 ```
 nx_lib/cli.py
   splash:        Pillow load PNG → alpha-key whites → crop bbox → resize to 70 cols → composite over black → emit half-blocks
-  state:         _port_pid (Get-NetTCPConnection via subprocess), _current_env (reads logs/system/current_env)
+  state:         _port_pid (Get-NetTCPConnection via subprocess), _current_env (reads var/logs/system/current_env)
   commands:      start/stop/restart/logs/status/routes/open/loginas/env/env:<x>/clear/help/exit
                  → all shell out to powershell -File nx.ps1 <flags>
   completion:    NxCompleter — first word from COMMAND_HELP; arg-aware for open/loginas/start/restart
@@ -103,7 +103,7 @@ Quick pointers if you want to add to the CLI:
 - **New command in REPL** — add a `cmd_xxx(args: list[str])` function in `nx_lib/cli.py`, register it in the `COMMANDS` dict, add a one-line entry in `COMMAND_HELP` for autocomplete metadata, and add a row to `cmd_help`.
 - **New one-shot flag** — add a regex match before the `switch` in `nx.ps1`'s parser, or a new entry in the `switch -Exact` block. Add validation under the `if ($envOverride)` block if it should be env-restricted. Add an `'action'` case to the bottom switch.
 - **Context-aware autocomplete** — extend `NxCompleter.get_completions`. The pattern: branch on the first word, yield `Completion(value, start_position=-len(tail), display=...)`.
-- **Change the splash** — set `LOGO_WIDTH` in `nx_lib/cli.py`. Delete `logs/system/logo_cache.txt` to force a re-render. Tweak `BG_THRESHOLD` (currently 14) if alpha-keying leaves halos.
+- **Change the splash** — set `LOGO_WIDTH` in `nx_lib/cli.py`. Delete `var/logs/system/logo_cache.txt` to force a re-render. Tweak `BG_THRESHOLD` (currently 14) if alpha-keying leaves halos.
 - **Change the prompt** — `session.prompt([("class:prompt", "nexora › ")])` — swap the text or the style class.
 - **Move route listing fully into Python** — port the embedded `Show-Routes` body in `nx.ps1` into a function in `nx_lib/cli.py`, expose it via a `--routes` arg on `python -m nx_lib.cli`, and shell to that from `nx.ps1` so both modes share one implementation.
 

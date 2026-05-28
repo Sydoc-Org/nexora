@@ -4,7 +4,10 @@
 $AppDir    = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
 $AppPy     = Join-Path $AppDir "nx_main.py"
-$LogDir    = Join-Path $AppDir "logs\system"
+# Must match nx_lib/cli.py: PATHS.logs / "system" → var/logs/system. Both
+# sides share current_env / app_stderr.log etc., so the TUI can read the
+# env that `nx -u` just wrote.
+$LogDir    = Join-Path $AppDir "var\logs\system"
 $null      = New-Item -ItemType Directory -Force -Path $LogDir
 $StderrLog    = "$LogDir\app_stderr.log"
 $StdoutLog    = "$LogDir\app_stdout.log"
