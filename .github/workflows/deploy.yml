@@ -145,6 +145,12 @@ jobs:
           $envSrc = "D:\sydoc\nexora\PROD.env"
           $envDst = "${{ github.workspace }}\PROD.env"
           Copy-Item $envSrc $envDst -Force
+          # The runner service inherits the System PATH from when it was last
+          # started. If SqlCmd was added after that, shutil.which("sqlcmd") in
+          # db-migrate.py returns None until the runner service is restarted.
+          # Prepend the well-known install dir defensively (db-migrate.py also
+          # has an in-Python fallback for the same reason).
+          $env:PATH = "C:\Program Files\SqlCmd;$env:PATH"
           try {
             D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
           } finally {
