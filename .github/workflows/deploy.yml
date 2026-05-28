@@ -28,18 +28,33 @@ jobs:
           D:\sydoc\tools\py\python.exe --version
           D:\sydoc\tools\py\python.exe -m ruff --version
 
+      # The self-hosted runner has a persistent workspace. Files added before
+      # `.gitattributes` got `*.py text eol=lf` (2026-05-13) were cached with
+      # CRLF endings and actions/checkout has not re-normalised them on
+      # subsequent runs. ruff's `format.line-ending = "lf"` then flags those
+      # files as needing reformat even though their content is identical to
+      # what dev sees locally. Re-normalise to LF before any ruff step.
+      - name: Normalize Python line endings to LF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          Get-ChildItem -Path nx_lib, nx_main.py, tests -Recurse -Include *.py | ForEach-Object {
+            $text = [System.IO.File]::ReadAllText($_.FullName, $utf8NoBom)
+            $normalized = $text -replace "`r`n", "`n"
+            if ($normalized -ne $text) {
+              [System.IO.File]::WriteAllText($_.FullName, $normalized, $utf8NoBom)
+              Write-Host "  fixed: $($_.FullName)"
+            }
+          }
+
       - name: Ruff lint
         shell: powershell
         run: D:\sydoc\tools\py\python.exe -m ruff check nx_lib nx_main.py tests
 
       - name: Ruff format check
         shell: powershell
-        # --diff (vs --check) prints the actual reformat the runner wants, so
-        # any drift between dev and CI shows up in the log.
-        # --config pyproject.toml pins the config file explicitly in case ruff
-        # is finding a different one when walking up the directory tree on the
-        # self-hosted runner.
-        run: D:\sydoc\tools\py\python.exe -m ruff format --diff --config pyproject.toml nx_lib nx_main.py tests
+        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py tests
 
       - name: Install Playwright chromium
         shell: powershell
