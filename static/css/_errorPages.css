@@ -1,6 +1,6 @@
 /* ============================================================
    Error pages — cosmic black-hole theme
-   Used by templates/handlers/{403,404,500}.html via _errorBase.html
+   Used by templates/handlers/{403,404,500}.html via _error_base.html
    ============================================================ */
 
 :root {
