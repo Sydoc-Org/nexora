@@ -12,8 +12,8 @@ from flask import Flask
 from flask_session import Session
 from flask_talisman import Talisman
 
+from . import app_logging, extensions, hooks
 from . import config as cfg
-from . import extensions, hooks
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,6 +27,8 @@ def create_app():
     )
 
     app.config["SECRET_KEY"] = cfg.SECRET_KEY
+
+    app_logging.init_app(app)
 
     if cfg.IS_PROD:
         app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
