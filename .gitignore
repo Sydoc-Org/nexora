@@ -6,8 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
-# AI tooling state — kept local, not committed
-.claude/
+# AI tooling state — selective: ship team-shared config, hide personal/runtime
+.claude/settings.local.json
+.claude/memory.db
+.claude/logs/
+.claude/cache/
+.claude/.session*
 .claude-flow/
 .gitnexus/
 .idea/
@@ -242,10 +246,7 @@ static/images/StadtBiel-Icon.svg
 static/images/ElektroMaterial-Icon.png
 ruvector.db
 
-# AI tooling state — kept local, not committed
-CLAUDE.md
-AGENTS.md
-.mcp.json
+# In-flight superpowers artifacts — keep local until finalized
 /docs/superpowers/handoffs/2026-05-26-dev-structure-handoff.md
 /docs/superpowers/specs/2026-05-26-dev-env-upgrade-design.md
 /docs/superpowers/handoffs/2026-05-27-dev-structure-handoff.md
