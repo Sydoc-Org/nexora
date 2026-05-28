@@ -1,22 +1,48 @@
 """Environment-driven configuration for nexora.
 
-Loaded once at import time. Reads ``.env`` then ``{ENVIRONMENT}.env`` so
-secrets in INT.env / PROD.env override anything in the default .env file.
+Loaded once at import time. Reads ``.env`` then ``env/{ENVIRONMENT}.env`` so
+secrets in env/INT.env / env/PROD.env override anything in the default .env
+file. Falls back to a root-level ``{ENVIRONMENT}.env`` with a
+``DeprecationWarning`` for one release while operators move files into
+``env/`` on shared hosts.
 """
 
 import os
+import warnings
 from pathlib import Path
 
 from dotenv import load_dotenv
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Step 1: root .env (environment-selector; sets ENVIRONMENT=INT|PROD|... so
+# the second load_dotenv knows which secrets file to read).
 load_dotenv()
-load_dotenv(dotenv_path=f'{os.environ.get("ENVIRONMENT")}.env')
+
+# Step 2: env-specific secrets. Prefer env/{ENV}.env (PR 8 layout); fall
+# back to the legacy root-level {ENV}.env for one release while shared
+# hosts (SYAPP01) catch up. The fallback emits a DeprecationWarning so the
+# warning shows up in app logs and reminds operators to move the file.
+_env_name = os.environ.get("ENVIRONMENT", "")
+_primary_env_file = REPO_ROOT / "env" / f"{_env_name}.env"
+_legacy_env_file = REPO_ROOT / f"{_env_name}.env"
+
+if _primary_env_file.exists():
+    load_dotenv(dotenv_path=_primary_env_file)
+elif _legacy_env_file.exists():
+    load_dotenv(dotenv_path=_legacy_env_file)
+    warnings.warn(
+        f"Loaded env from legacy root location {_legacy_env_file}. "
+        f"Move to {_primary_env_file} (PR 8 of dev-env upgrade); the "
+        f"fallback will be removed after one release.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
 
 # --- Runtime paths -----------------------------------------------------------
 # Every runtime-writable dir lives under var/. Gitignored except .gitkeep.
-REPO_ROOT = Path(__file__).resolve().parent.parent
 VAR_DIR = REPO_ROOT / "var"
 
 
