@@ -238,6 +238,7 @@ function Start-App {
     $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
     try {
         $env:ENVIRONMENT = $envValue
+        foreach ($f in $StdoutLog, $StderrLog) { if ((Test-Path $f) -and (Get-Item $f).Length -gt 10MB) { Move-Item -Force $f "$f.1" } }
         $p = Start-Process -FilePath $Python `
                  -ArgumentList "`"$AppPy`"" `
                  -WorkingDirectory $AppDir `
