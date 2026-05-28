@@ -17,8 +17,8 @@ uv sync
 python -m playwright install chromium
 
 # 3. Copy env templates
-copy INT.env.example INT.env    # then fill in real values
-copy TEST.env.example TEST.env
+copy env\INT.env.example env\INT.env    # then fill in real values
+copy env\TEST.env.example env\TEST.env
 
 # 4. Reset the NEXORA_TEST database
 .\scripts\test-db-reset.ps1

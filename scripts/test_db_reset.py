@@ -3,7 +3,7 @@
 Uses pyodbc instead of sqlcmd so it runs anywhere pyodbc does (i.e. anywhere
 nexora itself runs) without needing SQL Server Command Line Tools installed.
 
-Reads connection info from TEST.env at the repo root. Idempotent.
+Reads connection info from env/TEST.env. Idempotent.
 
 Usage:
     python scripts/test_db_reset.py
@@ -18,7 +18,7 @@ from pathlib import Path
 import pyodbc
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TEST_ENV = REPO_ROOT / "TEST.env"
+TEST_ENV = REPO_ROOT / "env" / "TEST.env"
 SCHEMA_SQL = REPO_ROOT / "sql" / "test" / "schema.sql"
 SEED_SQL = REPO_ROOT / "sql" / "test" / "seed.sql"
 
@@ -58,7 +58,8 @@ def execute_sql_file(cursor: pyodbc.Cursor, path: Path) -> None:
 def main() -> int:
     if not TEST_ENV.exists():
         print(
-            f"TEST.env not found at {TEST_ENV}. Copy TEST.env.example and fill in values.",
+            f"env/TEST.env not found at {TEST_ENV}. "
+            "Copy env/TEST.env.example to env/TEST.env and fill in values.",
             file=sys.stderr,
         )
         return 1

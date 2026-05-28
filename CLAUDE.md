@@ -12,7 +12,7 @@ The entire backend is a single file: `nx_main.py` (a 119-line WSGI shim); routes
 
 ## Environment & running
 
-- Environment is selected via the `ENVIRONMENT` env var (`INT` or `PROD`). `nx_lib/config.py` loads `{ENVIRONMENT}.env` on startup. `INT.env` and `PROD.env` at the repo root hold secrets and DB/Graph/Octo/Bexio credentials.
+- Environment is selected via the `ENVIRONMENT` env var (`INT` or `PROD`). `nx_lib/config.py` loads `env/{ENVIRONMENT}.env` on startup (with a one-release fallback to the legacy root-level `{ENVIRONMENT}.env`, emitting a `DeprecationWarning`). `env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env` hold secrets and DB/Graph/Octo/Bexio credentials. Sanitised templates live at `env/*.env.example`.
 - Local dev: create a venv at `./venv`, `pip install -r requirements.txt`, set `ENVIRONMENT=INT`, run `python nx_main.py` (or `flask run`). The WSGI handler is `nx_main.app`.
 - Production: IIS with URL Rewrite + FastCGI. See `docs/howto/iis.md`. `web.config` rewrites all non-`/static/` URLs to `nx_main.py` and points FastCGI at `D:\sydoc\tools\py\python.exe`. `PYTHONPATH` is `D:\sydoc\nexora`.
 - Public tunnel (SYAPP01 only): see `docs/howto/ngrok.md` — `ngrok start --config="D:\sydoc\nexora\ngrok.yaml" --all`, or run as a Windows service.
@@ -138,7 +138,7 @@ pybabel compile -d translations
 
 ## Secrets
 
-`INT.env` and `PROD.env` contain live credentials (DB, Microsoft Graph, Octopus, Bexio PAT, Flask secret key). They are **gitignored** (`*.env` in `.gitignore`) and live only on dev and prod machines — never committed. Treat them as sensitive: do not paste their contents into chats, issues, or external tools, and never add new secret values to code or commit messages.
+`env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env` contain live credentials (DB, Microsoft Graph, Octopus, Bexio PAT, Flask secret key). They are **gitignored** (`*.env` in `.gitignore` with `!env/*.env.example` exception) and live only on dev and prod machines — never committed. The sanitised `env/*.env.example` templates are committed for onboarding. Treat the real files as sensitive: do not paste their contents into chats, issues, or external tools, and never add new secret values to code or commit messages.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
