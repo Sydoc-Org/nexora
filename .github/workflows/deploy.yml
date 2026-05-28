@@ -229,6 +229,15 @@ jobs:
           # so any *.env.example already on SYAPP01 from earlier deploys would
           # stay forever. Sweep them: prod only needs PROD.env in env/.
           Remove-Item "D:\sydoc\nexora\env\*.env.example" -Force -ErrorAction SilentlyContinue
+          # Sweep dev-only var/ subdirs left behind by older Flask startups
+          # (nx_lib/config.py used to mkdir them unconditionally). Only delete
+          # if empty so we never touch user data.
+          foreach ($d in 'screenshots','backups','test-results') {
+            $p = "D:\sydoc\nexora\var\$d"
+            if ((Test-Path $p) -and ((Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue).Count -eq 0)) {
+              Remove-Item -LiteralPath $p -Force
+            }
+          }
           exit 0
 
       - name: Start app pool and service
