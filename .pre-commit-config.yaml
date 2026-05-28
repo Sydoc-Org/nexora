@@ -16,6 +16,10 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: detect-private-key
+        # .claude/ agent docs contain detection regex patterns that look
+        # like private-key markers (security-auditor.md etc). Real secrets
+        # live in .claude/settings.local.json which is gitignored.
+        exclude: '^\.claude/'
       - id: end-of-file-fixer
         exclude: '^(translations/|static/|sql/|messages\.pot$)'
       - id: mixed-line-ending
