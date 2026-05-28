@@ -11,18 +11,34 @@ Internal Sydoc project. Read this once before opening your first PR.
 
 ## One-time setup
 
+Run the bootstrap script — idempotent, re-runnable, handles every step below:
+
+```powershell
+.\bootstrap.ps1                # default: INT environment
+.\bootstrap.ps1 -Env STAGING   # if you target staging instead
+```
+
+Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`.
+
+### Manual fallback
+
+If bootstrap fails (or you want to know what it does), the manual steps are:
+
 ```powershell
 pip install uv
 uv venv
-uv sync
+uv sync --extra dev
 python -m playwright install chromium
+
+copy env\INT.env.example env\INT.env       # then fill in real values
+copy env\TEST.env.example env\TEST.env
 
 .venv\Scripts\pre-commit.exe install --install-hooks
 .venv\Scripts\pre-commit.exe install --hook-type commit-msg
 .venv\Scripts\pre-commit.exe install --hook-type pre-push
 ```
 
-The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, use `uv sync`. A one-shot `bootstrap.ps1` arrives in a later PR.
+The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, use `uv sync --extra dev`.
 
 ## Naming conventions
 
