@@ -1,6 +1,7 @@
 ﻿# No param() block — $args used directly so PowerShell doesn't intercept -v/--verbose etc.
 
-$AppDir    = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# Script lives in <repo>/bin/, but the app expects $AppDir = <repo> (where nx_main.py lives).
+$AppDir    = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
 $AppPy     = Join-Path $AppDir "nx_main.py"
 $LogDir    = Join-Path $AppDir "logs\system"
