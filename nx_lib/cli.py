@@ -24,10 +24,12 @@ from prompt_toolkit.history import FileHistory, ThreadedHistory
 from prompt_toolkit.shortcuts import clear as pt_clear
 from prompt_toolkit.styles import Style
 
+from .config import PATHS
+
 _NX_VERSION = "2.5.60"
 
 APP_DIR = Path(__file__).resolve().parent.parent
-LOG_DIR = APP_DIR / "logs" / "system"
+LOG_DIR = PATHS.logs / "system"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 HISTORY_FILE = LOG_DIR / "cli_history.txt"
 ENV_STATE = LOG_DIR / "current_env"
