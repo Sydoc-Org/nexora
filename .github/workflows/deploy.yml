@@ -34,7 +34,12 @@ jobs:
 
       - name: Ruff format check
         shell: powershell
-        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py tests
+        # --diff (vs --check) prints the actual reformat the runner wants, so
+        # any drift between dev and CI shows up in the log.
+        # --config pyproject.toml pins the config file explicitly in case ruff
+        # is finding a different one when walking up the directory tree on the
+        # self-hosted runner.
+        run: D:\sydoc\tools\py\python.exe -m ruff format --diff --config pyproject.toml nx_lib nx_main.py tests
 
       - name: Install Playwright chromium
         shell: powershell
