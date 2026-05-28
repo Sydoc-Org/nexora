@@ -80,7 +80,7 @@
         });
       };
 
-     
+
       const fetchInvoices = async () => {
         tableBody.innerHTML = `
           <tr>
@@ -89,17 +89,17 @@
               <p class="mt-2">{{ _("Loading invoices...") }}</p>
             </td>
           </tr>`;
-        
+
         const formData = new FormData(filterForm);
         const params = new URLSearchParams(formData);
-        
+
         const newUrl = `${window.location.pathname}?${params.toString()}`;
         window.history.pushState({path: newUrl}, '', newUrl);
 
         try {
           const response = await fetch(`${API_PREFIX}api/invoices?${params.toString()}`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
           if (!response.ok) {
             const errorData = await response.json();
@@ -116,7 +116,7 @@
                 <p class="text-xs mt-1">${error.message}</p>
               </td>
             </tr>`;
-        } 
+        }
       };
 
       filterForm.addEventListener('input', (e) => {

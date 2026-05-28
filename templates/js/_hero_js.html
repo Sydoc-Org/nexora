@@ -87,7 +87,7 @@
                 { text: 'Validating Information...', progress: '66%' },
                 { text: 'Delivering Securely', progress: '100%' }
             ];
-            
+
             const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
             const updateStatusText = async (newText) => {
@@ -100,14 +100,14 @@
             const resetAnimation = async () => {
                 statusText.style.opacity = '0';
                 await wait(400);
-                
+
                 progressLine.style.width = '0%';
-                
+
                 stepElements.forEach(stepEl => {
                     const iconWrapper = stepEl.querySelector('.step-icon-wrapper');
                     const icon = stepEl.querySelector('i');
                     const label = stepEl.querySelector('p');
-                    
+
                     iconWrapper.classList.remove('active', 'completed');
                     iconWrapper.style.transform = 'scale(1)';
                     label.classList.remove('active', 'completed');
@@ -121,7 +121,7 @@
 
             const runAnimation = async () => {
                 await updateStatusText(steps[0].text);
-                
+
                 const firstStep = stepElements[0];
                 firstStep.querySelector('.step-icon-wrapper').classList.add('active');
                 firstStep.querySelector('p').classList.add('active');
@@ -131,7 +131,7 @@
                 for (let i = 1; i < steps.length; i++) {
                     const prevStep = stepElements[i - 1];
                     const currentStep = stepElements[i];
-                    
+
                     progressLine.style.width = steps[i].progress;
                     await wait(800);
 
@@ -146,7 +146,7 @@
                     currentStep.querySelector('.step-icon-wrapper').classList.add('active');
                     currentStep.querySelector('p').classList.add('active');
 
-                    await wait(2000); 
+                    await wait(2000);
                 }
 
                 await updateStatusText({{ _("Process Complete!") | tojson }});

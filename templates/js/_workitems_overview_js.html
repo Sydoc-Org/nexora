@@ -84,7 +84,7 @@
                 const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
                 const res = await fetch(url, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                 if (!res.ok) throw new Error('Could not fetch field values');
 
@@ -145,7 +145,7 @@
             try {
                 const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                 if (response.status === 403) {
                      historyContainer.innerHTML = `<p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Restricted") }}</p>`;
@@ -218,7 +218,7 @@
         try {
             const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
             if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
             const workitem = await response.json();
@@ -256,7 +256,7 @@
             try {
                 const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const data = await response.json();
@@ -532,7 +532,7 @@
                 const button = event.currentTarget;
                 const workitemid = button.dataset.workitemid;
                 const detailsRow = document.getElementById(`details-row-${workitemid}`);
-                
+
                 if (!detailsRow) return;
 
                 if (detailsRow.dataset.initialized !== 'true') {
@@ -572,25 +572,25 @@
 
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
-                    loadCollaborationData(workitemid); 
+                    loadCollaborationData(workitemid);
                 }
 
                 const imageContainer = document.getElementById(`image-container-${workitemid}`);
                 const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
-                
+
                 const needsImages = imageContainer && imageContainer.dataset.loaded !== 'true';
-                const needsFields = fieldsContainer; 
+                const needsFields = fieldsContainer;
 
                 if (needsImages || (needsFields && !imageContainer?.dataset.loaded)) {
-                    
+
                     if (imageContainer) imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
-                    
+
                     try {
-                        loadHistory(workitemid); 
+                        loadHistory(workitemid);
 
                         const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                         if (!infoResponse.ok) {
                              if(infoResponse.status === 403) throw new Error("Restricted");
@@ -604,12 +604,12 @@
                         if (fieldsContainer) {
                             if (Object.keys(fields).length > 0) {
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
-                                
+
                                 for (const key in fields) {
                                     if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
                                         const labelKey = key.toLowerCase();
-                                        const label = fieldConfig.labels[labelKey] || key; 
-                                        
+                                        const label = fieldConfig.labels[labelKey] || key;
+
                                         fieldsHtml += `
                                             <div class="py-2 flex justify-between items-center gap-4">
                                                 <dt class="text-gray-500 truncate">${label}</dt>
@@ -653,7 +653,7 @@
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
             placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
-            
+
             const loadMoreButton = container.querySelector('.load-more-btn');
             if (loadMoreButton) {
                 container.insertBefore(placeholder, loadMoreButton);
@@ -664,7 +664,7 @@
                 const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
                 const response = await fetch(apiUrl, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
 
                 if (!response.ok) {
@@ -700,7 +700,7 @@
         async function handlePostComment(event) {
             event.preventDefault();
             const form = event.target;
-            const workitemid = form.dataset.workitemid; 
+            const workitemid = form.dataset.workitemid;
             const textarea = form.querySelector('textarea');
             const commentText = textarea.value.trim();
             if (!commentText) return;
@@ -710,7 +710,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                        ,'X-CSRFToken': csrfToken  
+                        ,'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
                         commentText
@@ -732,7 +732,7 @@
             try {
                 const response = await fetch(`${API_PREFIX}api/users`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                 if (!response.ok) throw new Error('Could not fetch users');
                 mentionableUsers = await response.json();
@@ -795,14 +795,14 @@
 
         async function handleSetPriority(event) {
             const selector = event.target;
-            const workitemid = selector.dataset.workitemid; 
+            const workitemid = selector.dataset.workitemid;
             const priority = parseInt(selector.value, 10);
             try {
                 const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/priority`, {
                     method: 'POST',
                      headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken  
+                        'X-CSRFToken': csrfToken
                         },
                     body: JSON.stringify({
                         priority
@@ -843,25 +843,25 @@
 
         function openImportModal(files) {
             const fileArray = Array.from(files).filter(f => f.type === 'application/pdf');
-            
+
             if (fileArray.length === 0) {
                 showNotification({{ _("Please select valid PDF files.") | tojson }}, 'error');
                 return;
             }
 
             pendingImportFiles = fileArray;
-            
+
             const modal = document.getElementById('importProcessModal');
             const nameDisplay = document.getElementById('importFileNameDisplay');
             const select = document.getElementById('importProcessSelect');
             const errorMsg = document.getElementById('importErrorMsg');
 
             if (modal && nameDisplay && select) {
-                nameDisplay.textContent = pendingImportFiles.length > 1 
-                    ? `${pendingImportFiles.length} {{ _("files selected") }}` 
+                nameDisplay.textContent = pendingImportFiles.length > 1
+                    ? `${pendingImportFiles.length} {{ _("files selected") }}`
                     : `${pendingImportFiles[0].name}`;
-                    
-                select.value = ""; 
+
+                select.value = "";
                 errorMsg.classList.add('hidden');
                 modal.classList.remove('hidden');
             }
@@ -880,7 +880,7 @@ async function uploadBatchFiles(files, processName) {
 
     const importBtn = document.getElementById('importBtn');
     const modalBtn = document.getElementById('confirmImportBtn');
-    
+
     if (importBtn) importBtn.disabled = true;
     if (modalBtn) {
         modalBtn.disabled = true;
@@ -917,7 +917,7 @@ async function uploadBatchFiles(files, processName) {
         showNotification(`Successfully imported ${successCount} files.`);
         setTimeout(() => window.location.reload(), 1500);
     }
-    
+
     if (failCount > 0) {
         showNotification(`Failed to import ${failCount} files.`, 'error');
         resetImportUI();
@@ -1011,7 +1011,7 @@ async function uploadBatchFiles(files, processName) {
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                     });
                     if (!res.ok) throw new Error('Failed to fetch field config');
-                    
+
                     const data = await res.json();
                     fieldConfig = data;
 
@@ -1024,7 +1024,7 @@ async function uploadBatchFiles(files, processName) {
                     console.error("Error loading field config:", e);
                 }
             }
-            
+
             function fillDocFieldSelect(hiddenInput, process) {
                 const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
                 let fields = [];
@@ -1210,7 +1210,7 @@ async function uploadBatchFiles(files, processName) {
                     const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
                     const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                     if (!res.ok) throw new Error('Could not fetch field values');
                     const values = await res.json();
@@ -1225,13 +1225,13 @@ async function uploadBatchFiles(files, processName) {
                 _rowDebounce = setTimeout(() => fetchRowSuggestions(row, q), 300);
             }
 
-            
+
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
 
             if (importBtn && importFileInput) {
                 importBtn.addEventListener('click', () => {
-                    importFileInput.value = ''; 
+                    importFileInput.value = '';
                     importFileInput.click();
                 });
 
@@ -1264,13 +1264,13 @@ async function uploadBatchFiles(files, processName) {
                     dragCounter = 0;
                     const dropZoneOverlay = document.getElementById('dropZoneOverlay');
                     if (dropZoneOverlay) dropZoneOverlay.classList.add('hidden');
-                    
+
                     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                        openImportModal(e.dataTransfer.files); 
+                        openImportModal(e.dataTransfer.files);
                     }
                 });
             }
-            
+
                if (dropZoneOverlay) {
                  window.removeEventListener('drop', () => {});
             }
@@ -1280,11 +1280,11 @@ async function uploadBatchFiles(files, processName) {
             const errorMsg = document.getElementById('importErrorMsg');
 
             if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeImportModal);
-            
+
             if (modalConfirmBtn) {
     modalConfirmBtn.addEventListener('click', () => {
         if (pendingImportFiles.length === 0) return;
-        
+
         const selectedProcess = importSelect.value;
         if (!selectedProcess) {
             errorMsg.classList.remove('hidden');
@@ -1330,7 +1330,7 @@ async function uploadBatchFiles(files, processName) {
                 try {
                     const response = await fetch(url, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -1532,7 +1532,7 @@ async function uploadBatchFiles(files, processName) {
                 try {
                     const response = await fetch(`${API_PREFIX}api/tags`, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
                     if (!response.ok) throw new Error('Could not fetch tags');
                     allTags = await response.json();
@@ -1591,7 +1591,7 @@ async function uploadBatchFiles(files, processName) {
                         method: 'DELETE'
                         ,headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken  
+                        'X-CSRFToken': csrfToken
                         }
                     });
                     if (!response.ok) throw new Error('Failed to remove tag.');
@@ -1780,7 +1780,7 @@ async function uploadBatchFiles(files, processName) {
                     }
                 }
             });
-            
+
             tbody.addEventListener('submit', (event) => {
                 if (event.target.classList.contains('comment-form')) {
                     handlePostComment(event);

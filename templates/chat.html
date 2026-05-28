@@ -52,7 +52,7 @@
 
       <form id="chatForm" class="flex gap-2">
         <input type="file" id="fileInput" class="hidden" onchange="uploadFile()">
-        <button type="button" onclick="document.getElementById('fileInput').click()" 
+        <button type="button" onclick="document.getElementById('fileInput').click()"
                 class="p-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer">
           <i class="fa-solid fa-paperclip"></i>
         </button>
@@ -60,7 +60,7 @@
         <input type="text" id="messageInput"
           class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="{{ _('Type a message or /<workitemid>...') }}" autocomplete="off">
-        
+
         <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium cursor-pointer">
           <i class="fa-solid fa-paper-plane mr-2"></i> {{ _('Send') }}
         </button>
@@ -92,7 +92,7 @@
   </div>
 
   {% include '_small_footer.html' %}
-  {% include 'js/_chatJS.html' %}
+  {% include 'js/_chat_js.html' %}
 
 </body>
 

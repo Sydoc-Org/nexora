@@ -1,20 +1,20 @@
 <script>
 
-    
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/"; 
+
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     let processedChart, statusChart, hourlyChart;
     let dateRangePicker;
-    
+
     Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = '#6b7280'; 
+    Chart.defaults.color = '#6b7280';
 
     function shuffleObject(obj) {
         const entries = Object.entries(obj);
         for (let i = entries.length - 1; i > 0; i--) {
-            const j = 
+            const j =
                 Math.floor(Math.random() * (i + 1));
-            [entries[i], entries[j]] = 
+            [entries[i], entries[j]] =
                 [entries[j], entries[i]];
         }
         return Object.fromEntries(entries);
@@ -25,14 +25,14 @@
             const response = await fetch(`${API_PREFIX}api/dashboard/recent_activity`);
             const activities = await response.json();
             const container = document.getElementById('activity-feed');
-            
+
             if (activities.length === 0) {
                 container.innerHTML = `<p class="text-sm text-gray-400">No recent activity</p>`;
                 return;
             }
             container.innerHTML = activities.map(act => {
                 const fieldBadges = Object.entries(shuffleObject(act.fields))
-                    .slice(0, 3) 
+                    .slice(0, 3)
                     .map(([key, val]) => `
                         <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md border border-gray-200">
                             <strong>${key}:</strong> ${val}
@@ -40,7 +40,7 @@
                     `).join('');
 
                 return `
-                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer" 
+                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
                         onclick="window.location.href='/workitems?search=${act.id}'">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-xs font-bold text-indigo-600">ID: ${act.id}</span>
@@ -72,11 +72,11 @@
         };
         window.requestAnimationFrame(step);
     }
-    
+
     function buildApiUrl(endpoint) {
         let url = `${API_PREFIX}${endpoint}`;
         return url;
-    } 
+    }
 
     let proccessedTodayLoadInit = 0;
     let currentBacklogLoadInit = 0;
@@ -122,11 +122,11 @@
             const url = buildApiUrl('api/dashboard/processed_over_time');
             const response = await fetch(url, {headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }});
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
-            
+
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
             gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
@@ -136,37 +136,37 @@
                 processedChart.data.datasets[0].data = data.data;
                 processedChart.update();
             } else {
-                processedChart = new Chart(ctx, { 
-                    type: 'line', 
-                    data: { 
-                        labels: data.labels, 
-                        datasets: [{ 
-                            label: {{ _("Documents Processed") | tojson }}, 
-                            data: data.data, 
-                            fill: true, 
-                            backgroundColor: gradient, 
-                            borderColor: '#4F46E5', 
-                            borderWidth: 3, 
-                            pointBackgroundColor: '#4F46E5', 
+                processedChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: {{ _("Documents Processed") | tojson }},
+                            data: data.data,
+                            fill: true,
+                            backgroundColor: gradient,
+                            borderColor: '#4F46E5',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#4F46E5',
                             pointRadius: 0,
                             pointHoverRadius: 6,
-                            tension: 0.4, 
-                        }] 
-                    }, 
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        scales: { 
-                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } }, 
-                            x: { grid: { display: false } } 
-                        }, 
-                        plugins: { legend: { display: false } } 
-                    } 
+                            tension: 0.4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
                 });
             }
         } catch (error) { console.error("Failed to update processed chart:", error); }
-    } 
-    
+    }
+
     async function updateHourlyChart() {
         try {
             const response = await fetch(`${API_PREFIX}api/dashboard/hourly_stats`, {headers: {
