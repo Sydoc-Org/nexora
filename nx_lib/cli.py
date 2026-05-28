@@ -3,7 +3,7 @@
 Launched by `nx` with no arguments. Renders the nexora logo, then drops into
 a prompt_toolkit REPL with arrow-key navigation, tab autocomplete, history,
 and a live status bar. One-shot use (`nx -u`, `nx --routes:^/api`, etc.)
-still goes through nx.ps1 directly.
+still goes through bin/nx.ps1 directly.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ LOG_DIR = PATHS.logs / "system"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 HISTORY_FILE = LOG_DIR / "cli_history.txt"
 ENV_STATE = LOG_DIR / "current_env"
-NX_PS1 = APP_DIR / "nx.ps1"
+NX_PS1 = APP_DIR / "bin" / "nx.ps1"
 
 
 # ── logo (pixel-art black hole, no PIL) ────────────────────────────────────
@@ -896,7 +896,7 @@ def repl() -> int:
 
 
 def main() -> int:
-    # One-shot subcommands (invoked by nx.ps1 or directly via `python -m nx_lib.cli`):
+    # One-shot subcommands (invoked by bin/nx.ps1 or directly via `python -m nx_lib.cli`):
     #   routes [<regex>]              List Flask routes, optional regex filter.
     #   doctor [--fast] [--fix]       Run preflight health checks.
     if len(sys.argv) > 1 and sys.argv[1] == "routes":
