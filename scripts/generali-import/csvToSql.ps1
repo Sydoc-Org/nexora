@@ -1,7 +1,7 @@
 $datafoldergen = "\\prdimpexp01\d$\sydoc\scripts\generali\import"
 $envVars = Get-Content -Raw "\\prdimpexp01\d$\sydoc\scripts\generali\env.json" | ConvertFrom-Json
 $fullData = Get-ChildItem $datafoldergen -File
-$serverinstance = $envVars.SERVERINSTANCE
+$serverInstances = @('INTSQL01', 'PRDSQL01')
 
 $logDir = "\\prdimpexp01\d$\sydoc\scripts\generali\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -56,7 +56,7 @@ function send_email_graphAPI($subject) {
     $jsonPayload = $emailBody | ConvertTo-Json -Depth 10
 
     $uri = "https://graph.microsoft.com/v1.0/me/sendMail"
-    Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $jsonPayload 
+    Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $jsonPayload
 }
 
 
@@ -96,14 +96,23 @@ if (isLocal) {
     $fullData | % { Write-Host "-" $_.BaseName }
     $continue = Read-Host "[Y]es|[N]o"
     if ($continue -ne 'Y') { Write-Host "Aborting Execution" -ForegroundColor Red; Exit }
-    Write-host "Is " -NoNewline
-    if ($serverinstance -like "PRD*") { Write-host $serverinstance -ForegroundColor Red -NoNewline } else { Write-host $serverinstance -ForegroundColor cyan -NoNewline }
-    Write-host " the correct environment serverinstance?"
+    Write-host "The script will run on " -NoNewline
+    Write-host "INTSQL01" -ForegroundColor Cyan -NoNewline
+    Write-host " first; if it completes with no errors or warnings, it will then run on " -NoNewline
+    Write-host "PRDSQL01" -ForegroundColor Red -NoNewline
+    Write-host ". Continue?"
     $continue = Read-Host "[Y]es|[N]o"
     if ($continue -ne 'Y') { Write-Host "Aborting Execution" -ForegroundColor Red; Exit }
 }
-Log "Script started: $($fullData.Count) file(s) on $serverinstance"
+Log "Script started: $($fullData.Count) file(s); planned servers: $($serverInstances -join ' -> ')"
+
+foreach ($serverinstance in $serverInstances) {
+    Log "=== Starting run on $serverinstance ==="
+    $script:abortRun = $false
+    $script:runHadWarnings = $false
+
 $fullData | ForEach-Object {
+    if ($script:abortRun) { return }
     $csvFilePath = $_.FullName
     $csvFileNameShort = $_.Name
     $batchSize = 500
@@ -415,10 +424,12 @@ $(if ($dqText) { "<h3>Data quality warnings ($($script:dataQualityIssues.Count))
         try { send_email_graphAPI "Generali CSV import - error in $csvFileNameShort" }
         catch { Write-Host "Failed to send error notification email: $_" -ForegroundColor Yellow }
 
-        exit
+        $script:abortRun = $true
+        return
     }
 
     if ($script:dataQualityIssues.Count -gt 0) {
+        $script:runHadWarnings = $true
         $sep = '=' * 80
         @(
             ''
@@ -438,4 +449,15 @@ $(if ($dqText) { "<h3>Data quality warnings ($($script:dataQualityIssues.Count))
     else {
         Move-item -Path $csvFilePath -Destination "$datafoldergen/donePROD" -Force
     }
+}
+
+    if ($script:abortRun) {
+        Log "=== Aborted: errors during '$serverinstance' run; skipping further servers ===" 'ERROR'
+        break
+    }
+    if ($script:runHadWarnings) {
+        Log "=== Stopping: warnings during '$serverinstance' run; skipping further servers ===" 'WARN'
+        break
+    }
+    Log "=== Completed '$serverinstance' run ==="
 }
