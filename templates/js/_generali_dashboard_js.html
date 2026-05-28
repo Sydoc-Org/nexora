@@ -90,7 +90,7 @@
             if (!data.success) { console.error(data.error); return; }
 
             document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
-            
+
             const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
             const setRate = (id, rate) => {
                 const el = document.getElementById(id);

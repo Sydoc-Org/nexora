@@ -186,7 +186,7 @@
 
         const params = buildParams(page);
         fetch(API_PREFIX + 'api/generali/attendance?' + params.toString(), {headers: {
-                'X-CSRFToken': csrfToken  
+                'X-CSRFToken': csrfToken
                 }})
             .then(r => r.json())
             .then(data => {
