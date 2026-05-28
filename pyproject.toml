@@ -93,8 +93,8 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--tb=short",
-    "--junitxml=test-results/junit.xml",
-    "--html=test-results/report.html",
+    "--junitxml=var/test-results/junit.xml",
+    "--html=var/test-results/report.html",
     "--self-contained-html",
 ]
 markers = [
