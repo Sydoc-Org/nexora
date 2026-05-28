@@ -15,14 +15,14 @@
 
     <div id="preloader" class="fixed inset-0 bg-white z-[100] flex items-center justify-center">
         <div id="preloader-logo" class="brand title-wrap">
-            {% include 'nexoraLogo/_nexoraLogo.html' %}
+            {% include 'nexora_logo/_nexora_logo.html' %}
         </div>
     </div>
     <div id="page-content">
         <header class="bg-white shadow-sm sticky top-0 z-50">
             <div class="container mx-auto flex items-center justify-between px-6 py-4">
                 <div id="header-logo-wrapper" class="text-2xl font-bold text-indigo-600">
-                    {% include 'nexoraLogo/_nexoraLogo.html' %}
+                    {% include 'nexora_logo/_nexora_logo.html' %}
                 </div>
                 <a href="{{ url_for('login') }}" id="signin" class="hidden md:inline-block bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-100 transition duration-300">
                     Sign In
@@ -49,13 +49,13 @@
                                     {{ _("Access Your Portal") }}
                                 </a>
                             </div>
-        
+
                             <div class="hidden md:flex items-center justify-center">
                                 <div class="relative w-full max-w-lg">
                                     <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
                                     <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
                                     <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-                                    
+
                                     <div class="relative bg-white/60 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
                                         <div class="flex items-center text-indigo-600 mb-5">
                                             <i class="fas fa-file-alt text-4xl mr-4"></i>
@@ -84,10 +84,10 @@
                         </div>
                     </div>
                 </section>
-        
+
                 <section id="how-it-works" class="bg-gray-100 py-20 sm:py-24">
                     <div class="container mx-auto px-6">
-                        
+
                         <div class="text-center mb-16">
                             <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
                                {{ _("Visualize Your Document's Journey") }}
@@ -96,37 +96,37 @@
                                 {{ _("Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.") }}
                             </p>
                         </div>
-        
+
                        <div id="animation-container" class="relative max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-xl border border-gray-200">
-        
+
                             <div class="relative flex justify-between items-center">
-                                
+
                                 <div class="absolute top-1/2 h-1 transform -translate-y-1/2" style="left: 2rem; right: 2rem;">
                                     <div class="absolute top-0 left-0 w-full h-full bg-gray-200 rounded-full"></div>
                                     <div id="progress-line" class="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style="width: 0%; transition: width 0.8s ease-in-out;"></div>
                                 </div>
-        
+
                                 <div id="step-1" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
                                     </div>
                                     <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Import") }}</p>
                                 </div>
-        
+
                                 <div id="step-2" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400"></i>
                                     </div>
                                     <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Extraction") }}</p>
                                 </div>
-        
+
                                 <div id="step-3" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400"></i>
                                     </div>
                                     <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Validation") }}</p>
                                 </div>
-        
+
                                 <div id="step-4" class="process-step z-10 flex flex-col items-center text-center">
                                     <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
                                         <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400"></i>
@@ -134,7 +134,7 @@
                                     <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Delivery") }}</p>
                                 </div>
                             </div>
-        
+
                              <div class="text-center mt-10 h-8">
                                 <p class="text-lg font-medium text-gray-700">
                                     Status: <span id="status-text" class="font-bold text-indigo-600" style="transition: opacity 0.4s ease-in-out;">{{ _("Initializing...") }}</span>
@@ -143,7 +143,7 @@
                         </div>
                     </div>
                 </section>
-        
+
                 <section id="services" class="bg-white py-20 sm:py-24">
                         <div class="container mx-auto px-6">
                             <div class="text-center mb-16">
@@ -175,7 +175,7 @@
                             </div>
                         </div>
                 </section>
-        
+
                 <section id="getting-started" class="bg-gray-100 py-20 sm:py-24">
                     <div class="container mx-auto px-6">
                         <div class="text-center mb-16">
@@ -201,7 +201,7 @@
                         </div>
                     </div>
                 </section>
-        
+
                 <section id="faq" class="bg-white py-20 sm:py-24">
                     <div class="container mx-auto px-6 max-w-4xl">
                         <div class="text-center mb-16">
@@ -239,7 +239,7 @@
                         </div>
                     </div>
                 </section>
-                
+
                 <section class="bg-gray-100">
                     <div class="container mx-auto px-6 py-20 text-center">
                          <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
@@ -253,11 +253,11 @@
                         </a>
                     </div>
                 </section>
-        
+
             </main>
             {% include '_small_footer.html' %}
         </div>
     </div>
-    {% include 'js/_heroJS.html' %}
+    {% include 'js/_hero_js.html' %}
 </body>
 </html>

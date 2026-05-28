@@ -1,0 +1,579 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const canEdit         = document.getElementById('attendanceTable').dataset.canEdit === 'true';
+    const canEditTransOrg  = document.getElementById('attendanceTable').dataset.canEditTransorg === 'true';
+    const currentOrgCode   = document.getElementById('attendanceTable').dataset.orgCode || null;
+    const canAdd           = document.getElementById('attendanceTable').dataset.canAdd  === 'true';
+    const canAddForOrg           = document.getElementById('attendanceTable').dataset.canAddForOrg === 'true';
+    const canAddTransOrg         = document.getElementById('attendanceTable').dataset.canAddTransorg === 'true';
+    const canAddBypassDeadline   = document.getElementById('attendanceTable').dataset.canAddBypassDeadline === 'true';
+    function getAddMinDate() {
+        if (canAddBypassDeadline) return null;
+        const t = new Date();
+        return t.getDate() <= 3
+            ? new Date(t.getFullYear(), t.getMonth() - 1, 1)
+            : new Date(t.getFullYear(), t.getMonth(), 1);
+    }
+    const canDelete        = document.getElementById('attendanceTable').dataset.canDelete === 'true';
+    const canDeleteTransOrg = document.getElementById('attendanceTable').dataset.canDeleteTransorg === 'true';
+    function canEditRecord(r)   { return canEdit   && (canEditTransOrg   || r.orgCode === currentOrgCode); }
+    function canDeleteRecord(r) { return canDelete && (canDeleteTransOrg || r.orgCode === currentOrgCode); }
+    const colSpan = (canEdit || canDelete) ? 7 : 6;
+
+    let currentPage = 1;
+    let _currentRecords = [];
+    let categoriesData = {};
+    let translationsMap = {};
+
+    function populateParentSelect(selectEl, selected) {
+        const current = selected !== undefined ? selected : selectEl.value;
+        while (selectEl.options.length > 1) selectEl.remove(1);
+        Object.keys(categoriesData).sort().forEach(parent => {
+            const opt = document.createElement('option');
+            opt.value = parent;
+            opt.textContent = translationsMap[parent] || parent;
+            if (parent === current) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    function populateSubSelect(selectEl, parent, selected) {
+        while (selectEl.options.length > 0) selectEl.remove(0);
+
+        if (!parent) {
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = {{ _("Select parent first") | tojson }};
+            selectEl.appendChild(placeholder);
+            selectEl.disabled = false;
+            return;
+        }
+
+        const subs = categoriesData[parent] || [];
+        if (subs.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '—';
+            selectEl.appendChild(opt);
+            selectEl.disabled = true;
+            return;
+        }
+
+        selectEl.disabled = false;
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = {{ _("Select…") | tojson }};
+        selectEl.appendChild(placeholder);
+        subs.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub;
+            opt.textContent = translationsMap[sub] || sub;
+            if (sub === selected) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    function loadCategories() {
+        fetch(API_PREFIX + 'api/generali/attendance/categories?locale={{ current_lang }}', {headers: {
+                'X-CSRFToken': csrfToken
+                }})
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                categoriesData = data.categories || {};
+                translationsMap = data.translations || {};
+
+                populateParentSelect(document.getElementById('filterParentCategory'));
+                const filterParent = document.getElementById('filterParentCategory');
+                filterParent.options[0].textContent = {{ _("All") | tojson }};
+
+                if (canAdd) populateParentSelect(document.getElementById('addParentCategory'));
+                populateParentSelect(document.getElementById('editParentCategory'));
+            })
+            .catch(e => console.error('Failed to load categories', e));
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        return dateStr.split('T')[0];
+    }
+
+    function formatDateTime(dtStr) {
+        if (!dtStr) return '—';
+        return dtStr.replace('T', ' ').substring(0, 16);
+    }
+
+    function formatHours(h) {
+        if (h === null || h === undefined) return '—';
+        return Number(h) % 1 === 0 ? Number(h).toFixed(0) : Number(h).toFixed(1);
+    }
+
+    function buildParams(page) {
+        const p = new URLSearchParams();
+        const start  = document.getElementById('filterStartDate').value;
+        const end    = document.getElementById('filterEndDate').value;
+        const parent = document.getElementById('filterParentCategory').value;
+        const sub    = document.getElementById('filterSubCategory').value;
+        const org    = document.getElementById('filterOrganizationCode').value;
+        const userId = document.getElementById('filterUserId')?.value || '';
+        if (start)  p.set('startDate', start);
+        if (end)    p.set('endDate', end);
+        if (parent) p.set('parentCategory', parent);
+        if (sub)    p.set('subCategory', sub);
+        if (org)    p.set('organizationcode', org);
+        if (userId) p.set('userId', userId);
+        p.set('page', page);
+        return p;
+    }
+
+    function loadOrganizations() {
+        fetch(API_PREFIX + 'api/generali/attendance/organizations', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('filterOrganizationCode');
+            if (!sel) return;
+            (data.organizations || []).forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.code;
+                opt.textContent = o.name || o.code;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load organizations', e));
+    }
+
+    function renderRow(r) {
+        const editable  = canEditRecord(r);
+        const deletable = canDeleteRecord(r);
+        const showActions = canEdit || canDelete;
+        let actionBtns = '';
+        if (canEdit)   actionBtns += `<button ${editable  ? `onclick="openEditModal(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}"><i class="fas fa-pen text-xs"></i></button>`;
+        if (canDelete) actionBtns += `<button ${deletable ? `onclick="deleteRecord(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}"><i class="fas fa-trash text-xs"></i></button>`;
+        const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
+
+        const tParent = translationsMap[r.parentCategory] || r.parentCategory || '—';
+        const tSub    = translationsMap[r.subCategory]    || r.subCategory    || '—';
+        return `<tr class="hover:bg-gray-50 transition" data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-parent="${(r.parentCategory||'').replace(/"/g,'&quot;')}" data-sub="${(r.subCategory||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <span class="text-sm font-semibold text-gray-800">${formatDate(r.forDate)}</span>
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
+            </td>
+            <td class="px-4 py-3 text-left">
+                <span class="text-sm text-gray-800">${tParent}</span>
+            </td>
+            <td class="px-4 py-3 text-left">
+                <span class="text-sm text-gray-600">${tSub}</span>
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${formatHours(r.effortInHours)} h</span>
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <span class="text-xs text-gray-400">${formatDateTime(r.recordDateTime)}</span>
+            </td>
+            ${actionsCell}
+        </tr>`;
+    }
+
+    function loadRecords(page) {
+        currentPage = page;
+        const tbody = document.getElementById('attendanceTbody');
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></td></tr>`;
+
+        const params = buildParams(page);
+        fetch(API_PREFIX + 'api/generali/attendance?' + params.toString(), {headers: {
+                'X-CSRFToken': csrfToken
+                }})
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-red-500 text-sm">${data.error || 'Error'}</td></tr>`;
+                    return;
+                }
+
+                const th = data.totalHours;
+                document.getElementById('totalHoursDisplay').textContent =
+                    th !== undefined ? formatHours(th) + ' h' : '—';
+
+                _currentRecords = data.records;
+                if (!data.records.length) {
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16 text-gray-400 text-sm">{{ _("No records found") }}</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.records.map(renderRow).join('');
+                }
+
+                const pg = data.pagination;
+                const showing = Math.min((pg.page - 1) * pg.per_page + data.records.length, pg.total_records);
+                document.getElementById('showingCount').textContent = showing;
+                document.getElementById('totalCount').textContent = pg.total_records;
+                renderPagination(pg.page, pg.total_pages);
+            })
+            .catch(e => {
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-red-500 text-sm">Network error</td></tr>`;
+                console.error(e);
+            });
+    }
+
+    // ----------------------------- pagination ----------------------------- //
+    function renderPagination(page, totalPages) {
+        const container = document.getElementById('paginationControls');
+        container.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        function btn(label, targetPage, disabled, active) {
+            const b = document.createElement('button');
+            b.innerHTML = label;
+            b.disabled = disabled;
+            b.className = [
+                'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
+                active  ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+                disabled ? 'opacity-40 cursor-not-allowed' : ''
+            ].join(' ');
+            if (!disabled) b.onclick = () => loadRecords(targetPage);
+            return b;
+        }
+
+        container.appendChild(btn('<i class="fas fa-chevron-left"></i>', page - 1, page === 1, false));
+
+        const pages = new Set([1, totalPages, page]);
+        if (page > 2) pages.add(page - 1);
+        if (page < totalPages - 1) pages.add(page + 1);
+
+        let prev = 0;
+        [...pages].sort((a,b) => a-b).forEach(p => {
+            if (p - prev > 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '…';
+                dots.className = 'px-2 text-gray-400 text-sm';
+                container.appendChild(dots);
+            }
+            container.appendChild(btn(p, p, false, p === page));
+            prev = p;
+        });
+
+        container.appendChild(btn('<i class="fas fa-chevron-right"></i>', page + 1, page === totalPages, false));
+    }
+
+    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    document.getElementById('resetFilterBtn').addEventListener('click', () => {
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        document.getElementById('filterParentCategory').value = '';
+        populateSubSelect(document.getElementById('filterSubCategory'), '');
+        document.getElementById('filterOrganizationCode').value = '';
+        const fu = document.getElementById('filterUserId');
+        if (fu) fu.value = '';
+        loadRecords(1);
+    });
+
+    function loadFilterUsers() {
+        fetch(API_PREFIX + 'api/generali/attendance/filterUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.users.length) return;
+            const wrapper = document.getElementById('filterUserWrapper');
+            const sel = document.getElementById('filterUserId');
+            if (!wrapper || !sel) return;
+            data.users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+            wrapper.style.display = '';
+        })
+        .catch(e => console.error('Failed to load filter users', e));
+    }
+
+    document.getElementById('filterParentCategory').addEventListener('change', function() {
+        const filterSub = document.getElementById('filterSubCategory');
+        populateSubSelect(filterSub, this.value);
+        filterSub.options[0].textContent = {{ _("All") | tojson }};
+    });
+
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+
+    {% if can_add %}
+    function loadOrgUsers() {
+        if (!canAddForOrg && !canAddTransOrg) return;
+        fetch(API_PREFIX + 'api/generali/attendance/orgUsers', {
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const sel = document.getElementById('addUserId');
+            if (!sel) return;
+            (data.users || []).forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.userId;
+                opt.textContent = u.fullname || u.userId;
+                sel.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Failed to load org users', e));
+    }
+
+    function openAddModal() {
+        document.getElementById('addForDate').value = '';
+        document.getElementById('addParentCategory').value = '';
+        populateSubSelect(document.getElementById('addSubCategory'), '');
+        document.getElementById('addEffortHours').value = '';
+        if (canAddForOrg) document.getElementById('addUserId').value = '';
+        document.getElementById('addModalError').classList.add('hidden');
+        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModal').classList.remove('hidden');
+        document.getElementById('addModal').classList.add('flex');
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+        document.getElementById('addModal').classList.remove('flex');
+    }
+
+    document.getElementById('openAddModalBtn').addEventListener('click', openAddModal);
+    document.getElementById('closeAddModalBtn').addEventListener('click', closeAddModal);
+    document.getElementById('cancelAddModalBtn').addEventListener('click', closeAddModal);
+
+    document.getElementById('addParentCategory').addEventListener('change', function() {
+        populateSubSelect(document.getElementById('addSubCategory'), this.value);
+    });
+
+    flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today', minDate: getAddMinDate() });
+
+    document.getElementById('submitAddBtn').addEventListener('click', function() {
+        const forDate    = document.getElementById('addForDate').value.trim();
+        const parent     = document.getElementById('addParentCategory').value;
+        const sub        = document.getElementById('addSubCategory').value;
+        const effort     = document.getElementById('addEffortHours').value;
+        const errEl      = document.getElementById('addModalError');
+
+        const addHasSubs = (categoriesData[parent] || []).length > 0;
+        if (!forDate || !parent || (addHasSubs && !sub) || !effort) {
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        const payload = { forDate, parentCategory: parent, subCategory: sub || null, effortInHours: parseFloat(effort) };
+        if (canAddForOrg) {
+            const selectedUser = document.getElementById('addUserId').value;
+            if (selectedUser) payload.userId = parseInt(selectedUser, 10);
+        }
+
+        this.disabled = true;
+        fetch(API_PREFIX + 'api/generali/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            this.disabled = false;
+            if (data.success) {
+                closeAddModal();
+                loadRecords(1);
+            } else {
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errEl.classList.remove('hidden');
+            }
+        })
+        .catch(() => {
+            this.disabled = false;
+            errEl.textContent = {{ _("Network error.") | tojson }};
+            errEl.classList.remove('hidden');
+        });
+    });
+    {% endif %}
+
+    let editingId = null;
+
+    function openEditModal(id) {
+        editingId = id;
+
+        const row = document.querySelector(`[data-record-id="${id}"]`);
+        if (!row) return;
+
+        const forDate = row.dataset.forDate || '';
+        const parent  = row.dataset.parent  || '';
+        const sub     = row.dataset.sub     || '';
+        const effort  = row.dataset.effort  || '';
+
+        document.getElementById('editForDate').value = forDate;
+
+        populateParentSelect(document.getElementById('editParentCategory'), parent);
+        populateSubSelect(document.getElementById('editSubCategory'), parent, sub);
+        document.getElementById('editEffortHours').value = effort;
+        document.getElementById('editError').classList.add('hidden');
+        document.getElementById('editError').textContent = '';
+
+        document.getElementById('editModal').classList.remove('hidden');
+        document.getElementById('editModal').classList.add('flex');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+        document.getElementById('editModal').classList.remove('flex');
+        editingId = null;
+    }
+
+    document.getElementById('closeEditBtn').addEventListener('click', closeEditModal);
+    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+
+    document.getElementById('editParentCategory').addEventListener('change', function() {
+        populateSubSelect(document.getElementById('editSubCategory'), this.value);
+    });
+
+    flatpickr('#editForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today' });
+
+    document.getElementById('saveEditBtn').addEventListener('click', function() {
+        const forDate = document.getElementById('editForDate').value.trim();
+        const parent  = document.getElementById('editParentCategory').value;
+        const sub     = document.getElementById('editSubCategory').value;
+        const effort  = document.getElementById('editEffortHours').value;
+        const errEl   = document.getElementById('editError');
+
+        const editHasSubs = (categoriesData[parent] || []).length > 0;
+        if (!forDate || !parent || (editHasSubs && !sub) || !effort) {
+            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        this.disabled = true;
+        fetch(API_PREFIX + `api/generali/attendance/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ forDate, parentCategory: parent, subCategory: sub || null, effortInHours: parseFloat(effort) })
+        })
+        .then(r => r.json())
+        .then(data => {
+            this.disabled = false;
+            if (data.success) {
+                closeEditModal();
+                loadRecords(currentPage);
+            } else {
+                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errEl.classList.remove('hidden');
+            }
+        })
+        .catch(() => {
+            this.disabled = false;
+            errEl.textContent = {{ _("Network error.") | tojson }};
+            errEl.classList.remove('hidden');
+        });
+    });
+
+    let pendingDeleteId = null;
+
+    function deleteRecord(id) {
+        pendingDeleteId = id;
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('deleteModal').classList.add('flex');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.getElementById('deleteModal').classList.remove('flex');
+        pendingDeleteId = null;
+    }
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!pendingDeleteId) return;
+        const id = pendingDeleteId;
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ _("Deleting…") }}';
+        fetch(API_PREFIX + `api/generali/attendance/${id}`, {
+            headers: { 'X-CSRFToken': csrfToken },
+            method: 'DELETE'
+        })
+        .then(r => r.json())
+        .then(data => {
+            this.disabled = false;
+            this.innerHTML = {{ _("Delete") | tojson }};
+            closeDeleteModal();
+            if (data.success) loadRecords(currentPage);
+            else {
+                // show error inline via a brief toast-style approach
+                const errDiv = document.createElement('div');
+                errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+                errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
+                document.body.appendChild(errDiv);
+                setTimeout(() => errDiv.remove(), 4000);
+            }
+        })
+        .catch(() => {
+            this.disabled = false;
+            this.innerHTML = {{ _("Delete") | tojson }};
+            closeDeleteModal();
+        });
+    });
+
+    // ----------------------------- excel export ----------------------------- //
+    function showExportError(msg) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+        errDiv.textContent = msg;
+        document.body.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 4000);
+    }
+
+    async function exportToExcel() {
+        const btn = document.getElementById('exportExcelBtn');
+        const icon = btn ? btn.querySelector('i') : null;
+        const originalIconClass = icon ? icon.className : '';
+        if (btn) btn.disabled = true;
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        try {
+            const params = buildParams(1);
+            params.set('all', 'true');
+            const res = await fetch(API_PREFIX + 'api/generali/attendance?' + params.toString(), {
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Export failed');
+            const records = data.records || [];
+            if (!records.length) return;
+            const today = new Date().toISOString().split('T')[0];
+            const rows = records.map(r => ({
+                'ID':            r.id,
+                'Date':          r.forDate ? r.forDate.split('T')[0] : '',
+                'Full Name':     r.fullname,
+                'User ID':       r.userId,
+                'Category':      r.parentCategory,
+                'Sub Category':  r.subCategory,
+                'Effort (h)':    r.effortInHours,
+                'Recorded At':   r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Additional Services');
+            XLSX.writeFile(wb, `generali_additionalservices_${today}.xlsx`);
+        } catch (e) {
+            console.error('Export failed:', e);
+            showExportError({{ _("Export failed.") | tojson }});
+        } finally {
+            if (btn) btn.disabled = false;
+            if (icon) icon.className = originalIconClass;
+        }
+    }
+
+    loadCategories();
+    loadOrganizations();
+    loadFilterUsers();
+    {% if can_add %}loadOrgUsers();{% endif %}
+    loadRecords(1);
+</script>

@@ -4,9 +4,8 @@ import time
 
 from flask import current_app
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .security import load_permissions_for_user
-
 
 MAINTENANCE_SEVERITIES = {"info", "warning", "critical"}
 
@@ -33,7 +32,7 @@ def _maintenance_iso(v):
 
 
 def _maintenance_row_to_dict(row, cols):
-    d = dict(zip(cols, row))
+    d = dict(zip(cols, row, strict=False))
     for k in ("StartAt", "EndAt", "CreatedAt"):
         d[k] = _maintenance_iso(d.get(k))
     d["Active"] = bool(d.get("Active"))
@@ -81,7 +80,7 @@ def _get_blocking_maintenance():
         return _MAINTENANCE_BLOCK_CACHE["data"]
     result = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT TOP 1 ID, Title, Message, StartAt, EndAt, Severity
@@ -95,11 +94,11 @@ def _get_blocking_maintenance():
         conn.close()
         if row:
             result = {
-                "id":       int(row[0]),
-                "title":    row[1],
-                "message":  row[2],
-                "startAt":  _maintenance_iso(row[3]),
-                "endAt":    _maintenance_iso(row[4]),
+                "id": int(row[0]),
+                "title": row[1],
+                "message": row[2],
+                "startAt": _maintenance_iso(row[3]),
+                "endAt": _maintenance_iso(row[4]),
                 "severity": row[5],
             }
     except Exception as e:

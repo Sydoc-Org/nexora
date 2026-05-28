@@ -5,6 +5,7 @@ The ``PermissionDenied`` exception and ``@require_permission`` /
 them without dragging in the rest of the app.
 """
 
+from contextlib import suppress
 from datetime import date
 from functools import wraps
 
@@ -12,7 +13,7 @@ from flask import current_app, redirect, session, url_for
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 
 
 class PermissionDenied(HTTPException):
@@ -21,7 +22,7 @@ class PermissionDenied(HTTPException):
 
 
 def load_permissions_for_user(user_id):
-    conn = engineNexoraDB.raw_connection()
+    conn = engine_nexora_db.raw_connection()
     cur = conn.cursor()
     cur.execute("EXEC dbo.spGetUserPermissions ?", user_id)
     perms = [row[0] for row in cur.fetchall()]
@@ -44,7 +45,9 @@ def require_permission(code):
             if not has_permission(code):
                 raise PermissionDenied()
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -57,7 +60,9 @@ def require_any_permission(*codes):
             if not any(has_permission(c) for c in codes):
                 raise PermissionDenied()
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -70,7 +75,7 @@ def _check_generali_record_org(cursor, table, user_id_col, record_id):
     record_uid = rec[0]
     if record_uid == session.get("userid"):
         return  # own record always allowed
-    nx_conn = engineNexoraDB.raw_connection()
+    nx_conn = engine_nexora_db.raw_connection()
     nx_cur = nx_conn.cursor()
     nx_cur.execute("SELECT organizationcode FROM Users WHERE userid = ?", [record_uid])
     org_row = nx_cur.fetchone()
@@ -103,8 +108,8 @@ def _check_add_deadline(for_date_str, bypass_perm_code):
     return None
 
 
-def startpage_redirect_to(pV):
-    permToFunction = {
+def startpage_redirect_to(page_v):
+    perm_to_function = {
         "dashboardPagePerm": "dashboard",
         "workitemsPagePerm": "workitems_overview",
         "invoicesPagePerm": "invoices",
@@ -118,13 +123,13 @@ def startpage_redirect_to(pV):
         "chatPagePerm": "chat_page",
         "adminPagePerm": "admin_dashboard",
     }
-    for pTF in permToFunction:
-        if pV[pTF]:
-            return permToFunction[pTF]
+    for perm_key in perm_to_function:
+        if page_v[perm_key]:
+            return perm_to_function[perm_key]
     return "login"
 
 
-def pageVisability():
+def page_visibility():
     return {
         "adminPagePerm": has_permission("admin.view"),
         "dashboardPagePerm": has_permission("dashboard.view"),
@@ -157,22 +162,20 @@ def _revoke_session_by_id(session_id):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM ActiveSessions WHERE SessionID = ?", (str(session_id),))
         deleted = cursor.rowcount
         conn.commit()
     except Exception as e:
-        current_app.logger.warning(
-            f"Could not delete ActiveSessions row for {session_id}: {e}"
-        )
+        current_app.logger.warning(f"Could not delete ActiveSessions row for {session_id}: {e}")
     finally:
         if cursor:
-            try: cursor.close()
-            except Exception: pass
+            with suppress(Exception):
+                cursor.close()
         if conn:
-            try: conn.close()
-            except Exception: pass
+            with suppress(Exception):
+                conn.close()
 
     # Best-effort: nuke the server-side session data via Flask-Session's
     # internal store. Works for filesystem, cachelib, redis, etc. Falls back
@@ -184,8 +187,6 @@ def _revoke_session_by_id(session_id):
         if callable(get_store_id) and callable(delete_session):
             delete_session(get_store_id(str(session_id)))
     except Exception as e:
-        current_app.logger.warning(
-            f"Could not delete session store entry for {session_id}: {e}"
-        )
+        current_app.logger.warning(f"Could not delete session store entry for {session_id}: {e}")
 
     return deleted > 0

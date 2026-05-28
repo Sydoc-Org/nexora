@@ -1,0 +1,83 @@
+# pre-commit framework config
+# Install: uv sync (or pip install pre-commit), then run:
+#   pre-commit install --install-hooks
+#   pre-commit install --hook-type commit-msg
+#   pre-commit install --hook-type pre-push
+# Run on all files: pre-commit run --all-files
+
+default_language_version:
+  python: python3.13
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+        # .claude/ agent docs contain detection regex patterns that look
+        # like private-key markers (security-auditor.md etc). Real secrets
+        # live in .claude/settings.local.json which is gitignored.
+        exclude: '^\.claude/'
+      - id: end-of-file-fixer
+        exclude: '^(translations/|static/|sql/|messages\.pot$)'
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: '^(.*\.(ps1|bat|cmd)|web\.config)$'
+      - id: trailing-whitespace
+        exclude: '^(translations/|static/|sql/)'
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: []
+        args: [--ignore-missing-imports, --no-strict-optional]
+        files: '^(nx_lib/|nx_main\.py)'
+        stages: [manual]  # advisory; run via `pre-commit run mypy --all-files --hook-stage manual`
+
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: sql-migrate-int
+        name: Apply pending SQL migrations to INT
+        entry: python scripts/db-migrate.py --env INT
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: sql-sync-check
+        name: Verify per-object SQL DDL matches INT
+        entry: python sql/sync-from-db.py --check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: branch-name-guard
+        name: Branch-name convention guard
+        entry: powershell -ExecutionPolicy Bypass -File scripts/git-hooks/branch-name-guard.ps1
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+      - id: pytest-pre-push
+        name: Test suite (pre-push gate)
+        entry: python -m pytest tests --reruns 2 --only-rerun flaky_e2e
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true

@@ -6,14 +6,20 @@ import re
 
 import bcrypt
 from flask import (
-    current_app, flash, redirect, render_template, request, session, url_for,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 from PIL import Image
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..files import is_file_allowed
-from ..security import pageVisability
+from ..security import page_visibility
 
 
 def profile():
@@ -30,7 +36,7 @@ def profile():
             logged_in_user=logged_in_user,
             fullname=fullname,
             email=email,
-            pageV=pageVisability(),
+            pageV=page_visibility(),
         )
     except Exception:
         return render_template("500.html")
@@ -48,10 +54,13 @@ def update_profile():
             fullname = request.form["fullName"]
             email = request.form["email"]
 
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
 
-            if not re.search(r"^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email) or len(email) >= 50:
+            if (
+                not re.search(r"^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$", email)
+                or len(email) >= 50
+            ):
                 flash(_("Email Adress is not valid"), "failure_updateProfile")
                 return redirect(url_for("profile"))
 
@@ -79,7 +88,10 @@ def update_profile():
             if "file" in request.files and request.files["file"].filename != "":
                 f = request.files["file"]
                 if not is_file_allowed(f.filename, f.stream):
-                    flash(_("Invalid file format. Please upload a valid image."), "failure_updateProfile")
+                    flash(
+                        _("Invalid file format. Please upload a valid image."),
+                        "failure_updateProfile",
+                    )
                     return redirect(url_for("profile"))
                 try:
                     in_memory_file = io.BytesIO()
@@ -100,7 +112,10 @@ def update_profile():
                         disk_file.write(in_memory_file.read())
                 except Exception as e:
                     current_app.logger.error(f"Invalid image upload attempt by user {userid}: {e}")
-                    flash(_("Invalid file format. Please upload a valid image."), "failure_updateProfile")
+                    flash(
+                        _("Invalid file format. Please upload a valid image."),
+                        "failure_updateProfile",
+                    )
                     return redirect(url_for("profile"))
             flash(_("Profile updated successfully!"), "success_updateProfile")
             return redirect(url_for("profile"))
@@ -125,20 +140,23 @@ def change_password():
             username = session["username"]
             userid = session["userid"]  # noqa: F841 (kept for parity)
 
-            currentPassword = request.form["currentPassword"]
-            newPassword = request.form["newPassword"]
-            confirmPassword = request.form["confirmPassword"]
+            current_password = request.form["currentPassword"]
+            new_password = request.form["newPassword"]
+            confirm_password = request.form["confirmPassword"]
 
-            if newPassword != confirmPassword:
+            if new_password != confirm_password:
                 flash(_("New passwords do not match"), "failure_changePW")
                 return redirect(url_for("profile"))
-            if not newPassword or not confirmPassword or not currentPassword:
+            if not new_password or not confirm_password or not current_password:
                 flash(_("All fields must be filled"), "failure_changePW")
                 return redirect(url_for("profile"))
-            if not re.search(r"^\S{8,200}$", newPassword):
-                flash(_("New password has to be atleast 8 characters long, with no whitespaces"), "failure_changePW")
+            if not re.search(r"^\S{8,200}$", new_password):
+                flash(
+                    _("New password has to be atleast 8 characters long, with no whitespaces"),
+                    "failure_changePW",
+                )
                 return redirect(url_for("profile"))
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
 
             cursor.execute("SELECT password FROM Users WHERE username = ?", username)
@@ -148,9 +166,9 @@ def change_password():
             if isinstance(stored_hash, str):
                 stored_hash = stored_hash.encode("utf-8")
 
-            if bcrypt.checkpw(currentPassword.encode("utf-8"), stored_hash):
+            if bcrypt.checkpw(current_password.encode("utf-8"), stored_hash):
                 salt = bcrypt.gensalt()
-                hash_bytes = bcrypt.hashpw(newPassword.encode("utf-8"), salt)
+                hash_bytes = bcrypt.hashpw(new_password.encode("utf-8"), salt)
                 hash_str = hash_bytes.decode("utf-8")
 
                 cursor.execute(
@@ -187,7 +205,7 @@ def set_language(lang=None):
             return redirect(url_for("profile"))
         userid = session["userid"]
         session["locale"] = lang
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE Users SET locale = ? WHERE userid = ?", [lang, userid])
         conn.commit()
@@ -205,6 +223,16 @@ def set_language(lang=None):
 
 def register_routes(app):
     app.add_url_rule("/profile", endpoint="profile", view_func=profile)
-    app.add_url_rule("/update_profile", endpoint="update_profile", view_func=update_profile, methods=["POST", "GET"])
-    app.add_url_rule("/change_password", endpoint="change_password", view_func=change_password, methods=["POST", "GET"])
+    app.add_url_rule(
+        "/update_profile",
+        endpoint="update_profile",
+        view_func=update_profile,
+        methods=["POST", "GET"],
+    )
+    app.add_url_rule(
+        "/change_password",
+        endpoint="change_password",
+        view_func=change_password,
+        methods=["POST", "GET"],
+    )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)

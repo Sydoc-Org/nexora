@@ -1,0 +1,185 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Full product documentation lives in Confluence: https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774
+
+## Project overview
+
+Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS via `wfastcgi`. It serves as an internal portal for Sydoc (workitems, invoices, chat, admin, plus tenant-specific "generali" pages). It talks to multiple SQL Server databases, integrates with Microsoft Graph and Octopus-based runtime services, and uses Bexio for billing.
+
+The entire backend is a single file: `nx_main.py` (a 119-line WSGI shim); routes live under `nx_lib/views/`. Templates live under `templates/` (Jinja2, split into page templates and paired JS partials under `templates/js/`). Static assets are in `static/`.
+
+## Environment & running
+
+- Environment is selected via the `ENVIRONMENT` env var (`INT` or `PROD`). `nx_lib/config.py` loads `{ENVIRONMENT}.env` on startup. `INT.env` and `PROD.env` at the repo root hold secrets and DB/Graph/Octo/Bexio credentials.
+- Local dev: create a venv at `./venv`, `pip install -r requirements.txt`, set `ENVIRONMENT=INT`, run `python nx_main.py` (or `flask run`). The WSGI handler is `nx_main.app`.
+- Production: IIS with URL Rewrite + FastCGI. See `docs/howto/iis.md`. `web.config` rewrites all non-`/static/` URLs to `nx_main.py` and points FastCGI at `D:\sydoc\tools\py\python.exe`. `PYTHONPATH` is `D:\sydoc\nexora`.
+- Public tunnel (SYAPP01 only): see `docs/howto/ngrok.md` — `ngrok start --config="D:\sydoc\nexora\ngrok.yaml" --all`, or run as a Windows service.
+
+## Databases
+
+The app connects to four SQL Server databases via SQLAlchemy engines with pyodbc (see `nx_lib/db.py`). Credentials come from env vars, not code.
+
+- `engineNexoraDB` — the app's own DB (users, permissions, sessions metadata, config).
+- `engineOctoDB` — Octopus runtime DB on `DB_SERVER_PRD`.
+- `engineStatisticsDB` — stats DB on `DB_SERVER_PRD`.
+- `engineGeneraliDB` — tenant-specific DB for Generali-branded pages.
+
+DDL source lives under `sql/`, organized to mirror SSMS Object Explorer. The **live INT database is the source of truth** for committed-state DDL — the per-object files are auto-generated and must not be hand-edited.
+
+```
+sql/
+  NexoraDB/        Tables/  Views/  Programmability/{StoredProcedures,Functions,Triggers,Types}  Security/{Users,Roles,Schemas}
+  GeneraliDB/      same layout
+  _migrations/
+    NexoraDB/      0001_init_schema_migrations.sql, 0002_..., 0003_...
+    GeneraliDB/    0001_init_schema_migrations.sql, ...
+  sync-from-db.py  regenerates the per-object dumps from INT via mssql-scripter
+  requirements.txt mssql-scripter
+scripts/
+  db-migrate.py    applies pending migrations on INT or PROD
+```
+
+Only the two app-owned databases are tracked. `StatisticsDB` (sydoc_stat) and `OctoDB` are deliberately excluded — they're treated as runtime/vendor surfaces, not schema we own.
+
+**Two scripts, two roles:**
+
+- `scripts/db-migrate.py` — moves schema forward by running ordered migration files. Records each applied file in `dbo.SchemaMigrations` (per database) and refuses to re-run a file whose checksum changed.
+- `sql/sync-from-db.py` — read-only dump of the current INT schema into per-object files for review and code search.
+
+Install once per clone:
+
+```
+pip install -r sql/requirements.txt
+powershell -File scripts/install-git-hooks.ps1
+```
+
+The pre-commit hook (`scripts/git-hooks/pre-commit`) runs:
+
+1. `scripts/db-migrate.py --env INT` — **auto-applies** any pending migrations to INT.
+2. `sql/sync-from-db.py --check` — verifies the per-object dumps still match INT.
+
+**Blocks the commit** if either step fails (SQL error during apply, or drift between INT and the per-object dumps).
+
+Escape hatch when offline: `SQL_SYNC_SKIP=1 git commit ...` or `git commit --no-verify`.
+
+**Workflow for any DB change** (new table, column, index, stored proc, permission row, data backfill, etc.):
+
+1. Create a new migration file `sql/_migrations/<Db>/NNNN_short_description.sql`. Use the next number; one or more SQL batches separated by `GO`.
+2. Commit. The pre-commit hook auto-applies it to INT and re-dumps per-object DDL.
+   - If you already ran the statements in SSMS while prototyping, record them first so the hook doesn't try to re-apply: `python scripts/db-migrate.py --env INT --mark-applied`
+   - Idempotent migrations (using `IF NOT EXISTS` / `IF EXISTS` guards) survive being re-applied by the hook without needing `--mark-applied`.
+3. Push to `main`. The GitHub Actions deploy workflow (`.github/workflows/deploy.yml`) auto-applies pending migrations to PROD **before** the app pool is stopped, then mirrors the code. Failed migration → deploy aborts and the running app stays untouched. For ad-hoc PROD migration from your dev box: `python scripts/db-migrate.py --env PROD`.
+
+Never hand-edit files under `sql/<Database>/<TableOrView>/...` — those are auto-generated from INT. Always go through a migration. Migrations are immutable once applied: to undo or alter a previous migration, add a new one.
+
+The previous `environment_transfer_queries.tmp.sql` workflow is deprecated and replaced by `sql/_migrations/`.
+
+## Deploy artifacts
+
+The deploy workflow at `.github/workflows/deploy.yml` mirrors the repo to `D:\sydoc\nexora` via `robocopy /MIR` after stopping the IIS app pool. The Flask app only needs `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, and `web.config` at runtime — everything else (tests, scripts, docs, dev tooling, AI configs, build artifacts) is dev-side.
+
+**Rule:** when committing a new top-level file or directory that is **not** needed by the running app, also add it to the robocopy exclude list in `deploy.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod on the next deploy.
+
+## Architectural conventions
+
+- **Auth & sessions:** Flask-Session with filesystem backend in `./session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.
+- **Permissions:** Permissions are string codes (e.g. `admin.view`, `generali.pdqm.view`) loaded via the `dbo.spGetUserPermissions` stored procedure into `session['permissions']`. A `@app.before_request` hook (`reload_user_permissions`) refreshes them on every non-static request. Guard routes with `@require_permission('some.code')`; check in templates/code with `has_permission(code)`. `pageVisability()` is the canonical map of page-level perms; `startpage_redirect_to` picks the landing route based on which perms the user has.
+- **Locale:** i18n via Flask-Babel. Supported locales are `en`, `de`, `fr`, `it`. `get_locale()` prefers `session['locale']`, then the user's DB-stored `locale`, then `Accept-Language`. When the user logs in, `load_user_locale` hydrates the session locale from the `Users` table once.
+- **Logging:** Every non-static request is written as a CSV row to `logs/YYYYMMDDHH/nexora_logs.csv` via an `@app.after_request` hook. The `ops/cleanup/csvLogs_toDB.ps1` script ingests these into the stats DB. `ops/cleanup/cleanup_expired_sessionFiles.ps1` prunes the `session/` directory.
+- **Routing:** Routes live in `nx_lib/views/` (`auth`, `admin`, `dashboard`, `workitems`, `chat`, `invoices`, `notifications`, `core`, `generali`, `profile`). Templates are flat under `templates/` with a few subfolders: `admin/` (admin pages + `modals/`), `handlers/` (403/404/500), `js/` (per-page JS as Jinja partials, included by the matching page template), `jd/`, `nexoraLogo/`. Page template `foo.html` typically pairs with `templates/js/_fooJS.html`.
+- **Error pages:** Custom 403/404/500 handlers render `templates/handlers/*.html`. Raise `PermissionDenied` (a subclass of `HTTPException`) to trigger the 403 page from inside a route.
+- **Rate limiting:** `flask_limiter` is configured globally (`limiter = Limiter(...)`); apply `@limiter.limit(...)` per route when needed.
+- **File uploads:** Use `werkzeug.utils.secure_filename` plus `python-magic-bin` (`magic`) for MIME sniffing — existing upload handlers follow that pattern; don't trust the client-reported content type.
+- **Prefix middleware:** `PrefixMiddleware` exists for deploying under a URL prefix; it's defined but only wired up when needed.
+
+## Testing & browser automation
+
+The `nx` CLI tool starts the nexora dev server:
+
+- `nx -u` — start nexora (INT environment)
+- `nx -u -b --loginas:<username>` — start nexora and auto-login as the given user for Playwright browser tests
+
+Playwright screenshot artifacts go in `screenshots/` (never the repo root).
+
+## Git — Branch-based policy
+
+**On a feature branch** (any branch that isn't `main`): allowed to stage (`git add`), commit (`git commit`), and push (`git push`) without further authorization. Other modifying operations (branch delete, reset, rebase, worktree prune, etc.) still require explicit per-turn opt-in.
+
+**On `main`**: never run any modifying git command — no staging, no commit, no push, no operation that changes refs, the index, or history. This stands even with explicit per-turn authorization in the user's message. If a change needs to land on `main`, switch to a feature branch first and open a PR.
+
+**Per-turn opt-in (feature branches only):** if the current user message explicitly authorizes a specific non-default operation (e.g. "go ahead and delete branch X", "run the worktree prune"), that one operation may be executed. Authorization is scoped to what was named in that message and expires at the end of the turn. Standing blanket permissions ("you have git access for this session") do **not** satisfy this rule.
+
+Read-only git commands are always allowed without authorization on any branch: `git log`, `git diff`, `git status`, `git show`, `git branch`, `git stash list`, `git worktree list`, `git ls-remote`, etc.
+
+**Never authorized, even with explicit permission:** force-push to `main`, `git push --force` without `--force-with-lease`, `git reset --hard` on a branch with unpushed commits, `git branch -D` of the currently checked-out branch, deleting `main`, or skipping hooks (`--no-verify`, `--no-gpg-sign`). For these, refuse and explain even if asked.
+
+## Response style
+
+- Use **bold text** for section breaks, not `#`/`##`/`###` markdown headers.
+- Use `AskUserQuestion` for yes/no and multiple-choice prompts so the user can click instead of type.
+
+## Translations (Flask-Babel)
+
+Workflow from `docs/howto/babel.md`:
+
+```
+pybabel extract -F babel.cfg -o messages.pot .
+# first time per locale:
+pybabel init -i messages.pot -d translations -l de    # (or fr, it)
+# updates:
+pybabel update -i messages.pot -d translations
+# after editing translations/<lang>/LC_MESSAGES/messages.po:
+pybabel compile -d translations
+```
+
+`babel.cfg` extracts from `*.py` and `templates/**.html`. Mark strings with `{{ _('...') }}` in templates and `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po` file.
+
+## Secrets
+
+`INT.env` and `PROD.env` contain live credentials (DB, Microsoft Graph, Octopus, Bexio PAT, Flask secret key). They are **gitignored** (`*.env` in `.gitignore`) and live only on dev and prod machines — never committed. Treat them as sensitive: do not paste their contents into chats, issues, or external tools, and never add new secret values to code or commit messages.
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 3142 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> First-time setup after cloning: run `npx gitnexus analyze` to build the local index. The `.gitnexus/` folder is gitignored — it's a derived cache, regenerated on demand. Re-run the same command if any tool later warns the index is stale.
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/Kundenportal-Sydoc/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/Kundenportal-Sydoc/clusters` | All functional areas |
+| `gitnexus://repo/Kundenportal-Sydoc/processes` | All execution flows |
+| `gitnexus://repo/Kundenportal-Sydoc/process/{name}` | Step-by-step execution trace |
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->

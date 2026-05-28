@@ -3,7 +3,7 @@ public maintenance view, session liveness probe."""
 
 from flask import current_app, jsonify, redirect, render_template, session, url_for
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
 from ..security import require_permission
 
@@ -28,7 +28,7 @@ def api_maintenance_active():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         # Priority 1: currently active banner (window has started)
         cursor.execute(
@@ -44,18 +44,20 @@ def api_maintenance_active():
         row = cursor.fetchone()
         if row:
             rec_id, title, message, start_at, end_at, severity = row
-            return jsonify({
-                "success": True,
-                "banner": {
-                    "id":       int(rec_id),
-                    "title":    title,
-                    "message":  message,
-                    "startAt":  _maintenance_iso(start_at),
-                    "endAt":    _maintenance_iso(end_at),
-                    "severity": severity,
-                    "upcoming": False,
-                },
-            })
+            return jsonify(
+                {
+                    "success": True,
+                    "banner": {
+                        "id": int(rec_id),
+                        "title": title,
+                        "message": message,
+                        "startAt": _maintenance_iso(start_at),
+                        "endAt": _maintenance_iso(end_at),
+                        "severity": severity,
+                        "upcoming": False,
+                    },
+                }
+            )
         # Priority 2: upcoming banner within its announcement window
         cursor.execute(
             """
@@ -72,18 +74,20 @@ def api_maintenance_active():
         if not row:
             return jsonify({"success": True, "banner": None})
         rec_id, title, message, start_at, end_at, severity = row
-        return jsonify({
-            "success": True,
-            "banner": {
-                "id":       int(rec_id),
-                "title":    title,
-                "message":  message,
-                "startAt":  _maintenance_iso(start_at),
-                "endAt":    _maintenance_iso(end_at),
-                "severity": severity,
-                "upcoming": True,
-            },
-        })
+        return jsonify(
+            {
+                "success": True,
+                "banner": {
+                    "id": int(rec_id),
+                    "title": title,
+                    "message": message,
+                    "startAt": _maintenance_iso(start_at),
+                    "endAt": _maintenance_iso(end_at),
+                    "severity": severity,
+                    "upcoming": True,
+                },
+            }
+        )
     except Exception as e:
         current_app.logger.error(f"Maintenance active error: {e}")
         return jsonify({"success": False, "error": "internal error"}), 500
@@ -110,5 +114,12 @@ def register_routes(app):
     app.add_url_rule("/", endpoint="index", view_func=index)
     app.add_url_rule("/jdvance", endpoint="jdvance", view_func=jdvance)
     app.add_url_rule("/maintenance", endpoint="maintenance_page", view_func=maintenance_page)
-    app.add_url_rule("/api/maintenance/active", endpoint="api_maintenance_active", view_func=api_maintenance_active, methods=["GET"])
-    app.add_url_rule("/api/session/heartbeat", endpoint="session_heartbeat", view_func=session_heartbeat)
+    app.add_url_rule(
+        "/api/maintenance/active",
+        endpoint="api_maintenance_active",
+        view_func=api_maintenance_active,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/session/heartbeat", endpoint="session_heartbeat", view_func=session_heartbeat
+    )

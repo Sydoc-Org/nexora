@@ -11,9 +11,12 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from .config import (
-    OCTO_CLIENT_ID, OCTO_CLIENT_SECRET, OCTO_DOMAIN, OCTO_GRANT_TYPE,
+    OCTO_CLIENT_ID,
+    OCTO_CLIENT_SECRET,
+    OCTO_DOMAIN,
+    OCTO_GRANT_TYPE,
 )
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .extensions import cache
 
 
@@ -57,7 +60,9 @@ def get_domain_for_workitem(workitem_id):
 def get_workitemdata_param(workitem_id, domain=None):
     if domain is None:
         domain = OCTO_DOMAIN
-    url = f"https://{domain}/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load"
+    url = (
+        f"https://{domain}/api/processservice/api/v2.1/processService/WorkItems/{workitem_id}/load"
+    )
     access_token = get_access_token(domain)
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -77,7 +82,7 @@ def get_index_field_mappings():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT SourceFieldName, TargetKey FROM IndexFieldMappings")
         for row in cursor.fetchall():
@@ -158,7 +163,7 @@ def get_media(url, domain=None):
 
 
 @cache.memoize()
-def get_activity_type_name(activity_instance_id: str, domain: str = None) -> str:
+def get_activity_type_name(activity_instance_id: str, domain: str | None = None) -> str:
     if domain is None:
         domain = OCTO_DOMAIN
     activity_instances_url = (

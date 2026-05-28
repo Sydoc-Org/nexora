@@ -17,6 +17,44 @@ jobs:
           $ErrorActionPreference = 'Stop'
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements.txt
           D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-dev.txt
+          # Self-hosted runner: `pip install --quiet -r` can no-op when a
+          # newer ruff is already installed system-wide, causing the format
+          # check to diverge from dev. Force the pinned version explicitly.
+          D:\sydoc\tools\py\python.exe -m pip install --quiet --force-reinstall ruff==0.7.4
+
+      - name: Show tool versions
+        shell: powershell
+        run: |
+          D:\sydoc\tools\py\python.exe --version
+          D:\sydoc\tools\py\python.exe -m ruff --version
+
+      # The self-hosted runner has a persistent workspace. Files added before
+      # `.gitattributes` got `*.py text eol=lf` (2026-05-13) were cached with
+      # CRLF endings and actions/checkout has not re-normalised them on
+      # subsequent runs. ruff's `format.line-ending = "lf"` then flags those
+      # files as needing reformat even though their content is identical to
+      # what dev sees locally. Re-normalise to LF before any ruff step.
+      - name: Normalize Python line endings to LF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          Get-ChildItem -Path nx_lib, nx_main.py, tests -Recurse -Include *.py | ForEach-Object {
+            $text = [System.IO.File]::ReadAllText($_.FullName, $utf8NoBom)
+            $normalized = $text -replace "`r`n", "`n"
+            if ($normalized -ne $text) {
+              [System.IO.File]::WriteAllText($_.FullName, $normalized, $utf8NoBom)
+              Write-Host "  fixed: $($_.FullName)"
+            }
+          }
+
+      - name: Ruff lint
+        shell: powershell
+        run: D:\sydoc\tools\py\python.exe -m ruff check nx_lib nx_main.py tests
+
+      - name: Ruff format check
+        shell: powershell
+        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py tests
 
       - name: Install Playwright chromium
         shell: powershell
@@ -156,8 +194,8 @@ jobs:
         shell: powershell
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .playwright-mcp .superpowers .vscode .idea __pycache__ session logs uploads screenshots scripts sql tests test-results docs `
-            /XF *.env ngrok.yaml .gitignore CLAUDE.md nx.ps1 babel.cfg messages.pot environment_transfer_queries.tmp.sql requirements.txt requirements-dev.txt README.md pyproject.toml
+            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ session logs uploads screenshots scripts sql tests test-results docs `
+            /XF *.env ngrok.yaml .gitignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt README.md pyproject.toml
           if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
 
       - name: Start app pool and service

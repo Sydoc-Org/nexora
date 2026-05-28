@@ -6,7 +6,7 @@ so these helpers translate permission strings into SQL parameter lists.
 
 from flask import current_app, session
 
-from .db import engineNexoraDB
+from .db import engine_nexora_db
 from .extensions import cache
 from .security import has_permission
 
@@ -44,14 +44,14 @@ def prepare_process_selection_sql(prefix, process_name):
         raise
 
 
-def get_activityinstancesToIgnore():
+def get_activity_instances_to_ignore():
     cached = cache.get("activity_instances_ignore")
     if cached is not None:
         return cached
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
@@ -81,7 +81,7 @@ def build_stat_query(proc):
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         query = "SELECT TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName = ?"
         cursor.execute(query, proc)

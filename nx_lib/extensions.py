@@ -14,7 +14,6 @@ from itsdangerous import URLSafeTimedSerializer
 from . import config as cfg
 from .i18n import get_locale, get_timezone
 
-
 babel = Babel()
 # TODO: under IIS FastCGI each worker process gets its own in-memory rate-limit
 # counter, so @limiter.limit(...) is enforced per-worker rather than globally.

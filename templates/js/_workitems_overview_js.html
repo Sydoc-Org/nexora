@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script>
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        let animationTimeouts = [];
+        let mentionableUsers = [];
+        let docValuesCache = [];
+        let fieldConfig = {
+            search_options: {},
+            labels: {}
+        };
+        let pendingImportFiles = [];
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success'
+                ? '<i class="fas fa-check-circle"></i>'
+                : '<i class="fas fa-exclamation-circle"></i>';
+
+            notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+
+            notification.innerHTML = `
+                <div class="text-xl">${icon}</div>
+                <div class="ml-3 text-sm font-medium">${message}</div>
+            `;
+
+            container.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.remove('opacity-0', 'translate-x-full');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => {
+                    notification.remove();
+                }, 700);
+            }, 5000);
+        }
+
+        function renderCustomDatalist(values) {
+            const listContainer = document.getElementById('docValueCustomList');
+            const docValueInput = document.getElementById('docValueInput');
+            if (!listContainer || !docValueInput) return;
+
+            listContainer.innerHTML = '';
+            if (values.length === 0) {
+                listContainer.classList.add('hidden');
+                return;
+            }
+
+            values.forEach(value => {
+                const item = document.createElement('div');
+                item.className = 'cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
+                item.textContent = value;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    docValueInput.value = value;
+                    listContainer.classList.add('hidden');
+                    const filterForm = document.getElementById('filterForm');
+                    if (filterForm.requestSubmit) filterForm.requestSubmit();
+                    else fetchAndUpdateWorkitems();
+                });
+                listContainer.appendChild(item);
+            });
+
+            listContainer.classList.remove('hidden');
+        }
+
+        async function fetchDocFieldValues(q = '') {
+            try {
+                const process = document.getElementById('prcfW')?.value || 'all';
+                const field = document.getElementById('docFieldFilter')?.value;
+                const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
+                const res = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (!res.ok) throw new Error('Could not fetch field values');
+
+                docValuesCache = await res.json();
+                renderCustomDatalist(docValuesCache);
+            } catch (e) {
+                console.error('Failed to fetch field values:', e);
+                const listContainer = document.getElementById('docValueCustomList');
+                if (listContainer) listContainer.classList.add('hidden');
+            }
+        }
+
+
+        function cancelAllAnimations() {
+            animationTimeouts.forEach(clearTimeout);
+            animationTimeouts = [];
+
+            const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
+            allRows.forEach(row => {
+                row.classList.remove('opacity-0');
+                row.style.transform = '';
+            });
+        }
+
+        function closeAllDetails() {
+            document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
+                detailsRow.classList.remove('open');
+                detailsRow.setAttribute('hidden', true);
+            });
+
+            document.querySelectorAll(".indicator").forEach((chevron) => {
+                chevron.classList.remove('open');
+                chevron.classList.remove('glyphicon-chevron-down-custom');
+                chevron.classList.add('glyphicon-chevron-up-custom');
+            });
+        }
+
+        function getCurrentFilterOrSearch() {
+            const statusFilter = document.getElementById("statusFilter");
+            const searchInput = document.getElementById("searchInput");
+            return {
+                status: statusFilter.value,
+                search: searchInput.value,
+            };
+        }
+
+        async function loadHistory(workitemId) {
+            const historyContainer = document.getElementById(`history-container-${workitemId}`);
+            if (!historyContainer) {
+                console.error(`History container not found for workitem ID: ${workitemId}`);
+                return;
+            }
+
+            if (historyContainer.dataset.loaded === 'true') {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (response.status === 403) {
+                     historyContainer.innerHTML = `<p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Restricted") }}</p>`;
+                     return;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const historyData = await response.json();
+
+                historyContainer.innerHTML = '';
+
+                if (historyData.length === 0) {
+                    historyContainer.innerHTML = `<p class="text-gray-500">{{ _("No history available for this item") }}</p>`;
+                } else {
+                    const timeline = document.createElement('div');
+                    timeline.className = 'border-l-2 border-indigo-200 ml-2';
+
+                    historyData.forEach(item => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'relative mb-4 pl-6';
+
+                        const dot = document.createElement('div');
+                        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
+                        eventElement.appendChild(dot);
+
+                        const eventText = document.createElement('p');
+                        eventText.className = 'text-sm text-gray-800';
+                        eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+                        eventElement.appendChild(eventText);
+
+                        const detailsText = document.createElement('p');
+                        detailsText.className = 'text-xs text-gray-500 mt-1';
+                        const eventDate = new Date(item.DateTime);
+                        const formattedDate = eventDate.toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        detailsText.textContent = formattedDate;
+                        eventElement.appendChild(detailsText);
+
+                        timeline.appendChild(eventElement);
+                    });
+                    historyContainer.appendChild(timeline);
+                }
+                historyContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
+            }
+        }
+
+        function renderTagsInDetails(workitemId, tags) {
+            const container = document.getElementById(`tags-container-${workitemId}`);
+            if (!container) return;
+            container.innerHTML = tags.map(tag => `
+                <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
+                    ${tag.name}
+                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}">
+                        <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        async function refreshWorkitemUI(workitemId) {
+        try {
+            const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+            if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
+            const workitem = await response.json();
+            const tags = workitem.tags || [];
+
+            const previewContainer = document.getElementById(`tags-preview-${workitem.workitemid}`);
+            if (previewContainer) {
+                previewContainer.innerHTML = tags.map(tag =>
+                    `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
+                ).join('');
+            }
+
+            const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
+            if (detailsContainer) {
+                renderTagsInDetails(workitemId, tags);
+            }
+
+        } catch (error) {
+            console.error("Failed to refresh workitem UI:", error);
+        }
+    }
+
+        async function loadCollaborationData(workitemId) {
+            const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
+            const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+            const assignSelector = document.getElementById(`assign-select-${workitemId}`);
+            const tagsContainer = document.getElementById(`tags-container-${workitemId}`);
+            mentionableUsers.forEach(user => {
+                let option = document.createElement('option');
+                option.text = user.fullname
+                option.value = user.userID
+                assignSelector.add(option)
+            })
+            if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const data = await response.json();
+                console.log(data)
+                prioritySelector.value = data.priority;
+                assignSelector.value = data.assigneduserid;
+                renderTagsInDetails(workitemId, data.tags)
+                commentsContainer.innerHTML = '';
+                if (data.comments.length === 0) {
+                    commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
+                } else {
+                    data.comments.forEach(comment => {
+                        const commentEl = document.createElement('div');
+                        commentEl.className = 'flex items-start gap-2.5';
+                        const commentDate = new Date(comment.Timestamp).toLocaleString();
+                        commentEl.innerHTML = `
+                            <img class="w-8 h-8 rounded-full" src=${comment.userIcon} alt=" {{ _('Profile Picture') }}">
+                            <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
+                                <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                    <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
+                                    <span class="text-sm font-normal text-gray-500">${commentDate}</span>
+                                </div>
+                                <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+\.\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
+                            </div>`;
+                        commentsContainer.appendChild(commentEl);
+                    });
+                }
+                commentsContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load collaboration data:', error);
+                commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
+            }
+        }
+
+        function renderWorkitemTimeline(container) {
+            if (!container || container.dataset.rendered === 'true') return;
+
+            const currentStage = container.dataset.currentStage;
+            const status = container.dataset.status;
+            const progressLine = container.querySelector('.progress-line');
+            const stepElements = container.querySelectorAll('.process-step');
+
+            const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
+            const stageIndex = stages.indexOf(currentStage);
+            const scaleFactors = {
+                0: 0,
+                1: 0.3334,
+                2: 0.6667,
+                3: 1
+            };
+
+            const progressValues = {
+                0: '0%',
+                1: '33%',
+                2: '66%',
+                3: '100%'
+            };
+
+            stepElements.forEach(step => {
+                step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
+                step.querySelector('.step-label').classList.remove('active', 'completed');
+            });
+
+            if (status === 'Done') {
+                stepElements.forEach(step => {
+                    step.querySelector('.step-icon-wrapper').classList.add('completed');
+                    step.querySelector('.step-label').classList.add('completed');
+                });
+                progressLine.style.transform = `scaleX(1)`;
+            } else if (stageIndex !== -1) {
+                for (let i = 0; i < stageIndex; i++) {
+                    stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
+                    stepElements[i].querySelector('.step-label').classList.add('completed');
+                }
+                stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
+                stepElements[stageIndex].querySelector('.step-label').classList.add('active');
+                progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
+            } else {
+                progressLine.style.transform = `scaleX(0)`;
+            }
+
+            container.dataset.rendered = 'true';
+        }
+
+        function loadImagesInBatch(container, workitemid, totalImages) {
+            const existingBtn = container.querySelector('.load-more-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+
+            const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
+            const batchSize = 7;
+            const endIndex = Math.min(loadedCount + batchSize, totalImages);
+
+            for (let i = loadedCount; i < endIndex; i++) {
+                loadImage(container, workitemid, i);
+            }
+
+            container.dataset.loadedCount = endIndex;
+
+            if (endIndex < totalImages) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition';
+                loadMoreBtn.textContent = `{{ _("Load more") }} (${endIndex} / ${totalImages})`;
+                loadMoreBtn.dataset.workitemid = workitemid;
+                loadMoreBtn.dataset.totalImages = totalImages;
+                container.appendChild(loadMoreBtn);
+            }
+        }
+
+        function buildDetailContent(workitemid, status, currentStage) {
+            return `
+              <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+
+                  <div id="timeline-container-${workitemid}"
+                      class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100"
+                      data-current-stage="${currentStage}"
+                      data-status="${status}">
+                      <div class="relative flex justify-between items-center">
+                          <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+                          <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-gears text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-shield-halved text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p>
+                          </div>
+                          <div class="process-step z-10 flex flex-col items-center text-center">
+                              <div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full">
+                                  <i class="fas fa-paper-plane text-xl text-gray-400"></i>
+                              </div>
+                              <p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p>
+                          </div>
+                      </div>
+                  </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                 <div class="flex flex-col gap-6 h-[50rem]">
+
+                  {% if details_images_perm %}
+                  <div id="image-container-${workitemid}"
+                    class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
+                    <p class="text-gray-500 text-center px-2">
+                      {{ _("Click toggle button again to load media") }}
+                    </p>
+                  </div>
+                  {% else %}
+                  <div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50">
+                    <div class="text-center">
+                        <i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-gray-500">{{ _("Media preview restricted") }}</p>
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
+                      {{ _('History') }}
+                    </h4>
+                    {% if details_audit_perm %}
+                    <div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2">
+                      <p class="text-gray-500 italic">{{ _("Loading history...") }}</p>
+                    </div>
+                    {% else %}
+                    <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                        <p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                  <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">
+                  {{ _('Document Details') }}
+                </h4>
+                {% if details_fields_perm %}
+                <div id="fields-container-${workitemid}" class="flex-grow pr-2">
+                  <p class="text-gray-500 italic">{{ _("Loading details...") }}</p>
+                </div>
+                {% else %}
+                <div class="flex-grow flex items-center justify-center bg-gray-50 rounded">
+                  <p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p>
+                </div>
+                {% endif %}
+              </div>
+                </div>
+
+                      <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                        <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div class="flex flex-col">
+                            <div id="comments-container-${workitemid}"
+                              class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60">
+                              <p class="text-gray-500 italic">{{ _("Loading comments...") }}</p>
+                            </div>
+                          </div>
+                            <div id="collaboration-tools-${workitemid}" class="flex flex-col">
+                                <div class="mb-4">
+  <label for="priority-select-${workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+  <select id="priority-select-${workitemid}"
+    data-workitemid="${workitemid}"  {% if details_set_priority_perm == False  %} disabled {% endif %}
+    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="0">{{ _("None") }}</option>
+    <option value="1">{{ _("Low") }}</option>
+    <option value="2">{{ _("Medium") }}</option>
+    <option value="3">{{ _("High") }}</option>
+  </select>
+</div>
+<div class="mb-4">
+  <label for="assign-select-${workitemid}"
+    class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+  <select id="assign-select-${workitemid}"
+    data-workitemid="${workitemid}"  {% if details_assign_users_perm == False  %} disabled {% endif %}
+    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    <option value="None">{{ _("None") }}</option>
+  </select>
+</div>
+
+                    <div class="mb-4">
+                      <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
+                      <div class="flex items-center gap-2">
+                        <input type="text" id="tag-input-${workitemid}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
+                        <input type="color" id="tag-color-${workitemid}" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
+                        <button type="button" {% if details_add_tag_perm == False  %} disabled {% endif %}
+                          class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
+                           data-workitemid="${workitemid}">
+                          <i class="fas fa-plus"></i>
+                        </button>
+                      </div>
+                      <div id="tags-container-${workitemid}"
+                        class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]">
+                      </div>
+                    </div>
+
+                            <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitemid}">
+                              <form class="comment-form" data-workitemid="${workitemid}">
+                                 <label for="comment-text-${workitemid}"
+                          class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
+                                <textarea name="commentText" id="comment-text-${workitemid}" {% if details_add_comment_perm == False  %} disabled {% endif %}
+                                class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                  placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
+                                  autocomplete="off"></textarea>
+                                <button type="submit" {% if details_add_comment_perm == False  %} disabled {% endif %}
+                                  class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                                  _("Post Comment") }}</button>
+                              </form>
+                              <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+            `;
+        }
+
+        async function toggleDetailsAndLoadImages(event) {
+            try {
+                const button = event.currentTarget;
+                const workitemid = button.dataset.workitemid;
+                const detailsRow = document.getElementById(`details-row-${workitemid}`);
+
+                if (!detailsRow) return;
+
+                if (detailsRow.dataset.initialized !== 'true') {
+                    const td = detailsRow.querySelector('td');
+                    td.innerHTML = buildDetailContent(
+                        workitemid,
+                        detailsRow.dataset.status || '',
+                        detailsRow.dataset.currentStage || ''
+                    );
+                    detailsRow.dataset.initialized = 'true';
+                }
+
+                const chevron = button.querySelector('.indicator');
+                const timelineContainer = detailsRow.querySelector('[id^="timeline-container-"]');
+                renderWorkitemTimeline(timelineContainer);
+
+                const isOpening = detailsRow.hasAttribute('hidden');
+                if (isOpening) {
+                    detailsRow.removeAttribute('hidden');
+                    setTimeout(() => {
+                        detailsRow.classList.add('open');
+                        chevron.classList.add('open');
+                    }, 10);
+                } else {
+                    detailsRow.classList.remove('open');
+                    chevron.classList.remove('open');
+                    detailsRow.addEventListener('transitionend', () => {
+                        detailsRow.hidden = true;
+                    }, { once: true });
+                }
+                chevron.classList.toggle('glyphicon-chevron-up-custom');
+                chevron.classList.toggle('glyphicon-chevron-down-custom');
+
+                if (!isOpening) {
+                    return;
+                }
+
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
+                    loadCollaborationData(workitemid);
+                }
+
+                const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+
+                const needsImages = imageContainer && imageContainer.dataset.loaded !== 'true';
+                const needsFields = fieldsContainer;
+
+                if (needsImages || (needsFields && !imageContainer?.dataset.loaded)) {
+
+                    if (imageContainer) imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
+
+                    try {
+                        loadHistory(workitemid);
+
+                        const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                        if (!infoResponse.ok) {
+                             if(infoResponse.status === 403) throw new Error("Restricted");
+                             throw new Error('Could not fetch media information.');
+                        }
+
+                        const mediaInfo = await infoResponse.json();
+                        const imageCount = mediaInfo.media_count || 0;
+                        const fields = mediaInfo.fields || {};
+
+                        if (fieldsContainer) {
+                            if (Object.keys(fields).length > 0) {
+                                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+
+                                for (const key in fields) {
+                                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                                        const labelKey = key.toLowerCase();
+                                        const label = fieldConfig.labels[labelKey] || key;
+
+                                        fieldsHtml += `
+                                            <div class="py-2 flex justify-between items-center gap-4">
+                                                <dt class="text-gray-500 truncate">${label}</dt>
+                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
+                                            </div>`;
+                                    }
+                                }
+                                fieldsHtml += '</dl>';
+                                fieldsContainer.innerHTML = fieldsHtml;
+                            }
+                             else {
+                                fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
+                            }
+                        }
+                        if (imageContainer) {
+                            imageContainer.dataset.loaded = 'true';
+                            if (imageCount === 0) {
+                                imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
+                            } else {
+                                imageContainer.innerHTML = '';
+                                imageContainer.classList.remove('justify-center', 'items-center');
+                                imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+                                imageContainer.dataset.loadedCount = '0';
+                                loadImagesInBatch(imageContainer, workitemid, imageCount);
+                            }
+                        }
+
+                    } catch (error) {
+                        console.error('Error loading media info:', error);
+                        if(imageContainer) {
+                             imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
+                             imageContainer.dataset.loaded = 'true';
+                        }
+                    }
+                }
+            } catch (error) {
+                // pass
+            }
+        }
+
+        async function loadImage(container, workitemid, index) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
+
+            const loadMoreButton = container.querySelector('.load-more-btn');
+            if (loadMoreButton) {
+                container.insertBefore(placeholder, loadMoreButton);
+            } else {
+                container.appendChild(placeholder);
+            }
+            try {
+                const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
+                const response = await fetch(apiUrl, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                const imageBlob = await response.blob();
+                const imageUrl = URL.createObjectURL(imageBlob);
+
+                const imgElement = document.createElement('img');
+                imgElement.src = imageUrl;
+                imgElement.alt = `{{ _("Media") }} ${index + 1} {{ _("for workitem ") }}${workitemid}`;
+                imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image cursor-pointer';
+
+                imgElement.onload = () => {
+                    placeholder.replaceWith(imgElement);
+                };
+
+                imgElement.onerror = () => {
+                    URL.revokeObjectURL(imageUrl);
+                    throw new Error('Image could not be loaded into element.');
+                }
+
+
+            } catch (error) {
+                console.error(`Error loading image index ${index}:`, error);
+                placeholder.innerHTML = `<div class="text-center text-xs text-red-600 p-2">{{ _("Failed to load image ") }}${index + 1}</div>`;
+                placeholder.classList.remove('animate-pulse', 'bg-gray-200');
+                placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
+            }
+        }
+
+        async function handlePostComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const workitemid = form.dataset.workitemid;
+            const textarea = form.querySelector('textarea');
+            const commentText = textarea.value.trim();
+            if (!commentText) return;
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        ,'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        commentText
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to post comment.');
+
+                textarea.value = '';
+                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
+                commentsContainer.dataset.loaded = 'false';
+                loadCollaborationData(workitemid);
+
+            } catch (error) {
+                console.error("Comment post error:", error);
+            }
+        }
+
+        async function fetchMentionableUsers() {
+            try {
+                const response = await fetch(`${API_PREFIX}api/users`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (!response.ok) throw new Error('Could not fetch users');
+                mentionableUsers = await response.json();
+            } catch (error) {
+                console.error("Failed to fetch users for mentions:", error);
+            }
+        }
+
+        function insertMention(username, textarea) {
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const startIndex = mentionMatch.index;
+                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
+                textarea.value = newText;
+                textarea.focus();
+                const newCursorPos = startIndex + username.length + 2;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }
+
+        function renderAutocompleteList(users, listElement, textarea) {
+            listElement.innerHTML = '';
+            if (users.length === 0) {
+                listElement.classList.add('hidden');
+                return;
+            }
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
+                item.textContent = `${user.fullname} (@${user.username})`;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    insertMention(user.username, textarea);
+                    listElement.classList.add('hidden');
+                });
+                listElement.appendChild(item);
+            });
+            listElement.classList.remove('hidden');
+        }
+
+        function handleMentionInput(event) {
+            const textarea = event.target;
+            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
+            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+            const text = textarea.value;
+            const cursorPos = textarea.selectionStart;
+            const textToCursor = text.substring(0, cursorPos);
+            const mentionMatch = textToCursor.match(/@(\w*)$/);
+            if (mentionMatch) {
+                const searchTerm = mentionMatch[1].toLowerCase();
+                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
+                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
+            } else {
+                autocompleteList.classList.add('hidden');
+            }
+        }
+
+        async function handleSetPriority(event) {
+            const selector = event.target;
+            const workitemid = selector.dataset.workitemid;
+            const priority = parseInt(selector.value, 10);
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/priority`, {
+                    method: 'POST',
+                     headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                        },
+                    body: JSON.stringify({
+                        priority
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to set priority.');
+                const indicatorCell = document.getElementById(`priority-indicator-${workitemid}`);
+                let iconHtml = '';
+                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+                indicatorCell.innerHTML = iconHtml;
+            } catch (error) {
+                console.error("Set priority error:", error);
+            }
+        }
+
+        async function handleAssigning(event) {
+            const selector = event.target;
+            const workitemid = selector.dataset.workitemid;
+            const assignedUserID = selector.value;
+            try {
+                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        assignedUserID
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to assign.');
+            } catch (error) {
+                console.error("Assigment error:", error);
+            }
+        }
+
+        function openImportModal(files) {
+            const fileArray = Array.from(files).filter(f => f.type === 'application/pdf');
+
+            if (fileArray.length === 0) {
+                showNotification({{ _("Please select valid PDF files.") | tojson }}, 'error');
+                return;
+            }
+
+            pendingImportFiles = fileArray;
+
+            const modal = document.getElementById('importProcessModal');
+            const nameDisplay = document.getElementById('importFileNameDisplay');
+            const select = document.getElementById('importProcessSelect');
+            const errorMsg = document.getElementById('importErrorMsg');
+
+            if (modal && nameDisplay && select) {
+                nameDisplay.textContent = pendingImportFiles.length > 1
+                    ? `${pendingImportFiles.length} {{ _("files selected") }}`
+                    : `${pendingImportFiles[0].name}`;
+
+                select.value = "";
+                errorMsg.classList.add('hidden');
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importProcessModal');
+            if (modal) modal.classList.add('hidden');
+            pendingImportFile = null;
+            const importFileInput = document.getElementById('importFile');
+            if(importFileInput) importFileInput.value = '';
+        }
+
+async function uploadBatchFiles(files, processName) {
+    if (!files || files.length === 0 || !processName) return;
+
+    const importBtn = document.getElementById('importBtn');
+    const modalBtn = document.getElementById('confirmImportBtn');
+
+    if (importBtn) importBtn.disabled = true;
+    if (modalBtn) {
+        modalBtn.disabled = true;
+        modalBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>`;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const file of files) {
+        const formData = new FormData();
+        formData.append('importFile', file);
+        formData.append('processName', processName);
+
+        try {
+            const response = await fetch(`${API_PREFIX}import_workitems`, {
+                headers: {'X-CSRFToken': csrfToken},
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok || response.redirected) {
+                successCount++;
+            } else {
+                failCount++;
+            }
+        } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            failCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showNotification(`Successfully imported ${successCount} files.`);
+        setTimeout(() => window.location.reload(), 1500);
+    }
+
+    if (failCount > 0) {
+        showNotification(`Failed to import ${failCount} files.`, 'error');
+        resetImportUI();
+    }
+
+    closeImportModal();
+}
+
+
+        async function fetchPageInitData() {
+            try {
+                const res = await fetch(`${API_PREFIX}api/workitems_page_init`, {
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                if (!res.ok) throw new Error('page init failed');
+                const data = await res.json();
+
+                mentionableUsers = data.users || [];
+                fieldConfig = data.field_config || { search_options: {}, labels: {} };
+
+                const allTags = data.tags || [];
+                const datalist = document.getElementById('taglist');
+                if (datalist) {
+                    datalist.innerHTML = '';
+                    allTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag.TagName;
+                        datalist.appendChild(option);
+                    });
+                }
+
+            } catch (e) {
+                console.error('Failed to fetch page init data:', e);
+            }
+        }
+
+    function resetImportUI() {
+        const importBtn = document.getElementById('importBtn');
+        const modalBtn = document.getElementById('confirmImportBtn');
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>{{ _("Import") }}`;
+        }
+        if (modalBtn) {
+            modalBtn.disabled = false;
+            modalBtn.innerHTML = `{{ _("Import File") }}`;
+        }
+    }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Init combobox interaction for existing doc field rows
+            document.querySelectorAll('.doc-field-combobox').forEach(initDocFieldCombobox);
+
+            fetchPageInitData().then(() => {
+                const process = document.getElementById('prcfW')?.value || 'all';
+                document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, process));
+            });
+            fetchDocFieldValues();
+
+            // Load initial workitems client-side (read page from URL to support direct links)
+            const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+            fetchAndUpdateWorkitems(_initPage);
+
+            // Prevent full-page form submit fallback
+            document.getElementById('filterForm')?.addEventListener('submit', e => e.preventDefault());
+
+            const filterForm = document.getElementById('filterForm');
+            const docFieldSel = document.getElementById('docFieldFilter');
+            if(docFieldSel) {
+                docFieldSel.setAttribute('data-selected', "{{ docfield or '' }}");
+            }
+            document.getElementById('docValueInput').blur();
+            const toggleBtn = document.getElementById('toggleAdvancedFilterBtn');
+            const advancedContainer = document.getElementById('advancedFilterContainer');
+
+            let _mainSearchDebounce;
+            function debounceSearch(fn) {
+                clearTimeout(_mainSearchDebounce);
+                _mainSearchDebounce = setTimeout(fn, 300);
+            }
+
+            if (toggleBtn && advancedContainer) {
+                toggleBtn.addEventListener('click', () => {
+                    advancedContainer.classList.toggle('hidden');
+                });
+            }
+
+            async function fetchFieldConfig() {
+                try {
+                    const res = await fetch(`${API_PREFIX}api/config/fields`, {
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    });
+                    if (!res.ok) throw new Error('Failed to fetch field config');
+
+                    const data = await res.json();
+                    fieldConfig = data;
+
+                    const process = document.getElementById('prcfW')?.value || 'all';
+                    document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => {
+                        fillDocFieldSelect(hiddenInput, process);
+                    });
+
+                } catch (e) {
+                    console.error("Error loading field config:", e);
+                }
+            }
+
+            function fillDocFieldSelect(hiddenInput, process) {
+                const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
+                let fields = [];
+
+                if (process === 'all') {
+                    const allFieldsMap = new Map();
+                    Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
+                    fields = Array.from(allFieldsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+                } else {
+                    fields = fieldConfig.search_options[process] || [];
+                }
+
+                hiddenInput._docFieldOptions = fields;
+
+                const wrapper = hiddenInput.closest('.doc-field-combobox');
+                const searchInput = wrapper?.querySelector('.doc-filter-field-search');
+
+                if (fields.length === 0) {
+                    hiddenInput.value = '';
+                    if (searchInput) { searchInput.value = ''; searchInput.placeholder = "{{ _('No fields available') }}"; }
+                    return;
+                }
+
+                const match = fields.find(f => f.value === selectedValue);
+                const selected = match || fields[0];
+                hiddenInput.value = selected.value;
+            }
+
+            function initDocFieldCombobox(wrapper) {
+                const searchInput = wrapper.querySelector('.doc-filter-field-search');
+                const hiddenInput = wrapper.querySelector('.doc-filter-field');
+                const dropdown = wrapper.querySelector('.doc-field-dropdown');
+                if (!searchInput || !hiddenInput || !dropdown) return;
+
+                function renderDropdown(query) {
+                    const options = hiddenInput._docFieldOptions || [];
+                    const q = (query || '').toLowerCase().trim();
+                    const filtered = q
+                        ? options.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
+                        : options;
+                    dropdown.innerHTML = '';
+                    if (filtered.length === 0) {
+                        const div = document.createElement('div');
+                        div.className = 'px-4 py-2 text-sm text-gray-500 italic';
+                        div.textContent = 'No results';
+                        dropdown.appendChild(div);
+                    } else {
+                        filtered.forEach(f => {
+                            const div = document.createElement('div');
+                            const isSelected = f.value === hiddenInput.value;
+                            div.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50' +
+                                (isSelected ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-700');
+                            div.textContent = f.label;
+                            div.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                hiddenInput.value = f.value;
+                                hiddenInput._userSelected = true;
+                                searchInput.value = f.label;
+                                dropdown.classList.add('hidden');
+                                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            dropdown.appendChild(div);
+                        });
+                    }
+                    dropdown.classList.remove('hidden');
+                }
+
+                searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
+                searchInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        dropdown.classList.add('hidden');
+                        if (hiddenInput._userSelected) {
+                            // Restore the selected field's label
+                            const opts = hiddenInput._docFieldOptions || [];
+                            const current = opts.find(f => f.value === hiddenInput.value);
+                            if (current) searchInput.value = current.label;
+                        } else {
+                            searchInput.value = '';
+                        }
+                    }, 150);
+                });
+            }
+
+            function addDocFilterRow() {
+                const tpl = document.getElementById('docFilterRowTemplate');
+                const container = document.getElementById('docFiltersContainer');
+                const process = document.getElementById('prcfW')?.value || 'all';
+                if (!tpl || !container) return;
+                const node = tpl.content.firstElementChild.cloneNode(true);
+                const hiddenInput = node.querySelector('.doc-filter-field');
+                fillDocFieldSelect(hiddenInput, process);
+                const combo = node.querySelector('.doc-field-combobox');
+                if (combo) initDocFieldCombobox(combo);
+                container.appendChild(node);
+            }
+
+
+            (function initMultiDocFilters() {
+                const container = document.getElementById('docFiltersContainer');
+                const addBtn = document.getElementById('addDocFilterBtn');
+                if (!container) return;
+
+                if (addBtn) addBtn.addEventListener('click', addDocFilterRow);
+
+                container.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        debounceFetchRowSuggestions(row, e.target.value);
+                    }
+                });
+
+                container.addEventListener('focusin', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        fetchRowSuggestions(row, e.target.value);
+                    }
+                });
+
+                container.addEventListener('keydown', (e) => {
+                    if (e.target.classList.contains('doc-filter-value') && e.key === 'Enter') {
+                        e.preventDefault();
+                        hideRowList(e.target.closest('.doc-filter-row'));
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
+                container.addEventListener('click', (e) => {
+                    const item = e.target.closest('.doc-row-suggestion');
+                    if (item) {
+                        const row = item.closest('.doc-filter-row');
+                        const input = row.querySelector('.doc-filter-value');
+                        input.value = item.textContent;
+                        hideRowList(row);
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                    if (e.target.closest('.remove-doc-filter')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        row.remove();
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
+                container.addEventListener('focusout', (e) => {
+                    if (e.target.classList.contains('doc-filter-value')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        setTimeout(() => hideRowList(row), 200);
+                    }
+                });
+
+                const procSel = document.getElementById('prcfW');
+                if (procSel) {
+                    procSel.addEventListener('change', () => {
+                        container.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, procSel.value));
+                    });
+                }
+            })();
+
+
+            function hideRowList(row) {
+                row.querySelector('.doc-filter-list')?.classList.add('hidden');
+            }
+            function renderRowList(row, values) {
+                const list = row.querySelector('.doc-filter-list');
+                const input = row.querySelector('.doc-filter-value');
+                if (!list || !input) return;
+                list.innerHTML = '';
+                if (!values || values.length === 0) { list.classList.add('hidden'); return; }
+                values.forEach(v => {
+                    const div = document.createElement('div');
+                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
+                    div.textContent = v;
+                    list.appendChild(div);
+                });
+                list.classList.remove('hidden');
+            }
+            async function fetchRowSuggestions(row, q = '') {
+                try {
+                    const process = document.getElementById('prcfW')?.value || 'all';
+                    const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
+                    const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                    if (!res.ok) throw new Error('Could not fetch field values');
+                    const values = await res.json();
+                    renderRowList(row, values);
+                } catch (e) {
+                    hideRowList(row);
+                }
+            }
+            let _rowDebounce;
+            function debounceFetchRowSuggestions(row, q) {
+                clearTimeout(_rowDebounce);
+                _rowDebounce = setTimeout(() => fetchRowSuggestions(row, q), 300);
+            }
+
+
+            const importBtn = document.getElementById('importBtn');
+            const importFileInput = document.getElementById('importFile');
+
+            if (importBtn && importFileInput) {
+                importBtn.addEventListener('click', () => {
+                    importFileInput.value = '';
+                    importFileInput.click();
+                });
+
+                importFileInput.addEventListener('change', () => {
+                    if (importFileInput.files && importFileInput.files.length > 0) {
+                        openImportModal(importFileInput.files);
+                    }
+                });
+            }
+            const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+            if (dropZoneOverlay) {
+                let dragCounter = 0;
+                window.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    dragCounter++;
+                    dropZoneOverlay.classList.remove('hidden');
+                });
+                window.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                window.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    dragCounter--;
+                    if (dragCounter === 0) {
+                        dropZoneOverlay.classList.add('hidden');
+                    }
+                });
+                window.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dragCounter = 0;
+                    const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+                    if (dropZoneOverlay) dropZoneOverlay.classList.add('hidden');
+
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        openImportModal(e.dataTransfer.files);
+                    }
+                });
+            }
+
+               if (dropZoneOverlay) {
+                 window.removeEventListener('drop', () => {});
+            }
+            const modalCancelBtn = document.getElementById('cancelImportBtn');
+            const modalConfirmBtn = document.getElementById('confirmImportBtn');
+            const importSelect = document.getElementById('importProcessSelect');
+            const errorMsg = document.getElementById('importErrorMsg');
+
+            if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeImportModal);
+
+            if (modalConfirmBtn) {
+    modalConfirmBtn.addEventListener('click', () => {
+        if (pendingImportFiles.length === 0) return;
+
+        const selectedProcess = importSelect.value;
+        if (!selectedProcess) {
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+        uploadBatchFiles(pendingImportFiles, selectedProcess);
+    });
+}
+            const processSel = document.getElementById('prcfW');
+            if (processSel) {
+                processSel.addEventListener('change', () => {
+                    fetchDocFieldValues(docValueInput?.value || '');
+                });
+            }
+            async function fetchAndUpdateWorkitems(page = 1) {
+                const tbody = document.getElementById('workitemsTbody');
+                const filterForm = document.getElementById('filterForm');
+                const params = new URLSearchParams();
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    params.append(el.name, el.value);
+                }
+                params.set('page', page);
+                const url = `${API_PREFIX}api/workitems?${params.toString()}`;
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+
+                const loaderHtml = `
+            <tr>
+                <td colspan="6" class="text-center py-20">
+                    <div class="flex items-center justify-center space-x-3 text-gray-700">
+                        <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                        <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
+                    </div>
+                </td>
+            </tr>`;
+
+                if (tbody) {
+                    tbody.innerHTML = loaderHtml;
+                }
+
+                try {
+                    const response = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    renderTable(data.workitems);
+                    renderPagination(data.pagination);
+
+                } catch (error) {
+                    console.error("Failed to fetch or render workitems:", error);
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+                    }
+                }
+            }
+
+            // ---- Bulk selection state ----
+            let selectedWorkitemIds = new Set();
+            let allRenderedWorkitems = [];
+
+            function updateBulkBar() {
+                const bar   = document.getElementById('bulk-action-bar');
+                const count = document.getElementById('bulk-selected-count');
+                if (!bar) return;
+                if (selectedWorkitemIds.size > 0) {
+                    bar.classList.remove('hidden');
+                    count.textContent = `${selectedWorkitemIds.size} {{ _("selected") }}`;
+                } else {
+                    bar.classList.add('hidden');
+                }
+                const selectAll = document.getElementById('selectAllCheckbox');
+                if (selectAll) {
+                    const rows = document.querySelectorAll('.row-checkbox');
+                    selectAll.checked = rows.length > 0 && [...rows].every(cb => cb.checked);
+                    selectAll.indeterminate = selectedWorkitemIds.size > 0 && selectedWorkitemIds.size < rows.length;
+                }
+            }
+
+            // ---- Export modal state ----
+            let _exportSelectedIds = new Set();
+
+            function _setExportSpinner(on) {
+                document.getElementById('exportModalSpinner').style.display = on ? '' : 'none';
+                document.getElementById('exportModalIcon').style.display    = on ? 'none' : '';
+                document.getElementById('confirmExportModalBtn').disabled   = on;
+            }
+
+            function openExportModal(selectedIds) {
+                _exportSelectedIds = selectedIds;
+                _setExportSpinner(false);
+
+                const modal    = document.getElementById('exportOptionsModal');
+                const subtitle = document.getElementById('exportModalSubtitle');
+                subtitle.textContent = selectedIds.size > 0
+                    ? `${selectedIds.size} {{ _("selected workitems will be exported") }}`
+                    : '{{ _("All workitems matching current filters will be exported") }}';
+
+                // Audit history and images are only allowed for specific selections
+                const heavyOpts   = ['exportOptFields', 'exportOptHistory', 'exportOptImages'];
+                const isSelection = selectedIds.size > 0 && selectedIds.size <= 10;
+                heavyOpts.forEach(id => {
+                    const cb    = document.getElementById(id);
+                    const label = cb?.closest('label');
+                    if (!cb) return;
+                    cb.disabled = !isSelection;
+                    if (!isSelection) {
+                        cb.checked = false;
+                        label?.classList.add('opacity-40', 'cursor-not-allowed');
+                        label?.querySelector('input')?.classList.remove('cursor-pointer');
+                    } else {
+                        label?.classList.remove('opacity-40', 'cursor-not-allowed');
+                        label?.querySelector('input')?.classList.add('cursor-pointer');
+                    }
+                });
+
+                modal.classList.remove('hidden');
+            }
+
+            function closeExportModal() {
+                document.getElementById('exportOptionsModal').classList.add('hidden');
+                document.getElementById('exportImagesHelperInfo').style.display = 'none';
+                _setExportSpinner(false);
+            }
+
+            async function runExport() {
+                _setExportSpinner(true);
+                const btn = document.getElementById('confirmExportModalBtn');
+
+                // Build params from current filter form
+                const filterForm = document.getElementById('filterForm');
+                const params = new URLSearchParams();
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    params.append(el.name, el.value);
+                }
+
+                // Append export-specific params
+                const include = [];
+                if (document.getElementById('exportOptFields')?.checked)  include.push('fields');
+                if (document.getElementById('exportOptHistory')?.checked) include.push('history');
+                if (document.getElementById('exportOptImages')?.checked)  include.push('images');
+                if (include.length) params.set('include', include.join(','));
+                if (_exportSelectedIds.size > 0) params.set('ids', [..._exportSelectedIds].join(','));
+
+                try {
+                    const url = `${API_PREFIX}api/export/workitems/csv?${params.toString()}`;
+                    const resp = await fetch(url, { headers: { 'X-CSRFToken': csrfToken } });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const blob = await resp.blob();
+                    const a = Object.assign(document.createElement('a'), {
+                        href: URL.createObjectURL(blob),
+                        download: `workitems_export_${new Date().toISOString().slice(0,10)}.csv`
+                    });
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+                    closeExportModal();
+                } catch (e) {
+                    console.error('Export failed:', e);
+                    alert('{{ _("Export failed. Please try again.") }}');
+                    _setExportSpinner(false);
+                }
+            }
+
+            function renderTable(workitems) {
+                const tbody = document.getElementById('workitemsTbody');
+                tbody.innerHTML = '';
+                allRenderedWorkitems = workitems;
+                selectedWorkitemIds.clear();
+                updateBulkBar();
+
+                if (workitems.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="7" class="py-16 text-center">
+                            <div class="inline-flex flex-col items-center gap-3">
+                                <div class="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                                </div>
+                                <p class="font-semibold text-gray-700">{{ _("No workitems found") }}</p>
+                                <p class="text-sm text-gray-400">{{ _("Try adjusting your filters or resetting the search.") }}</p>
+                            </div>
+                        </td></tr>`;
+                    return;
+                }
+
+                workitems.forEach(workitem => {
+                    const statusBadge = {
+                        'Ready':       '<span class="px-3 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 tracking-wide">Ready</span>',
+                        'In Progress': '<span class="px-3 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 tracking-wide">In Progress</span>',
+                        'Done':        '<span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 tracking-wide">Done</span>',
+                    }[workitem.status] || `<span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 tracking-wide">${workitem.status}</span>`;
+
+                    let priorityIcon = '';
+                    if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
+                    if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
+                    if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
+
+                    const rowHtml = `
+                     <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
+                        <td class="px-4 py-4 text-center w-10">
+                            <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                data-id="${workitem.workitemid}">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-900">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
+                            ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                            <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
+                                data-workitemid="${workitem.workitemid}">
+                                <i class="indicator fas fa-chevron-down"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
+                        data-status="${workitem.status}"
+                        data-current-stage="${workitem.current_stage || ''}"><td colspan="7"></td></tr>
+                `;
+                    tbody.insertAdjacentHTML('beforeend', rowHtml);
+                });
+
+                // Attach checkbox listeners after rows are inserted
+                tbody.querySelectorAll('.row-checkbox').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        if (cb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                        updateBulkBar();
+                    });
+                });
+            }
+
+            let allTags = [];
+
+            async function fetchAllTags() {
+                try {
+                    const response = await fetch(`${API_PREFIX}api/tags`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                    if (!response.ok) throw new Error('Could not fetch tags');
+                    allTags = await response.json();
+
+                    const datalist = document.getElementById('taglist');
+                    datalist.innerHTML = '';
+                    allTags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag.TagName;
+                        datalist.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error("Failed to fetch tags:", error);
+                }
+            }
+
+
+            async function handleAddTag(event) {
+                const button = event.currentTarget;
+                const workitemId = button.dataset.workitemid;
+                const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
+                const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
+
+                if (!tagName) return;
+
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/tags`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            tagName,
+                            tagColor
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
+
+                    document.getElementById(`tag-input-${workitemId}`).value = '';
+                    refreshWorkitemUI(workitemId);
+
+                } catch (error) {
+                    console.error("Add tag error:", error);
+                }
+            }
+
+            async function handleRemoveTag(event) {
+                const button = event.currentTarget;
+                const workitemid = button.dataset.workitemid;
+                const tagId = button.dataset.tagId;
+
+                try {
+                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/tags/${tagId}`, {
+                        method: 'DELETE'
+                        ,headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                        }
+                    });
+                    if (!response.ok) throw new Error('Failed to remove tag.');
+
+                    refreshWorkitemUI(workitemid);
+                } catch (error) {
+                    console.error("Remove tag error:", error);
+                }
+            }
+
+            function renderPagination(pagination) {
+                const {
+                    currentPage,
+                    totalPages,
+                    totalItems,
+                    perPage
+                } = pagination;
+                document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
+                document.getElementById('totalCount').textContent = totalItems;
+                document.getElementById('totalItemsCount').textContent = totalItems;
+
+                const controlsContainer = document.getElementById('paginationControls');
+                if (!controlsContainer) return;
+                controlsContainer.innerHTML = '';
+
+                if (totalPages <= 1) return;
+
+                const prevDisabled = currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+                const nextDisabled = currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+
+                const paginationHtml = `
+                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${prevDisabled}">
+                    <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
+                </a>
+                <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">
+                    ${currentPage} / ${totalPages}
+                </span>
+                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${nextDisabled}">
+                    {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
+                </a>
+            `;
+                controlsContainer.innerHTML = paginationHtml;
+            }
+
+            let sortState = {
+                columnIndex: -1,
+                ascending: true
+            };
+
+            function sortTable(columnIndex) {
+                const table = document.getElementById("workitemsTable");
+                const tbody = table.tBodies[0];
+                const headers = table.querySelectorAll('.sortable-header');
+
+                if (sortState.columnIndex === columnIndex) {
+                    sortState.ascending = !sortState.ascending;
+                } else {
+                    sortState.columnIndex = columnIndex;
+                    sortState.ascending = true;
+                }
+
+                const rowsToSort = Array.from(tbody.querySelectorAll(".workitem-row")).map(row => {
+                    return {
+                        mainRow: row,
+                        detailsRow: row.nextElementSibling
+                    };
+                });
+
+                rowsToSort.sort((a, b) => {
+                    const aCell = a.mainRow.cells[columnIndex];
+                    const bCell = b.mainRow.cells[columnIndex];
+                    if (!aCell || !bCell) return 0;
+
+                    const aText = aCell.textContent.trim();
+                    const bText = bCell.textContent.trim();
+
+                    let comparison = 0;
+                    if (columnIndex === 3) {
+                        const parseDate = (str) => {
+                            const [datePart, timePart] = str.split(' - ');
+                            const [day, month, year] = datePart.split('. ');
+                            return new Date(`${year}-${month}-${day}T${timePart}:00`);
+                        };
+                        comparison = parseDate(aText) - parseDate(bText);
+                    } else {
+                        comparison = aText.localeCompare(bText, undefined, {
+                            numeric: true
+                        });
+                    }
+
+                    return sortState.ascending ? comparison : -comparison;
+                });
+
+                tbody.innerHTML = '';
+                rowsToSort.forEach(pair => {
+                    tbody.appendChild(pair.mainRow);
+                    if (pair.detailsRow && pair.detailsRow.classList.contains('details-row')) {
+                        tbody.appendChild(pair.detailsRow);
+                    }
+                });
+
+                headers.forEach((header) => {
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors';
+                        if (parseInt(header.dataset.columnIndex, 10) === columnIndex) {
+                            icon.classList.remove('fa-sort');
+                            icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
+                            icon.classList.add('text-indigo-600');
+                        }
+                    }
+                });
+            }
+
+            const tableHead = document.querySelector('#workitemsTable thead');
+            if (tableHead) {
+                tableHead.addEventListener('click', (event) => {
+                    const header = event.target.closest('.sortable-header');
+                    if (header) {
+                        const colIndex = parseInt(header.dataset.columnIndex, 10);
+                        sortTable(colIndex);
+                    }
+                });
+            }
+
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                fetchAndUpdateWorkitems();
+            });
+
+            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter', 'filterPerPage'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
+            });
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
+
+            const tagFilterInput = document.getElementById('tagFilterInput');
+            if (tagFilterInput) tagFilterInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
+
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (paginationContainer) {
+                paginationContainer.addEventListener('click', (e) => {
+                    const link = e.target.closest('.pagination-link');
+                    if (link) {
+                        e.preventDefault();
+                        const page = parseInt(link.dataset.page, 10);
+                        if (page > 0) {
+                            fetchAndUpdateWorkitems(page);
+                        }
+                    }
+                });
+            }
+
+
+            const tbody = document.getElementById('workitemsTbody');
+            tbody.addEventListener('click', (event) => {
+                const toggleButton = event.target.closest('.details-toggle-button');
+                if (toggleButton) {
+                    toggleDetailsAndLoadImages({
+                        currentTarget: toggleButton
+                    });
+                    return;
+                }
+
+                const addTagButton = event.target.closest('.add-tag-btn');
+                if (addTagButton) {
+                    handleAddTag({
+                        currentTarget: addTagButton
+                    });
+                }
+                const removeTagButton = event.target.closest('.remove-tag-btn');
+                if (removeTagButton) {
+                    handleRemoveTag({
+                        currentTarget: removeTagButton
+                    });
+                }
+
+                const loadMoreButton = event.target.closest('.load-more-btn');
+                if (loadMoreButton) {
+                    const workitemid = loadMoreButton.dataset.workitemid;
+                    const totalImages = parseInt(loadMoreButton.dataset.totalImages, 10);
+                    const imageContainer = document.getElementById(`image-container-${workitemid}`);
+                    if (imageContainer) {
+                        loadImagesInBatch(imageContainer, workitemid, totalImages);
+                    }
+                }
+            });
+
+            tbody.addEventListener('submit', (event) => {
+                if (event.target.classList.contains('comment-form')) {
+                    handlePostComment(event);
+                }
+            });
+            tbody.addEventListener('change', (event) => {
+                if (event.target.classList.contains('priority-selector')) {
+                    handleSetPriority(event);
+                }
+                if (event.target.classList.contains('assign-selector')) {
+                    handleAssigning(event);
+                }
+            });
+            tbody.addEventListener('input', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    handleMentionInput(event);
+                }
+            });
+            tbody.addEventListener('focusout', (event) => {
+                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
+                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
+                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
+                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
+                }
+            });
+
+            let currentImages = [];
+            let currentIndex = 0;
+
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            const closeBtn = document.querySelector(".modal-close");
+            const prevBtn = document.querySelector(".modal-prev");
+            const nextBtn = document.querySelector(".modal-next");
+
+            function showImage(index) {
+                if (index >= 0 && index < currentImages.length) {
+                    modalImg.src = currentImages[index];
+                    currentIndex = index;
+                    prevBtn.style.display = index > 0 ? 'block' : 'none';
+                    nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
+                }
+            }
+
+            const closeModal = () => {
+                modal.style.display = "none";
+                currentImages = [];
+                currentIndex = 0;
+            };
+
+            document.addEventListener('click', (event) => {
+                if (event.target.classList.contains('workitem-image')) {
+                    const imageContainer = event.target.closest('[id^="image-container-"]');
+                    const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
+
+                    currentImages = allImages.map(img => img.src);
+                    const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
+
+                    if (clickedIndex !== -1) {
+                        modal.style.display = "flex";
+                        showImage(clickedIndex);
+                    }
+                }
+            });
+
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (modal) modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            if (prevBtn) prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showImage(currentIndex - 1);
+            });
+
+            if (nextBtn) nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showImage(currentIndex + 1);
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (modal.style.display === "flex") {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    } else if (event.key === 'ArrowLeft') {
+                        event.preventDefault();
+                        showImage(currentIndex - 1);
+                    } else if (event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        showImage(currentIndex + 1);
+                    }
+                }
+            });
+
+            // ---- Select-all checkbox ----
+            const selectAllCb = document.getElementById('selectAllCheckbox');
+            if (selectAllCb) {
+                selectAllCb.addEventListener('change', () => {
+                    const checkboxes = document.querySelectorAll('.row-checkbox');
+                    checkboxes.forEach(cb => {
+                        cb.checked = selectAllCb.checked;
+                        if (selectAllCb.checked) selectedWorkitemIds.add(cb.dataset.id);
+                        else selectedWorkitemIds.delete(cb.dataset.id);
+                    });
+                    updateBulkBar();
+                });
+            }
+
+            // ---- Bulk bar buttons ----
+            const bulkExportBtn   = document.getElementById('bulkExportBtn');
+            const bulkDeselectBtn = document.getElementById('bulkDeselectBtn');
+            const exportCsvBtn    = document.getElementById('exportCsvBtn');
+
+            if (bulkExportBtn) {
+                bulkExportBtn.addEventListener('click', () => openExportModal(new Set(selectedWorkitemIds)));
+            }
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.addEventListener('click', () => {
+                    selectedWorkitemIds.clear();
+                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                    const sAll = document.getElementById('selectAllCheckbox');
+                    if (sAll) { sAll.checked = false; sAll.indeterminate = false; }
+                    updateBulkBar();
+                });
+            }
+            if (exportCsvBtn) {
+                exportCsvBtn.addEventListener('click', () => openExportModal(new Set()));
+            }
+
+            // ---- Export modal buttons ----
+            document.getElementById('closeExportModalBtn')?.addEventListener('click', closeExportModal);
+            document.getElementById('cancelExportModalBtn')?.addEventListener('click', closeExportModal);
+            document.getElementById('confirmExportModalBtn')?.addEventListener('click', runExport);
+            document.getElementById('exportOptionsModal')?.addEventListener('click', e => {
+                if (e.target === e.currentTarget) closeExportModal();
+            });
+
+            // Show helper info when images checkbox is ticked; highlight once on first show
+            let _helperHighlighted = false;
+            document.getElementById('exportOptImages')?.addEventListener('change', e => {
+                document.getElementById('exportImagesHelperInfo').style.display = e.target.checked ? '' : 'none';
+                if (e.target.checked && !_helperHighlighted) {
+                    const codeEl = document.getElementById('exportHelperScript');
+                    if (codeEl && window.hljs) { hljs.highlightElement(codeEl); }
+                    _helperHighlighted = true;
+                }
+            });
+
+            document.getElementById('copyHelperScriptBtn')?.addEventListener('click', function() {
+                const codeEl = document.getElementById('exportHelperScript');
+                navigator.clipboard.writeText(codeEl.innerText).then(() => {
+                    this.innerHTML = '<i class="fas fa-check text-xs"></i>';
+                    setTimeout(() => { this.innerHTML = '<i class="fas fa-copy text-xs"></i>'; }, 1500);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

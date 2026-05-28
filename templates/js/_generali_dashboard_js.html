@@ -1,0 +1,469 @@
+<script>
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+    const PALETTE = ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f43f5e','#84cc16','#f97316','#0ea5e9'];
+    // Kommunikation lines skip indigo (Total) and red (Expected) to stay visually distinct.
+    const KOMM_PALETTE = ['#10b981','#f59e0b','#8b5cf6','#06b6d4','#f43f5e','#84cc16','#f97316','#0ea5e9'];
+    const NK_COLORS = {
+        'keineNachkontrolle': '#10b981',
+        'inNachkontrolleverarbeitet': '#f59e0b',
+        'Nichtdefiniert': '#9ca3af',
+    };
+
+    const EXPECTED_DAILY = 10000;
+    const TREND_STORAGE_KEY = 'generali_dashboard_trend_series_v1';
+    const TREND_LABELS = {
+        total: {{ _("Total") | tojson }},
+        expected: {{ _("Expected") | tojson }},
+        unknown: {{ _("Unknown") | tojson }},
+    };
+
+    let charts = {};
+    let trendData = null;
+    let trendState = loadTrendState();
+
+    const nkSumLabelsPlugin = {
+        id: 'nkSumLabels',
+        afterDatasetsDraw(chart) {
+            const xScale = chart.scales.x;
+            const yScale = chart.scales.y;
+            if (!xScale || !yScale) return;
+            const labels = chart.data.labels || [];
+            const datasets = chart.data.datasets || [];
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.font = '600 11px sans-serif';
+            ctx.fillStyle = '#374151';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            for (let i = 0; i < labels.length; i++) {
+                let sum = 0;
+                let maxVal = 0;
+                for (let d = 0; d < datasets.length; d++) {
+                    if (!chart.isDatasetVisible(d)) continue;
+                    const v = Number(datasets[d].data[i]) || 0;
+                    sum += v;
+                    if (v > maxVal) maxVal = v;
+                }
+                if (sum === 0) continue;
+                const xPx = xScale.getPixelForValue(i);
+                const yPx = yScale.getPixelForValue(maxVal);
+                ctx.fillText(sum.toLocaleString(), xPx, yPx - 4);
+            }
+            ctx.restore();
+        }
+    };
+
+    function destroyCharts() {
+        Object.values(charts).forEach(c => { if (c) c.destroy(); });
+        charts = {};
+    }
+
+    function getDateRange() {
+        const start = document.getElementById('filterStartDate').value;
+        const end = document.getElementById('filterEndDate').value;
+        const params = new URLSearchParams();
+        if (start) params.set('startDate', start);
+        if (end) params.set('endDate', end);
+        return params.toString();
+    }
+
+    let fpStart, fpEnd;
+
+    function setDefaultDates() {
+        const now = new Date();
+        const past = new Date();
+        past.setDate(now.getDate() - 30);
+        if (fpStart) fpStart.setDate(past, false);
+        if (fpEnd)   fpEnd.setDate(now, false);
+    }
+
+    async function loadStats() {
+        const loader = document.getElementById('statsLoader');
+        loader.classList.remove('hidden');
+        try {
+            const qs = getDateRange();
+            const response = await fetch(`${API_PREFIX}api/generali/stats${qs ? '?' + qs : ''}`, {
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+            if (!data.success) { console.error(data.error); return; }
+
+            document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
+
+            const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
+            const setRate = (id, rate) => {
+                const el = document.getElementById(id);
+                el.textContent = rate + '%';
+                el.className = el.className.replace(/text-(emerald|amber|red)-500/g, '') + ' ' + rateColor(rate);
+            };
+            setRate('kpi-nk1', data.kpis.nk1_rate);
+            setRate('kpi-nk2', data.kpis.nk2_rate);
+            setRate('kpi-nk1_nk2', data.kpis.nk1_nk2_rate);
+            document.getElementById('kpi-avg').textContent = data.kpis.avg_daily.toLocaleString();
+
+            destroyCharts();
+
+            const chartDefaults = { responsive: true, maintainAspectRatio: false };
+
+            trendData = data.trend;
+            pruneTrendStateToData();
+            renderKommMenu();
+            renderTrendToggles();
+            renderTrendChart();
+
+            charts.doctype = new Chart(document.getElementById('doctypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.doctype.labels,
+                    datasets: [{ data: data.doctype.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+            });
+
+            charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.empfaenger.labels,
+                    datasets: [{
+                        label: {{ _("Documents") | tojson }},
+                        data: data.empfaenger.values,
+                        backgroundColor: PALETTE,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+            // Aggregate NK1 and NK2 counts per status value independently
+            const nkStatuses = [...new Set([...data.nk.map(r => r.nk1), ...data.nk.map(r => r.nk2)])];
+            const nk1Totals = nkStatuses.map(s => data.nk.filter(r => r.nk1 === s).reduce((sum, r) => sum + r.count, 0));
+            const nk2Totals = nkStatuses.map(s => data.nk.filter(r => r.nk2 === s).reduce((sum, r) => sum + r.count, 0));
+            charts.nk = new Chart(document.getElementById('nkChart'), {
+                type: 'bar',
+                data: {
+                    labels: nkStatuses,
+                    datasets: [
+                        {
+                            label: 'NK1',
+                            data: nk1Totals,
+                            backgroundColor: '#a955f7',
+                            borderRadius: 5,
+                        },
+                        {
+                            label: 'NK2',
+                            data: nk2Totals,
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 5,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartDefaults,
+                    layout: { padding: { top: 18 } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items[0].label,
+                                label: item => ` ${item.dataset.label}: ${item.raw.toLocaleString()}`,
+                                footer: items => {
+                                    const total = items.reduce((s, it) => s + (Number(it.raw) || 0), 0);
+                                    return `Total: ${total.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: false },
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                },
+                plugins: [nkSumLabelsPlugin]
+            });
+
+            charts.language = new Chart(document.getElementById('languageChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.language.labels,
+                    datasets: [{ data: data.language.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+            });
+
+            charts.channel = new Chart(document.getElementById('channelChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.channel.labels,
+                    datasets: [{
+                        label: {{ _("Documents") | tojson }},
+                        data: data.channel.values,
+                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'],
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+        } catch (e) {
+            console.error('Failed to load Generali stats:', e);
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    function loadTrendState() {
+        try {
+            const raw = localStorage.getItem(TREND_STORAGE_KEY);
+            if (raw) {
+                const s = JSON.parse(raw);
+                return {
+                    total: s.total !== false,
+                    expected: !!s.expected,
+                    kommunikation: new Set(Array.isArray(s.kommunikation) ? s.kommunikation : []),
+                };
+            }
+        } catch (_) { /* ignore corrupt state */ }
+        return { total: true, expected: false, kommunikation: new Set() };
+    }
+
+    function saveTrendState() {
+        try {
+            localStorage.setItem(TREND_STORAGE_KEY, JSON.stringify({
+                total: trendState.total,
+                expected: trendState.expected,
+                kommunikation: [...trendState.kommunikation],
+            }));
+        } catch (_) { /* storage may be unavailable */ }
+    }
+
+    function getKommNames() {
+        if (!trendData || !trendData.byKommunikation) return [];
+        return Object.keys(trendData.byKommunikation).sort((a, b) => {
+            if (a === 'Unknown') return 1;
+            if (b === 'Unknown') return -1;
+            return a.localeCompare(b);
+        });
+    }
+
+    function kommunikationColor(name) {
+        const names = getKommNames();
+        const idx = names.indexOf(name);
+        return KOMM_PALETTE[(idx >= 0 ? idx : 0) % KOMM_PALETTE.length];
+    }
+
+    function pruneTrendStateToData() {
+        if (!trendData) return;
+        const valid = new Set(getKommNames());
+        for (const name of [...trendState.kommunikation]) {
+            if (!valid.has(name)) trendState.kommunikation.delete(name);
+        }
+    }
+
+    function buildTrendDatasets() {
+        if (!trendData) return [];
+        const datasets = [];
+
+        if (trendState.total) {
+            datasets.push({
+                label: TREND_LABELS.total,
+                data: trendData.values,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79,70,229,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: '#4f46e5',
+                order: 2,
+            });
+        }
+        if (trendState.expected) {
+            datasets.push({
+                label: TREND_LABELS.expected + ' (' + EXPECTED_DAILY.toLocaleString() + ')',
+                data: trendData.labels.map(() => EXPECTED_DAILY),
+                borderColor: '#ef4444',
+                borderDash: [6, 4],
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0,
+                tension: 0,
+                order: 0,
+            });
+        }
+        for (const name of getKommNames()) {
+            if (!trendState.kommunikation.has(name)) continue;
+            const color = kommunikationColor(name);
+            datasets.push({
+                label: name === 'Unknown' ? TREND_LABELS.unknown : name,
+                data: trendData.byKommunikation[name],
+                borderColor: color,
+                backgroundColor: color,
+                fill: false,
+                tension: 0.3,
+                pointRadius: 2,
+                borderWidth: 2,
+                order: 1,
+            });
+        }
+        return datasets;
+    }
+
+    function renderTrendChart() {
+        if (charts.trend) { charts.trend.destroy(); }
+        if (!trendData) return;
+        charts.trend = new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: { labels: trendData.labels, datasets: buildTrendDatasets() },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            },
+        });
+    }
+
+    function renderTrendToggles() {
+        document.querySelectorAll('#trendToggles .trend-chip[data-series]').forEach(btn => {
+            const key = btn.dataset.series;
+            btn.setAttribute('aria-pressed', trendState[key] ? 'true' : 'false');
+        });
+        const kommBtn = document.getElementById('kommBtn');
+        const kommCount = document.getElementById('kommCount');
+        if (kommBtn && kommCount) {
+            kommCount.textContent = trendState.kommunikation.size;
+            kommBtn.setAttribute('aria-pressed', trendState.kommunikation.size > 0 ? 'true' : 'false');
+        }
+    }
+
+    function renderKommMenu() {
+        const items = document.getElementById('kommItems');
+        if (!items) return;
+        items.replaceChildren();
+
+        const names = getKommNames();
+        if (names.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'px-2 py-1.5 text-xs text-gray-400 italic';
+            empty.textContent = TREND_LABELS.unknown === 'Unknown' ? '—' : '';
+            items.appendChild(empty);
+            return;
+        }
+
+        for (const name of names) {
+            const display = name === 'Unknown' ? TREND_LABELS.unknown : name;
+            const color = kommunikationColor(name);
+
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.dataset.komm = name;
+            cb.checked = trendState.kommunikation.has(name);
+            cb.className = 'rounded text-indigo-600';
+
+            const dot = document.createElement('span');
+            dot.className = 'inline-block w-2.5 h-2.5 rounded-full';
+            dot.style.background = color;
+
+            const text = document.createElement('span');
+            text.className = 'text-gray-700';
+            text.textContent = display;
+
+            label.appendChild(cb);
+            label.appendChild(dot);
+            label.appendChild(text);
+            items.appendChild(label);
+        }
+    }
+
+    function setupTrendToggles() {
+        document.querySelectorAll('#trendToggles .trend-chip[data-series]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.series;
+                trendState[key] = !trendState[key];
+                saveTrendState();
+                renderTrendToggles();
+                renderTrendChart();
+            });
+        });
+
+        const kommBtn = document.getElementById('kommBtn');
+        const kommMenu = document.getElementById('kommMenu');
+        const kommWrap = document.getElementById('kommWrap');
+        if (kommBtn && kommMenu && kommWrap) {
+            kommBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                const willOpen = kommMenu.classList.contains('hidden');
+                kommMenu.classList.toggle('hidden', !willOpen);
+                kommBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+            document.addEventListener('click', e => {
+                if (!kommWrap.contains(e.target)) {
+                    kommMenu.classList.add('hidden');
+                    kommBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        const kommItems = document.getElementById('kommItems');
+        if (kommItems) {
+            kommItems.addEventListener('change', e => {
+                const cb = e.target;
+                if (!cb.matches('input[type="checkbox"][data-komm]')) return;
+                const name = cb.dataset.komm;
+                if (cb.checked) trendState.kommunikation.add(name);
+                else trendState.kommunikation.delete(name);
+                saveTrendState();
+                renderTrendToggles();
+                renderTrendChart();
+            });
+        }
+
+        const allBtn = document.getElementById('kommAll');
+        const noneBtn = document.getElementById('kommNone');
+        if (allBtn) allBtn.addEventListener('click', () => {
+            getKommNames().forEach(n => trendState.kommunikation.add(n));
+            saveTrendState();
+            renderKommMenu();
+            renderTrendToggles();
+            renderTrendChart();
+        });
+        if (noneBtn) noneBtn.addEventListener('click', () => {
+            trendState.kommunikation.clear();
+            saveTrendState();
+            renderKommMenu();
+            renderTrendToggles();
+            renderTrendChart();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
+        fpStart = flatpickr('#filterStartDate', fpOpts);
+        fpEnd   = flatpickr('#filterEndDate',   fpOpts);
+
+        setupTrendToggles();
+        renderTrendToggles();
+        setDefaultDates();
+        loadStats();
+
+        document.getElementById('applyDateFilter').addEventListener('click', loadStats);
+        document.getElementById('resetDateFilter').addEventListener('click', () => {
+            setDefaultDates();
+            loadStats();
+        });
+    });
+</script>

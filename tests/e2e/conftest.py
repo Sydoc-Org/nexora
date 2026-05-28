@@ -12,7 +12,6 @@ from urllib.request import urlopen
 
 import pytest
 
-
 E2E_PORT = 8765
 E2E_BASE_URL = f"http://localhost:{E2E_PORT}"
 

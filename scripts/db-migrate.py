@@ -39,13 +39,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MIGRATIONS_ROOT = REPO_ROOT / "sql" / "_migrations"
 
 # (config attribute on nx_lib.config) -> (folder under sql/_migrations/)
 TRACKED_DATABASES = [
-    ("DB_NEXORA",   "NexoraDB"),
+    ("DB_NEXORA", "NexoraDB"),
     ("DB_GENERALI", "GeneraliDB"),
 ]
 
@@ -76,6 +75,7 @@ def find_sqlcmd() -> str:
 
 def connect(server: str, db: str, uid: str, pwd: str):
     import pyodbc
+
     return pyodbc.connect(
         f"DRIVER={{SQL Server}};"
         f"SERVER={server},1433;"
@@ -91,8 +91,7 @@ def applied_filenames(conn) -> dict[str, bytes]:
     cur = conn.cursor()
     try:
         cur.execute(
-            "SELECT CASE WHEN OBJECT_ID('dbo.SchemaMigrations', 'U') IS NULL "
-            "THEN 1 ELSE 0 END"
+            "SELECT CASE WHEN OBJECT_ID('dbo.SchemaMigrations', 'U') IS NULL " "THEN 1 ELSE 0 END"
         )
         if cur.fetchone()[0] == 1:
             return {}
@@ -106,10 +105,7 @@ def list_migration_files(db_folder: str) -> list[Path]:
     folder = MIGRATIONS_ROOT / db_folder
     if not folder.exists():
         return []
-    return sorted(
-        p for p in folder.iterdir()
-        if p.is_file() and p.suffix.lower() == ".sql"
-    )
+    return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() == ".sql")
 
 
 def file_checksum(p: Path) -> bytes:
@@ -120,13 +116,21 @@ def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Pa
     """Run a migration through sqlcmd. Raises on non-zero exit."""
     cmd = [
         sqlcmd_exe,
-        "-S", f"{server},1433",
-        "-d", db,
-        "-U", uid, "-P", pwd,
-        "-i", str(mig),
-        "-b",          # exit non-zero on SQL errors
-        "-X", "1",     # disable interactive commands (ED, !!, etc.)
-        "-r", "1",     # all error messages -> stderr
+        "-S",
+        f"{server},1433",
+        "-d",
+        db,
+        "-U",
+        uid,
+        "-P",
+        pwd,
+        "-i",
+        str(mig),
+        "-b",  # exit non-zero on SQL errors
+        "-X",
+        "1",  # disable interactive commands (ED, !!, etc.)
+        "-r",
+        "1",  # all error messages -> stderr
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.stdout:
@@ -142,7 +146,8 @@ def record_applied(conn, filename: str, checksum: bytes) -> None:
     try:
         cur.execute(
             "INSERT INTO dbo.SchemaMigrations (FileName, Checksum) VALUES (?, ?)",
-            filename, checksum,
+            filename,
+            checksum,
         )
         conn.commit()
     finally:
@@ -165,9 +170,7 @@ def plan_for_db(conn, db_folder: str) -> tuple[list[Path], list[Path]]:
     return to_apply, mutated
 
 
-def run_for_db(
-    args, cfg, db_folder: str, db_name: str, sqlcmd_exe: str
-) -> tuple[int, int]:
+def run_for_db(args, cfg, db_folder: str, db_name: str, sqlcmd_exe: str) -> tuple[int, int]:
     """Process pending migrations for one DB. Returns (applied_count, pending_before)."""
     print(f"[{db_folder}] db={db_name} env={args.env}")
     conn = connect(cfg.DB_SERVER_PRD, db_name, cfg.DB_UID, cfg.DB_PWD)
@@ -175,9 +178,7 @@ def run_for_db(
         to_apply, mutated = plan_for_db(conn, db_folder)
 
         if mutated:
-            sys.stderr.write(
-                f"  ERROR: {len(mutated)} migration(s) edited after being applied:\n"
-            )
+            sys.stderr.write(f"  ERROR: {len(mutated)} migration(s) edited after being applied:\n")
             for m in mutated:
                 sys.stderr.write(f"    {m.name}\n")
             sys.stderr.write(
@@ -201,9 +202,11 @@ def run_for_db(
             return (0, len(to_apply))
 
         if args.env == "PROD" and not args.yes and not args.mark_applied:
-            ans = input(
-                f"  apply {len(to_apply)} migration(s) to PROD/{db_name}? [y/N] "
-            ).strip().lower()
+            ans = (
+                input(f"  apply {len(to_apply)} migration(s) to PROD/{db_name}? [y/N] ")
+                .strip()
+                .lower()
+            )
             if ans != "y":
                 print("  skipped")
                 return (0, len(to_apply))
@@ -235,18 +238,25 @@ def run_for_db(
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Apply pending SQL migrations.")
-    p.add_argument("--env", default="INT", choices=("INT", "PROD"),
-                   help="Which .env file to load (default: INT)")
-    p.add_argument("--db", default=None,
-                   help="Limit to one DB folder (NexoraDB|GeneraliDB)")
-    p.add_argument("--dry-run", action="store_true",
-                   help="Show pending migrations, don't run them")
-    p.add_argument("--check", action="store_true",
-                   help="Exit 1 if any pending migrations (for pre-commit hook)")
-    p.add_argument("--mark-applied", action="store_true",
-                   help="Record files as applied without running them (when already run in SSMS)")
-    p.add_argument("--yes", "-y", action="store_true",
-                   help="Skip the PROD confirmation prompt")
+    p.add_argument(
+        "--env",
+        default="INT",
+        choices=("INT", "PROD"),
+        help="Which .env file to load (default: INT)",
+    )
+    p.add_argument("--db", default=None, help="Limit to one DB folder (NexoraDB|GeneraliDB)")
+    p.add_argument("--dry-run", action="store_true", help="Show pending migrations, don't run them")
+    p.add_argument(
+        "--check",
+        action="store_true",
+        help="Exit 1 if any pending migrations (for pre-commit hook)",
+    )
+    p.add_argument(
+        "--mark-applied",
+        action="store_true",
+        help="Record files as applied without running them (when already run in SSMS)",
+    )
+    p.add_argument("--yes", "-y", action="store_true", help="Skip the PROD confirmation prompt")
     args = p.parse_args()
 
     if os.environ.get("SQL_SYNC_SKIP") == "1":
@@ -259,8 +269,7 @@ def main() -> int:
         return 2
 
     targets = [
-        (attr, folder) for attr, folder in TRACKED_DATABASES
-        if not args.db or folder == args.db
+        (attr, folder) for attr, folder in TRACKED_DATABASES if not args.db or folder == args.db
     ]
     if not targets:
         sys.stderr.write(f"Unknown --db value: {args.db}\n")

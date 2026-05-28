@@ -1,0 +1,243 @@
+<script>
+
+
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+    let processedChart, statusChart, hourlyChart;
+    let dateRangePicker;
+
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#6b7280';
+
+    function shuffleObject(obj) {
+        const entries = Object.entries(obj);
+        for (let i = entries.length - 1; i > 0; i--) {
+            const j =
+                Math.floor(Math.random() * (i + 1));
+            [entries[i], entries[j]] =
+                [entries[j], entries[i]];
+        }
+        return Object.fromEntries(entries);
+    }
+
+    async function updateActivityFeed() {
+        try {
+            const response = await fetch(`${API_PREFIX}api/dashboard/recent_activity`);
+            const activities = await response.json();
+            const container = document.getElementById('activity-feed');
+
+            if (activities.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-400">No recent activity</p>`;
+                return;
+            }
+            container.innerHTML = activities.map(act => {
+                const fieldBadges = Object.entries(shuffleObject(act.fields))
+                    .slice(0, 3)
+                    .map(([key, val]) => `
+                        <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md border border-gray-200">
+                            <strong>${key}:</strong> ${val}
+                        </span>
+                    `).join('');
+
+                return `
+                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                        onclick="window.location.href='/workitems?search=${act.id}'">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-indigo-600">ID: ${act.id}</span>
+                            <span class="text-[10px] text-gray-400">${act.time}</span>
+                        </div>
+                        <p class="text-xs text-gray-700 mb-2">Validated in <strong>${act.process}</strong></p>
+                        <div class="flex flex-wrap gap-1">
+                            ${fieldBadges}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error("Activity feed update failed:", error);
+        }
+    }
+
+
+    function animateValue(element, start, end, duration, suffix = '') {
+        if (!element) return;
+        start = parseFloat(start) || 0;
+        end = parseFloat(end) || 0;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            element.innerText = Math.floor(progress * (end - start) + start).toLocaleString() + suffix;
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function buildApiUrl(endpoint) {
+        let url = `${API_PREFIX}${endpoint}`;
+        return url;
+    }
+
+    let proccessedTodayLoadInit = 0;
+    let currentBacklogLoadInit = 0;
+    let importedTodayLoadInit = 0;
+    let avgproctimeLoadInit = 0;
+
+    async function updateKpiStats() {
+        try {
+            const [response, apt_response] = await Promise.all([
+                fetch(`${API_PREFIX}api/dashboard/kpi_stats`, {headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}}),
+                fetch(`${API_PREFIX}api/dashboard/avg_processing_time`, {headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}})
+            ]);
+            const stats = await response.json();
+            const apt = await apt_response.json();
+
+            animateValue(document.getElementById("imported-today"), importedTodayLoadInit, stats.imported_today, 1500);
+            animateValue(document.getElementById("processed-today"), proccessedTodayLoadInit, stats.processed_today, 1500);
+            animateValue(document.getElementById("current-backlog"), currentBacklogLoadInit, stats.current_backlog, 1500);
+            importedTodayLoadInit = stats.imported_today;
+            proccessedTodayLoadInit = stats.processed_today;
+            currentBacklogLoadInit = stats.current_backlog;
+
+            const avg_el = document.getElementById("avg-processing-time");
+            const avg_display = apt.avg_display || '—';
+            const re = /h|min|s/g;
+            const measurement = avg_display.match(re);
+            if (measurement) {
+                const suffix = measurement[0];
+                const avg_number = parseFloat(avg_display.replace(re, ''));
+                animateValue(avg_el, avgproctimeLoadInit, avg_number, 1500, suffix);
+                avgproctimeLoadInit = avg_number;
+            } else {
+                if (avg_el) avg_el.innerText = avg_display;
+                avgproctimeLoadInit = 0;
+            }
+        } catch (error) {
+            console.error("Failed to update KPI stats:", error);
+        }
+    }
+
+    async function updateProcessedOverTimeChart() {
+        try {
+            const url = buildApiUrl('api/dashboard/processed_over_time');
+            const response = await fetch(url, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+            const data = await response.json();
+            const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            if (processedChart) {
+                processedChart.data.labels = data.labels;
+                processedChart.data.datasets[0].data = data.data;
+                processedChart.update();
+            } else {
+                processedChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: {{ _("Documents Processed") | tojson }},
+                            data: data.data,
+                            fill: true,
+                            backgroundColor: gradient,
+                            borderColor: '#4F46E5',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#4F46E5',
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            tension: 0.4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (error) { console.error("Failed to update processed chart:", error); }
+    }
+
+    async function updateHourlyChart() {
+        try {
+            const response = await fetch(`${API_PREFIX}api/dashboard/hourly_stats`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }});
+            const data = await response.json();
+            const labels = data.labels.slice(6, 18);
+            const chartData = data.data.slice(6, 18);
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+
+            if (hourlyChart) {
+                hourlyChart.data.labels = labels;
+                hourlyChart.data.datasets[0].data = chartData;
+                hourlyChart.update();
+            } else {
+                hourlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: {{ _("Documents Processed") | tojson }},
+                            data: chartData,
+                            backgroundColor: 'rgba(20, 184, 166, 0.15)',
+                            borderColor: '#14b8a6',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Failed to update hourly chart:", error);
+        }
+    }
+
+    async function setProcessFilter(value) {
+        try {
+            await fetch(`${API_PREFIX}api/dashboard/set_filter`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ process_name: value })
+            });
+            updateKpiStats();
+            updateProcessedOverTimeChart();
+            updateHourlyChart();
+            updateActivityFeed();
+        } catch (error) {
+            console.error("Failed to set process filter:", error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateKpiStats();
+        updateProcessedOverTimeChart();
+        updateHourlyChart();
+        updateActivityFeed();
+        setInterval(updateActivityFeed, 60000);
+        setInterval(() => {
+            updateKpiStats();
+            updateHourlyChart();
+        }, 30000);
+    });
+</script>

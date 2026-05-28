@@ -5,15 +5,21 @@ import re
 import uuid
 
 from flask import (
-    current_app, jsonify, redirect, render_template, request, session, url_for,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
 )
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 from ..files import is_file_allowed
 from ..notifications import create_notification
-from ..security import pageVisability, require_permission
+from ..security import page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
 
 
@@ -31,7 +37,7 @@ def chat_page():
         logged_in_user=session.get("username"),
         userid=current_user_id,
         available_users=available_users,
-        pageV=pageVisability(),
+        pageV=page_visibility(),
     )
 
 
@@ -43,7 +49,7 @@ def get_conversations():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         query = """
@@ -66,15 +72,17 @@ def get_conversations():
 
         conversations = []
         for row in cursor.fetchall():
-            conversations.append({
-                "id": row.ConversationID,
-                "name": row.OtherUserName,
-                "other_user_id": row.OtherUserID,
-                "last_message": row.LastMessage or _("No messages yet"),
-                "last_time": row.LastMessageAt.strftime("%Y-%m-%d %H:%M"),
-                "unread": row.UnreadCount,
-                "avatar": resolve_user_icon_url(row.OtherUserID),
-            })
+            conversations.append(
+                {
+                    "id": row.ConversationID,
+                    "name": row.OtherUserName,
+                    "other_user_id": row.OtherUserID,
+                    "last_message": row.LastMessage or _("No messages yet"),
+                    "last_time": row.LastMessageAt.strftime("%Y-%m-%d %H:%M"),
+                    "unread": row.UnreadCount,
+                    "avatar": resolve_user_icon_url(row.OtherUserID),
+                }
+            )
 
         return jsonify(conversations)
     except Exception as e:
@@ -92,7 +100,7 @@ def start_conversation(target_user_id):
     current_user_id = session["userid"]
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         check_query = """
@@ -107,11 +115,19 @@ def start_conversation(target_user_id):
         if row:
             return jsonify({"success": True, "conversation_id": row[0]})
 
-        cursor.execute("INSERT INTO Chat_Conversations (CreatedAt) OUTPUT INSERTED.ConversationID VALUES (GETDATE())")
+        cursor.execute(
+            "INSERT INTO Chat_Conversations (CreatedAt) OUTPUT INSERTED.ConversationID VALUES (GETDATE())"
+        )
         new_conv_id = cursor.fetchone()[0]
 
-        cursor.execute("INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)", (new_conv_id, current_user_id))
-        cursor.execute("INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)", (new_conv_id, target_user_id))
+        cursor.execute(
+            "INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)",
+            (new_conv_id, current_user_id),
+        )
+        cursor.execute(
+            "INSERT INTO Chat_Participants (ConversationID, UserID) VALUES (?, ?)",
+            (new_conv_id, target_user_id),
+        )
 
         conn.commit()
         return jsonify({"success": True, "conversation_id": new_conv_id})
@@ -128,14 +144,20 @@ def get_chat_messages(conversation_id):
     userid = session["userid"]
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?", (conversation_id, userid))
+        cursor.execute(
+            "SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?",
+            (conversation_id, userid),
+        )
         if not cursor.fetchone():
             return jsonify({"error": "Unauthorized"}), 403
 
-        cursor.execute("UPDATE Chat_Messages SET IsRead = 1 WHERE ConversationID = ? AND SenderID <> ?", (conversation_id, userid))
+        cursor.execute(
+            "UPDATE Chat_Messages SET IsRead = 1 WHERE ConversationID = ? AND SenderID <> ?",
+            (conversation_id, userid),
+        )
         conn.commit()
 
         query = """
@@ -149,14 +171,16 @@ def get_chat_messages(conversation_id):
 
         messages = []
         for row in cursor.fetchall():
-            messages.append({
-                "id": row.MessageID,
-                "is_me": str(row.SenderID) == str(userid),
-                "text": row.MessageText,
-                "sender": row.username,
-                "time": row.Timestamp.strftime("%H:%M"),
-                "avatar": resolve_user_icon_url(row.SenderID),
-            })
+            messages.append(
+                {
+                    "id": row.MessageID,
+                    "is_me": str(row.SenderID) == str(userid),
+                    "text": row.MessageText,
+                    "sender": row.username,
+                    "time": row.Timestamp.strftime("%H:%M"),
+                    "avatar": resolve_user_icon_url(row.SenderID),
+                }
+            )
 
         return jsonify(messages)
     except Exception as e:
@@ -178,10 +202,13 @@ def send_chat_message(conversation_id):
 
     conn = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?", (conversation_id, userid))
+        cursor.execute(
+            "SELECT 1 FROM Chat_Participants WHERE ConversationID = ? AND UserID = ?",
+            (conversation_id, userid),
+        )
         if not cursor.fetchone():
             return jsonify({"error": "Unauthorized"}), 403
 
@@ -193,19 +220,29 @@ def send_chat_message(conversation_id):
             (conversation_id, userid, message_text),
         )
 
-        cursor.execute("UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?", (conversation_id,))
+        cursor.execute(
+            "UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?",
+            (conversation_id,),
+        )
 
-        cursor.execute("SELECT UserID FROM Chat_Participants WHERE ConversationID = ? AND UserID <> ?", (conversation_id, userid))
+        cursor.execute(
+            "SELECT UserID FROM Chat_Participants WHERE ConversationID = ? AND UserID <> ?",
+            (conversation_id, userid),
+        )
         other_user = cursor.fetchone()
         if other_user:
             workitem_match = re.search(r"/(\d+)", message_text)
             if workitem_match:
-                notif_msg = f"{session['username']} mentioned workitem {workitem_match.group(1)} in chat"
+                notif_msg = (
+                    f"{session['username']} mentioned workitem {workitem_match.group(1)} in chat"
+                )
             else:
                 notif_msg = f"New message from {session['username']}"
 
             notification_link = url_for("chat_page", _external=False)
-            create_notification(other_user.UserID, notif_msg, link=notification_link, icon="fa-comments")
+            create_notification(
+                other_user.UserID, notif_msg, link=notification_link, icon="fa-comments"
+            )
 
         conn.commit()
         return jsonify({"success": True})
@@ -239,7 +276,7 @@ def upload_chat_file(conversation_id):
 
         conn = None
         try:
-            conn = engineNexoraDB.raw_connection()
+            conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -248,7 +285,10 @@ def upload_chat_file(conversation_id):
                 """,
                 (conversation_id, userid, message_text),
             )
-            cursor.execute("UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?", (conversation_id,))
+            cursor.execute(
+                "UPDATE Chat_Conversations SET LastMessageAt = GETDATE() WHERE ConversationID = ?",
+                (conversation_id,),
+            )
             conn.commit()
             return jsonify({"success": True})
         except Exception as e:
@@ -262,8 +302,29 @@ def upload_chat_file(conversation_id):
 
 def register_routes(app):
     app.add_url_rule("/chat", endpoint="chat_page", view_func=chat_page)
-    app.add_url_rule("/api/chat/conversations", endpoint="get_conversations", view_func=get_conversations)
-    app.add_url_rule("/api/chat/start/<int:target_user_id>", endpoint="start_conversation", view_func=start_conversation, methods=["POST"])
-    app.add_url_rule("/api/chat/<int:conversation_id>/messages", endpoint="get_chat_messages", view_func=get_chat_messages)
-    app.add_url_rule("/api/chat/<int:conversation_id>/send", endpoint="send_chat_message", view_func=send_chat_message, methods=["POST"])
-    app.add_url_rule("/api/chat/<int:conversation_id>/upload", endpoint="upload_chat_file", view_func=upload_chat_file, methods=["POST"])
+    app.add_url_rule(
+        "/api/chat/conversations", endpoint="get_conversations", view_func=get_conversations
+    )
+    app.add_url_rule(
+        "/api/chat/start/<int:target_user_id>",
+        endpoint="start_conversation",
+        view_func=start_conversation,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/chat/<int:conversation_id>/messages",
+        endpoint="get_chat_messages",
+        view_func=get_chat_messages,
+    )
+    app.add_url_rule(
+        "/api/chat/<int:conversation_id>/send",
+        endpoint="send_chat_message",
+        view_func=send_chat_message,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/chat/<int:conversation_id>/upload",
+        endpoint="upload_chat_file",
+        view_func=upload_chat_file,
+        methods=["POST"],
+    )

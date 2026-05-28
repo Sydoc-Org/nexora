@@ -1,0 +1,11 @@
+[general]
+contrib=contrib-title-conventional-commits
+
+[contrib-title-conventional-commits]
+types = feat,fix,chore,refactor,docs,test,ci,perf,style,build,revert
+
+[title-max-length]
+line-length = 72
+
+[body-max-line-length]
+line-length = 100

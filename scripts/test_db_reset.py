@@ -17,7 +17,6 @@ from pathlib import Path
 
 import pyodbc
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_ENV = REPO_ROOT / "TEST.env"
 SCHEMA_SQL = REPO_ROOT / "sql" / "test" / "schema.sql"
@@ -58,8 +57,10 @@ def execute_sql_file(cursor: pyodbc.Cursor, path: Path) -> None:
 
 def main() -> int:
     if not TEST_ENV.exists():
-        print(f"TEST.env not found at {TEST_ENV}. Copy TEST.env.example and fill in values.",
-              file=sys.stderr)
+        print(
+            f"TEST.env not found at {TEST_ENV}. Copy TEST.env.example and fill in values.",
+            file=sys.stderr,
+        )
         return 1
 
     env = parse_env(TEST_ENV)
@@ -68,15 +69,20 @@ def main() -> int:
     pwd = env.get("DB_PWD")
     db = env.get("DB_NEXORA")
 
-    missing = [k for k, v in [("DB_SERVER_PRD", server), ("DB_UID", uid),
-                              ("DB_PWD", pwd), ("DB_NEXORA", db)] if not v]
+    missing = [
+        k
+        for k, v in [("DB_SERVER_PRD", server), ("DB_UID", uid), ("DB_PWD", pwd), ("DB_NEXORA", db)]
+        if not v
+    ]
     if missing:
         print(f"TEST.env is missing: {', '.join(missing)}", file=sys.stderr)
         return 1
 
     if db != "NEXORA_TEST":
-        print(f"Refusing to run: DB_NEXORA in TEST.env must be 'NEXORA_TEST', got '{db}'.",
-              file=sys.stderr)
+        print(
+            f"Refusing to run: DB_NEXORA in TEST.env must be 'NEXORA_TEST', got '{db}'.",
+            file=sys.stderr,
+        )
         return 1
 
     for p in (SCHEMA_SQL, SEED_SQL):

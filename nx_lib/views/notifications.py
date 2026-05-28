@@ -3,7 +3,7 @@
 from flask import current_app, jsonify, request, session
 from flask_babel import gettext as _
 
-from ..db import engineNexoraDB
+from ..db import engine_nexora_db
 
 
 def get_notifications():
@@ -13,7 +13,7 @@ def get_notifications():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         cursor.execute(
@@ -27,7 +27,7 @@ def get_notifications():
         )
 
         notifications = [
-            dict(zip([column[0] for column in cursor.description], row))
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
         return jsonify(notifications)
@@ -54,7 +54,7 @@ def mark_notifications_as_read():
     conn = None
     cursor = None
     try:
-        conn = engineNexoraDB.raw_connection()
+        conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
         placeholders = ",".join(["?" for _id in notification_ids])
@@ -65,7 +65,7 @@ def mark_notifications_as_read():
             WHERE UserID = ? AND NotificationID IN ({placeholders})
         """
 
-        params = [session["userid"]] + notification_ids
+        params = [session["userid"], *notification_ids]
         cursor.execute(query, params)
         conn.commit()
 
@@ -81,5 +81,12 @@ def mark_notifications_as_read():
 
 
 def register_routes(app):
-    app.add_url_rule("/api/notifications", endpoint="get_notifications", view_func=get_notifications)
-    app.add_url_rule("/api/notifications/mark_as_read", endpoint="mark_notifications_as_read", view_func=mark_notifications_as_read, methods=["POST"])
+    app.add_url_rule(
+        "/api/notifications", endpoint="get_notifications", view_func=get_notifications
+    )
+    app.add_url_rule(
+        "/api/notifications/mark_as_read",
+        endpoint="mark_notifications_as_read",
+        view_func=mark_notifications_as_read,
+        methods=["POST"],
+    )

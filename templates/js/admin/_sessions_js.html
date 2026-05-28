@@ -1,0 +1,134 @@
+<script>
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        // csrfToken is declared globally in _header_js.html
+
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+         function timeAgo(date) {
+                let seconds = Math.floor((new Date() - new Date(date)) / 1000);
+
+                if (seconds < 0) {
+                    seconds = 0;
+                }
+
+                let interval = seconds / 31536000;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("years ago") }}`;
+
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("months ago") }}`;
+
+                interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("days ago") }}`;
+
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("hours ago") }}`;
+
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + ` {{ _("minutes ago") }}`;
+
+                if (seconds < 5) return `{{ _("Just now") }}`;
+
+                return Math.floor(seconds) + ` {{ _("seconds ago") }}`;
+            }
+
+        async function fetchActiveSessions() {
+            const sessionsBody = document.getElementById('active-sessions-body');
+            sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty"><i class="fas fa-spinner fa-spin"></i> &nbsp; {{ _("Loading...") }}</td></tr>`;
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/admin/active_sessions`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (!response.ok) throw new Error('Failed to fetch sessions');
+                const sessions = await response.json();
+
+                sessionsBody.innerHTML = '';
+                if (sessions.length === 0) {
+                    sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty"><i class="fas fa-user-slash"></i> &nbsp; {{ _("No active sessions found.") }}</td></tr>`;
+                    return;
+                }
+
+                sessions.forEach(session => {
+                    const row = document.createElement('tr');
+                    // LoggedInAt is already ISO-8601 — pass directly to Date.
+                    const rawTs = session.LoggedInAt || null;
+
+                    const td1 = document.createElement('td');
+                    td1.textContent = session.Username || '';
+                    row.appendChild(td1);
+
+                    const td2 = document.createElement('td');
+                    const mono = document.createElement('span');
+                    mono.className = 'admin-mono';
+                    mono.textContent = String(session.Userid || '');
+                    td2.appendChild(mono);
+                    row.appendChild(td2);
+
+                    const td3 = document.createElement('td');
+                    td3.textContent = session.IPAddress || '';
+                    row.appendChild(td3);
+
+                    const td4 = document.createElement('td');
+                    if (rawTs) td4.title = rawTs;
+                    td4.textContent = rawTs ? timeAgo(rawTs) : '';
+                    row.appendChild(td4);
+
+                    const td5 = document.createElement('td');
+                    td5.className = 'align-right';
+                    const sid = session.SessionID || '';
+                    if (sid) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'admin-btn admin-btn-ghost revoke-session-btn';
+                        btn.style.cssText = 'color:var(--a-danger);font-size:12px';
+                        btn.dataset.sessionId = sid;
+                        btn.dataset.username = session.Username || '';
+                        btn.title = '{{ _("Revoke this session") }}';
+                        const icon = document.createElement('i');
+                        icon.className = 'fas fa-sign-out-alt';
+                        btn.appendChild(icon);
+                        btn.appendChild(document.createTextNode(' {{ _("Revoke") }}'));
+                        td5.appendChild(btn);
+                    }
+                    row.appendChild(td5);
+
+                    sessionsBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching active sessions:", error);
+                sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty" style="color:var(--a-danger)"><i class="fas fa-circle-exclamation"></i> &nbsp; {{ _("Could not load sessions.") }}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchActiveSessions);
+        setInterval(fetchActiveSessions, 30000);
+
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.revoke-session-btn');
+            if (!btn) return;
+            const sid = btn.dataset.sessionId;
+            const username = btn.dataset.username;
+            if (!sid) return;
+            if (!confirm(`{{ _("Revoke the active session for") }} "${username}"?`)) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_PREFIX}admin/sessions/${encodeURIComponent(sid)}/revoke`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (res.ok) {
+                    fetchActiveSessions();
+                } else {
+                    alert('{{ _("Could not revoke session.") }}');
+                    btn.disabled = false;
+                }
+            } catch {
+                alert('{{ _("Network error.") }}');
+                btn.disabled = false;
+            }
+        });
+    </script>
