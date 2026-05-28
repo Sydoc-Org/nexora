@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstToggleButton = document.querySelector('.details-toggle-button');
         const firstDetailsRow = document.querySelector('.details-row');
         const firstWorkitemId = firstToggleButton ? firstToggleButton.dataset.workitemid : null;
-        
+
         if (firstToggleButton && firstDetailsRow && firstWorkitemId) {
             tour.addStep({
                 id: 'workitems-intro',
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-            
+
             // --- INSIDE THE EXPANDED ROW ---
 
             tour.addStep({

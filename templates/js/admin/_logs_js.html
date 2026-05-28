@@ -1,6 +1,6 @@
 <script>
     let currentPage = 1;
-    let fetchedLogsData = []; 
+    let fetchedLogsData = [];
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     function escapeHtml(str) {
@@ -13,7 +13,7 @@
         const user = document.getElementById('filterUser').value;
         const method = document.getElementById('filterMethod').value;
         const path = document.getElementById('filterPath').value;
-        
+
         const status = document.getElementById('filterStatus').value;
         const start = document.getElementById('filterStart').value;
         const end = document.getElementById('filterEnd').value;
@@ -26,8 +26,8 @@
             const params = new URLSearchParams({
                 page: page,
                 username: user,
-                method: method,   
-                path: path,       
+                method: method,
+                path: path,
                 status: status,
                 start_date: start,
                 end_date: end,
@@ -37,7 +37,7 @@
             const res = await fetch(`${API_PREFIX}api/admin/logs/search?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken  
+                    'X-CSRFToken': csrfToken
                 }
             });
             const data = await res.json();
@@ -215,7 +215,7 @@
         document.getElementById('modalUser').textContent = log.Username || 'Anonymous';
         document.getElementById('modalAction').textContent = `${log.HttpRequestMethod} ${log.Path}`;
         document.getElementById('modalTime').textContent = new Date(log.Timestamp).toLocaleString();
-        
+
         const durationText = log.durationSeconds ? ` (${log.durationSeconds}s)` : '';
         document.getElementById('modalTime').textContent += durationText;
 
@@ -225,19 +225,19 @@
         try {
             if (log.Args && log.Args !== 'NULL') {
                 const jsonObj = JSON.parse(log.Args);
-                formattedDetails = JSON.stringify(jsonObj, null, 2); 
+                formattedDetails = JSON.stringify(jsonObj, null, 2);
             } else {
                 formattedDetails = {{ _("No arguments provided.") | tojson }};
             }
         } catch (e) {
-            formattedDetails = log.Args || "{{ _('No arguments provided.') }}"; 
+            formattedDetails = log.Args || "{{ _('No arguments provided.') }}";
         }
 
         codeBlock.textContent = formattedDetails;
 
         modal.classList.remove('hidden');
-        void modal.offsetWidth; 
-        
+        void modal.offsetWidth;
+
         modalBackdrop.classList.remove('opacity-0');
         modalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
         modalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
@@ -250,7 +250,7 @@
 
         setTimeout(() => {
             modal.classList.add('hidden');
-        }, 300); 
+        }, 300);
     }
 
     function copyToClipboard() {
