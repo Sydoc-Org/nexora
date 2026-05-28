@@ -223,8 +223,13 @@ jobs:
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
             /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs `
-            /XF *.env ngrok.yaml .gitignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt README.md pyproject.toml
-          if ($LASTEXITCODE -lt 8) { exit 0 } else { exit $LASTEXITCODE }
+            /XF *.env *.env.example ngrok.yaml .gitignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt README.md pyproject.toml
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          # /XF excludes *.env.example from being copied AND from being purged,
+          # so any *.env.example already on SYAPP01 from earlier deploys would
+          # stay forever. Sweep them: prod only needs PROD.env in env/.
+          Remove-Item "D:\sydoc\nexora\env\*.env.example" -Force -ErrorAction SilentlyContinue
+          exit 0
 
       - name: Start app pool and service
         shell: powershell
