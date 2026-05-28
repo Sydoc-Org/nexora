@@ -5,6 +5,7 @@ secrets in INT.env / PROD.env override anything in the default .env file.
 """
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -12,6 +13,33 @@ load_dotenv()
 load_dotenv(dotenv_path=f'{os.environ.get("ENVIRONMENT")}.env')
 
 IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
+
+# --- Runtime paths -----------------------------------------------------------
+# Every runtime-writable dir lives under var/. Gitignored except .gitkeep.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+VAR_DIR = REPO_ROOT / "var"
+
+
+class PATHS:
+    """Runtime data paths. All under var/, all gitignored."""
+
+    uploads = VAR_DIR / "uploads"
+    session = VAR_DIR / "session"
+    logs = VAR_DIR / "logs"
+    screenshots = VAR_DIR / "screenshots"
+    backups = VAR_DIR / "backups"
+    test_results = VAR_DIR / "test-results"
+
+
+for _p in (
+    PATHS.uploads,
+    PATHS.session,
+    PATHS.logs,
+    PATHS.screenshots,
+    PATHS.backups,
+    PATHS.test_results,
+):
+    _p.mkdir(parents=True, exist_ok=True)
 
 SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
 
