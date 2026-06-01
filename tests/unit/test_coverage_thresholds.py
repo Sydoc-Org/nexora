@@ -30,7 +30,7 @@ MIN_COVERAGE = {
     "maintenance.py": 100,
     "middleware.py": 100,
     "hooks.py": 0,
-    "notifications.py": 0,
+    "notifications.py": 100,
     "octo.py": 0,
     "process_helpers.py": 0,
     "extensions.py": 0,
