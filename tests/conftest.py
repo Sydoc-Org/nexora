@@ -109,3 +109,56 @@ def login(client, totp_for):
         return client
 
     return _login
+
+
+@pytest.fixture()
+def admin_client(login):
+    """Authenticated admin@test.local test client (has admin.view + dashboard.view + admin.users.manage)."""
+    return login(username="admin@test.local")
+
+
+@pytest.fixture()
+def user_client(login):
+    """Authenticated user@test.local test client (has dashboard.view only)."""
+    return login(username="user@test.local")
+
+
+@pytest.fixture()
+def noperm_client(login):
+    """Authenticated noperm@test.local test client (no permissions)."""
+    return login(username="noperm@test.local")
+
+
+@pytest.fixture()
+def auth_app_ctx(app):
+    """Push a Flask app context for tests that need current_app / url_for outside a request.
+
+    Use when calling functions like security.startpage_redirect_to which read current_app.
+    """
+    with app.app_context():
+        yield app
+
+
+@pytest.fixture()
+def fake_session(monkeypatch):
+    """Inject a fake session dict into nx_lib.security.session.
+
+    Returns the dict so the test can mutate it mid-test:
+
+        def test_x(fake_session):
+            fake_session["permissions"] = ["admin.view"]
+            assert has_permission("admin.view")
+    """
+    session_dict = {}
+    monkeypatch.setattr("nx_lib.security.session", session_dict)
+    return session_dict
+
+
+TEST_ORG_CODE = "TEST"  # seeded by sql/test/seed.sql
+
+
+@pytest.fixture()
+def seeded_org():
+    """The organizationcode used by every seed user. Use in tests that need
+    to filter scope-based queries."""
+    return TEST_ORG_CODE
