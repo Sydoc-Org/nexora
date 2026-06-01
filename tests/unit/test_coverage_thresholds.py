@@ -29,7 +29,7 @@ MIN_COVERAGE = {
     "i18n.py": 100,
     "maintenance.py": 100,
     "middleware.py": 100,
-    "hooks.py": 0,
+    "hooks.py": 100,
     "notifications.py": 100,
     "octo.py": 95,
     "process_helpers.py": 100,
