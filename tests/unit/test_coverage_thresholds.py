@@ -37,7 +37,7 @@ MIN_COVERAGE = {
     "app_logging.py": 100,
     "cli.py": 70,
     "cli_doctor.py": 60,
-    "views/core.py": 0,
+    "views/core.py": 95,
     "views/auth.py": 30,
     "views/profile.py": 0,
     "views/dashboard.py": 0,
