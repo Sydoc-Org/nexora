@@ -44,7 +44,7 @@ MIN_COVERAGE = {
     "views/admin.py": 65,
     "views/workitems.py": 35,
     "views/invoices.py": 80,
-    "views/notifications.py": 0,
+    "views/notifications.py": 100,
     "views/chat.py": 0,
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.
