@@ -22,7 +22,7 @@ COVERAGE_XML = Path(__file__).resolve().parents[2] / "var" / "test-results" / "c
 # lands, raise the corresponding entry to the new measured value. Ratchet
 # upward only — never lower a threshold without team sign-off.
 MIN_COVERAGE = {
-    "security.py": 40,
+    "security.py": 75,
     "files.py": 100,
     "users.py": 0,
     "db.py": 0,
