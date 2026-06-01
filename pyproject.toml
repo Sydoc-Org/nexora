@@ -37,6 +37,7 @@ dev = [
     "pytest-playwright==0.5.2",
     "playwright==1.49.1",
     "pytest-rerunfailures==15.0",
+    "pytest-cov==6.0.0",
     "coverage[toml]==7.6.10",
     "defusedxml==0.7.1",
     "ruff==0.7.4",
@@ -98,6 +99,10 @@ addopts = [
     "--junitxml=var/test-results/junit.xml",
     "--html=var/test-results/report.html",
     "--self-contained-html",
+    "--cov=nx_lib",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html:var/test-results/coverage-html",
+    "--cov-report=xml:var/test-results/coverage.xml",
 ]
 markers = [
     "flaky_e2e: end-to-end browser tests that may be retried via pytest-rerunfailures",
