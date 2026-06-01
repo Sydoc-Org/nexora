@@ -33,7 +33,7 @@ MIN_COVERAGE = {
     "notifications.py": 100,
     "octo.py": 95,
     "process_helpers.py": 100,
-    "extensions.py": 0,
+    "extensions.py": 100,
     "app_logging.py": 0,
     "cli.py": 0,
     "cli_doctor.py": 0,
