@@ -43,7 +43,7 @@ MIN_COVERAGE = {
     "views/dashboard.py": 25,
     "views/admin.py": 65,
     "views/workitems.py": 35,
-    "views/invoices.py": 0,
+    "views/invoices.py": 80,
     "views/notifications.py": 0,
     "views/chat.py": 0,
     # views/generali.py intentionally excluded — covered by the Generali
