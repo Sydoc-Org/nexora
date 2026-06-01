@@ -24,7 +24,7 @@ COVERAGE_XML = Path(__file__).resolve().parents[2] / "var" / "test-results" / "c
 MIN_COVERAGE = {
     "security.py": 75,
     "files.py": 100,
-    "users.py": 0,
+    "users.py": 100,
     "db.py": 0,
     "i18n.py": 0,
     "maintenance.py": 0,
