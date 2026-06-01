@@ -32,7 +32,7 @@ MIN_COVERAGE = {
     "hooks.py": 0,
     "notifications.py": 100,
     "octo.py": 95,
-    "process_helpers.py": 0,
+    "process_helpers.py": 100,
     "extensions.py": 0,
     "app_logging.py": 0,
     "cli.py": 0,
