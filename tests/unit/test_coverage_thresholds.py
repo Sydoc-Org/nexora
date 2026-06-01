@@ -41,7 +41,7 @@ MIN_COVERAGE = {
     "views/auth.py": 65,
     "views/profile.py": 75,
     "views/dashboard.py": 25,
-    "views/admin.py": 0,
+    "views/admin.py": 65,
     "views/workitems.py": 0,
     "views/invoices.py": 0,
     "views/notifications.py": 0,
