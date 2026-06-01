@@ -26,7 +26,7 @@ MIN_COVERAGE = {
     "files.py": 100,
     "users.py": 100,
     "db.py": 65,
-    "i18n.py": 0,
+    "i18n.py": 100,
     "maintenance.py": 0,
     "middleware.py": 0,
     "hooks.py": 0,
