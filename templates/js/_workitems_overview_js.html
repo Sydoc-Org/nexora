@@ -207,7 +207,7 @@
             container.innerHTML = tags.map(tag => `
                 <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
                     ${tag.name}
-                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}">
+                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}" data-testid="workitems-remove-tag-${tag.id}">
                         <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
                     </button>
                 </span>
@@ -471,7 +471,7 @@
     class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
   <select id="priority-select-${workitemid}"
     data-workitemid="${workitemid}"  {% if details_set_priority_perm == False  %} disabled {% endif %}
-    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-priority-${workitemid}">
     <option value="0">{{ _("None") }}</option>
     <option value="1">{{ _("Low") }}</option>
     <option value="2">{{ _("Medium") }}</option>
@@ -483,7 +483,7 @@
     class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
   <select id="assign-select-${workitemid}"
     data-workitemid="${workitemid}"  {% if details_assign_users_perm == False  %} disabled {% endif %}
-    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+    class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-assign-${workitemid}">
     <option value="None">{{ _("None") }}</option>
   </select>
 </div>
@@ -492,12 +492,12 @@
                       <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
                       <div class="flex items-center gap-2">
                         <input type="text" id="tag-input-${workitemid}" list="taglist" {% if details_add_tag_perm == False  %} disabled {% endif %}
-                          class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}">
+                          class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}" data-testid="workitems-tag-input-${workitemid}">
                         <input type="color" id="tag-color-${workitemid}" {% if details_add_tag_perm == False  %} disabled {% endif %}
-                          class="h-10 w-12 p-1 border rounded-md" value="#6B7280">
+                          class="h-10 w-12 p-1 border rounded-md" value="#6B7280" data-testid="workitems-tag-color-${workitemid}">
                         <button type="button" {% if details_add_tag_perm == False  %} disabled {% endif %}
                           class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition"
-                           data-workitemid="${workitemid}">
+                           data-workitemid="${workitemid}" data-testid="workitems-add-tag-${workitemid}">
                           <i class="fas fa-plus"></i>
                         </button>
                       </div>
@@ -507,15 +507,15 @@
                     </div>
 
                             <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitemid}">
-                              <form class="comment-form" data-workitemid="${workitemid}">
+                              <form class="comment-form" data-workitemid="${workitemid}" data-testid="workitems-comment-form-${workitemid}">
                                  <label for="comment-text-${workitemid}"
                           class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
                                 <textarea name="commentText" id="comment-text-${workitemid}" {% if details_add_comment_perm == False  %} disabled {% endif %}
                                 class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                                   placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required
-                                  autocomplete="off"></textarea>
+                                  autocomplete="off" data-testid="workitems-comment-text-${workitemid}"></textarea>
                                 <button type="submit" {% if details_add_comment_perm == False  %} disabled {% endif %}
-                                  class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">{{
+                                  class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-testid="workitems-comment-submit-${workitemid}">{{
                                   _("Post Comment") }}</button>
                               </form>
                               <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
@@ -1493,7 +1493,7 @@ async function uploadBatchFiles(files, processName) {
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
                         <td class="px-4 py-4 text-center w-10">
                             <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                data-id="${workitem.workitemid}">
+                                data-id="${workitem.workitemid}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="font-medium text-gray-900 text-center">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
@@ -1504,7 +1504,7 @@ async function uploadBatchFiles(files, processName) {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
-                                data-workitemid="${workitem.workitemid}">
+                                data-workitemid="${workitem.workitemid}" data-testid="workitems-details-toggle-${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
                             </button>
                         </td>
@@ -1623,13 +1623,13 @@ async function uploadBatchFiles(files, processName) {
                 const nextDisabled = currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
 
                 const paginationHtml = `
-                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${prevDisabled}">
+                <a href="#" data-page="${currentPage - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${prevDisabled}" data-testid="workitems-pagination-prev">
                     <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
                 </a>
                 <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">
                     ${currentPage} / ${totalPages}
                 </span>
-                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${nextDisabled}">
+                <a href="#" data-page="${currentPage + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${nextDisabled}" data-testid="workitems-pagination-next">
                     {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
                 </a>
             `;

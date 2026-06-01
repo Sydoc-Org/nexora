@@ -20,7 +20,7 @@
     <div class="container mx-auto px-6 pt-8 pb-12 max-w-6xl">
 
         <div class="brand-bar">
-            <a href="/" class="brand-mark">
+            <a href="/" class="brand-mark" data-testid="error-{{ error_code }}-brand-home">
                 <span class="brand-name">nexora</span>
                 <span class="brand-sub">powered by sydoc</span>
             </a>
@@ -61,13 +61,13 @@
                 <p class="error-subtitle">{{ error_subtitle }}</p>
 
                 <div class="error-cta">
-                    <a href="javascript:window.history.back();" class="btn-cosmic btn-cosmic-ghost">
+                    <a href="javascript:window.history.back();" class="btn-cosmic btn-cosmic-ghost" data-testid="error-{{ error_code }}-go-back">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
                         </svg>
                         <span>{{ _('Go back') }}</span>
                     </a>
-                    <a href="/" class="btn-cosmic btn-cosmic-primary">
+                    <a href="/" class="btn-cosmic btn-cosmic-primary" data-testid="error-{{ error_code }}-home">
                         <span>{{ _('Take me home') }}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
@@ -86,7 +86,7 @@
                 </div>
                 <h3>{{ _('Documentation') }}</h3>
                 <p>{{ error_doc_text }}</p>
-                <a href="{{ error_doc_url }}" target="_blank" rel="noopener">
+                <a href="{{ error_doc_url }}" target="_blank" rel="noopener" data-testid="error-{{ error_code }}-docs">
                     <span>{{ _('Read documentation') }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
@@ -102,7 +102,7 @@
                 </div>
                 <h3>{{ _('Our client magazine') }}</h3>
                 <p>{{ _('Read the latest edition on our website.') }}</p>
-                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" target="_blank" rel="noopener">
+                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" target="_blank" rel="noopener" data-testid="error-{{ error_code }}-magazine">
                     <span>{{ _('Read latest edition') }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
@@ -118,7 +118,7 @@
                 </div>
                 <h3>{{ _('Chat to us') }}</h3>
                 <p>{{ error_chat_text }}</p>
-                <a href="mailto:support.helpdesk@sydoc.ch">
+                <a href="mailto:support.helpdesk@sydoc.ch" data-testid="error-{{ error_code }}-support">
                     <span>{{ _('Chat to our team') }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>

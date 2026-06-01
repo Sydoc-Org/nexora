@@ -123,7 +123,7 @@
                 <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk1)}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk2)}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-right">
-                    <button class="gen-detail-btn text-indigo-600 hover:text-indigo-900" data-docid="${doc.doc_id}" aria-label="Toggle details">
+                    <button class="gen-detail-btn text-indigo-600 hover:text-indigo-900" data-docid="${doc.doc_id}" aria-label="Toggle details" data-testid="generali-documents-detail-${doc.doc_id}">
                         <i class="indicator fas fa-chevron-down text-sm"></i>
                     </button>
                 </td>
@@ -261,11 +261,11 @@
         const prevCls = cp === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
         const nextCls = cp === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
         ctrl.innerHTML = `
-            <a href="#" data-page="${cp - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${prevCls}">
+            <a href="#" data-page="${cp - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${prevCls}" data-testid="generali-documents-pagination-prev">
                 <i class="fas fa-chevron-left mr-1 text-xs"></i> {{ _("Previous") }}
             </a>
             <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">${cp} / ${totalPages}</span>
-            <a href="#" data-page="${cp + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${nextCls}">
+            <a href="#" data-page="${cp + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-gray-600 transition-colors ${nextCls}" data-testid="generali-documents-pagination-next">
                 {{ _("Next") }} <i class="fas fa-chevron-right ml-1 text-xs"></i>
             </a>`;
     }

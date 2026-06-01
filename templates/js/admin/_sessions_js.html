@@ -88,6 +88,8 @@
                         btn.dataset.sessionId = sid;
                         btn.dataset.username = session.Username || '';
                         btn.title = '{{ _("Revoke this session") }}';
+                        btn.setAttribute('data-testid', `admin-sessions-revoke-${sid}`);
+                        row.setAttribute('data-testid', `admin-sessions-row-${sid}`);
                         const icon = document.createElement('i');
                         icon.className = 'fas fa-sign-out-alt';
                         btn.appendChild(icon);

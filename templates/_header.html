@@ -17,7 +17,7 @@
 
 <body>
     {% include '_maintenance_banner.html' %}
-    <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button">
+    <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button" data-testid="header-burger">
         <i class="fas fa-bars"></i>
     </button>
     <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
@@ -32,40 +32,40 @@
             {% if pageV.adminPagePerm or pageV.adminMaintenanceViewPerm %}
             {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
-                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button" data-testid="header-nav-admin-toggle">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
                     <span class="sidebar-label" style="flex:1">{{ _('Admin') }}</span>
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
                     <a href="{{ url_for('admin_dashboard') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'adminOverview' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'adminOverview' else '' }}" data-testid="header-nav-admin-overview">
                         <i class="fas fa-house sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Overview') }}</span>
                     </a>
                     <a href="{{ url_for('admin_access_control') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_access' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_access' else '' }}" data-testid="header-nav-admin-access">
                         <i class="fas fa-id-badge sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Access Control') }}</span>
                     </a>
                     <a href="{{ url_for('admin_organizations_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}" data-testid="header-nav-admin-organizations">
                         <i class="fas fa-building sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Organizations') }}</span>
                     </a>
                     <a href="{{ url_for('admin_sessions_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_sessions' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_sessions' else '' }}" data-testid="header-nav-admin-sessions">
                         <i class="fas fa-signal sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Sessions') }}</span>
                     </a>
                     <a href="{{ url_for('admin_logs_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_logs' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_logs' else '' }}" data-testid="header-nav-admin-logs">
                         <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Logs') }}</span>
                     </a>
                     {% if pageV.adminMaintenanceViewPerm %}
                     <a href="{{ url_for('admin_maintenance_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'maintenance' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'maintenance' else '' }}" data-testid="header-nav-admin-maintenance">
                         <i class="fas fa-bullhorn sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Maintenance') }}</span>
                     </a>
@@ -84,7 +84,7 @@
             {% for item in nav_items %}
             {% if item.perm %}
             <a href="{{ item.url }}"
-                class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}">
+                class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}" data-testid="header-nav-item-{{ loop.index }}">
                 <i class="fas {{ item.icon }} sidebar-nav-icon"></i>
                 <span class="sidebar-label">{{ item.label }}</span>
             </a>
@@ -94,7 +94,7 @@
             {% if pageV.generaliPagePerm or pageV.generaliDocumentsPerm or pageV.generaliReportingPerm or pageV.generaliAdditionalServicesPerm or pageV.generaliBaseServicesPerm or pageV.generaliProjectManagementPerm or pageV.generaliPDQMPerm or pageV.generaliImportStatusPerm %}
             {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting', 'generali_additionalservices', 'generali_baseservices', 'generali_projectmanagement', 'generali_pdqm', 'generali_importstatus'] %}
             <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
-                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader" data-testid="header-nav-generali-toggle">
                     <i class="fas fa-building-columns sidebar-nav-icon"></i>
                     <span class="sidebar-label" style="flex:1">Generali</span>
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
@@ -102,56 +102,56 @@
                 <div class="sidebar-nav-subitems">
                     {% if pageV.generaliPagePerm %}
                     <a href="{{ url_for('generali_evaluation') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_dashboard' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_dashboard' else '' }}" data-testid="header-nav-generali-dashboard">
                         <i class="fas fa-chart-line sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Dashboard') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliDocumentsPerm %}
                     <a href="{{ url_for('generali_documents') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_documents' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_documents' else '' }}" data-testid="header-nav-generali-documents">
                         <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Document List') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliReportingPerm %}
                     <a href="{{ url_for('generali_reporting') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_reporting' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_reporting' else '' }}" data-testid="header-nav-generali-reporting">
                         <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Reporting') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliAdditionalServicesPerm %}
                     <a href="{{ url_for('generali_additionalServices') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_additionalservices' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_additionalservices' else '' }}" data-testid="header-nav-generali-additional-services">
                         <i class="fas fa-clock sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Additional Services') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliBaseServicesPerm %}
                     <a href="{{ url_for('generali_baseServices') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_baseservices' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_baseservices' else '' }}" data-testid="header-nav-generali-base-services">
                         <i class="fas fa-inbox sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Base Services') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliProjectManagementPerm %}
                     <a href="{{ url_for('generali_projectManagement') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_projectmanagement' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_projectmanagement' else '' }}" data-testid="header-nav-generali-project-management">
                         <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Project Management') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliPDQMPerm %}
                     <a href="{{ url_for('generali_pdqm') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_pdqm' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_pdqm' else '' }}" data-testid="header-nav-generali-pdqm">
                         <i class="fas fa-file-lines sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('PDQM') }}</span>
                     </a>
                     {% endif %}
                     {% if pageV.generaliImportStatusPerm %}
                     <a href="{{ url_for('generali_importStatus') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_importstatus' else '' }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_importstatus' else '' }}" data-testid="header-nav-generali-import-status">
                         <i class="fas fa-database sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Data Import Status') }}</span>
                     </a>
@@ -166,7 +166,7 @@
 
             <!-- Notifications -->
             <div class="sidebar-notif-wrapper" id="notification-dropdown-container">
-                <button id="bell-button" class="sidebar-nav-item">
+                <button id="bell-button" class="sidebar-nav-item" data-testid="header-notifications-toggle">
                     <div class="sidebar-nav-icon sidebar-notif-icon-wrap">
                         <i class="fas fa-bell"></i>
                         <span id="notification-count" class="sidebar-notif-badge hidden"></span>
@@ -185,14 +185,14 @@
             </div>
 
             <!-- Dark mode toggle -->
-            <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}">
+            <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
                 <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>
                 <span class="sidebar-label" id="dark-mode-label">{{ _("Dark Mode") }}</span>
             </button>
 
             <!-- Profile dropdown -->
             <el-dropdown>
-                <button class="sidebar-nav-item sidebar-profile-btn">
+                <button class="sidebar-nav-item sidebar-profile-btn" data-testid="header-profile-toggle">
                     <div class="sidebar-nav-icon sidebar-avatar-wrap">
                         <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
                             class="sidebar-avatar" alt="{{ _('Profile Picture') }}"
@@ -204,12 +204,12 @@
                 <el-menu anchor="right end" popover
                     class="w-48 rounded-lg bg-white p-1 shadow-xl border border-gray-100 ml-2">
                     <a href="{{ url_for('profile') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
                     <div class="my-1 border-t border-gray-100"></div>
                     <a href="{{ url_for('logout') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors" data-testid="header-logout-link">
                         <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
                     </a>
                 </el-menu>
@@ -225,7 +225,7 @@
             <div class="cmdk-input-row">
                 <i class="fas fa-search cmdk-input-icon"></i>
                 <input id="cmdkInput" class="cmdk-input" type="text"
-                       placeholder="{{ _('Type a command or search...') }}" autocomplete="off">
+                       placeholder="{{ _('Type a command or search...') }}" autocomplete="off" data-testid="header-cmdk-input">
                 <kbd class="cmdk-kbd">ESC</kbd>
             </div>
             <ul id="cmdkList" class="cmdk-list" role="listbox"></ul>

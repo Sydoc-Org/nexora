@@ -105,8 +105,8 @@
         const deletable = canDeleteRecord(r);
         const showActions = canEdit || canDelete;
         let actionBtns = '';
-        if (canEdit)   actionBtns += `<button ${editable  ? `onclick="openEditModal(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}"><i class="fas fa-pen text-xs"></i></button>`;
-        if (canDelete) actionBtns += `<button ${deletable ? `onclick="deleteRecord(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}"><i class="fas fa-trash text-xs"></i></button>`;
+        if (canEdit)   actionBtns += `<button ${editable  ? `onclick="openEditModal(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}" data-testid="generali-base-services-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
+        if (canDelete) actionBtns += `<button ${deletable ? `onclick="deleteRecord(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-testid="generali-base-services-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
         const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
 
         return `<tr class="hover:bg-gray-50 transition" data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-category="${(r.category||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">

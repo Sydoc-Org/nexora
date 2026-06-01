@@ -54,24 +54,24 @@
                     <div class="profile-identity-divider"></div>
 
                     <nav class="profile-jumpnav" aria-label="{{ _('Settings sections') }}">
-                        <a href="#section-profile" class="profile-jumpnav-link is-active">
+                        <a href="#section-profile" class="profile-jumpnav-link is-active" data-testid="profile-jumpnav-profile">
                             <i class="fas fa-user-circle"></i>
                             <span>{{ _("Profile") }}</span>
                             <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
                         </a>
-                        <a href="#section-password" class="profile-jumpnav-link">
+                        <a href="#section-password" class="profile-jumpnav-link" data-testid="profile-jumpnav-password">
                             <i class="fas fa-lock"></i>
                             <span>{{ _("Password") }}</span>
                             <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
                         </a>
-                        <a href="#section-language" class="profile-jumpnav-link">
+                        <a href="#section-language" class="profile-jumpnav-link" data-testid="profile-jumpnav-language">
                             <i class="fas fa-language"></i>
                             <span>{{ _("Language") }}</span>
                             <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
                         </a>
                     </nav>
 
-                    <a href="{{ url_for('logout') }}" class="profile-signout">
+                    <a href="{{ url_for('logout') }}" class="profile-signout" data-testid="profile-signout">
                         <i class="fas fa-arrow-right-from-bracket"></i>
                         <span>{{ _("Sign out") }}</span>
                     </a>
@@ -107,7 +107,7 @@
                     {% endwith %}
 
                     <form class="profile-form" action="{{ url_for('update_profile') }}" method="post"
-                        enctype="multipart/form-data">
+                        enctype="multipart/form-data" data-testid="profile-update-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                         <div class="profile-photo-row">
@@ -118,11 +118,11 @@
                                      onerror="defaultIconPreview()">
                             </div>
                             <div class="profile-photo-controls">
-                                <label for="file" class="profile-photo-btn">
+                                <label for="file" class="profile-photo-btn" data-testid="profile-upload-photo-label">
                                     <i class="fas fa-cloud-arrow-up"></i>
                                     <span>{{ _("Upload new photo") }}</span>
                                 </label>
-                                <input id="file" type="file" name="file" accept=".jpg, .png" class="profile-photo-input">
+                                <input id="file" type="file" name="file" accept=".jpg, .png" class="profile-photo-input" data-testid="profile-upload-photo">
                                 <span class="profile-photo-hint" id="photoHint">{{ _("JPG or PNG · square images look best") }}</span>
                             </div>
                         </div>
@@ -131,23 +131,23 @@
                             <div class="profile-field">
                                 <label class="profile-label" for="username">{{ _("Username") }}</label>
                                 <input type="text" id="username" name="username" value="{{ logged_in_user }}"
-                                    class="profile-input" disabled>
+                                    class="profile-input" disabled data-testid="profile-username">
                                 <span class="profile-field-hint">{{ _("Your username cannot be changed.") }}</span>
                             </div>
                             <div class="profile-field">
                                 <label class="profile-label" for="fullName">{{ _("Full name") }}</label>
                                 <input type="text" id="fullName" name="fullName" value="{{ fullname }}"
-                                    class="profile-input">
+                                    class="profile-input" data-testid="profile-fullname">
                             </div>
                             <div class="profile-field profile-field--full">
                                 <label class="profile-label" for="email">{{ _("Email address") }}</label>
                                 <input type="email" id="email" name="email" value="{{ email }}"
-                                    class="profile-input">
+                                    class="profile-input" data-testid="profile-email">
                             </div>
                         </div>
 
                         <div class="profile-form-actions">
-                            <button type="submit" class="profile-btn profile-btn--primary">
+                            <button type="submit" class="profile-btn profile-btn--primary" data-testid="profile-save-changes">
                                 <i class="fas fa-check"></i>
                                 <span>{{ _("Save changes") }}</span>
                             </button>
@@ -180,7 +180,7 @@
                     {% endif %}
                     {% endwith %}
 
-                    <form class="profile-form" action="{{ url_for('change_password') }}" method="POST">
+                    <form class="profile-form" action="{{ url_for('change_password') }}" method="POST" data-testid="profile-password-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                         <div class="profile-fields-grid">
@@ -188,9 +188,9 @@
                                 <label class="profile-label" for="currentPassword">{{ _("Current password") }}</label>
                                 <div class="profile-pw-wrap">
                                     <input type="password" id="currentPassword" name="currentPassword"
-                                        class="profile-input" autocomplete="current-password">
+                                        class="profile-input" autocomplete="current-password" data-testid="profile-current-password">
                                     <button type="button" class="profile-pw-toggle" data-target="currentPassword"
-                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        aria-label="{{ _('Toggle password visibility') }}" data-testid="profile-current-password-toggle">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -199,9 +199,9 @@
                                 <label class="profile-label" for="newPassword">{{ _("New password") }}</label>
                                 <div class="profile-pw-wrap">
                                     <input type="password" id="newPassword" name="newPassword"
-                                        class="profile-input" autocomplete="new-password">
+                                        class="profile-input" autocomplete="new-password" data-testid="profile-new-password">
                                     <button type="button" class="profile-pw-toggle" data-target="newPassword"
-                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        aria-label="{{ _('Toggle password visibility') }}" data-testid="profile-new-password-toggle">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -216,9 +216,9 @@
                                 <label class="profile-label" for="confirmPassword">{{ _("Confirm new password") }}</label>
                                 <div class="profile-pw-wrap">
                                     <input type="password" id="confirmPassword" name="confirmPassword"
-                                        class="profile-input" autocomplete="new-password">
+                                        class="profile-input" autocomplete="new-password" data-testid="profile-confirm-password">
                                     <button type="button" class="profile-pw-toggle" data-target="confirmPassword"
-                                        aria-label="{{ _('Toggle password visibility') }}">
+                                        aria-label="{{ _('Toggle password visibility') }}" data-testid="profile-confirm-password-toggle">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -227,7 +227,7 @@
                         </div>
 
                         <div class="profile-form-actions">
-                            <button type="submit" class="profile-btn profile-btn--primary">
+                            <button type="submit" class="profile-btn profile-btn--primary" data-testid="profile-update-password">
                                 <i class="fas fa-key"></i>
                                 <span>{{ _("Update password") }}</span>
                             </button>
@@ -262,7 +262,7 @@
 
                     <div class="profile-lang-grid">
                         <a href="{{ url_for('set_language', lang='en') }}"
-                            class="profile-lang-pill {% if current_lang == 'en' %}is-active{% endif %}">
+                            class="profile-lang-pill {% if current_lang == 'en' %}is-active{% endif %}" data-testid="profile-lang-en">
                             <span class="profile-lang-flag" aria-hidden="true">🇬🇧</span>
                             <div class="profile-lang-text">
                                 <span class="profile-lang-name">{{ _("English") }}</span>
@@ -271,7 +271,7 @@
                             <i class="fas fa-circle-check profile-lang-check"></i>
                         </a>
                         <a href="{{ url_for('set_language', lang='de') }}"
-                            class="profile-lang-pill {% if current_lang == 'de' %}is-active{% endif %}">
+                            class="profile-lang-pill {% if current_lang == 'de' %}is-active{% endif %}" data-testid="profile-lang-de">
                             <span class="profile-lang-flag" aria-hidden="true">🇩🇪</span>
                             <div class="profile-lang-text">
                                 <span class="profile-lang-name">{{ _("German") }}</span>
@@ -280,7 +280,7 @@
                             <i class="fas fa-circle-check profile-lang-check"></i>
                         </a>
                         <a href="{{ url_for('set_language', lang='fr') }}"
-                            class="profile-lang-pill {% if current_lang == 'fr' %}is-active{% endif %}">
+                            class="profile-lang-pill {% if current_lang == 'fr' %}is-active{% endif %}" data-testid="profile-lang-fr">
                             <span class="profile-lang-flag" aria-hidden="true">🇫🇷</span>
                             <div class="profile-lang-text">
                                 <span class="profile-lang-name">{{ _("French") }}</span>
@@ -289,7 +289,7 @@
                             <i class="fas fa-circle-check profile-lang-check"></i>
                         </a>
                         <a href="{{ url_for('set_language', lang='it') }}"
-                            class="profile-lang-pill {% if current_lang == 'it' %}is-active{% endif %}">
+                            class="profile-lang-pill {% if current_lang == 'it' %}is-active{% endif %}" data-testid="profile-lang-it">
                             <span class="profile-lang-flag" aria-hidden="true">🇮🇹</span>
                             <div class="profile-lang-text">
                                 <span class="profile-lang-name">{{ _("Italian") }}</span>

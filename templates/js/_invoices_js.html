@@ -71,7 +71,7 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                <a href="${API_PREFIX}invoice/${invoice.id}/pdf" class="text-indigo-600 hover:text-indigo-900" title="{{ _('Download PDF') }}">
+                <a href="${API_PREFIX}invoice/${invoice.id}/pdf" class="text-indigo-600 hover:text-indigo-900" title="{{ _('Download PDF') }}" data-testid="invoices-download-pdf-${invoice.id}">
                   <i class="fas fa-download"></i>
                 </a>
               </td>

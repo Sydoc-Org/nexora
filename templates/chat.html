@@ -21,7 +21,7 @@
       <div class="p-4 border-b flex justify-between items-center">
         <h2 class="text-xl font-bold text-gray-800">{{ _('Messages') }}</h2>
         <button onclick="document.getElementById('newChatModal').classList.remove('hidden')"
-          class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition cursor-pointer">
+          class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition cursor-pointer" data-testid="chat-new-conversation">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
@@ -50,18 +50,18 @@
         {{ _('Tip: Type "/workitemid" to reference a workitem') }}
       </div>
 
-      <form id="chatForm" class="flex gap-2">
-        <input type="file" id="fileInput" class="hidden" onchange="uploadFile()">
+      <form id="chatForm" class="flex gap-2" data-testid="chat-form">
+        <input type="file" id="fileInput" class="hidden" onchange="uploadFile()" data-testid="chat-file-input">
         <button type="button" onclick="document.getElementById('fileInput').click()"
-                class="p-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer">
+                class="p-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer" data-testid="chat-attach">
           <i class="fa-solid fa-paperclip"></i>
         </button>
 
         <input type="text" id="messageInput"
           class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="{{ _('Type a message or /<workitemid>...') }}" autocomplete="off">
+          placeholder="{{ _('Type a message or /<workitemid>...') }}" autocomplete="off" data-testid="chat-message-input">
 
-        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium cursor-pointer">
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium cursor-pointer" data-testid="chat-send">
           <i class="fa-solid fa-paper-plane mr-2"></i> {{ _('Send') }}
         </button>
       </form>
@@ -76,7 +76,7 @@
       <div class="max-h-60 overflow-y-auto space-y-2 mb-4 pr-1">
         {% for user in available_users %}
         <div onclick="startChat({{ user.userID }})"
-          class="p-3 hover:bg-blue-50 cursor-pointer rounded-lg flex items-center gap-3 transition border border-transparent hover:border-blue-100">
+          class="p-3 hover:bg-blue-50 cursor-pointer rounded-lg flex items-center gap-3 transition border border-transparent hover:border-blue-100" data-testid="chat-start-conversation-{{ user.userID }}">
           <img src="{{ get_user_icon_url(user.userID) }}" class="w-10 h-10 rounded-full object-cover shadow-sm">
           <span class="font-medium text-gray-700">{{ user.fullname }}</span>
         </div>
@@ -86,7 +86,7 @@
         {% endif %}
       </div>
       <button onclick="document.getElementById('newChatModal').classList.add('hidden')"
-        class="w-full p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition font-medium cursor-pointer">{{
+        class="w-full p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition font-medium cursor-pointer" data-testid="chat-new-modal-cancel">{{
         _('Cancel') }}</button>
     </div>
   </div>

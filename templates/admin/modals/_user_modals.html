@@ -9,10 +9,10 @@
             </p>
         </div>
         <div class="mt-6 flex justify-center space-x-4">
-            <button id="cancelBtn" type="button" class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md">
+            <button id="cancelBtn" type="button" class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md" data-testid="admin-user-modal-confirmation-cancel">
                 {{ _("Cancel") }}
             </button>
-            <button id="confirmBtn" type="button" class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md">
+            <button id="confirmBtn" type="button" class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md" data-testid="admin-user-modal-confirmation-confirm">
                 {{ _("Confirm") }}
             </button>
         </div>
@@ -25,7 +25,7 @@
     <div
         class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300 ease-in-out">
         <h3 id="modalTitle" class="text-2xl font-bold mb-4">{{ _("Add new user") }}</h3>
-        <form id="userForm">
+        <form id="userForm" data-testid="admin-user-modal-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" id="userId" name="userId">
             <div class="space-y-4">
@@ -33,25 +33,25 @@
                     <label for="username" class="block mb-1 text-sm font-medium">{{ _("Username") }}</label>
                     <input type="text" id="username" name="username"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                        required>
+                        required data-testid="admin-user-modal-username">
                 </div>
 
                 <div>
                     <label for="fullname" class="block mb-1 text-sm font-medium">{{ _("Full name") }}</label>
                     <input type="text" id="fullname" name="fullname"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                        required>
+                        required data-testid="admin-user-modal-fullname">
                 </div>
                 <div>
                     <label for="email" class="block mb-1 text-sm font-medium">{{ _("Email") }}</label>
                     <input type="email" id="email" name="email"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                        required>
+                        required data-testid="admin-user-modal-email">
                 </div>
                 <div>
                 <label for="accessprofile" class="block mb-1 text-sm font-medium">{{ _("Access Profile") }}</label>
-                 <select id="accessprofile" name="accessprofile" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" 
-                 required>
+                 <select id="accessprofile" name="accessprofile" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                 required data-testid="admin-user-modal-accessprofile">
                     {% for profile in accessprofiles %}
                     <option value="{{ profile.profile }}">{{ profile.profile }}</option>
                     {% endfor %}
@@ -60,8 +60,8 @@
 
                 <div>
                 <label for="organization" class="block mb-1 text-sm font-medium">{{ _("Organization") }}</label>
-                 <select id="organization" name="organization" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" 
-                 required>
+                 <select id="organization" name="organization" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                 required data-testid="admin-user-modal-organization">
                     {% for organization in organizations %}
                     <option value="{{ organization.organization }}">{{ organization.organization }}</option>
                     {% endfor %}
@@ -71,16 +71,16 @@
                 <div>
                     <label for="password" class="block mb-1 text-sm font-medium">{{ _("Password") }}</label>
                     <input type="password" id="password" name="password"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" data-testid="admin-user-modal-password">
                     <p class="text-xs text-gray-500 mt-1" id="password-help">{{ _("Leave blank to keep password.") }}
                     </p>
                 </div>
             </div>
             <div class="flex justify-end mt-6">
                 <button type="button" onclick="closeModal()"
-                    class="text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2">{{ _("Cancel") }}</button>
+                    class="text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2" data-testid="admin-user-modal-cancel">{{ _("Cancel") }}</button>
                 <button type="submit"
-                    class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">{{ _("Save user") }}</button>
+                    class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center" data-testid="admin-user-modal-save">{{ _("Save user") }}</button>
             </div>
         </form>
     </div>

@@ -465,6 +465,7 @@
             tr.className = 'is-clickable';
             tr.id = `user-row-${u.userID}`;
             tr.onclick = () => { window.location.href = `${API_PREFIX}admin/users/${encodeURIComponent(u.userID)}`; };
+            tr.setAttribute('data-testid', `admin-ac-user-row-${u.userID}`);
             tr.innerHTML = `
                 <td></td>
                 <td>
@@ -615,7 +616,7 @@
             tr.innerHTML = `
                 <td class="px-4 py-4">
                     <button onclick="togglePermExpand(${p.PermissionID})"
-                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center">
+                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-testid="admin-ac-perm-expand-${p.PermissionID}">
                         <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
                     </button>
                 </td>
@@ -631,11 +632,11 @@
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
                     <button onclick="openEditPermissionModal(${p.PermissionID})"
-                            class="text-indigo-400 hover:text-indigo-700 text-sm" title="{{ _('Edit') }}">
+                            class="text-indigo-400 hover:text-indigo-700 text-sm" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button onclick="confirmDeletePermission(${p.PermissionID})"
-                            class="text-red-300 hover:text-red-600 text-sm" title="{{ _('Delete') }}">
+                            class="text-red-300 hover:text-red-600 text-sm" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>`;

@@ -34,7 +34,7 @@
         <label for="prcfD" class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Process") }}</label>
         <select id="prcfD" name="prcfD"
           class="bg-gray-50 border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-all font-[inherit]"
-          onchange="setProcessFilter(this.value)">
+          onchange="setProcessFilter(this.value)" data-testid="dashboard-process-filter">
           <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
           {% for proc in allowed_processes %}
           <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>{{ proc }}</option>

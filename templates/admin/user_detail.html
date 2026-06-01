@@ -34,24 +34,24 @@
 
             <form id="userProfileForm"
                   data-user-id="{{ user.userID }}"
-                  style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+                  style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px" data-testid="admin-userdetail-profile-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div>
                     <label class="admin-meta" for="fld-username" style="display:block;margin-bottom:6px">{{ _('Username') }}</label>
-                    <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="admin-input">
+                    <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="admin-input" data-testid="admin-userdetail-username">
                 </div>
                 <div>
                     <label class="admin-meta" for="fld-fullname" style="display:block;margin-bottom:6px">{{ _('Full name') }}</label>
-                    <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="admin-input">
+                    <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="admin-input" data-testid="admin-userdetail-fullname">
                 </div>
                 <div>
                     <label class="admin-meta" for="fld-email" style="display:block;margin-bottom:6px">{{ _('Email') }}</label>
-                    <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="admin-input">
+                    <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="admin-input" data-testid="admin-userdetail-email">
                 </div>
                 <div>
                     <label class="admin-meta" for="fld-profile" style="display:block;margin-bottom:6px">{{ _('Access profile') }}</label>
-                    <select id="fld-profile" name="accessprofile" class="admin-select" {% if not can_edit_user %}disabled{% endif %}>
+                    <select id="fld-profile" name="accessprofile" class="admin-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
                         {% for p in assignable_profiles %}
                         <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
                         {% endfor %}
@@ -59,7 +59,7 @@
                 </div>
                 <div>
                     <label class="admin-meta" for="fld-org" style="display:block;margin-bottom:6px">{{ _('Organization') }}</label>
-                    <select id="fld-org" name="organization" class="admin-select" {% if not can_edit_user %}disabled{% endif %}>
+                    <select id="fld-org" name="organization" class="admin-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
                         {% for o in organizations %}
                         <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
                         {% endfor %}
@@ -67,13 +67,13 @@
                 </div>
                 <div>
                     <label class="admin-meta" for="fld-password" style="display:block;margin-bottom:6px">{{ _('New password') }}</label>
-                    <input type="password" id="fld-password" name="password" class="admin-input" placeholder="{{ _('Leave blank to keep current') }}">
+                    <input type="password" id="fld-password" name="password" class="admin-input" placeholder="{{ _('Leave blank to keep current') }}" data-testid="admin-userdetail-password">
                 </div>
 
                 <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px">
-                    <a href="{{ url_for('admin_access_control') }}" class="admin-btn admin-btn-secondary">{{ _('Cancel') }}</a>
+                    <a href="{{ url_for('admin_access_control') }}" class="admin-btn admin-btn-secondary" data-testid="admin-userdetail-cancel">{{ _('Cancel') }}</a>
                     {% if can_edit_user %}
-                    <button type="submit" class="admin-btn admin-btn-primary">{{ _('Save changes') }}</button>
+                    <button type="submit" class="admin-btn admin-btn-primary" data-testid="admin-userdetail-save">{{ _('Save changes') }}</button>
                     {% endif %}
                 </div>
             </form>
@@ -85,12 +85,12 @@
 
         <ul class="perm-tabs">
             <li>
-                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="perm-tab-btn is-active">
+                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="perm-tab-btn is-active" data-testid="admin-userdetail-tab-effective">
                     <i class="fas fa-shield-halved"></i>{{ _('Effective Permissions') }}
                 </button>
             </li>
             <li>
-                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="perm-tab-btn">
+                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="perm-tab-btn" data-testid="admin-userdetail-tab-overrides">
                     <i class="fas fa-sliders"></i>{{ _('Overrides') }}
                 </button>
             </li>
@@ -108,7 +108,7 @@
             <div style="margin-bottom:12px">
                 <div class="admin-input-icon" style="max-width:320px">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="effSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}">
+                    <input type="text" id="effSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-effective-search">
                 </div>
             </div>
 
@@ -136,12 +136,12 @@
                 <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="overrideSummary"></div>
             </div>
 
-            <form id="overridesForm" data-user-id="{{ user.userID }}">
+            <form id="overridesForm" data-user-id="{{ user.userID }}" data-testid="admin-userdetail-overrides-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div style="margin-bottom:12px">
                     <div class="admin-input-icon" style="max-width:320px">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="overrideSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}">
+                        <input type="text" id="overrideSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-override-search">
                     </div>
                 </div>
                 <div class="admin-table-wrap">
@@ -183,9 +183,9 @@
                                     <div><span class="admin-mono">{{ perm.Code }}</span></div>
                                     <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
                                 </td>
-                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked></td>
-                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %}></td>
-                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %}></td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked data-testid="admin-userdetail-override-{{ perm.PermissionID }}-none"></td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %} data-testid="admin-userdetail-override-{{ perm.PermissionID }}-deny"></td>
+                                <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="A" {% if not can_edit_overrides %}disabled{% endif %} data-testid="admin-userdetail-override-{{ perm.PermissionID }}-allow"></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -193,7 +193,7 @@
                 </div>
                 {% if can_edit_overrides %}
                 <div style="display:flex;justify-content:flex-end;margin-top:12px">
-                    <button type="submit" class="admin-btn admin-btn-primary">{{ _('Save overrides') }}</button>
+                    <button type="submit" class="admin-btn admin-btn-primary" data-testid="admin-userdetail-save-overrides">{{ _('Save overrides') }}</button>
                 </div>
                 {% endif %}
             </form>
@@ -210,7 +210,7 @@
                 </p>
             </div>
             <a href="{{ url_for('admin_logs_view') }}?username={{ user.username|urlencode }}"
-               class="admin-btn admin-btn-ghost" style="font-size:12px">
+               class="admin-btn admin-btn-ghost" style="font-size:12px" data-testid="admin-userdetail-view-all-logs">
                 {{ _('View all in logs') }} <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px"></i>
             </a>
         </div>
@@ -231,8 +231,8 @@
             <div style="padding:10px 16px;border-top:1px solid var(--a-border);display:flex;align-items:center;justify-content:space-between">
                 <span style="font-size:12px;color:var(--a-text-sec)" id="activityPageInfo"></span>
                 <div style="display:flex;gap:8px">
-                    <button id="activityPrevBtn" class="admin-btn admin-btn-secondary" type="button" disabled>{{ _('Previous') }}</button>
-                    <button id="activityNextBtn" class="admin-btn admin-btn-secondary" type="button" disabled>{{ _('Next') }}</button>
+                    <button id="activityPrevBtn" class="admin-btn admin-btn-secondary" type="button" disabled data-testid="admin-userdetail-activity-prev">{{ _('Previous') }}</button>
+                    <button id="activityNextBtn" class="admin-btn admin-btn-secondary" type="button" disabled data-testid="admin-userdetail-activity-next">{{ _('Next') }}</button>
                 </div>
             </div>
         </div>
@@ -252,13 +252,13 @@
                 <button id="signOutAllBtn" class="admin-btn admin-btn-secondary"
                         data-user-id="{{ user.userID }}"
                         data-username="{{ user.username }}"
-                        type="button">
+                        type="button" data-testid="admin-userdetail-sign-out-all">
                     <i class="fas fa-sign-out-alt"></i> {{ _('Sign out everywhere') }}
                 </button>
                 <button id="deleteUserBtn" class="admin-btn admin-btn-danger"
                         data-user-id="{{ user.userID }}"
                         data-username="{{ user.username }}"
-                        type="button">
+                        type="button" data-testid="admin-userdetail-delete">
                     <i class="fas fa-trash"></i> {{ _('Delete user') }}
                 </button>
             </div>
@@ -274,10 +274,10 @@
             <p style="font-size:13px;color:var(--a-text-sec);margin:0 0 16px" id="confirmDeleteMessage"></p>
             <div style="display:flex;justify-content:center;gap:8px">
                 <button type="button" class="admin-btn admin-btn-secondary"
-                        onclick="document.getElementById('confirmDeleteModal').style.display='none'">
+                        onclick="document.getElementById('confirmDeleteModal').style.display='none'" data-testid="admin-userdetail-confirm-delete-cancel">
                     {{ _('Cancel') }}
                 </button>
-                <button type="button" id="confirmDeleteBtn" class="admin-btn admin-btn-danger">
+                <button type="button" id="confirmDeleteBtn" class="admin-btn admin-btn-danger" data-testid="admin-userdetail-confirm-delete">
                     {{ _('Delete') }}
                 </button>
             </div>

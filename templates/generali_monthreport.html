@@ -24,7 +24,7 @@
       </div>
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <a href="{{ back_url }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-back">
           <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back") }}</span>
         </a>
       </div>
@@ -33,7 +33,7 @@
     <!-- Month Navigation -->
     <div class="flex items-center justify-center gap-4 mb-6">
       <a href="?year={{ prev_year }}&month={{ prev_month }}"
-         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-prev">
         <i class="fas fa-chevron-left"></i>
       </a>
       <span class="text-lg font-bold text-gray-900 min-w-36 text-center">{{ month_label }}</span>
@@ -43,7 +43,7 @@
       </span>
       {% else %}
       <a href="?year={{ next_year }}&month={{ next_month }}"
-         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-next">
         <i class="fas fa-chevron-right"></i>
       </a>
       {% endif %}

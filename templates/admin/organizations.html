@@ -34,12 +34,12 @@
                 ]) }}
                 <tbody id="orgs-tbody">
                     {% for organization in organizations %}
-                    <tr data-search="{{ (organization.organizationcode ~ ' ' ~ organization.organization)|lower }}">
+                    <tr data-search="{{ (organization.organizationcode ~ ' ' ~ organization.organization)|lower }}" data-testid="admin-org-row-{{ organization.organizationcode }}">
                         <td><span class="admin-mono">{{ organization.organizationcode }}</span></td>
                         <td>{{ organization.organization }}</td>
                         <td class="align-right">
-                            <button data-organization='{{ organization|tojson|safe }}' class="edit-organization-btn admin-btn admin-btn-ghost" type="button">{{ _("Edit") }}</button>
-                            <button onclick="deleteorganization('{{ organization.organizationcode }}')" class="admin-btn admin-btn-ghost" style="color:var(--a-danger)" type="button">{{ _("Delete") }}</button>
+                            <button data-organization='{{ organization|tojson|safe }}' class="edit-organization-btn admin-btn admin-btn-ghost" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
+                            <button onclick="deleteorganization('{{ organization.organizationcode }}')" class="admin-btn admin-btn-ghost" style="color:var(--a-danger)" type="button" data-testid="admin-org-delete-{{ organization.organizationcode }}">{{ _("Delete") }}</button>
                         </td>
                     </tr>
                     {% endfor %}

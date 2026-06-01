@@ -30,18 +30,18 @@
           <span class="text-sm font-bold text-indigo-600 uppercase tracking-widest" id="totalItemsCount">—</span>
         </div>
         <a href="{{ url_for('generali_evaluation') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-documents-dashboard-link">
           <i class="fas fa-chart-line"></i><span class="hidden sm:inline">{{ _("Dashboard") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-documents-reporting-link">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
     </div>
 
     <!-- Filter Panel -->
-    <form id="filterForm" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+    <form id="filterForm" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6" data-testid="generali-documents-filter-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
       <!-- Row 1 -->
@@ -50,7 +50,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Document Type") }}</label>
           <div class="relative">
             <select id="filterDocType" name="docType"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-doctype-filter">
               <option value="">{{ _("All Types") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -62,7 +62,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Recipient") }}</label>
           <div class="relative">
             <select id="filterEmpfaenger" name="empfaenger"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-recipient-filter">
               <option value="">{{ _("All Recipients") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -74,7 +74,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Language") }}</label>
           <div class="relative">
             <select id="filterSprache" name="sprache"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-language-filter">
               <option value="">{{ _("All Languages") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -86,7 +86,7 @@
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Channel") }}</label>
             <div class="relative">
               <select id="filterKanal" name="eingangskanal"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-channel-filter">
                 <option value="">{{ _("All Channels") }}</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -103,7 +103,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">NK1</label>
           <div class="relative">
             <select id="filterNK1" name="nk1"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-nk1-filter">
               <option value="">{{ _("All NK1") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -116,7 +116,7 @@
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">NK2</label>
             <div class="relative">
               <select id="filterNK2" name="nk2"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-nk2-filter">
                 <option value="">{{ _("All NK2") }}</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -129,7 +129,7 @@
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Communication") }}</label>
             <div class="relative">
               <select id="filterKomm" name="kommunikation"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-komm-filter">
                 <option value="">{{ _("All") }}</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -141,7 +141,7 @@
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Group By") }}</label>
             <div class="relative">
               <select id="filterGroupBy" name="groupBy"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-documents-groupby-filter">
                 <option value="">{{ _("No Grouping") }}</option>
                 <option value="DOC_DOKUMENTENTYP">{{ _("Document Type") }}</option>
                 <option value="DOC_EMPFAENGER">{{ _("Recipient") }}</option>
@@ -159,12 +159,12 @@
           <div>
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
             <input type="text" id="filterStartDate" name="startDate" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-documents-start-date" />
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
             <input type="text" id="filterEndDate" name="endDate" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-documents-end-date" />
           </div>
         </div>
       </div>
@@ -177,12 +177,12 @@
           </span>
           <input type="text" id="searchInput" name="search"
             class="block w-full h-11 rounded-lg border border-gray-300 bg-white pl-9 pr-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="{{ _('Search by ID, policy, damage number…') }}" />
+            placeholder="{{ _('Search by ID, policy, damage number…') }}" data-testid="generali-documents-search" />
         </div>
         <div class="flex items-center gap-3">
           <div class="relative">
             <select id="filterPerPage" name="perPage"
-              class="block h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
+              class="block h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8" data-testid="generali-documents-per-page">
               <option value="40" selected>40</option>
               <option value="100">100</option>
               <option value="200">200</option>
@@ -194,11 +194,11 @@
             </div>
           </div>
           <button type="button" id="toggleAdvancedBtn"
-            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 transition text-sm font-semibold border border-gray-200">
+            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 transition text-sm font-semibold border border-gray-200" data-testid="generali-documents-toggle-advanced">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
           </button>
           <a href="{{ url_for('generali_documents') }}"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-documents-reset">
             {{ _("Reset") }}
           </a>
         </div>

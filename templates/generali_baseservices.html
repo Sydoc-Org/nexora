@@ -28,20 +28,20 @@
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-base-services-add-entry">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Entry") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn" onclick="exportToExcel()"
-          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200">
+          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200" data-testid="generali-base-services-export-excel">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_baseservices_monthreport') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-monthreport-link">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-reporting-link">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
@@ -53,18 +53,18 @@
         <div class="w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-start-date" />
         </div>
         <div class="w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-end-date" />
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Category") }}</label>
           <div class="relative">
             <select id="filterCategory"
-              class="block w-full sm:min-w-56 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full sm:min-w-56 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-category-filter">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -76,7 +76,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-organization-filter">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -88,7 +88,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-user-filter">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -98,11 +98,11 @@
         </div>
         <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
           <button id="applyFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+            class="flex-1 sm:flex-none h-11 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-base-services-apply-filter">
             <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
           </button>
           <button id="resetFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            class="flex-1 sm:flex-none h-11 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-reset-filter">
             {{ _("Reset") }}
           </button>
         </div>
@@ -180,7 +180,7 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
         <h3 class="text-lg font-bold text-gray-900">{{ _("Add Entry") }}</h3>
-        <button id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 transition">
+        <button id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-base-services-add-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
@@ -191,7 +191,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("User") }}</label>
           <div class="relative">
             <select id="addUserId"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-add-user">
               <option value="">{{ _("Myself") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -203,13 +203,13 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-add-date" />
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Category") }}</label>
           <div class="relative">
             <select id="addCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-add-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -220,16 +220,16 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
           <input type="number" id="addEffortHours" placeholder="0.5" step="0.5" min="0.5"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-add-effort" />
         </div>
       </div>
       <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
         <button id="cancelAddModalBtn"
-          class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
+          class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-add-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="submitAddBtn"
-          class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">
+          class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-base-services-add-submit">
           {{ _("Submit") }}
         </button>
       </div>
@@ -241,7 +241,7 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
         <h3 class="text-base font-bold text-gray-900">{{ _("Edit Entry") }}</h3>
-        <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition">
+        <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-base-services-edit-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
@@ -249,13 +249,13 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="editForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-edit-date" />
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Category") }}</label>
           <div class="relative">
             <select id="editCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10">
+              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-edit-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -266,17 +266,17 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
           <input type="number" id="editEffortHours" placeholder="0.5" step="0.5" min="0.5"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-edit-effort" />
         </div>
         <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
       </div>
       <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
         <button id="cancelEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-edit-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="saveEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-base-services-edit-save">
           {{ _("Save") }}
         </button>
       </div>
@@ -297,11 +297,11 @@
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">
         <button id="cancelDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition">
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-delete-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="confirmDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm">
+          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm" data-testid="generali-base-services-delete-confirm">
           {{ _("Delete") }}
         </button>
       </div>
