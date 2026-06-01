@@ -37,6 +37,8 @@ dev = [
     "pytest-playwright==0.5.2",
     "playwright==1.49.1",
     "pytest-rerunfailures==15.0",
+    "coverage[toml]==7.6.10",
+    "defusedxml==0.7.1",
     "ruff==0.7.4",
     "mypy==1.13.0",
     "pre-commit==4.0.1",
@@ -106,4 +108,23 @@ filterwarnings = [
     # in-memory storage is fine for the test suite; production concern is
     # tracked via the TODO in nx_lib/extensions.py.
     "ignore::UserWarning:flask_limiter.*",
+]
+
+[tool.coverage.run]
+source = ["nx_lib"]
+branch = true
+omit = [
+    "nx_lib/__init__.py",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 90
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if sys.stdout.isatty",
 ]
