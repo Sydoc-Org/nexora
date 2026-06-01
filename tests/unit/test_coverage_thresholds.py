@@ -34,7 +34,7 @@ MIN_COVERAGE = {
     "octo.py": 95,
     "process_helpers.py": 100,
     "extensions.py": 100,
-    "app_logging.py": 0,
+    "app_logging.py": 100,
     "cli.py": 0,
     "cli_doctor.py": 0,
     "views/core.py": 0,
