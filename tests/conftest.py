@@ -37,6 +37,29 @@ def app():
     yield flask_app
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset Flask-Limiter's in-memory storage before EVERY test.
+
+    Without this, sibling tests that POST to /login (10/min) or any other
+    rate-limited route cumulatively exhaust the quota — eventually every
+    user_client / admin_client login fixture starts seeing 429s. Tests that
+    intentionally exercise the rate limit (test_auth_routes.test_*_rate_limit)
+    still work because the reset runs *before* the test body.
+
+    E2E tests run against a subprocess so the in-process limiter isn't bound
+    to an app — the reset is a no-op there.
+    """
+    try:
+        from nx_lib.extensions import limiter
+
+        limiter.reset()
+    except (AssertionError, RuntimeError):
+        # Limiter not bound to an app context (e.g. e2e subprocess tests).
+        pass
+    yield
+
+
 @pytest.fixture()
 def client(app):
     """Flask test client. Fresh per test."""

@@ -39,7 +39,7 @@ MIN_COVERAGE = {
     "cli_doctor.py": 60,
     "views/core.py": 95,
     "views/auth.py": 65,
-    "views/profile.py": 0,
+    "views/profile.py": 75,
     "views/dashboard.py": 0,
     "views/admin.py": 0,
     "views/workitems.py": 0,
