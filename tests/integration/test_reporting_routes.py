@@ -6,6 +6,8 @@ TEST schema are asserted as (200, 500) to stay forward-compatible, mirroring the
 dashboard route tests.
 """
 
+from nx_lib.db import engine_nexora_db
+
 
 def test_reporting_anonymous_redirects_to_login(client):
     resp = client.get("/reporting", follow_redirects=False)
@@ -122,3 +124,142 @@ def test_export_grid_csv_ok_has_bom(admin_client):
 def test_export_grid_bad_body_400(admin_client):
     resp = admin_client.post("/api/reporting/export/grid", json={"columns": "nope"})
     assert resp.status_code == 400
+
+
+# --- Cross-user sharing (A2). TestAdmin owns the reports it creates. ---
+
+
+def _create_report(admin_client, name="Share Test"):
+    resp = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": name,
+            "definition": {
+                "kind": "sql",
+                "target": "statistics",
+                "sql": "SELECT 1 AS one",
+                "title": name,
+            },
+        },
+    )
+    assert resp.status_code == 200, resp.data
+    return resp.get_json()["id"]
+
+
+def test_shares_get_owner_default_private(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        resp = admin_client.get(f"/api/reporting/reports/{rid}/shares")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["visibility"] == "private"
+        assert data["shares"] == []
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_set_visibility_shared_reflects_in_list(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        resp = admin_client.post(
+            f"/api/reporting/reports/{rid}/shares", json={"visibility": "shared"}
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["visibility"] == "shared"
+        lst = admin_client.get("/api/reporting/reports").get_json()
+        row = next(r for r in lst if r["id"] == rid)
+        assert row["visibility"] == "shared" and row["owned"] is True
+        bad = admin_client.post(f"/api/reporting/reports/{rid}/shares", json={"visibility": "nope"})
+        assert bad.status_code == 400
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_add_and_remove_user_share(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        resp = admin_client.post(
+            f"/api/reporting/reports/{rid}/shares",
+            json={"user": "user@test.local", "canEdit": True},
+        )
+        assert resp.status_code == 200
+        shares = resp.get_json()["shares"]
+        assert len(shares) == 1 and shares[0]["canEdit"] is True
+        uid = shares[0]["userId"]
+        rem = admin_client.delete(f"/api/reporting/reports/{rid}/shares/{uid}")
+        assert rem.status_code == 200
+        assert rem.get_json()["shares"] == []
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_share_unknown_user_404(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        resp = admin_client.post(
+            f"/api/reporting/reports/{rid}/shares", json={"user": "ghost@nowhere.invalid"}
+        )
+        assert resp.status_code == 404
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_share_with_self_400(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        resp = admin_client.post(
+            f"/api/reporting/reports/{rid}/shares", json={"user": "admin@test.local"}
+        )
+        assert resp.status_code == 400
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_shares_endpoints_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/reports/1/shares").status_code == 403
+    assert (
+        user_client.post(
+            "/api/reporting/reports/1/shares", json={"visibility": "shared"}
+        ).status_code
+        == 403
+    )
+
+
+def test_shared_report_visible_to_non_owner(admin_client):
+    # A report owned by user@test.local (a different user), marked 'shared', must
+    # appear in admin's list (owned=false) and be loadable, but not manageable.
+    conn = engine_nexora_db.raw_connection()
+    rid = None
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'user@test.local'")
+        other = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.Reports (OwnerUserID, Name, DefinitionJSON, Visibility) "
+            "OUTPUT INSERTED.ReportID VALUES (?, ?, ?, 'shared')",
+            (
+                other,
+                "Shared By Other",
+                '{"kind":"sql","target":"statistics","sql":"SELECT 1 AS one",'
+                '"title":"Shared By Other"}',
+            ),
+        )
+        rid = cur.fetchone()[0]
+        conn.commit()
+
+        lst = admin_client.get("/api/reporting/reports").get_json()
+        row = next((r for r in lst if r["id"] == rid), None)
+        assert row is not None
+        assert row["owned"] is False and row["canEdit"] is False
+        assert row["ownerName"] == "user@test.local"
+        got = admin_client.get(f"/api/reporting/reports/{rid}")
+        assert got.status_code == 200 and got.get_json()["owned"] is False
+        # Not the owner => cannot manage its shares.
+        assert admin_client.get(f"/api/reporting/reports/{rid}/shares").status_code == 404
+    finally:
+        if rid is not None:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM dbo.ReportShares WHERE ReportID = ?", (rid,))
+            cur.execute("DELETE FROM dbo.Reports WHERE ReportID = ?", (rid,))
+            conn.commit()
+        conn.close()

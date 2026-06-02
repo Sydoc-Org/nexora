@@ -19,6 +19,7 @@ GO
 -- it must go before Users or the reset fails on re-run (they are recreated near
 -- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
 -- a clean, fully idempotent reset.
+IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
 IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
 IF OBJECT_ID('dbo.ReportingSqlAudit', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAudit;
 IF OBJECT_ID('dbo.ReportingSqlAck', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAck;
@@ -192,10 +193,31 @@ BEGIN
         OwnerUserID     INT NOT NULL,
         Name            NVARCHAR(200) NOT NULL,
         DefinitionJSON  NVARCHAR(MAX) NOT NULL,
+        Visibility      NVARCHAR(20) NOT NULL CONSTRAINT DF_Reports_Visibility DEFAULT 'private',
         CreatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Reports_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Reports_UpdatedAt DEFAULT SYSUTCDATETIME(),
-        CONSTRAINT FK_Reports_Users FOREIGN KEY (OwnerUserID) REFERENCES dbo.Users(userID)
+        CONSTRAINT FK_Reports_Users FOREIGN KEY (OwnerUserID) REFERENCES dbo.Users(userID),
+        CONSTRAINT CK_Reports_Visibility CHECK (Visibility IN ('private', 'shared'))
     );
     CREATE INDEX IX_Reports_Owner ON dbo.Reports(OwnerUserID);
+END;
+GO
+
+-- Explicit per-user report shares (mirrors 0009_report_sharing.sql).
+IF OBJECT_ID(N'dbo.ReportShares', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportShares (
+        ReportID          INT NOT NULL,
+        SharedWithUserID  INT NOT NULL,
+        CanEdit           BIT NOT NULL CONSTRAINT DF_ReportShares_CanEdit DEFAULT 0,
+        CreatedAt         DATETIME2 NOT NULL
+                          CONSTRAINT DF_ReportShares_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ReportShares PRIMARY KEY (ReportID, SharedWithUserID),
+        CONSTRAINT FK_ReportShares_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportShares_Users FOREIGN KEY (SharedWithUserID)
+            REFERENCES dbo.Users(userID)
+    );
+    CREATE INDEX IX_ReportShares_User ON dbo.ReportShares(SharedWithUserID);
 END;
 GO

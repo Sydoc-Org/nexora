@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 23:59+0200\n"
+"POT-Creation-Date: 2026-06-03 00:19+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -239,7 +239,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/reporting.html:87
+#: templates/generali_reporting.html:335 templates/reporting.html:89
 #: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr ""
@@ -693,7 +693,7 @@ msgstr ""
 #: templates/generali_baseservices.html:280 templates/generali_pdqm.html:359
 #: templates/generali_projectmanagement.html:266
 #: templates/generali_reporting.html:314
-#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:45
+#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:47
 msgid "Save"
 msgstr ""
 
@@ -1637,7 +1637,7 @@ msgstr ""
 msgid "Untitled report"
 msgstr ""
 
-#: templates/js/_reporting_js.html:497 templates/reporting.html:37
+#: templates/js/_reporting_js.html:502 templates/reporting.html:37
 msgid "Saved reports…"
 msgstr ""
 
@@ -1649,83 +1649,123 @@ msgstr ""
 msgid "Rename"
 msgstr ""
 
-#: templates/reporting.html:44
-msgid "Run"
+#: templates/reporting.html:43
+msgid "Share the selected report you own"
+msgstr ""
+
+#: templates/reporting.html:43
+msgid "Share"
 msgstr ""
 
 #: templates/reporting.html:46
-msgid "Save as"
-msgstr ""
-
-#: templates/reporting.html:47
-msgid "Export format"
+msgid "Run"
 msgstr ""
 
 #: templates/reporting.html:48
+msgid "Save as"
+msgstr ""
+
+#: templates/reporting.html:49
+msgid "Export format"
+msgstr ""
+
+#: templates/reporting.html:50
 msgid "Excel"
 msgstr ""
 
-#: templates/reporting.html:51
+#: templates/reporting.html:53
 msgid "Export"
 msgstr ""
 
-#: templates/reporting.html:55
+#: templates/reporting.html:57
 msgid "Target"
 msgstr ""
 
-#: templates/reporting.html:62
+#: templates/reporting.html:64
 msgid "Grid"
 msgstr ""
 
-#: templates/reporting.html:63
+#: templates/reporting.html:65
 msgid "Chart"
 msgstr ""
 
-#: templates/reporting.html:64
+#: templates/reporting.html:66
 msgid "Pivot"
 msgstr ""
 
-#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:72
+#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:74
 msgid "Columns"
 msgstr ""
 
-#: templates/reporting.html:73
+#: templates/reporting.html:75
 msgid "Filters"
 msgstr ""
 
-#: templates/reporting.html:74 templates/workitems_overview.html:285
+#: templates/reporting.html:76 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr ""
 
-#: templates/reporting.html:75
+#: templates/reporting.html:77
 msgid "Sort"
 msgstr ""
 
-#: templates/reporting.html:76
+#: templates/reporting.html:78
 msgid "Add sort"
 msgstr ""
 
-#: templates/reporting.html:77
+#: templates/reporting.html:79
 msgid "Format"
 msgstr ""
 
-#: templates/reporting.html:78
+#: templates/reporting.html:80
 msgid "Subtitle"
 msgstr ""
 
-#: templates/reporting.html:84
+#: templates/reporting.html:86
 msgid "Live SQL — read-only"
 msgstr ""
 
-#: templates/reporting.html:85
+#: templates/reporting.html:87
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
 "query before running."
 msgstr ""
 
-#: templates/reporting.html:88
+#: templates/reporting.html:90
 msgid "I understand"
+msgstr ""
+
+#: templates/reporting.html:97
+msgid "Share report"
+msgstr ""
+
+#: templates/reporting.html:100
+msgid "Private — only me"
+msgstr ""
+
+#: templates/reporting.html:102
+msgid "Shared with everyone who can use Reporting"
+msgstr ""
+
+#: templates/reporting.html:104
+msgid "Shared with specific people"
+msgstr ""
+
+#: templates/reporting.html:107
+msgid "Email or username"
+msgstr ""
+
+#: templates/reporting.html:108
+msgid "Can edit"
+msgstr ""
+
+#: templates/reporting.html:109
+msgid "Add"
+msgstr ""
+
+#: templates/admin/logs.html:157 templates/reporting.html:112
+msgid "Close"
 msgstr ""
 
 #: templates/reset_password.html:8
@@ -2279,10 +2319,6 @@ msgstr ""
 
 #: templates/admin/logs.html:151
 msgid "Copy"
-msgstr ""
-
-#: templates/admin/logs.html:157
-msgid "Close"
 msgstr ""
 
 #: templates/admin/maintenance.html:6
@@ -2946,52 +2982,76 @@ msgstr ""
 msgid "At least 8 characters required"
 msgstr ""
 
-#: templates/js/_reporting_js.html:147
+#: templates/js/_reporting_js.html:148
 msgid "No rows."
 msgstr ""
 
-#: templates/js/_reporting_js.html:243
+#: templates/js/_reporting_js.html:246
 msgid "Report name"
 msgstr ""
 
-#: templates/js/_reporting_js.html:253 templates/js/_reporting_js.html:264
+#: templates/js/_reporting_js.html:258 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr ""
 
-#: templates/js/_reporting_js.html:254 templates/js/_reporting_js.html:265
+#: templates/js/_reporting_js.html:259 templates/js/_reporting_js.html:270
 msgid "Save failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:284 templates/js/_reporting_js.html:301
+#: templates/js/_reporting_js.html:289 templates/js/_reporting_js.html:306
 msgid "Export failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:292 templates/js/_reporting_js.html:308
+#: templates/js/_reporting_js.html:297 templates/js/_reporting_js.html:313
 msgid "Nothing to export."
 msgstr ""
 
-#: templates/js/_reporting_js.html:359
+#: templates/js/_reporting_js.html:364
 msgid "Could not load sources"
 msgstr ""
 
-#: templates/js/_reporting_js.html:507
+#: templates/js/_reporting_js.html:509
+msgid "shared"
+msgstr ""
+
+#: templates/js/_reporting_js.html:519
+msgid "My reports"
+msgstr ""
+
+#: templates/js/_reporting_js.html:525
+msgid "Shared with me"
+msgstr ""
+
+#: templates/js/_reporting_js.html:532
 msgid "Could not load saved reports"
 msgstr ""
 
-#: templates/js/_reporting_js.html:559
+#: templates/js/_reporting_js.html:596
 msgid "New name"
 msgstr ""
 
-#: templates/js/_reporting_js.html:569
+#: templates/js/_reporting_js.html:606
 msgid "Rename failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:576
+#: templates/js/_reporting_js.html:613
 msgid "Delete this saved report?"
 msgstr ""
 
-#: templates/js/_reporting_js.html:584
+#: templates/js/_reporting_js.html:621
 msgid "Delete failed"
+msgstr ""
+
+#: templates/js/_reporting_js.html:652
+msgid "can edit"
+msgstr ""
+
+#: templates/js/_reporting_js.html:657
+msgid "Remove"
+msgstr ""
+
+#: templates/js/_reporting_js.html:665
+msgid "Not shared with anyone yet."
 msgstr ""
 
 #: templates/js/_reporting_viz_js.html:90

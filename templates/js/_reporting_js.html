@@ -4,7 +4,8 @@
   const state = {
     source: null, fields: [], columns: [], filters: [], sort: [], processes: [],
     mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
-    lastResult: null, view: 'grid', currentReportId: null, currentReportName: null
+    lastResult: null, view: 'grid', currentReportId: null, currentReportName: null,
+    currentReportOwned: true, currentReportCanEdit: true
   };
 
   async function api(url, opts) {
@@ -235,11 +236,13 @@
     };
   }
 
-  // Save the current report. asNew (or no loaded report) => create a copy;
-  // otherwise overwrite the loaded report in place via PUT.
+  // Save the current report. asNew, no loaded report, or a loaded report the
+  // caller can't edit => create a copy; otherwise overwrite in place via PUT.
   function doSave(asNew) {
     var def = currentDefinition();
-    if (asNew || !state.currentReportId) {
+    var canOverwrite = state.currentReportId
+      && (state.currentReportOwned || state.currentReportCanEdit);
+    if (asNew || !canOverwrite) {
       var name = window.prompt('{{ _("Report name") }}', reportTitle());
       if (!name) return;
       api('/api/reporting/reports', {
@@ -249,6 +252,8 @@
         .then(function (data) {
           state.currentReportId = data.id || null;
           state.currentReportName = name;
+          state.currentReportOwned = true;
+          state.currentReportCanEdit = true;
           loadReports();
           window.alert('{{ _("Saved") }}');
         }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
@@ -496,16 +501,44 @@
         ph.value = '';
         ph.textContent = '{{ _("Saved reports…") }}';
         sel.appendChild(ph);
-        (reports || []).forEach(function (r) {
+        function addOpt(group, r) {
           var opt = document.createElement('option');
           opt.value = r.id;
-          opt.textContent = r.name + (r.kind === 'sql' ? ' (SQL)' : '');
-          sel.appendChild(opt);
-        });
+          var suffix = (r.kind === 'sql' ? ' (SQL)' : '');
+          if (!r.owned && r.ownerName) suffix += ' — ' + r.ownerName;
+          else if (r.owned && r.visibility === 'shared') suffix += ' · {{ _("shared") }}';
+          opt.textContent = r.name + suffix;
+          opt.dataset.owned = r.owned ? '1' : '0';
+          opt.dataset.canEdit = r.canEdit ? '1' : '0';
+          group.appendChild(opt);
+        }
+        var mine = (reports || []).filter(function (r) { return r.owned; });
+        var shared = (reports || []).filter(function (r) { return !r.owned; });
+        if (mine.length) {
+          var g1 = document.createElement('optgroup');
+          g1.label = '{{ _("My reports") }}';
+          mine.forEach(function (r) { addOpt(g1, r); });
+          sel.appendChild(g1);
+        }
+        if (shared.length) {
+          var g2 = document.createElement('optgroup');
+          g2.label = '{{ _("Shared with me") }}';
+          shared.forEach(function (r) { addOpt(g2, r); });
+          sel.appendChild(g2);
+        }
         if (current) sel.value = current;
+        updateShareButton();
       }).catch(function (e) {
         console.error('{{ _("Could not load saved reports") }}:', e.message);
       });
+  }
+
+  // The Share button only applies to a report the caller owns.
+  function updateShareButton() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    var owned = !!(opt && opt.dataset && opt.dataset.owned === '1');
+    document.getElementById('rpShare').disabled = !owned;
   }
 
   // Restore a saved definition into the builder (curated) or SQL editor.
@@ -547,7 +580,11 @@
     var id = document.getElementById('rpSavedReports').value;
     if (!id) return;
     api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
-      .then(function (data) { applyDefinition(data.definition || {}, data.name, data.id); })
+      .then(function (data) {
+        applyDefinition(data.definition || {}, data.name, data.id);
+        state.currentReportOwned = !!data.owned;
+        state.currentReportCanEdit = !!data.canEdit;
+      })
       .catch(function (e) { showError(e.message); });
   }
 
@@ -583,6 +620,90 @@
         loadReports();
       }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
   }
+
+  // ---- Sharing ----
+  var shareReportId = null;
+
+  function openShare() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    shareReportId = sel.value;
+    api('/api/reporting/reports/' + shareReportId + '/shares')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        renderShareState(data);
+        document.getElementById('rpShareModal').hidden = false;
+      }).catch(function (e) { window.alert(e.message); });
+  }
+
+  function renderShareState(data) {
+    var vis = data.visibility || 'private';
+    Array.prototype.forEach.call(
+      document.querySelectorAll('input[name="rpShareVis"]'),
+      function (r) { r.checked = (r.value === vis); }
+    );
+    var list = document.getElementById('rpShareList');
+    list.innerHTML = '';
+    (data.shares || []).forEach(function (s) {
+      var li = document.createElement('li');
+      var name = document.createElement('span');
+      name.className = 'reporting-share-name';
+      name.textContent = s.name + (s.canEdit ? ' ({{ _("can edit") }})' : '');
+      li.appendChild(name);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'reporting-link';
+      rm.textContent = '{{ _("Remove") }}';
+      rm.onclick = function () { removeShare(s.userId); };
+      li.appendChild(rm);
+      list.appendChild(li);
+    });
+    if (!(data.shares || []).length) {
+      var empty = document.createElement('li');
+      empty.className = 'reporting-share-empty';
+      empty.textContent = '{{ _("Not shared with anyone yet.") }}';
+      list.appendChild(empty);
+    }
+  }
+
+  function postShare(body) {
+    return api('/api/reporting/reports/' + shareReportId + '/shares', {
+      method: 'POST', body: JSON.stringify(body),
+    }).then(function (res) { return res.json(); })
+      .then(function (data) { renderShareState(data); loadReports(); });
+  }
+
+  function removeShare(userId) {
+    api('/api/reporting/reports/' + shareReportId + '/shares/' + userId, { method: 'DELETE' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { renderShareState(data); loadReports(); })
+      .catch(function (e) { window.alert(e.message); });
+  }
+
+  document.getElementById('rpShare').addEventListener('click', openShare);
+  document.getElementById('rpShareClose').addEventListener('click', function () {
+    document.getElementById('rpShareModal').hidden = true;
+  });
+  document.getElementById('rpShareAdd').addEventListener('click', function () {
+    var u = document.getElementById('rpShareUser').value.trim();
+    if (!u) return;
+    var canEdit = document.getElementById('rpShareCanEdit').checked;
+    postShare({ user: u, canEdit: canEdit })
+      .then(function () {
+        document.getElementById('rpShareUser').value = '';
+        document.getElementById('rpShareCanEdit').checked = false;
+      }).catch(function (e) { window.alert(e.message); });
+  });
+  Array.prototype.forEach.call(
+    document.querySelectorAll('input[name="rpShareVis"]'),
+    function (r) {
+      r.addEventListener('change', function () {
+        if (r.checked) postShare({ visibility: r.value }).catch(function (e) { window.alert(e.message); });
+      });
+    }
+  );
+  document.getElementById('rpSavedReports').addEventListener('change', updateShareButton);
 
   document.getElementById('rpViewGrid').addEventListener('click', function () { setView('grid'); });
   document.getElementById('rpViewChart').addEventListener('click', function () { setView('chart'); });

@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **cross-user sharing & a shared report library.** Saved reports
+  are no longer owner-only. Each report has a **Visibility** (`private`, or
+  `shared` = visible read-only to everyone who can use Reporting) plus optional
+  explicit **per-user grants** that can be read-only or read-write. The
+  Saved-reports dropdown groups **My reports** and **Shared with me** (tagging
+  the owner), a per-report **Share** dialog manages visibility and people, and
+  an in-place **Save** respects edit rights (recipients without edit rights fork
+  a copy via Save as). Migration `0009` adds `dbo.Reports.Visibility` and a
+  `dbo.ReportShares` table; new endpoints under
+  `/api/reporting/reports/<id>/shares` (owner-only management).
 - Reporting — **builder polish + richer export.**
   - **Save vs Save as:** with a report loaded, **Save** now overwrites it in
     place (PUT); the new **Save as** button always forks a fresh copy. Previously

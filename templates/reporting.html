@@ -39,6 +39,8 @@
           <button id="rpLoad" class="reporting-btn" data-testid="reporting-load">{{ _("Load") }}</button>
           <button id="rpRename" class="reporting-link" data-testid="reporting-rename">{{ _("Rename") }}</button>
           <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
+          <button id="rpShare" class="reporting-link" data-testid="reporting-share" disabled
+                  title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
         </div>
         <span style="flex:1"></span>
         <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
@@ -86,6 +88,28 @@
       <div class="reporting-modal-actions">
         <button id="rpSqlAckCancel" class="reporting-btn" data-testid="reporting-sql-ack-cancel">{{ _("Cancel") }}</button>
         <button id="rpSqlAckAccept" class="reporting-btn reporting-btn-primary" data-testid="reporting-sql-ack-accept">{{ _("I understand") }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rpShareModal" class="reporting-modal" hidden data-testid="reporting-share-modal">
+    <div class="reporting-modal-box">
+      <h3>{{ _("Share report") }}</h3>
+      <div class="reporting-share-vis">
+        <label><input type="radio" name="rpShareVis" value="private" data-testid="reporting-share-private">
+          {{ _("Private — only me") }}</label>
+        <label><input type="radio" name="rpShareVis" value="shared" data-testid="reporting-share-shared">
+          {{ _("Shared with everyone who can use Reporting") }}</label>
+      </div>
+      <h4 class="reporting-share-h">{{ _("Shared with specific people") }}</h4>
+      <ul id="rpShareList" class="reporting-share-list" data-testid="reporting-share-list"></ul>
+      <div class="reporting-share-add">
+        <input id="rpShareUser" class="reporting-input" placeholder="{{ _('Email or username') }}" data-testid="reporting-share-user">
+        <label class="reporting-share-canedit"><input type="checkbox" id="rpShareCanEdit"> {{ _("Can edit") }}</label>
+        <button id="rpShareAdd" class="reporting-btn" data-testid="reporting-share-add">{{ _("Add") }}</button>
+      </div>
+      <div class="reporting-modal-actions">
+        <button id="rpShareClose" class="reporting-btn" data-testid="reporting-share-close">{{ _("Close") }}</button>
       </div>
     </div>
   </div>

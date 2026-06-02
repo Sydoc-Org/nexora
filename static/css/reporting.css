@@ -262,6 +262,21 @@
 .reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
 
+/* Share modal */
+.reporting-share-vis { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.reporting-share-vis label { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }
+.reporting-share-h { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .05em; color: #888; }
+.reporting-share-list { list-style: none; padding: 0; margin: 0 0 10px; max-height: 180px; overflow: auto; }
+.reporting-share-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+}
+.reporting-share-empty { color: #888; border-bottom: none !important; }
+.reporting-share-add { display: flex; align-items: center; gap: 8px; }
+.reporting-share-add .reporting-input { margin: 0; flex: 1; }
+.reporting-share-canedit { font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
 /* --- Phase 3: result views (chart + pivot) --- */
 .reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .reporting-view-toggle[hidden] { display: none; }

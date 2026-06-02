@@ -32,11 +32,37 @@ for silently excludes it (no data leak).
 
 Reports are saved per user in the `dbo.Reports` table (NexoraDB). A saved
 report stores the full v1 definition JSON. The **Saved reports** dropdown on the
-toolbar lists the caller's reports; **Load** restores a curated definition into
-the builder (source, columns, filters, sort, scope, title/subtitle) or a SQL
-definition into the SQL editor + target, switching mode by the saved `kind`.
-**Rename** and **Delete** act on the selected report. Each user can only access
-their own saved reports.
+toolbar groups **My reports** and **Shared with me** (the latter tagged with the
+owner). **Load** restores a curated definition into the builder (source, columns,
+filters, sort, scope, title/subtitle) or a SQL definition into the SQL editor +
+target, switching mode by the saved `kind`. **Rename** and **Delete** act on the
+selected report (owner only).
+
+### Sharing & the shared library
+
+Reports are private by default. The **Share** dialog (enabled for a report you
+own) controls two independent mechanisms, both held in NexoraDB:
+
+- **Visibility** (`dbo.Reports.Visibility`): `private` (only you) or `shared`
+  (read-only to *everyone* who can open the Reporting page).
+- **Explicit per-user grants** (`dbo.ReportShares`): share with named colleagues
+  by email/username, optionally **Can edit** (read-write). FK to `Reports` is
+  `ON DELETE CASCADE`, so deleting a report removes its shares.
+
+A recipient sees shared reports under **Shared with me** and can **Load** them.
+**Save** overwrites in place only if they own the report or hold an edit grant;
+otherwise it forks a copy (**Save as**). Only the owner can change visibility,
+manage shares, rename, or delete. Endpoints:
+
+| Endpoint | Who | Purpose |
+|----------|-----|---------|
+| `GET /api/reporting/reports` | any `reporting.view` | reports you own + shared-with-you (tagged `owned`/`canEdit`/`ownerName`) |
+| `GET /api/reporting/reports/<id>` | owner / recipient | load (404 if not visible to you) |
+| `PUT /api/reporting/reports/<id>` | owner / edit-grant | overwrite |
+| `DELETE /api/reporting/reports/<id>` | owner | delete (cascades shares) |
+| `GET /api/reporting/reports/<id>/shares` | owner | `{visibility, shares}` |
+| `POST /api/reporting/reports/<id>/shares` | owner | set `visibility` and/or add a `user` share (`canEdit`) |
+| `DELETE /api/reporting/reports/<id>/shares/<uid>` | owner | remove a share |
 
 **Save vs Save as.** With a report loaded, **Save** overwrites it in place
 (`PUT /api/reporting/reports/<id>`); **Save as** always creates a new copy

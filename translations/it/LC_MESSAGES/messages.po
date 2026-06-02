@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 23:59+0200\n"
+"POT-Creation-Date: 2026-06-03 00:19+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -240,7 +240,7 @@ msgstr "Nessun altro utente disponibile."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/reporting.html:87
+#: templates/generali_reporting.html:335 templates/reporting.html:89
 #: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Annulla"
@@ -698,7 +698,7 @@ msgstr "Modifica presenze"
 #: templates/generali_baseservices.html:280 templates/generali_pdqm.html:359
 #: templates/generali_projectmanagement.html:266
 #: templates/generali_reporting.html:314
-#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:45
+#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:47
 msgid "Save"
 msgstr "Salva"
 
@@ -1674,7 +1674,7 @@ msgstr "SQL"
 msgid "Untitled report"
 msgstr "Rapporto senza titolo"
 
-#: templates/js/_reporting_js.html:497 templates/reporting.html:37
+#: templates/js/_reporting_js.html:502 templates/reporting.html:37
 msgid "Saved reports…"
 msgstr "Report salvati…"
 
@@ -1686,75 +1686,83 @@ msgstr "Carica"
 msgid "Rename"
 msgstr "Rinomina"
 
-#: templates/reporting.html:44
+#: templates/reporting.html:43
+msgid "Share the selected report you own"
+msgstr "Condividi il report selezionato di tua proprietà"
+
+#: templates/reporting.html:43
+msgid "Share"
+msgstr "Condividi"
+
+#: templates/reporting.html:46
 msgid "Run"
 msgstr "Esegui"
 
-#: templates/reporting.html:46
+#: templates/reporting.html:48
 msgid "Save as"
 msgstr "Salva come"
 
-#: templates/reporting.html:47
+#: templates/reporting.html:49
 msgid "Export format"
 msgstr "Formato di esportazione"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:50
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/reporting.html:51
+#: templates/reporting.html:53
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/reporting.html:55
+#: templates/reporting.html:57
 msgid "Target"
 msgstr "Destinazione"
 
-#: templates/reporting.html:62
+#: templates/reporting.html:64
 msgid "Grid"
 msgstr "Tabella"
 
-#: templates/reporting.html:63
+#: templates/reporting.html:65
 msgid "Chart"
 msgstr "Grafico"
 
-#: templates/reporting.html:64
+#: templates/reporting.html:66
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:72
+#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:74
 msgid "Columns"
 msgstr "Colonne"
 
-#: templates/reporting.html:73
+#: templates/reporting.html:75
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/reporting.html:74 templates/workitems_overview.html:285
+#: templates/reporting.html:76 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
-#: templates/reporting.html:75
+#: templates/reporting.html:77
 msgid "Sort"
 msgstr "Ordinamento"
 
-#: templates/reporting.html:76
+#: templates/reporting.html:78
 msgid "Add sort"
 msgstr "Aggiungi ordinamento"
 
-#: templates/reporting.html:77
+#: templates/reporting.html:79
 msgid "Format"
 msgstr "Formato"
 
-#: templates/reporting.html:78
+#: templates/reporting.html:80
 msgid "Subtitle"
 msgstr "Sottotitolo"
 
-#: templates/reporting.html:84
+#: templates/reporting.html:86
 msgid "Live SQL — read-only"
 msgstr "SQL live — sola lettura"
 
-#: templates/reporting.html:85
+#: templates/reporting.html:87
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -1764,9 +1772,41 @@ msgstr ""
 " Le query non possono modificare i dati e ogni esecuzione viene "
 "registrata. Controlla la query prima di eseguirla."
 
-#: templates/reporting.html:88
+#: templates/reporting.html:90
 msgid "I understand"
 msgstr "Ho capito"
+
+#: templates/reporting.html:97
+msgid "Share report"
+msgstr "Condividi report"
+
+#: templates/reporting.html:100
+msgid "Private — only me"
+msgstr "Privato — solo io"
+
+#: templates/reporting.html:102
+msgid "Shared with everyone who can use Reporting"
+msgstr "Condiviso con tutti coloro che possono usare Reporting"
+
+#: templates/reporting.html:104
+msgid "Shared with specific people"
+msgstr "Condiviso con persone specifiche"
+
+#: templates/reporting.html:107
+msgid "Email or username"
+msgstr "Email o nome utente"
+
+#: templates/reporting.html:108
+msgid "Can edit"
+msgstr "Può modificare"
+
+#: templates/reporting.html:109
+msgid "Add"
+msgstr "Aggiungi"
+
+#: templates/admin/logs.html:157 templates/reporting.html:112
+msgid "Close"
+msgstr "Chiudi"
 
 #: templates/reset_password.html:8
 msgid "Reset password - nexora"
@@ -2332,10 +2372,6 @@ msgstr "Payload dettagli log"
 #: templates/admin/logs.html:151
 msgid "Copy"
 msgstr "Copia"
-
-#: templates/admin/logs.html:157
-msgid "Close"
-msgstr "Chiudi"
 
 #: templates/admin/maintenance.html:6
 msgid "Maintenance Banners - nexora"
@@ -3012,53 +3048,77 @@ msgstr "Le password non corrispondono"
 msgid "At least 8 characters required"
 msgstr "Almeno 8 caratteri richiesti"
 
-#: templates/js/_reporting_js.html:147
+#: templates/js/_reporting_js.html:148
 msgid "No rows."
 msgstr "Nessuna riga."
 
-#: templates/js/_reporting_js.html:243
+#: templates/js/_reporting_js.html:246
 msgid "Report name"
 msgstr "Nome del rapporto"
 
-#: templates/js/_reporting_js.html:253 templates/js/_reporting_js.html:264
+#: templates/js/_reporting_js.html:258 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr "Salvato"
 
-#: templates/js/_reporting_js.html:254 templates/js/_reporting_js.html:265
+#: templates/js/_reporting_js.html:259 templates/js/_reporting_js.html:270
 msgid "Save failed"
 msgstr "Salvataggio fallito"
 
-#: templates/js/_reporting_js.html:284 templates/js/_reporting_js.html:301
+#: templates/js/_reporting_js.html:289 templates/js/_reporting_js.html:306
 msgid "Export failed"
 msgstr "Esportazione fallita"
 
-#: templates/js/_reporting_js.html:292 templates/js/_reporting_js.html:308
+#: templates/js/_reporting_js.html:297 templates/js/_reporting_js.html:313
 msgid "Nothing to export."
 msgstr "Niente da esportare."
 
-#: templates/js/_reporting_js.html:359
+#: templates/js/_reporting_js.html:364
 msgid "Could not load sources"
 msgstr "Impossibile caricare le sorgenti"
 
-#: templates/js/_reporting_js.html:507
+#: templates/js/_reporting_js.html:509
+msgid "shared"
+msgstr "condiviso"
+
+#: templates/js/_reporting_js.html:519
+msgid "My reports"
+msgstr "I miei report"
+
+#: templates/js/_reporting_js.html:525
+msgid "Shared with me"
+msgstr "Condivisi con me"
+
+#: templates/js/_reporting_js.html:532
 msgid "Could not load saved reports"
 msgstr "Impossibile caricare i report salvati"
 
-#: templates/js/_reporting_js.html:559
+#: templates/js/_reporting_js.html:596
 msgid "New name"
 msgstr "Nuovo nome"
 
-#: templates/js/_reporting_js.html:569
+#: templates/js/_reporting_js.html:606
 msgid "Rename failed"
 msgstr "Rinomina non riuscita"
 
-#: templates/js/_reporting_js.html:576
+#: templates/js/_reporting_js.html:613
 msgid "Delete this saved report?"
 msgstr "Eliminare questo report salvato?"
 
-#: templates/js/_reporting_js.html:584
+#: templates/js/_reporting_js.html:621
 msgid "Delete failed"
 msgstr "Eliminazione non riuscita"
+
+#: templates/js/_reporting_js.html:652
+msgid "can edit"
+msgstr "può modificare"
+
+#: templates/js/_reporting_js.html:657
+msgid "Remove"
+msgstr "Rimuovi"
+
+#: templates/js/_reporting_js.html:665
+msgid "Not shared with anyone yet."
+msgstr "Non ancora condiviso con nessuno."
 
 #: templates/js/_reporting_viz_js.html:90
 msgid "Charting library unavailable."

@@ -8,11 +8,14 @@ Routes:
   POST /api/reporting/sql/ack         record the live-SQL acknowledgment
   POST /api/reporting/export          report definition -> .xlsx/.csv download
   POST /api/reporting/export/grid     client-supplied grid (pivot) -> .xlsx/.csv download
-  GET  /api/reporting/reports         list the caller's saved reports
+  GET  /api/reporting/reports         list reports the caller owns or may see
   POST /api/reporting/reports         create a saved report
-  GET  /api/reporting/reports/<id>    load one
-  PUT  /api/reporting/reports/<id>    update
-  DELETE /api/reporting/reports/<id>  delete
+  GET  /api/reporting/reports/<id>    load one (own / shared / shared-with-me)
+  PUT  /api/reporting/reports/<id>    update (owner or share with CanEdit)
+  DELETE /api/reporting/reports/<id>  delete (owner only)
+  GET  /api/reporting/reports/<id>/shares          owner: visibility + shares
+  POST /api/reporting/reports/<id>/shares          owner: set visibility / add share
+  DELETE /api/reporting/reports/<id>/shares/<uid>  owner: remove a share
 """
 
 import json
@@ -525,15 +528,30 @@ def api_export_grid():
 
 @require_permission("reporting.view")
 def api_reports_list():
+    """List reports the caller owns, plus any shared with them.
+
+    A report is visible when the caller owns it, its Visibility is 'shared'
+    (everyone with reporting.view), or it is explicitly shared with the caller.
+    Each row is tagged owned / canEdit and carries the owner's name.
+    """
     userid = session.get("userid")
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT ReportID, Name, UpdatedAt, "
-            "JSON_VALUE(DefinitionJSON, '$.kind') AS Kind "
-            "FROM Reports WHERE OwnerUserID = ? ORDER BY UpdatedAt DESC",
-            (userid,),
+            "SELECT r.ReportID, r.Name, r.UpdatedAt, r.Visibility, r.OwnerUserID, "
+            "       u.username AS OwnerName, "
+            "       JSON_VALUE(r.DefinitionJSON, '$.kind') AS Kind, "
+            "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
+            "       CASE WHEN r.OwnerUserID = ? THEN 1 "
+            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
+            "FROM dbo.Reports r "
+            "JOIN dbo.Users u ON u.userID = r.OwnerUserID "
+            "LEFT JOIN dbo.ReportShares s "
+            "       ON s.ReportID = r.ReportID AND s.SharedWithUserID = ? "
+            "WHERE r.OwnerUserID = ? OR r.Visibility = 'shared' OR s.SharedWithUserID = ? "
+            "ORDER BY Owned DESC, r.UpdatedAt DESC",
+            (userid, userid, userid, userid, userid),
         )
         return jsonify(
             [
@@ -542,6 +560,10 @@ def api_reports_list():
                     "name": r.Name,
                     "updatedAt": str(r.UpdatedAt),
                     "kind": r.Kind or "table",
+                    "visibility": r.Visibility,
+                    "owned": bool(r.Owned),
+                    "canEdit": bool(r.CanEdit),
+                    "ownerName": r.OwnerName,
                 }
                 for r in cur.fetchall()
             ]
@@ -560,14 +582,29 @@ def api_reports_get(report_id):
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT Name, DefinitionJSON FROM Reports WHERE ReportID = ? AND OwnerUserID = ?",
-            (report_id, userid),
+            "SELECT r.Name, r.DefinitionJSON, r.Visibility, r.OwnerUserID, "
+            "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
+            "       CASE WHEN r.OwnerUserID = ? THEN 1 "
+            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
+            "FROM dbo.Reports r "
+            "LEFT JOIN dbo.ReportShares s "
+            "       ON s.ReportID = r.ReportID AND s.SharedWithUserID = ? "
+            "WHERE r.ReportID = ? "
+            "  AND (r.OwnerUserID = ? OR r.Visibility = 'shared' OR s.SharedWithUserID = ?)",
+            (userid, userid, userid, report_id, userid, userid),
         )
         row = cur.fetchone()
         if not row:
             return jsonify({"error": _("Not found")}), 404
         return jsonify(
-            {"id": report_id, "name": row.Name, "definition": json.loads(row.DefinitionJSON)}
+            {
+                "id": report_id,
+                "name": row.Name,
+                "definition": json.loads(row.DefinitionJSON),
+                "visibility": row.Visibility,
+                "owned": bool(row.Owned),
+                "canEdit": bool(row.CanEdit),
+            }
         )
     except Exception as e:
         current_app.logger.error(f"/api/reporting/reports get error: {e}")
@@ -620,10 +657,15 @@ def api_reports_update(report_id):
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
+        # Owner, or a colleague the owner shared it with for editing.
         cur.execute(
-            "UPDATE Reports SET Name = ?, DefinitionJSON = ?, UpdatedAt = SYSUTCDATETIME() "
-            "WHERE ReportID = ? AND OwnerUserID = ?",
-            (name, definition_json, report_id, userid),
+            "UPDATE r SET Name = ?, DefinitionJSON = ?, UpdatedAt = SYSUTCDATETIME() "
+            "FROM dbo.Reports r "
+            "WHERE r.ReportID = ? "
+            "  AND (r.OwnerUserID = ? OR EXISTS ("
+            "        SELECT 1 FROM dbo.ReportShares s "
+            "        WHERE s.ReportID = r.ReportID AND s.SharedWithUserID = ? AND s.CanEdit = 1))",
+            (name, definition_json, report_id, userid, userid),
         )
         affected = cur.rowcount
         conn.commit()
@@ -657,6 +699,150 @@ def api_reports_delete(report_id):
         return jsonify({"error": _("Could not delete report")}), 500
     finally:
         conn.close()
+
+
+def _is_report_owner(report_id, userid):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT 1 FROM dbo.Reports WHERE ReportID = ? AND OwnerUserID = ?",
+            (report_id, userid),
+        )
+        return cur.fetchone() is not None
+    finally:
+        conn.close()
+
+
+def _resolve_user(identifier):
+    """Resolve a username or email to {userId, name}, or None if unknown."""
+    ident = (identifier or "").strip()
+    if not ident:
+        return None
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 1 userID, username, Fullname FROM dbo.Users "
+            "WHERE username = ? OR Email = ?",
+            (ident, ident),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {"userId": row.userID, "name": row.Fullname or row.username}
+    finally:
+        conn.close()
+
+
+def _shares_payload(report_id):
+    """Current sharing state for a report: {visibility, shares:[...]}."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT Visibility FROM dbo.Reports WHERE ReportID = ?", (report_id,))
+        row = cur.fetchone()
+        visibility = row.Visibility if row else "private"
+        cur.execute(
+            "SELECT s.SharedWithUserID, s.CanEdit, u.username, u.Fullname "
+            "FROM dbo.ReportShares s JOIN dbo.Users u ON u.userID = s.SharedWithUserID "
+            "WHERE s.ReportID = ? ORDER BY u.username",
+            (report_id,),
+        )
+        shares = [
+            {
+                "userId": r.SharedWithUserID,
+                "name": r.Fullname or r.username,
+                "username": r.username,
+                "canEdit": bool(r.CanEdit),
+            }
+            for r in cur.fetchall()
+        ]
+    finally:
+        conn.close()
+    return {"visibility": visibility, "shares": shares}
+
+
+@require_permission("reporting.view")
+def api_reports_shares_get(report_id):
+    userid = session.get("userid")
+    # 404 (not 403) for non-owners so a report's existence isn't leaked.
+    if not _is_report_owner(report_id, userid):
+        return jsonify({"error": _("Not found")}), 404
+    return jsonify(_shares_payload(report_id))
+
+
+@require_permission("reporting.view")
+@limiter.limit("60 per minute")
+def api_reports_shares_set(report_id):
+    """Owner sets a report's visibility and/or adds/updates one user share."""
+    userid = session.get("userid")
+    if not _is_report_owner(report_id, userid):
+        return jsonify({"error": _("Not found")}), 404
+    payload = request.get_json(silent=True) or {}
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        visibility = payload.get("visibility")
+        if visibility is not None:
+            if visibility not in ("private", "shared"):
+                return jsonify({"error": _("Invalid visibility")}), 400
+            cur.execute(
+                "UPDATE dbo.Reports SET Visibility = ? WHERE ReportID = ?",
+                (visibility, report_id),
+            )
+        user_ident = payload.get("user")
+        if user_ident:
+            target = _resolve_user(user_ident)
+            if not target:
+                return jsonify({"error": _("User not found")}), 404
+            if str(target["userId"]) == str(userid):
+                return jsonify({"error": _("Cannot share a report with yourself")}), 400
+            can_edit = 1 if payload.get("canEdit") else 0
+            cur.execute(
+                "SELECT 1 FROM dbo.ReportShares WHERE ReportID = ? AND SharedWithUserID = ?",
+                (report_id, target["userId"]),
+            )
+            if cur.fetchone():
+                cur.execute(
+                    "UPDATE dbo.ReportShares SET CanEdit = ? "
+                    "WHERE ReportID = ? AND SharedWithUserID = ?",
+                    (can_edit, report_id, target["userId"]),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO dbo.ReportShares (ReportID, SharedWithUserID, CanEdit) "
+                    "VALUES (?, ?, ?)",
+                    (report_id, target["userId"], can_edit),
+                )
+        conn.commit()
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/reports shares set error: {e}")
+        return jsonify({"error": _("Could not update sharing")}), 500
+    finally:
+        conn.close()
+    return jsonify(_shares_payload(report_id))
+
+
+@require_permission("reporting.view")
+def api_reports_shares_delete(report_id, share_user_id):
+    userid = session.get("userid")
+    if not _is_report_owner(report_id, userid):
+        return jsonify({"error": _("Not found")}), 404
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM dbo.ReportShares WHERE ReportID = ? AND SharedWithUserID = ?",
+            (report_id, share_user_id),
+        )
+        conn.commit()
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/reports shares delete error: {e}")
+        return jsonify({"error": _("Could not update sharing")}), 500
+    finally:
+        conn.close()
+    return jsonify(_shares_payload(report_id))
 
 
 def register_routes(app):
@@ -718,5 +904,22 @@ def register_routes(app):
         "/api/reporting/reports/<int:report_id>",
         endpoint="reporting_reports_delete",
         view_func=api_reports_delete,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/reporting/reports/<int:report_id>/shares",
+        endpoint="reporting_reports_shares_get",
+        view_func=api_reports_shares_get,
+    )
+    app.add_url_rule(
+        "/api/reporting/reports/<int:report_id>/shares",
+        endpoint="reporting_reports_shares_set",
+        view_func=api_reports_shares_set,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/reports/<int:report_id>/shares/<int:share_user_id>",
+        endpoint="reporting_reports_shares_delete",
+        view_func=api_reports_shares_delete,
         methods=["DELETE"],
     )

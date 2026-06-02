@@ -1,6 +1,10 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[Reports] DROP CONSTRAINT [CK_Reports_Visibility]
+GO
 ALTER TABLE [dbo].[Reports] DROP CONSTRAINT [FK_Reports_Users]
+GO
+ALTER TABLE [dbo].[Reports] DROP CONSTRAINT [DF_Reports_Visibility]
 GO
 ALTER TABLE [dbo].[Reports] DROP CONSTRAINT [DF_Reports_UpdatedAt]
 GO
@@ -21,6 +25,7 @@ CREATE TABLE [dbo].[Reports](
 	[DefinitionJSON] [nvarchar](max) NOT NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
+	[Visibility] [nvarchar](20) NOT NULL,
  CONSTRAINT [PK_Reports] PRIMARY KEY CLUSTERED 
 (
 	[ReportID] ASC
@@ -36,8 +41,14 @@ ALTER TABLE [dbo].[Reports] ADD  CONSTRAINT [DF_Reports_CreatedAt]  DEFAULT (sys
 GO
 ALTER TABLE [dbo].[Reports] ADD  CONSTRAINT [DF_Reports_UpdatedAt]  DEFAULT (sysutcdatetime()) FOR [UpdatedAt]
 GO
+ALTER TABLE [dbo].[Reports] ADD  CONSTRAINT [DF_Reports_Visibility]  DEFAULT ('private') FOR [Visibility]
+GO
 ALTER TABLE [dbo].[Reports]  WITH CHECK ADD  CONSTRAINT [FK_Reports_Users] FOREIGN KEY([OwnerUserID])
 REFERENCES [dbo].[Users] ([userID])
 GO
 ALTER TABLE [dbo].[Reports] CHECK CONSTRAINT [FK_Reports_Users]
+GO
+ALTER TABLE [dbo].[Reports]  WITH CHECK ADD  CONSTRAINT [CK_Reports_Visibility] CHECK  (([Visibility]='shared' OR [Visibility]='private'))
+GO
+ALTER TABLE [dbo].[Reports] CHECK CONSTRAINT [CK_Reports_Visibility]
 GO
