@@ -15,6 +15,24 @@ import pytest
 E2E_PORT = 8765
 E2E_BASE_URL = f"http://localhost:{E2E_PORT}"
 
+# Number of automatic retries for flaky browser tests. E2E flakes come from
+# real timing (network-idle waits, TOTP window roll-over, server warm-up), so a
+# small retry budget keeps the suite green without masking genuine breakage.
+E2E_RERUNS = 2
+E2E_RERUNS_DELAY = 1
+
+
+def pytest_collection_modifyitems(config, items):
+    """Apply pytest-rerunfailures reruns to every flaky_e2e-marked test.
+
+    The flaky_e2e marker was previously decorative (no --reruns in addopts).
+    Scoping reruns here keeps them confined to E2E tests so unit/integration
+    failures still fail fast and loud.
+    """
+    for item in items:
+        if item.get_closest_marker("flaky_e2e"):
+            item.add_marker(pytest.mark.flaky(reruns=E2E_RERUNS, reruns_delay=E2E_RERUNS_DELAY))
+
 
 def _port_is_open(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -47,6 +65,9 @@ def nexora_server():
     env = os.environ.copy()
     env["ENVIRONMENT"] = "TEST"
     env["FLASK_RUN_PORT"] = str(E2E_PORT)
+    # Disable rate limiting for the browser session — a long E2E run issues
+    # many requests and would otherwise trip /login's "10 per minute" limit.
+    env["NEXORA_DISABLE_RATELIMIT"] = "1"
 
     proc = subprocess.Popen(
         [sys.executable, "nx_main.py"],

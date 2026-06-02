@@ -4,6 +4,8 @@ Splitting instantiation from binding lets blueprints import these (e.g. for
 ``@limiter.limit(...)`` decorators) before create_app() has been called.
 """
 
+import os
+
 from flask_babel import Babel
 from flask_caching import Cache
 from flask_limiter import Limiter
@@ -29,6 +31,12 @@ s = URLSafeTimedSerializer(cfg.SECRET_KEY)
 
 def init_app(app):
     babel.init_app(app, locale_selector=get_locale, timezone_selector=get_timezone)
+    # E2E tests drive a real subprocess server and would trip the per-route
+    # limits (e.g. /login "10 per minute") across a long browser session. The
+    # e2e conftest sets NEXORA_DISABLE_RATELIMIT=1 so only that subprocess opts
+    # out — in-process unit tests keep the limiter so their 429 assertions hold.
+    if os.environ.get("NEXORA_DISABLE_RATELIMIT") == "1":
+        app.config["RATELIMIT_ENABLED"] = False
     limiter.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
