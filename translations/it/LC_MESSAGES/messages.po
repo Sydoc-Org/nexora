@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 15:54+0200\n"
+"POT-Creation-Date: 2026-06-02 16:08+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1692,10 +1692,14 @@ msgid "Sort"
 msgstr "Ordinamento"
 
 #: templates/reporting.html:47
+msgid "Add sort"
+msgstr "Aggiungi ordinamento"
+
+#: templates/reporting.html:48
 msgid "Format"
 msgstr "Formato"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:49
 msgid "Subtitle"
 msgstr "Sottotitolo"
 
@@ -2943,27 +2947,27 @@ msgstr "Le password non corrispondono"
 msgid "At least 8 characters required"
 msgstr "Almeno 8 caratteri richiesti"
 
-#: templates/js/_reporting_js.html:78
+#: templates/js/_reporting_js.html:87
 msgid "No rows."
 msgstr "Nessuna riga."
 
-#: templates/js/_reporting_js.html:113
+#: templates/js/_reporting_js.html:144
 msgid "Could not load sources"
 msgstr "Impossibile caricare le sorgenti"
 
-#: templates/js/_reporting_js.html:128
+#: templates/js/_reporting_js.html:163
 msgid "Report name"
 msgstr "Nome del rapporto"
 
-#: templates/js/_reporting_js.html:135
+#: templates/js/_reporting_js.html:170
 msgid "Saved"
 msgstr "Salvato"
 
-#: templates/js/_reporting_js.html:137
+#: templates/js/_reporting_js.html:172
 msgid "Save failed"
 msgstr "Salvataggio fallito"
 
-#: templates/js/_reporting_js.html:151
+#: templates/js/_reporting_js.html:188
 msgid "Export failed"
 msgstr "Esportazione fallita"
 

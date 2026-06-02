@@ -70,23 +70,50 @@
       li.appendChild(rm);
       cols.appendChild(li);
     });
+    // Sort entries reference selected columns, so drop any whose column was
+    // removed, then re-render the Sort well.
+    state.sort = state.sort.filter(function (s) {
+      return state.columns.find(function (c) { return c.field === s.field; });
+    });
+    renderSort();
   }
 
   function renderResults(data) {
     var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
     if (!data.rows.length) {
-      wrap.innerHTML = '<p class="reporting-empty">{{ _("No rows.") }}</p>';
+      var empty = document.createElement('p');
+      empty.className = 'reporting-empty';
+      empty.textContent = '{{ _("No rows.") }}';
+      wrap.appendChild(empty);
       return;
     }
-    var head = '<tr>' + data.columns.map(function (c) {
-      return '<th>' + c.header + '</th>';
-    }).join('') + '</tr>';
-    var body = data.rows.map(function (r) {
-      return '<tr>' + r.map(function (v) {
-        return '<td>' + (v == null ? '' : v) + '</td>';
-      }).join('') + '</tr>';
-    }).join('');
-    wrap.innerHTML = '<table class="reporting-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    var table = document.createElement('table');
+    table.className = 'reporting-table';
+
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    data.columns.forEach(function (c) {
+      var th = document.createElement('th');
+      th.textContent = c.header;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    data.rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      r.forEach(function (v) {
+        var td = document.createElement('td');
+        td.textContent = (v == null ? '' : String(v));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    wrap.appendChild(table);
   }
 
   function loadSources() {
@@ -94,9 +121,13 @@
       return res.json();
     }).then(function (sources) {
       var sel = document.getElementById('rpSource');
-      sel.innerHTML = sources.map(function (s) {
-        return '<option value="' + s.id + '">' + s.label + '</option>';
-      }).join('');
+      sel.innerHTML = '';
+      sources.forEach(function (s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        sel.appendChild(opt);
+      });
       function pick() {
         var s = sources.find(function (x) { return x.id === sel.value; });
         if (!s) return;
@@ -119,8 +150,12 @@
       .then(function (res) { return res.json(); })
       .then(function (data) { renderResults(data); })
       .catch(function (e) {
-        document.getElementById('rpResults').innerHTML =
-          '<p class="reporting-error">' + e.message + '</p>';
+        var wrap = document.getElementById('rpResults');
+        wrap.innerHTML = '';
+        var p = document.createElement('p');
+        p.className = 'reporting-error';
+        p.textContent = e.message;
+        wrap.appendChild(p);
       });
   }
 
@@ -145,7 +180,9 @@
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = (document.getElementById('rpTitle').value || 'report') + '.xlsx';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
       }).catch(function (e) {
         window.alert('{{ _("Export failed") }}: ' + e.message);
@@ -166,19 +203,25 @@
       row.className = 'reporting-filter-row';
 
       var fld = document.createElement('select');
-      fld.innerHTML = state.fields.filter(function (x) {
+      state.fields.filter(function (x) {
         return x.filterable;
-      }).map(function (x) {
-        return '<option value="' + x.field + '">' + x.label + '</option>';
-      }).join('');
+      }).forEach(function (x) {
+        var opt = document.createElement('option');
+        opt.value = x.field;
+        opt.textContent = x.label;
+        fld.appendChild(opt);
+      });
       fld.value = f.field;
       fld.onchange = function (e) { f.field = e.target.value; };
 
       var op = document.createElement('select');
-      op.innerHTML = ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
-        'is_null', 'is_not_null'].map(function (o) {
-        return '<option value="' + o + '">' + o + '</option>';
-      }).join('');
+      ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
+        'is_null', 'is_not_null'].forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        op.appendChild(opt);
+      });
       op.value = f.op;
       op.onchange = function (e) { f.op = e.target.value; };
 
@@ -198,11 +241,58 @@
     });
   }
 
+  function addSort() {
+    // Sort fields must be among the selected columns (the backend rejects sort
+    // fields not in the projection), so seed from the first selected column.
+    if (!state.columns.length) return;
+    state.sort.push({ field: state.columns[0].field, dir: 'asc' });
+    renderSort();
+  }
+
+  function renderSort() {
+    var box = document.getElementById('rpWellSort');
+    box.innerHTML = '';
+    state.sort.forEach(function (s, i) {
+      var row = document.createElement('div');
+      row.className = 'reporting-filter-row';
+
+      var fld = document.createElement('select');
+      state.columns.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c.field;
+        opt.textContent = c.header || c.label || c.field;
+        fld.appendChild(opt);
+      });
+      fld.value = s.field;
+      fld.onchange = function (e) { s.field = e.target.value; };
+
+      var dir = document.createElement('select');
+      ['asc', 'desc'].forEach(function (d) {
+        var opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        dir.appendChild(opt);
+      });
+      dir.value = s.dir;
+      dir.onchange = function (e) { s.dir = e.target.value; };
+
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.sort.splice(i, 1); renderSort(); };
+
+      row.appendChild(fld);
+      row.appendChild(dir);
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
   document.getElementById('rpFieldSearch').addEventListener('input', renderFields);
   document.getElementById('rpRun').addEventListener('click', run);
   document.getElementById('rpSave').addEventListener('click', save);
   document.getElementById('rpExport').addEventListener('click', exportXlsx);
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
+  document.getElementById('rpAddSort').addEventListener('click', addSort);
 
   loadSources();
 }());

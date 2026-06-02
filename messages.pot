@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 15:54+0200\n"
+"POT-Creation-Date: 2026-06-02 16:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1655,10 +1655,14 @@ msgid "Sort"
 msgstr ""
 
 #: templates/reporting.html:47
-msgid "Format"
+msgid "Add sort"
 msgstr ""
 
 #: templates/reporting.html:48
+msgid "Format"
+msgstr ""
+
+#: templates/reporting.html:49
 msgid "Subtitle"
 msgstr ""
 
@@ -2880,27 +2884,27 @@ msgstr ""
 msgid "At least 8 characters required"
 msgstr ""
 
-#: templates/js/_reporting_js.html:78
+#: templates/js/_reporting_js.html:87
 msgid "No rows."
 msgstr ""
 
-#: templates/js/_reporting_js.html:113
+#: templates/js/_reporting_js.html:144
 msgid "Could not load sources"
 msgstr ""
 
-#: templates/js/_reporting_js.html:128
+#: templates/js/_reporting_js.html:163
 msgid "Report name"
 msgstr ""
 
-#: templates/js/_reporting_js.html:135
+#: templates/js/_reporting_js.html:170
 msgid "Saved"
 msgstr ""
 
-#: templates/js/_reporting_js.html:137
+#: templates/js/_reporting_js.html:172
 msgid "Save failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:151
+#: templates/js/_reporting_js.html:188
 msgid "Export failed"
 msgstr ""
 
