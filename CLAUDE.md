@@ -96,10 +96,12 @@ The deploy workflow at `.github/workflows/deploy.yml` mirrors the repo to `D:\sy
 
 ## Testing & browser automation
 
-The `nx` CLI tool starts the nexora dev server:
+The `nx` CLI tool starts and inspects the nexora dev server. Full reference: `docs/howto/nx.md`.
 
 - `nx -u` — start nexora (INT environment)
 - `nx -u -b --loginas:<username>` — start nexora and auto-login as the given user for Playwright browser tests
+- `nx --doctor` — preflight health check (env, DBs, migrations, services)
+- `nx` (no args) — interactive TUI (REPL with tab-completion and live status)
 
 Playwright screenshot artifacts go in `screenshots/` (never the repo root).
 

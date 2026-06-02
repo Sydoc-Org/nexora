@@ -18,7 +18,7 @@ Run the bootstrap script — idempotent, re-runnable, handles every step below:
 .\bootstrap.ps1 -Env STAGING   # if you target staging instead
 ```
 
-Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`.
+Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`. The `nx` CLI does a lot more than start the server (status, logs, route listing, browser auto-login, `--doctor` preflight, an interactive TUI) — see `docs/howto/nx.md` for the full reference.
 
 ### Manual fallback
 
