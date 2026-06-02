@@ -59,3 +59,15 @@ def test_init_app_is_callable(app):
     # Don't actually re-init twice (Limiter would complain), just verify
     # the function is callable.
     assert callable(init_app)
+
+
+def test_init_app_disables_ratelimit_when_env_set(monkeypatch):
+    """With NEXORA_DISABLE_RATELIMIT=1 (set by the e2e subprocess) init_app
+    turns the limiter off so a long browser session is not rate-limited."""
+    from flask import Flask
+
+    monkeypatch.setenv("NEXORA_DISABLE_RATELIMIT", "1")
+    fresh = Flask(__name__)
+    fresh.config["SECRET_KEY"] = "test"
+    init_app(fresh)
+    assert fresh.config.get("RATELIMIT_ENABLED") is False

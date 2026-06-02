@@ -322,13 +322,22 @@ def test_user_has_maintenance_bypass_false_on_exception(app):
 
 
 def test_user_has_maintenance_bypass_against_real_admin(app, db_conn):
-    """Real seeded admin@test.local has admin.view + admin.users.manage +
-    dashboard.view — none of which is admin.maintenance.bypass."""
+    """Real seeded admin@test.local holds the full permission set (see
+    sql/test/seed.sql), which includes admin.maintenance.bypass."""
     admin_uid = db_conn.execute(
         text("SELECT userid FROM Users WHERE username='admin@test.local'")
     ).scalar()
     with app.app_context():
-        assert _user_has_maintenance_bypass(admin_uid) is False
+        assert _user_has_maintenance_bypass(admin_uid) is True
+
+
+def test_user_has_maintenance_bypass_against_real_noperm(app, db_conn):
+    """Real seeded noperm@test.local has no permissions, so no bypass."""
+    noperm_uid = db_conn.execute(
+        text("SELECT userid FROM Users WHERE username='noperm@test.local'")
+    ).scalar()
+    with app.app_context():
+        assert _user_has_maintenance_bypass(noperm_uid) is False
 
 
 # ---------- _maintenance_blocks_user ----------
