@@ -111,6 +111,7 @@ def _check_add_deadline(for_date_str, bypass_perm_code):
 def startpage_redirect_to(page_v):
     perm_to_function = {
         "dashboardPagePerm": "dashboard",
+        "reportingPagePerm": "reporting",
         "workitemsPagePerm": "workitems_overview",
         "invoicesPagePerm": "invoices",
         "generaliPagePerm": "generali_evaluation",
@@ -133,6 +134,7 @@ def page_visibility():
     return {
         "adminPagePerm": has_permission("admin.view"),
         "dashboardPagePerm": has_permission("dashboard.view"),
+        "reportingPagePerm": has_permission("reporting.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
         "invoicesPagePerm": has_permission("invoices.view"),
         "chatPagePerm": has_permission("chat.view"),
