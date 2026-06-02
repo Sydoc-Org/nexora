@@ -1,11 +1,15 @@
 # nx_lib/reporting/catalog.py
 """Field catalog for curated reporting sources.
 
-`build_catalog` is the pure merge of FieldMetadata rows, localized label rows,
-and a per-field availability map (which processes expose the field). The DB
-fetch (`fetch_docprocessing_catalog`) is a thin wrapper that mirrors
-dashboard.dashboard_field_metadata and feeds build_catalog.
+`build_catalog` derives the catalog from the per-field availability map (which
+processes expose each `col_*` of SearchConfig) and localized label rows, with
+FieldMetadata as *optional* enrichment for type/aggregable/sortable. The DB
+fetch (`fetch_docprocessing_catalog`) is a thin wrapper that loads SearchConfig
+availability (required) plus Search_Field_Labels and FieldMetadata (optional;
+FieldMetadata does not exist on every environment).
 """
+
+from flask import current_app
 
 from ..db import engine_nexora_db
 
@@ -13,29 +17,32 @@ _LANG_COLS = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}
 
 
 def build_catalog(meta_rows, label_rows, availability, *, lang_col):
-    """Merge metadata + labels + availability into a sorted list of field dicts.
+    """Merge availability + labels + optional metadata into a sorted field list.
 
     Each entry: {field, label, type, aggregable, sortable, filterable, processes}.
-    A field is only included if it appears in `availability` (i.e. at least one
-    permitted process exposes it). Filterable = appears in availability (every
+    The field set is defined by `availability` (the col_* a permitted process
+    exposes), NOT by FieldMetadata: a field present in `availability` always
+    appears (with defaults when no FieldMetadata row backs it), and a field with
+    only a FieldMetadata row but no availability is excluded. FieldMetadata, when
+    present, enriches type/aggregable/sortable. Filterable is always True (every
     exposed field can be filtered in phase 1).
     """
     labels = {}
     for r in label_rows:
         labels[r.FieldKey] = getattr(r, lang_col, None) or r.EnglishLabel
 
+    meta_by_key = {r.FieldKey: r for r in meta_rows}
+
     out = []
-    for r in meta_rows:
-        fk = r.FieldKey
-        if fk not in availability:
-            continue
+    for fk in availability:
+        meta = meta_by_key.get(fk)
         out.append(
             {
                 "field": fk,
                 "label": labels.get(fk) or fk.replace("_", " ").title(),
-                "type": r.DataType,
-                "aggregable": bool(r.Aggregable),
-                "sortable": bool(r.Sortable),
+                "type": meta.DataType if meta else "string",
+                "aggregable": bool(meta.Aggregable) if meta else False,
+                "sortable": bool(meta.Sortable) if meta else True,
                 "filterable": True,
                 "processes": sorted(availability[fk]),
             }
@@ -52,26 +59,39 @@ def lang_col_for(locale_str):
 def fetch_docprocessing_catalog(allowed_processes, locale_str):
     """Load the docprocessing field catalog for the given allowed processes.
 
-    Returns build_catalog(...) output. Mirrors the dashboard field_metadata
-    query: FieldMetadata (+ Search_Field_Labels) joined to per-process
-    SearchConfig.col_* availability. `processname` is always available for any
-    allowed process (synthesized by the query builder as a constant per
-    subquery). `status` is NOT injected here — SearchConfig has no col_status
-    column, so the query builder cannot resolve it; it will be offered once a
-    real column backs it.
+    Returns build_catalog(...) output. SearchConfig availability is the source of
+    truth for the field set; Search_Field_Labels (labels) and FieldMetadata
+    (type/aggregable/sortable enrichment) are optional — a missing table or query
+    error for either yields empty rows rather than a 500. `processname` is always
+    available for any allowed process (synthesized by the query builder as a
+    constant per subquery). `status` is NOT injected here — SearchConfig has no
+    col_status column, so the query builder cannot resolve it.
     """
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
-        cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
-        meta_rows = cur.fetchall()
-        cur.execute(
-            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
-            "FROM Search_Field_Labels"
-        )
-        label_rows = cur.fetchall()
 
+        # Optional enrichment: FieldMetadata may not exist on every environment.
+        try:
+            cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
+            meta_rows = cur.fetchall()
+        except Exception:
+            current_app.logger.warning("reporting catalog: FieldMetadata unavailable")
+            meta_rows = []
+
+        # Optional: localized labels.
+        try:
+            cur.execute(
+                "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
+                "FROM Search_Field_Labels"
+            )
+            label_rows = cur.fetchall()
+        except Exception:
+            current_app.logger.warning("reporting catalog: Search_Field_Labels unavailable")
+            label_rows = []
+
+        # Required: SearchConfig drives the availability map (the field set).
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cur.description if c[0].startswith("col_")]
         if not cols:
