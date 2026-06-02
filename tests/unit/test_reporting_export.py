@@ -38,3 +38,14 @@ def test_rows_to_xlsx_sanitizes_illegal_title_characters():
     data = rows_to_xlsx([{"field": "a", "header": "A"}], [], title="Q1/Q2: results")
     ws = load_workbook(io.BytesIO(data)).active
     assert not any(ch in ws.title for ch in r"\/?*[]:")
+
+
+def test_rows_to_xlsx_neutralizes_formula_injection():
+    columns = [{"field": "name", "header": "=danger"}]
+    rows = [["=1+1"]]
+    data = rows_to_xlsx(columns, rows, title="t")
+    ws = load_workbook(io.BytesIO(data)).active
+    assert ws["A1"].value == "'=danger"
+    assert ws["A1"].data_type == "s"
+    assert ws["A2"].value == "'=1+1"
+    assert ws["A2"].data_type == "s"

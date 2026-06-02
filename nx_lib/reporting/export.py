@@ -5,6 +5,16 @@ import re
 
 from openpyxl import Workbook
 
+# Leading characters that spreadsheet apps may interpret as a live formula.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _safe_cell(v):
+    """Neutralize spreadsheet formula injection: prefix risky leading chars with '."""
+    if isinstance(v, str) and v and v[0] in _FORMULA_PREFIXES:
+        return "'" + v
+    return v
+
 
 def rows_to_xlsx(columns, rows, *, title):
     """Return .xlsx bytes for `rows` with a header row from `columns`.
@@ -19,9 +29,9 @@ def rows_to_xlsx(columns, rows, *, title):
     ws = wb.active
     safe_title = re.sub(r"[\\/?*\[\]:]", " ", (title or "Report")).strip() or "Report"
     ws.title = safe_title[:31]
-    ws.append([(c.get("header") or c["field"]) for c in columns])
+    ws.append([_safe_cell(c.get("header") or c["field"]) for c in columns])
     for row in rows:
-        ws.append(list(row))
+        ws.append([_safe_cell(v) for v in row])
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
