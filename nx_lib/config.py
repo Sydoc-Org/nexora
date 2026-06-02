@@ -76,6 +76,8 @@ DB_SERVER_PRD = os.environ.get("DB_SERVER_PRD")
 DB_NEXORA = os.environ.get("DB_NEXORA")
 DB_STATISTICS = os.environ.get("DB_STATISTICS")
 DB_OCTO_RUNTIME = os.environ.get("DB_OCTO_RUNTIME")
+DB_REPORTING_RO_USER = os.environ.get("DB_REPORTING_RO_USER")
+DB_REPORTING_RO_PWD = os.environ.get("DB_REPORTING_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
 
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")

@@ -27,6 +27,19 @@ def get_db_url(d, s=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
+def get_ro_db_url(d, s=None):
+    """Build a connection URL using the dedicated read-only reporting login."""
+    server = s if s is not None else cfg.DB_SERVER_PRD
+    params = urllib.parse.quote_plus(
+        f"DRIVER={{SQL Server}};"
+        f"SERVER={server},1433;"
+        f"DATABASE={d};"
+        f"UID={cfg.DB_REPORTING_RO_USER};"
+        f"PWD={cfg.DB_REPORTING_RO_PWD};"
+    )
+    return f"mssql+pyodbc:///?odbc_connect={params}"
+
+
 engine_octo_db = create_engine(
     get_db_url(cfg.DB_OCTO_RUNTIME),
     pool_size=10,
@@ -59,6 +72,22 @@ engine_generali_db = create_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
 )
+
+# Read-only engine for the Reporting live-SQL sandbox. Uses a dedicated
+# db_datareader-only login over the Statistics DB. Stays None when the RO
+# credentials are not provisioned, so the SQL source simply degrades to
+# "unavailable" rather than breaking startup on dev/test boxes.
+if cfg.DB_REPORTING_RO_USER and cfg.DB_REPORTING_RO_PWD and cfg.DB_STATISTICS:
+    engine_statistics_ro = create_engine(
+        get_ro_db_url(cfg.DB_STATISTICS),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_statistics_ro = None
 
 # Dedicated executor for DB health pings so a hung server doesn't block the page.
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")
