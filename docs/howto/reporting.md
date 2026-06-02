@@ -120,6 +120,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
+| `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -170,7 +171,35 @@ declared type.
 Custom `header` on a column is presentation-only — it appears as the column
 label in the results table and in the Excel export; it is never used in SQL.
 
-## How to add a new curated source
+## Source registry (admin)
+
+The source list is **code defaults overlaid with a DB registry**. Built-in
+sources live in `nx_lib/reporting/sources.py`; rows in `dbo.ReportingSources`
+(migration `0010`) augment or override them at request time via
+`merge_sources(code_sources(), db_rows)`. Admins (`reporting.admin.sources`)
+manage the registry at **`/reporting/sources`**: relabel, enable/disable,
+reorder (`SortOrder`), change the required permission, or register a brand-new
+source — no code change for the common cases.
+
+Each curated source binds to a **provider**:
+
+- **`docprocessing`** — the bespoke Statconfig builder (the built-in source).
+- **`table`** — a generic provider (`nx_lib/reporting/table_query.py`) that runs
+  a **whitelist-built, parameterized `SELECT`** of the chosen columns over a
+  single `BaseObject` (`Db.schema.object`) on the source's `Engine`
+  (`nexora` / `statistics` / `generali` / `octopus`). Its field catalog is the
+  source's `ColumnsJSON` (`[{field,label,type,filterable,sortable}]`). Every
+  identifier (base object + columns) is validated against `^[A-Za-z_][A-Za-z0-9_]*$`
+  and bracket-quoted; users only choose among catalogued columns and supply
+  parameterized values — so a `table` source is safe to register from the UI.
+
+**Registering a generic source needs no code:** add a `ReportingSources` row with
+`Kind=curated`, `Provider=table`, an `Engine`, a `BaseObject`, the `ColumnsJSON`
+catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
+SQL-sandbox source over an existing target. Use the code path below only when a
+source needs bespoke query logic the `table` provider can't express.
+
+## How to add a new *bespoke* curated source (code)
 
 1. **Register the source** in `nx_lib/reporting/sources.py`:
 

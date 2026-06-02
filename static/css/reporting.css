@@ -341,3 +341,24 @@
 @media (max-width: 900px) {
   .reporting-pivot-shelf { grid-template-columns: 1fr 1fr; }
 }
+
+/* --- A3: source-registry admin page --- */
+.reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
+.reporting-admin-head { display: flex; justify-content: space-between; align-items: center; }
+.reporting-admin-note { color: #64748b; font-size: 13px; margin: 4px 0 16px; }
+.reporting-admin section {
+  background: #fff; border: 1px solid #eef; border-radius: 14px; padding: 14px; margin-bottom: 16px;
+}
+.reporting-admin section h3 { margin-top: 0; }
+.reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
+.reporting-admin-grid label,
+.reporting-admin-cols {
+  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #555;
+}
+.reporting-admin-check { flex-direction: row !important; align-items: center; gap: 6px; }
+.reporting-admin-cols { margin-top: 10px; }
+.reporting-admin-cols .reporting-sql-editor { min-height: 110px; }
+.reporting-admin-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.reporting-admin-msg { font-size: 13px; color: #059669; }
+.reporting-sources-link { margin-left: 4px; }
+@media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }

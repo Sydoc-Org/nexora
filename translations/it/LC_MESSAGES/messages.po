@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-03 00:19+0200\n"
+"POT-Creation-Date: 2026-06-03 00:44+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -240,7 +240,7 @@ msgstr "Nessun altro utente disponibile."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/reporting.html:89
+#: templates/generali_reporting.html:335 templates/reporting.html:93
 #: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Annulla"
@@ -698,7 +698,8 @@ msgstr "Modifica presenze"
 #: templates/generali_baseservices.html:280 templates/generali_pdqm.html:359
 #: templates/generali_projectmanagement.html:266
 #: templates/generali_reporting.html:314
-#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:47
+#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:51
+#: templates/reporting_sources.html:71
 msgid "Save"
 msgstr "Salva"
 
@@ -736,10 +737,11 @@ msgstr "Questa azione non può essere annullata."
 #: templates/js/_generali_project_management_js.html:420
 #: templates/js/_generali_reporting_js.html:853
 #: templates/js/_generali_reporting_js.html:867
+#: templates/js/_reporting_sources_js.html:48
 #: templates/js/admin/_access_control_js.html:639
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:41
+#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:45
 msgid "Delete"
 msgstr "Elimina"
 
@@ -1670,99 +1672,107 @@ msgstr "Richiede il permesso reporting.sql.run"
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/reporting.html:34
+#: templates/reporting.html:36
+msgid "Manage data sources"
+msgstr "Gestisci le sorgenti dati"
+
+#: templates/reporting.html:36
+msgid "Sources"
+msgstr "Sorgenti"
+
+#: templates/reporting.html:38
 msgid "Untitled report"
 msgstr "Rapporto senza titolo"
 
-#: templates/js/_reporting_js.html:502 templates/reporting.html:37
+#: templates/js/_reporting_js.html:502 templates/reporting.html:41
 msgid "Saved reports…"
 msgstr "Report salvati…"
 
-#: templates/reporting.html:39
+#: templates/reporting.html:43
 msgid "Load"
 msgstr "Carica"
 
-#: templates/reporting.html:40
+#: templates/reporting.html:44
 msgid "Rename"
 msgstr "Rinomina"
 
-#: templates/reporting.html:43
+#: templates/reporting.html:47
 msgid "Share the selected report you own"
 msgstr "Condividi il report selezionato di tua proprietà"
 
-#: templates/reporting.html:43
+#: templates/reporting.html:47
 msgid "Share"
 msgstr "Condividi"
 
-#: templates/reporting.html:46
+#: templates/reporting.html:50
 msgid "Run"
 msgstr "Esegui"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:52
 msgid "Save as"
 msgstr "Salva come"
 
-#: templates/reporting.html:49
+#: templates/reporting.html:53
 msgid "Export format"
 msgstr "Formato di esportazione"
 
-#: templates/reporting.html:50
+#: templates/reporting.html:54
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/reporting.html:53
+#: templates/reporting.html:57
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/reporting.html:57
+#: templates/reporting.html:61
 msgid "Target"
 msgstr "Destinazione"
 
-#: templates/reporting.html:64
+#: templates/reporting.html:68
 msgid "Grid"
 msgstr "Tabella"
 
-#: templates/reporting.html:65
+#: templates/reporting.html:69
 msgid "Chart"
 msgstr "Grafico"
 
-#: templates/reporting.html:66
+#: templates/reporting.html:70
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:74
+#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:78
 msgid "Columns"
 msgstr "Colonne"
 
-#: templates/reporting.html:75
+#: templates/reporting.html:79
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/reporting.html:76 templates/workitems_overview.html:285
+#: templates/reporting.html:80 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
-#: templates/reporting.html:77
+#: templates/reporting.html:81
 msgid "Sort"
 msgstr "Ordinamento"
 
-#: templates/reporting.html:78
+#: templates/reporting.html:82
 msgid "Add sort"
 msgstr "Aggiungi ordinamento"
 
-#: templates/reporting.html:79
+#: templates/reporting.html:83
 msgid "Format"
 msgstr "Formato"
 
-#: templates/reporting.html:80
+#: templates/reporting.html:84
 msgid "Subtitle"
 msgstr "Sottotitolo"
 
-#: templates/reporting.html:86
+#: templates/reporting.html:90
 msgid "Live SQL — read-only"
 msgstr "SQL live — sola lettura"
 
-#: templates/reporting.html:87
+#: templates/reporting.html:91
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -1772,41 +1782,133 @@ msgstr ""
 " Le query non possono modificare i dati e ogni esecuzione viene "
 "registrata. Controlla la query prima di eseguirla."
 
-#: templates/reporting.html:90
+#: templates/reporting.html:94
 msgid "I understand"
 msgstr "Ho capito"
 
-#: templates/reporting.html:97
+#: templates/reporting.html:101
 msgid "Share report"
 msgstr "Condividi report"
 
-#: templates/reporting.html:100
+#: templates/reporting.html:104
 msgid "Private — only me"
 msgstr "Privato — solo io"
 
-#: templates/reporting.html:102
+#: templates/reporting.html:106
 msgid "Shared with everyone who can use Reporting"
 msgstr "Condiviso con tutti coloro che possono usare Reporting"
 
-#: templates/reporting.html:104
+#: templates/reporting.html:108
 msgid "Shared with specific people"
 msgstr "Condiviso con persone specifiche"
 
-#: templates/reporting.html:107
+#: templates/reporting.html:111
 msgid "Email or username"
 msgstr "Email o nome utente"
 
-#: templates/reporting.html:108
+#: templates/reporting.html:112
 msgid "Can edit"
 msgstr "Può modificare"
 
-#: templates/reporting.html:109
+#: templates/reporting.html:113
 msgid "Add"
 msgstr "Aggiungi"
 
-#: templates/admin/logs.html:157 templates/reporting.html:112
+#: templates/admin/logs.html:157 templates/reporting.html:116
 msgid "Close"
 msgstr "Chiudi"
+
+#: templates/reporting_sources.html:7
+msgid "Reporting sources - nexora"
+msgstr "Sorgenti di reporting - nexora"
+
+#: templates/reporting_sources.html:19
+msgid "Reporting source registry"
+msgstr "Registro delle sorgenti di reporting"
+
+#: templates/reporting_sources.html:20
+msgid "Back to Reporting"
+msgstr "Torna al reporting"
+
+#: templates/reporting_sources.html:22
+msgid ""
+"Registry rows augment or override the built-in sources — relabel, "
+"enable/disable, reorder, re-permission, or register new ones. Curated "
+"sources bind to a provider: 'docprocessing' (built-in) or 'table' "
+"(generic single-object, configured with a base object + columns)."
+msgstr "Le righe del registro integrano o sovrascrivono le sorgenti integrate — rinomina, abilita/disabilita, riordina, ri-autorizza o registrane di nuove. Le sorgenti curate sono associate a un provider: 'docprocessing' (integrato) o 'table' (oggetto singolo generico, configurato con oggetto base + colonne)."
+
+#: templates/reporting_sources.html:25
+msgid "Built-in defaults"
+msgstr "Predefinite integrate"
+
+#: templates/admin/access_control.html:129
+#: templates/admin/organizations.html:31 templates/reporting_sources.html:28
+#: templates/reporting_sources.html:39 templates/reporting_sources.html:50
+msgid "Code"
+msgstr "Codice"
+
+#: templates/reporting_sources.html:28 templates/reporting_sources.html:39
+#: templates/reporting_sources.html:51
+msgid "Kind"
+msgstr "Tipo"
+
+#: templates/reporting_sources.html:28 templates/reporting_sources.html:39
+#: templates/reporting_sources.html:53
+msgid "Label"
+msgstr "Etichetta"
+
+#: templates/admin/access_control.html:358 templates/admin/user_detail.html:119
+#: templates/admin/user_detail.html:151 templates/reporting_sources.html:29
+#: templates/reporting_sources.html:40 templates/reporting_sources.html:54
+msgid "Permission"
+msgstr "Autorizzazione"
+
+#: templates/reporting_sources.html:29 templates/reporting_sources.html:40
+#: templates/reporting_sources.html:55
+msgid "Provider"
+msgstr "Provider"
+
+#: templates/reporting_sources.html:36
+msgid "Registered sources"
+msgstr "Sorgenti registrate"
+
+#: templates/reporting_sources.html:40 templates/reporting_sources.html:58
+msgid "Engine"
+msgstr "Motore"
+
+#: templates/reporting_sources.html:41 templates/reporting_sources.html:64
+msgid "Enabled"
+msgstr "Abilitato"
+
+#: templates/reporting_sources.html:41
+msgid "Order"
+msgstr "Ordine"
+
+#: templates/js/_reporting_sources_js.html:84
+#: templates/reporting_sources.html:48
+msgid "Add source"
+msgstr "Aggiungi sorgente"
+
+#: templates/reporting_sources.html:61
+msgid "Target (SQL)"
+msgstr "Destinazione (SQL)"
+
+#: templates/reporting_sources.html:62
+msgid "Base object (table provider)"
+msgstr "Oggetto base (provider table)"
+
+#: templates/reporting_sources.html:63
+msgid "Sort order"
+msgstr "Ordinamento"
+
+#: templates/reporting_sources.html:66
+msgid "Columns JSON (table provider)"
+msgstr "JSON colonne (provider table)"
+
+#: templates/reporting_sources.html:72
+msgid "Clear form"
+msgstr "Svuota modulo"
 
 #: templates/reset_password.html:8
 msgid "Reset password - nexora"
@@ -2081,11 +2183,6 @@ msgstr "Cerca permessi..."
 msgid "Add Permission"
 msgstr "Aggiungi permesso"
 
-#: templates/admin/access_control.html:129
-#: templates/admin/organizations.html:31
-msgid "Code"
-msgstr "Codice"
-
 #: templates/admin/access_control.html:130
 #: templates/admin/access_control.html:281
 #: templates/admin/access_control.html:331
@@ -2107,6 +2204,7 @@ msgstr "Aggiungi profilo"
 #: templates/admin/access_control.html:162
 #: templates/admin/archive/user_management.html:54
 #: templates/admin/organizations.html:41
+#: templates/js/_reporting_sources_js.html:44
 #: templates/js/admin/_access_control_js.html:635
 #: templates/js/admin/_maintenance_js.html:145
 #: templates/js/admin/_organizations_js.html:96
@@ -2159,11 +2257,6 @@ msgstr "Nome profilo"
 #: templates/admin/user_detail.html:144
 msgid "Filter permissions..."
 msgstr "Filtra permessi..."
-
-#: templates/admin/access_control.html:358 templates/admin/user_detail.html:119
-#: templates/admin/user_detail.html:151
-msgid "Permission"
-msgstr "Autorizzazione"
 
 #: templates/admin/access_control.html:359 templates/admin/user_detail.html:152
 #: templates/js/_workitems_overview_js.html:475
@@ -3057,6 +3150,7 @@ msgid "Report name"
 msgstr "Nome del rapporto"
 
 #: templates/js/_reporting_js.html:258 templates/js/_reporting_js.html:269
+#: templates/js/_reporting_sources_js.html:110
 msgid "Saved"
 msgstr "Salvato"
 
@@ -3119,6 +3213,14 @@ msgstr "Rimuovi"
 #: templates/js/_reporting_js.html:665
 msgid "Not shared with anyone yet."
 msgstr "Non ancora condiviso con nessuno."
+
+#: templates/js/_reporting_sources_js.html:49
+msgid "Delete this source?"
+msgstr "Eliminare questa sorgente?"
+
+#: templates/js/_reporting_sources_js.html:67
+msgid "Edit source"
+msgstr "Modifica sorgente"
 
 #: templates/js/_reporting_viz_js.html:90
 msgid "Charting library unavailable."

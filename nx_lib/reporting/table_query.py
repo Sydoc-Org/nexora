@@ -1,0 +1,128 @@
+"""Generic, whitelist-driven query builder for DB-registered 'table' sources.
+
+Unlike nx_lib.reporting.query (the docprocessing Statconfig builder), this builds
+a plain projected SELECT over a single registered object (view/table). Every
+identifier — the base object and each column — comes from the admin-defined
+source registry and is validated against a strict whitelist; end users only pick
+among the catalog's columns and supply *values*, which are always parameterized.
+"""
+
+import re
+
+_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+_OP_SYMBOLS = {"eq": "=", "ne": "<>", "gt": ">", "gte": ">=", "lt": "<", "lte": "<="}
+
+
+class TableQueryError(ValueError):
+    """Raised when a generic table query cannot be built safely."""
+
+
+def _quote_ident(name):
+    if not _IDENT.match(name or ""):
+        raise TableQueryError(f"unsafe identifier: {name!r}")
+    return "[" + name + "]"
+
+
+def _quote_object(base_object):
+    """Validate + bracket-quote a 'Db.schema.object' name (1-3 dotted parts)."""
+    parts = (base_object or "").split(".")
+    if not 1 <= len(parts) <= 3 or not all(parts):
+        raise TableQueryError("invalid base object")
+    return ".".join(_quote_ident(p) for p in parts)
+
+
+def _like_escape(v):
+    # Bracket-escape LIKE metacharacters so no ESCAPE clause is needed.
+    return str(v).replace("[", "[[]").replace("%", "[%]").replace("_", "[_]")
+
+
+def table_source_catalog(columns):
+    """Normalize ColumnsJSON entries into the field-catalog shape the UI uses."""
+    out = []
+    for c in columns or []:
+        field = c.get("field") or c.get("column")
+        if not field:
+            continue
+        out.append(
+            {
+                "field": field,
+                "label": c.get("label") or field,
+                "type": c.get("type") or "string",
+                "filterable": bool(c.get("filterable", True)),
+                "sortable": bool(c.get("sortable", True)),
+                "aggregable": bool(c.get("aggregable", False)),
+                "processes": [],
+            }
+        )
+    return out
+
+
+def build_generic_query(rd, base_object, columns, *, row_cap):
+    """Build (sql, params) for a 'table' source.
+
+    columns: the source field-catalog (table_source_catalog output). Projects
+    rd['columns'] from base_object with rd['filters'] and rd['sort'], capped via
+    TOP. The caller runs schema.validate_report_definition first, so fields are
+    already whitelisted; this re-checks defensively and quotes every identifier.
+    """
+    by_field = {c["field"]: c for c in columns}
+    proj = [c.get("field") for c in rd.get("columns", [])]
+    select_cols = [_quote_ident(f) for f in proj if f in by_field]
+    if not select_cols:
+        raise TableQueryError("no valid columns selected")
+
+    sql = [
+        f"SELECT TOP ({int(row_cap)}) {', '.join(select_cols)} FROM {_quote_object(base_object)}"
+    ]
+    params = []
+
+    conds = []
+    for f in rd.get("filters") or []:
+        field = f.get("field")
+        if field not in by_field:
+            raise TableQueryError(f"unknown filter field: {field!r}")
+        col = _quote_ident(field)
+        op = f.get("op")
+        val = f.get("value")
+        if op in _OP_SYMBOLS:
+            conds.append(f"{col} {_OP_SYMBOLS[op]} ?")
+            params.append(val)
+        elif op == "contains":
+            conds.append(f"{col} LIKE ?")
+            params.append(f"%{_like_escape(val)}%")
+        elif op == "starts_with":
+            conds.append(f"{col} LIKE ?")
+            params.append(f"{_like_escape(val)}%")
+        elif op in ("in", "not_in"):
+            vals = val if isinstance(val, list) else [val]
+            if not vals:
+                conds.append("1=0" if op == "in" else "1=1")
+            else:
+                placeholders = ",".join(["?"] * len(vals))
+                conds.append(f"{col} {'IN' if op == 'in' else 'NOT IN'} ({placeholders})")
+                params.extend(vals)
+        elif op == "between":
+            if not isinstance(val, list) or len(val) != 2:
+                raise TableQueryError("between requires two values")
+            conds.append(f"{col} BETWEEN ? AND ?")
+            params.extend(val)
+        elif op == "is_null":
+            conds.append(f"{col} IS NULL")
+        elif op == "is_not_null":
+            conds.append(f"{col} IS NOT NULL")
+        else:
+            raise TableQueryError(f"unsupported filter op: {op!r}")
+    if conds:
+        sql.append("WHERE " + " AND ".join(conds))
+
+    order = []
+    for s in rd.get("sort") or []:
+        field = s.get("field")
+        if field not in by_field:
+            raise TableQueryError(f"unknown sort field: {field!r}")
+        order.append(f"{_quote_ident(field)} {'DESC' if s.get('dir') == 'desc' else 'ASC'}")
+    if order:
+        sql.append("ORDER BY " + ", ".join(order))
+
+    return " ".join(sql), params

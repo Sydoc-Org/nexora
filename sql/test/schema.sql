@@ -19,6 +19,7 @@ GO
 -- it must go before Users or the reset fails on re-run (they are recreated near
 -- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
 -- a clean, fully idempotent reset.
+IF OBJECT_ID('dbo.ReportingSources', 'U') IS NOT NULL DROP TABLE dbo.ReportingSources;
 IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
 IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
 IF OBJECT_ID('dbo.ReportingSqlAudit', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAudit;
@@ -200,6 +201,29 @@ BEGIN
         CONSTRAINT CK_Reports_Visibility CHECK (Visibility IN ('private', 'shared'))
     );
     CREATE INDEX IX_Reports_Owner ON dbo.Reports(OwnerUserID);
+END;
+GO
+
+-- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
+IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingSources (
+        SourceID     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportingSources PRIMARY KEY,
+        Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingSources_Code UNIQUE,
+        Kind         NVARCHAR(16) NOT NULL,
+        Label        NVARCHAR(120) NOT NULL,
+        Permission   NVARCHAR(128) NOT NULL,
+        Engine       NVARCHAR(32) NULL,
+        Target       NVARCHAR(32) NULL,
+        Provider     NVARCHAR(32) NULL,
+        BaseObject   NVARCHAR(256) NULL,
+        ColumnsJSON  NVARCHAR(MAX) NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportingSources_Enabled DEFAULT 1,
+        SortOrder    INT NOT NULL CONSTRAINT DF_ReportingSources_SortOrder DEFAULT 100,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT CK_ReportingSources_Kind CHECK (Kind IN ('curated', 'sql'))
+    );
 END;
 GO
 

@@ -2,7 +2,9 @@
 
 Routes:
   GET  /reporting                     builder page
+  GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
   GET  /api/reporting/sources         sources + field catalog the caller may use
+  GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
   POST /api/reporting/run             run a curated report definition -> rows
   POST /api/reporting/sql/run         run sandboxed live SQL -> rows (audited)
   POST /api/reporting/sql/ack         record the live-SQL acknowledgment
@@ -33,7 +35,9 @@ from flask import (
 from flask_babel import gettext as _
 
 from ..db import (
+    engine_generali_db,
     engine_nexora_db,
+    engine_octo_db,
     engine_octo_ro,
     engine_statistics_db,
     engine_statistics_ro,
@@ -54,8 +58,14 @@ from ..reporting.sources import (
     MAX_ROW_LIMIT,
     SQL_ROW_CAP,
     SQL_TIMEOUT_S,
-    get_source,
-    list_accessible_sources,
+    accessible,
+    code_sources,
+    merge_sources,
+)
+from ..reporting.table_query import (
+    TableQueryError,
+    build_generic_query,
+    table_source_catalog,
 )
 from ..security import has_permission, page_visibility, require_permission
 
@@ -74,6 +84,75 @@ _SQL_TARGET_PERMISSION = {
     "statistics": "reporting.sql.run",
     "octopus": "reporting.sql.target.octopus",
 }
+
+
+# Engines a curated source's generic 'table' provider may read from (SELECT-only).
+_CURATED_ENGINES = {
+    "nexora": engine_nexora_db,
+    "statistics": engine_statistics_db,
+    "generali": engine_generali_db,
+    "octopus": engine_octo_db,
+}
+
+
+def _load_db_sources():
+    """Read dbo.ReportingSources registry rows as descriptor dicts (best-effort).
+
+    A missing table or read error yields an empty list, so the page degrades to
+    the code-defined defaults rather than 500-ing.
+    """
+    try:
+        conn = engine_nexora_db.raw_connection()
+    except Exception as e:
+        current_app.logger.warning(f"reporting sources: registry unavailable: {e}")
+        return []
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT Code, Kind, Label, Permission, Engine, Target, Provider, "
+            "BaseObject, ColumnsJSON, Enabled, SortOrder FROM dbo.ReportingSources"
+        )
+        rows = []
+        for r in cur.fetchall():
+            columns = None
+            if r.ColumnsJSON:
+                try:
+                    columns = json.loads(r.ColumnsJSON)
+                except (ValueError, TypeError):
+                    columns = None
+            rows.append(
+                {
+                    "code": r.Code,
+                    "kind": r.Kind,
+                    "label": r.Label,
+                    "permission": r.Permission,
+                    "engine": r.Engine,
+                    "target": r.Target,
+                    "provider": r.Provider,
+                    "baseObject": r.BaseObject,
+                    "columns": columns,
+                    "enabled": bool(r.Enabled),
+                    "sortOrder": r.SortOrder,
+                }
+            )
+        return rows
+    except Exception as e:
+        current_app.logger.warning(f"reporting sources: registry read failed: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def _effective_sources():
+    """Code defaults overlaid with the DB registry; enabled + sorted."""
+    return merge_sources(code_sources(), _load_db_sources())
+
+
+def _get_effective_source(source_id):
+    for s in _effective_sources():
+        if s.get("id") == source_id:
+            return s
+    return None
 
 
 def _authorize_sql_target(target):
@@ -258,43 +337,66 @@ def _effective_scope(rd, allowed):
 
 
 def _prepare_run(rd):
-    """Validate + build a query for a curated report. Returns (columns, sql, params).
+    """Validate + build a query for a curated report.
 
-    Raises ReportDefinitionError / QueryBuildError on bad input.
+    Returns (columns, sql, params, engine). Dispatches on the source's provider:
+    'docprocessing' (the Statconfig builder over Statistics) or 'table' (the
+    generic single-object builder over the source's configured engine).
+
+    Raises ReportDefinitionError / QueryBuildError / TableQueryError on bad input.
     """
-    source = get_source(rd.get("source"))
-    if source is None or source["kind"] != "curated":
+    source = _get_effective_source(rd.get("source"))
+    if source is None or source.get("kind") != "curated":
         raise ReportDefinitionError("unknown or unsupported source")
     if not has_permission(source["permission"]):
         raise PermissionError(source["permission"])
 
-    allowed = _allowed_processes()
-    catalog = fetch_docprocessing_catalog(allowed, str(get_locale()))
-    catalog_fields = {f["field"] for f in catalog}
-    filterable = {f["field"] for f in catalog if f["filterable"]}
-    sortable = {f["field"] for f in catalog if f["sortable"]}
+    provider = source.get("provider") or "docprocessing"
+    if provider == "docprocessing":
+        allowed = _allowed_processes()
+        catalog = fetch_docprocessing_catalog(allowed, str(get_locale()))
+        catalog_fields = {f["field"] for f in catalog}
+        filterable = {f["field"] for f in catalog if f["filterable"]}
+        sortable = {f["field"] for f in catalog if f["sortable"]}
+        validate_report_definition(
+            rd, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+        )
+        scope = _effective_scope(rd, allowed)
+        configs = _load_process_configs(scope)
+        col_maps = _load_field_col_maps(scope)
+        sql, params = build_table_query(
+            rd, configs, col_maps, row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT)
+        )
+        return rd["columns"], sql, params, engine_statistics_db
 
-    validate_report_definition(
-        rd, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
-    )
+    if provider == "table":
+        catalog = table_source_catalog(source.get("columns"))
+        catalog_fields = {f["field"] for f in catalog}
+        filterable = {f["field"] for f in catalog if f["filterable"]}
+        sortable = {f["field"] for f in catalog if f["sortable"]}
+        validate_report_definition(
+            rd, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+        )
+        sql, params = build_generic_query(
+            rd,
+            source.get("baseObject"),
+            catalog,
+            row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
+        )
+        engine = _CURATED_ENGINES.get(source.get("engine"))
+        if engine is None:
+            raise ReportDefinitionError("source engine is not configured")
+        return rd["columns"], sql, params, engine
 
-    scope = _effective_scope(rd, allowed)
-    configs = _load_process_configs(scope)
-    col_maps = _load_field_col_maps(scope)
-    sql, params = build_table_query(
-        rd, configs, col_maps, row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT)
-    )
-    columns = rd["columns"]
-    return columns, sql, params
+    raise ReportDefinitionError("unsupported source provider")
 
 
-def _execute(sql, params):
-    conn = engine_statistics_db.raw_connection()
+def _execute(engine, sql, params):
+    conn = engine.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(sql, params)
-        rows = [list(r) for r in cur.fetchall()]
-        return rows
+        return [list(r) for r in cur.fetchall()]
     finally:
         conn.close()
 
@@ -343,18 +445,23 @@ def reporting():
 @require_permission("reporting.view")
 def api_sources():
     perms = set(session.get("permissions", []))
-    sources = list_accessible_sources(perms)
+    sources = accessible(_effective_sources(), perms)
     procs = _allowed_processes()
     out = []
     for s in sources:
         entry = {"id": s["id"], "label": s["label"], "kind": s["kind"]}
-        if s["kind"] == "curated" and s["id"] == "docprocessing":
-            try:
-                entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
-            except Exception as e:
-                current_app.logger.warning(f"reporting sources: catalog unavailable: {e}")
-                entry["fields"] = []
-            entry["processes"] = procs
+        if s["kind"] == "curated":
+            provider = s.get("provider") or "docprocessing"
+            if provider == "docprocessing":
+                try:
+                    entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
+                except Exception as e:
+                    current_app.logger.warning(f"reporting sources: catalog unavailable: {e}")
+                    entry["fields"] = []
+                entry["processes"] = procs
+            else:  # generic 'table' provider — catalog from the registry columns
+                entry["fields"] = table_source_catalog(s.get("columns"))
+                entry["processes"] = []
         elif s["kind"] == "sql":
             entry["target"] = s.get("target", "statistics")
             entry["acknowledged"] = _has_acked(session.get("userid"))
@@ -369,16 +476,16 @@ def api_run():
     if not isinstance(rd, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
     try:
-        columns, sql, params = _prepare_run(rd)
+        columns, sql, params, engine = _prepare_run(rd)
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
-    except (ReportDefinitionError, QueryBuildError) as e:
+    except (ReportDefinitionError, QueryBuildError, TableQueryError) as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run prepare error: {e}")
         return jsonify({"error": _("Could not build report")}), 500
     try:
-        rows = _execute(sql, params)
+        rows = _execute(engine, sql, params)
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run exec error: {e}")
         return jsonify({"error": _("Could not run report")}), 500
@@ -486,11 +593,11 @@ def api_export():
             return jsonify({"error": _("Could not export query")}), 500
         return _serialize_export(columns, rows, rd.get("title") or "Report", fmt)
     try:
-        columns, sql, params = _prepare_run(rd)
-        rows = _execute(sql, params)
+        columns, sql, params, engine = _prepare_run(rd)
+        rows = _execute(engine, sql, params)
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
-    except (ReportDefinitionError, QueryBuildError) as e:
+    except (ReportDefinitionError, QueryBuildError, TableQueryError) as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
@@ -845,8 +952,205 @@ def api_reports_shares_delete(report_id, share_user_id):
     return jsonify(_shares_payload(report_id))
 
 
+# ---- Source-registry admin (reporting.admin.sources) ----------------------
+
+_SOURCE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def _validate_source_payload(p):
+    """Return an error string for an invalid registry payload, else None."""
+    if not isinstance(p, dict):
+        return _("Invalid body")
+    if not _SOURCE_CODE_RE.match((p.get("code") or "").strip()):
+        return _("code must be 1-64 chars: letters, digits, . _ -")
+    if p.get("kind") not in ("curated", "sql"):
+        return _("kind must be 'curated' or 'sql'")
+    if not (p.get("label") or "").strip():
+        return _("label is required")
+    if not (p.get("permission") or "").strip():
+        return _("permission is required")
+    cols = p.get("columns")
+    if isinstance(cols, str) and cols.strip():
+        try:
+            json.loads(cols)
+        except (ValueError, TypeError):
+            return _("columns must be valid JSON")
+    return None
+
+
+def _columns_to_json(columns):
+    if columns is None or columns == "":
+        return None
+    if isinstance(columns, str):
+        return columns if columns.strip() else None
+    return json.dumps(columns, ensure_ascii=False)
+
+
+def _source_insert_params(p):
+    return (
+        p["code"].strip(),
+        p["kind"],
+        p["label"].strip(),
+        p["permission"].strip(),
+        p.get("engine") or None,
+        p.get("target") or None,
+        p.get("provider") or None,
+        p.get("baseObject") or None,
+        _columns_to_json(p.get("columns")),
+        1 if p.get("enabled", True) else 0,
+        int(p.get("sortOrder") or 100),
+    )
+
+
+@require_permission("reporting.admin.sources")
+def reporting_sources_admin():
+    return render_template(
+        "reporting_sources.html",
+        logged_in_user=session.get("username", "Unknown"),
+        fullname=session.get("fullname"),
+        pageV=page_visibility(),
+    )
+
+
+@require_permission("reporting.admin.sources")
+def api_admin_sources_list():
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT SourceID, Code, Kind, Label, Permission, Engine, Target, Provider, "
+            "BaseObject, ColumnsJSON, Enabled, SortOrder FROM dbo.ReportingSources "
+            "ORDER BY SortOrder, Label"
+        )
+        rows = [
+            {
+                "id": r.SourceID,
+                "code": r.Code,
+                "kind": r.Kind,
+                "label": r.Label,
+                "permission": r.Permission,
+                "engine": r.Engine,
+                "target": r.Target,
+                "provider": r.Provider,
+                "baseObject": r.BaseObject,
+                "columnsJson": r.ColumnsJSON,
+                "enabled": bool(r.Enabled),
+                "sortOrder": r.SortOrder,
+            }
+            for r in cur.fetchall()
+        ]
+    except Exception as e:
+        current_app.logger.error(f"reporting admin sources list error: {e}")
+        return jsonify({"error": _("Could not list sources")}), 500
+    finally:
+        conn.close()
+    return jsonify({"defaults": code_sources(), "rows": rows})
+
+
+@require_permission("reporting.admin.sources")
+@limiter.limit("60 per minute")
+def api_admin_sources_create():
+    p = request.get_json(silent=True) or {}
+    err = _validate_source_payload(p)
+    if err:
+        return jsonify({"error": err}), 400
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO dbo.ReportingSources "
+            "(Code, Kind, Label, Permission, Engine, Target, Provider, BaseObject, "
+            " ColumnsJSON, Enabled, SortOrder) "
+            "OUTPUT INSERTED.SourceID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            _source_insert_params(p),
+        )
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        return jsonify({"id": new_id, "ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin sources create error: {e}")
+        return jsonify({"error": _("Could not save source (code already exists?)")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.admin.sources")
+@limiter.limit("60 per minute")
+def api_admin_sources_update(source_id):
+    p = request.get_json(silent=True) or {}
+    err = _validate_source_payload(p)
+    if err:
+        return jsonify({"error": err}), 400
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        params = (*_source_insert_params(p), source_id)
+        cur.execute(
+            "UPDATE dbo.ReportingSources SET Code=?, Kind=?, Label=?, Permission=?, "
+            "Engine=?, Target=?, Provider=?, BaseObject=?, ColumnsJSON=?, Enabled=?, "
+            "SortOrder=?, UpdatedAt=SYSUTCDATETIME() WHERE SourceID=?",
+            params,
+        )
+        affected = cur.rowcount
+        conn.commit()
+        if not affected:
+            return jsonify({"error": _("Not found")}), 404
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin sources update error: {e}")
+        return jsonify({"error": _("Could not update source")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.admin.sources")
+def api_admin_sources_delete(source_id):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportingSources WHERE SourceID = ?", (source_id,))
+        affected = cur.rowcount
+        conn.commit()
+        if not affected:
+            return jsonify({"error": _("Not found")}), 404
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin sources delete error: {e}")
+        return jsonify({"error": _("Could not delete source")}), 500
+    finally:
+        conn.close()
+
+
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
+    app.add_url_rule(
+        "/reporting/sources",
+        endpoint="reporting_sources_admin",
+        view_func=reporting_sources_admin,
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/sources",
+        endpoint="reporting_admin_sources_list",
+        view_func=api_admin_sources_list,
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/sources",
+        endpoint="reporting_admin_sources_create",
+        view_func=api_admin_sources_create,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/sources/<int:source_id>",
+        endpoint="reporting_admin_sources_update",
+        view_func=api_admin_sources_update,
+        methods=["PUT"],
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/sources/<int:source_id>",
+        endpoint="reporting_admin_sources_delete",
+        view_func=api_admin_sources_delete,
+        methods=["DELETE"],
+    )
     app.add_url_rule("/api/reporting/sources", endpoint="reporting_sources", view_func=api_sources)
     app.add_url_rule(
         "/api/reporting/run",

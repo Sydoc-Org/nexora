@@ -1,0 +1,130 @@
+<script>
+(function () {
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  let editingId = null;
+
+  async function api(url, opts) {
+    opts = opts || {};
+    const res = await fetch(url, Object.assign(
+      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    if (!res.ok) {
+      const b = await res.json().catch(function () { return {}; });
+      throw new Error(b.error || res.statusText);
+    }
+    return res;
+  }
+
+  function td(text) {
+    var t = document.createElement('td');
+    t.textContent = (text == null ? '' : String(text));
+    return t;
+  }
+
+  function render(data) {
+    var def = document.getElementById('rpsDefaults');
+    def.innerHTML = '';
+    (data.defaults || []).forEach(function (s) {
+      var tr = document.createElement('tr');
+      [s.id, s.kind, s.label, s.permission, s.provider || ''].forEach(function (v) {
+        tr.appendChild(td(v));
+      });
+      def.appendChild(tr);
+    });
+    var body = document.getElementById('rpsRows');
+    body.innerHTML = '';
+    (data.rows || []).forEach(function (r) {
+      var tr = document.createElement('tr');
+      [r.code, r.kind, r.label, r.permission, r.engine || r.target || '',
+       r.provider || '', r.enabled ? '✓' : '—', r.sortOrder].forEach(function (v) {
+        tr.appendChild(td(v));
+      });
+      var act = document.createElement('td');
+      var e = document.createElement('button');
+      e.className = 'reporting-link';
+      e.textContent = '{{ _("Edit") }}';
+      e.onclick = function () { fillForm(r); };
+      var d = document.createElement('button');
+      d.className = 'reporting-link';
+      d.textContent = '{{ _("Delete") }}';
+      d.onclick = function () { if (window.confirm('{{ _("Delete this source?") }}')) del(r.id); };
+      act.appendChild(e);
+      act.appendChild(document.createTextNode(' '));
+      act.appendChild(d);
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+  }
+
+  function load() {
+    api('/api/reporting/admin/sources').then(function (r) { return r.json(); })
+      .then(render).catch(function (err) { msg(err.message, true); });
+  }
+
+  function val(id) { return document.getElementById(id).value; }
+
+  function fillForm(r) {
+    editingId = r.id;
+    document.getElementById('rpsFormTitle').textContent = '{{ _("Edit source") }}: ' + r.code;
+    document.getElementById('rpsCode').value = r.code;
+    document.getElementById('rpsKind').value = r.kind;
+    document.getElementById('rpsLabel').value = r.label;
+    document.getElementById('rpsPermission').value = r.permission;
+    document.getElementById('rpsProvider').value = r.provider || '';
+    document.getElementById('rpsEngine').value = r.engine || '';
+    document.getElementById('rpsTarget').value = r.target || '';
+    document.getElementById('rpsBaseObject').value = r.baseObject || '';
+    document.getElementById('rpsSortOrder').value = r.sortOrder;
+    document.getElementById('rpsEnabled').checked = !!r.enabled;
+    document.getElementById('rpsColumns').value = r.columnsJson || '';
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function reset() {
+    editingId = null;
+    document.getElementById('rpsFormTitle').textContent = '{{ _("Add source") }}';
+    ['rpsCode', 'rpsLabel', 'rpsPermission', 'rpsTarget', 'rpsBaseObject', 'rpsColumns']
+      .forEach(function (i) { document.getElementById(i).value = ''; });
+    document.getElementById('rpsKind').value = 'curated';
+    document.getElementById('rpsProvider').value = '';
+    document.getElementById('rpsEngine').value = '';
+    document.getElementById('rpsSortOrder').value = '100';
+    document.getElementById('rpsEnabled').checked = true;
+    msg('');
+  }
+
+  function payload() {
+    return {
+      code: val('rpsCode'), kind: val('rpsKind'), label: val('rpsLabel'),
+      permission: val('rpsPermission'), provider: val('rpsProvider') || null,
+      engine: val('rpsEngine') || null, target: val('rpsTarget') || null,
+      baseObject: val('rpsBaseObject') || null, columns: val('rpsColumns') || null,
+      enabled: document.getElementById('rpsEnabled').checked,
+      sortOrder: parseInt(val('rpsSortOrder'), 10) || 100,
+    };
+  }
+
+  function save() {
+    var url = editingId ? '/api/reporting/admin/sources/' + editingId : '/api/reporting/admin/sources';
+    var method = editingId ? 'PUT' : 'POST';
+    api(url, { method: method, body: JSON.stringify(payload()) })
+      .then(function () { reset(); load(); msg('{{ _("Saved") }}'); })
+      .catch(function (err) { msg(err.message, true); });
+  }
+
+  function del(id) {
+    api('/api/reporting/admin/sources/' + id, { method: 'DELETE' })
+      .then(function () { load(); })
+      .catch(function (err) { msg(err.message, true); });
+  }
+
+  function msg(t, isErr) {
+    var m = document.getElementById('rpsMsg');
+    m.textContent = t;
+    m.className = 'reporting-admin-msg' + (isErr ? ' reporting-error' : '');
+  }
+
+  document.getElementById('rpsSave').addEventListener('click', save);
+  document.getElementById('rpsReset').addEventListener('click', reset);
+  load();
+}());
+</script>

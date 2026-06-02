@@ -225,6 +225,151 @@ def test_shares_endpoints_without_perm_403(user_client):
     )
 
 
+# --- Source registry admin (A3) ---
+
+
+def test_admin_sources_page_without_perm_403(user_client):
+    assert user_client.get("/reporting/sources").status_code == 403
+    assert user_client.get("/api/reporting/admin/sources").status_code == 403
+
+
+def test_admin_sources_page_renders(admin_client):
+    resp = admin_client.get("/reporting/sources")
+    assert resp.status_code == 200
+    assert b"reporting-sources-admin" in resp.data
+
+
+def test_admin_sources_list_has_defaults(admin_client):
+    data = admin_client.get("/api/reporting/admin/sources").get_json()
+    assert any(s["id"] == "docprocessing" for s in data["defaults"])
+    assert isinstance(data["rows"], list)
+
+
+def test_admin_sources_crud(admin_client):
+    create = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "crud_src",
+            "kind": "sql",
+            "label": "CRUD Source",
+            "permission": "reporting.sql.run",
+            "target": "statistics",
+            "enabled": True,
+            "sortOrder": 50,
+        },
+    )
+    assert create.status_code == 200, create.data
+    sid = create.get_json()["id"]
+    try:
+        rows = admin_client.get("/api/reporting/admin/sources").get_json()["rows"]
+        assert any(r["id"] == sid and r["label"] == "CRUD Source" for r in rows)
+        upd = admin_client.put(
+            f"/api/reporting/admin/sources/{sid}",
+            json={
+                "code": "crud_src",
+                "kind": "sql",
+                "label": "Renamed",
+                "permission": "reporting.sql.run",
+                "target": "statistics",
+                "enabled": False,
+                "sortOrder": 50,
+            },
+        )
+        assert upd.status_code == 200
+        rows = admin_client.get("/api/reporting/admin/sources").get_json()["rows"]
+        assert next(r for r in rows if r["id"] == sid)["label"] == "Renamed"
+    finally:
+        dele = admin_client.delete(f"/api/reporting/admin/sources/{sid}")
+        assert dele.status_code == 200
+    assert admin_client.delete(f"/api/reporting/admin/sources/{sid}").status_code == 404
+
+
+def test_admin_sources_validation(admin_client):
+    base = {"kind": "curated", "label": "L", "permission": "reporting.view"}
+    assert (
+        admin_client.post(
+            "/api/reporting/admin/sources", json={**base, "code": "bad code!"}
+        ).status_code
+        == 400
+    )
+    assert (
+        admin_client.post(
+            "/api/reporting/admin/sources",
+            json={"code": "ok1", "label": "L", "permission": "p", "kind": "weird"},
+        ).status_code
+        == 400
+    )
+    assert (
+        admin_client.post(
+            "/api/reporting/admin/sources",
+            json={**base, "code": "ok2", "columns": "{not json"},
+        ).status_code
+        == 400
+    )
+
+
+def test_table_source_end_to_end(admin_client):
+    # Register a generic 'table' source over the TEST Users table and run it.
+    create = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "e2e_users",
+            "kind": "curated",
+            "label": "E2E Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+                {
+                    "field": "Email",
+                    "label": "Email",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+            ],
+            "enabled": True,
+            "sortOrder": 10,
+        },
+    )
+    assert create.status_code == 200, create.data
+    sid = create.get_json()["id"]
+    try:
+        srcs = admin_client.get("/api/reporting/sources").get_json()
+        entry = next((s for s in srcs if s["id"] == "e2e_users"), None)
+        assert entry is not None and any(f["field"] == "username" for f in entry["fields"])
+
+        run = admin_client.post(
+            "/api/reporting/run",
+            json={
+                "schemaVersion": 1,
+                "source": "e2e_users",
+                "visualization": "table",
+                "title": "Users",
+                "columns": [{"field": "username"}, {"field": "Email"}],
+                "filters": [{"field": "username", "op": "contains", "value": "admin"}],
+                "sort": [{"field": "username", "dir": "asc"}],
+                "scope": {},
+                "rowLimit": 100,
+            },
+        )
+        assert run.status_code == 200, run.data
+        data = run.get_json()
+        assert data["rowCount"] >= 1
+        flat = [c for row in data["rows"] for c in row]
+        assert "admin@test.local" in flat
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{sid}")
+
+
 def test_shared_report_visible_to_non_owner(admin_client):
     # A report owned by user@test.local (a different user), marked 'shared', must
     # appear in admin's list (owned=false) and be loadable, but not manageable.

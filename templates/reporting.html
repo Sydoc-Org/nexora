@@ -31,6 +31,10 @@
           <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
           <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
         </div>
+        {% if has_permission('reporting.admin.sources') %}
+        <a href="{{ url_for('reporting_sources_admin') }}" class="reporting-link reporting-sources-link"
+           data-testid="reporting-sources-link" title="{{ _('Manage data sources') }}">{{ _("Sources") }}</a>
+        {% endif %}
         <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
         <div class="reporting-saved" data-testid="reporting-saved">
           <select id="rpSavedReports" data-testid="reporting-saved-reports">

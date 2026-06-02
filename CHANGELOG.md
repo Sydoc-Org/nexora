@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **DB-backed source registry + admin page.** The source list is no
+  longer purely code-defined: `dbo.ReportingSources` rows (migration `0010`)
+  augment or override the built-in sources — relabel, enable/disable, reorder,
+  re-permission, or register new ones — managed at **`/reporting/sources`** (new
+  `reporting.admin.sources` permission, admins seeded). Curated sources bind to a
+  **provider**: `docprocessing` (the built-in Statconfig source) or a new generic
+  **`table`** provider (`nx_lib/reporting/table_query.py`) that runs a safe,
+  whitelist-built parameterized `SELECT` over any registered object/engine
+  (Nexora / Statistics / Generali / Octopus) — so new curated sources can be
+  registered from the UI with no code.
 - Reporting — **cross-user sharing & a shared report library.** Saved reports
   are no longer owner-only. Each report has a **Visibility** (`private`, or
   `shared` = visible read-only to everyone who can use Reporting) plus optional

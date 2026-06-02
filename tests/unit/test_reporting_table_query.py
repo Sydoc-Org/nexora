@@ -1,0 +1,94 @@
+"""Unit tests for nx_lib.reporting.table_query — the generic 'table' provider."""
+
+import pytest
+
+from nx_lib.reporting.table_query import (
+    TableQueryError,
+    build_generic_query,
+    table_source_catalog,
+)
+
+_COLUMNS = [
+    {"field": "client", "label": "Client", "type": "string", "filterable": True, "sortable": True},
+    {"field": "amount", "label": "Amount", "type": "number", "filterable": True, "sortable": True},
+]
+
+
+def _rd(**over):
+    rd = {
+        "schemaVersion": 1,
+        "source": "x",
+        "visualization": "table",
+        "title": "t",
+        "columns": [{"field": "client"}, {"field": "amount"}],
+        "filters": [],
+        "sort": [],
+        "scope": {},
+        "rowLimit": 100,
+    }
+    rd.update(over)
+    return rd
+
+
+def test_catalog_normalizes_columns():
+    cat = table_source_catalog([{"field": "a"}, {"column": "b", "label": "B"}, {}])
+    fields = [c["field"] for c in cat]
+    assert fields == ["a", "b"]  # the empty entry is skipped
+    assert cat[1]["label"] == "B" and cat[1]["filterable"] is True
+
+
+def test_basic_select_projects_and_caps():
+    sql, params = build_generic_query(_rd(), "Db.dbo.View", _COLUMNS, row_cap=500)
+    assert sql.startswith("SELECT TOP (500) [client], [amount] FROM [Db].[dbo].[View]")
+    assert params == []
+
+
+def test_filters_parameterized_and_like_escaped():
+    rd = _rd(
+        filters=[
+            {"field": "client", "op": "contains", "value": "Ac%me"},
+            {"field": "amount", "op": "gte", "value": 100},
+        ]
+    )
+    sql, params = build_generic_query(rd, "dbo.V", _COLUMNS, row_cap=10)
+    assert "[client] LIKE ?" in sql and "[amount] >= ?" in sql
+    assert params[0] == "%Ac[%]me%" and params[1] == 100
+
+
+def test_in_and_between_and_nulls():
+    rd = _rd(
+        filters=[
+            {"field": "client", "op": "in", "value": ["A", "B"]},
+            {"field": "amount", "op": "between", "value": [1, 9]},
+            {"field": "client", "op": "is_not_null"},
+        ]
+    )
+    sql, params = build_generic_query(rd, "dbo.V", _COLUMNS, row_cap=10)
+    assert "[client] IN (?,?)" in sql
+    assert "[amount] BETWEEN ? AND ?" in sql
+    assert "[client] IS NOT NULL" in sql
+    assert params == ["A", "B", 1, 9]
+
+
+def test_sort_direction():
+    sql, _ = build_generic_query(
+        _rd(sort=[{"field": "amount", "dir": "desc"}]), "dbo.V", _COLUMNS, row_cap=10
+    )
+    assert sql.rstrip().endswith("ORDER BY [amount] DESC")
+
+
+def test_unknown_column_rejected():
+    with pytest.raises(TableQueryError):
+        build_generic_query(_rd(columns=[{"field": "evil"}]), "dbo.V", _COLUMNS, row_cap=10)
+
+
+def test_unsafe_base_object_rejected():
+    with pytest.raises(TableQueryError):
+        build_generic_query(_rd(), "dbo.V; DROP TABLE x", _COLUMNS, row_cap=10)
+
+
+def test_unsafe_identifier_in_catalog_rejected():
+    bad_cols = [{"field": "a]; DROP", "filterable": True, "sortable": True}]
+    rd = _rd(columns=[{"field": "a]; DROP"}])
+    with pytest.raises(TableQueryError):
+        build_generic_query(rd, "dbo.V", table_source_catalog(bad_cols), row_cap=10)

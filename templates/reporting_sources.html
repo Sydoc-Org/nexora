@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Reporting sources - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+  {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <main class="reporting-admin" data-testid="reporting-sources-admin">
+    <div class="reporting-admin-head">
+      <h2>{{ _("Reporting source registry") }}</h2>
+      <a href="{{ url_for('reporting') }}" class="reporting-link">&larr; {{ _("Back to Reporting") }}</a>
+    </div>
+    <p class="reporting-admin-note">{{ _("Registry rows augment or override the built-in sources — relabel, enable/disable, reorder, re-permission, or register new ones. Curated sources bind to a provider: 'docprocessing' (built-in) or 'table' (generic single-object, configured with a base object + columns).") }}</p>
+
+    <section>
+      <h3>{{ _("Built-in defaults") }}</h3>
+      <table class="reporting-table" data-testid="reporting-sources-defaults">
+        <thead><tr>
+          <th>{{ _("Code") }}</th><th>{{ _("Kind") }}</th><th>{{ _("Label") }}</th>
+          <th>{{ _("Permission") }}</th><th>{{ _("Provider") }}</th>
+        </tr></thead>
+        <tbody id="rpsDefaults"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h3>{{ _("Registered sources") }}</h3>
+      <table class="reporting-table" data-testid="reporting-sources-rows">
+        <thead><tr>
+          <th>{{ _("Code") }}</th><th>{{ _("Kind") }}</th><th>{{ _("Label") }}</th>
+          <th>{{ _("Permission") }}</th><th>{{ _("Engine") }}</th><th>{{ _("Provider") }}</th>
+          <th>{{ _("Enabled") }}</th><th>{{ _("Order") }}</th><th></th>
+        </tr></thead>
+        <tbody id="rpsRows"></tbody>
+      </table>
+    </section>
+
+    <section class="reporting-admin-form">
+      <h3 id="rpsFormTitle">{{ _("Add source") }}</h3>
+      <div class="reporting-admin-grid">
+        <label>{{ _("Code") }}<input id="rpsCode" class="reporting-input" data-testid="rps-code"></label>
+        <label>{{ _("Kind") }}<select id="rpsKind" class="reporting-input">
+          <option value="curated">curated</option><option value="sql">sql</option></select></label>
+        <label>{{ _("Label") }}<input id="rpsLabel" class="reporting-input" data-testid="rps-label"></label>
+        <label>{{ _("Permission") }}<input id="rpsPermission" class="reporting-input" placeholder="reporting.source.xyz"></label>
+        <label>{{ _("Provider") }}<select id="rpsProvider" class="reporting-input">
+          <option value="">—</option><option value="docprocessing">docprocessing</option>
+          <option value="table">table</option></select></label>
+        <label>{{ _("Engine") }}<select id="rpsEngine" class="reporting-input">
+          <option value="">—</option><option>nexora</option><option>statistics</option>
+          <option>generali</option><option>octopus</option></select></label>
+        <label>{{ _("Target (SQL)") }}<input id="rpsTarget" class="reporting-input" placeholder="statistics / octopus"></label>
+        <label>{{ _("Base object (table provider)") }}<input id="rpsBaseObject" class="reporting-input" placeholder="Db.dbo.MyView"></label>
+        <label>{{ _("Sort order") }}<input id="rpsSortOrder" class="reporting-input" type="number" value="100"></label>
+        <label class="reporting-admin-check"><input id="rpsEnabled" type="checkbox" checked> {{ _("Enabled") }}</label>
+      </div>
+      <label class="reporting-admin-cols">{{ _("Columns JSON (table provider)") }}
+        <textarea id="rpsColumns" class="reporting-sql-editor" data-testid="rps-columns"
+                  placeholder='[{"field":"col1","label":"Col 1","type":"string","filterable":true,"sortable":true}]'></textarea>
+      </label>
+      <div class="reporting-admin-actions">
+        <button id="rpsSave" class="reporting-btn" data-testid="rps-save">{{ _("Save") }}</button>
+        <button id="rpsReset" class="reporting-link" data-testid="rps-reset">{{ _("Clear form") }}</button>
+        <span id="rpsMsg" class="reporting-admin-msg" data-testid="rps-msg"></span>
+      </div>
+    </section>
+  </main>
+
+  {% include 'js/_reporting_sources_js.html' %}
+</body>
+
+</html>
