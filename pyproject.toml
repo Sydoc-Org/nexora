@@ -28,6 +28,7 @@ dependencies = [
     "pillow==11.3.0",
     "python-magic-bin==0.4.14",
     "prompt_toolkit==3.0.51",
+    "openpyxl==3.1.5",
 ]
 
 [project.optional-dependencies]
