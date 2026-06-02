@@ -33,6 +33,7 @@ engine_octo_db = create_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
+    pool_pre_ping=True,
 )
 engine_nexora_db = create_engine(
     get_db_url(cfg.DB_NEXORA),
@@ -40,6 +41,7 @@ engine_nexora_db = create_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
+    pool_pre_ping=True,
 )
 engine_statistics_db = create_engine(
     get_db_url(cfg.DB_STATISTICS),
@@ -47,6 +49,7 @@ engine_statistics_db = create_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
+    pool_pre_ping=True,
 )
 engine_generali_db = create_engine(
     get_db_url(cfg.DB_GENERALI),
@@ -54,6 +57,7 @@ engine_generali_db = create_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,
+    pool_pre_ping=True,
 )
 
 # Dedicated executor for DB health pings so a hung server doesn't block the page.
