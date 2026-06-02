@@ -252,3 +252,62 @@
 .reporting-modal-box h3 { margin: 0 0 8px; }
 .reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* --- Phase 3: result views (chart + pivot) --- */
+.reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+.reporting-view-toggle[hidden] { display: none; }
+.reporting-view-toggle button {
+  padding: 4px 12px; border-radius: 8px; border: 1px solid #ddd;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.reporting-view-toggle button.active { background: #4338ca; color: #fff; border-color: #4338ca; }
+
+.reporting-viz[hidden] { display: none; }
+.reporting-viz-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.reporting-viz-bar select {
+  padding: 5px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+}
+.reporting-viz-lbl {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: #888;
+}
+.reporting-chart-canvas { position: relative; height: 60vh; min-height: 360px; }
+.reporting-viz-note { color: #888; font-size: 12px; margin: 8px 0 0; }
+
+/* Pivot drag-and-drop shelf + matrix */
+.reporting-pivot-shelf {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
+}
+.reporting-pivot-zone {
+  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px; min-height: 90px;
+  background: #fafbff;
+}
+.reporting-pivot-zone.drop-hover { border-color: #4338ca; background: #eef2ff; }
+.reporting-pivot-zone h5 {
+  margin: 0 0 6px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .05em; color: #64748b;
+}
+.reporting-pivot-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+.reporting-pivot-chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: grab;
+  background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px;
+  padding: 3px 8px; font-size: 12px; user-select: none;
+}
+.reporting-pivot-chip select {
+  border: 1px solid #c7d2fe; border-radius: 6px; font-size: 11px; padding: 1px 2px;
+  background: #fff;
+}
+.reporting-pivot-rm {
+  background: none; border: none; color: #6366f1; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0;
+}
+.reporting-pivot-table th { position: sticky; top: 0; }
+.reporting-pivot-rowhdr { font-weight: 600; background: #f8f8ff; }
+.reporting-pivot-total { background: #f1f5f9; font-weight: 600; }
+.reporting-pivot-totalrow td { border-top: 2px solid #cbd5e1; }
+
+@media (max-width: 900px) {
+  .reporting-pivot-shelf { grid-template-columns: 1fr 1fr; }
+}

@@ -82,7 +82,38 @@
     renderSort();
   }
 
+  function resetViews(hasData) {
+    state._chartMounted = false;
+    state._pivotMounted = false;
+    document.getElementById('rpViewToggle').hidden = !hasData;
+    setView('grid');
+  }
+
+  function setView(view) {
+    state.view = view;
+    document.getElementById('rpResults').hidden = view !== 'grid';
+    document.getElementById('rpChart').hidden = view !== 'chart';
+    document.getElementById('rpPivot').hidden = view !== 'pivot';
+    [['rpViewGrid', 'grid'], ['rpViewChart', 'chart'], ['rpViewPivot', 'pivot']]
+      .forEach(function (p) {
+        document.getElementById(p[0]).classList.toggle('active', p[1] === view);
+      });
+    if (!state.lastResult) return;
+    if (view === 'chart' && !state._chartMounted) {
+      ReportingViz.mountChart(document.getElementById('rpChart'),
+        state.lastResult.columns, state.lastResult.rows);
+      state._chartMounted = true;
+    }
+    if (view === 'pivot' && !state._pivotMounted) {
+      ReportingViz.mountPivot(document.getElementById('rpPivot'),
+        state.lastResult.columns, state.lastResult.rows);
+      state._pivotMounted = true;
+    }
+  }
+
   function renderResults(data) {
+    state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    resetViews(!!(data.rows && data.rows.length));
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
     if (!data.rows.length) {
@@ -514,6 +545,9 @@
       }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
   }
 
+  document.getElementById('rpViewGrid').addEventListener('click', function () { setView('grid'); });
+  document.getElementById('rpViewChart').addEventListener('click', function () { setView('chart'); });
+  document.getElementById('rpViewPivot').addEventListener('click', function () { setView('pivot'); });
   document.getElementById('rpLoad').addEventListener('click', loadSelectedReport);
   document.getElementById('rpRename').addEventListener('click', renameSelectedReport);
   document.getElementById('rpDelete').addEventListener('click', deleteSelectedReport);
