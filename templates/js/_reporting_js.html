@@ -187,7 +187,12 @@
       api('/api/reporting/reports', {
         method: 'POST',
         body: JSON.stringify({ name: name, definition: sqlDefinition() }),
-      }).then(function () { window.alert('{{ _("Saved") }}'); })
+      }).then(function (res) { return res.json(); })
+        .then(function (data) {
+          state.currentReportId = data.id || null;
+          loadReports();
+          window.alert('{{ _("Saved") }}');
+        })
         .catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
     });
   }
@@ -277,11 +282,14 @@
     api('/api/reporting/reports', {
       method: 'POST',
       body: JSON.stringify({ name: name, definition: buildDefinition() }),
-    }).then(function () {
-      window.alert('{{ _("Saved") }}');
-    }).catch(function (e) {
-      window.alert('{{ _("Save failed") }}: ' + e.message);
-    });
+    }).then(function (res) { return res.json(); })
+      .then(function (data) {
+        state.currentReportId = data.id || null;
+        loadReports();
+        window.alert('{{ _("Saved") }}');
+      }).catch(function (e) {
+        window.alert('{{ _("Save failed") }}: ' + e.message);
+      });
   }
 
   function exportXlsx() {
@@ -412,6 +420,103 @@
     });
   }
 
+  function loadReports() {
+    api('/api/reporting/reports').then(function (res) { return res.json(); })
+      .then(function (reports) {
+        var sel = document.getElementById('rpSavedReports');
+        var current = sel.value;
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = '{{ _("Saved reports…") }}';
+        sel.appendChild(ph);
+        (reports || []).forEach(function (r) {
+          var opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = r.name + (r.kind === 'sql' ? ' (SQL)' : '');
+          sel.appendChild(opt);
+        });
+        if (current) sel.value = current;
+      }).catch(function (e) {
+        console.error('{{ _("Could not load saved reports") }}:', e.message);
+      });
+  }
+
+  // Restore a saved definition into the builder (curated) or SQL editor.
+  function applyDefinition(def, name, id) {
+    state.currentReportId = id || null;
+    document.getElementById('rpTitle').value = name || def.title || '';
+    if (def.kind === 'sql') {
+      setMode('sql');
+      var tsel = document.getElementById('rpSqlTarget');
+      if (def.target) tsel.value = def.target;
+      document.getElementById('rpSqlEditor').value = def.sql || '';
+      return;
+    }
+    setMode('table');
+    state.source = def.source || state.source;
+    var src = state.sourcesById[state.source];
+    if (src) {
+      document.getElementById('rpSource').value = src.id;
+      state.fields = src.fields || [];
+      state.processes = src.processes || [];
+    }
+    // Re-hydrate column metadata (label/type/filterable) from the live catalog;
+    // a field that left the catalog still loads with its raw key as the label.
+    state.columns = (def.columns || []).map(function (c) {
+      var meta = state.fields.find(function (f) { return f.field === c.field; })
+        || { field: c.field, label: c.field };
+      return Object.assign({}, meta, { header: c.header || meta.label });
+    });
+    state.filters = (def.filters || []).map(function (f) { return Object.assign({}, f); });
+    state.sort = (def.sort || []).map(function (s) { return Object.assign({}, s); });
+    document.getElementById('rpSubtitle').value = def.subtitle || '';
+    renderFields();
+    renderWells();
+    renderFilters();
+  }
+
+  function loadSelectedReport() {
+    var id = document.getElementById('rpSavedReports').value;
+    if (!id) return;
+    api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
+      .then(function (data) { applyDefinition(data.definition || {}, data.name, data.id); })
+      .catch(function (e) { showError(e.message); });
+  }
+
+  function renameSelectedReport() {
+    var sel = document.getElementById('rpSavedReports');
+    var id = sel.value;
+    if (!id) return;
+    var current = sel.options[sel.selectedIndex].textContent.replace(/ \(SQL\)$/, '');
+    var name = window.prompt('{{ _("New name") }}', current);
+    if (!name) return;
+    // Name-only change; PUT requires the definition too, so fetch it first.
+    api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
+      .then(function (data) {
+        return api('/api/reporting/reports/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({ name: name, definition: data.definition }),
+        });
+      }).then(function () { loadReports(); })
+      .catch(function (e) { window.alert('{{ _("Rename failed") }}: ' + e.message); });
+  }
+
+  function deleteSelectedReport() {
+    var sel = document.getElementById('rpSavedReports');
+    var id = sel.value;
+    if (!id) return;
+    if (!window.confirm('{{ _("Delete this saved report?") }}')) return;
+    api('/api/reporting/reports/' + id, { method: 'DELETE' })
+      .then(function () {
+        if (String(state.currentReportId) === String(id)) state.currentReportId = null;
+        loadReports();
+      }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
+  }
+
+  document.getElementById('rpLoad').addEventListener('click', loadSelectedReport);
+  document.getElementById('rpRename').addEventListener('click', renameSelectedReport);
+  document.getElementById('rpDelete').addEventListener('click', deleteSelectedReport);
   document.getElementById('rpFieldSearch').addEventListener('input', renderFields);
   document.getElementById('rpRun').addEventListener('click', function () {
     if (state.mode === 'sql') { runSql(); } else { run(); }
@@ -428,5 +533,6 @@
   document.getElementById('rpAddSort').addEventListener('click', addSort);
 
   loadSources();
+  loadReports();
 }());
 </script>

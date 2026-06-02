@@ -31,6 +31,14 @@
           <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
         </div>
         <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
+        <div class="reporting-saved" data-testid="reporting-saved">
+          <select id="rpSavedReports" data-testid="reporting-saved-reports">
+            <option value="">{{ _("Saved reports…") }}</option>
+          </select>
+          <button id="rpLoad" class="reporting-btn" data-testid="reporting-load">{{ _("Load") }}</button>
+          <button id="rpRename" class="reporting-link" data-testid="reporting-rename">{{ _("Rename") }}</button>
+          <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
+        </div>
         <span style="flex:1"></span>
         <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
         <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>

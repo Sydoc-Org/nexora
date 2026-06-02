@@ -34,6 +34,21 @@
   border: 1px solid #ddd;
 }
 
+.reporting-saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reporting-saved select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  max-width: 200px;
+}
+
 .reporting-mode-toggle button.active {
   background: #4338ca;
   color: #fff;
