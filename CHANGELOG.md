@@ -9,6 +9,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **chart & pivot result views.** A Grid / Chart / Pivot toggle
+  appears after a run and re-visualizes the current result set (curated *or*
+  SQL) in place: Chart.js bar/line/pie/doughnut charts, and a vanilla
+  drag-and-drop multi-dimension **pivot/matrix** (drag fields into
+  Rows/Columns/Values, per-measure aggregation sum/avg/count/min/max, with row
+  and grand totals).
+- Reporting — **saved-report load UI.** A "Saved reports" dropdown on the
+  builder toolbar with Load / Rename / Delete (the list/get/update/delete
+  endpoints already existed); Load restores a curated definition into the
+  builder or a SQL definition into the SQL editor.
+- Reporting — **Octopus as a 2nd live-SQL target.** The SQL sandbox can target
+  the Octopus runtime DB alongside Statistics, gated by the new grantable
+  `reporting.sql.target.octopus` permission (migration `0008`, admins seeded)
+  and its own dedicated `db_datareader`-only login
+  (`DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD`; until set the
+  Octopus target degrades to 503).
 - Reporting: live read-only **SQL sandbox** (Statistics) — run a single SELECT,
   export to Excel, and save SQL reports. Gated by the new grantable
   `reporting.sql.run` permission plus a one-time acknowledgment, hardened by an

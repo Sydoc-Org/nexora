@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 21:18+0200\n"
+"POT-Creation-Date: 2026-06-02 22:58+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -240,7 +240,7 @@ msgstr "Keine weiteren Benutzer verfügbar."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/reporting.html:66
+#: templates/generali_reporting.html:335 templates/reporting.html:82
 #: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -388,7 +388,8 @@ msgstr "Tägliches Verarbeitungsvolumen"
 
 #: templates/generali-dashboard.html:122 templates/generali_documents.html:29
 #: templates/js/_generali_dashboard_js.html:16
-#: templates/workitems_overview.html:64
+#: templates/js/_reporting_viz_js.html:339
+#: templates/js/_reporting_viz_js.html:387 templates/workitems_overview.html:64
 msgid "Total"
 msgstr "Gesamt"
 
@@ -511,6 +512,7 @@ msgstr "Übergeordnete Kategorie"
 #: templates/js/_generali_pdqm_js.html:366
 #: templates/js/_generali_pdqm_js.html:375
 #: templates/js/_generali_pdqm_js.html:387
+#: templates/js/_reporting_viz_js.html:358
 msgid "All"
 msgstr "Alle"
 
@@ -691,7 +693,7 @@ msgstr "Anwesenheit bearbeiten"
 #: templates/generali_baseservices.html:280 templates/generali_pdqm.html:359
 #: templates/generali_projectmanagement.html:266
 #: templates/generali_reporting.html:314
-#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:36
+#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:45
 msgid "Save"
 msgstr "Speichern"
 
@@ -732,7 +734,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/admin/_access_control_js.html:639
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111
+#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:41
 msgid "Delete"
 msgstr "Löschen"
 
@@ -759,6 +761,7 @@ msgstr "Eintrag hinzufügen"
 #: templates/generali_monthreport.html:98
 #: templates/generali_projectmanagement.html:197
 #: templates/generali_reporting.html:68 templates/generali_reporting.html:155
+#: templates/js/_reporting_viz_js.html:115
 msgid "Category"
 msgstr "Kategorie"
 
@@ -843,6 +846,7 @@ msgid "Advanced"
 msgstr "Erweitert"
 
 #: templates/generali_documents.html:222
+#: templates/js/_reporting_viz_js.html:114
 msgid "Type"
 msgstr "Typ"
 
@@ -1652,86 +1656,110 @@ msgid "Reporting - nexora"
 msgstr "Reporting - nexora"
 
 #: templates/admin/user_detail.html:120
-#: templates/js/admin/_access_control_js.html:715 templates/reporting.html:21
+#: templates/js/admin/_access_control_js.html:715 templates/reporting.html:22
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/reporting.html:23
+#: templates/reporting.html:24
 msgid "Search fields…"
 msgstr "Felder suchen…"
 
-#: templates/reporting.html:30
+#: templates/reporting.html:31
 msgid "Table"
 msgstr "Tabelle"
 
-#: templates/reporting.html:31
+#: templates/reporting.html:32
 msgid "Requires the reporting.sql.run permission"
 msgstr "Erfordert die Berechtigung reporting.sql.run"
 
-#: templates/reporting.html:31
+#: templates/reporting.html:32
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/reporting.html:33
+#: templates/reporting.html:34
 msgid "Untitled report"
 msgstr "Unbenannter Bericht"
 
-#: templates/reporting.html:35
+#: templates/js/_reporting_js.html:462 templates/reporting.html:37
+msgid "Saved reports…"
+msgstr "Gespeicherte Berichte…"
+
+#: templates/reporting.html:39
+msgid "Load"
+msgstr "Laden"
+
+#: templates/reporting.html:40
+msgid "Rename"
+msgstr "Umbenennen"
+
+#: templates/reporting.html:44
 msgid "Run"
 msgstr "Ausführen"
 
-#: templates/reporting.html:37
+#: templates/reporting.html:46
 msgid "Export"
 msgstr "Exportieren"
 
-#: templates/reporting.html:41
+#: templates/reporting.html:50
 msgid "Target"
 msgstr "Ziel"
 
-#: templates/reporting.html:51
+#: templates/reporting.html:57
+msgid "Grid"
+msgstr "Tabelle"
+
+#: templates/reporting.html:58
+msgid "Chart"
+msgstr "Diagramm"
+
+#: templates/reporting.html:59
+msgid "Pivot"
+msgstr "Pivot"
+
+#: templates/js/_reporting_viz_js.html:425 templates/reporting.html:67
 msgid "Columns"
 msgstr "Spalten"
 
-#: templates/reporting.html:52
+#: templates/reporting.html:68
 msgid "Filters"
 msgstr "Filter"
 
-#: templates/reporting.html:53 templates/workitems_overview.html:285
+#: templates/reporting.html:69 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
-#: templates/reporting.html:54
+#: templates/reporting.html:70
 msgid "Sort"
 msgstr "Sortierung"
 
-#: templates/reporting.html:55
+#: templates/reporting.html:71
 msgid "Add sort"
 msgstr "Sortierung hinzufügen"
 
-#: templates/reporting.html:56
+#: templates/reporting.html:72
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:57
+#: templates/reporting.html:73
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: templates/reporting.html:63
+#: templates/reporting.html:79
 msgid "Live SQL — read-only"
 msgstr "Live-SQL — schreibgeschützt"
 
-#: templates/reporting.html:64
+#: templates/reporting.html:80
 msgid ""
-"You are about to run read-only SQL against the Statistics database. "
+"You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
 "query before running."
 msgstr ""
-"Sie sind dabei, schreibgeschütztes SQL gegen die Statistikdatenbank "
-"auszuführen. Abfragen können keine Daten ändern, und jede Ausführung wird "
-"protokolliert. Überprüfen Sie Ihre Abfrage sorgfältig, bevor Sie sie "
-"ausführen."
+"Sie sind dabei, schreibgeschütztes SQL gegen eine aktive Reporting-"
+"Datenbank auszuführen. Abfragen können keine Daten ändern, und jede "
+"Ausführung wird protokolliert. Überprüfen Sie Ihre Abfrage vor dem "
+"Ausführen."
 
-#: templates/reporting.html:67
+#: templates/reporting.html:83
 msgid "I understand"
 msgstr "Ich verstehe"
 
@@ -2979,29 +3007,101 @@ msgstr "Passwörter stimmen nicht überein"
 msgid "At least 8 characters required"
 msgstr "Mindestens 8 Zeichen erforderlich"
 
-#: templates/js/_reporting_js.html:87
+#: templates/js/_reporting_js.html:122
 msgid "No rows."
 msgstr "Keine Zeilen."
 
-#: templates/js/_reporting_js.html:178 templates/js/_reporting_js.html:262
+#: templates/js/_reporting_js.html:215 templates/js/_reporting_js.html:310
 msgid "Report name"
 msgstr "Berichtsname"
 
-#: templates/js/_reporting_js.html:184 templates/js/_reporting_js.html:269
+#: templates/js/_reporting_js.html:225 templates/js/_reporting_js.html:320
 msgid "Saved"
 msgstr "Gespeichert"
 
-#: templates/js/_reporting_js.html:185 templates/js/_reporting_js.html:271
+#: templates/js/_reporting_js.html:227 templates/js/_reporting_js.html:322
 msgid "Save failed"
 msgstr "Speichern fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:201 templates/js/_reporting_js.html:287
+#: templates/js/_reporting_js.html:243 templates/js/_reporting_js.html:338
 msgid "Export failed"
 msgstr "Export fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:243
+#: templates/js/_reporting_js.html:291
 msgid "Could not load sources"
 msgstr "Quellen konnten nicht geladen werden"
+
+#: templates/js/_reporting_js.html:472
+msgid "Could not load saved reports"
+msgstr "Gespeicherte Berichte konnten nicht geladen werden"
+
+#: templates/js/_reporting_js.html:523
+msgid "New name"
+msgstr "Neuer Name"
+
+#: templates/js/_reporting_js.html:533
+msgid "Rename failed"
+msgstr "Umbenennen fehlgeschlagen"
+
+#: templates/js/_reporting_js.html:540
+msgid "Delete this saved report?"
+msgstr "Diesen gespeicherten Bericht löschen?"
+
+#: templates/js/_reporting_js.html:545
+msgid "Delete failed"
+msgstr "Löschen fehlgeschlagen"
+
+#: templates/js/_reporting_viz_js.html:72
+msgid "Charting library unavailable."
+msgstr "Diagrammbibliothek nicht verfügbar."
+
+#: templates/js/_reporting_viz_js.html:76
+msgid "No data to chart."
+msgstr "Keine Daten zum Darstellen."
+
+#: templates/js/_reporting_viz_js.html:104
+msgid "Bar"
+msgstr "Balken"
+
+#: templates/js/_reporting_viz_js.html:105
+msgid "Line"
+msgstr "Linie"
+
+#: templates/js/_reporting_viz_js.html:106
+msgid "Pie"
+msgstr "Kreis"
+
+#: templates/js/_reporting_viz_js.html:107
+msgid "Doughnut"
+msgstr "Ring"
+
+#: templates/js/_reporting_viz_js.html:116
+msgid "Value"
+msgstr "Wert"
+
+#: templates/js/_reporting_viz_js.html:171
+msgid "Showing the top 50 categories by value."
+msgstr "Es werden die 50 wertgrößten Kategorien angezeigt."
+
+#: templates/js/_reporting_viz_js.html:183
+msgid "No data to pivot."
+msgstr "Keine Daten für die Pivot-Tabelle."
+
+#: templates/js/_reporting_viz_js.html:294
+msgid "Drag a field into Values to build a pivot."
+msgstr "Ziehen Sie ein Feld in „Werte“, um eine Pivot-Tabelle zu erstellen."
+
+#: templates/js/_reporting_viz_js.html:423
+msgid "Fields"
+msgstr "Felder"
+
+#: templates/js/_reporting_viz_js.html:424
+msgid "Rows"
+msgstr "Zeilen"
+
+#: templates/js/_reporting_viz_js.html:426
+msgid "Values"
+msgstr "Werte"
 
 #: templates/js/_workitems_overview_js.html:151
 msgid "Restricted"

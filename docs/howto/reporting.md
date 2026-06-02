@@ -31,9 +31,32 @@ for silently excludes it (no data leak).
 ### Save & load
 
 Reports are saved per user in the `dbo.Reports` table (NexoraDB). A saved
-report stores the full v1 definition JSON; loading it restores every column,
-filter, sort, and scope setting. Each user can only access their own saved
-reports.
+report stores the full v1 definition JSON. The **Saved reports** dropdown on the
+toolbar lists the caller's reports; **Load** restores a curated definition into
+the builder (source, columns, filters, sort, scope, title/subtitle) or a SQL
+definition into the SQL editor + target, switching mode by the saved `kind`.
+**Rename** and **Delete** act on the selected report. Saving always creates a
+new report (updating a loaded report's body is a follow-up). Each user can only
+access their own saved reports.
+
+### Result views — chart & pivot
+
+After a run returns rows, a **Grid / Chart / Pivot** toggle appears above the
+results and re-visualizes the current result set (curated *or* SQL) in place —
+no re-query:
+
+- **Chart** (Chart.js): bar, line, pie, or doughnut. Pick a **category** column
+  and a **value** column; values are summed per category and the top 50
+  categories are shown.
+- **Pivot**: a drag-and-drop **matrix**. Drag fields into **Rows**, **Columns**,
+  or **Values**; each Values field gets an aggregation (sum / avg / count / min /
+  max). Multiple Row/Column fields nest into a multi-dimension matrix, with
+  per-row and grand totals. Computation is client-side over the rows already in
+  the grid.
+
+The viz code lives in `templates/js/_reporting_viz_js.html` (exposes
+`window.ReportingViz`); it operates purely on the `{columns, rows}` the grid is
+showing.
 
 ### Excel export
 
@@ -49,7 +72,8 @@ header row.
 | `reporting.source.docprocessing` | Use the Document Processing curated source. |
 | `reporting.export` | Export reports to Excel (`.xlsx`). |
 | `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
-| `reporting.sql.run` | Run live read-only SQL in the sandbox (see below). Grantable; admins seeded. |
+| `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
+| `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -152,11 +176,15 @@ label in the results table and in the Excel export; it is never used in SQL.
 
 The **SQL** tab in the report builder is a power-user escape hatch for when the
 curated builder does not cover your query. It runs a single read-only `SELECT`
-directly against the Statistics database.
+against a chosen target database. The **Target** dropdown lists every target the
+caller may reach: **Statistics** always (with `reporting.sql.run`), and
+**Octopus** when the caller also holds `reporting.sql.target.octopus`.
 
 ### Access
 
-Gated by the `reporting.sql.run` permission. Admins have it seeded; grant it
+Gated by the `reporting.sql.run` permission for the Statistics target; the
+Octopus target additionally requires `reporting.sql.target.octopus` (enforced
+server-side on both run and export). Admins have both seeded; grant them
 per-user via the normal Permissions admin UI on request.
 
 On first use the user must accept a one-time acknowledgment ("You are about to
@@ -168,8 +196,10 @@ not shown again on subsequent runs.
 - **AST-validated:** `sqlglot` parses the submitted query and rejects anything
   that is not a single `SELECT` statement — no DML, DDL, or multi-statement
   batches pass the gate.
-- **Read-only login:** queries execute on `engine_statistics_ro`, a dedicated
-  `db_datareader`-only SQL login with no write permissions.
+- **Read-only login:** queries execute on a dedicated `db_datareader`-only SQL
+  login with no write permissions — `engine_statistics_ro` for Statistics,
+  `engine_octo_ro` for Octopus. Each target requires the matching permission
+  before its query runs.
 - **Row cap:** results are hard-limited to 50,000 rows.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
@@ -177,23 +207,34 @@ not shown again on subsequent runs.
 
 ### Owner setup
 
-Provision a read-only SQL login on the Statistics DB (`db_datareader` role only),
-then set `DB_REPORTING_RO_USER` and `DB_REPORTING_RO_PWD` in both
-`env/INT.env` and `env/PROD.env`.
+Each SQL target needs its own read-only SQL login (`db_datareader` role only),
+set in both `env/INT.env` and `env/PROD.env`:
 
-Until these env vars are present the SQL source returns **503 "SQL source is
-not configured"** and the SQL tab remains disabled for all users.
+| Target | Login on | Env vars |
+|--------|----------|----------|
+| Statistics | Statistics DB | `DB_REPORTING_RO_USER` / `DB_REPORTING_RO_PWD` |
+| Octopus | Octopus runtime DB | `DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD` |
+
+Until a target's env vars are present, that target's engine stays unconfigured
+and a run against it returns **503 "SQL source is not configured"** (a warning is
+logged). The SQL tab itself enables as soon as the caller holds a SQL
+permission, regardless of provisioning; each target only returns data once its
+login is set.
 
 ## See also
 
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
-  `query.py`, `export.py`, `sql_sandbox.py`).
+  `query.py`, `export.py`, `sandbox.py`).
 - `nx_lib/views/reporting.py` — Flask routes.
+- `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
+  — chart + drag-and-drop pivot (`window.ReportingViz`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.
 - `sql/_migrations/NexoraDB/0005_seed_reporting_permissions.sql` — permission seed.
 - `sql/_migrations/NexoraDB/0006_create_reporting_sql_tables.sql` —
   `dbo.ReportingSqlAudit` and `dbo.ReportingSqlAck` DDL.
-- `sql/_migrations/NexoraDB/0007_seed_reporting_sql_run_permission.sql` —
+- `sql/_migrations/NexoraDB/0007_seed_reporting_sql_permission.sql` —
   `reporting.sql.run` permission + admin seed.
+- `sql/_migrations/NexoraDB/0008_seed_reporting_sql_octopus_permission.sql` —
+  `reporting.sql.target.octopus` permission + admin seed.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).
