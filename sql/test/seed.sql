@@ -82,7 +82,9 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.export', 'Reporting: export reports to Excel'),
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
     ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
-    ('reporting.admin.sources', 'Reporting: manage the data-source registry');
+    ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
+    ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
+    ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source');
 GO
 
 -- Access profiles
@@ -133,4 +135,31 @@ VALUES
      'noperm@test.local',
      (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'),
      'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en');
+GO
+
+-- Curated 'table' reporting sources (mirrors 0011_seed_generali_workitems_sources.sql)
+-- so the registry/listing can be exercised in TEST. Running them needs the live
+-- Generali/Octopus DBs, so the e2e/integration tests only assert they register.
+IF NOT EXISTS (SELECT 1 FROM dbo.ReportingSources WHERE Code = 'generali_pdqm')
+INSERT INTO dbo.ReportingSources
+    (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
+VALUES (
+    'generali_pdqm', 'curated', 'Generali — PDQM Report',
+    'reporting.source.generali.pdqm', 'generali', 'table', 'dbo.PDQMReport',
+    N'[{"field":"ForDate","label":"Date","type":"date","filterable":true,"sortable":true},
+       {"field":"ParentCategory","label":"Parent category","type":"string","filterable":true,"sortable":true},
+       {"field":"Quantity","label":"Quantity","type":"number","filterable":true,"sortable":true}]',
+    1, 20);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.ReportingSources WHERE Code = 'workitems')
+INSERT INTO dbo.ReportingSources
+    (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
+VALUES (
+    'workitems', 'curated', 'Workitems (Octopus)',
+    'reporting.source.workitems', 'octopus', 'table', 'dbo.t_Documents',
+    N'[{"field":"WorkItemIdentifier","label":"Workitem ID","type":"string","filterable":true,"sortable":true},
+       {"field":"DocumentName","label":"Document name","type":"string","filterable":true,"sortable":true},
+       {"field":"DocumentRevision","label":"Revision","type":"number","filterable":true,"sortable":true}]',
+    1, 30);
 GO

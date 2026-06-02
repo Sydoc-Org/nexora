@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **Generali & Workitems curated sources.** Two ready-to-use curated
+  sources registered through the new `table` provider (migration `0011`):
+  **Generali — PDQM Report** (`dbo.PDQMReport`, engine `generali`) and
+  **Workitems (Octopus)** (`dbo.t_Documents`, engine `octopus`), each gated by
+  its own grantable permission (`reporting.source.generali.pdqm`,
+  `reporting.source.workitems`; admins seeded). The exposed columns came from the
+  live INT schema and are admin-tunable via `/reporting/sources`.
 - Reporting — **DB-backed source registry + admin page.** The source list is no
   longer purely code-defined: `dbo.ReportingSources` rows (migration `0010`)
   augment or override the built-in sources — relabel, enable/disable, reorder,

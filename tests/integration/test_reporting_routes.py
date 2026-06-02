@@ -225,6 +225,19 @@ def test_shares_endpoints_without_perm_403(user_client):
     )
 
 
+# --- Seeded curated 'table' sources (A5 Generali, A6 Workitems) ---
+
+
+def test_generali_and_workitems_sources_registered(admin_client):
+    # TestAdmin holds both source permissions (seed); listing builds the field
+    # catalog from ColumnsJSON with no Generali/Octopus DB access.
+    by_id = {s["id"]: s for s in admin_client.get("/api/reporting/sources").get_json()}
+    assert by_id["generali_pdqm"]["kind"] == "curated"
+    assert any(f["field"] == "ParentCategory" for f in by_id["generali_pdqm"]["fields"])
+    assert by_id["workitems"]["kind"] == "curated"
+    assert any(f["field"] == "WorkItemIdentifier" for f in by_id["workitems"]["fields"])
+
+
 # --- Source registry admin (A3) ---
 
 

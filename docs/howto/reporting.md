@@ -193,6 +193,15 @@ Each curated source binds to a **provider**:
   and bracket-quoted; users only choose among catalogued columns and supply
   parameterized values — so a `table` source is safe to register from the UI.
 
+**Built-in registered sources.** Migration `0011` seeds two `table`-provider
+sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
+**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`), each gated by its
+own permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
+Unlike the docprocessing source, the `table` provider does **not** apply
+`reporting.scope.process.*` row scoping — the source permission is the whole
+gate, so grant it deliberately. Tune the exposed columns/object at
+`/reporting/sources`.
+
 **Registering a generic source needs no code:** add a `ReportingSources` row with
 `Kind=curated`, `Provider=table`, an `Engine`, a `BaseObject`, the `ColumnsJSON`
 catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
