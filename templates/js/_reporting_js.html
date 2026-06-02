@@ -1,7 +1,11 @@
 <script>
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const state = { source: null, fields: [], columns: [], filters: [], sort: [], processes: [], mode: 'table', sqlSource: null };
+  const state = {
+    source: null, fields: [], columns: [], filters: [], sort: [], processes: [],
+    mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
+    lastResult: null, view: 'grid', currentReportId: null
+  };
 
   async function api(url, opts) {
     opts = opts || {};
@@ -142,7 +146,9 @@
     document.getElementById('rpSqlAckCancel').onclick = function () { modal.hidden = true; };
     document.getElementById('rpSqlAckAccept').onclick = function () {
       api('/api/reporting/sql/ack', { method: 'POST', body: '{}' }).then(function () {
-        if (state.sqlSource) state.sqlSource.acknowledged = true;
+        // Ack is per-user — mark every SQL target acknowledged so switching
+        // targets afterwards doesn't re-prompt.
+        state.sqlSources.forEach(function (s) { s.acknowledged = true; });
         modal.hidden = true;
         cb();
       }).catch(function (e) { modal.hidden = true; showError(e.message); });
@@ -208,18 +214,24 @@
     }).then(function (sources) {
       var sel = document.getElementById('rpSource');
       sel.innerHTML = '';
-      state.sqlSource = sources.find(function (s) { return s.kind === 'sql'; }) || null;
+      state.sourcesById = {};
+      sources.forEach(function (s) { state.sourcesById[s.id] = s; });
+      state.sqlSources = sources.filter(function (s) { return s.kind === 'sql'; });
+      // Ack is per-user, identical across SQL targets — track via the first one.
+      state.sqlSource = state.sqlSources[0] || null;
       var curated = sources.filter(function (s) { return s.kind !== 'sql'; });
       var sqlBtn = document.getElementById('rpModeSql');
-      if (state.sqlSource) {
+      if (state.sqlSources.length) {
         sqlBtn.disabled = false;
         sqlBtn.removeAttribute('title');
         var tsel = document.getElementById('rpSqlTarget');
         tsel.innerHTML = '';
-        var topt = document.createElement('option');
-        topt.value = state.sqlSource.target || 'statistics';
-        topt.textContent = state.sqlSource.label;
-        tsel.appendChild(topt);
+        state.sqlSources.forEach(function (s) {
+          var topt = document.createElement('option');
+          topt.value = s.target || 'statistics';
+          topt.textContent = s.label;
+          tsel.appendChild(topt);
+        });
       }
       curated.forEach(function (s) {
         var opt = document.createElement('option');

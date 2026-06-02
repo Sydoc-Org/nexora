@@ -27,15 +27,21 @@ def get_db_url(d, s=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_ro_db_url(d, s=None):
-    """Build a connection URL using the dedicated read-only reporting login."""
+def get_ro_db_url(d, s=None, uid=None, pwd=None):
+    """Build a connection URL using a dedicated read-only reporting login.
+
+    Defaults to the Statistics RO login (``DB_REPORTING_RO_*``); pass ``uid`` /
+    ``pwd`` to use a different read-only login (e.g. the Octopus target's).
+    """
     server = s if s is not None else cfg.DB_SERVER_PRD
+    uid = uid if uid is not None else cfg.DB_REPORTING_RO_USER
+    pwd = pwd if pwd is not None else cfg.DB_REPORTING_RO_PWD
     params = urllib.parse.quote_plus(
         f"DRIVER={{SQL Server}};"
         f"SERVER={server},1433;"
         f"DATABASE={d};"
-        f"UID={cfg.DB_REPORTING_RO_USER};"
-        f"PWD={cfg.DB_REPORTING_RO_PWD};"
+        f"UID={uid};"
+        f"PWD={pwd};"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
@@ -88,6 +94,26 @@ if cfg.DB_REPORTING_RO_USER and cfg.DB_REPORTING_RO_PWD and cfg.DB_STATISTICS:
     )
 else:
     engine_statistics_ro = None
+
+# Second read-only engine for the SQL sandbox's Octopus target. Uses its own
+# dedicated db_datareader-only login (DB_REPORTING_OCTO_RO_*) over the Octopus
+# runtime DB. Stays None until those credentials are provisioned, so the
+# Octopus SQL target degrades to "unavailable" rather than breaking startup.
+if cfg.DB_REPORTING_OCTO_RO_USER and cfg.DB_REPORTING_OCTO_RO_PWD and cfg.DB_OCTO_RUNTIME:
+    engine_octo_ro = create_engine(
+        get_ro_db_url(
+            cfg.DB_OCTO_RUNTIME,
+            uid=cfg.DB_REPORTING_OCTO_RO_USER,
+            pwd=cfg.DB_REPORTING_OCTO_RO_PWD,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_octo_ro = None
 
 # Dedicated executor for DB health pings so a hung server doesn't block the page.
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")

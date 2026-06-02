@@ -28,7 +28,12 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from ..db import engine_nexora_db, engine_statistics_db, engine_statistics_ro
+from ..db import (
+    engine_nexora_db,
+    engine_octo_ro,
+    engine_statistics_db,
+    engine_statistics_ro,
+)
 from ..extensions import limiter
 from ..i18n import get_locale
 from ..reporting.catalog import fetch_docprocessing_catalog
@@ -52,8 +57,30 @@ from ..security import has_permission, page_visibility, require_permission
 
 _SCOPE_PREFIX = "reporting.scope.process."
 
-_SQL_TARGET_ENGINES = {"statistics": engine_statistics_ro}
+_SQL_TARGET_ENGINES = {
+    "statistics": engine_statistics_ro,
+    "octopus": engine_octo_ro,
+}
 _SQL_TARGETS = set(_SQL_TARGET_ENGINES)
+
+# Per-target permission. The base reporting.sql.run gate (on the routes) covers
+# the Statistics target; Octopus — the runtime DB — additionally requires its
+# own grant so SQL access and runtime-DB access can be separated.
+_SQL_TARGET_PERMISSION = {
+    "statistics": "reporting.sql.run",
+    "octopus": "reporting.sql.target.octopus",
+}
+
+
+def _authorize_sql_target(target):
+    """Raise PermissionError unless the caller may use this SQL target.
+
+    Unknown targets are left for _run_sql to reject (ReportDefinitionError),
+    so a bad target reads as 400 "unknown SQL target", not 403.
+    """
+    perm = _SQL_TARGET_PERMISSION.get(target)
+    if perm is not None and not has_permission(perm):
+        raise PermissionError(perm)
 
 
 def _has_acked(userid):
@@ -98,6 +125,10 @@ def _run_sql(target, sql, *, userid, username):
         raise ReportDefinitionError("unknown SQL target")
     engine = _SQL_TARGET_ENGINES.get(target)
     if engine is None:
+        current_app.logger.warning(
+            f"reporting.sql.run blocked: target={target!r} read-only engine is "
+            f"unconfigured (user={userid}) — set the DB_REPORTING_*_RO_* credentials"
+        )
         raise RuntimeError("SQL source not configured")
     try:
         validated = validate_select(sql)
@@ -343,7 +374,10 @@ def api_sql_run():
     if not _has_acked(userid):
         return jsonify({"error": _("Acknowledgment required"), "needAck": True}), 409
     try:
+        _authorize_sql_target(rd.get("target"))
         columns, rows = _run_sql(rd.get("target"), rd.get("sql"), userid=userid, username=username)
+    except PermissionError:
+        return jsonify({"error": _("Not authorized for this SQL target")}), 403
     except SqlSandboxError as e:
         return jsonify({"error": str(e), "rule": e.rule}), 400
     except ReportDefinitionError as e:
@@ -400,9 +434,12 @@ def api_export():
             return jsonify({"error": _("Acknowledgment required"), "needAck": True}), 409
         try:
             validate_sql_definition(rd, allowed_targets=_SQL_TARGETS)
+            _authorize_sql_target(rd["target"])
             columns, rows = _run_sql(
                 rd["target"], rd["sql"], userid=userid, username=session.get("username")
             )
+        except PermissionError:
+            return jsonify({"error": _("Not authorized for this SQL target")}), 403
         except SqlSandboxError as e:
             return jsonify({"error": str(e), "rule": e.rule}), 400
         except ReportDefinitionError as e:

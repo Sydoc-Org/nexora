@@ -58,3 +58,9 @@ def test_sql_run_anonymous_redirects(client):
 def test_sql_ack_without_perm_403(user_client):
     resp = user_client.post("/api/reporting/sql/ack", json={})
     assert resp.status_code in (400, 403)
+
+
+def test_sql_run_octopus_target_without_perm_403(user_client):
+    # The base reporting.sql.run gate blocks before the Octopus target check.
+    resp = user_client.post("/api/reporting/sql/run", json={"target": "octopus", "sql": "SELECT 1"})
+    assert resp.status_code in (400, 403)

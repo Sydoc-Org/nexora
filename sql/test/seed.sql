@@ -80,7 +80,8 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.view', 'Access the Reporting page'),
     ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),
-    ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)');
+    ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
+    ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox');
 GO
 
 -- Access profiles

@@ -29,6 +29,14 @@ _SOURCES = {
         "engine": "statistics_ro",
         "target": "statistics",
     },
+    "sql_octopus": {
+        "id": "sql_octopus",
+        "kind": "sql",
+        "label": "Live SQL — Octopus",
+        "permission": "reporting.sql.target.octopus",
+        "engine": "octo_ro",
+        "target": "octopus",
+    },
 }
 
 

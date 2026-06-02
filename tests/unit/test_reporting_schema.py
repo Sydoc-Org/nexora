@@ -193,6 +193,11 @@ def test_sql_definition_bad_target():
         )
 
 
+def test_sql_definition_octopus_target_ok_when_allowed():
+    rd = {"kind": "sql", "target": "octopus", "sql": "SELECT 1", "title": "t"}
+    validate_sql_definition(rd, allowed_targets={"statistics", "octopus"})  # no raise
+
+
 def test_sql_definition_missing_sql():
     with pytest.raises(ReportDefinitionError):
         validate_sql_definition(
