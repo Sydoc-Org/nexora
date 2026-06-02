@@ -5,6 +5,10 @@ source, visualization, columns (+ custom headers), filters, sort, scope,
 and a row limit. Validation is whitelist-based: every field/op/dir must
 already exist in the source's catalog, so nothing user-supplied can reach
 SQL unchecked.
+
+The caller is responsible for resolving `source` to its catalog and passing
+the resulting field sets in; this function does not validate that `source`
+names a known source.
 """
 
 REPORT_SCHEMA_VERSION = 1
@@ -42,10 +46,15 @@ def validate_report_definition(
 
     `catalog_fields`, `filterable_fields`, `sortable_fields` are sets of the
     field keys the chosen source exposes. `max_row_limit` is the server cap.
+
+    The caller is responsible for resolving `source` to its catalog (and
+    supplying those field sets); this function does not validate that `source`
+    names a known source.
     """
     if not isinstance(rd, dict):
         raise ReportDefinitionError("definition must be an object")
-    if rd.get("schemaVersion") != REPORT_SCHEMA_VERSION:
+    schema_version = rd.get("schemaVersion")
+    if isinstance(schema_version, bool) or schema_version != REPORT_SCHEMA_VERSION:
         raise ReportDefinitionError(f"schemaVersion must be {REPORT_SCHEMA_VERSION}")
     if rd.get("visualization") not in SUPPORTED_VISUALIZATIONS:
         raise ReportDefinitionError("visualization must be 'table'")
@@ -77,8 +86,14 @@ def validate_report_definition(
         op = f.get("op")
         if op not in FILTER_OPS:
             raise ReportDefinitionError(f"unknown filter op: {op!r}")
-        if FILTER_OPS[op] and "value" not in f:
-            raise ReportDefinitionError(f"filter op {op!r} requires a value")
+        if FILTER_OPS[op]:
+            value = f.get("value")
+            if value is None:
+                raise ReportDefinitionError(f"filter op {op!r} requires a value")
+            if op == "between" and (not isinstance(value, list) or len(value) != 2):
+                raise ReportDefinitionError("between value must be a 2-element list")
+            if op in ("in", "not_in") and not isinstance(value, list):
+                raise ReportDefinitionError(f"filter op {op!r} value must be a list")
 
     for s in rd.get("sort") or []:
         if not isinstance(s, dict) or s.get("field") not in sortable_fields:
@@ -86,7 +101,9 @@ def validate_report_definition(
         if s.get("dir") not in SORT_DIRS:
             raise ReportDefinitionError("sort dir must be 'asc' or 'desc'")
 
-    scope = rd.get("scope") or {}
+    scope = rd.get("scope")
+    if scope is None:
+        scope = {}
     if not isinstance(scope, dict):
         raise ReportDefinitionError("scope must be an object")
     for key in ("clients", "processes"):
@@ -95,5 +112,10 @@ def validate_report_definition(
             raise ReportDefinitionError(f"scope.{key} must be a list of strings")
 
     row_limit = rd.get("rowLimit")
-    if not isinstance(row_limit, int) or row_limit < 1 or row_limit > max_row_limit:
+    if (
+        isinstance(row_limit, bool)
+        or not isinstance(row_limit, int)
+        or row_limit < 1
+        or row_limit > max_row_limit
+    ):
         raise ReportDefinitionError(f"rowLimit must be an int in [1, {max_row_limit}]")

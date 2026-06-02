@@ -70,10 +70,8 @@ def test_unknown_filter_op_rejected():
 
 def test_filter_on_non_filterable_field_rejected():
     d = _valid_def()
-    d["filters"] = [{"field": "client", "op": "eq", "value": "x"}]
-    # client is filterable here, so flip it: make a field filterable-excluded
-    d["filters"] = [{"field": "date", "op": "eq", "value": "x"}]
     # craft a catalog where 'date' is not filterable
+    d["filters"] = [{"field": "date", "op": "eq", "value": "x"}]
     with pytest.raises(ReportDefinitionError):
         validate_report_definition(
             d, CATALOG_FIELDS, FILTERABLE - {"date"}, SORTABLE, max_row_limit=50000
@@ -98,3 +96,76 @@ def test_is_null_op_allows_missing_value():
     d = _valid_def()
     d["filters"] = [{"field": "status", "op": "is_null"}]
     validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_non_dict_definition_rejected():
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition([], CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_row_limit_zero_rejected():
+    d = _valid_def()
+    d["rowLimit"] = 0
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_row_limit_bool_rejected():
+    d = _valid_def()
+    d["rowLimit"] = True
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_schema_version_bool_rejected():
+    d = _valid_def()
+    d["schemaVersion"] = True
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_scope_falsy_non_dict_rejected():
+    d = _valid_def()
+    d["scope"] = []
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_scope_none_allowed():
+    d = _valid_def()
+    d["scope"] = None
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_scope_clients_non_string_list_rejected():
+    d = _valid_def()
+    d["scope"] = {"clients": [1, 2], "processes": []}
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_value_requiring_op_with_null_value_rejected():
+    d = _valid_def()
+    d["filters"] = [{"field": "status", "op": "eq", "value": None}]
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_between_with_one_element_list_rejected():
+    d = _valid_def()
+    d["filters"] = [{"field": "pages", "op": "between", "value": [1]}]
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_between_with_two_element_list_allowed():
+    d = _valid_def()
+    d["filters"] = [{"field": "pages", "op": "between", "value": [1, 10]}]
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_in_with_non_list_value_rejected():
+    d = _valid_def()
+    d["filters"] = [{"field": "status", "op": "in", "value": "Done"}]
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
