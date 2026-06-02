@@ -129,13 +129,40 @@ python -m pytest tests/e2e/test_reporting_load.py tests/e2e/test_reporting_viz.p
 3. (Pre-existing) Fix INT Statistics' missing process table(s) if you want the
    curated source to return data on INT — independent of this work.
 
-## Open items / follow-ups (noted, not built)
+## Next up — the untouched backlog (do this next)
 
-- Update-a-loaded-report-in-place (Save → overwrite when a report is loaded).
-- Multi-level pivot column headers; pivot/chart export; a "load report into
-  chart/pivot directly" shortcut.
-- Repo-wide CDN pinning + SRI.
-- App-wide Python i18n (`babel.cfg` recursion fix).
+There is **no fixed phase roadmap**: phases 1–3 cleared everything that was
+specced plus every follow-up the Phase-2 handoff had noted. What remains is the
+backlog below — **this is the next thing to do.** Each is independent; pick and
+brainstorm/plan one (or a coherent group) as its own cycle.
+
+**A. Deferred capabilities (from the Phase-1 spec §3 "Non-goals", still open):**
+
+1. **Scheduled / emailed reports** — run a saved report on a schedule and email
+   the Excel output. (Largest; needs a scheduler + Graph mail + storage.)
+2. **Cross-user sharing & a shared report library** — today `dbo.Reports` is
+   per-owner (`OwnerUserID`); add sharing/visibility + a browse UI.
+3. **DB-backed source-registration UI** — the source registry is code-defined in
+   `nx_lib/reporting/sources.py`; move it to a table + admin UI.
+4. **CSV export** — currently Excel-only (`openpyxl`); add a CSV download path.
+5. **Generali sources** — curated reporting sources over the Generali DB.
+6. **Workitems / Octopus as a *curated* source** — Octopus is reachable only via
+   live SQL today; add a curated catalog + query builder for it (and Workitems).
+
+**B. Smaller follow-ups / polish:**
+
+7. **Update-a-loaded-report-in-place** — Save always creates a new report; when
+   one is loaded, offer overwrite (the PUT endpoint already exists).
+8. **Multi-level pivot column headers** — the pivot column header is a single
+   composite line today; render a proper nested `thead` for multi-field Columns.
+9. **Pivot / chart export** — export the pivot matrix or chart image (export
+   currently uses the flat grid rows only).
+10. **Repo-wide CDN pin + SRI** — pin versions and add Subresource Integrity to
+    the jsdelivr/cdnjs `<script>`/`<link>` tags (Chart.js, flatpickr,
+    font-awesome, …) across the templates.
+11. **App-wide Python `gettext` i18n** — `babel.cfg` uses non-recursive
+    `[python: *.py]`, so `nx_lib/**` route messages aren't extracted and fall
+    back to English for de/fr/it (pre-existing, app-wide; not reporting-only).
 
 ## Phase-3 commits (oldest → newest)
 
@@ -150,5 +177,6 @@ e3fa874 docs(reporting): document phase-3 + translate new strings
 
 Point the new session at this handoff. The branch is the source of truth (local,
 unpushed). Next concrete steps are the owner pushing + opening the PR and
-provisioning the two RO logins. For further work, brainstorm/plan each follow-up
-as its own cycle.
+provisioning the two RO logins. **The next build work is the backlog in
+§"Next up — the untouched backlog"** — brainstorm/plan one item (or a coherent
+group) as its own cycle.
