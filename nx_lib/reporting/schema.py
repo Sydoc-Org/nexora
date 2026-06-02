@@ -119,3 +119,29 @@ def validate_report_definition(
         or row_limit > max_row_limit
     ):
         raise ReportDefinitionError(f"rowLimit must be an int in [1, {max_row_limit}]")
+
+
+def validate_sql_definition(rd, *, allowed_targets):
+    """Validate a saved/exported live-SQL definition shape. Raises ReportDefinitionError.
+
+    Shape: {kind:"sql", target:<str in allowed_targets>, sql:<non-empty str>,
+            title:<str>, headers?:<list[str]>}. The SQL text itself is validated
+    separately by nx_lib.reporting.sandbox at run time.
+    """
+    if not isinstance(rd, dict):
+        raise ReportDefinitionError("definition must be an object")
+    if rd.get("kind") != "sql":
+        raise ReportDefinitionError("kind must be 'sql'")
+    if rd.get("target") not in allowed_targets:
+        raise ReportDefinitionError("unknown SQL target")
+    sql = rd.get("sql")
+    if not isinstance(sql, str) or not sql.strip():
+        raise ReportDefinitionError("sql is required")
+    title = rd.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise ReportDefinitionError("title is required")
+    headers = rd.get("headers")
+    if headers is not None and (
+        not isinstance(headers, list) or not all(isinstance(h, str) for h in headers)
+    ):
+        raise ReportDefinitionError("headers must be a list of strings")

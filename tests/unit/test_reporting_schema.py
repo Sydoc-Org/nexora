@@ -6,6 +6,7 @@ from nx_lib.reporting.schema import (
     REPORT_SCHEMA_VERSION,
     ReportDefinitionError,
     validate_report_definition,
+    validate_sql_definition,
 )
 
 CATALOG_FIELDS = {"date", "client", "doctype", "status", "pages"}
@@ -169,3 +170,32 @@ def test_in_with_non_list_value_rejected():
     d["filters"] = [{"field": "status", "op": "in", "value": "Done"}]
     with pytest.raises(ReportDefinitionError):
         validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_valid_sql_definition_ok():
+    rd = {"kind": "sql", "target": "statistics", "sql": "SELECT 1", "title": "t"}
+    validate_sql_definition(rd, allowed_targets={"statistics"})  # no raise
+
+
+def test_sql_definition_bad_kind():
+    with pytest.raises(ReportDefinitionError):
+        validate_sql_definition(
+            {"kind": "table", "target": "statistics", "sql": "SELECT 1", "title": "t"},
+            allowed_targets={"statistics"},
+        )
+
+
+def test_sql_definition_bad_target():
+    with pytest.raises(ReportDefinitionError):
+        validate_sql_definition(
+            {"kind": "sql", "target": "octopus", "sql": "SELECT 1", "title": "t"},
+            allowed_targets={"statistics"},
+        )
+
+
+def test_sql_definition_missing_sql():
+    with pytest.raises(ReportDefinitionError):
+        validate_sql_definition(
+            {"kind": "sql", "target": "statistics", "sql": "", "title": "t"},
+            allowed_targets={"statistics"},
+        )
