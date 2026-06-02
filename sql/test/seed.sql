@@ -79,7 +79,8 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('jd.view', 'View JD Vance page'),
     ('reporting.view', 'Access the Reporting page'),
     ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
-    ('reporting.export', 'Reporting: export reports to Excel');
+    ('reporting.export', 'Reporting: export reports to Excel'),
+    ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)');
 GO
 
 -- Access profiles

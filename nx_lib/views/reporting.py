@@ -284,7 +284,11 @@ def api_sources():
     for s in sources:
         entry = {"id": s["id"], "label": s["label"], "kind": s["kind"]}
         if s["kind"] == "curated" and s["id"] == "docprocessing":
-            entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
+            try:
+                entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
+            except Exception as e:
+                current_app.logger.warning(f"reporting sources: catalog unavailable: {e}")
+                entry["fields"] = []
             entry["processes"] = procs
         elif s["kind"] == "sql":
             entry["target"] = s.get("target", "statistics")
