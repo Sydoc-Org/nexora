@@ -57,8 +57,9 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
     SearchConfig.col_* availability. `processname`/`status` are always available
     for any allowed process.
     """
-    conn = engine_nexora_db.raw_connection()
+    conn = None
     try:
+        conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
         meta_rows = cur.fetchall()
@@ -70,6 +71,8 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
 
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cur.description if c[0].startswith("col_")]
+        if not cols:
+            return build_catalog(meta_rows, label_rows, {}, lang_col=lang_col_for(locale_str))
         select_cols = ", ".join(cols)
         cur.execute(f"SELECT ProcessName, {select_cols} FROM SearchConfig")
         availability = {}
@@ -85,4 +88,5 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
 
         return build_catalog(meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str))
     finally:
-        conn.close()
+        if conn:
+            conn.close()
