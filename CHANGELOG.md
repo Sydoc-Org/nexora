@@ -89,6 +89,14 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **Automated test suite build-out.** pytest unit coverage across the app factory, Flask extensions, request-lifecycle hooks, logging, DB helpers (URL builder + `ping_db` / `ping_dbs_parallel`), security/permissions, i18n locale fallback, maintenance banner/lockout, `PrefixMiddleware`, notifications, the Octopus client, process helpers, and the nx CLI (REPL + doctor). Route-level tests covering every view module (auth, core, dashboard, profile, admin, workitems, invoices, notifications, chat). Playwright E2E browser tests across login / 2FA, dashboard, workitems, invoices, chat, profile, admin, and misc pages, with a cross-browser login smoke. pytest-cov wired in with per-module ratcheting coverage thresholds; test layout, fixtures, and run commands documented under `docs/`.
 
 ### Changed
+- **Templates — CDN assets pinned + Subresource Integrity.** Every
+  jsdelivr/cdnjs `<script>`/`<link>` across all templates (Chart.js, flatpickr,
+  xlsx, `@tailwindcss/browser`, `@tailwindplus/elements`, Font Awesome,
+  highlight.js) is pinned to an explicit version and carries
+  `integrity="sha384-…" crossorigin="anonymous"`, so a tampered or silently
+  updated CDN asset will not load. Versions were pinned to the bytes already
+  being served (no behavioural change). Google Fonts CSS is intentionally left
+  without SRI — its stylesheet is user-agent-dependent and has no stable hash.
 - Route listing (`nx --routes`) moved out of embedded PowerShell into Python (`nx_lib/cli.py::print_routes`) as the single source of truth shared by the one-shot flag and the REPL `routes` command.
 - `CLAUDE.md` Databases section: corrected the stale git-hook install step (the non-existent `scripts/install-git-hooks.ps1` → `pre-commit install --install-hooks` / `bootstrap.ps1`) and the pre-commit hook reference (`scripts/git-hooks/pre-commit` → the `sql-migrate-int` / `sql-sync-check` hooks in `.pre-commit-config.yaml`).
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
