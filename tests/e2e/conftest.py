@@ -34,6 +34,35 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.flaky(reruns=E2E_RERUNS, reruns_delay=E2E_RERUNS_DELAY))
 
 
+@pytest.fixture(autouse=True)
+def _e2e_page_setup(request):
+    """Tune Playwright page behaviour for this app's CDN-heavy pages.
+
+    Two adjustments, applied to every test that uses a browser page:
+
+    1. Shorter timeouts. The 30s default wedges the suite (and the pre-push
+       gate) for 30s per bad selector; 8s surfaces genuine breakage quickly.
+    2. domcontentloaded navigation. Every page pulls tailwind, font-awesome
+       and google-fonts from external CDNs, so waiting for the "load" event is
+       flaky (it blocks on those fetches). We default page.goto to wait only
+       for the DOM to parse; element assertions then auto-wait for the CDN
+       styles to apply.
+    """
+    if "page" in request.fixturenames:
+        page = request.getfixturevalue("page")
+        page.set_default_timeout(8000)
+        page.set_default_navigation_timeout(15000)
+
+        _orig_goto = page.goto
+
+        def _goto(url, **kwargs):
+            kwargs.setdefault("wait_until", "domcontentloaded")
+            return _orig_goto(url, **kwargs)
+
+        page.goto = _goto
+    yield
+
+
 def _port_is_open(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
@@ -54,6 +83,23 @@ def _wait_for_http(url, timeout_s=30):
 
 
 @pytest.fixture(scope="session")
+def seed_user_ids():
+    """Map seed username -> userid from NEXORA_TEST.
+
+    User ids come from an IDENTITY reseed in sql/test/seed.sql, so query them
+    rather than hard-coding. Runs in the pytest process (ENVIRONMENT=TEST is set
+    by the root conftest), independent of the browser subprocess.
+    """
+    from sqlalchemy import text
+
+    from nx_lib.db import engine_nexora_db
+
+    with engine_nexora_db.connect() as conn:
+        rows = conn.execute(text("SELECT username, userid FROM Users")).fetchall()
+    return {username: uid for username, uid in rows}
+
+
+@pytest.fixture(scope="session")
 def nexora_server():
     """Start nx_main on E2E_PORT for the duration of the test session."""
     if _port_is_open(E2E_PORT):
@@ -69,19 +115,31 @@ def nexora_server():
     # many requests and would otherwise trip /login's "10 per minute" limit.
     env["NEXORA_DISABLE_RATELIMIT"] = "1"
 
+    # Stream the server's stdout/stderr to a log file rather than an unread
+    # PIPE. The app logs an error on every request (the MaintenanceBanner table
+    # is absent in TEST), so an undrained PIPE fills its ~64KB OS buffer after a
+    # handful of requests and the server blocks on write — wedging every
+    # subsequent request. A file sink drains freely and keeps the log for
+    # post-mortem on startup failure.
+    log_dir = repo_root / "var" / "test-results"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "e2e-server.log"
+    log_file = open(log_path, "w", encoding="utf-8")  # noqa: SIM115
+
     proc = subprocess.Popen(
         [sys.executable, "nx_main.py"],
         cwd=repo_root,
         env=env,
-        stdout=subprocess.PIPE,
+        stdout=log_file,
         stderr=subprocess.STDOUT,
     )
 
     try:
         if not _wait_for_http(f"{E2E_BASE_URL}/login", timeout_s=30):
-            out = proc.stdout.read().decode("utf-8", "replace") if proc.stdout else ""
             proc.terminate()
             proc.wait(timeout=5)
+            log_file.flush()
+            out = log_path.read_text(encoding="utf-8", errors="replace")
             raise RuntimeError(f"nx_main did not become reachable in 30s. Output:\n{out}")
         yield E2E_BASE_URL
     finally:
@@ -91,3 +149,4 @@ def nexora_server():
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=5)
+        log_file.close()
