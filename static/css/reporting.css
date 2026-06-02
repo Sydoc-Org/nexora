@@ -215,3 +215,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Phase 2: live SQL --- */
+.reporting-sql-panel { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.reporting-sql-bar { display: flex; align-items: center; gap: 8px; }
+.reporting-sql-editor {
+  width: 100%; min-height: 180px; resize: vertical;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid #d1d5db;
+  border-radius: 6px; tab-size: 2;
+}
+.reporting-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.reporting-modal[hidden] { display: none; }
+.reporting-modal-box {
+  background: #fff; border-radius: 10px; padding: 22px; max-width: 460px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+.reporting-modal-box h3 { margin: 0 0 8px; }
+.reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
