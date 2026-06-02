@@ -48,14 +48,16 @@ Only the two app-owned databases are tracked. `StatisticsDB` (sydoc_stat) and `O
 - `scripts/db-migrate.py` — moves schema forward by running ordered migration files. Records each applied file in `dbo.SchemaMigrations` (per database) and refuses to re-run a file whose checksum changed.
 - `sql/sync-from-db.py` — read-only dump of the current INT schema into per-object files for review and code search.
 
-Install once per clone:
+Install once per clone (handled by `.\bootstrap.ps1`, or manually):
 
 ```
-pip install -r sql/requirements.txt
-powershell -File scripts/install-git-hooks.ps1
+pip install -r sql/requirements.txt   # mssql-scripter, used by sync-from-db.py
+pre-commit install --install-hooks     # wire the git hooks (pre-commit framework)
 ```
 
-The pre-commit hook (`scripts/git-hooks/pre-commit`) runs:
+Detailed walkthrough: `docs/howto/db-migrations.md`.
+
+The pre-commit hook (the `sql-migrate-int` and `sql-sync-check` hooks in `.pre-commit-config.yaml`) runs:
 
 1. `scripts/db-migrate.py --env INT` — **auto-applies** any pending migrations to INT.
 2. `sql/sync-from-db.py --check` — verifies the per-object dumps still match INT.
