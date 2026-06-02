@@ -4,7 +4,7 @@
   const state = {
     source: null, fields: [], columns: [], filters: [], sort: [], processes: [],
     mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
-    lastResult: null, view: 'grid', currentReportId: null
+    lastResult: null, view: 'grid', currentReportId: null, currentReportName: null
   };
 
   async function api(url, opts) {
@@ -38,6 +38,31 @@
       sql: null,
       sqlTarget: null,
     };
+  }
+
+  // Definition for whichever mode is active (curated builder vs SQL editor).
+  function currentDefinition() {
+    return state.mode === 'sql' ? sqlDefinition() : buildDefinition();
+  }
+
+  function reportTitle() {
+    return document.getElementById('rpTitle').value
+      || (state.mode === 'sql' ? 'SQL report' : 'Report');
+  }
+
+  function exportFormat() {
+    var el = document.getElementById('rpExportFormat');
+    return (el && el.value) || 'xlsx';
+  }
+
+  function downloadBlob(blob, filename) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
   }
 
   function renderFields() {
@@ -210,38 +235,81 @@
     };
   }
 
-  function saveSql() {
-    ackThen(function () {
-      var name = window.prompt('{{ _("Report name") }}',
-        document.getElementById('rpTitle').value || 'SQL report');
+  // Save the current report. asNew (or no loaded report) => create a copy;
+  // otherwise overwrite the loaded report in place via PUT.
+  function doSave(asNew) {
+    var def = currentDefinition();
+    if (asNew || !state.currentReportId) {
+      var name = window.prompt('{{ _("Report name") }}', reportTitle());
       if (!name) return;
       api('/api/reporting/reports', {
         method: 'POST',
-        body: JSON.stringify({ name: name, definition: sqlDefinition() }),
+        body: JSON.stringify({ name: name, definition: def }),
       }).then(function (res) { return res.json(); })
         .then(function (data) {
           state.currentReportId = data.id || null;
+          state.currentReportName = name;
           loadReports();
           window.alert('{{ _("Saved") }}');
-        })
-        .catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
-    });
+        }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+      return;
+    }
+    var newName = document.getElementById('rpTitle').value || state.currentReportName || 'Report';
+    api('/api/reporting/reports/' + state.currentReportId, {
+      method: 'PUT',
+      body: JSON.stringify({ name: newName, definition: def }),
+    }).then(function () {
+      state.currentReportName = newName;
+      loadReports();
+      window.alert('{{ _("Saved") }}');
+    }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
   }
 
-  function exportSql() {
-    ackThen(function () {
-      api('/api/reporting/export', { method: 'POST', body: JSON.stringify(sqlDefinition()) })
+  function save(asNew) {
+    if (state.mode === 'sql') { ackThen(function () { doSave(asNew); }); }
+    else { doSave(asNew); }
+  }
+
+  // Export the raw result grid (curated or SQL) in the chosen file format.
+  function exportGridRows() {
+    var fmt = exportFormat();
+    var ext = fmt === 'csv' ? '.csv' : '.xlsx';
+    var body = currentDefinition();
+    body.format = fmt;
+    var run = function () {
+      api('/api/reporting/export', { method: 'POST', body: JSON.stringify(body) })
         .then(function (res) { return res.blob(); })
         .then(function (blob) {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = (document.getElementById('rpTitle').value || 'report') + '.xlsx';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(a.href);
+          downloadBlob(blob, (document.getElementById('rpTitle').value || 'report') + ext);
         }).catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
-    });
+    };
+    if (state.mode === 'sql') { ackThen(run); } else { run(); }
+  }
+
+  // Export the client-computed pivot matrix via the grid-export endpoint.
+  function exportPivot() {
+    var ex = ReportingViz.getPivotExport();
+    if (!ex || !ex.rows.length) { window.alert('{{ _("Nothing to export.") }}'); return; }
+    var fmt = exportFormat();
+    var ext = fmt === 'csv' ? '.csv' : '.xlsx';
+    var title = document.getElementById('rpTitle').value || 'pivot';
+    api('/api/reporting/export/grid', {
+      method: 'POST',
+      body: JSON.stringify({ columns: ex.columns, rows: ex.rows, title: title, format: fmt }),
+    }).then(function (res) { return res.blob(); })
+      .then(function (blob) { downloadBlob(blob, title + ext); })
+      .catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+  }
+
+  // Export what's on screen: chart -> PNG, pivot -> matrix, grid -> raw rows.
+  function exportCurrent() {
+    if (state.view === 'chart') {
+      var fn = (document.getElementById('rpTitle').value || 'chart') + '.png';
+      if (!ReportingViz.exportChartPng(fn)) { window.alert('{{ _("Nothing to export.") }}'); }
+      return;
+    }
+    if (state.view === 'pivot') { exportPivot(); return; }
+    exportGridRows();
   }
 
   function loadSources() {
@@ -303,39 +371,6 @@
         p.className = 'reporting-error';
         p.textContent = e.message;
         wrap.appendChild(p);
-      });
-  }
-
-  function save() {
-    var name = window.prompt('{{ _("Report name") }}',
-      document.getElementById('rpTitle').value || 'Report');
-    if (!name) return;
-    api('/api/reporting/reports', {
-      method: 'POST',
-      body: JSON.stringify({ name: name, definition: buildDefinition() }),
-    }).then(function (res) { return res.json(); })
-      .then(function (data) {
-        state.currentReportId = data.id || null;
-        loadReports();
-        window.alert('{{ _("Saved") }}');
-      }).catch(function (e) {
-        window.alert('{{ _("Save failed") }}: ' + e.message);
-      });
-  }
-
-  function exportXlsx() {
-    api('/api/reporting/export', { method: 'POST', body: JSON.stringify(buildDefinition()) })
-      .then(function (res) { return res.blob(); })
-      .then(function (blob) {
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = (document.getElementById('rpTitle').value || 'report') + '.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-      }).catch(function (e) {
-        window.alert('{{ _("Export failed") }}: ' + e.message);
       });
   }
 
@@ -476,6 +511,7 @@
   // Restore a saved definition into the builder (curated) or SQL editor.
   function applyDefinition(def, name, id) {
     state.currentReportId = id || null;
+    state.currentReportName = name || null;
     document.getElementById('rpTitle').value = name || def.title || '';
     if (def.kind === 'sql') {
       setMode('sql');
@@ -540,7 +576,10 @@
     if (!window.confirm('{{ _("Delete this saved report?") }}')) return;
     api('/api/reporting/reports/' + id, { method: 'DELETE' })
       .then(function () {
-        if (String(state.currentReportId) === String(id)) state.currentReportId = null;
+        if (String(state.currentReportId) === String(id)) {
+          state.currentReportId = null;
+          state.currentReportName = null;
+        }
         loadReports();
       }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
   }
@@ -555,12 +594,9 @@
   document.getElementById('rpRun').addEventListener('click', function () {
     if (state.mode === 'sql') { runSql(); } else { run(); }
   });
-  document.getElementById('rpSave').addEventListener('click', function () {
-    if (state.mode === 'sql') { saveSql(); } else { save(); }
-  });
-  document.getElementById('rpExport').addEventListener('click', function () {
-    if (state.mode === 'sql') { exportSql(); } else { exportXlsx(); }
-  });
+  document.getElementById('rpSave').addEventListener('click', function () { save(false); });
+  document.getElementById('rpSaveAs').addEventListener('click', function () { save(true); });
+  document.getElementById('rpExport').addEventListener('click', exportCurrent);
   document.getElementById('rpModeTable').addEventListener('click', function () { setMode('table'); });
   document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);

@@ -9,6 +9,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **builder polish + richer export.**
+  - **Save vs Save as:** with a report loaded, **Save** now overwrites it in
+    place (PUT); the new **Save as** button always forks a fresh copy. Previously
+    every Save created a new report.
+  - **CSV export:** an Excel/CSV format selector next to **Export**; CSV is
+    UTF-8 (BOM-prefixed for Excel) with the same formula-injection guard as the
+    xlsx path.
+  - **Export what you see:** Export is view-aware — the **Chart** view exports a
+    PNG image, the **Pivot** view exports the computed matrix (xlsx/csv via the
+    new `/api/reporting/export/grid` endpoint, gated by `reporting.export`), and
+    the **Grid** view exports the raw rows as before.
+  - **Nested pivot column headers:** multi-field Columns now render a proper
+    multi-level `<thead>` (grouped/`colspan`-ed per dimension level) instead of a
+    single composite line; rows/columns are sorted for stable, grouped output.
 - Reporting — **chart & pivot result views.** A Grid / Chart / Pivot toggle
   appears after a run and re-visualizes the current result set (curated *or*
   SQL) in place: Chart.js bar/line/pie/doughnut charts, and a vanilla

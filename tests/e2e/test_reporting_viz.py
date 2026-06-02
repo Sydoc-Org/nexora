@@ -50,3 +50,38 @@ def test_chart_and_pivot_render(nexora_server, page):
     expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
 
     page.screenshot(path="var/screenshots/reporting_viz_smoke.png")
+
+
+# Mounts a 3-column pivot, then moves a field into Columns via synthetic HTML5
+# drag-and-drop to exercise the multi-level (nested) column header path.
+_NESTED = """() => {
+  const cols = [{field:'region',header:'Region'},{field:'client',header:'Client'},
+                {field:'amt',header:'Amount'}];
+  const rows = [['West','Acme',100],['West','Acme',50],['East','Globex',70],['East','Acme',30]];
+  const pivot = document.getElementById('rpPivot');
+  pivot.hidden = false;
+  window.ReportingViz.mountPivot(pivot, cols, rows);
+  // After auto-seed (Region->Rows, Amount->Values) only Client remains in Fields.
+  const chip = pivot.querySelector('[data-zone="src"] .reporting-pivot-chip');
+  const colsZone = pivot.querySelector('[data-zone="cols"]');
+  const dt = new DataTransfer();
+  chip.dispatchEvent(new DragEvent('dragstart', {bubbles:true, dataTransfer:dt}));
+  colsZone.dispatchEvent(new DragEvent('drop', {bubbles:true, dataTransfer:dt}));
+  const ex = window.ReportingViz.getPivotExport();
+  return {
+    headerRows: pivot.querySelectorAll('table.reporting-pivot-table thead tr').length,
+    exportCols: ex ? ex.columns.length : 0,
+    exportRows: ex ? ex.rows.length : 0
+  };
+}"""
+
+
+@pytest.mark.flaky_e2e
+def test_pivot_nested_headers_and_export_model(nexora_server, page):
+    _login(page, nexora_server)
+    result = page.evaluate(_NESTED)
+    # One column dimension (Client) + a measure row => 2 nested header rows.
+    assert result["headerRows"] == 2, result
+    # Export model is populated for the chart/pivot Export path.
+    assert result["exportCols"] > 0 and result["exportRows"] > 0, result
+    page.screenshot(path="var/screenshots/reporting_pivot_nested.png")

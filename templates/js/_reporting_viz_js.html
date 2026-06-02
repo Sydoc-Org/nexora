@@ -11,6 +11,11 @@
   ];
   var MAX_CHART_CATEGORIES = 50;
 
+  // Export models for the result views, kept so the toolbar's Export button can
+  // serialize exactly what the user is looking at (chart image / pivot matrix).
+  var lastChartCanvas = null;
+  var lastPivotExport = null;
+
   function toNum(v) {
     if (v === null || v === undefined || v === '') return null;
     if (typeof v === 'number') return isFinite(v) ? v : null;
@@ -58,6 +63,18 @@
     return (c && (c.header || c.field)) || ('col' + idx);
   }
 
+  // Sort comparator over two key-tuples (numeric-aware, element by element).
+  function cmpTuple(a, b) {
+    var n = Math.min(a.length, b.length);
+    for (var i = 0; i < n; i++) {
+      if (a[i] === b[i]) continue;
+      var na = toNum(a[i]), nb = toNum(b[i]);
+      if (na !== null && nb !== null) { if (na !== nb) return na - nb; continue; }
+      return a[i] < b[i] ? -1 : 1;
+    }
+    return a.length - b.length;
+  }
+
   // ---- Chart ----------------------------------------------------------------
   var chartInstance = null;
 
@@ -67,6 +84,7 @@
 
   function mountChart(container, columns, rows) {
     destroyChart();
+    lastChartCanvas = null;
     container.innerHTML = '';
     if (typeof Chart === 'undefined') {
       container.textContent = '{{ _("Charting library unavailable.") }}';
@@ -121,6 +139,7 @@
     var canvas = document.createElement('canvas');
     canvasWrap.appendChild(canvas);
     container.appendChild(canvasWrap);
+    lastChartCanvas = canvas;
     var note = document.createElement('p');
     note.className = 'reporting-viz-note';
     container.appendChild(note);
@@ -163,6 +182,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          // White background so an exported PNG isn't transparent.
           plugins: { legend: { display: !single } },
           scales: single ? { y: { beginAtZero: true } } : {}
         }
@@ -176,9 +196,29 @@
     draw();
   }
 
+  // Download the current chart canvas as a PNG (flattened onto white).
+  function exportChartPng(filename) {
+    if (!lastChartCanvas) return false;
+    var src = lastChartCanvas;
+    var out = document.createElement('canvas');
+    out.width = src.width; out.height = src.height;
+    var ctx = out.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, 0, 0);
+    var a = document.createElement('a');
+    a.href = out.toDataURL('image/png');
+    a.download = filename || 'chart.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return true;
+  }
+
   // ---- Pivot (drag-and-drop, multi-dimension) -------------------------------
   function mountPivot(container, columns, rows) {
     container.innerHTML = '';
+    lastPivotExport = null;
     if (!columns.length || !rows.length) {
       container.textContent = '{{ _("No data to pivot.") }}';
       return;
@@ -286,8 +326,13 @@
       return dims.map(function (d) { return r[d.idx] == null ? '' : String(r[d.idx]); });
     }
 
+    function measLabel(v) {
+      return colLabel(columns, v.idx) + ' (' + (v.agg || 'sum') + ')';
+    }
+
     function renderMatrix() {
       out.innerHTML = '';
+      lastPivotExport = null;
       if (!assign.vals.length) {
         var p = document.createElement('p');
         p.className = 'reporting-empty';
@@ -308,62 +353,119 @@
         if (!bucket[rk][ck]) bucket[rk][ck] = vals.map(function () { return []; });
         vals.forEach(function (v, vi) { bucket[rk][ck][vi].push(r[v.idx]); });
       });
+      // Sort so siblings are contiguous (needed for nested-header grouping) and
+      // the matrix reads in a stable order.
+      rowKeys.sort(function (x, y) { return cmpTuple(rowArr[x], rowArr[y]); });
+      colKeys.sort(function (x, y) { return cmpTuple(colArr[x], colArr[y]); });
+
+      // Flat export model accumulated alongside the DOM (single-line headers).
+      var exportCols = [];
+      if (rowDims.length) {
+        rowDims.forEach(function (d) { exportCols.push({ header: colLabel(columns, d.idx) }); });
+      } else {
+        exportCols.push({ header: '' });
+      }
+      colKeys.forEach(function (ck) {
+        vals.forEach(function (v) {
+          var prefix = colDims.length ? (colArr[ck].join(' / ') + ' · ') : '';
+          exportCols.push({ header: prefix + measLabel(v) });
+        });
+      });
+      vals.forEach(function (v) {
+        exportCols.push({ header: '{{ _("Total") }} · ' + measLabel(v) });
+      });
+      var exportRows = [];
 
       var table = document.createElement('table');
       table.className = 'reporting-table reporting-pivot-table';
+
+      // --- Nested header: one row per column dimension + a measure row. ---
       var thead = document.createElement('thead');
-      var hr = document.createElement('tr');
+      var nHeaderRows = colDims.length + 1;
+      var headRows = [];
+      for (var hr = 0; hr < nHeaderRows; hr++) {
+        var tr = document.createElement('tr');
+        headRows.push(tr);
+        thead.appendChild(tr);
+      }
       var leftCols = rowDims.length || 1;
+      // Top-left: row-dimension names, spanning the full header height.
       if (rowDims.length) {
         rowDims.forEach(function (d) {
           var th = document.createElement('th');
           th.textContent = colLabel(columns, d.idx);
-          hr.appendChild(th);
+          th.rowSpan = nHeaderRows;
+          th.className = 'reporting-pivot-corner';
+          headRows[0].appendChild(th);
         });
       } else {
         var th0 = document.createElement('th');
-        th0.textContent = '';
-        hr.appendChild(th0);
+        th0.rowSpan = nHeaderRows;
+        th0.className = 'reporting-pivot-corner';
+        headRows[0].appendChild(th0);
       }
+      // Column-dimension levels: group contiguous colKeys sharing a prefix.
+      for (var d = 0; d < colDims.length; d++) {
+        var rowEl = headRows[d];
+        var i = 0;
+        while (i < colKeys.length) {
+          var prefix = colArr[colKeys[i]].slice(0, d + 1).join('');
+          var j = i;
+          while (j < colKeys.length &&
+                 colArr[colKeys[j]].slice(0, d + 1).join('') === prefix) j++;
+          var th = document.createElement('th');
+          th.textContent = colArr[colKeys[i]][d];
+          th.colSpan = (j - i) * vals.length;
+          rowEl.appendChild(th);
+          i = j;
+        }
+      }
+      // Measure row (bottom of the header): one cell per colKey × measure.
+      var measRow = headRows[nHeaderRows - 1];
       colKeys.forEach(function (ck) {
         vals.forEach(function (v) {
           var th = document.createElement('th');
-          var prefix = colDims.length ? (colArr[ck].join(' / ') + ' · ') : '';
-          th.textContent = prefix + colLabel(columns, v.idx) + ' (' + (v.agg || 'sum') + ')';
-          hr.appendChild(th);
+          th.textContent = measLabel(v);
+          measRow.appendChild(th);
         });
       });
+      // Grand-total columns: span the full header height, far right.
       vals.forEach(function (v) {
         var th = document.createElement('th');
         th.className = 'reporting-pivot-total';
+        th.rowSpan = nHeaderRows;
         th.textContent = '{{ _("Total") }} · ' + colLabel(columns, v.idx);
-        hr.appendChild(th);
+        headRows[0].appendChild(th);
       });
-      thead.appendChild(hr);
       table.appendChild(thead);
 
       var tbody = document.createElement('tbody');
       rowKeys.forEach(function (rk) {
         var tr = document.createElement('tr');
+        var exRow = [];
         if (rowDims.length) {
           rowArr[rk].forEach(function (val) {
             var td = document.createElement('td');
             td.className = 'reporting-pivot-rowhdr';
             td.textContent = val;
             tr.appendChild(td);
+            exRow.push(val);
           });
         } else {
           var tdAll = document.createElement('td');
           tdAll.className = 'reporting-pivot-rowhdr';
           tdAll.textContent = '{{ _("All") }}';
           tr.appendChild(tdAll);
+          exRow.push('{{ _("All") }}');
         }
         colKeys.forEach(function (ck) {
           vals.forEach(function (v, vi) {
             var td = document.createElement('td');
             var arr = (bucket[rk] && bucket[rk][ck]) ? bucket[rk][ck][vi] : [];
-            td.textContent = fmt(aggregate(arr, v.agg || 'sum'));
+            var cell = fmt(aggregate(arr, v.agg || 'sum'));
+            td.textContent = cell;
             tr.appendChild(td);
+            exRow.push(cell);
           });
         });
         vals.forEach(function (v, vi) {
@@ -373,19 +475,24 @@
           });
           var td = document.createElement('td');
           td.className = 'reporting-pivot-total';
-          td.textContent = fmt(aggregate(all, v.agg || 'sum'));
+          var cell = fmt(aggregate(all, v.agg || 'sum'));
+          td.textContent = cell;
           tr.appendChild(td);
+          exRow.push(cell);
         });
         tbody.appendChild(tr);
+        exportRows.push(exRow);
       });
 
       var trT = document.createElement('tr');
       trT.className = 'reporting-pivot-totalrow';
+      var exTot = [];
       for (var s = 0; s < leftCols; s++) {
         var tdh = document.createElement('td');
         tdh.className = 'reporting-pivot-rowhdr';
         tdh.textContent = s === 0 ? '{{ _("Total") }}' : '';
         trT.appendChild(tdh);
+        exTot.push(s === 0 ? '{{ _("Total") }}' : '');
       }
       colKeys.forEach(function (ck) {
         vals.forEach(function (v, vi) {
@@ -395,8 +502,10 @@
           });
           var td = document.createElement('td');
           td.className = 'reporting-pivot-total';
-          td.textContent = fmt(aggregate(all, v.agg || 'sum'));
+          var cell = fmt(aggregate(all, v.agg || 'sum'));
+          td.textContent = cell;
           trT.appendChild(td);
+          exTot.push(cell);
         });
       });
       vals.forEach(function (v, vi) {
@@ -408,12 +517,17 @@
         });
         var td = document.createElement('td');
         td.className = 'reporting-pivot-total';
-        td.textContent = fmt(aggregate(all, v.agg || 'sum'));
+        var cell = fmt(aggregate(all, v.agg || 'sum'));
+        td.textContent = cell;
         trT.appendChild(td);
+        exTot.push(cell);
       });
       tbody.appendChild(trT);
+      exportRows.push(exTot);
       table.appendChild(tbody);
       out.appendChild(table);
+
+      lastPivotExport = { columns: exportCols, rows: exportRows };
     }
 
     var wrap = document.createElement('div');
@@ -443,10 +557,14 @@
     renderMatrix();
   }
 
+  function getPivotExport() { return lastPivotExport; }
+
   window.ReportingViz = {
     mountChart: mountChart,
     mountPivot: mountPivot,
-    destroyChart: destroyChart
+    destroyChart: destroyChart,
+    exportChartPng: exportChartPng,
+    getPivotExport: getPivotExport
   };
 }());
 </script>

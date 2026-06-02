@@ -1,5 +1,6 @@
-"""Export report rows to an .xlsx workbook (openpyxl)."""
+"""Export report rows to an .xlsx workbook (openpyxl) or a .csv file."""
 
+import csv
 import io
 import re
 
@@ -35,3 +36,21 @@ def rows_to_xlsx(columns, rows, *, title):
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def rows_to_csv(columns, rows):
+    """Return UTF-8 (BOM-prefixed) .csv bytes for `rows` with a header row.
+
+    columns: [{field, header}] — header falls back to field when None/empty.
+    rows: iterable of row sequences aligned to columns.
+
+    The BOM makes Excel detect UTF-8 on double-click. Cells are passed through
+    the same formula-injection guard as the xlsx path. Line terminator is
+    CRLF (RFC 4180) so the file opens cleanly on Windows and in Excel.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\r\n")
+    writer.writerow([_safe_cell(c.get("header") or c["field"]) for c in columns])
+    for row in rows:
+        writer.writerow(["" if v is None else _safe_cell(v) for v in row])
+    return ("﻿" + buf.getvalue()).encode("utf-8")

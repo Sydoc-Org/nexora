@@ -35,9 +35,14 @@ report stores the full v1 definition JSON. The **Saved reports** dropdown on the
 toolbar lists the caller's reports; **Load** restores a curated definition into
 the builder (source, columns, filters, sort, scope, title/subtitle) or a SQL
 definition into the SQL editor + target, switching mode by the saved `kind`.
-**Rename** and **Delete** act on the selected report. Saving always creates a
-new report (updating a loaded report's body is a follow-up). Each user can only
-access their own saved reports.
+**Rename** and **Delete** act on the selected report. Each user can only access
+their own saved reports.
+
+**Save vs Save as.** With a report loaded, **Save** overwrites it in place
+(`PUT /api/reporting/reports/<id>`); **Save as** always creates a new copy
+(`POST`). With nothing loaded, **Save** behaves like Save as and prompts for a
+name. The current report's title field doubles as its name on an in-place save,
+so editing the title then **Save** also renames it.
 
 ### Result views — chart & pivot
 
@@ -51,18 +56,33 @@ no re-query:
 - **Pivot**: a drag-and-drop **matrix**. Drag fields into **Rows**, **Columns**,
   or **Values**; each Values field gets an aggregation (sum / avg / count / min /
   max). Multiple Row/Column fields nest into a multi-dimension matrix, with
-  per-row and grand totals. Computation is client-side over the rows already in
-  the grid.
+  per-row and grand totals. Column dimensions render as **nested, multi-level
+  column headers** (one grouped header row per Column field plus a measure row);
+  rows and columns are sorted for stable, grouped output. Computation is
+  client-side over the rows already in the grid.
 
 The viz code lives in `templates/js/_reporting_viz_js.html` (exposes
 `window.ReportingViz`); it operates purely on the `{columns, rows}` the grid is
 showing.
 
-### Excel export
+### Export (Excel / CSV, and what you see)
 
-POST to `/api/reporting/export` with the same report-definition JSON. Returns a
-`.xlsx` file via `openpyxl`. Custom column headers are used in the spreadsheet
-header row.
+Pick the format (**Excel** or **CSV**) next to the **Export** button, then export
+is **view-aware**:
+
+- **Grid** → the raw result rows. POST the report-definition JSON to
+  `/api/reporting/export`; add `"format": "csv"` for CSV (default `xlsx`).
+  Returns `.xlsx` via `openpyxl` or UTF-8 `.csv` (BOM-prefixed so Excel detects
+  the encoding). Custom column headers are used in the header row.
+- **Pivot** → the computed pivot matrix. The client posts the displayed
+  `{columns, rows}` to `/api/reporting/export/grid` (`reporting.export`; no DB
+  access — pure serialization with the same formula-injection guard) in the
+  chosen format.
+- **Chart** → a **PNG** image of the current chart, rendered client-side from the
+  Chart.js canvas (flattened onto white). The format selector does not apply.
+
+Both serialization paths neutralize spreadsheet formula injection (leading
+`= + - @` are prefixed with `'`).
 
 ## Permissions (`reporting.*`)
 

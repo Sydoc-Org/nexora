@@ -6,7 +6,8 @@ Routes:
   POST /api/reporting/run             run a curated report definition -> rows
   POST /api/reporting/sql/run         run sandboxed live SQL -> rows (audited)
   POST /api/reporting/sql/ack         record the live-SQL acknowledgment
-  POST /api/reporting/export          report definition -> .xlsx download
+  POST /api/reporting/export          report definition -> .xlsx/.csv download
+  POST /api/reporting/export/grid     client-supplied grid (pivot) -> .xlsx/.csv download
   GET  /api/reporting/reports         list the caller's saved reports
   POST /api/reporting/reports         create a saved report
   GET  /api/reporting/reports/<id>    load one
@@ -37,7 +38,7 @@ from ..db import (
 from ..extensions import limiter
 from ..i18n import get_locale
 from ..reporting.catalog import fetch_docprocessing_catalog
-from ..reporting.export import rows_to_xlsx
+from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
 from ..reporting.sandbox import SqlSandboxError, validate_select, wrap_with_cap
 from ..reporting.schema import (
@@ -295,6 +296,36 @@ def _execute(sql, params):
         conn.close()
 
 
+_EXPORT_FORMATS = {"xlsx", "csv"}
+
+
+def _safe_report_name(title):
+    """Filesystem/header-safe base filename for an export download."""
+    return re.sub(r'[\x00-\x1f\x7f";]', "_", (title or "report").strip()) or "report"
+
+
+def _resolve_export_format(value):
+    """Normalize a requested export format to a supported one (defaults to xlsx)."""
+    fmt = (value or "xlsx").lower()
+    return fmt if fmt in _EXPORT_FORMATS else "xlsx"
+
+
+def _serialize_export(columns, rows, title, fmt):
+    """Build a Flask download Response for `rows` in the requested format."""
+    name = _safe_report_name(title)
+    if fmt == "csv":
+        return Response(
+            rows_to_csv(columns, rows),
+            mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
+        )
+    return Response(
+        rows_to_xlsx(columns, rows, title=title or "Report"),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
+    )
+
+
 @require_permission("reporting.view")
 def reporting():
     return render_template(
@@ -426,6 +457,7 @@ def api_export():
     rd = request.get_json(silent=True)
     if not isinstance(rd, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
+    fmt = _resolve_export_format(rd.get("format"))
     if rd.get("kind") == "sql":
         if not has_permission("reporting.sql.run"):
             return jsonify({"error": _("Not authorized for live SQL")}), 403
@@ -449,15 +481,7 @@ def api_export():
         except Exception as e:
             current_app.logger.error(f"/api/reporting/export sql error: {e}")
             return jsonify({"error": _("Could not export query")}), 500
-        data = rows_to_xlsx(columns, rows, title=rd.get("title") or "Report")
-        safe_name = (
-            re.sub(r'[\x00-\x1f\x7f";]', "_", (rd.get("title") or "report").strip()) or "report"
-        )
-        return Response(
-            data,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{safe_name}.xlsx"'},
-        )
+        return _serialize_export(columns, rows, rd.get("title") or "Report", fmt)
     try:
         columns, sql, params = _prepare_run(rd)
         rows = _execute(sql, params)
@@ -468,14 +492,35 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
-    data = rows_to_xlsx(columns, rows, title=rd.get("title") or "Report")
-    safe_name = re.sub(r'[\x00-\x1f\x7f";]', "_", (rd.get("title") or "report").strip()) or "report"
-    filename = safe_name + ".xlsx"
-    return Response(
-        data,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    return _serialize_export(columns, rows, rd.get("title") or "Report", fmt)
+
+
+@require_permission("reporting.export")
+@limiter.limit("30 per minute")
+def api_export_grid():
+    """Serialize a client-supplied result grid (e.g. a pivot matrix) to a file.
+
+    The chart/pivot result views aggregate client-side, so the caller sends the
+    already-computed {columns, rows} it is displaying. No DB access happens here;
+    the same reporting.export permission and formula-injection guard still apply.
+    """
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    raw_cols = payload.get("columns")
+    rows = payload.get("rows")
+    if not isinstance(raw_cols, list) or not raw_cols or not isinstance(rows, list):
+        return jsonify({"error": _("columns and rows are required")}), 400
+    columns = []
+    for c in raw_cols:
+        if isinstance(c, dict):
+            header = c.get("header") or c.get("field") or ""
+            columns.append({"field": c.get("field") or header, "header": header})
+        else:
+            columns.append({"field": str(c), "header": str(c)})
+    rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:MAX_ROW_LIMIT]]
+    fmt = _resolve_export_format(payload.get("format"))
+    return _serialize_export(columns, rows, payload.get("title") or "Report", fmt)
 
 
 @require_permission("reporting.view")
@@ -639,6 +684,12 @@ def register_routes(app):
         "/api/reporting/export",
         endpoint="reporting_export",
         view_func=api_export,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/export/grid",
+        endpoint="reporting_export_grid",
+        view_func=api_export_grid,
         methods=["POST"],
     )
     app.add_url_rule(

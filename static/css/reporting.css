@@ -49,6 +49,15 @@
   max-width: 200px;
 }
 
+.reporting-export-format {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  background: #fff;
+}
+
 .reporting-mode-toggle button.active {
   background: #4338ca;
   color: #fff;
@@ -303,7 +312,13 @@
   background: none; border: none; color: #6366f1; cursor: pointer;
   font-size: 14px; line-height: 1; padding: 0;
 }
-.reporting-pivot-table th { position: sticky; top: 0; }
+/* Nested (multi-level) pivot column headers: center grouped cells, keep
+   borders crisp across the spanned rows. */
+.reporting-pivot-table thead th {
+  text-align: center; vertical-align: middle; background: #f8f8ff;
+  border: 1px solid #e5e7eb;
+}
+.reporting-pivot-corner { background: #f1f5f9; }
 .reporting-pivot-rowhdr { font-weight: 600; background: #f8f8ff; }
 .reporting-pivot-total { background: #f1f5f9; font-weight: 600; }
 .reporting-pivot-totalrow td { border-top: 2px solid #cbd5e1; }

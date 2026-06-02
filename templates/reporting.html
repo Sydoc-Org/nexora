@@ -43,6 +43,11 @@
         <span style="flex:1"></span>
         <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
         <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
+        <button id="rpSaveAs" class="reporting-btn" data-testid="reporting-save-as">{{ _("Save as") }}</button>
+        <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
+          <option value="xlsx">{{ _("Excel") }}</option>
+          <option value="csv">CSV</option>
+        </select>
         <button id="rpExport" class="reporting-btn" data-testid="reporting-export">{{ _("Export") }}</button>
       </div>
       <div id="rpSqlPanel" class="reporting-sql-panel" hidden data-testid="reporting-sql-panel">
