@@ -11,6 +11,12 @@
 *.yaml                text eol=lf
 scripts/git-hooks/*   text eol=lf
 .git/hooks/*          text eol=lf
+# Docs and message catalogs: the mixed-line-ending pre-commit hook enforces LF,
+# and pybabel emits CRLF on Windows — pin these to LF so a fresh checkout matches
+# the hook (otherwise a first push of a new branch trips the full-range scan).
+*.md                  text eol=lf
+*.po                  text eol=lf
+*.pot                 text eol=lf
 
 # Treat these as binary so git never tries to normalize them.
 *.png  binary
