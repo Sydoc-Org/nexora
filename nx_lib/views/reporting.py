@@ -13,16 +13,15 @@ Routes:
 """
 
 import json
+import re
 
 from flask import (
     Response,
     current_app,
     jsonify,
-    redirect,
     render_template,
     request,
     session,
-    url_for,
 )
 from flask_babel import gettext as _
 
@@ -167,8 +166,6 @@ def _execute(sql, params):
 
 @require_permission("reporting.view")
 def reporting():
-    if "username" not in session:
-        return redirect(url_for("login"))
     return render_template(
         "reporting.html",
         logged_in_user=session.get("username", "Unknown"),
@@ -182,12 +179,13 @@ def reporting():
 def api_sources():
     perms = set(session.get("permissions", []))
     sources = list_accessible_sources(perms)
+    procs = _allowed_processes()
     out = []
     for s in sources:
         entry = {"id": s["id"], "label": s["label"], "kind": s["kind"]}
         if s["id"] == "docprocessing":
-            entry["fields"] = fetch_docprocessing_catalog(_allowed_processes(), str(get_locale()))
-            entry["processes"] = _allowed_processes()
+            entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
+            entry["processes"] = procs
         out.append(entry)
     return jsonify(out)
 
@@ -242,7 +240,8 @@ def api_export():
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
     data = rows_to_xlsx(columns, rows, title=rd.get("title") or "Report")
-    filename = (rd.get("title") or "report").strip().replace('"', "") + ".xlsx"
+    safe_name = re.sub(r'[\x00-\x1f\x7f";]', "_", (rd.get("title") or "report").strip()) or "report"
+    filename = safe_name + ".xlsx"
     return Response(
         data,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -305,12 +304,15 @@ def api_reports_create():
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    definition_json = json.dumps(rd, ensure_ascii=False)
+    if len(definition_json) > 64_000:
+        return jsonify({"error": _("Report definition too large")}), 400
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO Reports (OwnerUserID, Name, DefinitionJSON) OUTPUT INSERTED.ReportID VALUES (?, ?, ?)",
-            (userid, name, json.dumps(rd, ensure_ascii=False)),
+            (userid, name, definition_json),
         )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -331,13 +333,16 @@ def api_reports_update(report_id):
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    definition_json = json.dumps(rd, ensure_ascii=False)
+    if len(definition_json) > 64_000:
+        return jsonify({"error": _("Report definition too large")}), 400
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             "UPDATE Reports SET Name = ?, DefinitionJSON = ?, UpdatedAt = SYSUTCDATETIME() "
             "WHERE ReportID = ? AND OwnerUserID = ?",
-            (name, json.dumps(rd, ensure_ascii=False), report_id, userid),
+            (name, definition_json, report_id, userid),
         )
         affected = cur.rowcount
         conn.commit()
