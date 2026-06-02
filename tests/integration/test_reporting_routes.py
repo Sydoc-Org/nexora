@@ -37,3 +37,24 @@ def test_run_anonymous_redirects(client):
 def test_reports_list_without_perm_403(user_client):
     resp = user_client.get("/api/reporting/reports")
     assert resp.status_code == 403
+
+
+def test_sql_run_without_perm_403(user_client):
+    resp = user_client.post(
+        "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+    )
+    assert resp.status_code in (400, 403)
+
+
+def test_sql_run_anonymous_redirects(client):
+    resp = client.post(
+        "/api/reporting/sql/run",
+        json={"target": "statistics", "sql": "SELECT 1"},
+        follow_redirects=False,
+    )
+    assert resp.status_code in (302, 401)
+
+
+def test_sql_ack_without_perm_403(user_client):
+    resp = user_client.post("/api/reporting/sql/ack", json={})
+    assert resp.status_code in (400, 403)

@@ -4,6 +4,8 @@ Routes:
   GET  /reporting                     builder page
   GET  /api/reporting/sources         sources + field catalog the caller may use
   POST /api/reporting/run             run a curated report definition -> rows
+  POST /api/reporting/sql/run         run sandboxed live SQL -> rows (audited)
+  POST /api/reporting/sql/ack         record the live-SQL acknowledgment
   POST /api/reporting/export          report definition -> .xlsx download
   GET  /api/reporting/reports         list the caller's saved reports
   POST /api/reporting/reports         create a saved report
@@ -14,6 +16,7 @@ Routes:
 
 import json
 import re
+import time
 
 from flask import (
     Response,
@@ -25,22 +28,117 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from ..db import engine_nexora_db, engine_statistics_db
+from ..db import engine_nexora_db, engine_statistics_db, engine_statistics_ro
 from ..extensions import limiter
 from ..i18n import get_locale
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
-from ..reporting.schema import ReportDefinitionError, validate_report_definition
+from ..reporting.sandbox import SqlSandboxError, validate_select, wrap_with_cap
+from ..reporting.schema import (
+    ReportDefinitionError,
+    validate_report_definition,
+    validate_sql_definition,
+)
 from ..reporting.sources import (
     DEFAULT_ROW_LIMIT,
     MAX_ROW_LIMIT,
+    SQL_ROW_CAP,
+    SQL_TIMEOUT_S,
     get_source,
     list_accessible_sources,
 )
 from ..security import has_permission, page_visibility, require_permission
 
 _SCOPE_PREFIX = "reporting.scope.process."
+
+_SQL_TARGET_ENGINES = {"statistics": engine_statistics_ro}
+_SQL_TARGETS = set(_SQL_TARGET_ENGINES)
+
+
+def _has_acked(userid):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM ReportingSqlAck WHERE UserID = ?", (userid,))
+        return cur.fetchone() is not None
+    finally:
+        conn.close()
+
+
+def _audit_sql(userid, username, target, sql_text, rows_returned, status, duration_ms):
+    try:
+        conn = engine_nexora_db.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO ReportingSqlAudit "
+                "(UserID, Username, TargetDB, SqlText, RowsReturned, Status, DurationMs) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (userid, username, target, sql_text, rows_returned, status, duration_ms),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        current_app.logger.error(f"reporting sql audit insert failed: {e}")
+    current_app.logger.info(
+        f"reporting.sql.run user={userid} target={target} status={status} "
+        f"rows={rows_returned} ms={duration_ms}"
+    )
+
+
+def _run_sql(target, sql, *, userid, username):
+    """Validate + execute sandboxed SQL on the RO engine. Returns (columns, rows).
+
+    Raises ReportDefinitionError (bad target), SqlSandboxError (bad SQL),
+    RuntimeError (RO engine unconfigured). Audits rejected/error/run paths.
+    """
+    if target not in _SQL_TARGETS:
+        raise ReportDefinitionError("unknown SQL target")
+    engine = _SQL_TARGET_ENGINES.get(target)
+    if engine is None:
+        raise RuntimeError("SQL source not configured")
+    try:
+        validated = validate_select(sql)
+    except SqlSandboxError:
+        _audit_sql(
+            userid, username, target, sql if isinstance(sql, str) else "", None, "rejected", None
+        )
+        raise
+    wrapped = wrap_with_cap(validated, SQL_ROW_CAP)
+    start = time.monotonic()
+    conn = engine.raw_connection()
+    try:
+        conn.dbapi_connection.timeout = SQL_TIMEOUT_S  # pyodbc query timeout (seconds)
+        cur = conn.cursor()
+        cur.execute(wrapped)
+        col_names = [d[0] for d in cur.description] if cur.description else []
+        rows = [list(r) for r in cur.fetchall()]
+    except Exception:
+        _audit_sql(
+            userid,
+            username,
+            target,
+            validated,
+            None,
+            "error",
+            int((time.monotonic() - start) * 1000),
+        )
+        raise
+    finally:
+        conn.close()
+    _audit_sql(
+        userid,
+        username,
+        target,
+        validated,
+        len(rows),
+        "run",
+        int((time.monotonic() - start) * 1000),
+    )
+    columns = [{"field": c, "header": c} for c in col_names]
+    return columns, rows
 
 
 def _allowed_processes():
@@ -185,9 +283,12 @@ def api_sources():
     out = []
     for s in sources:
         entry = {"id": s["id"], "label": s["label"], "kind": s["kind"]}
-        if s["id"] == "docprocessing":
+        if s["kind"] == "curated" and s["id"] == "docprocessing":
             entry["fields"] = fetch_docprocessing_catalog(procs, str(get_locale()))
             entry["processes"] = procs
+        elif s["kind"] == "sql":
+            entry["target"] = s.get("target", "statistics")
+            entry["acknowledged"] = _has_acked(session.get("userid"))
         out.append(entry)
     return jsonify(out)
 
@@ -225,12 +326,97 @@ def api_run():
     )
 
 
+@require_permission("reporting.sql.run")
+@limiter.limit("20 per minute")
+def api_sql_run():
+    rd = request.get_json(silent=True)
+    if not isinstance(rd, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    userid = session.get("userid")
+    username = session.get("username")
+    if not userid:
+        return jsonify({"error": _("Not authenticated")}), 401
+    if not _has_acked(userid):
+        return jsonify({"error": _("Acknowledgment required"), "needAck": True}), 409
+    try:
+        columns, rows = _run_sql(rd.get("target"), rd.get("sql"), userid=userid, username=username)
+    except SqlSandboxError as e:
+        return jsonify({"error": str(e), "rule": e.rule}), 400
+    except ReportDefinitionError as e:
+        return jsonify({"error": str(e)}), 400
+    except RuntimeError:
+        return jsonify({"error": _("SQL source is not configured")}), 503
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/sql/run exec error: {e}")
+        return jsonify({"error": _("Could not run query")}), 500
+    return jsonify(
+        {
+            "columns": columns,
+            "rows": rows,
+            "rowCount": len(rows),
+            "truncated": len(rows) >= SQL_ROW_CAP,
+        }
+    )
+
+
+@require_permission("reporting.sql.run")
+@limiter.limit("10 per minute")
+def api_sql_ack():
+    userid = session.get("userid")
+    if not userid:
+        return jsonify({"error": _("Not authenticated")}), 401
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "IF NOT EXISTS (SELECT 1 FROM ReportingSqlAck WHERE UserID = ?) "
+            "INSERT INTO ReportingSqlAck (UserID) VALUES (?)",
+            (userid, userid),
+        )
+        conn.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/sql/ack error: {e}")
+        return jsonify({"error": _("Could not record acknowledgment")}), 500
+    finally:
+        conn.close()
+
+
 @require_permission("reporting.export")
 @limiter.limit("30 per minute")
 def api_export():
     rd = request.get_json(silent=True)
     if not isinstance(rd, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
+    if rd.get("kind") == "sql":
+        if not has_permission("reporting.sql.run"):
+            return jsonify({"error": _("Not authorized for live SQL")}), 403
+        userid = session.get("userid")
+        if not _has_acked(userid):
+            return jsonify({"error": _("Acknowledgment required"), "needAck": True}), 409
+        try:
+            validate_sql_definition(rd, allowed_targets=_SQL_TARGETS)
+            columns, rows = _run_sql(
+                rd["target"], rd["sql"], userid=userid, username=session.get("username")
+            )
+        except SqlSandboxError as e:
+            return jsonify({"error": str(e), "rule": e.rule}), 400
+        except ReportDefinitionError as e:
+            return jsonify({"error": str(e)}), 400
+        except RuntimeError:
+            return jsonify({"error": _("SQL source is not configured")}), 503
+        except Exception as e:
+            current_app.logger.error(f"/api/reporting/export sql error: {e}")
+            return jsonify({"error": _("Could not export query")}), 500
+        data = rows_to_xlsx(columns, rows, title=rd.get("title") or "Report")
+        safe_name = (
+            re.sub(r'[\x00-\x1f\x7f";]', "_", (rd.get("title") or "report").strip()) or "report"
+        )
+        return Response(
+            data,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}.xlsx"'},
+        )
     try:
         columns, sql, params = _prepare_run(rd)
         rows = _execute(sql, params)
@@ -258,12 +444,19 @@ def api_reports_list():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT ReportID, Name, UpdatedAt FROM Reports WHERE OwnerUserID = ? ORDER BY UpdatedAt DESC",
+            "SELECT ReportID, Name, UpdatedAt, "
+            "JSON_VALUE(DefinitionJSON, '$.kind') AS Kind "
+            "FROM Reports WHERE OwnerUserID = ? ORDER BY UpdatedAt DESC",
             (userid,),
         )
         return jsonify(
             [
-                {"id": r.ReportID, "name": r.Name, "updatedAt": str(r.UpdatedAt)}
+                {
+                    "id": r.ReportID,
+                    "name": r.Name,
+                    "updatedAt": str(r.UpdatedAt),
+                    "kind": r.Kind or "table",
+                }
                 for r in cur.fetchall()
             ]
         )
@@ -387,6 +580,18 @@ def register_routes(app):
         "/api/reporting/run",
         endpoint="reporting_run",
         view_func=api_run,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/sql/run",
+        endpoint="reporting_sql_run",
+        view_func=api_sql_run,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/sql/ack",
+        endpoint="reporting_sql_ack",
+        view_func=api_sql_ack,
         methods=["POST"],
     )
     app.add_url_rule(
