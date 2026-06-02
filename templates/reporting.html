@@ -28,13 +28,21 @@
       <div class="reporting-toolbar">
         <div class="reporting-mode-toggle">
           <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
-          <button id="rpModeSql" disabled title="{{ _('Coming soon') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
+          <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
         </div>
         <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
         <span style="flex:1"></span>
         <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
         <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
         <button id="rpExport" class="reporting-btn" data-testid="reporting-export">{{ _("Export") }}</button>
+      </div>
+      <div id="rpSqlPanel" class="reporting-sql-panel" hidden data-testid="reporting-sql-panel">
+        <div class="reporting-sql-bar">
+          <label class="reporting-label">{{ _("Target") }}</label>
+          <select id="rpSqlTarget" data-testid="reporting-sql-target"></select>
+        </div>
+        <textarea id="rpSqlEditor" class="reporting-sql-editor" spellcheck="false"
+                  placeholder="SELECT TOP (100) * FROM ..." data-testid="reporting-sql-editor"></textarea>
       </div>
       <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results"></div>
     </section>
@@ -49,6 +57,17 @@
         <input id="rpSubtitle" class="reporting-input" placeholder="{{ _('Subtitle') }}"></div>
     </aside>
   </main>
+
+  <div id="rpSqlAck" class="reporting-modal" hidden data-testid="reporting-sql-ack">
+    <div class="reporting-modal-box">
+      <h3>{{ _("Live SQL — read-only") }}</h3>
+      <p>{{ _("You are about to run read-only SQL against the Statistics database. Queries cannot modify data, and every run is logged. Double-check your query before running.") }}</p>
+      <div class="reporting-modal-actions">
+        <button id="rpSqlAckCancel" class="reporting-btn" data-testid="reporting-sql-ack-cancel">{{ _("Cancel") }}</button>
+        <button id="rpSqlAckAccept" class="reporting-btn reporting-btn-primary" data-testid="reporting-sql-ack-accept">{{ _("I understand") }}</button>
+      </div>
+    </div>
+  </div>
 
   {% include 'js/_reporting_js.html' %}
 </body>
