@@ -1,7 +1,7 @@
 <script>
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const state = { source: null, fields: [], columns: [], filters: [], sort: [], processes: [] };
+  const state = { source: null, fields: [], columns: [], filters: [], sort: [], processes: [], mode: 'table', sqlSource: null };
 
   async function api(url, opts) {
     opts = opts || {};
@@ -116,20 +116,119 @@
     wrap.appendChild(table);
   }
 
+  function setMode(mode) {
+    state.mode = mode;
+    var sqlOn = mode === 'sql';
+    document.getElementById('rpModeSql').classList.toggle('active', sqlOn);
+    document.getElementById('rpModeTable').classList.toggle('active', !sqlOn);
+    document.getElementById('rpSqlPanel').hidden = !sqlOn;
+    document.querySelector('.reporting-fields').style.display = sqlOn ? 'none' : '';
+    document.querySelector('.reporting-wells').style.display = sqlOn ? 'none' : '';
+  }
+
+  function showError(msg) {
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'reporting-error';
+    p.textContent = msg;
+    wrap.appendChild(p);
+  }
+
+  function ackThen(cb) {
+    if (state.sqlSource && state.sqlSource.acknowledged) { cb(); return; }
+    var modal = document.getElementById('rpSqlAck');
+    modal.hidden = false;
+    document.getElementById('rpSqlAckCancel').onclick = function () { modal.hidden = true; };
+    document.getElementById('rpSqlAckAccept').onclick = function () {
+      api('/api/reporting/sql/ack', { method: 'POST', body: '{}' }).then(function () {
+        if (state.sqlSource) state.sqlSource.acknowledged = true;
+        modal.hidden = true;
+        cb();
+      }).catch(function (e) { modal.hidden = true; showError(e.message); });
+    };
+  }
+
+  function sqlBody() {
+    return {
+      target: document.getElementById('rpSqlTarget').value || 'statistics',
+      sql: document.getElementById('rpSqlEditor').value,
+    };
+  }
+
+  function runSql() {
+    ackThen(function () {
+      api('/api/reporting/sql/run', { method: 'POST', body: JSON.stringify(sqlBody()) })
+        .then(function (res) { return res.json(); })
+        .then(function (data) { renderResults(data); })
+        .catch(function (e) { showError(e.message); });
+    });
+  }
+
+  function sqlDefinition() {
+    var b = sqlBody();
+    return {
+      kind: 'sql', target: b.target, sql: b.sql,
+      title: document.getElementById('rpTitle').value || 'SQL report',
+    };
+  }
+
+  function saveSql() {
+    ackThen(function () {
+      var name = window.prompt('{{ _("Report name") }}',
+        document.getElementById('rpTitle').value || 'SQL report');
+      if (!name) return;
+      api('/api/reporting/reports', {
+        method: 'POST',
+        body: JSON.stringify({ name: name, definition: sqlDefinition() }),
+      }).then(function () { window.alert('{{ _("Saved") }}'); })
+        .catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+    });
+  }
+
+  function exportSql() {
+    ackThen(function () {
+      api('/api/reporting/export', { method: 'POST', body: JSON.stringify(sqlDefinition()) })
+        .then(function (res) { return res.blob(); })
+        .then(function (blob) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = (document.getElementById('rpTitle').value || 'report') + '.xlsx';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }).catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+    });
+  }
+
   function loadSources() {
     api('/api/reporting/sources').then(function (res) {
       return res.json();
     }).then(function (sources) {
       var sel = document.getElementById('rpSource');
       sel.innerHTML = '';
-      sources.forEach(function (s) {
+      state.sqlSource = sources.find(function (s) { return s.kind === 'sql'; }) || null;
+      var curated = sources.filter(function (s) { return s.kind !== 'sql'; });
+      var sqlBtn = document.getElementById('rpModeSql');
+      if (state.sqlSource) {
+        sqlBtn.disabled = false;
+        sqlBtn.removeAttribute('title');
+        var tsel = document.getElementById('rpSqlTarget');
+        tsel.innerHTML = '';
+        var topt = document.createElement('option');
+        topt.value = state.sqlSource.target || 'statistics';
+        topt.textContent = state.sqlSource.label;
+        tsel.appendChild(topt);
+      }
+      curated.forEach(function (s) {
         var opt = document.createElement('option');
         opt.value = s.id;
         opt.textContent = s.label;
         sel.appendChild(opt);
       });
       function pick() {
-        var s = sources.find(function (x) { return x.id === sel.value; });
+        var s = curated.find(function (x) { return x.id === sel.value; });
         if (!s) return;
         state.source = s.id;
         state.fields = s.fields || [];
@@ -139,7 +238,7 @@
         renderWells();
       }
       sel.onchange = pick;
-      if (sources.length) pick();
+      if (curated.length) pick();
     }).catch(function (e) {
       console.error('{{ _("Could not load sources") }}:', e.message);
     });
@@ -302,9 +401,17 @@
   }
 
   document.getElementById('rpFieldSearch').addEventListener('input', renderFields);
-  document.getElementById('rpRun').addEventListener('click', run);
-  document.getElementById('rpSave').addEventListener('click', save);
-  document.getElementById('rpExport').addEventListener('click', exportXlsx);
+  document.getElementById('rpRun').addEventListener('click', function () {
+    if (state.mode === 'sql') { runSql(); } else { run(); }
+  });
+  document.getElementById('rpSave').addEventListener('click', function () {
+    if (state.mode === 'sql') { saveSql(); } else { save(); }
+  });
+  document.getElementById('rpExport').addEventListener('click', function () {
+    if (state.mode === 'sql') { exportSql(); } else { exportXlsx(); }
+  });
+  document.getElementById('rpModeTable').addEventListener('click', function () { setMode('table'); });
+  document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
   document.getElementById('rpAddSort').addEventListener('click', addSort);
 
