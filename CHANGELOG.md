@@ -9,6 +9,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting: live read-only **SQL sandbox** (Statistics) — run a single SELECT,
+  export to Excel, and save SQL reports. Gated by the new grantable
+  `reporting.sql.run` permission plus a one-time acknowledgment, hardened by an
+  sqlglot AST gate, a dedicated `db_datareader`-only login, a 50k row cap,
+  statement timeout, and per-run audit (`ReportingSqlAudit`).
 - **Reporting page** (`/reporting`): internal self-service report builder (PowerBI replacement, phase 1). Curated **Document Processing** source, table visualization with field picker, filters, combine clients/processes, custom column headers, save/load reports, and Excel export. New `reporting.*` permissions; new `Reports` table; new `openpyxl` dependency.
 - **`nx --doctor`** preflight health check (`nx_lib/cli_doctor.py`): verifies the Python interpreter, installed packages vs `requirements.txt`, `.env` / `env/<ENV>.env` keys, writable `var/` dirs and translation compile state, all four SQL Server engines + the ODBC driver, pending schema migrations, schema drift vs INT, on-PATH tooling, git hooks, port 8000, and the external services (Microsoft Graph / Octopus / Bexio). `--fast` skips drift + external calls; `--fix` runs safe auto-repairs. Exit code 0 on no failures, 1 otherwise — usable as a preflight gate.
 - **`nx -md` / `--maindir`** to cd into the repo (handled by the `$PROFILE` wrapper function), plus a matching `doctor` command in the interactive REPL.

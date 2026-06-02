@@ -49,6 +49,7 @@ header row.
 | `reporting.source.docprocessing` | Use the Document Processing curated source. |
 | `reporting.export` | Export reports to Excel (`.xlsx`). |
 | `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
+| `reporting.sql.run` | Run live read-only SQL in the sandbox (see below). Grantable; admins seeded. |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -147,21 +148,52 @@ label in the results table and in the Excel export; it is never used in SQL.
    data column name in that process's statistics table. Labels come from
    `dbo.Search_Field_Labels`.
 
-## Phase 2 (not yet built)
+## Live SQL sandbox
 
-The live read-only SQL source (a sandboxed single-`SELECT` runner against the
-Statistics and Octopus databases via dedicated `db_datareader` logins) is
-**out of scope for Phase 1** and will be delivered in a separate plan.
+The **SQL** tab in the report builder is a power-user escape hatch for when the
+curated builder does not cover your query. It runs a single read-only `SELECT`
+directly against the Statistics database.
 
-In the Phase 1 UI the **SQL** tab of the builder is present but disabled with a
-"coming soon" state. The permission `reporting.sql.run` is **not seeded** yet.
+### Access
+
+Gated by the `reporting.sql.run` permission. Admins have it seeded; grant it
+per-user via the normal Permissions admin UI on request.
+
+On first use the user must accept a one-time acknowledgment ("You are about to
+run read-only SQL …"). This is recorded in `dbo.ReportingSqlAck` (NexoraDB) and
+not shown again on subsequent runs.
+
+### Safety
+
+- **AST-validated:** `sqlglot` parses the submitted query and rejects anything
+  that is not a single `SELECT` statement — no DML, DDL, or multi-statement
+  batches pass the gate.
+- **Read-only login:** queries execute on `engine_statistics_ro`, a dedicated
+  `db_datareader`-only SQL login with no write permissions.
+- **Row cap:** results are hard-limited to 50,000 rows.
+- **Timeout:** a ~30-second statement timeout is enforced server-side.
+- **Audit:** every run (query text, user, row count, duration, status) is
+  written to `dbo.ReportingSqlAudit` (NexoraDB).
+
+### Owner setup
+
+Provision a read-only SQL login on the Statistics DB (`db_datareader` role only),
+then set `DB_REPORTING_RO_USER` and `DB_REPORTING_RO_PWD` in both
+`env/INT.env` and `env/PROD.env`.
+
+Until these env vars are present the SQL source returns **503 "SQL source is
+not configured"** and the SQL tab remains disabled for all users.
 
 ## See also
 
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
-  `query.py`, `export.py`).
+  `query.py`, `export.py`, `sql_sandbox.py`).
 - `nx_lib/views/reporting.py` — Flask routes.
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.
 - `sql/_migrations/NexoraDB/0005_seed_reporting_permissions.sql` — permission seed.
+- `sql/_migrations/NexoraDB/0006_create_reporting_sql_tables.sql` —
+  `dbo.ReportingSqlAudit` and `dbo.ReportingSqlAck` DDL.
+- `sql/_migrations/NexoraDB/0007_seed_reporting_sql_run_permission.sql` —
+  `reporting.sql.run` permission + admin seed.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).

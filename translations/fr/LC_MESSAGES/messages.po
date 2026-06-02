@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 16:08+0200\n"
+"POT-Creation-Date: 2026-06-02 21:18+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -240,8 +240,8 @@ msgstr "Aucun autre utilisateur disponible."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/workitems_overview.html:452
-#: templates/workitems_overview.html:548
+#: templates/generali_reporting.html:335 templates/reporting.html:66
+#: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -1658,8 +1658,8 @@ msgid "Table"
 msgstr "Tableau"
 
 #: templates/reporting.html:31
-msgid "Coming soon"
-msgstr "Prochainement"
+msgid "Requires the reporting.sql.run permission"
+msgstr "Nécessite la permission reporting.sql.run"
 
 #: templates/reporting.html:31
 msgid "SQL"
@@ -1677,33 +1677,56 @@ msgstr "Exécuter"
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/reporting.html:43
+#: templates/reporting.html:41
+msgid "Target"
+msgstr "Cible"
+
+#: templates/reporting.html:51
 msgid "Columns"
 msgstr "Colonnes"
 
-#: templates/reporting.html:44
+#: templates/reporting.html:52
 msgid "Filters"
 msgstr "Filtres"
 
-#: templates/reporting.html:45 templates/workitems_overview.html:285
+#: templates/reporting.html:53 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Ajouter un filtre"
 
-#: templates/reporting.html:46
+#: templates/reporting.html:54
 msgid "Sort"
 msgstr "Tri"
 
-#: templates/reporting.html:47
+#: templates/reporting.html:55
 msgid "Add sort"
 msgstr "Ajouter un tri"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:56
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:49
+#: templates/reporting.html:57
 msgid "Subtitle"
 msgstr "Sous-titre"
+
+#: templates/reporting.html:63
+msgid "Live SQL — read-only"
+msgstr "SQL en direct — lecture seule"
+
+#: templates/reporting.html:64
+msgid ""
+"You are about to run read-only SQL against the Statistics database. "
+"Queries cannot modify data, and every run is logged. Double-check your "
+"query before running."
+msgstr ""
+"Vous êtes sur le point d'exécuter du SQL en lecture seule sur la base de "
+"données Statistiques. Les requêtes ne peuvent pas modifier les données, et "
+"chaque exécution est journalisée. Vérifiez votre requête avant de "
+"l'exécuter."
+
+#: templates/reporting.html:67
+msgid "I understand"
+msgstr "Je comprends"
 
 #: templates/reset_password.html:8
 msgid "Reset password - nexora"
@@ -2957,25 +2980,25 @@ msgstr "Au moins 8 caractères requis"
 msgid "No rows."
 msgstr "Aucune ligne."
 
-#: templates/js/_reporting_js.html:144
-msgid "Could not load sources"
-msgstr "Impossible de charger les sources"
-
-#: templates/js/_reporting_js.html:163
+#: templates/js/_reporting_js.html:178 templates/js/_reporting_js.html:262
 msgid "Report name"
 msgstr "Nom du rapport"
 
-#: templates/js/_reporting_js.html:170
+#: templates/js/_reporting_js.html:184 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr "Enregistré"
 
-#: templates/js/_reporting_js.html:172
+#: templates/js/_reporting_js.html:185 templates/js/_reporting_js.html:271
 msgid "Save failed"
 msgstr "Échec de l'enregistrement"
 
-#: templates/js/_reporting_js.html:188
+#: templates/js/_reporting_js.html:201 templates/js/_reporting_js.html:287
 msgid "Export failed"
 msgstr "Échec de l'export"
+
+#: templates/js/_reporting_js.html:243
+msgid "Could not load sources"
+msgstr "Impossible de charger les sources"
 
 #: templates/js/_workitems_overview_js.html:151
 msgid "Restricted"
@@ -3864,4 +3887,7 @@ msgstr ""
 "Vos factures filtrées apparaissent ici. Vous pouvez consulter les "
 "détails, les montants et télécharger des copies PDF depuis la colonne "
 "Actions."
+
+#~ msgid "Coming soon"
+#~ msgstr "Prochainement"
 

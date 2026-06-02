@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 16:08+0200\n"
+"POT-Creation-Date: 2026-06-02 21:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -239,8 +239,8 @@ msgstr ""
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/workitems_overview.html:452
-#: templates/workitems_overview.html:548
+#: templates/generali_reporting.html:335 templates/reporting.html:66
+#: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr ""
 
@@ -1619,7 +1619,7 @@ msgid "Table"
 msgstr ""
 
 #: templates/reporting.html:31
-msgid "Coming soon"
+msgid "Requires the reporting.sql.run permission"
 msgstr ""
 
 #: templates/reporting.html:31
@@ -1638,32 +1638,51 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: templates/reporting.html:43
+#: templates/reporting.html:41
+msgid "Target"
+msgstr ""
+
+#: templates/reporting.html:51
 msgid "Columns"
 msgstr ""
 
-#: templates/reporting.html:44
+#: templates/reporting.html:52
 msgid "Filters"
 msgstr ""
 
-#: templates/reporting.html:45 templates/workitems_overview.html:285
+#: templates/reporting.html:53 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr ""
 
-#: templates/reporting.html:46
+#: templates/reporting.html:54
 msgid "Sort"
 msgstr ""
 
-#: templates/reporting.html:47
+#: templates/reporting.html:55
 msgid "Add sort"
 msgstr ""
 
-#: templates/reporting.html:48
+#: templates/reporting.html:56
 msgid "Format"
 msgstr ""
 
-#: templates/reporting.html:49
+#: templates/reporting.html:57
 msgid "Subtitle"
+msgstr ""
+
+#: templates/reporting.html:63
+msgid "Live SQL — read-only"
+msgstr ""
+
+#: templates/reporting.html:64
+msgid ""
+"You are about to run read-only SQL against the Statistics database. "
+"Queries cannot modify data, and every run is logged. Double-check your "
+"query before running."
+msgstr ""
+
+#: templates/reporting.html:67
+msgid "I understand"
 msgstr ""
 
 #: templates/reset_password.html:8
@@ -2888,24 +2907,24 @@ msgstr ""
 msgid "No rows."
 msgstr ""
 
-#: templates/js/_reporting_js.html:144
-msgid "Could not load sources"
-msgstr ""
-
-#: templates/js/_reporting_js.html:163
+#: templates/js/_reporting_js.html:178 templates/js/_reporting_js.html:262
 msgid "Report name"
 msgstr ""
 
-#: templates/js/_reporting_js.html:170
+#: templates/js/_reporting_js.html:184 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr ""
 
-#: templates/js/_reporting_js.html:172
+#: templates/js/_reporting_js.html:185 templates/js/_reporting_js.html:271
 msgid "Save failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:188
+#: templates/js/_reporting_js.html:201 templates/js/_reporting_js.html:287
 msgid "Export failed"
+msgstr ""
+
+#: templates/js/_reporting_js.html:243
+msgid "Could not load sources"
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:151

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 16:08+0200\n"
+"POT-Creation-Date: 2026-06-02 21:18+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -240,8 +240,8 @@ msgstr "Keine weiteren Benutzer verfügbar."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/workitems_overview.html:452
-#: templates/workitems_overview.html:548
+#: templates/generali_reporting.html:335 templates/reporting.html:66
+#: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1665,8 +1665,8 @@ msgid "Table"
 msgstr "Tabelle"
 
 #: templates/reporting.html:31
-msgid "Coming soon"
-msgstr "Demnächst verfügbar"
+msgid "Requires the reporting.sql.run permission"
+msgstr "Erfordert die Berechtigung reporting.sql.run"
 
 #: templates/reporting.html:31
 msgid "SQL"
@@ -1684,33 +1684,56 @@ msgstr "Ausführen"
 msgid "Export"
 msgstr "Exportieren"
 
-#: templates/reporting.html:43
+#: templates/reporting.html:41
+msgid "Target"
+msgstr "Ziel"
+
+#: templates/reporting.html:51
 msgid "Columns"
 msgstr "Spalten"
 
-#: templates/reporting.html:44
+#: templates/reporting.html:52
 msgid "Filters"
 msgstr "Filter"
 
-#: templates/reporting.html:45 templates/workitems_overview.html:285
+#: templates/reporting.html:53 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
-#: templates/reporting.html:46
+#: templates/reporting.html:54
 msgid "Sort"
 msgstr "Sortierung"
 
-#: templates/reporting.html:47
+#: templates/reporting.html:55
 msgid "Add sort"
 msgstr "Sortierung hinzufügen"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:56
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:49
+#: templates/reporting.html:57
 msgid "Subtitle"
 msgstr "Untertitel"
+
+#: templates/reporting.html:63
+msgid "Live SQL — read-only"
+msgstr "Live-SQL — schreibgeschützt"
+
+#: templates/reporting.html:64
+msgid ""
+"You are about to run read-only SQL against the Statistics database. "
+"Queries cannot modify data, and every run is logged. Double-check your "
+"query before running."
+msgstr ""
+"Sie sind dabei, schreibgeschütztes SQL gegen die Statistikdatenbank "
+"auszuführen. Abfragen können keine Daten ändern, und jede Ausführung wird "
+"protokolliert. Überprüfen Sie Ihre Abfrage sorgfältig, bevor Sie sie "
+"ausführen."
+
+#: templates/reporting.html:67
+msgid "I understand"
+msgstr "Ich verstehe"
 
 #: templates/reset_password.html:8
 msgid "Reset password - nexora"
@@ -2960,25 +2983,25 @@ msgstr "Mindestens 8 Zeichen erforderlich"
 msgid "No rows."
 msgstr "Keine Zeilen."
 
-#: templates/js/_reporting_js.html:144
-msgid "Could not load sources"
-msgstr "Quellen konnten nicht geladen werden"
-
-#: templates/js/_reporting_js.html:163
+#: templates/js/_reporting_js.html:178 templates/js/_reporting_js.html:262
 msgid "Report name"
 msgstr "Berichtsname"
 
-#: templates/js/_reporting_js.html:170
+#: templates/js/_reporting_js.html:184 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr "Gespeichert"
 
-#: templates/js/_reporting_js.html:172
+#: templates/js/_reporting_js.html:185 templates/js/_reporting_js.html:271
 msgid "Save failed"
 msgstr "Speichern fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:188
+#: templates/js/_reporting_js.html:201 templates/js/_reporting_js.html:287
 msgid "Export failed"
 msgstr "Export fehlgeschlagen"
+
+#: templates/js/_reporting_js.html:243
+msgid "Could not load sources"
+msgstr "Quellen konnten nicht geladen werden"
 
 #: templates/js/_workitems_overview_js.html:151
 msgid "Restricted"
@@ -3867,4 +3890,7 @@ msgid ""
 msgstr ""
 "Ihre gefilterten Rechnungen erscheinen hier. Sie können Details, Beträge "
 "einsehen und PDF-Kopien aus der Aktionsspalte herunterladen."
+
+#~ msgid "Coming soon"
+#~ msgstr "Demnächst verfügbar"
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 16:08+0200\n"
+"POT-Creation-Date: 2026-06-02 21:18+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -240,8 +240,8 @@ msgstr "Nessun altro utente disponibile."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/workitems_overview.html:452
-#: templates/workitems_overview.html:548
+#: templates/generali_reporting.html:335 templates/reporting.html:66
+#: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -1656,8 +1656,8 @@ msgid "Table"
 msgstr "Tabella"
 
 #: templates/reporting.html:31
-msgid "Coming soon"
-msgstr "Presto disponibile"
+msgid "Requires the reporting.sql.run permission"
+msgstr "Richiede il permesso reporting.sql.run"
 
 #: templates/reporting.html:31
 msgid "SQL"
@@ -1675,33 +1675,55 @@ msgstr "Esegui"
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/reporting.html:43
+#: templates/reporting.html:41
+msgid "Target"
+msgstr "Destinazione"
+
+#: templates/reporting.html:51
 msgid "Columns"
 msgstr "Colonne"
 
-#: templates/reporting.html:44
+#: templates/reporting.html:52
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/reporting.html:45 templates/workitems_overview.html:285
+#: templates/reporting.html:53 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
-#: templates/reporting.html:46
+#: templates/reporting.html:54
 msgid "Sort"
 msgstr "Ordinamento"
 
-#: templates/reporting.html:47
+#: templates/reporting.html:55
 msgid "Add sort"
 msgstr "Aggiungi ordinamento"
 
-#: templates/reporting.html:48
+#: templates/reporting.html:56
 msgid "Format"
 msgstr "Formato"
 
-#: templates/reporting.html:49
+#: templates/reporting.html:57
 msgid "Subtitle"
 msgstr "Sottotitolo"
+
+#: templates/reporting.html:63
+msgid "Live SQL — read-only"
+msgstr "SQL live — sola lettura"
+
+#: templates/reporting.html:64
+msgid ""
+"You are about to run read-only SQL against the Statistics database. "
+"Queries cannot modify data, and every run is logged. Double-check your "
+"query before running."
+msgstr ""
+"Stai per eseguire SQL in sola lettura sul database Statistiche. Le query "
+"non possono modificare i dati, e ogni esecuzione viene registrata. "
+"Verifica la tua query con attenzione prima di eseguirla."
+
+#: templates/reporting.html:67
+msgid "I understand"
+msgstr "Ho capito"
 
 #: templates/reset_password.html:8
 msgid "Reset password - nexora"
@@ -2951,25 +2973,25 @@ msgstr "Almeno 8 caratteri richiesti"
 msgid "No rows."
 msgstr "Nessuna riga."
 
-#: templates/js/_reporting_js.html:144
-msgid "Could not load sources"
-msgstr "Impossibile caricare le sorgenti"
-
-#: templates/js/_reporting_js.html:163
+#: templates/js/_reporting_js.html:178 templates/js/_reporting_js.html:262
 msgid "Report name"
 msgstr "Nome del rapporto"
 
-#: templates/js/_reporting_js.html:170
+#: templates/js/_reporting_js.html:184 templates/js/_reporting_js.html:269
 msgid "Saved"
 msgstr "Salvato"
 
-#: templates/js/_reporting_js.html:172
+#: templates/js/_reporting_js.html:185 templates/js/_reporting_js.html:271
 msgid "Save failed"
 msgstr "Salvataggio fallito"
 
-#: templates/js/_reporting_js.html:188
+#: templates/js/_reporting_js.html:201 templates/js/_reporting_js.html:287
 msgid "Export failed"
 msgstr "Esportazione fallita"
+
+#: templates/js/_reporting_js.html:243
+msgid "Could not load sources"
+msgstr "Impossibile caricare le sorgenti"
 
 #: templates/js/_workitems_overview_js.html:151
 msgid "Restricted"
@@ -3857,4 +3879,7 @@ msgid ""
 msgstr ""
 "Le tue fatture filtrate appaiono qui. Puoi visualizzare i dettagli, gli "
 "importi e scaricare copie PDF dalla colonna Azioni."
+
+#~ msgid "Coming soon"
+#~ msgstr "Presto disponibile"
 
