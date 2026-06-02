@@ -1,5 +1,6 @@
 """Unit tests for nx_lib.db — engine URL builder + ping probes."""
 
+import threading
 import time
 from unittest.mock import patch
 
@@ -69,14 +70,29 @@ def test_ping_db_error_for_unreachable_engine():
 def test_ping_db_timeout_when_probe_slow():
     """If the probe takes longer than timeout_s, return ok=False, error='timeout'."""
 
-    def slow_probe(_engine):
-        time.sleep(0.5)
+    # The probe blocks until the test explicitly releases it — it never
+    # completes while ping_db is waiting. This is deliberate: a fixed-duration
+    # sleep raced against the timeout is flaky, because Future.result(timeout)
+    # only waits *up to* timeout for a notification, then re-checks state. Under
+    # load (e.g. the full pre-push suite) the main thread can be descheduled
+    # past the sleep, so the future is already FINISHED at the re-check and
+    # result() returns success instead of raising TimeoutError. Blocking until
+    # release means the future is never FINISHED during the wait, so the timeout
+    # path fires deterministically regardless of scheduling.
+    release = threading.Event()
 
-    with patch("nx_lib.db._ping_db_probe", side_effect=slow_probe):
-        result = ping_db(engine_nexora_db, "slow", timeout_s=0.1)
-    assert result["ok"] is False
-    assert result["error"] == "timeout"
-    assert result["latency_ms"] == 100  # int(timeout_s * 1000)
+    def blocking_probe(_engine):
+        release.wait(timeout=30)  # 30s is a safety cap; finally releases first
+
+    try:
+        with patch("nx_lib.db._ping_db_probe", side_effect=blocking_probe):
+            result = ping_db(engine_nexora_db, "slow", timeout_s=0.1)
+        assert result["ok"] is False
+        assert result["error"] == "timeout"
+        assert result["latency_ms"] == 100  # int(timeout_s * 1000)
+    finally:
+        # Unblock the worker thread so it doesn't linger on the shared executor.
+        release.set()
 
 
 def test_ping_dbs_parallel_runs_concurrently():
