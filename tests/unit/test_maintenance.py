@@ -223,6 +223,26 @@ def test_get_blocking_maintenance_fail_open_on_db_error(app):
     assert result is None
 
 
+def test_get_blocking_maintenance_closes_connection_on_query_error(app):
+    """Regression: a query that fails after connecting (e.g. MaintenanceBanner
+    absent) must still return the pooled connection. Closing inside the try
+    leaked one connection per request and eventually exhausted the pool."""
+    fake_conn = MagicMock()
+    fake_cursor = MagicMock()
+    fake_cursor.execute.side_effect = RuntimeError("Invalid object name 'MaintenanceBanner'")
+    fake_conn.cursor.return_value = fake_cursor
+
+    with (
+        patch.object(maint_mod, "engine_nexora_db") as mock_engine,
+        app.app_context(),
+    ):
+        mock_engine.raw_connection.return_value = fake_conn
+        result = _get_blocking_maintenance()
+
+    assert result is None
+    fake_conn.close.assert_called_once()
+
+
 def test_get_blocking_maintenance_uses_cache(app):
     """Two calls within TTL should hit the DB only once."""
     call_count = {"n": 0}

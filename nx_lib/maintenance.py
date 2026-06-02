@@ -79,6 +79,7 @@ def _get_blocking_maintenance():
     if now_ts < _MAINTENANCE_BLOCK_CACHE["expires_at"]:
         return _MAINTENANCE_BLOCK_CACHE["data"]
     result = None
+    conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
@@ -90,8 +91,6 @@ def _get_blocking_maintenance():
             ORDER BY StartAt DESC, ID DESC
         """)
         row = cursor.fetchone()
-        cursor.close()
-        conn.close()
         if row:
             result = {
                 "id": int(row[0]),
@@ -103,8 +102,15 @@ def _get_blocking_maintenance():
             }
     except Exception as e:
         current_app.logger.error(f"Maintenance lockout lookup failed: {e}")
-        # Fail open — never lock users out due to a transient DB blip
-        return None
+        # Fail open — never lock users out due to a transient DB blip.
+    finally:
+        # Always return the pooled connection. Closing inside the try meant a
+        # failing query (e.g. MaintenanceBanner absent in TEST) leaked a
+        # connection on every request, eventually exhausting the pool.
+        if conn is not None:
+            conn.close()
+    # Cache the outcome — including None on error — so a missing table or a
+    # transient blip doesn't re-query (and re-open a connection) every request.
     _MAINTENANCE_BLOCK_CACHE["data"] = result
     _MAINTENANCE_BLOCK_CACHE["expires_at"] = now_ts + _MAINTENANCE_BLOCK_TTL
     return result
