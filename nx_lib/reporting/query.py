@@ -18,16 +18,39 @@ _OP_SQL = {
     "is_not_null": "IS NOT NULL",
 }
 
+_SORT_DIRS = {"ASC", "DESC"}
+
+# Filter ops handled specially below (not via the _OP_SQL binary-op fallback).
+_SPECIAL_OPS = {"in", "not_in", "between", "contains", "starts_with"}
+
 
 class QueryBuildError(ValueError):
     """Raised when a report definition cannot be turned into SQL."""
 
 
+def _escape_like(value):
+    """Escape LIKE metacharacters so user values are matched literally.
+
+    Backslash is the ESCAPE char, so escape it first; then %, _ and [ (the
+    SQL Server LIKE wildcards / character-class opener).
+    """
+    text = str(value)
+    text = text.replace("\\", "\\\\")
+    text = text.replace("%", "\\%")
+    text = text.replace("_", "\\_")
+    text = text.replace("[", "\\[")
+    return text
+
+
 def _filter_clause(col, op, value, params):
     """Append a single filter clause for `col`. Returns the SQL fragment."""
+    if op not in _OP_SQL and op not in _SPECIAL_OPS:
+        raise QueryBuildError(f"unsupported filter op: {op!r}")
     if op in ("is_null", "is_not_null"):
         return f"{col} {_OP_SQL[op]}"
     if op in ("in", "not_in"):
+        if value is None:
+            value = []
         values = value if isinstance(value, list) else [value]
         if not values:
             # empty IN — make it match nothing / everything safely
@@ -42,14 +65,42 @@ def _filter_clause(col, op, value, params):
         params.extend(value)
         return f"{col} BETWEEN ? AND ?"
     if op == "contains":
-        params.append(f"%{value}%")
-        return f"{col} LIKE ?"
+        params.append(f"%{_escape_like(value)}%")
+        return f"{col} LIKE ? ESCAPE '\\'"
     if op == "starts_with":
-        params.append(f"{value}%")
-        return f"{col} LIKE ?"
+        params.append(f"{_escape_like(value)}%")
+        return f"{col} LIKE ? ESCAPE '\\'"
     # simple binary ops (eq, ne, gt, gte, lt, lte)
     params.append(value)
     return f"{col} {_OP_SQL[op]}"
+
+
+def _scope_by_processname(process_configs, filters):
+    """Narrow process_configs by any `processname` filters.
+
+    A processname filter restricts *which* process subqueries are produced
+    rather than emitting a WHERE clause (the projected processname is a constant
+    per subquery). Supports eq/ne/in/not_in; other ops on processname raise.
+    """
+    result = list(process_configs)
+    for f in filters:
+        if f["field"] != "processname":
+            continue
+        op = f["op"]
+        value = f.get("value")
+        if op == "eq":
+            result = [c for c in result if c["process"] == value]
+        elif op == "ne":
+            result = [c for c in result if c["process"] != value]
+        elif op == "in":
+            wanted = set(value or [])
+            result = [c for c in result if c["process"] in wanted]
+        elif op == "not_in":
+            excluded = set(value or [])
+            result = [c for c in result if c["process"] not in excluded]
+        else:
+            raise QueryBuildError(f"unsupported processname filter op: {op!r}")
+    return result
 
 
 def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
@@ -85,6 +136,16 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
         if field not in all_known_fields:
             raise QueryBuildError(f"unknown column field: {field!r}")
 
+    # A `processname` filter selects which process subqueries are included; it
+    # is NOT a column WHERE clause (the value would never match the synthetic
+    # constant). Apply it up front by narrowing process_configs, comparing the
+    # filter value(s) to each cfg["process"]. Non-processname filters stay in
+    # `col_filters` and become parameterized WHERE clauses per subquery.
+    process_configs = _scope_by_processname(process_configs, filters)
+    if not process_configs:
+        raise QueryBuildError("no processes in scope after processname filter")
+    col_filters = [f for f in filters if f["field"] != "processname"]
+
     sub_queries = []
     params = []
     for cfg in process_configs:
@@ -92,13 +153,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
 
         # A filter referencing a field this process doesn't expose can never
         # match here — drop the whole subquery for correctness.
-        skip = False
-        for f in filters:
-            fk = f["field"]
-            if fk != "processname" and fk not in colmap:
-                skip = True
-                break
-        if skip:
+        if any(f["field"] not in colmap for f in col_filters):
             continue
 
         select_exprs = []
@@ -114,9 +169,8 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
                     select_exprs.append(f"NULL AS [{field}]")
 
         where = ["1 = 1"]
-        for f in filters:
-            fk = f["field"]
-            col = colmap.get(fk)
+        for f in col_filters:
+            col = colmap.get(f["field"])
             if not col:
                 continue
             where.append(_filter_clause(col, f["op"], f.get("value"), params))
@@ -133,6 +187,15 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
     out_cols = ", ".join(f"[{c}]" for c in columns)
     sql = f"SELECT TOP ({cap}) {out_cols} FROM ({inner}) t"
     if sort:
-        order = ", ".join(f"[{s['field']}] {s['dir'].upper()}" for s in sort)
-        sql += f" ORDER BY {order}"
+        projected = set(columns)
+        order_parts = []
+        for s in sort:
+            field = s["field"]
+            direction = str(s["dir"]).upper()
+            if direction not in _SORT_DIRS:
+                raise QueryBuildError(f"invalid sort direction: {s['dir']!r}")
+            if field not in projected:
+                raise QueryBuildError(f"sort field {field!r} not in projection")
+            order_parts.append(f"[{field}] {direction}")
+        sql += f" ORDER BY {', '.join(order_parts)}"
     return sql, params

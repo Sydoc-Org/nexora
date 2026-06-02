@@ -111,3 +111,78 @@ def test_empty_process_scope_raises():
 def test_row_cap_overrides_definition_limit():
     sql, _ = build_table_query(_rd(rowLimit=999), PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=50)
     assert "SELECT TOP (50)" in sql
+
+
+def test_sort_invalid_direction_raises():
+    rd = _rd(sort=[{"field": "doctype", "dir": "asc; DROP TABLE x--"}])
+    with pytest.raises(QueryBuildError):
+        build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+
+
+def test_sort_field_not_in_projection_raises():
+    # 'status' is not among the selected columns (doctype, pages)
+    rd = _rd(sort=[{"field": "status", "dir": "asc"}])
+    with pytest.raises(QueryBuildError):
+        build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+
+
+def test_processname_eq_filter_restricts_to_single_process():
+    rd = _rd(filters=[{"field": "processname", "op": "eq", "value": "acme.inv"}])
+    sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "dbo.StatA" in sql
+    assert "dbo.StatB" not in sql
+
+
+def test_processname_in_filter_restricts_to_listed_processes():
+    rd = _rd(filters=[{"field": "processname", "op": "in", "value": ["acme.hr"]}])
+    sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "dbo.StatB" in sql
+    assert "dbo.StatA" not in sql
+
+
+def test_processname_filter_emits_no_where_clause():
+    rd = _rd(filters=[{"field": "processname", "op": "eq", "value": "acme.inv"}])
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    # processname filter selects subqueries; it must not become a WHERE/param.
+    assert "acme.inv" not in params
+
+
+def test_unsupported_filter_op_raises():
+    rd = _rd(filters=[{"field": "status", "op": "regex", "value": "x"}])
+    with pytest.raises(QueryBuildError):
+        build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+
+
+def test_between_filter_parameterizes_both_bounds_in_order():
+    rd = _rd(filters=[{"field": "status", "op": "between", "value": ["A", "Z"]}])
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "BETWEEN ? AND ?" in sql
+    assert params.index("A") < params.index("Z")
+
+
+def test_contains_filter_wraps_and_escapes():
+    rd = _rd(filters=[{"field": "status", "op": "contains", "value": "ab"}])
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "LIKE ? ESCAPE '\\'" in sql
+    assert "%ab%" in params
+
+
+def test_contains_filter_escapes_metacharacters():
+    rd = _rd(filters=[{"field": "status", "op": "contains", "value": "50%_x"}])
+    _sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    # % and _ in the value are escaped to literals
+    assert "%50\\%\\_x%" in params
+
+
+def test_is_null_filter_emits_no_param():
+    rd = _rd(filters=[{"field": "status", "op": "is_null"}])
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "IS NULL" in sql
+    assert params == []
+
+
+def test_in_filter_with_none_value_matches_nothing():
+    rd = _rd(filters=[{"field": "status", "op": "in", "value": None}])
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "1 = 0" in sql
+    assert params == []
