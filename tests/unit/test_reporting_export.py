@@ -32,3 +32,9 @@ def test_rows_to_xlsx_falls_back_to_field_when_no_header():
 def test_rows_to_xlsx_returns_bytes():
     data = rows_to_xlsx([{"field": "a", "header": "A"}], [], title="t")
     assert isinstance(data, bytes | bytearray) and len(data) > 0
+
+
+def test_rows_to_xlsx_sanitizes_illegal_title_characters():
+    data = rows_to_xlsx([{"field": "a", "header": "A"}], [], title="Q1/Q2: results")
+    ws = load_workbook(io.BytesIO(data)).active
+    assert not any(ch in ws.title for ch in r"\/?*[]:")
