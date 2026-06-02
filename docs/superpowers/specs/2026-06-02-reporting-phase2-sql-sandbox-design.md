@@ -114,9 +114,11 @@ Pure, DB-free module (unit-tested in isolation). Public surface:
   5. **Keyword blocklist (backup, case-insensitive, comment-stripped, matched on word
      boundaries to avoid false positives like a column named `intolerance`):** `INSERT,
      UPDATE, DELETE, MERGE, DROP, ALTER, CREATE, TRUNCATE, GRANT, REVOKE, EXEC, EXECUTE,
-     INTO, BACKUP, RESTORE, SHUTDOWN, OPENROWSET, OPENQUERY, OPENDATASOURCE` plus the
-     `xp_` / `sp_` prefixes. This is belt-and-suspenders behind the AST gate; the AST gate
-     is the authority.
+     INTO, BACKUP, RESTORE, SHUTDOWN, OPENROWSET, OPENQUERY, OPENDATASOURCE`. (The
+     `xp_`/`sp_` prefixes were considered but dropped during implementation — they
+     false-reject legitimate identifiers like an `sp_balance` column, while `EXEC`/`EXECUTE`
+     plus the AST gate already block stored-proc invocation.) This is belt-and-suspenders
+     behind the AST gate; the AST gate is the authority.
 - `wrap_with_cap(sql: str, cap: int) -> str` — returns
   `SELECT TOP (<cap>) * FROM ( <sql> ) AS _q`. The cap holds regardless of the inner query.
   `cap` is an int interpolated by the server (never user-supplied text).
@@ -166,7 +168,7 @@ missing ack → `409`; exec error/timeout → `500` (generic message), audit `st
 `0006_create_reporting_sql_tables.sql` (idempotent `IF NOT EXISTS`):
 
 - **`ReportingSqlAudit`** — `Id INT IDENTITY PK, UserID, Username NVARCHAR, TargetDB
-  NVARCHAR, SqlText NVARCHAR(MAX), RowCount INT, Status NVARCHAR(16)
+  NVARCHAR, SqlText NVARCHAR(MAX), RowsReturned INT, Status NVARCHAR(16)
   (run|rejected|error), DurationMs INT, CreatedAt DATETIME2 DEFAULT SYSUTCDATETIME()`.
 - **`ReportingSqlAck`** — `UserID INT PK, AcceptedAt DATETIME2 DEFAULT SYSUTCDATETIME()`.
 
