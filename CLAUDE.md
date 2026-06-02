@@ -148,7 +148,7 @@ pybabel update -i messages.pot -d translations
 pybabel compile -d translations
 ```
 
-`babel.cfg` extracts from `*.py` and `templates/**.html`. Mark strings with `{{ _('...') }}` in templates and `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po` file.
+`babel.cfg` extracts from `nx_lib/**.py` (recursive — so route/flash messages are translated), root-level `*.py`, and `templates/**.html`. Mark strings with `{{ _('...') }}` in templates and `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po` file. The `test_translations.py` suite enforces that `messages.pot` is in sync and every msgid is translated (non-fuzzy) in de/fr/it.
 
 ## Secrets
 

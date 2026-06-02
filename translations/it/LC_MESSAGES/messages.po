@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-03 01:11+0200\n"
+"POT-Creation-Date: 2026-06-03 01:19+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -17,6 +17,665 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: nx_lib/octo.py:183
+msgid "Error fetching activity instance"
+msgstr "Errore durante il recupero dell'istanza di attività"
+
+#: nx_lib/security.py:105
+msgid "Invalid date"
+msgstr "Data non valida"
+
+#: nx_lib/security.py:107
+msgid "Date is outside the allowed entry window"
+msgstr "La data è al di fuori della finestra di inserimento consentita"
+
+#: nx_lib/views/admin.py:170 nx_lib/views/admin.py:666
+msgid "All fields are required."
+msgstr "Tutti i campi sono obbligatori."
+
+#: nx_lib/views/admin.py:185
+msgid "Organization created successfully."
+msgstr "Organizzazione creata con successo."
+
+#: nx_lib/views/admin.py:187
+msgid "Organization already exists."
+msgstr "L'organizzazione esiste già."
+
+#: nx_lib/views/admin.py:190 nx_lib/views/admin.py:691
+#: nx_lib/views/workitems.py:1332 nx_lib/views/workitems.py:1383
+#: nx_lib/views/workitems.py:1425 nx_lib/views/workitems.py:1636
+#: nx_lib/views/workitems.py:1668
+msgid "An unexpected error occurred."
+msgstr "Si è verificato un errore imprevisto."
+
+#: nx_lib/views/admin.py:214
+msgid "Organization updated successfully."
+msgstr "Organizzazione aggiornata con successo."
+
+#: nx_lib/views/admin.py:217 nx_lib/views/admin.py:241
+#: nx_lib/views/admin.py:747 nx_lib/views/admin.py:978
+msgid "An error occurred."
+msgstr "Si è verificato un errore."
+
+#: nx_lib/views/admin.py:236
+msgid "Organization not found."
+msgstr "Organizzazione non trovata."
+
+#: nx_lib/views/admin.py:238
+msgid "Organization deleted successfully."
+msgstr "Organizzazione eliminata con successo."
+
+#: nx_lib/views/admin.py:686 templates/js/admin/_access_control_js.html:542
+msgid "User created successfully."
+msgstr "Utente creato con successo."
+
+#: nx_lib/views/admin.py:688
+msgid "Username or email already exists."
+msgstr "Nome utente o e-mail già esistente."
+
+#: nx_lib/views/admin.py:719
+msgid "Permission Denied for this action."
+msgstr "Autorizzazione negata per questa azione."
+
+#: nx_lib/views/admin.py:744
+msgid "User updated successfully."
+msgstr "Utente aggiornato con successo."
+
+#: nx_lib/views/admin.py:933
+msgid "You cannot delete your own account."
+msgstr "Non puoi eliminare il tuo account."
+
+#: nx_lib/views/admin.py:973
+msgid "User not found."
+msgstr "Utente non trovato."
+
+#: nx_lib/views/admin.py:975
+msgid "User deleted successfully."
+msgstr "Utente eliminato con successo."
+
+#: nx_lib/views/admin.py:1086
+msgid "Could not fetch logs"
+msgstr "Impossibile recuperare i log"
+
+#: nx_lib/views/admin.py:1129
+msgid "Could not fetch sessions"
+msgstr "Impossibile recuperare le sessioni"
+
+#: nx_lib/views/admin.py:1226 nx_lib/views/admin.py:1536
+#: nx_lib/views/admin.py:1578 nx_lib/views/admin.py:1623
+#: nx_lib/views/admin.py:1662 nx_lib/views/admin.py:1700
+#: nx_lib/views/admin.py:1733 nx_lib/views/chat.py:47
+#: nx_lib/views/dashboard.py:261 nx_lib/views/dashboard.py:344
+#: nx_lib/views/dashboard.py:463 nx_lib/views/dashboard.py:549
+#: nx_lib/views/dashboard.py:709 nx_lib/views/dashboard.py:785
+#: nx_lib/views/dashboard.py:807 nx_lib/views/dashboard.py:858
+#: nx_lib/views/dashboard.py:1325 nx_lib/views/dashboard.py:1369
+#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:461
+#: nx_lib/views/workitems.py:924 nx_lib/views/workitems.py:977
+#: nx_lib/views/workitems.py:1146 nx_lib/views/workitems.py:1189
+#: nx_lib/views/workitems.py:1280 nx_lib/views/workitems.py:1342
+#: nx_lib/views/workitems.py:1393 nx_lib/views/workitems.py:1435
+#: nx_lib/views/workitems.py:1586 nx_lib/views/workitems.py:1646
+msgid "Not authorized"
+msgstr "Non autorizzato"
+
+#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1179
+msgid "Could not fetch users"
+msgstr "Impossibile recuperare gli utenti"
+
+#: nx_lib/views/admin.py:1315
+msgid "Name is required"
+msgstr "Il nome è obbligatorio"
+
+#: nx_lib/views/admin.py:1343
+msgid "Profile saved successfully"
+msgstr "Profilo salvato con successo"
+
+#: nx_lib/views/admin.py:1522
+msgid "Overrides updated successfully"
+msgstr "Override aggiornati con successo"
+
+#: nx_lib/views/admin.py:1587 nx_lib/views/admin.py:1717
+#: nx_lib/views/admin.py:1759
+msgid "Permission not found"
+msgstr "Autorizzazione non trovata"
+
+#: nx_lib/views/admin.py:1668 nx_lib/views/admin.py:1706
+msgid "Code and description are required"
+msgstr "Codice e descrizione sono obbligatori"
+
+#: nx_lib/views/admin.py:1683
+msgid "Permission created successfully"
+msgstr "Autorizzazione creata con successo"
+
+#: nx_lib/views/admin.py:1719
+msgid "Permission updated successfully"
+msgstr "Autorizzazione aggiornata con successo"
+
+#: nx_lib/views/admin.py:1752
+#, python-format
+msgid ""
+"Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
+" assignments first."
+msgstr "Impossibile eliminare: utilizzato in %(p)d profilo/i e %(o)d override. Rimuovi prima tutte le assegnazioni."
+
+#: nx_lib/views/admin.py:1761
+msgid "Permission deleted successfully"
+msgstr "Autorizzazione eliminata con successo"
+
+#: nx_lib/views/auth.py:128
+msgid "nexora Password Reset Request"
+msgstr "nexora Richiesta di reimpostazione della password"
+
+#: nx_lib/views/auth.py:163
+msgid "Hello,"
+msgstr "Salve,"
+
+#: nx_lib/views/auth.py:165
+msgid ""
+"We received a request to reset the password for your account. You can "
+"reset your password by clicking the button below."
+msgstr "Abbiamo ricevuto una richiesta di reimpostazione della password del tuo account. Puoi reimpostare la password facendo clic sul pulsante qui sotto."
+
+#: nx_lib/views/auth.py:166
+msgid ""
+"If you did not request a password reset, please ignore this email. This "
+"link is valid for 15 minutes."
+msgstr "Se non hai richiesto la reimpostazione della password, ignora questa e-mail. Questo link è valido per 15 minuti."
+
+#: nx_lib/views/auth.py:169
+msgid "Thanks,<br>The Sydoc Team"
+msgstr "Grazie,<br>Il team Sydoc"
+
+#: nx_lib/views/auth.py:177
+msgid "Reset Your Password"
+msgstr "Reimposta la tua password"
+
+#: nx_lib/views/auth.py:247
+msgid "Session expired, please try again"
+msgstr "Sessione scaduta, riprova"
+
+#: nx_lib/views/auth.py:296
+msgid "Database error"
+msgstr "Errore del database"
+
+#: nx_lib/views/auth.py:304
+msgid "Invalid code. Please try again."
+msgstr "Codice non valido. Riprova."
+
+#: nx_lib/views/auth.py:352
+msgid "Invalid code"
+msgstr "Codice non valido"
+
+#: nx_lib/views/auth.py:366 nx_lib/views/auth.py:541
+#: templates/js/_profile_js.html:5
+msgid "Passwords do not match"
+msgstr "Le password non corrispondono"
+
+#: nx_lib/views/auth.py:368 nx_lib/views/auth.py:543
+msgid "All Fields must be filled"
+msgstr "Tutti i campi devono essere compilati"
+
+#: nx_lib/views/auth.py:372 nx_lib/views/auth.py:547
+#: nx_lib/views/profile.py:155
+msgid "New password has to be atleast 8 characters long, with no whitespaces"
+msgstr "La nuova password deve contenere almeno 8 caratteri, senza spazi"
+
+#: nx_lib/views/auth.py:392 nx_lib/views/auth.py:565
+msgid "New Password musn't be previously used password"
+msgstr "La nuova password non deve essere una password già utilizzata"
+
+#: nx_lib/views/auth.py:458 nx_lib/views/auth.py:497
+msgid "Invalid credentials"
+msgstr "Credenziali non valide"
+
+#: nx_lib/views/auth.py:501
+msgid "Login temporarily unavailable"
+msgstr "Accesso temporaneamente non disponibile"
+
+#: nx_lib/views/auth.py:582
+msgid "Password changed"
+msgstr "Password modificata"
+
+#: nx_lib/views/auth.py:618
+msgid "A password reset link has been sent to your email"
+msgstr "Un link per reimpostare la password è stato inviato alla tua e-mail"
+
+#: nx_lib/views/auth.py:620 nx_lib/views/auth.py:624
+msgid "Unexpected error occurred"
+msgstr "Si è verificato un errore imprevisto"
+
+#: nx_lib/views/auth.py:621
+msgid "Invalid Email Address"
+msgstr "Indirizzo e-mail non valido"
+
+#: nx_lib/views/chat.py:80
+msgid "No messages yet"
+msgstr "Ancora nessun messaggio"
+
+#: nx_lib/views/dashboard.py:74
+msgid "Imported today"
+msgstr "Importati oggi"
+
+#: nx_lib/views/dashboard.py:87
+msgid "Processed today"
+msgstr "Elaborati oggi"
+
+#: nx_lib/views/dashboard.py:100
+msgid "Current backlog"
+msgstr "Backlog attuale"
+
+#: nx_lib/views/dashboard.py:113
+msgid "Avg processing time"
+msgstr "Tempo medio di elaborazione"
+
+#: nx_lib/views/dashboard.py:126 templates/dashboard.html:100
+msgid "Documents Processed Over Time"
+msgstr "Documenti elaborati nel tempo"
+
+#: nx_lib/views/dashboard.py:148
+msgid "Top doctypes today"
+msgstr "Tipi di documento principali oggi"
+
+#: nx_lib/views/dashboard.py:776
+msgid "Could not fetch field metadata"
+msgstr "Impossibile recuperare i metadati dei campi"
+
+#: nx_lib/views/dashboard.py:798
+msgid "Could not load layout"
+msgstr "Impossibile caricare il layout"
+
+#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:479
+#: nx_lib/views/reporting.py:512 nx_lib/views/reporting.py:571
+#: nx_lib/views/reporting.py:621
+msgid "Invalid JSON body"
+msgstr "Corpo JSON non valido"
+
+#: nx_lib/views/dashboard.py:849
+msgid "Could not save layout"
+msgstr "Impossibile salvare il layout"
+
+#: nx_lib/views/dashboard.py:869
+msgid "Could not reset layout"
+msgstr "Impossibile reimpostare il layout"
+
+#: nx_lib/views/dashboard.py:1337 nx_lib/views/dashboard.py:1374
+msgid "Invalid widget"
+msgstr "Widget non valido"
+
+#: nx_lib/views/dashboard.py:1353
+msgid "Could not build query"
+msgstr "Impossibile creare la query"
+
+#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:532
+msgid "Could not run query"
+msgstr "Impossibile eseguire la query"
+
+#: nx_lib/views/dashboard.py:1401
+msgid "Previous period"
+msgstr "Periodo precedente"
+
+#: nx_lib/views/dashboard.py:1404
+msgid "Could not build comparison"
+msgstr "Impossibile creare il confronto"
+
+#: nx_lib/views/invoices.py:60 templates/invoices.html:81
+msgid "Paid"
+msgstr "Pagato"
+
+#: nx_lib/views/invoices.py:61 templates/invoices.html:82
+msgid "Open"
+msgstr "Aperto"
+
+#: nx_lib/views/invoices.py:298
+msgid "Could not download PDF. File not found or API error."
+msgstr "Impossibile scaricare il PDF. File non trovato o errore API."
+
+#: nx_lib/views/invoices.py:303
+msgid "An unexpected error occurred while downloading the PDF."
+msgstr "Si è verificato un errore imprevisto durante il download del PDF."
+
+#: nx_lib/views/notifications.py:11 nx_lib/views/notifications.py:46
+#: nx_lib/views/reporting.py:516 nx_lib/views/reporting.py:548
+msgid "Not authenticated"
+msgstr "Non autenticato"
+
+#: nx_lib/views/notifications.py:36
+msgid "Could not fetch notifications"
+msgstr "Impossibile recuperare le notifiche"
+
+#: nx_lib/views/notifications.py:52
+msgid "Invalid payload"
+msgstr "Payload non valido"
+
+#: nx_lib/views/notifications.py:72
+msgid "Notifications marked as read."
+msgstr "Notifiche contrassegnate come lette."
+
+#: nx_lib/views/notifications.py:75
+msgid "Could not update notifications"
+msgstr "Impossibile aggiornare le notifiche"
+
+#: nx_lib/views/profile.py:64
+msgid "Email Adress is not valid"
+msgstr "L'indirizzo e-mail non è valido"
+
+#: nx_lib/views/profile.py:71
+msgid "Email Adress is already in use"
+msgstr "L'indirizzo e-mail è già in uso"
+
+#: nx_lib/views/profile.py:92 nx_lib/views/profile.py:116
+msgid "Invalid file format. Please upload a valid image."
+msgstr "Formato file non valido. Carica un'immagine valida."
+
+#: nx_lib/views/profile.py:120
+msgid "Profile updated successfully!"
+msgstr "Profilo aggiornato con successo!"
+
+#: nx_lib/views/profile.py:123
+msgid "Unexpected error"
+msgstr "Errore imprevisto"
+
+#: nx_lib/views/profile.py:148
+msgid "New passwords do not match"
+msgstr "Le nuove password non corrispondono"
+
+#: nx_lib/views/profile.py:151
+msgid "All fields must be filled"
+msgstr "Tutti i campi devono essere compilati"
+
+#: nx_lib/views/profile.py:185
+msgid "Password updated successfully!"
+msgstr "Password aggiornata con successo!"
+
+#: nx_lib/views/profile.py:188
+msgid "Current password is incorrect"
+msgstr "La password attuale non è corretta"
+
+#: nx_lib/views/profile.py:191 nx_lib/views/profile.py:204
+#: nx_lib/views/profile.py:217
+msgid "Unexpected Error"
+msgstr "Errore imprevisto"
+
+#: nx_lib/views/profile.py:213
+msgid "Language changed successfully!"
+msgstr "Lingua modificata con successo!"
+
+#: nx_lib/views/reporting.py:483 nx_lib/views/reporting.py:601
+msgid "Not authorized for this source"
+msgstr "Non autorizzato per questa sorgente"
+
+#: nx_lib/views/reporting.py:488
+msgid "Could not build report"
+msgstr "Impossibile creare il report"
+
+#: nx_lib/views/reporting.py:493
+msgid "Could not run report"
+msgstr "Impossibile eseguire il report"
+
+#: nx_lib/views/reporting.py:518 nx_lib/views/reporting.py:578
+msgid "Acknowledgment required"
+msgstr "Conferma richiesta"
+
+#: nx_lib/views/reporting.py:523 nx_lib/views/reporting.py:586
+msgid "Not authorized for this SQL target"
+msgstr "Non autorizzato per questa destinazione SQL"
+
+#: nx_lib/views/reporting.py:529 nx_lib/views/reporting.py:592
+msgid "SQL source is not configured"
+msgstr "La sorgente SQL non è configurata"
+
+#: nx_lib/views/reporting.py:561
+msgid "Could not record acknowledgment"
+msgstr "Impossibile registrare la conferma"
+
+#: nx_lib/views/reporting.py:575
+msgid "Not authorized for live SQL"
+msgstr "Non autorizzato per SQL in tempo reale"
+
+#: nx_lib/views/reporting.py:595
+msgid "Could not export query"
+msgstr "Impossibile esportare la query"
+
+#: nx_lib/views/reporting.py:606
+msgid "Could not export report"
+msgstr "Impossibile esportare il report"
+
+#: nx_lib/views/reporting.py:625
+msgid "columns and rows are required"
+msgstr "colonne e righe sono obbligatorie"
+
+#: nx_lib/views/reporting.py:682
+msgid "Could not list reports"
+msgstr "Impossibile elencare i report"
+
+#: nx_lib/views/reporting.py:707 nx_lib/views/reporting.py:782
+#: nx_lib/views/reporting.py:804 nx_lib/views/reporting.py:880
+#: nx_lib/views/reporting.py:890 nx_lib/views/reporting.py:940
+#: nx_lib/views/reporting.py:1002 nx_lib/views/reporting.py:1025
+#: nx_lib/views/reporting.py:1056 nx_lib/views/reporting.py:1086
+#: nx_lib/views/reporting.py:1099 nx_lib/views/reporting.py:1110
+#: nx_lib/views/reporting.py:1261 nx_lib/views/reporting.py:1279
+msgid "Not found"
+msgstr "Non trovato"
+
+#: nx_lib/views/reporting.py:720
+msgid "Could not load report"
+msgstr "Impossibile caricare il report"
+
+#: nx_lib/views/reporting.py:733 nx_lib/views/reporting.py:762
+msgid "name and definition are required"
+msgstr "nome e definizione sono obbligatori"
+
+#: nx_lib/views/reporting.py:736 nx_lib/views/reporting.py:765
+msgid "Report definition too large"
+msgstr "Definizione del report troppo grande"
+
+#: nx_lib/views/reporting.py:749
+msgid "Could not save report"
+msgstr "Impossibile salvare il report"
+
+#: nx_lib/views/reporting.py:786
+msgid "Could not update report"
+msgstr "Impossibile aggiornare il report"
+
+#: nx_lib/views/reporting.py:808
+msgid "Could not delete report"
+msgstr "Impossibile eliminare il report"
+
+#: nx_lib/views/reporting.py:898
+msgid "Invalid visibility"
+msgstr "Visibilità non valida"
+
+#: nx_lib/views/reporting.py:907
+msgid "User not found"
+msgstr "Utente non trovato"
+
+#: nx_lib/views/reporting.py:909
+msgid "Cannot share a report with yourself"
+msgstr "Non puoi condividere un report con te stesso"
+
+#: nx_lib/views/reporting.py:930 nx_lib/views/reporting.py:951
+msgid "Could not update sharing"
+msgstr "Impossibile aggiornare la condivisione"
+
+#: nx_lib/views/reporting.py:1015
+msgid "Could not list schedules"
+msgstr "Impossibile elencare le pianificazioni"
+
+#: nx_lib/views/reporting.py:1046
+msgid "Could not save schedule"
+msgstr "Impossibile salvare la pianificazione"
+
+#: nx_lib/views/reporting.py:1090
+msgid "Could not update schedule"
+msgstr "Impossibile aggiornare la pianificazione"
+
+#: nx_lib/views/reporting.py:1114
+msgid "Could not delete schedule"
+msgstr "Impossibile eliminare la pianificazione"
+
+#: nx_lib/views/reporting.py:1127
+msgid "Invalid body"
+msgstr "Corpo non valido"
+
+#: nx_lib/views/reporting.py:1129
+msgid "code must be 1-64 chars: letters, digits, . _ -"
+msgstr "il codice deve contenere 1-64 caratteri: lettere, cifre, . _ -"
+
+#: nx_lib/views/reporting.py:1131
+msgid "kind must be 'curated' or 'sql'"
+msgstr "kind deve essere 'curated' o 'sql'"
+
+#: nx_lib/views/reporting.py:1133
+msgid "label is required"
+msgstr "l'etichetta è obbligatoria"
+
+#: nx_lib/views/reporting.py:1135
+msgid "permission is required"
+msgstr "l'autorizzazione è obbligatoria"
+
+#: nx_lib/views/reporting.py:1141
+msgid "columns must be valid JSON"
+msgstr "le colonne devono essere JSON valido"
+
+#: nx_lib/views/reporting.py:1208
+msgid "Could not list sources"
+msgstr "Impossibile elencare le sorgenti"
+
+#: nx_lib/views/reporting.py:1236
+msgid "Could not save source (code already exists?)"
+msgstr "Impossibile salvare la sorgente (codice già esistente?)"
+
+#: nx_lib/views/reporting.py:1265
+msgid "Could not update source"
+msgstr "Impossibile aggiornare la sorgente"
+
+#: nx_lib/views/reporting.py:1283
+msgid "Could not delete source"
+msgstr "Impossibile eliminare la sorgente"
+
+#: nx_lib/views/workitems.py:533
+msgid "Could not fetch values"
+msgstr "Impossibile recuperare i valori"
+
+#: nx_lib/views/workitems.py:872
+msgid "No file part in the request."
+msgstr "Nessuna parte di file nella richiesta."
+
+#: nx_lib/views/workitems.py:879
+msgid "No file selected for uploading."
+msgstr "Nessun file selezionato per il caricamento."
+
+#: nx_lib/views/workitems.py:883
+msgid "No target process selected."
+msgstr "Nessun processo di destinazione selezionato."
+
+#: nx_lib/views/workitems.py:895
+msgid "You do not have permission to import to this process."
+msgstr "Non hai l'autorizzazione per importare in questo processo."
+
+#: nx_lib/views/workitems.py:910
+#, python-brace-format
+msgid "File '{}' successfully imported into {}."
+msgstr "File '{}' importato con successo in {}."
+
+#: nx_lib/views/workitems.py:915
+msgid "An error occurred while saving the file."
+msgstr "Si è verificato un errore durante il salvataggio del file."
+
+#: nx_lib/views/workitems.py:917
+msgid "Invalid file type. Please upload a valid PDF."
+msgstr "Tipo di file non valido. Carica un PDF valido."
+
+#: nx_lib/views/workitems.py:967
+msgid "Could not fetch workitem data"
+msgstr "Impossibile recuperare i dati del workitem"
+
+#: nx_lib/views/workitems.py:994 nx_lib/views/workitems.py:1032
+msgid "Workitem not found"
+msgstr "Workitem non trovato"
+
+#: nx_lib/views/workitems.py:1021 nx_lib/views/workitems.py:1087
+msgid "Internal Server Error"
+msgstr "Errore interno del server"
+
+#: nx_lib/views/workitems.py:1043
+msgid "Media index out of bounds"
+msgstr "Indice del media fuori dai limiti"
+
+#: nx_lib/views/workitems.py:1071
+msgid "Failed to process TIFF image"
+msgstr "Elaborazione dell'immagine TIFF non riuscita"
+
+#: nx_lib/views/workitems.py:1136
+msgid "Failed to fetch audit history"
+msgstr "Recupero della cronologia di audit non riuscito"
+
+#: nx_lib/views/workitems.py:1138
+msgid "An unexpected error occurred"
+msgstr "Si è verificato un errore imprevisto"
+
+#: nx_lib/views/workitems.py:1236
+msgid "No data found for this workitem."
+msgstr "Nessun dato trovato per questo workitem."
+
+#: nx_lib/views/workitems.py:1270
+msgid "Could not fetch interactions"
+msgstr "Impossibile recuperare le interazioni"
+
+#: nx_lib/views/workitems.py:1285
+msgid "Comment cannot be empty."
+msgstr "Il commento non può essere vuoto."
+
+#: nx_lib/views/workitems.py:1329
+msgid "Comment added."
+msgstr "Commento aggiunto."
+
+#: nx_lib/views/workitems.py:1347
+msgid "Invalid assignment."
+msgstr "Assegnazione non valida."
+
+#: nx_lib/views/workitems.py:1376
+msgid "assigned you on workitem"
+msgstr "ti ha assegnato a un workitem"
+
+#: nx_lib/views/workitems.py:1380
+msgid "Assignment updated."
+msgstr "Assegnazione aggiornata."
+
+#: nx_lib/views/workitems.py:1398
+msgid "Invalid priority level."
+msgstr "Livello di priorità non valido."
+
+#: nx_lib/views/workitems.py:1422
+msgid "Priority updated."
+msgstr "Priorità aggiornata."
+
+#: nx_lib/views/workitems.py:1455
+msgid "Could not fetch tags"
+msgstr "Impossibile recuperare i tag"
+
+#: nx_lib/views/workitems.py:1593
+msgid "Tag name cannot be empty."
+msgstr "Il nome del tag non può essere vuoto."
+
+#: nx_lib/views/workitems.py:1617
+msgid "Workitem already has this tag."
+msgstr "Il workitem ha già questo tag."
+
+#: nx_lib/views/workitems.py:1629
+msgid "Tag added successfully."
+msgstr "Tag aggiunto con successo."
+
+#: nx_lib/views/workitems.py:1661
+msgid "Tag association not found."
+msgstr "Associazione del tag non trovata."
+
+#: nx_lib/views/workitems.py:1665
+msgid "Tag removed successfully."
+msgstr "Tag rimosso con successo."
 
 #: templates/_header.html:20
 msgid "Open navigation"
@@ -282,10 +941,6 @@ msgstr "Arretrato attuale"
 #: templates/dashboard.html:84
 msgid "Avg. Processing Time"
 msgstr "Tempo medio di elaborazione"
-
-#: templates/dashboard.html:100
-msgid "Documents Processed Over Time"
-msgstr "Documenti elaborati nel tempo"
 
 #: templates/dashboard.html:110
 msgid "Recent Validations"
@@ -1498,14 +2153,6 @@ msgstr "Tutti i clienti"
 #: templates/invoices.html:80
 msgid "All Statuses"
 msgstr "Tutti gli stati"
-
-#: templates/invoices.html:81
-msgid "Paid"
-msgstr "Pagato"
-
-#: templates/invoices.html:82
-msgid "Open"
-msgstr "Aperto"
 
 #: templates/admin/logs.html:41 templates/invoices.html:97
 #: templates/workitems_overview.html:316 templates/workitems_overview.html:401
@@ -3215,10 +3862,6 @@ msgstr "Impossibile caricare le fatture. Riprova più tardi."
 msgid "Passwords match"
 msgstr "Le password corrispondono"
 
-#: templates/js/_profile_js.html:5
-msgid "Passwords do not match"
-msgstr "Le password non corrispondono"
-
 #: templates/js/_profile_js.html:6
 msgid "At least 8 characters required"
 msgstr "Almeno 8 caratteri richiesti"
@@ -3632,10 +4275,6 @@ msgstr "predefinito"
 #: templates/js/admin/_access_control_js.html:536
 msgid "You do not have permission to create users."
 msgstr "Non hai i permessi per creare utenti."
-
-#: templates/js/admin/_access_control_js.html:542
-msgid "User created successfully."
-msgstr "Utente creato con successo."
 
 #: templates/js/admin/_access_control_js.html:545
 #: templates/js/admin/_organizations_js.html:141

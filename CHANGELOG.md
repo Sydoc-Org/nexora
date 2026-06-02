@@ -94,6 +94,13 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **i18n — app-wide Python messages now translated.** `babel.cfg` extracted
+  Python strings only from root-level `*.py` (`[python: *.py]`), so every
+  `_()`/`gettext()` route/flash message under `nx_lib/**` fell back to English
+  for de/fr/it. Extraction is now recursive over `nx_lib/**.py`; the ~150
+  newly-surfaced messages (auth, admin, dashboard, workitems, invoices,
+  notifications, profile, reporting, …) are translated to de/fr/it. The
+  `test_translations.py` gate enforces full coverage going forward.
 - **Reporting — `status` synthetic field removed from catalog:** `fetch_docprocessing_catalog` was injecting `status` as always-available alongside `processname`, but `SearchConfig` has no `col_status` column and the query builder cannot synthesize it. Selecting or filtering on `status` produced all-NULL columns or a `QueryBuildError`. Now only `processname` (fully supported by the builder) is injected; `status` will be offered once a real column backs it.
 - **Reporting — empty-cols guard in `_load_field_col_maps`:** added early-return when `SearchConfig` exposes no `col_*` columns, preventing malformed SQL being emitted.
 - **Reporting — flatpickr wired for date filter inputs:** `templates/reporting.html` loaded the flatpickr CSS/JS but `_reporting_js.html` never used it. Date/datetime-typed filter fields now initialize a flatpickr calendar picker; the field dropdown re-renders the row (resetting the value input) when changed so the picker activates immediately.
