@@ -95,6 +95,8 @@ def _load_field_col_maps(target_processes):
         cur = conn.cursor()
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cur.description if c[0].startswith("col_")]
+        if not cols:
+            return maps
         select_cols = ", ".join(cols)
         ph = ",".join(["?"] * len(target_processes))
         cur.execute(

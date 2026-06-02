@@ -54,8 +54,11 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
 
     Returns build_catalog(...) output. Mirrors the dashboard field_metadata
     query: FieldMetadata (+ Search_Field_Labels) joined to per-process
-    SearchConfig.col_* availability. `processname`/`status` are always available
-    for any allowed process.
+    SearchConfig.col_* availability. `processname` is always available for any
+    allowed process (synthesized by the query builder as a constant per
+    subquery). `status` is NOT injected here — SearchConfig has no col_status
+    column, so the query builder cannot resolve it; it will be offered once a
+    real column backs it.
     """
     conn = None
     try:
@@ -83,8 +86,7 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
             for i, col in enumerate(cols):
                 if row[i + 1]:
                     availability.setdefault(col[len("col_") :], []).append(row.ProcessName)
-        for fk in ("processname", "status"):
-            availability[fk] = list(allowed_processes)
+        availability["processname"] = list(allowed_processes)
 
         return build_catalog(meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str))
     finally:

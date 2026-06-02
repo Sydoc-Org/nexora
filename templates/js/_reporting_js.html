@@ -212,7 +212,8 @@
         fld.appendChild(opt);
       });
       fld.value = f.field;
-      fld.onchange = function (e) { f.field = e.target.value; };
+      // Re-render when field changes so flatpickr initializes for date fields.
+      fld.onchange = function (e) { f.field = e.target.value; f.value = ''; renderFilters(); };
 
       var op = document.createElement('select');
       ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
@@ -228,6 +229,19 @@
       var val = document.createElement('input');
       val.value = f.value != null ? f.value : '';
       val.oninput = function (e) { f.value = e.target.value; };
+
+      // Initialize flatpickr for date/datetime fields if the library is present.
+      var fieldMeta = state.fields.find(function (x) { return x.field === f.field; });
+      if (fieldMeta && /date/i.test(fieldMeta.type) && typeof flatpickr === 'function') {
+        var fpOpts = { allowInput: true, onChange: function (d, s) { f.value = s; } };
+        if (/time|datetime/i.test(fieldMeta.type)) {
+          fpOpts.enableTime = true;
+          fpOpts.dateFormat = 'Y-m-d H:i';
+        } else {
+          fpOpts.dateFormat = 'Y-m-d';
+        }
+        flatpickr(val, fpOpts);
+      }
 
       var rm = document.createElement('button');
       rm.textContent = '×';
