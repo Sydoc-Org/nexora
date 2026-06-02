@@ -76,7 +76,10 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('chat.view', 'View chat'),
-    ('jd.view', 'View JD Vance page');
+    ('jd.view', 'View JD Vance page'),
+    ('reporting.view', 'Access the Reporting page'),
+    ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
+    ('reporting.export', 'Reporting: export reports to Excel');
 GO
 
 -- Access profiles

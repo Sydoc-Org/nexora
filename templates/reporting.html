@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Reporting - nexora") }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+  {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <main class="reporting-main" data-testid="reporting-page">
+    <aside class="reporting-fields" data-testid="reporting-field-panel">
+      <label class="reporting-label">{{ _("Source") }}</label>
+      <select id="rpSource" data-testid="reporting-source-select"></select>
+      <input id="rpFieldSearch" class="reporting-input" placeholder="{{ _('Search fields…') }}" data-testid="reporting-field-search">
+      <ul id="rpFieldList" class="reporting-field-list"></ul>
+    </aside>
+
+    <section class="reporting-results">
+      <div class="reporting-toolbar">
+        <div class="reporting-mode-toggle">
+          <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
+          <button id="rpModeSql" disabled title="{{ _('Coming soon') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
+        </div>
+        <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
+        <span style="flex:1"></span>
+        <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
+        <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
+        <button id="rpExport" class="reporting-btn" data-testid="reporting-export">{{ _("Export") }}</button>
+      </div>
+      <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results"></div>
+    </section>
+
+    <aside class="reporting-wells" data-testid="reporting-wells">
+      <div class="reporting-well"><h4>{{ _("Columns") }}</h4><ul id="rpWellColumns"></ul></div>
+      <div class="reporting-well"><h4>{{ _("Filters") }}</h4><div id="rpWellFilters"></div>
+        <button id="rpAddFilter" class="reporting-link">+ {{ _("Add filter") }}</button></div>
+      <div class="reporting-well"><h4>{{ _("Sort") }}</h4><div id="rpWellSort"></div></div>
+      <div class="reporting-well"><h4>{{ _("Format") }}</h4>
+        <input id="rpSubtitle" class="reporting-input" placeholder="{{ _('Subtitle') }}"></div>
+    </aside>
+  </main>
+
+  {% include 'js/_reporting_js.html' %}
+</body>
+
+</html>

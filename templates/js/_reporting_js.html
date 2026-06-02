@@ -1,0 +1,209 @@
+<script>
+(function () {
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const state = { source: null, fields: [], columns: [], filters: [], sort: [], processes: [] };
+
+  async function api(url, opts) {
+    opts = opts || {};
+    const res = await fetch(url, Object.assign(
+      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } },
+      opts
+    ));
+    if (!res.ok) {
+      const body = await res.json().catch(function () { return {}; });
+      throw new Error(body.error || res.statusText);
+    }
+    return res;
+  }
+
+  function buildDefinition() {
+    return {
+      schemaVersion: 1,
+      source: state.source,
+      visualization: 'table',
+      title: document.getElementById('rpTitle').value || 'Untitled report',
+      subtitle: document.getElementById('rpSubtitle').value || null,
+      columns: state.columns.map(function (c) {
+        return { field: c.field, header: c.header || c.label, agg: null };
+      }),
+      groupBy: [],
+      filters: state.filters,
+      sort: state.sort,
+      scope: { clients: [], processes: state.processes },
+      rowLimit: 5000,
+      sql: null,
+      sqlTarget: null,
+    };
+  }
+
+  function renderFields() {
+    var q = document.getElementById('rpFieldSearch').value.toLowerCase();
+    var ul = document.getElementById('rpFieldList');
+    ul.innerHTML = '';
+    state.fields.filter(function (f) {
+      return f.label.toLowerCase().indexOf(q) !== -1;
+    }).forEach(function (f) {
+      var li = document.createElement('li');
+      li.textContent = f.label;
+      li.onclick = function () {
+        if (!state.columns.find(function (c) { return c.field === f.field; })) {
+          state.columns.push(Object.assign({}, f, { header: f.label }));
+          renderWells();
+        }
+      };
+      ul.appendChild(li);
+    });
+  }
+
+  function renderWells() {
+    var cols = document.getElementById('rpWellColumns');
+    cols.innerHTML = '';
+    state.columns.forEach(function (c, i) {
+      var li = document.createElement('li');
+      var inp = document.createElement('input');
+      inp.value = c.header;
+      inp.oninput = function (e) { c.header = e.target.value; };
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.columns.splice(i, 1); renderWells(); };
+      li.appendChild(inp);
+      li.appendChild(rm);
+      cols.appendChild(li);
+    });
+  }
+
+  function renderResults(data) {
+    var wrap = document.getElementById('rpResults');
+    if (!data.rows.length) {
+      wrap.innerHTML = '<p class="reporting-empty">{{ _("No rows.") }}</p>';
+      return;
+    }
+    var head = '<tr>' + data.columns.map(function (c) {
+      return '<th>' + c.header + '</th>';
+    }).join('') + '</tr>';
+    var body = data.rows.map(function (r) {
+      return '<tr>' + r.map(function (v) {
+        return '<td>' + (v == null ? '' : v) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    wrap.innerHTML = '<table class="reporting-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function loadSources() {
+    api('/api/reporting/sources').then(function (res) {
+      return res.json();
+    }).then(function (sources) {
+      var sel = document.getElementById('rpSource');
+      sel.innerHTML = sources.map(function (s) {
+        return '<option value="' + s.id + '">' + s.label + '</option>';
+      }).join('');
+      function pick() {
+        var s = sources.find(function (x) { return x.id === sel.value; });
+        if (!s) return;
+        state.source = s.id;
+        state.fields = s.fields || [];
+        state.processes = s.processes || [];
+        state.columns = [];
+        renderFields();
+        renderWells();
+      }
+      sel.onchange = pick;
+      if (sources.length) pick();
+    }).catch(function (e) {
+      console.error('{{ _("Could not load sources") }}:', e.message);
+    });
+  }
+
+  function run() {
+    api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { renderResults(data); })
+      .catch(function (e) {
+        document.getElementById('rpResults').innerHTML =
+          '<p class="reporting-error">' + e.message + '</p>';
+      });
+  }
+
+  function save() {
+    var name = window.prompt('{{ _("Report name") }}',
+      document.getElementById('rpTitle').value || 'Report');
+    if (!name) return;
+    api('/api/reporting/reports', {
+      method: 'POST',
+      body: JSON.stringify({ name: name, definition: buildDefinition() }),
+    }).then(function () {
+      window.alert('{{ _("Saved") }}');
+    }).catch(function (e) {
+      window.alert('{{ _("Save failed") }}: ' + e.message);
+    });
+  }
+
+  function exportXlsx() {
+    api('/api/reporting/export', { method: 'POST', body: JSON.stringify(buildDefinition()) })
+      .then(function (res) { return res.blob(); })
+      .then(function (blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (document.getElementById('rpTitle').value || 'report') + '.xlsx';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }).catch(function (e) {
+        window.alert('{{ _("Export failed") }}: ' + e.message);
+      });
+  }
+
+  function addFilter() {
+    if (!state.fields.length) return;
+    state.filters.push({ field: state.fields[0].field, op: 'eq', value: '' });
+    renderFilters();
+  }
+
+  function renderFilters() {
+    var box = document.getElementById('rpWellFilters');
+    box.innerHTML = '';
+    state.filters.forEach(function (f, i) {
+      var row = document.createElement('div');
+      row.className = 'reporting-filter-row';
+
+      var fld = document.createElement('select');
+      fld.innerHTML = state.fields.filter(function (x) {
+        return x.filterable;
+      }).map(function (x) {
+        return '<option value="' + x.field + '">' + x.label + '</option>';
+      }).join('');
+      fld.value = f.field;
+      fld.onchange = function (e) { f.field = e.target.value; };
+
+      var op = document.createElement('select');
+      op.innerHTML = ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
+        'is_null', 'is_not_null'].map(function (o) {
+        return '<option value="' + o + '">' + o + '</option>';
+      }).join('');
+      op.value = f.op;
+      op.onchange = function (e) { f.op = e.target.value; };
+
+      var val = document.createElement('input');
+      val.value = f.value != null ? f.value : '';
+      val.oninput = function (e) { f.value = e.target.value; };
+
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.filters.splice(i, 1); renderFilters(); };
+
+      row.appendChild(fld);
+      row.appendChild(op);
+      row.appendChild(val);
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('rpFieldSearch').addEventListener('input', renderFields);
+  document.getElementById('rpRun').addEventListener('click', run);
+  document.getElementById('rpSave').addEventListener('click', save);
+  document.getElementById('rpExport').addEventListener('click', exportXlsx);
+  document.getElementById('rpAddFilter').addEventListener('click', addFilter);
+
+  loadSources();
+}());
+</script>
