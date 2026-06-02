@@ -79,7 +79,7 @@
                     <td><span class="log-status log-status--${statusTone}"><i class="fas ${statusIcon}" style="font-size:10px;margin-right:4px"></i>${escapeHtml(statusLabel)}</span></td>
                     <td><span class="admin-mono" style="font-size:11px">${escapeHtml(log.RequestIpAddress || '')}</span></td>
                     <td class="align-right">
-                        <button onclick="openLogModal(${index})" class="admin-btn admin-btn-ghost" style="color:var(--a-indigo)" type="button">
+                        <button onclick="openLogModal(${index})" class="admin-btn admin-btn-ghost" style="color:var(--a-indigo)" type="button" data-testid="admin-logs-view-${index}">
                             {{ _("View") }} <i class="fas fa-expand-alt" style="font-size:10px;margin-left:4px"></i>
                         </button>
                     </td>

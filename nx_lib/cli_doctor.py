@@ -31,15 +31,16 @@ from pathlib import Path
 from .config import PATHS
 
 APP_DIR = Path(__file__).resolve().parent.parent
+ENV_DIR = APP_DIR / "env"
 LOG_DIR = PATHS.logs
 SESSION_DIR = PATHS.session
 TRANSLATIONS_DIR = APP_DIR / "translations"
 REQUIREMENTS_FILE = APP_DIR / "requirements.txt"
-GIT_HOOKS_SRC = APP_DIR / "scripts" / "git-hooks"
-GIT_HOOKS_DST = APP_DIR / ".git" / "hooks"
+GIT_HOOKS_DIR = APP_DIR / ".git" / "hooks"
+PRE_COMMIT_CONFIG = APP_DIR / ".pre-commit-config.yaml"
 MIGRATE_SCRIPT = APP_DIR / "scripts" / "db-migrate.py"
 SYNC_SCRIPT = APP_DIR / "sql" / "sync-from-db.py"
-INSTALL_HOOKS_SCRIPT = APP_DIR / "scripts" / "install-git-hooks.ps1"
+BOOTSTRAP_SCRIPT = APP_DIR / "bootstrap.ps1"
 
 # ANSI colours (mirror nx_lib/cli.py)
 C_DIM = "\x1b[90m"
@@ -70,8 +71,17 @@ def _bootstrap_env() -> None:
         from dotenv import load_dotenv
     except ImportError:
         return
+    # Repo-root .env is the environment-selector (sets ENVIRONMENT=…); the
+    # real secrets file lives in env/<ENV>.env (PR 8 layout) with a
+    # legacy root-level fallback for one release.
     load_dotenv(APP_DIR / ".env")
-    load_dotenv(APP_DIR / f"{os.environ['ENVIRONMENT']}.env")
+    env_name = os.environ["ENVIRONMENT"]
+    primary = ENV_DIR / f"{env_name}.env"
+    legacy = APP_DIR / f"{env_name}.env"
+    if primary.exists():
+        load_dotenv(primary)
+    elif legacy.exists():
+        load_dotenv(legacy)
 
 
 # ── individual checks ──────────────────────────────────────────────────────
@@ -87,7 +97,10 @@ def _parse_requirements() -> list[tuple[str, str | None]]:
     if not REQUIREMENTS_FILE.exists():
         return pkgs
     for raw in REQUIREMENTS_FILE.read_text(encoding="utf-8").splitlines():
-        line = raw.split("#", 1)[0].strip()
+        # Strip end-of-line comment, then PEP 508 environment marker
+        # ("colorama==0.4.6 ; sys_platform == 'win32'") so the second
+        # `==` inside the marker isn't mistaken for a version pin.
+        line = raw.split("#", 1)[0].split(";", 1)[0].strip()
         if not line:
             continue
         if "==" in line:
@@ -159,31 +172,51 @@ def _check_packages() -> list[CheckResult]:
 def _check_env() -> list[CheckResult]:
     results: list[CheckResult] = []
     env_name = os.environ.get("ENVIRONMENT", "INT")
-    env_file = APP_DIR / f"{env_name}.env"
+    env_file_primary = ENV_DIR / f"{env_name}.env"
+    env_file_legacy = APP_DIR / f"{env_name}.env"
     base_env = APP_DIR / ".env"
 
     if base_env.exists():
         results.append(CheckResult(".env", "ok", "present"))
     else:
-        results.append(CheckResult(".env", "warn", "absent (only INT.env / PROD.env needed)"))
+        results.append(CheckResult(".env", "warn", "absent (only env/<ENV>.env strictly needed)"))
 
-    if env_file.exists():
-        keys = [
-            line.split("=", 1)[0].strip()
-            for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines()
-            if "=" in line and not line.lstrip().startswith("#")
-        ]
-        results.append(CheckResult(f"{env_name}.env", "ok", f"{len(keys)} keys"))
+    if env_file_primary.exists():
+        env_file: Path | None = env_file_primary
+        env_label = f"env/{env_name}.env"
+        env_status = "ok"
+        env_suffix = ""
+    elif env_file_legacy.exists():
+        env_file = env_file_legacy
+        env_label = f"{env_name}.env"
+        env_status = "warn"
+        env_suffix = " (legacy root location; move into env/)"
     else:
+        env_file = None
+        env_label = f"env/{env_name}.env"
+        env_status = "fail"
+        env_suffix = ""
+
+    if env_file is None:
         results.append(
             CheckResult(
-                f"{env_name}.env",
+                env_label,
                 "fail",
                 "missing",
-                hint=f"Create {env_name}.env at repo root (see docs/howto/iis.md for keys).",
+                hint=(
+                    f"Copy env/{env_name}.env.example to env/{env_name}.env "
+                    "and fill in real secrets."
+                ),
             )
         )
         return results  # everything below depends on env having loaded
+
+    keys = [
+        line.split("=", 1)[0].strip()
+        for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines()
+        if "=" in line and not line.lstrip().startswith("#")
+    ]
+    results.append(CheckResult(env_label, env_status, f"{len(keys)} keys{env_suffix}"))
 
     required = [
         "FLASK_SECRET_KEY",
@@ -457,9 +490,7 @@ def _check_tooling() -> list[CheckResult]:
 
 
 def _check_git_hooks() -> list[CheckResult]:
-    if not GIT_HOOKS_SRC.exists():
-        return [CheckResult("hooks source", "skip", "scripts/git-hooks/ not found")]
-    if not GIT_HOOKS_DST.exists():
+    if not GIT_HOOKS_DIR.exists():
         return [
             CheckResult(
                 "hooks dir",
@@ -467,54 +498,96 @@ def _check_git_hooks() -> list[CheckResult]:
                 ".git/hooks/ not found (not a git checkout?)",
             )
         ]
+    if not PRE_COMMIT_CONFIG.exists():
+        return [CheckResult("hooks", "skip", ".pre-commit-config.yaml not present")]
+
+    # Hook types the repo's .pre-commit-config.yaml depends on. pre-commit
+    # is mandatory; commit-msg drives gitlint; pre-push runs the test gate
+    # and the branch-name guard. Each is a separate `pre-commit install`
+    # invocation.
+    required = ("pre-commit", "commit-msg", "pre-push")
+    signature = b"File generated by pre-commit"
 
     def _install_all() -> CheckResult:
+        # Prefer direct `pre-commit install` calls (fast, focused). Only
+        # fall back to bootstrap.ps1 if the venv doesn't have pre-commit
+        # yet, since bootstrap does a full uv sync first.
+        pre_commit = APP_DIR / ".venv" / "Scripts" / "pre-commit.exe"
+        if pre_commit.exists():
+            steps = [
+                [str(pre_commit), "install", "--install-hooks"],
+                [str(pre_commit), "install", "--hook-type", "commit-msg"],
+                [str(pre_commit), "install", "--hook-type", "pre-push"],
+            ]
+            try:
+                for step in steps:
+                    subprocess.run(step, check=True, capture_output=True, text=True, timeout=120)
+                return CheckResult("git hooks", "ok", "installed via pre-commit")
+            except subprocess.CalledProcessError as exc:
+                tail = (exc.stderr or "").strip().splitlines()
+                return CheckResult(
+                    "git hooks",
+                    "fail",
+                    tail[-1][:140] if tail else "pre-commit install failed",
+                )
+            except subprocess.TimeoutExpired:
+                return CheckResult("git hooks", "fail", "pre-commit install timed out")
+
+        if not BOOTSTRAP_SCRIPT.exists():
+            return CheckResult(
+                "git hooks",
+                "fail",
+                "pre-commit not in .venv and bootstrap.ps1 missing — run `uv sync --extra dev`",
+            )
         cmd = [
             "powershell",
             "-NoProfile",
             "-ExecutionPolicy",
             "Bypass",
             "-File",
-            str(INSTALL_HOOKS_SCRIPT),
+            str(BOOTSTRAP_SCRIPT),
         ]
         try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=15)
-            return CheckResult("git hooks", "ok", "installed")
+            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
+            return CheckResult("git hooks", "ok", "bootstrap completed")
         except subprocess.CalledProcessError as exc:
             tail = (exc.stderr or "").strip().splitlines()
             return CheckResult(
                 "git hooks",
                 "fail",
-                tail[-1][:140] if tail else "install failed",
+                tail[-1][:140] if tail else "bootstrap failed",
             )
         except subprocess.TimeoutExpired:
-            return CheckResult("git hooks", "fail", "install timed out")
+            return CheckResult("git hooks", "fail", "bootstrap timed out")
+
+    install_hint = (
+        ".\\bootstrap.ps1" if BOOTSTRAP_SCRIPT.exists() else "pre-commit install --install-hooks"
+    )
 
     results: list[CheckResult] = []
-    for hook in sorted(p.name for p in GIT_HOOKS_SRC.iterdir() if p.is_file()):
-        src = GIT_HOOKS_SRC / hook
-        dst = GIT_HOOKS_DST / hook
+    for hook in required:
+        dst = GIT_HOOKS_DIR / hook
         if not dst.exists():
             results.append(
                 CheckResult(
                     hook,
                     "warn",
                     "not installed",
-                    hint="powershell -File scripts/install-git-hooks.ps1",
+                    hint=install_hint,
                     fix=_install_all,
                 )
             )
             continue
         try:
-            if src.read_bytes() == dst.read_bytes():
-                results.append(CheckResult(hook, "ok", "matches repo source"))
+            if signature in dst.read_bytes():
+                results.append(CheckResult(hook, "ok", "pre-commit framework"))
             else:
                 results.append(
                     CheckResult(
                         hook,
                         "warn",
-                        "drift from repo source",
-                        hint="powershell -File scripts/install-git-hooks.ps1",
+                        "present but not from pre-commit (will be overwritten on install)",
+                        hint=install_hint,
                         fix=_install_all,
                     )
                 )

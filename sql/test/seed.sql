@@ -27,11 +27,56 @@ INSERT INTO dbo.Organizations (organizationcode, Organization) VALUES
     ('TEST', 'Test Organization');
 GO
 
--- Permission codes used by round-1 tests
+-- Permission codes. The full non-generali set is seeded so the E2E subprocess
+-- server (which cannot be monkeypatched like the in-process admin_all_perms
+-- fixture) lets admin@test.local reach and interact with every gated page and
+-- conditionally-rendered button. TestUser still receives only dashboard.view
+-- and TestNoPerm none, so the permission-guard tests keep asserting 403.
 INSERT INTO dbo.Permission (Code, Description) VALUES
     ('admin.view', 'View admin dashboard'),
     ('admin.users.manage', 'Manage user accounts'),
-    ('dashboard.view', 'View dashboard');
+    ('admin.view.users', 'View users'),
+    ('admin.interact.users.all', 'Interact with all users'),
+    ('admin.create.user', 'Create user'),
+    ('admin.edit.user', 'Edit user'),
+    ('admin.delete.user', 'Delete user'),
+    ('admin.edit.user.override', 'Edit user permission overrides'),
+    ('admin.view.organizations', 'View organizations'),
+    ('admin.add.organization', 'Add organization'),
+    ('admin.edit.organization', 'Edit organization'),
+    ('admin.delete.organization', 'Delete organization'),
+    ('admin.view.accessprofiles.useroverrides', 'View access profiles and user overrides'),
+    ('admin.edit.accessprofile', 'Edit access profile'),
+    ('admin.view.active.sessions', 'View active sessions'),
+    ('admin.view.system.logs', 'View system logs'),
+    ('admin.maintenance.view', 'View maintenance banners'),
+    ('admin.maintenance.edit', 'Edit maintenance banners'),
+    ('admin.maintenance.bypass', 'Bypass maintenance lockout'),
+    ('dashboard.view', 'View dashboard'),
+    ('workitems.view', 'View workitems'),
+    ('workitems.details.view', 'View workitem detail'),
+    ('workitems.details.view.fields', 'View workitem fields'),
+    ('workitems.details.view.images', 'View workitem images'),
+    ('workitems.details.view.audit', 'View workitem audit history'),
+    ('workitems.details.add.comment', 'Add workitem comment'),
+    ('workitems.details.add.tag', 'Add workitem tag'),
+    ('workitems.details.assign.users', 'Assign workitem users'),
+    ('workitems.details.set.priority', 'Set workitem priority'),
+    ('workitems.filter.workitemid', 'Filter workitems by id'),
+    ('workitems.filter.status', 'Filter workitems by status'),
+    ('workitems.filter.priority', 'Filter workitems by priority'),
+    ('workitems.filter.tag', 'Filter workitems by tag'),
+    ('workitems.filter.datetime', 'Filter workitems by datetime'),
+    ('workitems.filter.assignedUser', 'Filter workitems by assigned user'),
+    ('workitems.filter.documentfields', 'Filter workitems by document fields'),
+    ('workitems.import.workitem', 'Import workitems'),
+    ('invoices.view', 'View invoices'),
+    ('invoices.download', 'Download invoices'),
+    ('invoices.filter.date', 'Filter invoices by date'),
+    ('invoices.filter.status', 'Filter invoices by status'),
+    ('invoices.filter.invoiceid', 'Filter invoices by id'),
+    ('chat.view', 'View chat'),
+    ('jd.view', 'View JD Vance page');
 GO
 
 -- Access profiles
@@ -41,11 +86,13 @@ INSERT INTO dbo.AccessProfile (Name, Description) VALUES
     ('TestNoPerm', 'Test no-permission profile');
 GO
 
--- Wire permissions to access profiles
+-- Wire permissions to access profiles.
+-- TestAdmin gets EVERY permission (omnipotent test admin) so E2E flows can
+-- reach and exercise every page. TestUser keeps dashboard.view only.
 INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
 SELECT ap.AccessID, p.PermissionID, 'A'
 FROM dbo.AccessProfile ap, dbo.Permission p
-WHERE ap.Name = 'TestAdmin' AND p.Code IN ('admin.view', 'admin.users.manage', 'dashboard.view');
+WHERE ap.Name = 'TestAdmin';
 
 INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
 SELECT ap.AccessID, p.PermissionID, 'A'

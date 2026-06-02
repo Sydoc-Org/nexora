@@ -26,6 +26,7 @@
           const div = document.createElement('div');
           div.className = `p-3 rounded cursor-pointer flex items-center gap-3 ${isActive ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-100'}`;
           div.onclick = () => openChat(conv.id, conv.name, conv.avatar);
+          div.setAttribute('data-testid', `chat-conversation-${conv.id}`);
 
           div.innerHTML = `
                         <img src="${conv.avatar}" class="w-10 h-10 rounded-full object-cover">
@@ -74,17 +75,17 @@
       const isImg = /\.(jpg|jpeg|png|gif)$/i.test(name);
 
       if (isImg) {
-        return `<a href="${url}" target="_blank"><img src="${url}" class="max-w-xs rounded shadow-sm hover:opacity-90"></a>
+        return `<a href="${url}" target="_blank" data-testid="chat-attachment-image"><img src="${url}" class="max-w-xs rounded shadow-sm hover:opacity-90"></a>
                     <span class="text-xs block mt-1 opacity-70">${name}</span>`;
       }
-      return `<a href="${url}" target="_blank" class="flex items-center gap-2 underline">
+      return `<a href="${url}" target="_blank" class="flex items-center gap-2 underline" data-testid="chat-attachment-file">
                   <i class="fa-solid fa-file-arrow-down"></i> ${name}
                 </a>`;
     }
     const workitemRegex = /\/(\d+)/g;
     return text.replace(workitemRegex, (match, id) => {
       const url = `${API_PREFIX}workitems?search=${id}`;
-      return `<a href="${url}" class="text-blue-300 underline font-bold hover:text-blue-100"><i class="fa-solid fa-file-lines mr-1"></i>${match}</a>`;
+      return `<a href="${url}" class="text-blue-300 underline font-bold hover:text-blue-100" data-testid="chat-workitem-link-${id}"><i class="fa-solid fa-file-lines mr-1"></i>${match}</a>`;
     });
   }
 

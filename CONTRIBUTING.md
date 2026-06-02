@@ -18,7 +18,7 @@ Run the bootstrap script — idempotent, re-runnable, handles every step below:
 .\bootstrap.ps1 -Env STAGING   # if you target staging instead
 ```
 
-Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`.
+Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`. The `nx` CLI does a lot more than start the server (status, logs, route listing, browser auto-login, `--doctor` preflight, an interactive TUI) — see `docs/howto/nx.md` for the full reference.
 
 ### Manual fallback
 
@@ -83,12 +83,3 @@ The repo still ships `requirements.txt` and `requirements-dev.txt` (generated fr
 - Target `main`
 - Pre-push hook runs the test suite; CI re-runs it before deploy
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
-
-## AI tooling (personal setup, not shipped with the repo)
-
-Some of us use Claude Code (or other agentic AI tools) day-to-day. We're not hiding it — but the configuration is **personal**, not a project artifact:
-
-- `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, and similar files are gitignored on purpose. Each developer sets up their own.
-- Don't ask for someone else's `CLAUDE.md` and treat it as canonical — what works for one person's workflow probably isn't what works for yours. Build your own from whatever the AI tool's docs suggest, and tune it from there.
-
-**One rule about AI tooling that IS project-wide, not personal:** agents must never auto-commit on your behalf. The AI edits files; you run `git add` / `git commit` / `git push` yourself. This keeps human authorship clear, keeps secrets out of commits, and stops "oops the agent pushed something weird to main" entirely. If your AI config has a "commit when done" toggle, turn it off.

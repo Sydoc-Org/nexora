@@ -131,11 +131,10 @@ $fullData | ForEach-Object {
     $script:dataQualityIssues = [System.Collections.Generic.List[psobject]]::new()
 
     $fileEsc = $csvFileNameShort.Replace("'", "''")
-    $fileEsc -match "Report.+" | Out-Null
     $startQuery = @"
 INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
 OUTPUT INSERTED.ID AS NewID
-VALUES ('$($Matches[0])', GETDATE(), $csvRows, 0, 0, 'running');
+VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
 "@
     $startResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
     $importLogID = [int]$startResult.NewID
@@ -307,7 +306,7 @@ FROM @actions;
         $(Get-IntLiteral $row.DOC_INTERFACE_LINK 'DOC_INTERFACE_LINK' $row.DOC_ID),
         $(Get-IntLiteral $row.DOC_NK1 'DOC_NK1' $row.DOC_ID),
         $(Get-IntLiteral $row.DOC_NK2 'DOC_NK2' $row.DOC_ID),
-        '$csvFileNameShort'
+        '$fileEsc'
 )
 "@
             $valuesList.Add($values)

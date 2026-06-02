@@ -37,6 +37,9 @@ dev = [
     "pytest-playwright==0.5.2",
     "playwright==1.49.1",
     "pytest-rerunfailures==15.0",
+    "pytest-cov==6.0.0",
+    "coverage[toml]==7.6.10",
+    "defusedxml==0.7.1",
     "ruff==0.7.4",
     "mypy==1.13.0",
     "pre-commit==4.0.1",
@@ -96,6 +99,10 @@ addopts = [
     "--junitxml=var/test-results/junit.xml",
     "--html=var/test-results/report.html",
     "--self-contained-html",
+    "--cov=nx_lib",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html:var/test-results/coverage-html",
+    "--cov-report=xml:var/test-results/coverage.xml",
 ]
 markers = [
     "flaky_e2e: end-to-end browser tests that may be retried via pytest-rerunfailures",
@@ -106,4 +113,26 @@ filterwarnings = [
     # in-memory storage is fine for the test suite; production concern is
     # tracked via the TODO in nx_lib/extensions.py.
     "ignore::UserWarning:flask_limiter.*",
+]
+
+[tool.coverage.run]
+source = ["nx_lib"]
+branch = true
+omit = [
+    "nx_lib/__init__.py",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+# fail_under is intentionally 0 — per-module ratcheting via
+# tests/unit/test_coverage_thresholds.py is the real gate. A global floor
+# would block local test runs while phase-1/2/3 tests are still being added.
+fail_under = 0
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if sys.stdout.isatty",
 ]

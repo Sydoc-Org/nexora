@@ -40,7 +40,7 @@
     #maintenance-banner .mb-window { display: none; }
   }
 </style>
-<div id="maintenance-banner" role="alert" aria-live="polite"></div>
+<div id="maintenance-banner" role="alert" aria-live="polite" data-testid="maintenance-banner"></div>
 <script>
 (function() {
     if (window.__maintenanceBannerInit) return;
@@ -134,6 +134,7 @@
         btn.type = 'button';
         btn.className = 'mb-dismiss';
         btn.setAttribute('aria-label', 'Dismiss');
+        btn.setAttribute('data-testid', 'maintenance-banner-dismiss');
         const x = document.createElement('i');
         x.className = 'fas fa-xmark';
         btn.appendChild(x);

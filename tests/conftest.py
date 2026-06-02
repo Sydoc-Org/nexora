@@ -37,6 +37,29 @@ def app():
     yield flask_app
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset Flask-Limiter's in-memory storage before EVERY test.
+
+    Without this, sibling tests that POST to /login (10/min) or any other
+    rate-limited route cumulatively exhaust the quota — eventually every
+    user_client / admin_client login fixture starts seeing 429s. Tests that
+    intentionally exercise the rate limit (test_auth_routes.test_*_rate_limit)
+    still work because the reset runs *before* the test body.
+
+    E2E tests run against a subprocess so the in-process limiter isn't bound
+    to an app — the reset is a no-op there.
+    """
+    try:
+        from nx_lib.extensions import limiter
+
+        limiter.reset()
+    except (AssertionError, RuntimeError):
+        # Limiter not bound to an app context (e.g. e2e subprocess tests).
+        pass
+    yield
+
+
 @pytest.fixture()
 def client(app):
     """Flask test client. Fresh per test."""
@@ -109,3 +132,56 @@ def login(client, totp_for):
         return client
 
     return _login
+
+
+@pytest.fixture()
+def admin_client(login):
+    """Authenticated admin@test.local test client (has admin.view + dashboard.view + admin.users.manage)."""
+    return login(username="admin@test.local")
+
+
+@pytest.fixture()
+def user_client(login):
+    """Authenticated user@test.local test client (has dashboard.view only)."""
+    return login(username="user@test.local")
+
+
+@pytest.fixture()
+def noperm_client(login):
+    """Authenticated noperm@test.local test client (no permissions)."""
+    return login(username="noperm@test.local")
+
+
+@pytest.fixture()
+def auth_app_ctx(app):
+    """Push a Flask app context for tests that need current_app / url_for outside a request.
+
+    Use when calling functions like security.startpage_redirect_to which read current_app.
+    """
+    with app.app_context():
+        yield app
+
+
+@pytest.fixture()
+def fake_session(monkeypatch):
+    """Inject a fake session dict into nx_lib.security.session.
+
+    Returns the dict so the test can mutate it mid-test:
+
+        def test_x(fake_session):
+            fake_session["permissions"] = ["admin.view"]
+            assert has_permission("admin.view")
+    """
+    session_dict = {}
+    monkeypatch.setattr("nx_lib.security.session", session_dict)
+    return session_dict
+
+
+TEST_ORG_CODE = "TEST"  # seeded by sql/test/seed.sql
+
+
+@pytest.fixture()
+def seeded_org():
+    """The organizationcode used by every seed user. Use in tests that need
+    to filter scope-based queries."""
+    return TEST_ORG_CODE

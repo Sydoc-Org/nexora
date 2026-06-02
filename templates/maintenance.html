@@ -150,10 +150,10 @@
         {% endif %}
 
         <div class="actions">
-            <button type="button" class="btn btn-primary" onclick="window.location.reload()">
+            <button type="button" class="btn btn-primary" onclick="window.location.reload()" data-testid="maintenance-refresh">
                 <i class="fas fa-rotate-right"></i>{{ _("Refresh") }}
             </button>
-            <a class="btn btn-ghost" href="{{ url_for('login') }}">
+            <a class="btn btn-ghost" href="{{ url_for('login') }}" data-testid="maintenance-login">
                 <i class="fas fa-right-to-bracket"></i>{{ _("Login") }}
             </a>
         </div>

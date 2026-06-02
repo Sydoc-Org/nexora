@@ -158,6 +158,12 @@ var/*/*
 !var/*/.gitkeep
 .playwright-mcp/
 
+# Runtime app logs: nx.ps1 writes to logs/system/* (current_env, *.log, ...).
+# bin/logs/ is a stray dir created by an earlier broken nx.ps1 — covered defensively.
+# Anchored to repo root so we don't shadow var/logs/.gitkeep.
+/logs/
+/bin/logs/
+
 # Flask-served public chat uploads (user content; never committed)
 static/uploads/
 
@@ -251,3 +257,4 @@ ruvector.db
 /docs/superpowers/specs/2026-05-26-dev-env-upgrade-design.md
 /docs/superpowers/handoffs/2026-05-27-dev-structure-handoff.md
 /docs/superpowers/plans/2026-05-27-dev-env-upgrade.md
+mockups/

@@ -7,7 +7,7 @@
   <div class="admin-header">
     <div class="admin-header-left">
       {% if back_url %}
-        <a href="{{ back_url }}" class="admin-back" aria-label="{{ _('Back') }}">
+        <a href="{{ back_url }}" class="admin-back" aria-label="{{ _('Back') }}" data-testid="admin-helpers-back">
           <i class="fas fa-arrow-left"></i>
         </a>
       {% endif %}
@@ -19,7 +19,7 @@
     {% if actions %}
       <div class="admin-header-actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}">
+          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}" data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>
@@ -39,16 +39,16 @@
         {% if f.type == 'search' %}
           <div class="admin-input-icon">
             <i class="fas fa-search"></i>
-            <input type="text" id="{{ f.id }}" class="admin-input" placeholder="{{ f.placeholder|default('') }}">
+            <input type="text" id="{{ f.id }}" class="admin-input" placeholder="{{ f.placeholder|default('') }}" data-testid="admin-helpers-filter-{{ f.id }}">
           </div>
         {% elif f.type == 'select' %}
-          <select id="{{ f.id }}" class="admin-select">
+          <select id="{{ f.id }}" class="admin-select" data-testid="admin-helpers-filter-{{ f.id }}">
             {% for opt in f.options %}
               <option value="{{ opt.value }}">{{ opt.label }}</option>
             {% endfor %}
           </select>
         {% elif f.type == 'date' %}
-          <input type="date" id="{{ f.id }}" class="admin-input">
+          <input type="date" id="{{ f.id }}" class="admin-input" data-testid="admin-helpers-filter-{{ f.id }}">
         {% endif %}
       </div>
     {% endfor %}
@@ -60,12 +60,12 @@
   <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
     <div class="admin-input-icon" style="width:280px">
       <i class="fas fa-search"></i>
-      <input type="text" id="{{ search_id }}" class="admin-input" placeholder="{{ search_placeholder }}">
+      <input type="text" id="{{ search_id }}" class="admin-input" placeholder="{{ search_placeholder }}" data-testid="admin-helpers-toolbar-{{ search_id }}">
     </div>
     {% if actions %}
       <div class="admin-header-actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}">
+          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}" data-testid="admin-helpers-toolbar-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>

@@ -16,7 +16,7 @@
     <main class="container mx-auto p-6">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-4">
-                <a href="{{ url_for('admin_dashboard') }}" class="text-gray-500 hover:text-indigo-600">
+                <a href="{{ url_for('admin_dashboard') }}" class="text-gray-500 hover:text-indigo-600" data-testid="admin-user-mgmt-archive-back">
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <div>
@@ -24,7 +24,7 @@
                     <p class="text-gray-600">{{ _("Manage user accounts.") }}</p>
                 </div>
             </div>
-            <button onclick="openAddUserModal()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition shadow">
+            <button onclick="openAddUserModal()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition shadow" data-testid="admin-user-mgmt-archive-add-user">
                 <i class="fas fa-plus mr-2"></i>{{ _("Add new user") }}
             </button>
         </div>
@@ -44,15 +44,15 @@
                     </thead>
                     <tbody id="users-tbody">
                         {% for user in users %}
-                        <tr class="bg-white border-b hover:bg-gray-50">
+                        <tr class="bg-white border-b hover:bg-gray-50" data-testid="admin-user-mgmt-archive-row-{{ user.userID }}">
                             <td class="px-6 py-4 font-medium text-gray-900">{{ user.username }}</td>
                             <td class="px-6 py-4">{{ user.fullname }}</td>
                             <td class="px-6 py-4">{{ user.email }}</td>
                             <td class="px-6 py-4">{{ user.accessprofile }}</td>
                             <td class="px-6 py-4">{{ user.organization }}</td>
                             <td class="px-6 py-4 text-right">
-                                <button data-user='{{ user|tojson|safe }}' class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4">{{ _("Edit") }}</button>
-                                <button onclick="deleteUser('{{ user.userID }}')" class="font-medium text-red-600 hover:text-red-800">{{ _("Delete") }}</button>
+                                <button data-user='{{ user|tojson|safe }}' class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4" data-testid="admin-user-mgmt-archive-edit-{{ user.userID }}">{{ _("Edit") }}</button>
+                                <button onclick="deleteUser('{{ user.userID }}')" class="font-medium text-red-600 hover:text-red-800" data-testid="admin-user-mgmt-archive-delete-{{ user.userID }}">{{ _("Delete") }}</button>
                             </td>
                         </tr>
                         {% endfor %}

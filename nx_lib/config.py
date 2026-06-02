@@ -57,13 +57,14 @@ class PATHS:
     test_results = VAR_DIR / "test-results"
 
 
+# Only mkdir the dirs Flask actively writes to. screenshots/, backups/, and
+# test_results/ are dev/test conventions — created by bootstrap.ps1 for dev
+# clones and by pytest at first run; creating them at app import would leave
+# empty dev-only folders on prod's \\syapp01\nexora\var\.
 for _p in (
     PATHS.uploads,
     PATHS.session,
     PATHS.logs,
-    PATHS.screenshots,
-    PATHS.backups,
-    PATHS.test_results,
 ):
     _p.mkdir(parents=True, exist_ok=True)
 

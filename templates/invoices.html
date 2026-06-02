@@ -26,7 +26,7 @@
       <p class="text-gray-600">{{ _("Search and filter your past invoices for our services.") }}</p>
     </div>
 
-    <form id="filterForm" class="bg-white p-6 rounded-xl shadow-lg mb-6">
+    <form id="filterForm" class="bg-white p-6 rounded-xl shadow-lg mb-6" data-testid="invoices-filter-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -36,7 +36,7 @@
             <div class="relative mt-1">
         <select id="clientFilter" name="client_id"
           class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10">
+        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="invoices-client-filter">
           <option value="">{{ _("All Clients") }}</option>
           {% for client in clients %}
             <option value="{{ client.id }}" {% if request.args.get('client_id')|int == client.id %}selected{% endif %}>
@@ -57,7 +57,7 @@
             </label>
             <div class="relative mt-1">
               <input type="text" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" data-testid="invoices-date-from" />
             </div>
           </div>
 
@@ -67,7 +67,7 @@
             </label>
             <div class="relative mt-1">
               <input type="text" id="dateTo" name="dateTo" value="{{ dateTo or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" />
+                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" data-testid="invoices-date-to" />
             </div>
           </div>
 
@@ -76,7 +76,7 @@
             <div class="relative mt-1">
           <select id="statusFilter" name="status" {% if status_perm == False %} disabled {% endif %}
             class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10">
+        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="invoices-status-filter">
             <option value="">{{ _("All Statuses") }}</option>
             <option value="Paid" {% if status == 'Paid' %}selected{% endif %}>{{ _("Paid") }}</option>
             <option value="Open" {% if status == 'Open' %}selected{% endif %}>{{ _("Open") }}</option>
@@ -90,10 +90,10 @@
       </div>
        <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
           <a href="{{ url_for('invoices') }}"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center">{{
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center" data-testid="invoices-reset">{{
             _("Reset") }}</a>
           <button type="button" id="exportInvoicesCsvBtn"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="invoices-export-csv">
             <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
           </button>
         </div>

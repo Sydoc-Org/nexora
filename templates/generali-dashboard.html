@@ -54,11 +54,11 @@
       </div>
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <a href="{{ url_for('generali_documents') }}"
-           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-dashboard-documents-link">
           <i class="fas fa-table-list"></i><span class="hidden sm:inline">{{ _("Document List") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-dashboard-reporting-link">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
@@ -68,19 +68,19 @@
       <div class="w-full sm:w-auto">
         <label for="filterStartDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From") }}</label>
         <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-dashboard-start-date" />
       </div>
       <div class="w-full sm:w-auto">
         <label for="filterEndDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To") }}</label>
         <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-dashboard-end-date" />
       </div>
       <button id="applyDateFilter"
-              class="h-10 w-full sm:w-auto bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm">
+              class="h-10 w-full sm:w-auto bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-dashboard-apply-filter">
         <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
       </button>
       <button id="resetDateFilter"
-              class="h-10 w-full sm:w-auto bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200">
+              class="h-10 w-full sm:w-auto bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-dashboard-reset-filter">
         {{ _("Reset") }}
       </button>
       <div id="statsLoader" class="hidden col-span-2 sm:col-span-1 sm:ml-2 flex items-center">
@@ -118,22 +118,22 @@
             <i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Daily Processing Volume") }}
           </h3>
           <div class="flex items-center gap-2 flex-wrap" id="trendToggles">
-            <button type="button" data-series="total" class="trend-chip" aria-pressed="true">
+            <button type="button" data-series="total" class="trend-chip" aria-pressed="true" data-testid="generali-dashboard-trend-total">
               <span class="trend-chip-dot" style="background:#4f46e5"></span>{{ _("Total") }}
             </button>
-            <button type="button" data-series="expected" class="trend-chip" aria-pressed="false">
+            <button type="button" data-series="expected" class="trend-chip" aria-pressed="false" data-testid="generali-dashboard-trend-expected">
               <span class="trend-chip-dot" style="background:#ef4444"></span>{{ _("Expected") }} (10000)
             </button>
             <div class="relative" id="kommWrap">
-              <button type="button" id="kommBtn" class="trend-chip" aria-pressed="false" aria-haspopup="true" aria-expanded="false">
+              <button type="button" id="kommBtn" class="trend-chip" aria-pressed="false" aria-haspopup="true" aria-expanded="false" data-testid="generali-dashboard-komm-toggle">
                 {{ _("Kommunikation") }}
                 <span id="kommCount" class="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-700 text-[10px] font-semibold">0</span>
                 <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
               </button>
               <div id="kommMenu" class="hidden absolute right-0 mt-1 z-20 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg p-2">
                 <div class="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
-                  <button type="button" id="kommAll" class="text-[11px] font-semibold text-indigo-600 hover:underline">{{ _("Select all") }}</button>
-                  <button type="button" id="kommNone" class="text-[11px] font-semibold text-gray-500 hover:underline">{{ _("Clear") }}</button>
+                  <button type="button" id="kommAll" class="text-[11px] font-semibold text-indigo-600 hover:underline" data-testid="generali-dashboard-komm-all">{{ _("Select all") }}</button>
+                  <button type="button" id="kommNone" class="text-[11px] font-semibold text-gray-500 hover:underline" data-testid="generali-dashboard-komm-none">{{ _("Clear") }}</button>
                 </div>
                 <div id="kommItems" class="space-y-0.5 text-sm"></div>
               </div>

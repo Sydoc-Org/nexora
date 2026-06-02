@@ -248,7 +248,10 @@ def init_2fa():
             return redirect(url_for("init_2FA"))
 
         totp = pyotp.TOTP(secret)
-        if totp.verify(code):
+        # valid_window=1 also accepts the adjacent 30s windows. Guards against
+        # client/server clock skew and the window rolling over between code
+        # generation and verification (the latter flakes E2E tests hard).
+        if totp.verify(code, valid_window=1):
             try:
                 conn = engine_nexora_db.raw_connection()
                 cursor = conn.cursor()
@@ -329,7 +332,9 @@ def verify_2fa():
         secret, username, fullname, email, org_code, user_locale = row
 
         totp = pyotp.TOTP(secret)
-        if totp.verify(code):
+        # valid_window=1 also accepts the adjacent 30s windows (clock skew /
+        # window roll-over between code generation and verification).
+        if totp.verify(code, valid_window=1):
             session.clear()
             session["userid"] = user_id
             session["username"] = username

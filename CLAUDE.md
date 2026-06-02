@@ -82,13 +82,21 @@ The deploy workflow at `.github/workflows/deploy.yml` mirrors the repo to `D:\sy
 
 **Rule:** when committing a new top-level file or directory that is **not** needed by the running app, also add it to the robocopy exclude list in `deploy.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod on the next deploy.
 
+## Keeping docs in sync
+
+Documentation is part of the change, not a follow-up. Whenever you add, rename, or remove a CLI flag, route, env var, directory, stored proc, or workflow:
+
+- **Changelog:** add an entry under `[Unreleased]` in `CHANGELOG.md` (Keep-a-Changelog categories — Added / Changed / Fixed / Removed). When a version ships, promote `[Unreleased]` to a dated `[x.y.z]` section.
+- **Touched docs:** update whatever the change affects — this file, `README.md`, `CONTRIBUTING.md`, and `docs/howto/*`. Keep the path / flag / symbol references in this file accurate (they drift fast).
+- **Stale docs:** if you notice an existing doc that has drifted (wrong path, renamed symbol, removed flag, superseded workflow), fix it in the same commit rather than leaving it. Prefer correcting or deleting a superseded doc over adding a parallel one.
+
 ## Architectural conventions
 
-- **Auth & sessions:** Flask-Session with filesystem backend in `./session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.
-- **Permissions:** Permissions are string codes (e.g. `admin.view`, `generali.pdqm.view`) loaded via the `dbo.spGetUserPermissions` stored procedure into `session['permissions']`. A `@app.before_request` hook (`reload_user_permissions`) refreshes them on every non-static request. Guard routes with `@require_permission('some.code')`; check in templates/code with `has_permission(code)`. `pageVisability()` is the canonical map of page-level perms; `startpage_redirect_to` picks the landing route based on which perms the user has.
+- **Auth & sessions:** Flask-Session with filesystem backend in `var/session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.
+- **Permissions:** Permissions are string codes (e.g. `admin.view`, `generali.pdqm.view`) loaded via the `dbo.spGetUserPermissions` stored procedure into `session['permissions']`. A `@app.before_request` hook (`reload_user_permissions`) refreshes them on every non-static request. Guard routes with `@require_permission('some.code')`; check in templates/code with `has_permission(code)`. `page_visibility()` is the canonical map of page-level perms; `startpage_redirect_to` picks the landing route based on which perms the user has.
 - **Locale:** i18n via Flask-Babel. Supported locales are `en`, `de`, `fr`, `it`. `get_locale()` prefers `session['locale']`, then the user's DB-stored `locale`, then `Accept-Language`. When the user logs in, `load_user_locale` hydrates the session locale from the `Users` table once.
-- **Logging:** Every non-static request is written as a CSV row to `logs/YYYYMMDDHH/nexora_logs.csv` via an `@app.after_request` hook. The `ops/cleanup/csvLogs_toDB.ps1` script ingests these into the stats DB. `ops/cleanup/cleanup_expired_sessionFiles.ps1` prunes the `session/` directory.
-- **Routing:** Routes live in `nx_lib/views/` (`auth`, `admin`, `dashboard`, `workitems`, `chat`, `invoices`, `notifications`, `core`, `generali`, `profile`). Templates are flat under `templates/` with a few subfolders: `admin/` (admin pages + `modals/`), `handlers/` (403/404/500), `js/` (per-page JS as Jinja partials, included by the matching page template), `jd/`, `nexoraLogo/`. Page template `foo.html` typically pairs with `templates/js/_fooJS.html`.
+- **Logging:** Every non-static request is written as a CSV row to `var/logs/user/YYYYMMDDHH/nexora_logs.csv` via an `@app.after_request` hook. The `ops/cleanup/csvLogs_toDB.ps1` script ingests these into the stats DB. `ops/cleanup/cleanup_expired_sessionFiles.ps1` prunes the `var/session/` directory. The Flask app logger also writes to `var/logs/system/app.log`.
+- **Routing:** Routes live in `nx_lib/views/` (`auth`, `admin`, `dashboard`, `workitems`, `chat`, `invoices`, `notifications`, `core`, `generali`, `profile`). Templates are flat under `templates/` with a few subfolders: `admin/` (admin pages + `modals/`), `handlers/` (403/404/500), `js/` (per-page JS as Jinja partials, included by the matching page template), `jd/`, `nexora_logo/`. Page template `foo.html` typically pairs with `templates/js/_foo_js.html`.
 - **Error pages:** Custom 403/404/500 handlers render `templates/handlers/*.html`. Raise `PermissionDenied` (a subclass of `HTTPException`) to trigger the 403 page from inside a route.
 - **Rate limiting:** `flask_limiter` is configured globally (`limiter = Limiter(...)`); apply `@limiter.limit(...)` per route when needed.
 - **File uploads:** Use `werkzeug.utils.secure_filename` plus `python-magic-bin` (`magic`) for MIME sniffing — existing upload handlers follow that pattern; don't trust the client-reported content type.
@@ -96,10 +104,12 @@ The deploy workflow at `.github/workflows/deploy.yml` mirrors the repo to `D:\sy
 
 ## Testing & browser automation
 
-The `nx` CLI tool starts the nexora dev server:
+The `nx` CLI tool starts and inspects the nexora dev server. Full reference: `docs/howto/nx.md`.
 
 - `nx -u` — start nexora (INT environment)
 - `nx -u -b --loginas:<username>` — start nexora and auto-login as the given user for Playwright browser tests
+- `nx --doctor` — preflight health check (env, DBs, migrations, services)
+- `nx` (no args) — interactive TUI (REPL with tab-completion and live status)
 
 Playwright screenshot artifacts go in `screenshots/` (never the repo root).
 
@@ -143,9 +153,9 @@ pybabel compile -d translations
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 3142 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **nexora** (3437 symbols, 4819 relationships, 106 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> First-time setup after cloning: run `npx gitnexus analyze` to build the local index. The `.gitnexus/` folder is gitignored — it's a derived cache, regenerated on demand. Re-run the same command if any tool later warns the index is stale.
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
 ## Always Do
 
@@ -166,10 +176,10 @@ This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 314
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/Kundenportal-Sydoc/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Kundenportal-Sydoc/clusters` | All functional areas |
-| `gitnexus://repo/Kundenportal-Sydoc/processes` | All execution flows |
-| `gitnexus://repo/Kundenportal-Sydoc/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/nexora/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/nexora/clusters` | All functional areas |
+| `gitnexus://repo/nexora/processes` | All execution flows |
+| `gitnexus://repo/nexora/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 

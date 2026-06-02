@@ -1,9 +1,13 @@
 ﻿# No param() block — $args used directly so PowerShell doesn't intercept -v/--verbose etc.
 
-$AppDir    = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# Script lives in <repo>/bin/, but the app expects $AppDir = <repo> (where nx_main.py lives).
+$AppDir    = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
 $AppPy     = Join-Path $AppDir "nx_main.py"
-$LogDir    = Join-Path $AppDir "logs\system"
+# Must match nx_lib/cli.py: PATHS.logs / "system" → var/logs/system. Both
+# sides share current_env / app_stderr.log etc., so the TUI can read the
+# env that `nx -u` just wrote.
+$LogDir    = Join-Path $AppDir "var\logs\system"
 $null      = New-Item -ItemType Directory -Force -Path $LogDir
 $StderrLog    = "$LogDir\app_stderr.log"
 $StdoutLog    = "$LogDir\app_stdout.log"
@@ -234,6 +238,7 @@ function Start-App {
     $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
     try {
         $env:ENVIRONMENT = $envValue
+        foreach ($f in $StdoutLog, $StderrLog) { if ((Test-Path $f) -and (Get-Item $f).Length -gt 10MB) { Move-Item -Force $f "$f.1" } }
         $p = Start-Process -FilePath $Python `
                  -ArgumentList "`"$AppPy`"" `
                  -WorkingDirectory $AppDir `
