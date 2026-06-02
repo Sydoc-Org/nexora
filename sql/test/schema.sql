@@ -19,6 +19,7 @@ GO
 -- it must go before Users or the reset fails on re-run (they are recreated near
 -- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
 -- a clean, fully idempotent reset.
+IF OBJECT_ID('dbo.ReportSchedules', 'U') IS NOT NULL DROP TABLE dbo.ReportSchedules;
 IF OBJECT_ID('dbo.ReportingSources', 'U') IS NOT NULL DROP TABLE dbo.ReportingSources;
 IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
 IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
@@ -201,6 +202,36 @@ BEGIN
         CONSTRAINT CK_Reports_Visibility CHECK (Visibility IN ('private', 'shared'))
     );
     CREATE INDEX IX_Reports_Owner ON dbo.Reports(OwnerUserID);
+END;
+GO
+
+-- Scheduled report delivery (mirrors 0012_report_schedules.sql).
+IF OBJECT_ID(N'dbo.ReportSchedules', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportSchedules (
+        ScheduleID   INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportSchedules PRIMARY KEY,
+        ReportID     INT NOT NULL,
+        OwnerUserID  INT NOT NULL,
+        Recipients   NVARCHAR(1000) NOT NULL,
+        Format       NVARCHAR(8) NOT NULL CONSTRAINT DF_ReportSchedules_Format DEFAULT 'xlsx',
+        Frequency    NVARCHAR(10) NOT NULL,
+        Hour         TINYINT NOT NULL CONSTRAINT DF_ReportSchedules_Hour DEFAULT 6,
+        Minute       TINYINT NOT NULL CONSTRAINT DF_ReportSchedules_Minute DEFAULT 0,
+        Weekday      TINYINT NULL,
+        DayOfMonth   TINYINT NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportSchedules_Enabled DEFAULT 1,
+        LastRunAt    DATETIME2 NULL,
+        NextRunAt    DATETIME2 NULL,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_ReportSchedules_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportSchedules_Users FOREIGN KEY (OwnerUserID)
+            REFERENCES dbo.Users(userID),
+        CONSTRAINT CK_ReportSchedules_Format CHECK (Format IN ('xlsx', 'csv')),
+        CONSTRAINT CK_ReportSchedules_Frequency CHECK (Frequency IN ('daily', 'weekly', 'monthly'))
+    );
+    CREATE INDEX IX_ReportSchedules_Due ON dbo.ReportSchedules(Enabled, NextRunAt);
 END;
 GO
 

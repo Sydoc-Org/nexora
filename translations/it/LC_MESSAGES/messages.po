@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-03 00:44+0200\n"
+"POT-Creation-Date: 2026-06-03 01:11+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -240,7 +240,7 @@ msgstr "Nessun altro utente disponibile."
 #: templates/generali_projectmanagement.html:262
 #: templates/generali_projectmanagement.html:287
 #: templates/generali_reporting.html:224 templates/generali_reporting.html:310
-#: templates/generali_reporting.html:335 templates/reporting.html:93
+#: templates/generali_reporting.html:335 templates/reporting.html:97
 #: templates/workitems_overview.html:452 templates/workitems_overview.html:548
 msgid "Cancel"
 msgstr "Annulla"
@@ -698,7 +698,7 @@ msgstr "Modifica presenze"
 #: templates/generali_baseservices.html:280 templates/generali_pdqm.html:359
 #: templates/generali_projectmanagement.html:266
 #: templates/generali_reporting.html:314
-#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:51
+#: templates/js/_generali_reporting_js.html:810 templates/reporting.html:55
 #: templates/reporting_sources.html:71
 msgid "Save"
 msgstr "Salva"
@@ -1705,74 +1705,82 @@ msgid "Share"
 msgstr "Condividi"
 
 #: templates/reporting.html:50
+msgid "Schedule the selected report you own"
+msgstr "Pianifica il report selezionato di tua proprietà"
+
+#: templates/reporting.html:50
+msgid "Schedule"
+msgstr "Pianifica"
+
+#: templates/reporting.html:54
 msgid "Run"
 msgstr "Esegui"
 
-#: templates/reporting.html:52
+#: templates/reporting.html:56
 msgid "Save as"
 msgstr "Salva come"
 
-#: templates/reporting.html:53
+#: templates/reporting.html:57
 msgid "Export format"
 msgstr "Formato di esportazione"
 
-#: templates/reporting.html:54
+#: templates/reporting.html:58 templates/reporting.html:142
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/reporting.html:57
+#: templates/reporting.html:61
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/reporting.html:61
+#: templates/reporting.html:65
 msgid "Target"
 msgstr "Destinazione"
 
-#: templates/reporting.html:68
+#: templates/reporting.html:72
 msgid "Grid"
 msgstr "Tabella"
 
-#: templates/reporting.html:69
+#: templates/reporting.html:73
 msgid "Chart"
 msgstr "Grafico"
 
-#: templates/reporting.html:70
+#: templates/reporting.html:74
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:78
+#: templates/js/_reporting_viz_js.html:539 templates/reporting.html:82
 msgid "Columns"
 msgstr "Colonne"
 
-#: templates/reporting.html:79
+#: templates/reporting.html:83
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/reporting.html:80 templates/workitems_overview.html:285
+#: templates/reporting.html:84 templates/workitems_overview.html:285
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
-#: templates/reporting.html:81
+#: templates/reporting.html:85
 msgid "Sort"
 msgstr "Ordinamento"
 
-#: templates/reporting.html:82
+#: templates/reporting.html:86
 msgid "Add sort"
 msgstr "Aggiungi ordinamento"
 
-#: templates/reporting.html:83
+#: templates/reporting.html:87 templates/reporting.html:141
 msgid "Format"
 msgstr "Formato"
 
-#: templates/reporting.html:84
+#: templates/reporting.html:88
 msgid "Subtitle"
 msgstr "Sottotitolo"
 
-#: templates/reporting.html:90
+#: templates/reporting.html:94
 msgid "Live SQL — read-only"
 msgstr "SQL live — sola lettura"
 
-#: templates/reporting.html:91
+#: templates/reporting.html:95
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -1782,41 +1790,110 @@ msgstr ""
 " Le query non possono modificare i dati e ogni esecuzione viene "
 "registrata. Controlla la query prima di eseguirla."
 
-#: templates/reporting.html:94
+#: templates/reporting.html:98
 msgid "I understand"
 msgstr "Ho capito"
 
-#: templates/reporting.html:101
+#: templates/reporting.html:105
 msgid "Share report"
 msgstr "Condividi report"
 
-#: templates/reporting.html:104
+#: templates/reporting.html:108
 msgid "Private — only me"
 msgstr "Privato — solo io"
 
-#: templates/reporting.html:106
+#: templates/reporting.html:110
 msgid "Shared with everyone who can use Reporting"
 msgstr "Condiviso con tutti coloro che possono usare Reporting"
 
-#: templates/reporting.html:108
+#: templates/reporting.html:112
 msgid "Shared with specific people"
 msgstr "Condiviso con persone specifiche"
 
-#: templates/reporting.html:111
+#: templates/reporting.html:115
 msgid "Email or username"
 msgstr "Email o nome utente"
 
-#: templates/reporting.html:112
+#: templates/reporting.html:116
 msgid "Can edit"
 msgstr "Può modificare"
 
-#: templates/reporting.html:113
+#: templates/reporting.html:117
 msgid "Add"
 msgstr "Aggiungi"
 
-#: templates/admin/logs.html:157 templates/reporting.html:116
+#: templates/admin/logs.html:157 templates/reporting.html:120
+#: templates/reporting.html:148
 msgid "Close"
 msgstr "Chiudi"
+
+#: templates/reporting.html:127
+msgid "Schedule report"
+msgstr "Pianifica report"
+
+#: templates/reporting.html:130
+msgid "Frequency"
+msgstr "Frequenza"
+
+#: templates/js/_reporting_js.html:712 templates/reporting.html:131
+msgid "Daily"
+msgstr "Giornaliero"
+
+#: templates/js/_reporting_js.html:712 templates/reporting.html:132
+msgid "Weekly"
+msgstr "Settimanale"
+
+#: templates/js/_reporting_js.html:712 templates/reporting.html:133
+msgid "Monthly"
+msgstr "Mensile"
+
+#: templates/reporting.html:134
+msgid "Time (UTC)"
+msgstr "Ora (UTC)"
+
+#: templates/reporting.html:135
+msgid "Weekday"
+msgstr "Giorno della settimana"
+
+#: templates/reporting.html:136
+msgid "Monday"
+msgstr "Lunedì"
+
+#: templates/reporting.html:136
+msgid "Tuesday"
+msgstr "Martedì"
+
+#: templates/reporting.html:137
+msgid "Wednesday"
+msgstr "Mercoledì"
+
+#: templates/reporting.html:137
+msgid "Thursday"
+msgstr "Giovedì"
+
+#: templates/reporting.html:138
+msgid "Friday"
+msgstr "Venerdì"
+
+#: templates/reporting.html:138
+msgid "Saturday"
+msgstr "Sabato"
+
+#: templates/reporting.html:139
+msgid "Sunday"
+msgstr "Domenica"
+
+#: templates/reporting.html:140
+msgid "Day of month"
+msgstr "Giorno del mese"
+
+#: templates/reporting.html:144
+msgid "Recipients (comma-separated)"
+msgstr "Destinatari (separati da virgola)"
+
+#: templates/reporting.html:147
+msgid "Add schedule"
+msgstr "Aggiungi pianificazione"
 
 #: templates/reporting_sources.html:7
 msgid "Reporting sources - nexora"
@@ -1836,7 +1913,12 @@ msgid ""
 "enable/disable, reorder, re-permission, or register new ones. Curated "
 "sources bind to a provider: 'docprocessing' (built-in) or 'table' "
 "(generic single-object, configured with a base object + columns)."
-msgstr "Le righe del registro integrano o sovrascrivono le sorgenti integrate — rinomina, abilita/disabilita, riordina, ri-autorizza o registrane di nuove. Le sorgenti curate sono associate a un provider: 'docprocessing' (integrato) o 'table' (oggetto singolo generico, configurato con oggetto base + colonne)."
+msgstr ""
+"Le righe del registro integrano o sovrascrivono le sorgenti integrate — "
+"rinomina, abilita/disabilita, riordina, ri-autorizza o registrane di "
+"nuove. Le sorgenti curate sono associate a un provider: 'docprocessing' "
+"(integrato) o 'table' (oggetto singolo generico, configurato con oggetto "
+"base + colonne)."
 
 #: templates/reporting_sources.html:25
 msgid "Built-in defaults"
@@ -3186,33 +3268,41 @@ msgstr "Condivisi con me"
 msgid "Could not load saved reports"
 msgstr "Impossibile caricare i report salvati"
 
-#: templates/js/_reporting_js.html:596
+#: templates/js/_reporting_js.html:598
 msgid "New name"
 msgstr "Nuovo nome"
 
-#: templates/js/_reporting_js.html:606
+#: templates/js/_reporting_js.html:608
 msgid "Rename failed"
 msgstr "Rinomina non riuscita"
 
-#: templates/js/_reporting_js.html:613
+#: templates/js/_reporting_js.html:615
 msgid "Delete this saved report?"
 msgstr "Eliminare questo report salvato?"
 
-#: templates/js/_reporting_js.html:621
+#: templates/js/_reporting_js.html:623
 msgid "Delete failed"
 msgstr "Eliminazione non riuscita"
 
-#: templates/js/_reporting_js.html:652
+#: templates/js/_reporting_js.html:654
 msgid "can edit"
 msgstr "può modificare"
 
-#: templates/js/_reporting_js.html:657
+#: templates/js/_reporting_js.html:659 templates/js/_reporting_js.html:758
 msgid "Remove"
 msgstr "Rimuovi"
 
-#: templates/js/_reporting_js.html:665
+#: templates/js/_reporting_js.html:667
 msgid "Not shared with anyone yet."
 msgstr "Non ancora condiviso con nessuno."
+
+#: templates/js/_reporting_js.html:742
+msgid "No schedules yet."
+msgstr "Nessuna pianificazione."
+
+#: templates/js/_reporting_js.html:750
+msgid "disabled"
+msgstr "disattivato"
 
 #: templates/js/_reporting_sources_js.html:49
 msgid "Delete this source?"

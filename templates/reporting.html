@@ -45,6 +45,10 @@
           <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
           <button id="rpShare" class="reporting-link" data-testid="reporting-share" disabled
                   title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
+          {% if has_permission('reporting.schedule') %}
+          <button id="rpSchedule" class="reporting-link" data-testid="reporting-schedule" disabled
+                  title="{{ _('Schedule the selected report you own') }}">{{ _("Schedule") }}</button>
+          {% endif %}
         </div>
         <span style="flex:1"></span>
         <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
@@ -114,6 +118,34 @@
       </div>
       <div class="reporting-modal-actions">
         <button id="rpShareClose" class="reporting-btn" data-testid="reporting-share-close">{{ _("Close") }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rpScheduleModal" class="reporting-modal" hidden data-testid="reporting-schedule-modal">
+    <div class="reporting-modal-box">
+      <h3>{{ _("Schedule report") }}</h3>
+      <ul id="rpScheduleList" class="reporting-share-list" data-testid="reporting-schedule-list"></ul>
+      <div class="reporting-admin-grid">
+        <label>{{ _("Frequency") }}<select id="rpSchedFreq" class="reporting-input">
+          <option value="daily">{{ _("Daily") }}</option>
+          <option value="weekly">{{ _("Weekly") }}</option>
+          <option value="monthly">{{ _("Monthly") }}</option></select></label>
+        <label>{{ _("Time (UTC)") }}<input id="rpSchedTime" class="reporting-input" type="time" value="06:00"></label>
+        <label id="rpSchedWeekdayWrap" hidden>{{ _("Weekday") }}<select id="rpSchedWeekday" class="reporting-input">
+          <option value="0">{{ _("Monday") }}</option><option value="1">{{ _("Tuesday") }}</option>
+          <option value="2">{{ _("Wednesday") }}</option><option value="3">{{ _("Thursday") }}</option>
+          <option value="4">{{ _("Friday") }}</option><option value="5">{{ _("Saturday") }}</option>
+          <option value="6">{{ _("Sunday") }}</option></select></label>
+        <label id="rpSchedDomWrap" hidden>{{ _("Day of month") }}<input id="rpSchedDom" class="reporting-input" type="number" min="1" max="28" value="1"></label>
+        <label>{{ _("Format") }}<select id="rpSchedFormat" class="reporting-input">
+          <option value="xlsx">{{ _("Excel") }}</option><option value="csv">CSV</option></select></label>
+      </div>
+      <label class="reporting-admin-cols">{{ _("Recipients (comma-separated)") }}
+        <input id="rpSchedRecipients" class="reporting-input" placeholder="a@example.com, b@example.com" data-testid="reporting-schedule-recipients"></label>
+      <div class="reporting-modal-actions">
+        <button id="rpSchedAdd" class="reporting-btn reporting-btn-primary" data-testid="reporting-schedule-add">{{ _("Add schedule") }}</button>
+        <button id="rpScheduleClose" class="reporting-btn" data-testid="reporting-schedule-close">{{ _("Close") }}</button>
       </div>
     </div>
   </div>

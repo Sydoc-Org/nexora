@@ -121,6 +121,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
+| `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -255,6 +256,35 @@ source needs bespoke query logic the `table` provider can't express.
    `dbo.SearchConfig` for each process that maps `col_<field>` to the actual
    data column name in that process's statistics table. Labels come from
    `dbo.Search_Field_Labels`.
+
+## Scheduled & emailed reports
+
+A saved report you own can be delivered on a schedule (permission
+`reporting.schedule`). The **Schedule** dialog manages per-report schedules:
+**frequency** (daily / weekly / monthly), **time** (UTC), **format** (xlsx/csv),
+and **recipients**. Schedules live in `dbo.ReportSchedules` (migration `0012`,
+FK to `Reports` `ON DELETE CASCADE`); endpoints are under
+`/api/reporting/reports/<id>/schedules` (owner-only).
+
+Delivery is **not** in-process. `ops/run_scheduled_reports.py` (which ships to
+the server because `ops/` is deployed) finds due rows
+(`Enabled = 1 AND NextRunAt <= now`), runs each report **as its owner** —
+`nx_lib/reporting/runner.py` loads the owner's permissions
+(`spGetUserPermissions`) and process scope, then reuses the same builders as the
+web path — renders the file, emails it via Microsoft Graph (`nx_lib/mail.py`,
+ROPC + `/me/sendMail`), and advances `NextRunAt` (`compute_next_run`).
+
+Wire it with Windows Task Scheduler (e.g. every 15 minutes):
+
+```
+set ENVIRONMENT=PROD
+D:\sydoc\tools\py\python.exe D:\sydoc\nexora\ops\run_scheduled_reports.py --once
+```
+
+`--dry-run` builds each due report and logs what *would* be sent without mailing
+or advancing `NextRunAt` — useful for a first smoke test. Graph mail uses the
+existing `GRAPH_*` credentials (the same ones the password-reset mail uses); if
+Graph is unconfigured the runner logs the failure per-schedule and continues.
 
 ## Live SQL sandbox
 

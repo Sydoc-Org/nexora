@@ -533,12 +533,14 @@
       });
   }
 
-  // The Share button only applies to a report the caller owns.
+  // The Share/Schedule buttons only apply to a report the caller owns.
   function updateShareButton() {
     var sel = document.getElementById('rpSavedReports');
     var opt = sel.options[sel.selectedIndex];
     var owned = !!(opt && opt.dataset && opt.dataset.owned === '1');
     document.getElementById('rpShare').disabled = !owned;
+    var sched = document.getElementById('rpSchedule');
+    if (sched) sched.disabled = !owned;
   }
 
   // Restore a saved definition into the builder (curated) or SQL editor.
@@ -704,6 +706,97 @@
     }
   );
   document.getElementById('rpSavedReports').addEventListener('change', updateShareButton);
+
+  // ---- Scheduling ----
+  var scheduleReportId = null;
+  var FREQ_LABELS = { daily: '{{ _("Daily") }}', weekly: '{{ _("Weekly") }}', monthly: '{{ _("Monthly") }}' };
+
+  function schedFreqChanged() {
+    var freq = document.getElementById('rpSchedFreq').value;
+    document.getElementById('rpSchedWeekdayWrap').hidden = freq !== 'weekly';
+    document.getElementById('rpSchedDomWrap').hidden = freq !== 'monthly';
+  }
+
+  function openSchedule() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    scheduleReportId = sel.value;
+    schedFreqChanged();
+    loadSchedules();
+    document.getElementById('rpScheduleModal').hidden = false;
+  }
+
+  function loadSchedules() {
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules')
+      .then(function (res) { return res.json(); })
+      .then(renderSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
+  function renderSchedules(list) {
+    var box = document.getElementById('rpScheduleList');
+    box.innerHTML = '';
+    if (!(list || []).length) {
+      var li = document.createElement('li');
+      li.className = 'reporting-share-empty';
+      li.textContent = '{{ _("No schedules yet.") }}';
+      box.appendChild(li);
+      return;
+    }
+    list.forEach(function (s) {
+      var li = document.createElement('li');
+      var t = (s.hour < 10 ? '0' : '') + s.hour + ':' + (s.minute < 10 ? '0' : '') + s.minute;
+      var desc = (FREQ_LABELS[s.frequency] || s.frequency) + ' ' + t + ' UTC · ' +
+        s.format.toUpperCase() + ' · ' + s.recipients + (s.enabled ? '' : ' (' + '{{ _("disabled") }}' + ')');
+      var span = document.createElement('span');
+      span.className = 'reporting-share-name';
+      span.textContent = desc;
+      li.appendChild(span);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'reporting-link';
+      rm.textContent = '{{ _("Remove") }}';
+      rm.onclick = function () { deleteSchedule(s.id); };
+      li.appendChild(rm);
+      box.appendChild(li);
+    });
+  }
+
+  function addSchedule() {
+    var freq = document.getElementById('rpSchedFreq').value;
+    var time = (document.getElementById('rpSchedTime').value || '06:00').split(':');
+    var body = {
+      frequency: freq,
+      hour: parseInt(time[0], 10) || 0,
+      minute: parseInt(time[1], 10) || 0,
+      format: document.getElementById('rpSchedFormat').value,
+      recipients: document.getElementById('rpSchedRecipients').value,
+      enabled: true,
+    };
+    if (freq === 'weekly') body.weekday = parseInt(document.getElementById('rpSchedWeekday').value, 10);
+    if (freq === 'monthly') body.dayOfMonth = parseInt(document.getElementById('rpSchedDom').value, 10);
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules', {
+      method: 'POST', body: JSON.stringify(body),
+    }).then(function () {
+      document.getElementById('rpSchedRecipients').value = '';
+      loadSchedules();
+    }).catch(function (e) { window.alert(e.message); });
+  }
+
+  function deleteSchedule(id) {
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + id, { method: 'DELETE' })
+      .then(loadSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
+  var rpSchedule = document.getElementById('rpSchedule');
+  if (rpSchedule) {
+    rpSchedule.addEventListener('click', openSchedule);
+    document.getElementById('rpSchedFreq').addEventListener('change', schedFreqChanged);
+    document.getElementById('rpSchedAdd').addEventListener('click', addSchedule);
+    document.getElementById('rpScheduleClose').addEventListener('click', function () {
+      document.getElementById('rpScheduleModal').hidden = true;
+    });
+  }
 
   document.getElementById('rpViewGrid').addEventListener('click', function () { setView('grid'); });
   document.getElementById('rpViewChart').addEventListener('click', function () { setView('chart'); });

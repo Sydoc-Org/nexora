@@ -84,7 +84,8 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
     ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
     ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
-    ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source');
+    ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),
+    ('reporting.schedule', 'Reporting: schedule a report to run and be emailed');
 GO
 
 -- Access profiles

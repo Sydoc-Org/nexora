@@ -6,6 +6,8 @@ TEST schema are asserted as (200, 500) to stay forward-compatible, mirroring the
 dashboard route tests.
 """
 
+from datetime import datetime
+
 from nx_lib.db import engine_nexora_db
 
 
@@ -223,6 +225,156 @@ def test_shares_endpoints_without_perm_403(user_client):
         ).status_code
         == 403
     )
+
+
+# --- Scheduled report delivery (A1) ---
+
+
+def test_schedules_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/reports/1/schedules").status_code == 403
+    assert (
+        user_client.post(
+            "/api/reporting/reports/1/schedules",
+            json={"frequency": "daily", "hour": 6, "recipients": "a@x.com"},
+        ).status_code
+        == 403
+    )
+
+
+def test_schedule_crud(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        assert admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json() == []
+        cr = admin_client.post(
+            f"/api/reporting/reports/{rid}/schedules",
+            json={
+                "frequency": "daily",
+                "hour": 6,
+                "minute": 0,
+                "format": "xlsx",
+                "recipients": "a@x.com, b@y.com",
+            },
+        )
+        assert cr.status_code == 200, cr.data
+        sid = cr.get_json()["id"]
+        lst = admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json()
+        assert len(lst) == 1 and lst[0]["frequency"] == "daily" and lst[0]["nextRunAt"]
+
+        up = admin_client.put(
+            f"/api/reporting/reports/{rid}/schedules/{sid}",
+            json={
+                "frequency": "weekly",
+                "hour": 7,
+                "minute": 30,
+                "weekday": 1,
+                "format": "csv",
+                "recipients": "c@z.com",
+                "enabled": False,
+            },
+        )
+        assert up.status_code == 200
+        lst = admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json()
+        assert lst[0]["frequency"] == "weekly" and lst[0]["enabled"] is False
+        assert lst[0]["weekday"] == 1 and lst[0]["format"] == "csv"
+
+        assert (
+            admin_client.delete(f"/api/reporting/reports/{rid}/schedules/{sid}").status_code == 200
+        )
+        assert admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json() == []
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_schedule_validation_400(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        assert (
+            admin_client.post(
+                f"/api/reporting/reports/{rid}/schedules",
+                json={"frequency": "daily", "hour": 6, "recipients": "bad"},
+            ).status_code
+            == 400
+        )
+        assert (
+            admin_client.post(
+                f"/api/reporting/reports/{rid}/schedules",
+                json={"frequency": "weekly", "hour": 6, "recipients": "a@x.com"},
+            ).status_code
+            == 400
+        )
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_runner_dry_run_processes_due_table_report(admin_client):
+    # End-to-end: register a 'table' source over Users, save a report on it, queue
+    # a past-due schedule, then run the runner in dry-run (builds the report via
+    # the session-independent runner; no mail, no NextRunAt advance).
+    from ops import run_scheduled_reports
+
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "sched_users",
+            "kind": "curated",
+            "label": "Sched Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 15,
+        },
+    )
+    src_id = src.get_json()["id"]
+    rep = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Sched Users Report",
+            "definition": {
+                "schemaVersion": 1,
+                "source": "sched_users",
+                "visualization": "table",
+                "title": "Sched Users Report",
+                "columns": [{"field": "username"}],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+            },
+        },
+    )
+    rid = rep.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'admin@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.ReportSchedules (ReportID, OwnerUserID, Recipients, Format, "
+            "Frequency, Hour, Minute, Enabled, NextRunAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (rid, owner, "a@x.com", "csv", "daily", 6, 0, 1, datetime(2000, 1, 1)),
+        )
+        conn.commit()
+
+        failed = run_scheduled_reports.run_once(dry_run=True)
+        assert failed == 0
+    finally:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,))
+        conn.commit()
+        conn.close()
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
 
 
 # --- Seeded curated 'table' sources (A5 Generali, A6 Workitems) ---

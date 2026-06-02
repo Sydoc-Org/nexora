@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **scheduled & emailed reports.** A saved report can be run on a
+  recurring schedule (daily / weekly / monthly at a UTC time) and emailed as
+  xlsx or csv to recipients. New `dbo.ReportSchedules` table (migration `0012`),
+  owner-only schedule endpoints, and a **Schedule** dialog; gated by the new
+  grantable `reporting.schedule` permission (admins seeded). Delivery is done by
+  `ops/run_scheduled_reports.py` (driven by Windows Task Scheduler), which runs
+  each due report **as its owner** via a session-independent runner
+  (`nx_lib/reporting/runner.py`) and sends it through Microsoft Graph
+  (`nx_lib/mail.py`). See `docs/howto/reporting.md`.
 - Reporting — **Generali & Workitems curated sources.** Two ready-to-use curated
   sources registered through the new `table` provider (migration `0011`):
   **Generali — PDQM Report** (`dbo.PDQMReport`, engine `generali`) and
