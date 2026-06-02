@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 3142 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **nexora** (3437 symbols, 4819 relationships, 106 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -24,10 +24,10 @@ This project is indexed by GitNexus as **Kundenportal-Sydoc** (2306 symbols, 314
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/Kundenportal-Sydoc/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Kundenportal-Sydoc/clusters` | All functional areas |
-| `gitnexus://repo/Kundenportal-Sydoc/processes` | All execution flows |
-| `gitnexus://repo/Kundenportal-Sydoc/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/nexora/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/nexora/clusters` | All functional areas |
+| `gitnexus://repo/nexora/processes` | All execution flows |
+| `gitnexus://repo/nexora/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
