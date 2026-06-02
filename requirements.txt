@@ -101,6 +101,8 @@ rich==13.9.4
     # via flask-limiter
 sqlalchemy==2.0.45
     # via nexora
+sqlglot==30.8.0
+    # via nexora
 typing-extensions==4.15.0
     # via
     #   limits
