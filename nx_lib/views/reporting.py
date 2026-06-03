@@ -49,10 +49,12 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
-from ..reporting.ai import AiError
+from ..reporting.ai import AiError, ask_agentic
+from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
+from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
@@ -1070,6 +1072,179 @@ def api_ai_build():
     )
 
 
+_AGENT_SYSTEM = (
+    "You are a careful analyst for an internal reporting tool. Use the provided "
+    "TOOLS to answer the question, grounded ONLY in the data SOURCES/SCHEMA given "
+    "— never invent fields, tables, or sources. Prefer build_definition for any "
+    "report the builder can express (it validates against the source field "
+    "catalog). If validate_sql is available, draft ONE read-only SELECT and "
+    "validate it before presenting. When a tool returns an error, fix your input "
+    "and try again. Stop once you have a validated artifact and give a one- or "
+    "two-sentence plain-language answer. Do not ask the user questions."
+)
+
+
+def _extract_agent_artifacts(tool_trace):
+    """Pull the last validated definition / SQL out of the loop's tool trace.
+
+    A build_definition call that returned ok=True carries a runnable definition in
+    its args; a validate_sql ok=True carries gate-approved SQL. These let the UI
+    offer one-click 'Open in builder' / 'Insert SQL' just like Surfaces A/B.
+    """
+    definition, sql = None, None
+    for step in tool_trace:
+        if not (step.get("result") or {}).get("ok"):
+            continue
+        if step.get("name") == "build_definition":
+            d = (step.get("args") or {}).get("definition")
+            if isinstance(d, dict):
+                definition = _normalize_definition(dict(d))
+        elif step.get("name") == "validate_sql":
+            sql = (step.get("args") or {}).get("sql")
+    return definition, sql
+
+
+@require_permission("reporting.ai.use")
+@limiter.limit("10 per minute")
+def api_ai_agent():
+    """Surface C — the Tier-2 agentic loop (Phase 3d).
+
+    A self-repairing drafter: the model uses data-free tools (build_definition,
+    and validate_sql when the caller holds reporting.ai.sql) to produce a
+    validated artifact, grounded in the source catalog / SQL schema passed in the
+    prompt. Egress stays schema-only — run_sql / compute_stats (whose results
+    would flow back to the model) are Phase 3e, behind reporting.ai.explain_data.
+    """
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    question = (body.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": _("A question is required")}), 400
+
+    cfg = _ai_config()
+    if cfg.get("provider") == "none" or not cfg.get("api_key"):
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+
+    userid, username = session.get("userid"), session.get("username")
+    limit = _ai_daily_limit()
+    if limit > 0 and _ai_asks_today(userid) >= limit:
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "blocked",
+            0,
+        )
+        return jsonify(
+            {
+                "error": _(
+                    "You have reached the daily AI request limit (%(limit)s). "
+                    "Please try again tomorrow.",
+                    limit=limit,
+                )
+            }
+        ), 429
+
+    # Schema-only egress: bind only data-free tools to the model. validate_sql is
+    # gated on reporting.ai.sql; run_sql / compute_stats (results would egress to
+    # the model) are deferred to Phase 3e behind reporting.ai.explain_data.
+    has_sql = has_permission("reporting.ai.sql")
+    tool_names = {"build_definition"} | ({"validate_sql"} if has_sql else set())
+    tools = [t for t in TOOL_SPECS if t["name"] in tool_names]
+    registry = ToolRegistry(validate_definition=_validate_definition_for_user)
+
+    grounding = f"Available report sources and fields:\n{_ai_catalog_text()}"
+    if has_sql:
+        grounding += f"\n\nSQL schema (for validate_sql):\n{_ai_schema_text()}"
+    initial = f"{grounding}\n\nQuestion: {question}"
+
+    start = time.monotonic()
+    try:
+        step = make_agent_step(
+            system=_AGENT_SYSTEM,
+            tools=tools,
+            provider=cfg["provider"],
+            model=cfg.get("model"),
+            api_key=cfg["api_key"],
+            endpoint=cfg.get("endpoint"),
+            deployment=cfg.get("deployment"),
+            api_version=cfg.get("api_version", "2024-10-21"),
+            url=cfg.get("url"),
+        )
+        result = ask_agentic(initial, registry=registry, agent_step=step)
+    except AiError as e:
+        current_app.logger.warning(f"/api/reporting/ai/agent config error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "misconfig",
+            int((time.monotonic() - start) * 1000),
+        )
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "error",
+            int((time.monotonic() - start) * 1000),
+        )
+        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+
+    duration_ms = int((time.monotonic() - start) * 1000)
+    definition, sql = _extract_agent_artifacts(result.tool_trace)
+    _audit_ai(
+        userid,
+        username,
+        question,
+        "agent",
+        json.dumps({"answer": result.answer, "tools": [t["name"] for t in result.tool_trace]})[
+            :4000
+        ],
+        cfg.get("provider"),
+        cfg.get("model"),
+        result.tokens_in,
+        result.tokens_out,
+        result.stopped_reason,
+        "ok",
+        duration_ms,
+    )
+    return jsonify(
+        {
+            "answer": result.answer,
+            "definition": definition,
+            "sql": sql,
+            "toolTrace": result.tool_trace,
+            "turns": result.turns,
+            "stoppedReason": result.stopped_reason,
+        }
+    )
+
+
 @require_permission("reporting.export")
 @limiter.limit("30 per minute")
 def api_export():
@@ -1851,6 +2026,12 @@ def register_routes(app):
         "/api/reporting/ai/build",
         endpoint="reporting_ai_build",
         view_func=api_ai_build,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/ai/agent",
+        endpoint="reporting_ai_agent",
+        view_func=api_ai_agent,
         methods=["POST"],
     )
     app.add_url_rule(

@@ -1,8 +1,9 @@
 """Integration tests for POST /api/reporting/ai/ask (perm gating + happy path)."""
 
+from contextlib import ExitStack
 from unittest.mock import patch
 
-from nx_lib.reporting.ai import AiDefinitionResult, AiError, AiResult
+from nx_lib.reporting.ai import AiAgenticResult, AiDefinitionResult, AiError, AiResult
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
 # inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
@@ -296,3 +297,171 @@ def test_ai_build_audits_misconfig_on_aierror(user_client):
     audit.assert_called_once()
     assert audit.call_args.args[3] == "definition"  # Surface
     assert audit.call_args.args[-2] == "misconfig"  # Status
+
+
+# ---- POST /api/reporting/ai/agent (Phase 3d) -----------------------------
+
+
+def _agentic_result(answer="Built a report by outcome.", definition_ok=True):
+    trace = [
+        {
+            "name": "build_definition",
+            "args": {
+                "definition": {
+                    "schemaVersion": 1,
+                    "visualization": "table",
+                    "source": "gen_pdqm",
+                    "title": "By outcome",
+                    "columns": [{"field": "Outcome"}],
+                }
+            },
+            "result": {"ok": definition_ok, **({} if definition_ok else {"error": "bad field"})},
+        }
+    ]
+    return AiAgenticResult(
+        answer=answer,
+        turns=2,
+        tool_trace=trace,
+        stopped_reason="final",
+        tokens_in=20,
+        tokens_out=12,
+    )
+
+
+def _agent_patches(perm=True, sql_perm=True):
+    """Common patches for the agent route, entered via ExitStack (helper tuple
+    can't be star-unpacked inside a parenthesized `with`)."""
+
+    def _has(code):
+        if code == "reporting.ai.sql":
+            return sql_perm
+        return perm
+
+    return [
+        patch("nx_lib.security.has_permission", side_effect=_has),
+        patch("nx_lib.views.reporting.has_permission", side_effect=_has),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+    ]
+
+
+def test_ai_agent_requires_use_permission(user_client):
+    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "hi"})
+    assert resp.status_code == 403
+
+
+def test_ai_agent_503_when_provider_unconfigured(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config", return_value={"provider": "none", "api_key": None}
+        ),
+    ):
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "hi"})
+    assert resp.status_code == 503
+
+
+def test_ai_agent_rejects_empty_question(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+    ):
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "  "})
+    assert resp.status_code == 400
+
+
+def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["answer"] == "Built a report by outcome."
+    assert data["turns"] == 2
+    assert data["stoppedReason"] == "final"
+    assert data["toolTrace"][0]["name"] == "build_definition"
+    # the last validated definition is extracted + normalized for "open in builder"
+    assert data["definition"]["source"] == "gen_pdqm"
+    assert data["definition"]["groupBy"] == []
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "agent"  # Surface positional arg
+    assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_agent_429_when_daily_limit_reached(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ask_agentic") as loop,
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
+    assert resp.status_code == 429
+    loop.assert_not_called()
+    assert audit.call_args.args[-2] == "blocked"
+
+
+def test_ai_agent_audits_misconfig_on_aierror(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", side_effect=AiError("bad provider"))
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
+    assert resp.status_code == 503
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "agent"
+    assert audit.call_args.args[-2] == "misconfig"
+
+
+def test_ai_agent_binds_sql_tool_only_with_sql_perm(user_client):
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        return lambda messages: None
+
+    with ExitStack() as es:
+        for p in _agent_patches(sql_perm=False):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
+    assert resp.status_code == 200
+    assert "build_definition" in captured["tools"]
+    assert "validate_sql" not in captured["tools"]  # gated on reporting.ai.sql
