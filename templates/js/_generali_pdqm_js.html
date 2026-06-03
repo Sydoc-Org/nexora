@@ -256,7 +256,7 @@
 
                 _currentRecords = data.records;
                 if (!data.records.length) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div><p class="nx-empty__title">{{ _("No records found") }}</p><p class="nx-empty__sub">{{ _("Try adjusting your filters or add a new entry.") }}</p></div></td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div><p class="nx-empty__title">{{ _("No records found") }}</p><p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div></td></tr>`;
                 } else {
                     tbody.innerHTML = data.records.map(renderRow).join('');
                 }
