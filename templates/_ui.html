@@ -1,0 +1,44 @@
+{# ============================================================
+   NEXORA UI — shared component macros
+   Import in a page with:  {% import '_ui.html' as ui %}
+   Styling lives in static/css/nexora-ui.css (loaded globally
+   from _header.html). Keep markup here in lockstep with it.
+   ============================================================ #}
+
+{# Page header: title + optional subtitle on the left, free-form
+   actions slot on the right (pass via `caller()` using {% call %}). #}
+{% macro page_header(title, subtitle='') %}
+<div class="nx-page-head nx-rise">
+  <div class="nx-page-head__main">
+    <h1 class="nx-title">{{ title }}</h1>
+    {% if subtitle %}<p class="nx-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if caller %}<div class="nx-page-head__actions">{{ caller() }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{# GitHub-style label: colored dot + text. tone ∈
+   indigo|green|amber|red|blue|gray (default gray). #}
+{% macro label(text, tone='gray', dot=true) %}
+<span class="nx-label nx-label--{{ tone }}{{ '' if dot else ' nx-label--nodot' }}">{{ text }}</span>
+{% endmacro %}
+
+{# Stat / KPI card. value may be raw HTML (e.g. a skeleton span). #}
+{% macro stat_card(label, value, icon='') %}
+<div class="nx-card nx-card--pad nx-stat">
+  <div>
+    <p class="nx-stat__label">{{ label }}</p>
+    <div class="nx-stat__value">{{ value }}</div>
+  </div>
+  {% if icon %}<i class="fas {{ icon }} nx-stat__icon"></i>{% endif %}
+</div>
+{% endmacro %}
+
+{# Empty state with a sentence of personality. #}
+{% macro empty_state(title, subtitle='', icon='fa-inbox') %}
+<div class="nx-empty">
+  <div class="nx-empty__art"><i class="fas {{ icon }}"></i></div>
+  <p class="nx-empty__title">{{ title }}</p>
+  {% if subtitle %}<p class="nx-empty__sub">{{ subtitle }}</p>{% endif %}
+</div>
+{% endmacro %}

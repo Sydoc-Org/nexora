@@ -19,7 +19,7 @@
 
 </head>
 
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'workitems_overview' %}
   {% include '_header.html' %}
 
@@ -37,47 +37,38 @@
     </div>
   </div>
 
-  <main class="container mx-auto p-6">
+  <main class="nx-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
-    <div
-      class="mb-4 rounded-lg border px-4 py-3 {% if category == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %}"
-      role="alert">
-      <span class="block sm:inline">{{ message }}</span>
+    <div class="nx-flash nx-flash--{{ 'success' if category == 'success' else 'error' }}" role="alert">
+      <i class="fas {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+      <span>{{ message }}</span>
     </div>
     {% endfor %}
     {% endif %}
     {% endwith %}
 
-    <main class="container mx-auto p-6">
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-1">
-              {{ _("Workitems overview") }}
-            </h2>
-            <p class="text-gray-500 font-medium">{{ _("List of all workitems") }}</p>
-          </div>
-          <div class="flex items-center space-x-4">
-            <div class="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2">
-              <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ _("Total") }}</span>
-              <span class="text-s font-bold text-indigo-600 uppercase tracking-widest" id="totalItemsCount">—</span>
-            </div>
-          </div>
-        </div>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <h1 class="nx-title">{{ _("Workitems overview") }}</h1>
+        <p class="nx-subtitle">{{ _("List of all workitems") }}</p>
       </div>
+      <div class="nx-page-head__actions">
+        <span class="nx-meta">{{ _("Total") }}</span>
+        <span class="nx-chip-count" id="totalItemsCount">—</span>
+      </div>
+    </div>
 
       <form id="filterForm" method="GET" action="{{ url_for('workitems_overview') }}"
-        class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6" data-testid="workitems-filter-form">
+        class="nx-filter mb-6 nx-rise-2" data-testid="workitems-filter-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label for="prcfW" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
               _("Process") }}</label>
             <div class="relative mt-1">
-              <select id="prcfW" name="prcfW" class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="workitems-process-filter">
+              <select id="prcfW" name="prcfW" class="nx-select h-11 appearance-none pr-10" data-testid="workitems-process-filter">
                 <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
                 {% for proc in allowed_processes %}
                 <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>
@@ -99,8 +90,7 @@
                 <i class="fas fa-search"></i>
               </span>
               <input type="text" id="searchInput" name="search" value="{{ search or '' }}" {% if search_term_perm==False
-                %} disabled {% endif %} class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5 pl-10
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10"
+                %} disabled {% endif %} class="nx-input h-11 pl-10 pr-10"
                 placeholder="Enter workitem..." data-testid="workitems-search">
             </div>
           </div>
@@ -113,8 +103,7 @@
                 <i class="fas fa-tag"></i>
               </span>
               <input type="text" id="tagFilterInput" name="tag" value="{{ tag or '' }}" list="taglist" {% if
-                tag_filter_perm==False %} disabled {% endif %} class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5 pl-10
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10"
+                tag_filter_perm==False %} disabled {% endif %} class="nx-input h-11 pl-10 pr-10"
                 placeholder="Enter tag name..." data-testid="workitems-tag-filter">
               <datalist id="taglist"></datalist>
             </div>
@@ -124,8 +113,7 @@
               <label for="statusFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
                 _("Status") }}</label>
             <div class="relative mt-1">
-              <select id="statusFilter" name="status" {% if status_perm==False %} disabled {% endif %} class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="workitems-status-filter">
+              <select id="statusFilter" name="status" {% if status_perm==False %} disabled {% endif %} class="nx-select h-11 appearance-none pr-10" data-testid="workitems-status-filter">
                 <option value="">{{ _("All statuses") }}</option>
                 <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
                 <option value="In Progress" {% if status=='In Progress' %}selected{% endif %}>In Progress</option>
@@ -138,8 +126,7 @@
           </div>
         </div>
 
-        {% set input_base = "block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" %}
+        {% set input_base = "nx-input h-11" %}
 
         <div id="advancedFilterContainer" class="hidden mt-8 pt-6 border-t border-gray-200">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
@@ -291,15 +278,15 @@
 
         <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
           <button id="toggleAdvancedFilterBtn" type="button"
-            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors text-sm font-semibold border border-gray-200" data-testid="workitems-toggle-advanced">
+            class="nx-btn nx-btn--secondary" data-testid="workitems-toggle-advanced">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
           </button>
           <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center" data-testid="workitems-reset">{{
+            class="nx-btn nx-btn--secondary" data-testid="workitems-reset">{{
             _("Reset") }}</a>
           <div class="relative">
             <select id="filterPerPage" name="perPage"
-              class="block h-9 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8" data-testid="workitems-per-page">
+              class="nx-select h-9 appearance-none pr-8" data-testid="workitems-per-page">
               <option value="40" selected>40</option>
               <option value="100">100</option>
               <option value="200">200</option>
@@ -312,28 +299,28 @@
           </div>
 
           <button type="button" id="exportCsvBtn"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="workitems-export-csv">
+            class="nx-btn nx-btn--secondary" data-testid="workitems-export-csv">
             <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
           </button>
 
           <div class="inline-block">
             <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple data-testid="workitems-import-file">
             <button type="button" id="importBtn"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="workitems-import">
+              class="nx-btn nx-btn--primary" data-testid="workitems-import">
               <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
             </button>
           </div>
         </div>
       </form>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+      <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">
           <div id="table-top-loader"
             class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm"
             style="display: none;">
           </div>
-          <table class="w-full" id="workitemsTable">
-            <thead class="bg-gray-50 border-b border-gray-200">
+          <table class="nx-table" id="workitemsTable">
+            <thead>
               <tr>
                 <th scope="col" class="px-4 py-4 w-10 text-center">
                   <input type="checkbox" id="selectAllCheckbox"
@@ -380,7 +367,7 @@
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200" id="workitemsTbody">
+            <tbody id="workitemsTbody">
               <tr>
                 <td colspan="7" class="text-center py-20">
                   <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
