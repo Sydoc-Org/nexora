@@ -358,6 +358,31 @@ token counts are **not** returned to the client — they are recorded only in th
 `dbo.ReportingAiAudit` row. Every call is audited to `dbo.ReportingAiAudit`
 (user, question, model, provider, duration, gate verdict, token counts).
 
+### Agent (Surface C — Phase 3, drafter)
+
+Route: `POST /api/reporting/ai/agent` — accepts `{"question": "..."}` and returns
+`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason"}`. Unlike
+Surfaces A/B (single draft + one retry), this runs a **Tier-2 agentic tool-loop**
+(`nx_lib/reporting/ai.py: ask_agentic`): the model calls tools, sees their results,
+and **self-repairs** until it has a validated artifact or hits a hard turn cap.
+
+**Access:** `reporting.ai.use`. The loop binds only **data-free** tools to the
+model — `build_definition` (always) and `validate_sql` (only with
+`reporting.ai.sql`). Egress stays **schema-only**: the model receives the question
+plus the source catalog / SQL schema, and tool results are ok/error only — **no
+result rows ever reach the model**. `AI_DAILY_LIMIT` applies; audited with
+`Surface='agent'` (and `Status='misconfig'` if the provider is broken,
+`'blocked'` when the cap is hit). The last validated definition/SQL in the tool
+trace is returned for one-click **Open in builder** / **Insert SQL**.
+
+> **Deferred (Phase 3e, needs a data-egress decision):** running queries
+> (`run_sql`) and computing statistics (`compute_stats`, `nx_lib/reporting/stats.py`)
+> *inside* the loop feeds their results back to the model so it can narrate
+> numbers. That is data egress, so it is gated behind a future
+> `reporting.ai.explain_data` permission and is **not** active in the drafter
+> route above. The stats engine and tool layer are built and tested; only their
+> in-loop activation waits on the decision.
+
 ### Configuration (`AI_*` env vars)
 
 Set these in `env/INT.env` and `env/PROD.env`:

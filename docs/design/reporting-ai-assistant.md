@@ -1,6 +1,8 @@
 # Design — AI assistant in the Reporting page
 
-> **Status:** Phase 1 and Phase 2 implemented (see §12 for phase status).
+> **Status:** Phase 1 and Phase 2 implemented; Phase 3 **spine** landed (agentic
+> loop + deterministic stats engine + a schema-only drafter route) — see §12 for
+> phase status.
 > **Author:** initial draft via Claude Code, 2026-06-03.
 > **Scope:** an in-page AI that turns natural language into *helpful, smart*
 > statistics — building reports for you, and writing SQL you can run or
@@ -321,7 +323,9 @@ should be computed deterministically:
 |---|---|---|---|---|
 | **1 — MVP** | "Ask AI" → SQL **into the editor only** (no auto-run) + 1-line explanation; server-side provider call; schema from RO `INFORMATION_SCHEMA` + catalogs; `reporting.ai.use/sql`; `ReportingAiAudit` | gate, ack, run, audit | ~days | ✅ done (2026-06-03) |
 | **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days | ✅ done (2026-06-03) |
-| **3 — Agentic + stats + RAG** | Tier-2 tool-loop with self-repair, `compute_stats`, "explain results" (gated), follow-up conversation, glossary RAG | embeddings table | ~1–2 wks | planned |
+| **3a–3c — Agentic spine** | Tier-2 tool-loop (`ask_agentic`) with self-repair + turn cap; provider tool-calling (Azure + Anthropic); tool layer (`ai_tools.py`); deterministic stats engine (`stats.py`, stdlib) | gate, run, validator, audit | ~days | ✅ done (2026-06-03) |
+| **3d — Drafter route** | `POST /api/reporting/ai/agent` (Surface C): schema-only self-repairing drafter; binds only data-free tools (`build_definition`, `validate_sql`); returns a validated artifact; audits `Surface='agent'` | the spine | ~days | ✅ route done; UI pending |
+| **3e — Data egress + RAG** | Activate `run_sql` / `compute_stats` in the live loop + "explain results" (results flow back to the model) behind **`reporting.ai.explain_data`**; glossary RAG | embeddings table, new perm | ~1 wk | planned — needs §13-Q2/Q5 decision |
 | **4 — Semantic layer** | Canonical metrics/dimensions → trustworthy, consistent numbers | semantic.py | strategic, larger | planned |
 
 **Phase-1 acceptance:** a user with `reporting.ai.sql` types a question, gets

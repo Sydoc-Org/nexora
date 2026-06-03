@@ -9,6 +9,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- **Reporting AI assistant (Phase 3 — agentic loop + deterministic stats, spine):**
+  a Tier-2 **agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`) that drives
+  *model → tool → model* with self-repair and a hard turn cap, over a provider-neutral
+  tool layer (`nx_lib/reporting/ai_tools.py`) wrapping the existing rails, plus a
+  pure-stdlib **deterministic statistics engine** (`nx_lib/reporting/stats.py`:
+  describe / group_by / percentiles / value_counts / correlation / top_n — no
+  pandas/scipy). New route `POST /api/reporting/ai/agent` (Surface C) is a
+  self-repairing **drafter** gated by `reporting.ai.use`: it binds only data-free
+  tools to the model (`build_definition` always, `validate_sql` with
+  `reporting.ai.sql`), stays **schema-only** (no result rows reach the model), audits
+  `Surface='agent'`, honours `AI_DAILY_LIMIT`, and returns a validated definition/SQL
+  for one-click Open-in-builder / Insert-SQL. No new permission, table, or migration.
+  Activating `run_sql` / `compute_stats` in the live loop (results flow back to the
+  model) is **deferred to Phase 3e** behind a new `reporting.ai.explain_data` permission
+  and a data-egress decision. See `docs/superpowers/plans/2026-06-03-reporting-ai-phase3.md`.
 - **Reporting AI assistant (Phase 2 — Build a report):** a "Build a report" sub-mode
   in the Ask-AI panel turns a natural-language question into a v1 report definition
   that auto-fills the builder wells (whitelist-safe; row-scoping preserved; **no SQL
