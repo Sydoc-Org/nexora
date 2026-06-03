@@ -361,3 +361,273 @@ def ask(
         tokens_in=tin,
         tokens_out=tout,
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — agentic tool-loop (Tier 2). The loop (`ask_agentic`) is provider-
+# agnostic and drives model -> tool -> model until a final answer or a hard turn
+# cap. Provider tool-calling parsing lives in `_make_agent_step`; both layers are
+# unit-tested offline via injected seams (`agent_step` / `transport`). Egress
+# stays schema-only: result rows fetched by run_sql are NOT sent back to the
+# model here — narration over rows is Phase 3e (gated reporting.ai.explain_data).
+# ---------------------------------------------------------------------------
+
+DEFAULT_MAX_TURNS = 6
+
+
+@dataclass
+class AssistantTurn:
+    """One normalized model turn: free text and/or a list of tool calls."""
+
+    text: str = ""
+    tool_calls: list | None = None  # [{"id", "name", "args"}]
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+
+    def __post_init__(self):
+        if self.tool_calls is None:
+            self.tool_calls = []
+
+
+@dataclass
+class AiAgenticResult:
+    answer: str
+    turns: int
+    tool_trace: list  # [{"name", "args", "result"}]
+    stopped_reason: str  # "final" | "max_turns"
+    tokens_in: int
+    tokens_out: int
+
+
+def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS):
+    """Drive the model->tool->model loop until a final answer or the turn cap.
+
+    `agent_step(messages) -> AssistantTurn` is the injected provider round-trip
+    (scripted in tests, built by `_make_agent_step` in production). `registry` is
+    a ToolRegistry. Returns AiAgenticResult. No network/provider code lives here.
+
+    `messages` is the neutral conversation: user/assistant strings, an assistant
+    turn carrying `tool_calls`, and a `tool` turn whose content is the list of
+    `{tool_call_id, name, result}` envelopes. `_make_agent_step` translates this
+    into each provider's wire format.
+    """
+    messages = [{"role": "user", "content": question}]
+    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    while turns < max_turns:
+        turns += 1
+        turn = agent_step(messages)
+        tin += turn.tokens_in or 0
+        tout += turn.tokens_out or 0
+        if not turn.tool_calls:
+            stopped = "final"
+            messages.append({"role": "assistant", "content": turn.text})
+            return AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)
+        messages.append({"role": "assistant", "content": turn.text, "tool_calls": turn.tool_calls})
+        results = []
+        for call in turn.tool_calls:
+            result = registry.call(call["name"], call.get("args"))
+            trace.append({"name": call["name"], "args": call.get("args"), "result": result})
+            results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
+        messages.append({"role": "tool", "content": results})
+    return AiAgenticResult("", turns, trace, stopped, tin, tout)
+
+
+def _azure_tools(tools):
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": t["parameters"],
+            },
+        }
+        for t in tools
+    ]
+
+
+def _anthropic_tools(tools):
+    return [
+        {"name": t["name"], "description": t["description"], "input_schema": t["parameters"]}
+        for t in tools
+    ]
+
+
+def _to_azure_messages(system, messages):
+    out = [{"role": "system", "content": system}]
+    for m in messages:
+        role = m["role"]
+        if role == "tool":
+            for r in m["content"]:
+                out.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": r.get("tool_call_id"),
+                        "content": json.dumps(r.get("result"), default=str),
+                    }
+                )
+        elif role == "assistant" and m.get("tool_calls"):
+            out.append(
+                {
+                    "role": "assistant",
+                    "content": m.get("content") or None,
+                    "tool_calls": [
+                        {
+                            "id": c["id"],
+                            "type": "function",
+                            "function": {
+                                "name": c["name"],
+                                "arguments": json.dumps(c.get("args") or {}),
+                            },
+                        }
+                        for c in m["tool_calls"]
+                    ],
+                }
+            )
+        else:
+            out.append({"role": role, "content": m.get("content") or ""})
+    return out
+
+
+def _to_anthropic_messages(messages):
+    out = []
+    for m in messages:
+        role = m["role"]
+        if role == "tool":
+            out.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": r.get("tool_call_id"),
+                            "content": json.dumps(r.get("result"), default=str),
+                        }
+                        for r in m["content"]
+                    ],
+                }
+            )
+        elif role == "assistant" and m.get("tool_calls"):
+            content = []
+            if m.get("content"):
+                content.append({"type": "text", "text": m["content"]})
+            for c in m["tool_calls"]:
+                content.append(
+                    {
+                        "type": "tool_use",
+                        "id": c["id"],
+                        "name": c["name"],
+                        "input": c.get("args") or {},
+                    }
+                )
+            out.append({"role": "assistant", "content": content})
+        else:
+            out.append({"role": role, "content": m.get("content") or ""})
+    return out
+
+
+def _parse_azure_turn(data):
+    choice = (data.get("choices") or [{}])[0]
+    msg = choice.get("message") or {}
+    usage = data.get("usage") or {}
+    tin, tout = usage.get("prompt_tokens"), usage.get("completion_tokens")
+    tool_calls = []
+    for tc in msg.get("tool_calls") or []:
+        fn = tc.get("function") or {}
+        try:
+            args = json.loads(fn.get("arguments") or "{}")
+        except (ValueError, TypeError):
+            args = {}
+        tool_calls.append({"id": tc.get("id"), "name": fn.get("name"), "args": args})
+    return AssistantTurn(
+        text=msg.get("content") or "", tool_calls=tool_calls, tokens_in=tin, tokens_out=tout
+    )
+
+
+def _parse_anthropic_turn(data):
+    if isinstance(data, dict) and data.get("type") == "error":
+        msg = (data.get("error") or {}).get("message", "unknown")
+        raise AiError(f"provider error: {msg}")
+    parts = data.get("content") or []
+    text = "".join(p.get("text", "") for p in parts if p.get("type") == "text")
+    tool_calls = [
+        {"id": p.get("id"), "name": p.get("name"), "args": p.get("input") or {}}
+        for p in parts
+        if p.get("type") == "tool_use"
+    ]
+    usage = data.get("usage") or {}
+    return AssistantTurn(
+        text=text,
+        tool_calls=tool_calls,
+        tokens_in=usage.get("input_tokens"),
+        tokens_out=usage.get("output_tokens"),
+    )
+
+
+def _make_agent_step(
+    *,
+    system,
+    tools,
+    provider,
+    model,
+    api_key,
+    endpoint=None,
+    deployment=None,
+    api_version="2024-10-21",
+    url=None,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Build an `agent_step(messages) -> AssistantTurn` bound to a provider.
+
+    Each call translates the neutral message list + tool specs into the provider's
+    tool-calling wire format, POSTs via `transport`, and parses the reply back into
+    an AssistantTurn. Network is reached only through `transport` (injected in tests).
+    """
+    if not api_key:
+        raise AiError("AI provider API key is not configured")
+    provider = (provider or "").lower()
+
+    if provider == "azure":
+        if not endpoint or not deployment:
+            raise AiError("Azure OpenAI requires endpoint and deployment")
+        azure_url = (
+            f"{endpoint.rstrip('/')}/openai/deployments/{deployment}"
+            f"/chat/completions?api-version={api_version}"
+        )
+        azure_tools = _azure_tools(tools)
+        headers = {"api-key": api_key, "content-type": "application/json"}
+
+        def step(messages):
+            body = {
+                "max_tokens": max_tokens,
+                "messages": _to_azure_messages(system, messages),
+                "tools": azure_tools,
+            }
+            return _parse_azure_turn(transport(azure_url, headers, body, timeout))
+
+        return step
+
+    if provider == "anthropic":
+        anthropic_url = url or DEFAULT_ANTHROPIC_URL
+        anthropic_tools = _anthropic_tools(tools)
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": ANTHROPIC_VERSION,
+            "content-type": "application/json",
+        }
+
+        def step(messages):
+            body = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "system": system,
+                "messages": _to_anthropic_messages(messages),
+                "tools": anthropic_tools,
+            }
+            return _parse_anthropic_turn(transport(anthropic_url, headers, body, timeout))
+
+        return step
+
+    raise AiError(f"unknown AI provider: {provider!r}")
