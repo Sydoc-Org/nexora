@@ -366,7 +366,7 @@
   }
 
   function run() {
-    api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
+    return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
       .then(function (res) { return res.json(); })
       .then(function (data) { renderResults(data); })
       .catch(function (e) {
@@ -576,6 +576,19 @@
     renderFields();
     renderWells();
     renderFilters();
+  }
+
+  // Open an AI definition in the builder, run it, then show it as the hinted chart.
+  function applyDefinitionAndChart(def, hint) {
+    applyDefinition(def, def.title || 'AI report', null);
+    var p = run();
+    if (p && p.then) {
+      p.then(function () {
+        if (!hint || !state.lastResult || !state.lastResult.rows.length) return;
+        setView('chart');
+        if (window.ReportingViz && ReportingViz.applyChartHint) ReportingViz.applyChartHint(hint);
+      });
+    }
   }
 
   function loadSelectedReport() {
@@ -818,6 +831,6 @@
 
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart });
 }());
 </script>

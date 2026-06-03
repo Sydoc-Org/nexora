@@ -206,6 +206,7 @@ _SYSTEM_DEF = (
     "Valid filter ops: eq, ne, in, not_in, gt, gte, lt, lte, between (value is a "
     "2-element list), contains, starts_with, is_null, is_not_null (these two take "
     "no value). No prose outside JSON."
+    ' Optionally include "chartHint": {"type": "bar"|"line"|"pie"|"doughnut", "x": "<category field>", "y": "<numeric field>"} inside the definition when a chart would help; omit it otherwise.'
 )
 
 

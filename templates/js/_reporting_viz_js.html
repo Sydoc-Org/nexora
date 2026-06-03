@@ -15,6 +15,7 @@
   // serialize exactly what the user is looking at (chart image / pivot matrix).
   var lastChartCanvas = null;
   var lastPivotExport = null;
+  var lastChartColumns = null;
 
   function toNum(v) {
     if (v === null || v === undefined || v === '') return null;
@@ -94,6 +95,7 @@
       container.textContent = '{{ _("No data to chart.") }}';
       return;
     }
+    lastChartColumns = columns;
     var measureIdx = -1;
     for (var i = 0; i < columns.length; i++) {
       if (isNumericIndex(rows, i)) { measureIdx = i; break; }
@@ -126,6 +128,9 @@
     ], 'bar');
     var xSel = sel(colOpts, '0');
     var ySel = sel(colOpts, String(measureIdx));
+    typeSel.id = 'rpChartType';
+    xSel.id = 'rpChartX';
+    ySel.id = 'rpChartY';
 
     var bar = document.createElement('div');
     bar.className = 'reporting-viz-bar';
@@ -213,6 +218,29 @@
     a.click();
     document.body.removeChild(a);
     return true;
+  }
+
+  // Preselect chart type + axes from an AI chartHint, then redraw. No-op if the
+  // chart isn't mounted or the hinted values aren't available.
+  function applyChartHint(hint) {
+    if (!hint) return;
+    var t = document.getElementById('rpChartType');
+    if (t && hint.type) {
+      var ok = Array.prototype.some.call(t.options, function (o) { return o.value === hint.type; });
+      if (ok) t.value = hint.type;
+    }
+    function setAxis(id, field) {
+      if (!field || !lastChartColumns) return;
+      var idx = -1;
+      for (var i = 0; i < lastChartColumns.length; i++) {
+        if (lastChartColumns[i].field === field) { idx = i; break; }
+      }
+      var el = document.getElementById(id);
+      if (el && idx >= 0) el.value = String(idx);
+    }
+    setAxis('rpChartX', hint.x);
+    setAxis('rpChartY', hint.y);
+    if (t && t.onchange) t.onchange();  // draw() reads type/x/y from the selects
   }
 
   // ---- Pivot (drag-and-drop, multi-dimension) -------------------------------
@@ -564,7 +592,8 @@
     mountPivot: mountPivot,
     destroyChart: destroyChart,
     exportChartPng: exportChartPng,
-    getPivotExport: getPivotExport
+    getPivotExport: getPivotExport,
+    applyChartHint: applyChartHint
   };
 }());
 </script>

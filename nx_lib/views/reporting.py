@@ -313,8 +313,9 @@ def _validate_definition_for_user(definition):
         catalog_fields = {f["field"] for f in catalog}
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
+        to_validate = {k: v for k, v in definition.items() if k != "chartHint"}
         validate_report_definition(
-            definition, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            to_validate, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
         )
         return True, None
     except (ReportDefinitionError, PermissionError) as e:

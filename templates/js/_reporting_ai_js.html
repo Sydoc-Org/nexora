@@ -30,6 +30,7 @@
   var defSummary = document.getElementById("rpAiDefSummary");
   var defInvalid = document.getElementById("rpAiDefInvalid");
   var openBuilderBtn = document.getElementById("rpAiOpenBuilder");
+  var makeChartBtn = document.getElementById("rpAiMakeChart");
   var hintBuild = document.getElementById("rpAiHintBuild");
   var hintSql = document.getElementById("rpAiHintSql");
   var aiSurface = "build";                                          // "build" | "sql"
@@ -82,6 +83,7 @@
       defInvalid.hidden = res.data.valid !== false;
       openBuilderBtn.disabled = !lastDef || res.data.valid === false;
       defResult.hidden = false;
+      if (makeChartBtn) makeChartBtn.hidden = !(lastDef && lastDef.chartHint && res.data.valid !== false);
     }).catch(function () {
       askBtn.disabled = false;
       errorEl.textContent = "Network error"; errorEl.hidden = false;
@@ -181,6 +183,13 @@
   if (openBuilderBtn) openBuilderBtn.addEventListener("click", function () {
     if (!lastDef || !window.Reporting || !window.Reporting.applyDefinition) return;
     window.Reporting.applyDefinition(lastDef, lastDef.title || "AI report", null);
+    panel.hidden = true;
+    modeAi.classList.remove("active");
+  });
+
+  if (makeChartBtn) makeChartBtn.addEventListener("click", function () {
+    if (!lastDef || !window.Reporting || !window.Reporting.applyDefinitionAndChart) return;
+    window.Reporting.applyDefinitionAndChart(lastDef, lastDef.chartHint);
     panel.hidden = true;
     modeAi.classList.remove("active");
   });
