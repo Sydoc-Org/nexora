@@ -375,3 +375,10 @@ a.nx-card:hover, .nx-card--link:hover {
   content: ""; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
   width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--nx-brand-grad);
 }
+
+/* KPI stat icon chips (token-based so they adapt to dark mode) */
+.nx-stat__chip { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+.nx-stat__chip--indigo { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+.nx-stat__chip--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg); }
+.nx-stat__chip--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
+.nx-stat__chip--green  { background: var(--nx-l-green);  color: var(--nx-l-green-fg); }
