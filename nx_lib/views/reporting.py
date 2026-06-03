@@ -51,7 +51,8 @@ from ..extensions import limiter
 from ..i18n import get_locale
 from ..reporting.ai import AiError
 from ..reporting.ai import ask as ai_ask
-from ..reporting.ai_schema import serialize_schema
+from ..reporting.ai import ask_definition as ai_ask_definition
+from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
@@ -257,6 +258,82 @@ def _ai_schema_text():
     if truncated:
         current_app.logger.info("reporting.ai schema truncated for user=%s", session.get("userid"))
     return text
+
+
+def _accessible_curated_sources():
+    """Curated sources the caller can access, shaped for the AI catalog serializer."""
+    perms = set(session.get("permissions", []))
+    out = []
+    for s in accessible(_effective_sources(), perms):
+        if s.get("kind") != "curated":
+            continue
+        catalog = table_source_catalog(s.get("columns")) if s.get("columns") else []
+        if s.get("provider") in (None, "docprocessing"):
+            # docprocessing fields come from the locale catalog; fall back to columns
+            catalog = catalog or []
+        out.append(
+            {
+                "id": s.get("id"),
+                "label": s.get("label"),
+                "fields": catalog,
+                "processes": s.get("processes") or [],
+            }
+        )
+    return out
+
+
+def _ai_catalog_text():
+    """Bounded catalog text for Surface A from the caller's accessible curated sources."""
+    text, truncated = serialize_sources_catalog(_accessible_curated_sources())
+    if truncated:
+        current_app.logger.info("reporting.ai catalog truncated for user=%s", session.get("userid"))
+    return text
+
+
+def _validate_definition_for_user(definition):
+    """Validate a model-drafted definition against its source catalog (Surface-A gate).
+
+    Returns (ok, error_message). Reuses the exact validator + source resolution
+    that /api/reporting/run uses, so an accepted definition is guaranteed runnable.
+    """
+    if not isinstance(definition, dict):
+        return False, "definition must be an object"
+    try:
+        source = _get_effective_source(definition.get("source"))
+        if source is None or source.get("kind") != "curated":
+            return False, "unknown or unsupported source"
+        if not has_permission(source["permission"]):
+            return False, "not authorized for this source"
+        provider = source.get("provider") or "docprocessing"
+        if provider == "docprocessing":
+            allowed = _allowed_processes()
+            catalog = fetch_docprocessing_catalog(allowed, str(get_locale()))
+        else:
+            catalog = table_source_catalog(source.get("columns"))
+        catalog_fields = {f["field"] for f in catalog}
+        filterable = {f["field"] for f in catalog if f["filterable"]}
+        sortable = {f["field"] for f in catalog if f["sortable"]}
+        validate_report_definition(
+            definition, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+        )
+        return True, None
+    except (ReportDefinitionError, PermissionError) as e:
+        return False, str(e) or e.__class__.__name__
+    except Exception as e:  # resolution failure degrades to "invalid", not 500
+        current_app.logger.warning(f"reporting.ai build validation error: {e}")
+        return False, "could not validate the drafted report"
+
+
+def _normalize_definition(definition):
+    """Fill the full builder shape so the frontend applyDefinition() consumes it as-is."""
+    definition.setdefault("groupBy", [])
+    definition.setdefault("subtitle", None)
+    definition.setdefault("filters", [])
+    definition.setdefault("sort", [])
+    definition.setdefault("scope", {"clients": [], "processes": []})
+    definition["sql"] = None
+    definition["sqlTarget"] = None
+    return definition
 
 
 def _audit_ai(
@@ -604,6 +681,7 @@ def reporting():
         fullname=session.get("fullname"),
         pageV=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
+        ai_sql_enabled=has_permission("reporting.ai.sql"),
     )
 
 
@@ -834,6 +912,116 @@ def api_ai_ask():
             "valid": result.valid,
             "target": "statistics",  # default editor target; user can switch
             "model": result.model,
+        }
+    )
+
+
+@require_permission("reporting.ai.use")
+@limiter.limit("10 per minute")
+def api_ai_build():
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    question = (body.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": _("A question is required")}), 400
+
+    cfg = _ai_config()
+    if cfg.get("provider") == "none" or not cfg.get("api_key"):
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+
+    userid, username = session.get("userid"), session.get("username")
+    limit = _ai_daily_limit()
+    if limit > 0 and _ai_asks_today(userid) >= limit:
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "definition",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "blocked",
+            0,
+        )
+        return jsonify(
+            {
+                "error": _(
+                    "You have reached the daily AI request limit (%(limit)s). "
+                    "Please try again tomorrow.",
+                    limit=limit,
+                )
+            }
+        ), 429
+
+    catalog_text = _ai_catalog_text()
+    start = time.monotonic()
+    prior_error = None
+    result = None
+    valid = False
+    for _attempt in range(2):  # initial draft + one bounded self-repair retry
+        try:
+            result = ai_ask_definition(
+                question,
+                catalog_text,
+                provider=cfg["provider"],
+                model=cfg.get("model"),
+                api_key=cfg["api_key"],
+                endpoint=cfg.get("endpoint"),
+                deployment=cfg.get("deployment"),
+                api_version=cfg.get("api_version", "2024-10-21"),
+                url=cfg.get("url"),
+                prior_error=prior_error,
+            )
+        except AiError as e:
+            current_app.logger.warning(f"/api/reporting/ai/build config error: {e}")
+            return jsonify({"error": _("The AI assistant is not configured")}), 503
+        except Exception as e:
+            current_app.logger.error(f"/api/reporting/ai/build provider error: {e}")
+            _audit_ai(
+                userid,
+                username,
+                question,
+                "definition",
+                None,
+                cfg.get("provider"),
+                cfg.get("model"),
+                None,
+                None,
+                "na",
+                "error",
+                int((time.monotonic() - start) * 1000),
+            )
+            return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        valid, prior_error = _validate_definition_for_user(result.definition)
+        if valid:
+            break
+
+    duration_ms = int((time.monotonic() - start) * 1000)
+    definition = _normalize_definition(result.definition) if result.definition else None
+    _audit_ai(
+        userid,
+        username,
+        question,
+        "definition",
+        json.dumps(definition) if definition else None,
+        result.provider,
+        result.model,
+        result.tokens_in,
+        result.tokens_out,
+        "valid" if valid else "invalid",
+        "ok",
+        duration_ms,
+    )
+    return jsonify(
+        {
+            "definition": definition,
+            "explanation": result.explanation,
+            "valid": valid,
+            "error": None if valid else (prior_error or _("Could not build a valid report")),
         }
     )
 
@@ -1613,6 +1801,12 @@ def register_routes(app):
         "/api/reporting/ai/ask",
         endpoint="reporting_ai_ask",
         view_func=api_ai_ask,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/ai/build",
+        endpoint="reporting_ai_build",
+        view_func=api_ai_build,
         methods=["POST"],
     )
     app.add_url_rule(

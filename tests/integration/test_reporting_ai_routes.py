@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from nx_lib.reporting.ai import AiResult
+from nx_lib.reporting.ai import AiDefinitionResult, AiResult
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
 # inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
@@ -159,3 +159,95 @@ def test_ai_ask_unlimited_when_limit_zero(user_client):
     assert resp.status_code == 200
     ask.assert_called_once()
     count.assert_not_called()  # cap disabled -> no usage query
+
+
+def _def_result(source="gen_pdqm"):
+    return AiDefinitionResult(
+        definition={
+            "schemaVersion": 1,
+            "visualization": "table",
+            "source": source,
+            "title": "T",
+            "columns": [{"field": "Outcome"}],
+            "filters": [],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 5000,
+        },
+        explanation="by outcome",
+        model="m",
+        provider="anthropic",
+        tokens_in=10,
+        tokens_out=8,
+    )
+
+
+def test_ai_build_requires_use_permission(user_client):
+    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "hi"})
+    assert resp.status_code == 403
+
+
+def test_ai_build_does_not_require_sql_permission(user_client):
+    # Surface A: reporting.ai.use is enough; reporting.ai.sql is NOT consulted.
+    def _has(code):
+        return code != "reporting.ai.sql"
+
+    with (
+        patch("nx_lib.security.has_permission", side_effect=_has),
+        patch("nx_lib.views.reporting.has_permission", side_effect=_has),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()),
+        patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None)),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "pdqm"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["valid"] is True
+    assert data["definition"]["source"] == "gen_pdqm"
+    assert data["definition"]["groupBy"] == []  # normalized to builder shape
+    assert "rows" not in data  # schema-only egress
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "definition"  # Surface positional arg
+
+
+def test_ai_build_retries_once_then_returns_invalid(user_client):
+    # First draft fails validation; route retries once; still invalid -> valid:false (200).
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()) as draft,
+        patch(
+            "nx_lib.views.reporting._validate_definition_for_user",
+            return_value=(False, "unknown column field: 'Nope'"),
+        ),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "x"})
+    assert resp.status_code == 200
+    assert resp.get_json()["valid"] is False
+    assert draft.call_count == 2  # initial + one self-repair retry
+
+
+def test_ai_build_503_when_provider_unconfigured(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config", return_value={"provider": "none", "api_key": None}
+        ),
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "hi"})
+    assert resp.status_code == 503
