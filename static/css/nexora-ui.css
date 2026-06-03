@@ -1,0 +1,390 @@
+/* ============================================================
+   NEXORA UI — app-wide design system
+   "GitHub-structured, professional, with a signature."
+
+   Promotes the admin Phase-1 token system (admin-tokens.css) to
+   an app-wide layer. Business + Generali pages opt in via
+   <body class="nx-app">. Loaded globally from _header.html, so
+   every page can use the --nx-* tokens and .nx-* components.
+
+   Layers:
+     1. Tokens        (:root  +  html.dark)
+     2. Page shell    (.nx-app, .nx-main, page header)
+     3. Components     (card, table, badge/label, button, input,
+                        filter bar, empty state, segmented tabs)
+     4. Signature      (mono metadata, brand gradient moments,
+                        motion, focus ring)
+   ============================================================ */
+
+:root {
+  /* — Surfaces — */
+  --nx-page:        #f9fafb;
+  --nx-card:        #ffffff;
+  --nx-alt:         #f9fafb;   /* table head, row hover, insets */
+  --nx-sunken:      #f3f4f6;
+
+  /* — Borders — */
+  --nx-border:        #e5e7eb;
+  --nx-border-strong: #d1d5db;
+  --nx-divider:       #f3f4f6;
+
+  /* — Text — */
+  --nx-text:      #1f2937;
+  --nx-text-sec:  #6b7280;
+  --nx-text-meta: #9ca3af;
+
+  /* — Brand: indigo spine + violet spark (the signature) — */
+  --nx-accent:        #4f46e5;   /* indigo-600 */
+  --nx-accent-hover:  #4338ca;   /* indigo-700 */
+  --nx-accent-soft:   rgba(79,70,229,0.12);
+  --nx-accent-tint:   #eef2ff;   /* indigo-50 */
+  --nx-violet:        #7c3aed;   /* violet-600 */
+  --nx-brand-grad:    linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+
+  /* — Status — */
+  --nx-success: #059669;
+  --nx-warning: #d97706;
+  --nx-danger:  #dc2626;
+
+  /* — Label backgrounds (soft pastel + readable fg) — */
+  --nx-l-indigo:    #eef2ff;  --nx-l-indigo-fg: #4338ca;
+  --nx-l-green:     #d1fae5;  --nx-l-green-fg:  #065f46;
+  --nx-l-amber:     #fef3c7;  --nx-l-amber-fg:  #92400e;
+  --nx-l-red:       #fee2e2;  --nx-l-red-fg:    #991b1b;
+  --nx-l-gray:      #f3f4f6;  --nx-l-gray-fg:   #4b5563;
+  --nx-l-blue:      #dbeafe;  --nx-l-blue-fg:   #1e40af;
+
+  /* — Geometry & motion — */
+  --nx-radius:      10px;
+  --nx-radius-sm:   7px;
+  --nx-radius-pill: 999px;
+  --nx-shadow:      0 1px 2px rgba(16,24,40,0.04);
+  --nx-shadow-pop:  0 12px 32px rgba(16,24,40,0.12), 0 0 0 1px rgba(16,24,40,0.04);
+  --nx-ease:        cubic-bezier(.4, 0, .2, 1);
+  --nx-dur:         150ms;
+
+  /* — Type — */
+  --nx-font: 'Inter', system-ui, -apple-system, sans-serif;
+  --nx-mono: ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace;
+}
+
+html.dark {
+  --nx-page:        #0f172a;
+  --nx-card:        #1e293b;
+  --nx-alt:         #273449;
+  --nx-sunken:      #273449;
+
+  --nx-border:        #334155;
+  --nx-border-strong: #475569;
+  --nx-divider:       #273449;
+
+  --nx-text:      #e2e8f0;
+  --nx-text-sec:  #94a3b8;
+  --nx-text-meta: #64748b;
+
+  --nx-accent:        #818cf8;
+  --nx-accent-hover:  #a5b4fc;
+  --nx-accent-soft:   rgba(129,140,248,0.20);
+  --nx-accent-tint:   #312e81;
+  --nx-violet:        #a78bfa;
+  --nx-brand-grad:    linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+
+  --nx-success: #34d399;
+  --nx-warning: #fbbf24;
+  --nx-danger:  #f87171;
+
+  --nx-l-indigo: #312e81; --nx-l-indigo-fg: #c7d2fe;
+  --nx-l-green:  #064e3b; --nx-l-green-fg:  #6ee7b7;
+  --nx-l-amber:  #78350f; --nx-l-amber-fg:  #fcd34d;
+  --nx-l-red:    #7f1d1d; --nx-l-red-fg:    #fca5a5;
+  --nx-l-gray:   #334155; --nx-l-gray-fg:   #cbd5e1;
+  --nx-l-blue:   #1e3a8a; --nx-l-blue-fg:   #bfdbfe;
+
+  --nx-shadow:     0 1px 2px rgba(0,0,0,0.4);
+  --nx-shadow-pop: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* ============================================================
+   2. PAGE SHELL
+   ============================================================ */
+body.nx-app {
+  background: var(--nx-page);
+  color: var(--nx-text);
+  font-family: var(--nx-font);
+}
+body.nx-app .nx-main {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 28px 40px;
+  box-sizing: border-box;
+}
+
+/* Page header: title + subtitle on the left, actions on the right,
+   with a hair-thin accent keyline under the title block. */
+.nx-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.nx-page-head__main { min-width: 0; }
+.nx-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--nx-text);
+  margin: 0;
+  line-height: 1.2;
+}
+.nx-subtitle {
+  font-size: 13px;
+  color: var(--nx-text-sec);
+  margin: 4px 0 0;
+}
+.nx-page-head__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.nx-section {
+  font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+  color: var(--nx-text); margin: 0;
+}
+.nx-meta {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--nx-text-meta);
+}
+
+/* ============================================================
+   3. COMPONENTS
+   ============================================================ */
+
+/* Cards */
+.nx-card {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  padding: 16px;
+}
+.nx-card--pad { padding: 20px 22px; }
+a.nx-card, .nx-card--link {
+  display: block; text-decoration: none; color: inherit;
+  transition: border-color var(--nx-dur) var(--nx-ease),
+              box-shadow var(--nx-dur) var(--nx-ease),
+              transform var(--nx-dur) var(--nx-ease);
+}
+a.nx-card:hover, .nx-card--link:hover {
+  border-color: var(--nx-border-strong);
+  box-shadow: var(--nx-shadow);
+  transform: translateY(-1px);
+}
+
+/* Stat / KPI card */
+.nx-stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; }
+.nx-stat__value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 600; letter-spacing: -1px; line-height: 1; color: var(--nx-text); }
+.nx-stat__icon  { font-size: 18px; color: var(--nx-text-meta); opacity: .55; transition: color var(--nx-dur) var(--nx-ease), opacity var(--nx-dur) var(--nx-ease); }
+.nx-card--link:hover .nx-stat__icon { opacity: 1; color: var(--nx-accent); }
+
+/* Buttons */
+.nx-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--nx-radius-sm);
+  font-family: var(--nx-font); font-size: 13px; font-weight: 500;
+  border: 1px solid transparent; cursor: pointer; text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--nx-dur) var(--nx-ease),
+              border-color var(--nx-dur) var(--nx-ease),
+              box-shadow var(--nx-dur) var(--nx-ease);
+}
+.nx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
+/* signature: primary CTA carries the brand gradient */
+.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px rgba(79,70,229,0.45); }
+.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px rgba(79,70,229,0.5); }
+.nx-btn--secondary { background: var(--nx-card); color: var(--nx-text); border-color: var(--nx-border-strong); }
+.nx-btn--secondary:hover { background: var(--nx-alt); }
+.nx-btn--ghost { background: transparent; color: var(--nx-text-sec); }
+.nx-btn--ghost:hover { background: var(--nx-alt); color: var(--nx-text); }
+.nx-btn--danger { background: var(--nx-danger); color: #fff; }
+.nx-btn--sm { padding: 5px 10px; font-size: 12px; }
+
+/* Inputs / selects */
+.nx-input, .nx-select {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  padding: 8px 12px;
+  font-family: var(--nx-font); font-size: 13px;
+  color: var(--nx-text);
+  width: 100%; box-sizing: border-box;
+  transition: border-color var(--nx-dur) var(--nx-ease), box-shadow var(--nx-dur) var(--nx-ease);
+}
+.nx-input::placeholder { color: var(--nx-text-meta); }
+.nx-input:focus, .nx-select:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px var(--nx-accent-soft); }
+.nx-input:disabled, .nx-select:disabled { background: var(--nx-sunken); color: var(--nx-text-meta); cursor: not-allowed; }
+.nx-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nx-field > label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); }
+.nx-input-icon { position: relative; }
+.nx-input-icon > i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
+.nx-input-icon > .nx-input { padding-left: 32px; }
+/* Tailwind v4 utilities live in a cascade layer that loses to our
+   unlayered component rules, so icon-padding utilities (pl-10/pr-10)
+   on .nx-input/.nx-select would be silently ignored. Re-assert the
+   handful the pages depend on, at component+utility specificity. */
+.nx-input.pl-10, .nx-select.pl-10 { padding-left: 2.5rem; }
+.nx-input.pr-10, .nx-select.pr-10 { padding-right: 2.5rem; }
+.nx-select.pr-8 { padding-right: 2rem; }
+.nx-select.appearance-none { -webkit-appearance: none; appearance: none; }
+
+/* Filter bar */
+.nx-filter {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.nx-filter__grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+/* Labels (GitHub-style: dot + text, soft) */
+.nx-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 9px; border-radius: var(--nx-radius-pill);
+  font-size: 11.5px; font-weight: 500; line-height: 1.6;
+  background: var(--nx-l-gray); color: var(--nx-l-gray-fg);
+}
+.nx-label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; flex-shrink: 0; }
+.nx-label--nodot::before { display: none; }
+.nx-label--indigo { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+.nx-label--green  { background: var(--nx-l-green);  color: var(--nx-l-green-fg);  }
+.nx-label--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg);  }
+.nx-label--red    { background: var(--nx-l-red);    color: var(--nx-l-red-fg);    }
+.nx-label--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg);   }
+.nx-label--gray   { background: var(--nx-l-gray);   color: var(--nx-l-gray-fg);   }
+
+/* Tables — calm, dense, GitHub-like */
+.nx-table-wrap { background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); overflow: hidden; }
+.nx-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--nx-text); }
+.nx-table thead th {
+  background: var(--nx-alt);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--nx-text-meta);
+  padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--nx-border);
+  white-space: nowrap;
+}
+.nx-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--nx-divider); vertical-align: middle; }
+.nx-table tbody tr:last-child td { border-bottom: none; }
+.nx-table tbody tr.is-clickable { cursor: pointer; }
+.nx-table tbody tr.is-clickable:hover { background: var(--nx-alt); }
+.nx-table .nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.nx-table .align-right { text-align: right; }
+.nx-table .align-center { text-align: center; }
+
+/* Mono metadata helper (IDs, dates, counts) */
+.nx-mono { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 0.92em; }
+.nx-chip-count { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--nx-accent); }
+
+/* Empty state — a little personality */
+.nx-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 56px 24px; color: var(--nx-text-meta);
+}
+.nx-empty__art {
+  width: 60px; height: 60px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #fff;
+  background: var(--nx-brand-grad);
+  box-shadow: 0 10px 28px -8px rgba(79,70,229,0.55);
+  margin-bottom: 18px;
+  position: relative;
+}
+.nx-empty__art::after {
+  content: ""; position: absolute; inset: -7px; border-radius: 22px;
+  border: 1px dashed var(--nx-accent); opacity: .35;
+}
+.nx-empty__title { font-size: 15px; font-weight: 600; color: var(--nx-text); margin: 0 0 4px; }
+.nx-empty__sub { font-size: 13px; color: var(--nx-text-sec); margin: 0; max-width: 360px; }
+
+/* Segmented tabs (underline style, GitHub-ish) */
+.nx-tabs { display: flex; gap: 24px; list-style: none; margin: 0 0 20px; padding: 0; border-bottom: 1px solid var(--nx-border); }
+.nx-tab { padding: 10px 0; border: none; background: transparent; font-family: var(--nx-font); font-size: 13px; font-weight: 500; color: var(--nx-text-sec); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.nx-tab:hover { color: var(--nx-text); }
+.nx-tab.is-active { color: var(--nx-text); border-bottom-color: var(--nx-accent); font-weight: 600; }
+
+/* Flash messages */
+.nx-flash { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--nx-radius-sm); border: 1px solid; font-size: 13px; margin-bottom: 16px; }
+.nx-flash--success { background: var(--nx-l-green); border-color: transparent; color: var(--nx-l-green-fg); }
+.nx-flash--error   { background: var(--nx-l-red);   border-color: transparent; color: var(--nx-l-red-fg); }
+
+/* ============================================================
+   4. SIGNATURE — brand-gradient text + on-load motion
+   ============================================================ */
+.nx-grad-text {
+  background: var(--nx-brand-grad);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+@keyframes nx-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.nx-rise { animation: nx-rise 0.32s var(--nx-ease) both; }
+.nx-rise-2 { animation: nx-rise 0.32s var(--nx-ease) 0.05s both; }
+.nx-rise-3 { animation: nx-rise 0.32s var(--nx-ease) 0.10s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-rise, .nx-rise-2, .nx-rise-3 { animation: none; }
+  body.nx-app *, body.nx-app *::after, body.nx-app *::before { transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================
+   5. CREATIVE SIGNATURE (amplified) — one brand gradient,
+   used deliberately across a few moments so it reads as
+   identity rather than decoration.
+   ============================================================ */
+
+/* Page-title icon chip */
+.nx-page-head__title { display: flex; align-items: center; gap: 14px; }
+.nx-page-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; background: var(--nx-brand-grad);
+  box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
+}
+
+/* Designed count pill with gradient numerals */
+.nx-count-pill {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 14px; border-radius: var(--nx-radius-pill);
+  border: 1px solid var(--nx-border); background: var(--nx-card);
+}
+.nx-count-pill__label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--nx-text-meta); }
+.nx-count-pill__value {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
+  font-size: 16px; font-weight: 700; line-height: 1;
+  background: var(--nx-brand-grad); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* Branded row hover: a subtle accent rail slides in */
+.nx-table tbody tr:not(.details-row):hover { background: var(--nx-alt); box-shadow: inset 2px 0 0 0 var(--nx-accent); }
+
+/* Gradient rail on the active sidebar item — a brand cue on every page */
+.sidebar-nav-item { position: relative; }
+.sidebar-nav-item--active::before {
+  content: ""; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--nx-brand-grad);
+}
+
+/* KPI stat icon chips (token-based so they adapt to dark mode) */
+.nx-stat__chip { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+.nx-stat__chip--indigo { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+.nx-stat__chip--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg); }
+.nx-stat__chip--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
+.nx-stat__chip--green  { background: var(--nx-l-green);  color: var(--nx-l-green-fg); }
+
+/* Bare card surface (no padding) — for custom layouts like chat panels */
+.nx-surface { background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); }
+
+/* Chat: own-message bubble carries the brand gradient */
+.nx-bubble-me { background: var(--nx-brand-grad); }

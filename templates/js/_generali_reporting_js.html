@@ -32,9 +32,9 @@
 
     function ontimeBadge(ontime) {
         if (ontime) {
-            return '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">&#10003; {{ _("On Time") }}</span>';
+            return '<span class="nx-label nx-label--green nx-label--nodot">&#10003; {{ _("On Time") }}</span>';
         }
-        return '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-600">&#10007; {{ _("Late") }}</span>';
+        return '<span class="nx-label nx-label--red nx-label--nodot">&#10007; {{ _("Late") }}</span>';
     }
 
     function formatDate(dateStr) {
@@ -170,7 +170,11 @@
         tbody.innerHTML = '';
 
         if (!records.length) {
-            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-gray-500">{{ _("No records found for the selected criteria.") }}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}">
+                <div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div>
+                <p class="nx-empty__title">{{ _("No records found") }}</p>
+                <p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div>
+            </td></tr>`;
             return;
         }
 
@@ -186,7 +190,7 @@
 
             const detailsCell = isArchive
                 ? `<td class="px-4 py-3 text-center">
-                    <button class="view-details-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition" data-testid="generali-reporting-view-details-${r.id}">
+                    <button class="view-details-btn nx-btn nx-btn--ghost" data-testid="generali-reporting-view-details-${r.id}">
                         <i class="fas fa-eye mr-1"></i>{{ _("Details") }}
                     </button>
                    </td>`
@@ -201,13 +205,12 @@
             const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
 
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-gray-50 transition-colors';
             tr.innerHTML = `
-                <td class="px-4 py-3 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${formatDate(r.reportForDate)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-700 whitespace-nowrap">${r.fullname}</td>
-                <td class="px-4 py-3 text-sm text-gray-700">${catLabel}</td>
+                <td class="px-4 py-3 text-center whitespace-nowrap"><span class="nx-mono">${formatDate(r.reportForDate)}</span></td>
+                <td class="px-4 py-3 text-center text-sm whitespace-nowrap">${r.fullname}</td>
+                <td class="px-4 py-3 text-sm">${catLabel}</td>
                 <td class="px-4 py-3 text-center">${ontimeBadge(r.ontime)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 whitespace-nowrap">${formatDateTime(r.reportTimeStamp)}</td>
+                <td class="px-4 py-3 text-center text-sm whitespace-nowrap"><span class="nx-mono" style="color:var(--nx-text-sec)">${formatDateTime(r.reportTimeStamp)}</span></td>
                 ${actionsCell}
             `;
             tbody.appendChild(tr);
@@ -249,8 +252,7 @@
             const el = document.createElement('button');
             el.textContent = label;
             el.disabled = disabled;
-            el.className = `px-3 py-1.5 rounded-lg text-sm font-semibold border transition
-                ${disabled ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`;
+            el.className = 'nx-btn nx-btn--secondary';
             if (!disabled) el.addEventListener('click', () => fetchRecords(p));
             return el;
         };
@@ -258,7 +260,8 @@
         ctrl.appendChild(btn('‹ ' + {{ _("Prev") | tojson }}, page - 1, page <= 1));
 
         const pageInfo = document.createElement('span');
-        pageInfo.className = 'px-3 py-1.5 text-sm text-gray-500 font-medium';
+        pageInfo.className = 'px-3 py-1.5 text-sm font-medium nx-mono';
+        pageInfo.style.color = 'var(--nx-text-sec)';
         pageInfo.textContent = `{{ _("Page") }} ${page} / ${total_pages}`;
         ctrl.appendChild(pageInfo);
 
@@ -289,19 +292,22 @@
         return dateVal < getToday();
     }
 
+    const ONTIME_BTN_CLS = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition';
+    function ontimeBtnStyle(isOnTime) {
+        return isOnTime
+            ? 'background:var(--nx-l-green);color:var(--nx-l-green-fg);border-color:transparent;'
+            : 'background:var(--nx-l-red);color:var(--nx-l-red-fg);border-color:transparent;';
+    }
+
     function ontimeButtonHtml(ontime, disabled) {
-        const cls = ontime
-            ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
-            : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
         const label = ontime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
-        return `<button type="button" class="${cls}" data-ontime="${ontime}" ${disabled ? 'disabled' : ''} data-testid="generali-reporting-ontime-${ontime}">${label}</button>`;
+        return `<button type="button" class="${ONTIME_BTN_CLS}" style="${ontimeBtnStyle(ontime)}" data-ontime="${ontime}" ${disabled ? 'disabled' : ''} data-testid="generali-reporting-ontime-${ontime}">${label}</button>`;
     }
 
     function refreshOntimeBtn(btn, isOnTime) {
         btn.dataset.ontime = String(isOnTime);
-        btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition ' +
-            (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
-                      : 'border-red-200 text-red-600 bg-red-50');
+        btn.className = ONTIME_BTN_CLS;
+        btn.style.cssText = ontimeBtnStyle(isOnTime);
         btn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
     }
 
@@ -325,7 +331,7 @@
         row.innerHTML = `
             <div class="flex items-center gap-2">
                 <div class="relative flex-1 min-w-0">
-                    <select class="entry-category block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
+                    <select class="entry-category nx-select h-10 appearance-none pr-8">
                         <option value="">{{ _("Select category…") }}</option>
                         ${catOptions}
                     </select>
@@ -338,20 +344,20 @@
                     <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
-            <div class="archive-details hidden mt-2 rounded-lg bg-indigo-50 border border-indigo-100 p-3 space-y-2">
+            <div class="archive-details hidden mt-2 rounded-lg p-3 space-y-2" style="background:var(--nx-l-indigo);border:1px solid var(--nx-border);">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="request-time-label block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</label>
-                        <input type="text" class="request-time-input block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd hh:mm:ss" data-testid="generali-reporting-request-time-input" />
+                        <label class="request-time-label block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Email Received") }}</label>
+                        <input type="text" class="request-time-input nx-input h-9" placeholder="yyyy-mm-dd hh:mm:ss" data-testid="generali-reporting-request-time-input" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</label>
-                        <input type="text" class="delivery-input block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd hh:mm:ss" data-testid="generali-reporting-delivery-input" />
+                        <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Delivery") }}</label>
+                        <input type="text" class="delivery-input nx-input h-9" placeholder="yyyy-mm-dd hh:mm:ss" data-testid="generali-reporting-delivery-input" />
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</label>
-                    <div class="latest-delivery-display h-9 flex items-center px-3 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 font-medium" data-value="">—</div>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Latest Delivery") }}</label>
+                    <div class="latest-delivery-display nx-input h-9 flex items-center" style="color:var(--nx-text-sec)" data-value="">—</div>
                 </div>
             </div>
         `;
@@ -359,11 +365,7 @@
         row.querySelector('.entry-ontime-btn').addEventListener('click', function () {
             if (this.disabled) return;
             const newVal = this.dataset.ontime !== 'true';
-            this.dataset.ontime = String(newVal);
-            this.className = newVal
-                ? 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50'
-                : 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
-            this.innerHTML = newVal ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
+            refreshOntimeBtn(this, newVal);
         });
 
         row.querySelector('.entry-remove-btn').addEventListener('click', function () {
@@ -468,13 +470,14 @@
     // ----------------------------- date group ----------------------------- //
     function buildDateGroup(date) {
         const group = document.createElement('div');
-        group.className = 'date-group border border-gray-200 rounded-xl p-3 space-y-2';
+        group.className = 'date-group rounded-xl p-3 space-y-2';
+        group.style.border = '1px solid var(--nx-border)';
 
         group.innerHTML = `
             <div class="flex items-center gap-2">
                 <div class="flex-1">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Report Date") }}</label>
-                    <input type="text" class="group-date block w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="yyyy-mm-dd" data-testid="generali-reporting-group-date" />
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Report Date") }}</label>
+                    <input type="text" class="group-date nx-input h-10" placeholder="yyyy-mm-dd" data-testid="generali-reporting-group-date" />
                 </div>
                 <button type="button" class="group-remove-btn flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition" data-testid="generali-reporting-group-remove">
                     <i class="fas fa-times text-sm"></i>
@@ -496,9 +499,7 @@
                 if (ARCHIVE_CATS.includes(row.querySelector('.entry-category').value)) return;
                 const btn = row.querySelector('.entry-ontime-btn');
                 if (isPast) {
-                    btn.dataset.ontime = 'false';
-                    btn.className = 'entry-ontime-btn flex-shrink-0 h-10 px-3 rounded-lg text-xs font-semibold border transition border-red-200 text-red-600 bg-red-50';
-                    btn.innerHTML = '&#10007; ' + {{ _("Late") | tojson }};
+                    refreshOntimeBtn(btn, false);
                     btn.disabled = true;
                 } else {
                     btn.disabled = false;
@@ -698,27 +699,24 @@
         autoSetEditOntime();
     }
 
+    function setEditOntimeBtn(isOnTime) {
+        editOntimeBtn.dataset.ontime = String(isOnTime);
+        editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition';
+        editOntimeBtn.style.cssText = ontimeBtnStyle(isOnTime);
+        editOntimeBtn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
+    }
+
     function autoSetEditOntime() {
         const latest   = editLatestDel.dataset.value;
         const delivery = document.getElementById('editDelivery').value;
         if (latest && delivery) {
-            const isOnTime = delivery <= latest;
-            editOntimeBtn.dataset.ontime = String(isOnTime);
-            editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
-                (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
-                          : 'border-red-200 text-red-600 bg-red-50');
-            editOntimeBtn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
+            setEditOntimeBtn(delivery <= latest);
         }
     }
 
     if (editOntimeBtn) {
         editOntimeBtn.addEventListener('click', function () {
-            const nxt = this.dataset.ontime !== 'true';
-            this.dataset.ontime = String(nxt);
-            this.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
-                (nxt ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
-                     : 'border-red-200 text-red-600 bg-red-50');
-            this.innerHTML = nxt ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
+            setEditOntimeBtn(this.dataset.ontime !== 'true');
         });
     }
 
@@ -729,12 +727,7 @@
 
         fpEditDate.setDate(r.reportForDate, true);
 
-        const isOnTime = r.ontime;
-        editOntimeBtn.dataset.ontime = String(isOnTime);
-        editOntimeBtn.className = 'h-10 px-4 rounded-lg text-xs font-semibold border transition ' +
-            (isOnTime ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
-                      : 'border-red-200 text-red-600 bg-red-50');
-        editOntimeBtn.innerHTML = isOnTime ? '&#10003; ' + {{ _("On Time") | tojson }} : '&#10007; ' + {{ _("Late") | tojson }};
+        setEditOntimeBtn(r.ontime);
 
         const isArchive = ARCHIVE_CATS.includes(r.category);
         if (isArchive) {

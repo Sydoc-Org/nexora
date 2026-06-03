@@ -13,54 +13,59 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'generali_pdqm' %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto px-3 py-4 sm:p-6">
+  <main class="nx-main">
 
     <!-- Page Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali PDQM") }}</h2>
-        <p class="text-gray-500 font-medium">{{ _("Daily document quantity tracking by category") }}</p>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-file-lines"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Generali PDQM") }}</h1>
+            <p class="nx-subtitle">{{ _("Daily document quantity tracking by category") }}</p>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="nx-page-head__actions flex-wrap">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-pdqm-add-entry">
+          class="nx-btn nx-btn--primary" data-testid="generali-pdqm-add-entry">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Entry") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn" onclick="exportToExcel()"
-          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200" data-testid="generali-pdqm-export-excel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-export-excel">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_pdqm_monthreport') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-pdqm-month-report-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-month-report-link">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
       </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+    <div class="nx-filter nx-rise-2">
       <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
         <div class="w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-filter-start-date" />
+            class="nx-input h-11" data-testid="generali-pdqm-filter-start-date" />
         </div>
         <div class="w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-filter-end-date" />
+            class="nx-input h-11" data-testid="generali-pdqm-filter-end-date" />
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Parent Category") }}</label>
           <div class="relative">
             <select id="filterParentCategory"
-              class="block w-full sm:min-w-40 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-filter-parent-category">
+              class="nx-select sm:min-w-40 h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-parent-category">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -72,7 +77,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Parent Sub Category") }}</label>
           <div class="relative">
             <select id="filterParentSubCategory"
-              class="block w-full sm:min-w-40 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-filter-parent-sub-category">
+              class="nx-select sm:min-w-40 h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-parent-sub-category">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -84,7 +89,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Sub Category") }}</label>
           <div class="relative">
             <select id="filterSubCategory"
-              class="block w-full sm:min-w-40 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-filter-sub-category">
+              class="nx-select sm:min-w-40 h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-sub-category">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -96,7 +101,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="block w-full sm:min-w-40 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-filter-organization">
+              class="nx-select sm:min-w-40 h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-organization">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -108,7 +113,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-filter-user">
+              class="nx-select sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-user">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -118,11 +123,11 @@
         </div>
         <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
           <button id="applyFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-pdqm-apply-filter">
+            class="nx-btn nx-btn--primary flex-1 sm:flex-none h-11" data-testid="generali-pdqm-apply-filter">
             <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
           </button>
           <button id="resetFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-pdqm-reset-filter">
+            class="nx-btn nx-btn--secondary flex-1 sm:flex-none h-11" data-testid="generali-pdqm-reset-filter">
             {{ _("Reset") }}
           </button>
         </div>
@@ -132,11 +137,11 @@
     <!-- Total Quantity Summary -->
     <div class="mb-4 flex items-center gap-2">
       <span class="text-sm text-gray-500 font-medium">{{ _("Total documents (filtered):") }}</span>
-      <span id="totalQuantityDisplay" class="text-sm font-bold text-indigo-600">—</span>
+      <span id="totalQuantityDisplay" class="nx-chip-count">—</span>
     </div>
 
     <!-- Table -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    <div class="nx-table-wrap nx-rise-3"
          id="pdqmTable"
          data-can-edit="{{ can_edit | tojson }}"
          data-can-edit-transorg="{{ can_edit_transorg | tojson }}"
@@ -148,38 +153,22 @@
          data-can-add-for-org="{{ can_add_for_org | tojson }}"
          data-can-add-transorg="{{ can_add_transorg | tojson }}">
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+        <table class="nx-table">
+          <thead>
             <tr>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Date") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("User") }}</span>
-              </th>
-              <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Parent Category") }}</span>
-              </th>
-              <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Parent Sub Category") }}</span>
-              </th>
-              <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Sub Category") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Quantity") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Recorded At") }}</span>
-              </th>
+              <th class="align-center">{{ _("Date") }}</th>
+              <th class="align-center">{{ _("User") }}</th>
+              <th>{{ _("Parent Category") }}</th>
+              <th>{{ _("Parent Sub Category") }}</th>
+              <th>{{ _("Sub Category") }}</th>
+              <th class="align-center">{{ _("Quantity") }}</th>
+              <th class="align-center">{{ _("Recorded At") }}</th>
               {% if can_edit or can_delete %}
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Actions") }}</span>
-              </th>
+              <th class="align-center">{{ _("Actions") }}</th>
               {% endif %}
             </tr>
           </thead>
-          <tbody id="pdqmTbody" class="bg-white divide-y divide-gray-200">
+          <tbody id="pdqmTbody">
             <tr>
               <td colspan="{{ 8 if (can_edit or can_delete) else 7 }}" class="text-center py-16">
                 <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
@@ -207,21 +196,21 @@
   <!-- Add Modal -->
   {% if can_add %}
   <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-lg font-bold text-gray-900">{{ _("Add Entry") }}</h3>
-        <button id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-pdqm-add-close">
+    <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh] p-0">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-border)">
+        <h3 class="nx-section">{{ _("Add Entry") }}</h3>
+        <button id="closeAddModalBtn" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="generali-pdqm-add-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-      <div id="addModalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
+      <div id="addModalError" class="hidden mx-6 mt-4 flex-shrink-0 nx-flash nx-flash--error" data-testid="generali-pdqm-add-error"></div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         {% if can_add_for_org or can_add_transorg %}
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("User") }}</label>
           <div class="relative">
             <select id="addUserId"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-add-user">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-add-user">
               <option value="">{{ _("Myself") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -233,13 +222,13 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-add-date" />
+            class="nx-input h-9" data-testid="generali-pdqm-add-date" />
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Category") }}</label>
           <div class="relative">
             <select id="addParentCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-add-parent-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-add-parent-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -251,7 +240,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Sub Category") }}</label>
           <div class="relative">
             <select id="addParentSubCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-add-parent-sub-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-add-parent-sub-category">
               <option value="">{{ _("Select parent first") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -263,7 +252,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Sub Category") }}</label>
           <div class="relative">
             <select id="addSubCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-add-sub-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-add-sub-category">
               <option value="">{{ _("Select parent sub first") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -274,16 +263,16 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Quantity") }}</label>
           <input type="number" id="addQuantity" placeholder="1" step="1" min="1"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-add-quantity" />
+            class="nx-input h-9" data-testid="generali-pdqm-add-quantity" />
         </div>
       </div>
-      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-border)">
         <button id="cancelAddModalBtn"
-          class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-pdqm-add-cancel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-add-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="submitAddBtn"
-          class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-pdqm-add-submit">
+          class="nx-btn nx-btn--primary" data-testid="generali-pdqm-add-submit">
           {{ _("Submit") }}
         </button>
       </div>
@@ -293,10 +282,10 @@
 
   <!-- Edit Modal -->
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Entry") }}</h3>
-        <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-pdqm-edit-close">
+    <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh] p-0">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-border)">
+        <h3 class="nx-section">{{ _("Edit Entry") }}</h3>
+        <button id="closeEditBtn" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="generali-pdqm-edit-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
@@ -304,13 +293,13 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
           <input type="text" id="editForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-edit-date" />
+            class="nx-input h-9" data-testid="generali-pdqm-edit-date" />
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Category") }}</label>
           <div class="relative">
             <select id="editParentCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-edit-parent-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-edit-parent-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -322,7 +311,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Parent Sub Category") }}</label>
           <div class="relative">
             <select id="editParentSubCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-edit-parent-sub-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-edit-parent-sub-category">
               <option value="">{{ _("Select parent first") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -334,7 +323,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Sub Category") }}</label>
           <div class="relative">
             <select id="editSubCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-pdqm-edit-sub-category">
+              class="nx-select h-9 appearance-none pr-10" data-testid="generali-pdqm-edit-sub-category">
               <option value="">{{ _("Select parent sub first") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -345,17 +334,17 @@
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Quantity") }}</label>
           <input type="number" id="editQuantity" placeholder="1" step="1" min="1"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-pdqm-edit-quantity" />
+            class="nx-input h-9" data-testid="generali-pdqm-edit-quantity" />
         </div>
-        <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
+        <p id="editError" class="hidden text-xs font-medium" style="color:var(--nx-danger)"></p>
       </div>
-      <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-border)">
         <button id="cancelEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-pdqm-edit-cancel">
+          class="nx-btn nx-btn--secondary flex-1 justify-center" data-testid="generali-pdqm-edit-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="saveEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-pdqm-edit-save">
+          class="nx-btn nx-btn--primary flex-1 justify-center" data-testid="generali-pdqm-edit-save">
           {{ _("Save") }}
         </button>
       </div>
@@ -364,23 +353,23 @@
 
   <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs flex flex-col overflow-hidden">
+    <div class="nx-card w-full max-w-xs flex flex-col overflow-hidden p-0">
       <div class="flex items-center gap-3 px-6 pt-6 pb-4">
-        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-          <i class="fas fa-trash text-red-500"></i>
+        <div class="flex-shrink-0 nx-stat__chip" style="border-radius:9999px;background:var(--nx-l-red);color:var(--nx-l-red-fg)">
+          <i class="fas fa-trash"></i>
         </div>
         <div>
-          <h3 class="text-base font-bold text-gray-900">{{ _("Delete record") }}</h3>
-          <p class="text-sm text-gray-500 mt-0.5">{{ _("This action cannot be undone.") }}</p>
+          <h3 class="nx-section">{{ _("Delete record") }}</h3>
+          <p class="text-sm mt-0.5" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
         </div>
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">
         <button id="cancelDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-pdqm-delete-cancel">
+          class="nx-btn nx-btn--secondary flex-1 justify-center" data-testid="generali-pdqm-delete-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="confirmDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm" data-testid="generali-pdqm-delete-confirm">
+          class="nx-btn nx-btn--danger flex-1 justify-center" data-testid="generali-pdqm-delete-confirm">
           {{ _("Delete") }}
         </button>
       </div>

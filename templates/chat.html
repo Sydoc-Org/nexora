@@ -12,16 +12,16 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
-<body class="text-gray-800 bg-white">
+<body class="nx-app">
   {% set active_page = 'chat' %}
   {% include '_header.html' %}
 
   <div class="container mx-auto p-4 md:p-6 flex flex-col md:flex-row h-[calc(100vh-100px)] gap-4">
-    <div class="w-full md:w-1/3 max-h-60 md:max-h-none bg-white rounded-lg shadow-md flex flex-col border border-gray-100">
+    <div class="w-full md:w-1/3 max-h-60 md:max-h-none nx-surface flex flex-col">
       <div class="p-4 border-b flex justify-between items-center">
-        <h2 class="text-xl font-bold text-gray-800">{{ _('Messages') }}</h2>
+        <h2 class="nx-section">{{ _('Messages') }}</h2>
         <button onclick="document.getElementById('newChatModal').classList.remove('hidden')"
-          class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition cursor-pointer" data-testid="chat-new-conversation">
+          class="nx-btn nx-btn--primary nx-btn--sm" data-testid="chat-new-conversation">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <div class="w-full md:w-2/3 flex-1 bg-white rounded-lg shadow-md flex flex-col border border-gray-100">
+    <div class="w-full md:w-2/3 flex-1 nx-surface flex flex-col">
       <div id="chatHeader" class="p-4 border-b bg-gray-50 rounded-t-lg hidden">
         <div class="flex items-center gap-3">
           <img id="chatHeaderImg" src="" class="w-10 h-10 rounded-full object-cover shadow-sm">
@@ -53,15 +53,15 @@
       <form id="chatForm" class="flex gap-2" data-testid="chat-form">
         <input type="file" id="fileInput" class="hidden" onchange="uploadFile()" data-testid="chat-file-input">
         <button type="button" onclick="document.getElementById('fileInput').click()"
-                class="p-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer" data-testid="chat-attach">
+                class="nx-btn nx-btn--secondary" data-testid="chat-attach">
           <i class="fa-solid fa-paperclip"></i>
         </button>
 
         <input type="text" id="messageInput"
-          class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="nx-input flex-1"
           placeholder="{{ _('Type a message or /<workitemid>...') }}" autocomplete="off" data-testid="chat-message-input">
 
-        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium cursor-pointer" data-testid="chat-send">
+        <button type="submit" class="nx-btn nx-btn--primary" data-testid="chat-send">
           <i class="fa-solid fa-paper-plane mr-2"></i> {{ _('Send') }}
         </button>
       </form>

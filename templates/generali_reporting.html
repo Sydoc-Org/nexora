@@ -13,62 +13,67 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'generali_reporting' %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto px-3 py-4 sm:p-6">
+  <main class="nx-main">
 
     <!-- Page Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Reporting") }}</h2>
-        <p class="text-gray-500 font-medium">{{ _("Daily task completion reporting") }}</p>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-clipboard-list"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Generali Reporting") }}</h1>
+            <p class="nx-subtitle">{{ _("Daily task completion reporting") }}</p>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="nx-page-head__actions">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-reporting-add-report">
+          class="nx-btn nx-btn--primary" data-testid="generali-reporting-add-report">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Report") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn" onclick="exportToExcel()"
-          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200" data-testid="generali-reporting-export-excel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-reporting-export-excel">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_documents') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-reporting-documents-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-reporting-documents-link">
           <i class="fas fa-table-list"></i><span class="hidden sm:inline">{{ _("Document List") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting_monthreport') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-reporting-monthreport-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-reporting-monthreport-link">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
         <a href="{{ url_for('generali_evaluation') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-reporting-dashboard-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-reporting-dashboard-link">
           <i class="fas fa-chart-line"></i><span class="hidden sm:inline">{{ _("Dashboard") }}</span>
         </a>
       </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+    <div class="nx-filter mb-6">
       <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
         <div class="w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-reporting-start-date" />
+            class="nx-input h-11" data-testid="generali-reporting-start-date" />
         </div>
         <div class="w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-reporting-end-date" />
+            class="nx-input h-11" data-testid="generali-reporting-end-date" />
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Category") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Category") }}</label>
           <div class="relative">
             <select id="filterCategory"
-              class="block w-full sm:min-w-48 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-reporting-category-filter">
+              class="nx-select sm:min-w-48 h-11 appearance-none pr-10" data-testid="generali-reporting-category-filter">
               <option value="">{{ _("All Categories") }}</option>
               <option value="export_post">{{ _("KPI 1: Delivery physical post") }}</option>
               <option value="export_post_scan">{{ _("KPI 2: Delivery physical post with scanning") }}</option>
@@ -82,10 +87,10 @@
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Organization") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-reporting-organization-filter">
+              class="nx-select sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-reporting-organization-filter">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -94,10 +99,10 @@
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto" id="filterUserWrapper" style="display:none">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-reporting-user-filter">
+              class="nx-select sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-reporting-user-filter">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -106,10 +111,10 @@
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Status") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Status") }}</label>
           <div class="relative">
             <select id="filterOnTime"
-              class="block w-full sm:min-w-36 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-reporting-ontime-filter">
+              class="nx-select sm:min-w-36 h-11 appearance-none pr-10" data-testid="generali-reporting-ontime-filter">
               <option value="">{{ _("All") }}</option>
               <option value="true">{{ _("On Time") }}</option>
               <option value="false">{{ _("Late") }}</option>
@@ -121,11 +126,11 @@
         </div>
         <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
           <button id="applyFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-reporting-apply-filter">
+            class="nx-btn nx-btn--primary flex-1 sm:flex-none" data-testid="generali-reporting-apply-filter">
             <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
           </button>
           <button id="resetFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-reporting-reset-filter">
+            class="nx-btn nx-btn--ghost flex-1 sm:flex-none" data-testid="generali-reporting-reset-filter">
             {{ _("Reset") }}
           </button>
         </div>
@@ -133,7 +138,7 @@
     </div>
 
     <!-- Table -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    <div class="nx-table-wrap"
          id="reportingTable"
          data-can-edit="{{ can_edit | tojson }}"
          data-can-edit-transorg="{{ can_edit_transorg | tojson }}"
@@ -142,32 +147,32 @@
          data-can-add-bypass-deadline="{{ can_add_bypass_deadline | tojson }}"
          data-org-code="{{ organizationcode }}">
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+        <table class="nx-table">
+          <thead>
             <tr>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Date") }}</span>
+                <span>{{ _("Date") }}</span>
               </th>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("User") }}</span>
+                <span>{{ _("User") }}</span>
               </th>
               <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Category") }}</span>
+                <span>{{ _("Category") }}</span>
               </th>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("On Time") }}</span>
+                <span>{{ _("On Time") }}</span>
               </th>
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Reported At") }}</span>
+                <span>{{ _("Reported At") }}</span>
               </th>
               {% if can_edit or can_delete %}
               <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Actions") }}</span>
+                <span>{{ _("Actions") }}</span>
               </th>
               {% endif %}
             </tr>
           </thead>
-          <tbody id="reportingTbody" class="bg-white divide-y divide-gray-200">
+          <tbody id="reportingTbody">
             <tr>
               <td colspan="{{ 7 if (can_edit or can_delete) else 6 }}" class="text-center py-16">
                 <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
@@ -180,11 +185,11 @@
 
     <!-- Pagination -->
     <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
-      <div class="text-sm text-gray-500 font-medium">
+      <div class="text-sm font-medium" style="color:var(--nx-text-sec)">
         {{ _("Showing") }}
-        <span class="font-semibold text-gray-700" id="showingCount">—</span>
+        <span class="font-semibold nx-mono" id="showingCount">—</span>
         {{ _("of") }}
-        <span class="font-semibold text-gray-700" id="totalCount">—</span>
+        <span class="font-semibold nx-mono" id="totalCount">—</span>
         {{ _("results") }}
       </div>
       <div id="paginationControls" class="flex items-center gap-2"></div>
@@ -195,18 +200,18 @@
   <!-- Add Report Modal -->
   {% if can_add %}
   <div id="addReportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+    <div class="nx-card w-full max-w-2xl flex flex-col max-h-[90vh]">
 
       <!-- Modal header -->
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-lg font-bold text-gray-900">{{ _("Add Report") }}</h3>
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-divider)">
+        <h3 class="nx-section">{{ _("Add Report") }}</h3>
         <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-reporting-add-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
 
       <!-- Error -->
-      <div id="modalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
+      <div id="modalError" class="hidden mx-6 mt-4 nx-flash nx-flash--error flex-shrink-0"></div>
 
       <!-- Scrollable content -->
       <div class="flex-1 overflow-y-auto px-6 py-4 min-h-0">
@@ -218,13 +223,13 @@
       </div>
 
       <!-- Modal footer -->
-      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-divider)">
         <button id="cancelModalBtn"
-          class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-reporting-add-cancel">
+          class="nx-btn nx-btn--ghost" data-testid="generali-reporting-add-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="submitReportBtn"
-          class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-reporting-add-submit">
+          class="nx-btn nx-btn--primary" data-testid="generali-reporting-add-submit">
           {{ _("Submit") }}
         </button>
       </div>
@@ -266,51 +271,52 @@
 
   <!-- Edit Report Modal -->
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Report") }}</h3>
+    <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-divider)">
+        <h3 class="nx-section">{{ _("Edit Report") }}</h3>
         <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-reporting-edit-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Report Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Report Date") }}</label>
           <input type="text" id="editReportDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-reporting-edit-date" />
+            class="nx-input h-9" data-testid="generali-reporting-edit-date" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("On Time") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("On Time") }}</label>
           <button type="button" id="editOntimeBtn"
-            class="h-10 px-4 rounded-lg text-xs font-semibold border transition border-emerald-200 text-emerald-700 bg-emerald-50"
+            class="h-10 px-4 rounded-lg text-xs font-semibold border transition"
+            style="background:var(--nx-l-green);color:var(--nx-l-green-fg);border-color:transparent;"
             data-ontime="true" data-testid="generali-reporting-edit-ontime">&#10003; {{ _("On Time") }}</button>
         </div>
         <div id="editArchiveFields" class="hidden space-y-3">
           <div>
-            <label id="editRequestLabel" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Email Received") }}</label>
+            <label id="editRequestLabel" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Email Received") }}</label>
             <input type="text" id="editRequestTime" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-reporting-edit-request-time" />
+              class="nx-input h-9" data-testid="generali-reporting-edit-request-time" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Delivery") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Delivery") }}</label>
             <input type="text" id="editDelivery" placeholder="yyyy-mm-dd hh:mm:ss"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-reporting-edit-delivery" />
+              class="nx-input h-9" data-testid="generali-reporting-edit-delivery" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Latest Delivery") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Latest Delivery") }}</label>
             <div id="editLatestDelivery" data-value=""
-              class="h-9 flex items-center px-3 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 font-medium">—</div>
+              class="nx-input h-9 flex items-center" style="color:var(--nx-text-sec)">—</div>
           </div>
         </div>
         <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
       </div>
-      <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-divider)">
         <button id="cancelEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-reporting-edit-cancel">
+          class="nx-btn nx-btn--ghost flex-1" data-testid="generali-reporting-edit-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="saveEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-reporting-edit-save">
+          class="nx-btn nx-btn--primary flex-1" data-testid="generali-reporting-edit-save">
           {{ _("Save") }}
         </button>
       </div>
@@ -319,23 +325,23 @@
 
   <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs flex flex-col overflow-hidden">
+    <div class="nx-card w-full max-w-xs flex flex-col overflow-hidden">
       <div class="flex items-center gap-3 px-6 pt-6 pb-4">
         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
           <i class="fas fa-trash text-red-500"></i>
         </div>
         <div>
-          <h3 class="text-base font-bold text-gray-900">{{ _("Delete record") }}</h3>
-          <p class="text-sm text-gray-500 mt-0.5">{{ _("This action cannot be undone.") }}</p>
+          <h3 class="nx-section">{{ _("Delete record") }}</h3>
+          <p class="text-sm mt-0.5" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
         </div>
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">
         <button id="cancelDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-reporting-delete-cancel">
+          class="nx-btn nx-btn--ghost flex-1" data-testid="generali-reporting-delete-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="confirmDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm" data-testid="generali-reporting-delete-confirm">
+          class="nx-btn nx-btn--danger flex-1" data-testid="generali-reporting-delete-confirm">
           {{ _("Delete") }}
         </button>
       </div>
