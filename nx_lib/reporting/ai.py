@@ -1,0 +1,199 @@
+"""Provider-agnostic AI client for the Reporting assistant (Phase 1: NL -> T-SQL).
+
+Pure and network-isolated for tests: the HTTP transport is injectable. The model
+only *drafts* SQL; this module self-validates the draft through the existing
+sqlglot gate (`sandbox.validate_select`) so the caller knows whether it is a
+single read-only query before it ever reaches a database. Egress is schema-only:
+the prompt carries the user's question + schema metadata, never result rows.
+"""
+
+import json
+import re
+from dataclasses import dataclass
+
+import requests
+
+from .sandbox import SqlSandboxError, validate_select
+
+ANTHROPIC_VERSION = "2023-06-01"
+DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+DEFAULT_MAX_TOKENS = 1024
+DEFAULT_TIMEOUT_S = 30
+
+_SQL_FENCE = re.compile(r"```(?:sql)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
+
+_SYSTEM = (
+    "You are a careful Microsoft SQL Server (T-SQL) analyst for an internal "
+    "reporting tool. Given a database schema and a question, return ONE read-only "
+    "SELECT query that answers it. Rules: SELECT/WITH only; never INSERT, UPDATE, "
+    "DELETE, MERGE, EXEC, or DDL; use only tables/columns present in the schema; "
+    "prefer TOP (n) to bound large results. Respond with STRICT JSON: "
+    '{"sql": "<the query>", "explanation": "<one sentence>"}. No prose outside JSON.'
+)
+
+
+class AiError(RuntimeError):
+    """Raised when the AI client is misconfigured or the provider call fails."""
+
+
+@dataclass
+class AiResult:
+    sql: str
+    explanation: str
+    valid: bool
+    gate_verdict: str  # "valid" | "invalid"
+    model: str
+    provider: str
+    tokens_in: int | None
+    tokens_out: int | None
+
+
+def _http_post(url, headers, body, timeout):
+    resp = requests.post(url, headers=headers, json=body, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _user_prompt(question, schema_text):
+    return (
+        f"Database schema (names/types/descriptions only):\n{schema_text}\n\n"
+        f"Question: {question}\n\n"
+        'Return STRICT JSON {"sql": ..., "explanation": ...}.'
+    )
+
+
+def _call_anthropic(question, schema_text, *, model, api_key, url, max_tokens, timeout, transport):
+    body = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": _SYSTEM,
+        "messages": [{"role": "user", "content": _user_prompt(question, schema_text)}],
+    }
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+    }
+    data = transport(url or DEFAULT_ANTHROPIC_URL, headers, body, timeout)
+    parts = data.get("content") or []
+    text = "".join(p.get("text", "") for p in parts if p.get("type", "text") == "text")
+    usage = data.get("usage") or {}
+    return text, usage.get("input_tokens"), usage.get("output_tokens")
+
+
+def _call_azure(
+    question,
+    schema_text,
+    *,
+    model,
+    api_key,
+    endpoint,
+    deployment,
+    api_version,
+    max_tokens,
+    timeout,
+    transport,
+):
+    if not endpoint or not deployment:
+        raise AiError("Azure OpenAI requires endpoint and deployment")
+    url = (
+        f"{endpoint.rstrip('/')}/openai/deployments/{deployment}"
+        f"/chat/completions?api-version={api_version}"
+    )
+    body = {
+        "max_tokens": max_tokens,
+        "messages": [
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": _user_prompt(question, schema_text)},
+        ],
+    }
+    headers = {"api-key": api_key, "content-type": "application/json"}
+    data = transport(url, headers, body, timeout)
+    choices = data.get("choices") or [{}]
+    text = (choices[0].get("message") or {}).get("content", "")
+    usage = data.get("usage") or {}
+    return text, usage.get("prompt_tokens"), usage.get("completion_tokens")
+
+
+def _extract(text):
+    """Pull (sql, explanation) from the model text: JSON first, then a fenced block."""
+    text = (text or "").strip()
+    try:
+        obj = json.loads(text)
+        if isinstance(obj, dict) and obj.get("sql"):
+            return str(obj["sql"]).strip(), str(obj.get("explanation", "")).strip()
+    except (ValueError, TypeError):
+        pass
+    m = _SQL_FENCE.search(text)
+    if m:
+        return m.group(1).strip(), ""
+    return text, ""
+
+
+def ask(
+    question,
+    schema_text,
+    *,
+    provider,
+    model,
+    api_key,
+    endpoint=None,
+    deployment=None,
+    api_version="2024-10-21",
+    url=None,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Draft one read-only SELECT for `question`. Returns an AiResult.
+
+    Network is reached only through `transport` (injected in tests). The drafted
+    SQL is validated through the sqlglot gate; an invalid draft is still returned
+    (so the user can see/fix it) but flagged valid=False.
+    """
+    if not api_key:
+        raise AiError("AI provider API key is not configured")
+    provider = (provider or "").lower()
+    if provider == "anthropic":
+        text, tin, tout = _call_anthropic(
+            question,
+            schema_text,
+            model=model,
+            api_key=api_key,
+            url=url,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            transport=transport,
+        )
+    elif provider == "azure":
+        text, tin, tout = _call_azure(
+            question,
+            schema_text,
+            model=model,
+            api_key=api_key,
+            endpoint=endpoint,
+            deployment=deployment,
+            api_version=api_version,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            transport=transport,
+        )
+    else:
+        raise AiError(f"unknown AI provider: {provider!r}")
+
+    sql, explanation = _extract(text)
+    try:
+        validate_select(sql)
+        valid, verdict = True, "valid"
+    except SqlSandboxError:
+        valid, verdict = False, "invalid"
+    return AiResult(
+        sql=sql,
+        explanation=explanation,
+        valid=valid,
+        gate_verdict=verdict,
+        model=model,
+        provider=provider,
+        tokens_in=tin,
+        tokens_out=tout,
+    )
