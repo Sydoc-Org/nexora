@@ -232,6 +232,14 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-input-icon { position: relative; }
 .nx-input-icon > i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
 .nx-input-icon > .nx-input { padding-left: 32px; }
+/* Tailwind v4 utilities live in a cascade layer that loses to our
+   unlayered component rules, so icon-padding utilities (pl-10/pr-10)
+   on .nx-input/.nx-select would be silently ignored. Re-assert the
+   handful the pages depend on, at component+utility specificity. */
+.nx-input.pl-10, .nx-select.pl-10 { padding-left: 2.5rem; }
+.nx-input.pr-10, .nx-select.pr-10 { padding-right: 2.5rem; }
+.nx-select.pr-8 { padding-right: 2rem; }
+.nx-select.appearance-none { -webkit-appearance: none; appearance: none; }
 
 /* Filter bar */
 .nx-filter {
