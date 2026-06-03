@@ -339,6 +339,7 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_KEY` | Azure OpenAI API key (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). |
+| `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
 does not render. Sanitised key names are committed in `env/*.env.example`.
@@ -360,6 +361,10 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
 - **Audit:** every AI interaction (question, model, provider, gate verdict,
   token counts, duration, status) is written to `dbo.ReportingAiAudit`
   (migration `0013_create_reporting_ai_audit.sql`).
+- **Cost/abuse control:** `flask_limiter` caps the route at 10/min/user, and the
+  optional `AI_DAILY_LIMIT` enforces a per-user/day ceiling that is checked
+  *before* any provider call (a throttled ask costs no tokens) and audited with
+  `Status='blocked'`.
 
 ### Implementation
 
@@ -419,6 +424,13 @@ and a run against it returns **503 "SQL source is not configured"** (a warning i
 logged). The SQL tab itself enables as soon as the caller holds a SQL
 permission, regardless of provisioning; each target only returns data once its
 login is set.
+
+To create both `db_datareader`-only logins in one shot, run
+`scripts/provision-reporting-ro-logins.sql` against `DB_SERVER_PRD` in SSMS
+(SQLCMD Mode; edit the database names + passwords at the top first). It is
+idempotent. Then set the four `DB_REPORTING_*_RO_*` vars in `env/INT.env` +
+`env/PROD.env` and restart nexora. These logins also unblock the AI assistant's
+live schema grounding and scheduled-report delivery.
 
 ## See also
 

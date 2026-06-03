@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- **Reporting AI assistant — per-user/day cost cap.** New optional `AI_DAILY_LIMIT`
+  env var caps how many AI asks a user can make per UTC day. When the cap is hit,
+  `POST /api/reporting/ai/ask` returns **429** *before* any provider call (so a
+  throttled ask costs no tokens) and records the throttle in `dbo.ReportingAiAudit`
+  with `Status='blocked'`. `0` (the default) leaves the assistant unlimited. The
+  existing 10/min `flask_limiter` cap is unchanged.
+- **Reporting RO-login provisioning script.** `scripts/provision-reporting-ro-logins.sql`
+  — an idempotent, SQLCMD-parameterised one-shot that creates the two
+  `db_datareader`-only SQL logins (`DB_REPORTING_RO_*`, `DB_REPORTING_OCTO_RO_*`) the
+  SQL sandbox, scheduled reports, and the AI assistant's live schema grounding need.
 - **Reporting AI assistant (Phase 1):** an "Ask AI" mode that turns a natural-language
   question into read-only T-SQL placed in the SQL editor (no auto-run). Server-side,
   provider-agnostic (`AI_PROVIDER` = `anthropic` | `azure` | `none`); schema-only egress

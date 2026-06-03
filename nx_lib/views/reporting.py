@@ -304,6 +304,35 @@ def _audit_ai(
     )
 
 
+def _ai_daily_limit():
+    """Per-user/day cap on AI asks. 0 (or unset/invalid) = unlimited (disabled)."""
+    try:
+        return max(0, int(os.environ.get("AI_DAILY_LIMIT", "0")))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _ai_asks_today(userid):
+    """Count this user's AI provider calls (ok|error) since UTC midnight.
+
+    Only rows that represent an actual provider call count toward the cap;
+    'blocked' throttle rows are excluded so a hit cap never compounds itself.
+    """
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM ReportingAiAudit "
+            "WHERE UserID = ? AND Status IN ('ok', 'error') "
+            "AND CreatedAt >= CAST(SYSUTCDATETIME() AS date)",
+            (userid,),
+        )
+        row = cur.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+    finally:
+        conn.close()
+
+
 def _run_sql(target, sql, *, userid, username):
     """Validate + execute sandboxed SQL on the RO engine. Returns (columns, rows).
 
@@ -686,6 +715,39 @@ def api_ai_ask():
         return jsonify({"error": _("The AI assistant is not configured")}), 503
 
     userid, username = session.get("userid"), session.get("username")
+    # Cost/abuse control: a per-user/day cap, enforced BEFORE any provider call
+    # (so a throttled ask costs no tokens). 0 disables it. The block is audited.
+    limit = _ai_daily_limit()
+    if limit > 0 and _ai_asks_today(userid) >= limit:
+        current_app.logger.info(
+            f"reporting.ai.ask blocked: user={userid} reached daily limit {limit}"
+        )
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "sql",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "blocked",
+            0,
+        )
+        return (
+            jsonify(
+                {
+                    "error": _(
+                        "You have reached the daily AI request limit (%(limit)s). "
+                        "Please try again tomorrow.",
+                        limit=limit,
+                    )
+                }
+            ),
+            429,
+        )
     schema_text = _ai_schema_text()
     start = time.monotonic()
     try:
