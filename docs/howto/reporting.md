@@ -318,9 +318,12 @@ If neither permission is held the tab does not appear.
 ### Route
 
 `POST /api/reporting/ai/ask` — accepts `{"question": "..."}`, returns
-`{"sql": "...", "explanation": "...", "valid": true|false, "gate_verdict": "valid"|"invalid"}`.
-Every call is audited to `dbo.ReportingAiAudit` (user, question, model,
-provider, duration, gate verdict, token counts).
+`{"sql": "...", "explanation": "...", "valid": true|false, "target": "statistics", "model": "..."}`,
+where `target` is the default editor target the SQL is meant for (the user can
+switch) and `model` is the model that drafted it. The sqlglot gate verdict and
+token counts are **not** returned to the client — they are recorded only in the
+`dbo.ReportingAiAudit` row. Every call is audited to `dbo.ReportingAiAudit`
+(user, question, model, provider, duration, gate verdict, token counts).
 
 ### Configuration (`AI_*` env vars)
 
@@ -356,7 +359,7 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
   timeout, and audit trail as any other SQL sandbox run.
 - **Audit:** every AI interaction (question, model, provider, gate verdict,
   token counts, duration, status) is written to `dbo.ReportingAiAudit`
-  (migration `0013_create_reporting_ai_tables.sql`).
+  (migration `0013_create_reporting_ai_audit.sql`).
 
 ### Implementation
 
@@ -433,7 +436,7 @@ login is set.
   `reporting.sql.run` permission + admin seed.
 - `sql/_migrations/NexoraDB/0008_seed_reporting_sql_octopus_permission.sql` —
   `reporting.sql.target.octopus` permission + admin seed.
-- `sql/_migrations/NexoraDB/0013_create_reporting_ai_tables.sql` —
+- `sql/_migrations/NexoraDB/0013_create_reporting_ai_audit.sql` —
   `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql` seed.
 - `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
