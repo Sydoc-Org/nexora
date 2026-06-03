@@ -22,6 +22,7 @@ Routes:
 """
 
 import json
+import os
 import re
 import time
 
@@ -45,6 +46,9 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
+from ..reporting.ai import AiError
+from ..reporting.ai import ask as ai_ask
+from ..reporting.ai_schema import serialize_schema
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
@@ -197,6 +201,105 @@ def _audit_sql(userid, username, target, sql_text, rows_returned, status, durati
     current_app.logger.info(
         f"reporting.sql.run user={userid} target={target} status={status} "
         f"rows={rows_returned} ms={duration_ms}"
+    )
+
+
+def _ai_config():
+    """Resolve AI provider settings from env. provider 'none' => unconfigured (503)."""
+    provider = (os.environ.get("AI_PROVIDER") or "none").lower()
+    if provider == "anthropic":
+        return {
+            "provider": "anthropic",
+            "api_key": os.environ.get("ANTHROPIC_API_KEY"),
+            "model": os.environ.get("AI_MODEL", "claude-sonnet-4-6"),
+            "url": os.environ.get("ANTHROPIC_API_URL"),
+        }
+    if provider == "azure":
+        return {
+            "provider": "azure",
+            "api_key": os.environ.get("AZURE_OPENAI_KEY"),
+            "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", ""),
+            "endpoint": os.environ.get("AZURE_OPENAI_ENDPOINT"),
+            "deployment": os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
+            "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21"),
+        }
+    return {"provider": "none", "api_key": None}
+
+
+def _accessible_sql_targets():
+    """RO SQL targets the caller may use (gated like the SQL sandbox)."""
+    out = {}
+    for target, engine in _SQL_TARGET_ENGINES.items():
+        perm = _SQL_TARGET_PERMISSION.get(target)
+        if perm and not has_permission(perm):
+            continue
+        if engine is None:
+            continue
+        out[target] = lambda e=engine: e.raw_connection().cursor()
+    return out
+
+
+def _ai_schema_text():
+    """Build the schema grounding text from accessible RO targets + curated catalogs."""
+    targets = _accessible_sql_targets()
+    perms = set(session.get("permissions", []))
+    curated = []
+    for s in accessible(_effective_sources(), perms):
+        if s.get("kind") == "curated" and s.get("provider") not in (None, "docprocessing"):
+            curated.append(
+                {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
+            )
+    text, truncated = serialize_schema(targets=targets, curated=curated)
+    if truncated:
+        current_app.logger.info("reporting.ai schema truncated for user=%s", session.get("userid"))
+    return text
+
+
+def _audit_ai(
+    userid,
+    username,
+    prompt,
+    surface,
+    generated_sql,
+    provider,
+    model,
+    tokens_in,
+    tokens_out,
+    gate_verdict,
+    status,
+    duration_ms,
+):
+    try:
+        conn = engine_nexora_db.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO ReportingAiAudit (UserID, Username, Prompt, Surface, "
+                "GeneratedSql, Provider, Model, TokensIn, TokensOut, GateVerdict, "
+                "Status, DurationMs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    userid,
+                    username,
+                    prompt,
+                    surface,
+                    generated_sql,
+                    provider,
+                    model,
+                    tokens_in,
+                    tokens_out,
+                    gate_verdict,
+                    status,
+                    duration_ms,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        current_app.logger.error(f"reporting ai audit insert failed: {e}")
+    current_app.logger.info(
+        f"reporting.ai.ask user={userid} provider={provider} verdict={gate_verdict} "
+        f"status={status} ms={duration_ms}"
     )
 
 
@@ -441,6 +544,7 @@ def reporting():
         userid=session.get("userid", "Unknown"),
         fullname=session.get("fullname"),
         pageV=page_visibility(),
+        ai_enabled=has_permission("reporting.ai.use"),
     )
 
 
@@ -561,6 +665,85 @@ def api_sql_ack():
         return jsonify({"error": _("Could not record acknowledgment")}), 500
     finally:
         conn.close()
+
+
+@require_permission("reporting.ai.use")
+@limiter.limit("10 per minute")
+def api_ai_ask():
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    question = (body.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": _("A question is required")}), 400
+    # Phase 1 produces Surface B (runnable T-SQL); that requires reporting.ai.sql.
+    if not has_permission("reporting.ai.sql"):
+        return jsonify({"error": _("Not authorized to receive AI-drafted SQL")}), 403
+
+    cfg = _ai_config()
+    if cfg.get("provider") == "none" or not cfg.get("api_key"):
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+
+    userid, username = session.get("userid"), session.get("username")
+    schema_text = _ai_schema_text()
+    start = time.monotonic()
+    try:
+        result = ai_ask(
+            question,
+            schema_text,
+            provider=cfg["provider"],
+            model=cfg.get("model"),
+            api_key=cfg["api_key"],
+            endpoint=cfg.get("endpoint"),
+            deployment=cfg.get("deployment"),
+            api_version=cfg.get("api_version", "2024-10-21"),
+            url=cfg.get("url"),
+        )
+    except AiError as e:
+        current_app.logger.warning(f"/api/reporting/ai/ask config error: {e}")
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/ai/ask provider error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "sql",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "error",
+            int((time.monotonic() - start) * 1000),
+        )
+        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+
+    duration_ms = int((time.monotonic() - start) * 1000)
+    _audit_ai(
+        userid,
+        username,
+        question,
+        "sql",
+        result.sql,
+        result.provider,
+        result.model,
+        result.tokens_in,
+        result.tokens_out,
+        result.gate_verdict,
+        "ok",
+        duration_ms,
+    )
+    return jsonify(
+        {
+            "sql": result.sql,
+            "explanation": result.explanation,
+            "valid": result.valid,
+            "target": "statistics",  # default editor target; user can switch
+            "model": result.model,
+        }
+    )
 
 
 @require_permission("reporting.export")
@@ -1332,6 +1515,12 @@ def register_routes(app):
         "/api/reporting/sql/ack",
         endpoint="reporting_sql_ack",
         view_func=api_sql_ack,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/ai/ask",
+        endpoint="reporting_ai_ask",
+        view_func=api_ai_ask,
         methods=["POST"],
     )
     app.add_url_rule(
