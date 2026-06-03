@@ -13,7 +13,11 @@
    Both databases live on DB_SERVER_PRD (see nx_lib/db.py: get_ro_db_url defaults
    the server to cfg.DB_SERVER_PRD). Run this ONCE, connected to DB_SERVER_PRD,
    as a login with ALTER ANY LOGIN (server) + db_owner on both databases
-   (typically sysadmin). It is idempotent — re-running it is safe.
+   (typically sysadmin). It is idempotent — re-running is safe, and re-running
+   with a different password ROTATES the login's password (the server is reset
+   to the :setvar value via ALTER LOGIN). So the server always matches the
+   DB_REPORTING_*_RO_PWD you put in the env files. Run this on EACH SQL server
+   the env points at (INT and PROD `DB_SERVER_PRD` may be different hosts).
 
    ----------------------------------------------------------------------------
    HOW TO RUN (SSMS)
@@ -54,7 +58,7 @@
 SET NOCOUNT ON;
 GO
 
-/* --- 1. Server-level logins (idempotent) ---------------------------------- */
+/* --- 1. Server-level logins (idempotent; re-running ROTATES the password) -- */
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'$(StatisticsRoLogin)')
 BEGIN
     CREATE LOGIN [$(StatisticsRoLogin)]
@@ -64,7 +68,12 @@ BEGIN
     PRINT 'Created login $(StatisticsRoLogin)';
 END
 ELSE
-    PRINT 'Login $(StatisticsRoLogin) already exists - left unchanged';
+BEGIN
+    -- Login already exists: reset its password to the :setvar value so the
+    -- server always matches DB_REPORTING_RO_PWD (re-run to rotate).
+    ALTER LOGIN [$(StatisticsRoLogin)] WITH PASSWORD = N'$(StatisticsRoPwd)';
+    PRINT 'Login $(StatisticsRoLogin) already existed - password reset to the :setvar value';
+END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'$(OctopusRoLogin)')
@@ -76,7 +85,12 @@ BEGIN
     PRINT 'Created login $(OctopusRoLogin)';
 END
 ELSE
-    PRINT 'Login $(OctopusRoLogin) already exists - left unchanged';
+BEGIN
+    -- Login already exists: reset its password to the :setvar value so the
+    -- server always matches DB_REPORTING_OCTO_RO_PWD (re-run to rotate).
+    ALTER LOGIN [$(OctopusRoLogin)] WITH PASSWORD = N'$(OctopusRoPwd)';
+    PRINT 'Login $(OctopusRoLogin) already existed - password reset to the :setvar value';
+END
 GO
 
 /* --- 2. Statistics DB: user + db_datareader (read-only) -------------------- */

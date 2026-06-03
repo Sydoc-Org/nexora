@@ -19,6 +19,9 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
   — an idempotent, SQLCMD-parameterised one-shot that creates the two
   `db_datareader`-only SQL logins (`DB_REPORTING_RO_*`, `DB_REPORTING_OCTO_RO_*`) the
   SQL sandbox, scheduled reports, and the AI assistant's live schema grounding need.
+  Re-running with a changed password **rotates** it (`ALTER LOGIN` on the existing
+  login), so the server always matches the env files; run it on each SQL server the
+  env points at (INT/PROD `DB_SERVER_PRD` may differ).
 - **Reporting AI assistant (Phase 1):** an "Ask AI" mode that turns a natural-language
   question into read-only T-SQL placed in the SQL editor (no auto-run). Server-side,
   provider-agnostic (`AI_PROVIDER` = `anthropic` | `azure` | `none`); schema-only egress
