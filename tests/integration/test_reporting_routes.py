@@ -6,7 +6,8 @@ TEST schema are asserted as (200, 500) to stay forward-compatible, mirroring the
 dashboard route tests.
 """
 
-from datetime import datetime
+from datetime import datetime, time
+from unittest.mock import patch
 
 from nx_lib.db import engine_nexora_db
 
@@ -68,6 +69,27 @@ def test_sql_run_octopus_target_without_perm_403(user_client):
     # The base reporting.sql.run gate blocks before the Octopus target check.
     resp = user_client.post("/api/reporting/sql/run", json={"target": "octopus", "sql": "SELECT 1"})
     assert resp.status_code in (400, 403)
+
+
+def test_sql_run_serializes_binary_and_time_cells(user_client):
+    """A result row with bytes (varbinary/rowversion) or datetime.time must
+    serialize as strings, not crash jsonify with a 500 (regression)."""
+    columns = [{"field": "Data", "header": "Data"}, {"field": "T", "header": "T"}]
+    rows = [[b"\x00\x01\x02", time(13, 45, 0)]]
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._has_acked", return_value=True),
+        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+    ):
+        resp = user_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["rows"][0][0] == "0x000102"
+    assert data["rows"][0][1] == "13:45:00"
 
 
 # --- /api/reporting/export/grid (client-supplied grid; no DB access) ---

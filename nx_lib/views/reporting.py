@@ -21,10 +21,13 @@ Routes:
   GET/POST/PUT/DELETE /api/reporting/reports/<id>/schedules[/<sid>]  owner: schedules
 """
 
+import datetime
+import decimal
 import json
 import os
 import re
 import time
+import uuid
 
 from flask import (
     Response,
@@ -536,6 +539,32 @@ def _execute(engine, sql, params):
         conn.close()
 
 
+def _json_safe(value):
+    """Coerce one DB result cell to a JSON-serializable value.
+
+    Flask's default JSON encoder handles None/bool/int/float/str and
+    date/datetime/Decimal/UUID, but NOT bytes/bytearray/memoryview (varbinary,
+    rowversion/timestamp, image) or datetime.time (TIME) — those raise
+    "Object of type X is not JSON serializable" and 500 the run. Map the crashy
+    types to readable strings, pass the Flask-native ones through unchanged, and
+    stringify anything else as a last resort (a result cell must never 500).
+    """
+    if value is None or isinstance(value, bool | int | float | str):
+        return value
+    if isinstance(value, bytes | bytearray | memoryview):
+        return "0x" + bytes(value).hex()
+    if isinstance(value, datetime.time):
+        return value.isoformat()
+    if isinstance(value, datetime.date | decimal.Decimal | uuid.UUID):
+        return value  # Flask's DefaultJSONProvider serializes these
+    return str(value)
+
+
+def _rows_json_safe(rows):
+    """Apply _json_safe to every cell of every row (JSON response boundary)."""
+    return [[_json_safe(v) for v in row] for row in rows]
+
+
 _EXPORT_FORMATS = {"xlsx", "csv"}
 
 
@@ -630,7 +659,7 @@ def api_run():
             "columns": [
                 {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
             ],
-            "rows": rows,
+            "rows": _rows_json_safe(rows),
             "rowCount": len(rows),
             "truncated": len(rows)
             >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
@@ -667,7 +696,7 @@ def api_sql_run():
     return jsonify(
         {
             "columns": columns,
-            "rows": rows,
+            "rows": _rows_json_safe(rows),
             "rowCount": len(rows),
             "truncated": len(rows) >= SQL_ROW_CAP,
         }

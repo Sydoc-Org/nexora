@@ -128,6 +128,14 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Reporting — 500 on SQL/curated results containing binary or time cells.**
+  `/api/reporting/sql/run` and `/api/reporting/run` returned raw pyodbc values to
+  `jsonify`; Flask's default JSON encoder cannot serialize `bytes`/`bytearray`/
+  `memoryview` (varbinary, `rowversion`/`timestamp`, image) or `datetime.time`,
+  so any query selecting such a column 500'd with "Object of type … is not JSON
+  serializable". Result cells are now coerced to JSON-safe values at the response
+  boundary (binary → `0x…` hex, time → ISO string), preserving the types Flask
+  already handles (date/datetime/Decimal/UUID).
 - **i18n — app-wide Python messages now translated.** `babel.cfg` extracted
   Python strings only from root-level `*.py` (`[python: *.py]`), so every
   `_()`/`gettext()` route/flash message under `nx_lib/**` fell back to English
