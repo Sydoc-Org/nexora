@@ -1,0 +1,75 @@
+/* Source-highlight overlay for the workitems document viewer.
+   Kept in its own file so it never collides with the design-system CSS.
+   Boxes are normalized client-side against each page image's
+   naturalWidth/naturalHeight (the rects from Octopus are in image pixels). */
+
+/* ---- Lightbox overlay ---- */
+/* Positioned with inline left/top/width/height (set from the modal image's
+   getBoundingClientRect), so it sits exactly over the displayed page. */
+#srcHlLayer {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1001;
+  overflow: hidden;
+}
+.src-hl-box {
+  position: absolute;
+  border: 2px solid rgba(234, 88, 12, 0.95); /* orange-600 */
+  background: rgba(234, 88, 12, 0.16);
+  border-radius: 2px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.src-hl-box.is-pulse {
+  animation: srcHlPulse 1.1s ease-out 2;
+}
+@keyframes srcHlPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.6); }
+  100% { box-shadow: 0 0 0 16px rgba(234, 88, 12, 0); }
+}
+
+/* ---- Toggle button (lives inside #imageModal, top-left, clear of nav) ---- */
+.src-hl-toggle {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1002;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(248, 250, 252, 0.25);
+  border-radius: 9999px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.src-hl-toggle:hover { background: rgba(15, 23, 42, 0.85); }
+.src-hl-toggle.is-on {
+  background: rgba(234, 88, 12, 0.92);
+  border-color: rgba(234, 88, 12, 0.92);
+  color: #fff;
+}
+
+/* ---- Thumbnail overlay ---- */
+.src-thumb { position: relative; display: inline-block; line-height: 0; }
+.src-hl-layer-thumb { position: absolute; inset: 0; pointer-events: none; }
+.src-hl-layer-thumb .src-hl-box { border-width: 1.5px; }
+
+/* ---- Field list (click-to-locate + un-locatable badge) ---- */
+.src-field-row.is-locatable { cursor: pointer; border-radius: 6px; }
+.src-field-row.is-locatable:hover { background: rgba(234, 88, 12, 0.07); }
+.src-no-loc-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  margin-left: 0.4rem;
+  white-space: nowrap;
+}
