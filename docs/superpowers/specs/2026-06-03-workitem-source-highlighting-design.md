@@ -187,6 +187,68 @@ translated (non-fuzzy) in de/fr/it. `pybabel compile` before tests.
    acceptable for typical documents, but render boxes only for the visible page in the
    lightbox.
 
+## Verified coordinate shape (INT spike, 2026-06-03)
+
+Confirmed live against INT (WID 18299, a scanned invoice with two `.jpg` page
+images and 50 located fields). The shape differs from the pre-spike assumption
+(`FieldValue.Zones`), so the implementation follows what's below.
+
+- **Per-field position lives at `IndexField.Location`** (type
+  `DtoImageBasedLocation`), NOT under `FieldValue`. Shape:
+  ```json
+  {
+    "PageNumber": 1,           // 1-based
+    "PageIndex": 0,            // 0-based — aligns with media/url order; use this
+    "XRes": null, "YRes": null,
+    "Rectangle":  { "Left": 749, "Top": 473, "Width": 347, "Height": 50 },
+    "Rectangles": [ { "Left": 749, "Top": 473, "Width": 347, "Height": 50 } ],
+    "MediaID": "00000000-0000-0000-0000-000000000000",
+    "Type": "STGImageBasedLocation"
+  }
+  ```
+  `CapturedLocation` has the same shape (often null). Use `Location`, fall back
+  to `CapturedLocation`.
+- **Unit / origin:** raw **image pixels**, origin **top-left**. The rectangle
+  pixel space is identical to the served page image's pixel space (page[0] was
+  2479×3508 and `DocNo` at Left 749 / Top 473 sits correctly ~30%/13% in).
+- **Multiple boxes:** `Location.Rectangles[]` (use it when non-empty, else
+  `[Location.Rectangle]`).
+- **Page index:** `Location.PageIndex` (0-based) aligns with the order in which
+  `get_extensions_urls_fields` collects image media into `urls` (verified: 2
+  image media ↔ PageIndex 0/1). For multi-child **Batch** documents, add the
+  running count of image media from prior child items so `page` stays aligned
+  with the global `urls` list (single-document case → offset 0).
+- **Degenerate rectangles:** many located fields carry `{0,0,0,0}` (derived /
+  inferred values, e.g. `VatRate1=7.7`, `DocCurrency=CHF`). Treat any rect with
+  `Width <= 0` or `Height <= 0` as **no location** → field is un-locatable.
+- **Only mapped fields:** the viewer shows fields via `IndexFieldMappings`
+  (`SourceFieldName → TargetKey`). `field_sources` is built from mapped fields
+  only (12 of 50 located fields were mapped), so it matches the existing
+  `fields` dict. `key`/`label` = TargetKey; `value` = `FieldValue.Text`
+  (first occurrence wins, mirroring the existing code).
+
+**Page dimensions are NOT needed server-side.** The original "backend normalizes
+to 0–1" plan required page pixel dimensions, which are absent from the `Media`
+objects and not cheap to obtain. Instead the backend ships **raw pixel rects**
+`{left, top, width, height}` and the **front-end normalizes against the page
+`<img>`'s `naturalWidth`/`naturalHeight`** (which equal the page pixel space,
+since the TIF→JPEG conversion in `api_get_media_raw` preserves dimensions). This
+also removes Risk #2 (rotation): `naturalWidth/Height` reflect exactly the bytes
+the browser renders.
+
+**Revised internal contract** (supersedes the normalized-rect contract in
+"Data contract" above):
+```python
+{
+    "key": "DocNo", "label": "DocNo", "value": "Rechnung_171720",
+    "locations": [{"page": 0, "rect": {"left": 749, "top": 473, "width": 347, "height": 50}}],
+}
+```
+`rect` is in **image pixels**; the client divides by `naturalWidth/Height`.
+
+**Also available for future use:** each `IndexField` carries a `Confidence`
+float — usable later to colour boxes by extraction confidence.
+
 ## Out of scope / future
 
 - Click-to-verify or inline edit of extracted values (explicitly excluded; read-only).

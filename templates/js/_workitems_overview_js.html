@@ -600,9 +600,14 @@
                         const mediaInfo = await infoResponse.json();
                         const imageCount = mediaInfo.media_count || 0;
                         const fields = mediaInfo.fields || {};
+                        // Source locations (where each extracted value was found on the page).
+                        window.__srcByWorkitem = window.__srcByWorkitem || {};
+                        window.__srcByWorkitem[workitemid] = mediaInfo.field_sources || [];
 
                         if (fieldsContainer) {
                             if (Object.keys(fields).length > 0) {
+                                const srcByKey = {};
+                                (window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
                                 let fieldsHtml = '<dl class="divide-y divide-gray-200">';
 
                                 for (const key in fields) {
@@ -610,9 +615,19 @@
                                         const labelKey = key.toLowerCase();
                                         const label = fieldConfig.labels[labelKey] || key;
 
+                                        const src = srcByKey[key];
+                                        const hasLoc = !!(src && src.locations && src.locations.length);
+                                        const page = hasLoc ? src.locations[0].page : '';
+                                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                                            + (hasLoc ? ' is-locatable' : '');
+                                        const badge = (src && !hasLoc)
+                                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
+                                        const titleAttr = hasLoc
+                                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+
                                         fieldsHtml += `
-                                            <div class="py-2 flex justify-between items-center gap-4">
-                                                <dt class="text-gray-500 truncate">${label}</dt>
+                                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
+                                                <dt class="text-gray-500 truncate">${label}${badge}</dt>
                                                 <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
                                             </div>`;
                                     }
@@ -650,6 +665,44 @@
             }
         }
 
+        // Thumbnails use object-contain (full page, letterboxed) so boxes map
+        // correctly; we account for the letterbox offset/scale within the 160px box.
+        // Module scope so loadImage's onload handler (and setSrcHl) can reach it.
+        function renderThumbOverlay(wrap, imgEl, workitemid, page) {
+            const old = wrap.querySelector('.src-hl-layer-thumb');
+            if (old) old.remove();
+            if (localStorage.getItem('srcHlOn') !== '1') return;
+            const srcs = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            const natW = imgEl.naturalWidth, natH = imgEl.naturalHeight;
+            const w = imgEl.clientWidth, h = imgEl.clientHeight;
+            if (!natW || !natH || !w || !h) return;
+            const scale = Math.min(w / natW, h / natH);
+            const offX = (w - natW * scale) / 2, offY = (h - natH * scale) / 2;
+            const layer = document.createElement('div');
+            layer.className = 'src-hl-layer-thumb';
+            srcs.forEach(s => (s.locations || []).forEach(loc => {
+                if (loc.page !== page) return;
+                const b = document.createElement('div');
+                b.className = 'src-hl-box';
+                b.style.left = (offX + loc.rect.left * scale) + 'px';
+                b.style.top = (offY + loc.rect.top * scale) + 'px';
+                b.style.width = (loc.rect.width * scale) + 'px';
+                b.style.height = (loc.rect.height * scale) + 'px';
+                layer.appendChild(b);
+            }));
+            wrap.appendChild(layer);
+        }
+
+        function refreshThumbOverlays() {
+            document.querySelectorAll('.src-thumb').forEach(wrap => {
+                const img = wrap.querySelector('img.workitem-image');
+                if (img) {
+                    renderThumbOverlay(wrap, img, wrap.dataset.workitemid,
+                                       parseInt(wrap.dataset.page || '0', 10));
+                }
+            });
+        }
+
         async function loadImage(container, workitemid, index) {
             const placeholder = document.createElement('div');
             placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
@@ -677,10 +730,18 @@
                 const imgElement = document.createElement('img');
                 imgElement.src = imageUrl;
                 imgElement.alt = `{{ _("Media") }} ${index + 1} {{ _("for workitem ") }}${workitemid}`;
-                imgElement.className = 'w-40 h-40 object-cover rounded shadow-lg workitem-image cursor-pointer';
+                // object-contain (not cover) shows the whole page so source boxes map correctly.
+                imgElement.className = 'w-40 h-40 object-contain rounded shadow-lg workitem-image cursor-pointer bg-gray-50';
+
+                const thumbWrap = document.createElement('div');
+                thumbWrap.className = 'src-thumb';
+                thumbWrap.dataset.workitemid = String(workitemid);
+                thumbWrap.dataset.page = String(index);
+                thumbWrap.appendChild(imgElement);
 
                 imgElement.onload = () => {
-                    placeholder.replaceWith(imgElement);
+                    placeholder.replaceWith(thumbWrap);
+                    renderThumbOverlay(thumbWrap, imgElement, String(workitemid), index);
                 };
 
                 imgElement.onerror = () => {
@@ -1814,34 +1875,126 @@ async function uploadBatchFiles(files, processName) {
             const prevBtn = document.querySelector(".modal-prev");
             const nextBtn = document.querySelector(".modal-next");
 
+            // ---- Source highlighting (read-only: show where values were found) ----
+            const srcHl = {
+                on: localStorage.getItem('srcHlOn') === '1',
+                workitemid: null,
+                pendingPulse: null,
+            };
+            const srcHlLayer = document.getElementById('srcHlLayer');
+            const srcHlToggle = document.getElementById('srcHlToggle');
+            const srcHlToggleLabel = document.getElementById('srcHlToggleLabel');
+
+            function currentSources() {
+                return (window.__srcByWorkitem && window.__srcByWorkitem[srcHl.workitemid]) || [];
+            }
+
+            function hasAnyLocation() {
+                return currentSources().some(s => (s.locations || []).length > 0);
+            }
+
+            function renderModalOverlay(pulseKey) {
+                if (!srcHlLayer || !modalImg) return;
+                srcHlLayer.innerHTML = '';
+                // Only offer the toggle when this document actually has locations.
+                if (srcHlToggle) {
+                    srcHlToggle.hidden = !hasAnyLocation();
+                    srcHlToggle.classList.toggle('is-on', srcHl.on);
+                    if (srcHlToggleLabel) {
+                        srcHlToggleLabel.textContent = srcHl.on
+                            ? '{{ _("Hide sources") }}' : '{{ _("Show sources") }}';
+                    }
+                }
+                if (!srcHl.on && !pulseKey) return;
+                const natW = modalImg.naturalWidth, natH = modalImg.naturalHeight;
+                if (!natW || !natH) return;  // image not decoded yet
+                const r = modalImg.getBoundingClientRect();
+                if (!r.width || !r.height) return;
+                srcHlLayer.style.left = r.left + 'px';
+                srcHlLayer.style.top = r.top + 'px';
+                srcHlLayer.style.width = r.width + 'px';
+                srcHlLayer.style.height = r.height + 'px';
+                currentSources().forEach(src => {
+                    (src.locations || []).forEach(loc => {
+                        if (loc.page !== currentIndex) return;
+                        const box = document.createElement('div');
+                        box.className = 'src-hl-box' + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
+                        box.style.left = (loc.rect.left / natW * r.width) + 'px';
+                        box.style.top = (loc.rect.top / natH * r.height) + 'px';
+                        box.style.width = (loc.rect.width / natW * r.width) + 'px';
+                        box.style.height = (loc.rect.height / natH * r.height) + 'px';
+                        box.title = src.label + ': ' + (src.value == null ? '' : src.value);
+                        srcHlLayer.appendChild(box);
+                    });
+                });
+            }
+
+            function setSrcHl(on) {
+                srcHl.on = on;
+                localStorage.setItem('srcHlOn', on ? '1' : '0');
+                renderModalOverlay();
+                refreshThumbOverlays();
+            }
+
+            // Open the lightbox for a specific workitem + page (used by click-to-locate
+            // and the thumbnail click handler). pulseKey flashes one field's box.
+            function openModalForWorkitem(workitemid, index, pulseKey) {
+                const ic = document.getElementById('image-container-' + workitemid);
+                if (!ic) return;
+                const allImages = Array.from(ic.querySelectorAll('.workitem-image'));
+                if (!allImages.length) return;
+                currentImages = allImages.map(img => img.src);
+                srcHl.workitemid = String(workitemid);
+                srcHl.pendingPulse = pulseKey || null;
+                modal.style.display = 'flex';
+                showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
+            }
+
             function showImage(index) {
                 if (index >= 0 && index < currentImages.length) {
                     modalImg.src = currentImages[index];
                     currentIndex = index;
                     prevBtn.style.display = index > 0 ? 'block' : 'none';
                     nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
+                    const pulse = srcHl.pendingPulse;
+                    srcHl.pendingPulse = null;
+                    // Render now if the image is already decoded (cached blob), else on load.
+                    if (modalImg.complete && modalImg.naturalWidth) renderModalOverlay(pulse);
+                    else modalImg.addEventListener('load', () => renderModalOverlay(pulse), { once: true });
                 }
             }
+
+            // renderThumbOverlay / refreshThumbOverlays are defined at module scope
+            // (near loadImage) so loadImage's onload handler can reach them.
 
             const closeModal = () => {
                 modal.style.display = "none";
                 currentImages = [];
                 currentIndex = 0;
+                if (srcHlLayer) srcHlLayer.innerHTML = '';
             };
 
             document.addEventListener('click', (event) => {
                 if (event.target.classList.contains('workitem-image')) {
                     const imageContainer = event.target.closest('[id^="image-container-"]');
+                    if (!imageContainer) return;
+                    const workitemid = imageContainer.id.replace('image-container-', '');
                     const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
-
-                    currentImages = allImages.map(img => img.src);
                     const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
-
                     if (clickedIndex !== -1) {
-                        modal.style.display = "flex";
-                        showImage(clickedIndex);
+                        openModalForWorkitem(workitemid, clickedIndex, null);
                     }
                 }
+            });
+
+            // Click a field value with a known location -> open the page + pulse its box.
+            document.addEventListener('click', (event) => {
+                const row = event.target.closest('.src-field-row.is-locatable');
+                if (!row) return;
+                const fc = row.closest('[id^="fields-container-"]');
+                if (!fc) return;
+                const workitemid = fc.id.replace('fields-container-', '');
+                openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
             });
 
             if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -1859,6 +2012,14 @@ async function uploadBatchFiles(files, processName) {
             if (nextBtn) nextBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 showImage(currentIndex + 1);
+            });
+
+            if (srcHlToggle) srcHlToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setSrcHl(!srcHl.on);
+            });
+            window.addEventListener('resize', () => {
+                if (modal.style.display === 'flex') renderModalOverlay();
             });
 
             document.addEventListener('keydown', (event) => {

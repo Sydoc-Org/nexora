@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-03 23:39+0200\n"
+"POT-Creation-Date: 2026-06-03 23:53+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:183
+#: nx_lib/octo.py:186
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
@@ -43,9 +43,9 @@ msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
 #: nx_lib/views/admin.py:190 nx_lib/views/admin.py:691
-#: nx_lib/views/workitems.py:1332 nx_lib/views/workitems.py:1383
-#: nx_lib/views/workitems.py:1425 nx_lib/views/workitems.py:1636
-#: nx_lib/views/workitems.py:1668
+#: nx_lib/views/workitems.py:1340 nx_lib/views/workitems.py:1391
+#: nx_lib/views/workitems.py:1433 nx_lib/views/workitems.py:1644
+#: nx_lib/views/workitems.py:1676
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
@@ -113,14 +113,14 @@ msgstr "Sitzungen konnten nicht abgerufen werden"
 #: nx_lib/views/dashboard.py:1325 nx_lib/views/dashboard.py:1369
 #: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:461
 #: nx_lib/views/workitems.py:924 nx_lib/views/workitems.py:977
-#: nx_lib/views/workitems.py:1146 nx_lib/views/workitems.py:1189
-#: nx_lib/views/workitems.py:1280 nx_lib/views/workitems.py:1342
-#: nx_lib/views/workitems.py:1393 nx_lib/views/workitems.py:1435
-#: nx_lib/views/workitems.py:1586 nx_lib/views/workitems.py:1646
+#: nx_lib/views/workitems.py:1154 nx_lib/views/workitems.py:1197
+#: nx_lib/views/workitems.py:1288 nx_lib/views/workitems.py:1350
+#: nx_lib/views/workitems.py:1401 nx_lib/views/workitems.py:1443
+#: nx_lib/views/workitems.py:1594 nx_lib/views/workitems.py:1654
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1179
+#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1187
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
@@ -639,87 +639,87 @@ msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 msgid "Could not fetch workitem data"
 msgstr "Workitem-Daten konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:994 nx_lib/views/workitems.py:1032
+#: nx_lib/views/workitems.py:1003 nx_lib/views/workitems.py:1038
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: nx_lib/views/workitems.py:1021 nx_lib/views/workitems.py:1087
+#: nx_lib/views/workitems.py:1027 nx_lib/views/workitems.py:1095
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: nx_lib/views/workitems.py:1043
+#: nx_lib/views/workitems.py:1051
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: nx_lib/views/workitems.py:1071
+#: nx_lib/views/workitems.py:1079
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:1136
+#: nx_lib/views/workitems.py:1144
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1138
+#: nx_lib/views/workitems.py:1146
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: nx_lib/views/workitems.py:1236
+#: nx_lib/views/workitems.py:1244
 msgid "No data found for this workitem."
 msgstr "Keine Daten für dieses Workitem gefunden."
 
-#: nx_lib/views/workitems.py:1270
+#: nx_lib/views/workitems.py:1278
 msgid "Could not fetch interactions"
 msgstr "Interaktionen konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1285
+#: nx_lib/views/workitems.py:1293
 msgid "Comment cannot be empty."
 msgstr "Kommentar darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1329
+#: nx_lib/views/workitems.py:1337
 msgid "Comment added."
 msgstr "Kommentar hinzugefügt."
 
-#: nx_lib/views/workitems.py:1347
+#: nx_lib/views/workitems.py:1355
 msgid "Invalid assignment."
 msgstr "Ungültige Zuweisung."
 
-#: nx_lib/views/workitems.py:1376
+#: nx_lib/views/workitems.py:1384
 msgid "assigned you on workitem"
 msgstr "hat Sie einem Workitem zugewiesen"
 
-#: nx_lib/views/workitems.py:1380
+#: nx_lib/views/workitems.py:1388
 msgid "Assignment updated."
 msgstr "Zuweisung aktualisiert."
 
-#: nx_lib/views/workitems.py:1398
+#: nx_lib/views/workitems.py:1406
 msgid "Invalid priority level."
 msgstr "Ungültige Prioritätsstufe."
 
-#: nx_lib/views/workitems.py:1422
+#: nx_lib/views/workitems.py:1430
 msgid "Priority updated."
 msgstr "Priorität aktualisiert."
 
-#: nx_lib/views/workitems.py:1455
+#: nx_lib/views/workitems.py:1463
 msgid "Could not fetch tags"
 msgstr "Tags konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1593
+#: nx_lib/views/workitems.py:1601
 msgid "Tag name cannot be empty."
 msgstr "Tag-Name darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1617
+#: nx_lib/views/workitems.py:1625
 msgid "Workitem already has this tag."
 msgstr "Workitem hat dieses Tag bereits."
 
-#: nx_lib/views/workitems.py:1629
+#: nx_lib/views/workitems.py:1637
 msgid "Tag added successfully."
 msgstr "Tag erfolgreich hinzugefügt."
 
-#: nx_lib/views/workitems.py:1661
+#: nx_lib/views/workitems.py:1669
 msgid "Tag association not found."
 msgstr "Tag-Zuordnung nicht gefunden."
 
-#: nx_lib/views/workitems.py:1665
+#: nx_lib/views/workitems.py:1673
 msgid "Tag removed successfully."
 msgstr "Tag erfolgreich entfernt."
 
@@ -946,7 +946,7 @@ msgstr "Keine weiteren Benutzer verfügbar."
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:316
 #: templates/generali_reporting.html:341 templates/reporting.html:150
-#: templates/workitems_overview.html:446 templates/workitems_overview.html:542
+#: templates/workitems_overview.html:447 templates/workitems_overview.html:543
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -962,11 +962,11 @@ msgstr "Willkommen zurück"
 msgid "Here's a real-time overview of your document processing activity."
 msgstr "Hier ist eine Echtzeit-Übersicht Ihrer Dokumentenverarbeitung."
 
-#: templates/dashboard.html:34 templates/workitems_overview.html:76
+#: templates/dashboard.html:34 templates/workitems_overview.html:77
 msgid "Process"
 msgstr "Prozess"
 
-#: templates/dashboard.html:37 templates/workitems_overview.html:79
+#: templates/dashboard.html:37 templates/workitems_overview.html:80
 msgid "All Processes"
 msgstr "Alle Prozesse"
 
@@ -1059,7 +1059,7 @@ msgstr "Anwenden"
 #: templates/generali_importstatus.html:74 templates/generali_pdqm.html:131
 #: templates/generali_projectmanagement.html:99
 #: templates/generali_reporting.html:134 templates/invoices.html:97
-#: templates/workitems_overview.html:293
+#: templates/workitems_overview.html:294
 msgid "Reset"
 msgstr "Zurücksetzen"
 
@@ -1092,7 +1092,7 @@ msgstr "Tägliches Verarbeitungsvolumen"
 #: templates/js/_reporting_viz_js.html:403
 #: templates/js/_reporting_viz_js.html:465
 #: templates/js/_reporting_viz_js.html:521
-#: templates/js/_reporting_viz_js.html:523 templates/workitems_overview.html:64
+#: templates/js/_reporting_viz_js.html:523 templates/workitems_overview.html:65
 msgid "Total"
 msgstr "Gesamt"
 
@@ -1105,7 +1105,7 @@ msgstr "Erwartet"
 msgid "Kommunikation"
 msgstr "Kommunikation"
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:335
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:336
 msgid "Select all"
 msgstr "Alle auswählen"
 
@@ -1172,7 +1172,7 @@ msgstr "Monatsbericht"
 #: templates/generali_importstatus.html:38 templates/generali_pdqm.html:55
 #: templates/generali_projectmanagement.html:59
 #: templates/generali_reporting.html:63 templates/invoices.html:60
-#: templates/workitems_overview.html:143
+#: templates/workitems_overview.html:144
 msgid "From Date"
 msgstr "Von Datum"
 
@@ -1182,7 +1182,7 @@ msgstr "Von Datum"
 #: templates/generali_importstatus.html:43 templates/generali_pdqm.html:60
 #: templates/generali_projectmanagement.html:64
 #: templates/generali_reporting.html:68 templates/invoices.html:70
-#: templates/workitems_overview.html:153
+#: templates/workitems_overview.html:154
 msgid "To Date"
 msgstr "Bis Datum"
 
@@ -1268,7 +1268,7 @@ msgstr "Benutzer"
 #: templates/generali_additionalservices.html:109
 #: templates/generali_baseservices.html:97 templates/generali_pdqm.html:117
 #: templates/generali_projectmanagement.html:85
-#: templates/generali_reporting.html:106 templates/workitems_overview.html:187
+#: templates/generali_reporting.html:106 templates/workitems_overview.html:188
 msgid "All Users"
 msgstr "Alle Benutzer"
 
@@ -1322,7 +1322,7 @@ msgstr "Aktionen"
 #: templates/generali_documents.html:278
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:405
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:406
 msgid "Showing"
 msgstr "Anzeige"
 
@@ -1333,7 +1333,7 @@ msgstr "Anzeige"
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:99
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:407
+#: templates/workitems_overview.html:408
 msgid "of"
 msgstr "von"
 
@@ -1342,7 +1342,7 @@ msgstr "von"
 #: templates/generali_documents.html:282
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:409
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:410
 msgid "results"
 msgstr "Ergebnissen"
 
@@ -1547,7 +1547,7 @@ msgstr "Keine Gruppierung"
 msgid "Search by ID, policy, damage number…"
 msgstr "Suche nach ID, Police, Schadennummer…"
 
-#: templates/generali_documents.html:203 templates/workitems_overview.html:289
+#: templates/generali_documents.html:203 templates/workitems_overview.html:290
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -1576,8 +1576,8 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 #: templates/admin/user_detail.html:224 templates/generali_importstatus.html:48
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:79
-#: templates/invoices.html:124 templates/workitems_overview.html:121
-#: templates/workitems_overview.html:349
+#: templates/invoices.html:124 templates/workitems_overview.html:122
+#: templates/workitems_overview.html:350
 msgid "Status"
 msgstr "Status"
 
@@ -1895,8 +1895,8 @@ msgstr ""
 "Unser automatisiertes System erledigt jeden Schritt mit Präzision und "
 "Sicherheit. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:113 templates/js/_workitems_overview_js.html:962
-#: templates/workitems_overview.html:317
+#: templates/hero.html:113 templates/js/_workitems_overview_js.html:1023
+#: templates/workitems_overview.html:318
 msgid "Import"
 msgstr "Import"
 
@@ -2199,8 +2199,8 @@ msgstr "Alle Status"
 
 # Phase 3 — command palette, saved presets, CSV export
 #: templates/admin/logs.html:41 templates/invoices.html:100
-#: templates/workitems_overview.html:310 templates/workitems_overview.html:395
-#: templates/workitems_overview.html:548
+#: templates/workitems_overview.html:311 templates/workitems_overview.html:396
+#: templates/workitems_overview.html:549
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
@@ -2522,7 +2522,7 @@ msgstr "Spalten"
 msgid "Filters"
 msgstr "Filter"
 
-#: templates/reporting.html:137 templates/workitems_overview.html:279
+#: templates/reporting.html:137 templates/workitems_overview.html:280
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
@@ -2787,58 +2787,58 @@ msgstr "Identität verifizieren"
 msgid "Workitems overview - nexora"
 msgstr "Workitems-Übersicht - nexora"
 
-#: templates/workitems_overview.html:35
+#: templates/workitems_overview.html:36
 msgid "Drop PDF file here to import"
 msgstr "PDF-Datei hier ablegen zum Importieren"
 
-#: templates/workitems_overview.html:57
+#: templates/workitems_overview.html:58
 msgid "Workitems overview"
 msgstr "Workitems-Übersicht"
 
-#: templates/workitems_overview.html:58
+#: templates/workitems_overview.html:59
 msgid "List of all workitems"
 msgstr "Liste aller Workitems"
 
-#: templates/workitems_overview.html:94 templates/workitems_overview.html:341
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:342
 msgid "Workitem"
 msgstr "Workitem"
 
-#: templates/workitems_overview.html:124
+#: templates/workitems_overview.html:125
 msgid "All statuses"
 msgstr "Alle Status"
 
-#: templates/workitems_overview.html:163 templates/workitems_overview.html:364
+#: templates/workitems_overview.html:164 templates/workitems_overview.html:365
 msgid "Priority"
 msgstr "Priorität"
 
-#: templates/workitems_overview.html:168
+#: templates/workitems_overview.html:169
 msgid "All Priorities"
 msgstr "Alle Prioritäten"
 
 #: templates/js/_workitems_overview_js.html:478
-#: templates/workitems_overview.html:169
+#: templates/workitems_overview.html:170
 msgid "High"
 msgstr "Hoch"
 
 #: templates/js/_workitems_overview_js.html:477
-#: templates/workitems_overview.html:170
+#: templates/workitems_overview.html:171
 msgid "Medium"
 msgstr "Mittel"
 
 #: templates/js/_workitems_overview_js.html:476
-#: templates/workitems_overview.html:171
+#: templates/workitems_overview.html:172
 msgid "Low"
 msgstr "Niedrig"
 
-#: templates/workitems_overview.html:182
+#: templates/workitems_overview.html:183
 msgid "Assigned To"
 msgstr "Zugewiesen an"
 
-#: templates/workitems_overview.html:188
+#: templates/workitems_overview.html:189
 msgid "Unassigned"
 msgstr "Nicht zugewiesen"
 
-#: templates/workitems_overview.html:203
+#: templates/workitems_overview.html:204
 msgid ""
 "Document\n"
 "                  fields"
@@ -2846,81 +2846,81 @@ msgstr ""
 "Dokument-\n"
 "                  felder"
 
-#: templates/workitems_overview.html:215 templates/workitems_overview.html:247
+#: templates/workitems_overview.html:216 templates/workitems_overview.html:248
 msgid "Search field…"
 msgstr "Feld suchen…"
 
-#: templates/workitems_overview.html:231 templates/workitems_overview.html:262
+#: templates/workitems_overview.html:232 templates/workitems_overview.html:263
 msgid "Type to search…"
 msgstr "Zum Suchen tippen…"
 
-#: templates/workitems_overview.html:357
+#: templates/workitems_overview.html:358
 msgid "Last movement at"
 msgstr "Letzte Bewegung am"
 
-#: templates/workitems_overview.html:369
+#: templates/workitems_overview.html:370
 msgid "Tag"
 msgstr "Tag"
 
-#: templates/js/_workitems_overview_js.html:1360
-#: templates/workitems_overview.html:391
+#: templates/js/_workitems_overview_js.html:1421
+#: templates/workitems_overview.html:392
 msgid "selected"
 msgstr "ausgewählt"
 
-#: templates/workitems_overview.html:399
+#: templates/workitems_overview.html:400
 msgid "Deselect"
 msgstr "Auswahl aufheben"
 
-#: templates/workitems_overview.html:420
+#: templates/workitems_overview.html:421
 msgid "Batch Import"
 msgstr "Massenimport"
 
-#: templates/workitems_overview.html:426
+#: templates/workitems_overview.html:427
 msgid "Destination Process"
 msgstr "Zielprozess"
 
-#: templates/workitems_overview.html:431
+#: templates/workitems_overview.html:432
 msgid "Choose a process..."
 msgstr "Prozess auswählen..."
 
-#: templates/workitems_overview.html:440
+#: templates/workitems_overview.html:441
 msgid "Please select a valid process."
 msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 
-#: templates/js/_workitems_overview_js.html:966
-#: templates/workitems_overview.html:450
+#: templates/js/_workitems_overview_js.html:1027
+#: templates/workitems_overview.html:451
 msgid "Import File"
 msgstr "Datei importieren"
 
-#: templates/workitems_overview.html:462
+#: templates/workitems_overview.html:463
 msgid "Export Workitems"
 msgstr "Workitems exportieren"
 
-#: templates/workitems_overview.html:473
+#: templates/workitems_overview.html:474
 msgid "Always included"
 msgstr "Immer enthalten"
 
-#: templates/workitems_overview.html:476
+#: templates/workitems_overview.html:477
 msgid "Workitem ID, Status, Stage, Last Movement, Priority, Tags"
 msgstr "Workitem-ID, Status, Stufe, Letzte Bewegung, Priorität, Tags"
 
-#: templates/workitems_overview.html:482
+#: templates/workitems_overview.html:483
 msgid "Optional extras"
 msgstr "Optionale Extras"
 
-#: templates/workitems_overview.html:487
+#: templates/workitems_overview.html:488
 msgid "Document fields"
 msgstr "Dokumentfelder"
 
-#: templates/workitems_overview.html:488
+#: templates/workitems_overview.html:489
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr "Indexfelder — nur für Auswahlen von bis zu 10 Workitems verfügbar"
 
-#: templates/workitems_overview.html:494
+#: templates/workitems_overview.html:495
 msgid "Audit history"
 msgstr "Prüfhistorie"
 
-#: templates/workitems_overview.html:495
+#: templates/workitems_overview.html:496
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
@@ -2928,11 +2928,11 @@ msgstr ""
 "Vollständige Zeitleiste aller Stufen — nur für Auswahlen von bis zu 10 "
 "Workitems verfügbar"
 
-#: templates/workitems_overview.html:501
+#: templates/workitems_overview.html:502
 msgid "Images as base64"
 msgstr "Bilder als Base64"
 
-#: templates/workitems_overview.html:502
+#: templates/workitems_overview.html:503
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
@@ -2940,7 +2940,7 @@ msgstr ""
 "Bis zu 5 Bilder pro Workitem — nur für Auswahlen von bis zu 10 Workitems "
 "verfügbar"
 
-#: templates/workitems_overview.html:506
+#: templates/workitems_overview.html:507
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
@@ -2948,17 +2948,26 @@ msgstr ""
 "Verwenden Sie dieses PowerShell-Skript, um Bilder aus der exportierten "
 "CSV zu extrahieren. Erfordert Ausführungsrichtlinie"
 
-#: templates/workitems_overview.html:506
+#: templates/workitems_overview.html:507
 msgid "or higher."
 msgstr "oder höher."
 
-#: templates/workitems_overview.html:535
+#: templates/workitems_overview.html:536
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
 msgstr ""
 "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert "
 "(nicht nur die aktuelle Seite)."
+
+#: templates/workitems_overview.html:558
+msgid "Show where extracted values were found on the document"
+msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
+
+#: templates/js/_workitems_overview_js.html:1905
+#: templates/workitems_overview.html:561
+msgid "Show sources"
+msgstr "Quellen anzeigen"
 
 #: templates/admin/access_control.html:6
 msgid "Access Control - nexora"
@@ -3293,14 +3302,14 @@ msgstr "Details"
 
 #: templates/admin/logs.html:124 templates/admin/user_detail.html:234
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1625
+#: templates/js/_workitems_overview_js.html:1686
 msgid "Previous"
 msgstr "Vorherige"
 
 #: templates/admin/logs.html:125 templates/admin/user_detail.html:235
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1631
+#: templates/js/_workitems_overview_js.html:1692
 #: templates/js/archive/_tour_js.html:17
 msgid "Next"
 msgstr "Nächste"
@@ -3680,7 +3689,7 @@ msgstr "Keine Einträge gefunden."
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1472
+#: templates/js/_workitems_overview_js.html:1533
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
@@ -3753,7 +3762,7 @@ msgstr "Dokumente"
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1345
+#: templates/js/_workitems_overview_js.html:1406
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
 
@@ -4268,75 +4277,87 @@ msgid "Checking for media..."
 msgstr "Medien werden gesucht..."
 
 #: templates/js/_workitems_overview_js.html:624
+msgid "no source location"
+msgstr "keine Fundstelle"
+
+#: templates/js/_workitems_overview_js.html:626
+msgid "Click to locate on the document"
+msgstr "Zum Lokalisieren im Dokument klicken"
+
+#: templates/js/_workitems_overview_js.html:639
 msgid "No additional details found."
 msgstr "Keine weiteren Details gefunden."
 
-#: templates/js/_workitems_overview_js.html:630
+#: templates/js/_workitems_overview_js.html:645
 msgid "No media found for this workitem."
 msgstr "Keine Medien für dieses Workitem gefunden."
 
-#: templates/js/_workitems_overview_js.html:643
+#: templates/js/_workitems_overview_js.html:658
 msgid "Could not load media."
 msgstr "Medien konnten nicht geladen werden."
 
-#: templates/js/_workitems_overview_js.html:679
+#: templates/js/_workitems_overview_js.html:732
 msgid "Media"
 msgstr "Medien"
 
-#: templates/js/_workitems_overview_js.html:679
+#: templates/js/_workitems_overview_js.html:732
 msgid "for workitem "
 msgstr "für Workitem "
 
-#: templates/js/_workitems_overview_js.html:694
+#: templates/js/_workitems_overview_js.html:755
 msgid "Failed to load image "
 msgstr "Bild konnte nicht geladen werden "
 
-#: templates/js/_workitems_overview_js.html:814
-#: templates/js/_workitems_overview_js.html:1486
+#: templates/js/_workitems_overview_js.html:875
+#: templates/js/_workitems_overview_js.html:1547
 msgid "High Priority"
 msgstr "Hohe Priorität"
 
-#: templates/js/_workitems_overview_js.html:815
-#: templates/js/_workitems_overview_js.html:1487
+#: templates/js/_workitems_overview_js.html:876
+#: templates/js/_workitems_overview_js.html:1548
 msgid "Medium Priority"
 msgstr "Mittlere Priorität"
 
-#: templates/js/_workitems_overview_js.html:816
-#: templates/js/_workitems_overview_js.html:1488
+#: templates/js/_workitems_overview_js.html:877
+#: templates/js/_workitems_overview_js.html:1549
 msgid "Low Priority"
 msgstr "Niedrige Priorität"
 
-#: templates/js/_workitems_overview_js.html:848
+#: templates/js/_workitems_overview_js.html:909
 msgid "Please select valid PDF files."
 msgstr "Bitte wählen Sie gültige PDF-Dateien aus."
 
-#: templates/js/_workitems_overview_js.html:861
+#: templates/js/_workitems_overview_js.html:922
 msgid "files selected"
 msgstr "Dateien ausgewählt"
 
-#: templates/js/_workitems_overview_js.html:1047
+#: templates/js/_workitems_overview_js.html:1108
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overview_js.html:1321
+#: templates/js/_workitems_overview_js.html:1382
 msgid "Loading workitems..."
 msgstr "Workitems werden geladen..."
 
-#: templates/js/_workitems_overview_js.html:1388
+#: templates/js/_workitems_overview_js.html:1449
 msgid "selected workitems will be exported"
 msgstr "ausgewählte Workitems werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1389
+#: templates/js/_workitems_overview_js.html:1450
 msgid "All workitems matching current filters will be exported"
 msgstr "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1454
+#: templates/js/_workitems_overview_js.html:1515
 msgid "Export failed. Please try again."
 msgstr "Export fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: templates/js/_workitems_overview_js.html:1471
+#: templates/js/_workitems_overview_js.html:1532
 msgid "No workitems found"
 msgstr "Keine Workitems gefunden"
+
+#: templates/js/_workitems_overview_js.html:1905
+msgid "Hide sources"
+msgstr "Quellen ausblenden"
 
 #: templates/js/admin/_access_control_js.html:33
 msgid "No Profile"

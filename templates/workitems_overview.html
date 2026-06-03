@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/source-highlight.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
@@ -553,7 +554,14 @@ $data | ForEach-Object {
 
     <div id="imageModal" class="modal">
       <span class="modal-close">&times;</span>
+      <button type="button" id="srcHlToggle" class="src-hl-toggle" hidden
+              title="{{ _('Show where extracted values were found on the document') }}"
+              data-testid="workitems-src-toggle">
+        <i class="fas fa-magnifying-glass-location"></i>
+        <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
+      </button>
       <img class="modal-content" id="modalImage">
+      <div id="srcHlLayer"></div>
       <a class="modal-prev">&#10094;</a>
       <a class="modal-next">&#10095;</a>
     </div>

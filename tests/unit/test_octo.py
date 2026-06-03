@@ -185,11 +185,15 @@ def test_get_extensions_urls_fields_single_doc(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc-1")
+        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc-1")
 
     assert extensions == [".png"]
     assert urls == ["https://cdn/x.png"]
     assert fields == {"invoice_date": "2026-06-01"}
+    # mapped field with a value but no Location -> present, un-locatable
+    assert field_sources == [
+        {"key": "invoice_date", "label": "invoice_date", "value": "2026-06-01", "locations": []}
+    ]
 
 
 def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
@@ -214,10 +218,11 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
         patch.object(octo_mod, "get_index_field_mappings", return_value={}),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc-batch")
+        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc-batch")
     assert extensions == [".jpg", ".tif"]
     assert urls == ["https://cdn/a.jpg", "https://cdn/b.tif"]
     assert fields == {}
+    assert field_sources == []
 
 
 def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
@@ -230,10 +235,11 @@ def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc")
+        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc")
     assert extensions == []
     assert urls == []
     assert fields == {}
+    assert field_sources == []
 
 
 # ---------- get_media ----------

@@ -24,6 +24,16 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
   Activating `run_sql` / `compute_stats` in the live loop (results flow back to the
   model) is **deferred to Phase 3e** behind a new `reporting.ai.explain_data` permission
   and a data-egress decision. See `docs/superpowers/plans/2026-06-03-reporting-ai-phase3.md`.
+- **Workitems — source highlighting.** A "Show sources" toggle on the document viewer
+  overlays where each extracted index-field value was found on the page (read-only).
+  Coordinates come from the Octopus document service (`IndexField.Location`), captured
+  in `nx_lib/field_locations.py` and returned by `api_get_media_info` as `field_sources`;
+  the browser normalizes the pixel rects against each page image's
+  `naturalWidth`/`naturalHeight` and draws boxes in the lightbox and on thumbnails
+  (thumbnails switch to `object-contain` so boxes map correctly). Field values with a
+  location are click-to-locate (jump + pulse); values without one show a "no source
+  location" badge. Reuses `workitems.details.view.images` + `.fields` — no new
+  permission, no migration. CSS isolated in `static/css/source-highlight.css`.
 - **Reporting AI assistant (Phase 2 — Build a report):** a "Build a report" sub-mode
   in the Ask-AI panel turns a natural-language question into a v1 report definition
   that auto-fills the builder wells (whitelist-safe; row-scoping preserved; **no SQL
