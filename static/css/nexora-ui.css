@@ -196,16 +196,9 @@ a.nx-card:hover, .nx-card--link:hover {
               box-shadow var(--nx-dur) var(--nx-ease);
 }
 .nx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
-.nx-btn--primary  { background: var(--nx-accent); color: #fff; position: relative; }
-.nx-btn--primary:hover  { background: var(--nx-accent-hover); }
-/* signature: a faint brand-gradient sheen on the primary CTA hover */
-.nx-btn--primary::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: var(--nx-brand-grad); opacity: 0;
-  transition: opacity var(--nx-dur) var(--nx-ease);
-}
-.nx-btn--primary:hover::after { opacity: .18; }
-.nx-btn--primary > * { position: relative; z-index: 1; }
+/* signature: primary CTA carries the brand gradient */
+.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px rgba(79,70,229,0.45); }
+.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px rgba(79,70,229,0.5); }
 .nx-btn--secondary { background: var(--nx-card); color: var(--nx-text); border-color: var(--nx-border-strong); }
 .nx-btn--secondary:hover { background: var(--nx-alt); }
 .nx-btn--ghost { background: transparent; color: var(--nx-text-sec); }
@@ -299,16 +292,17 @@ a.nx-card:hover, .nx-card--link:hover {
   text-align: center; padding: 56px 24px; color: var(--nx-text-meta);
 }
 .nx-empty__art {
-  width: 56px; height: 56px; border-radius: 16px;
+  width: 60px; height: 60px; border-radius: 18px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: var(--nx-accent);
-  background: var(--nx-accent-tint);
-  margin-bottom: 16px;
+  font-size: 24px; color: #fff;
+  background: var(--nx-brand-grad);
+  box-shadow: 0 10px 28px -8px rgba(79,70,229,0.55);
+  margin-bottom: 18px;
   position: relative;
 }
 .nx-empty__art::after {
-  content: ""; position: absolute; inset: -6px; border-radius: 20px;
-  border: 1px dashed var(--nx-border-strong); opacity: .6;
+  content: ""; position: absolute; inset: -7px; border-radius: 22px;
+  border: 1px dashed var(--nx-accent); opacity: .35;
 }
 .nx-empty__title { font-size: 15px; font-weight: 600; color: var(--nx-text); margin: 0 0 4px; }
 .nx-empty__sub { font-size: 13px; color: var(--nx-text-sec); margin: 0; max-width: 360px; }
@@ -341,4 +335,43 @@ a.nx-card:hover, .nx-card--link:hover {
 @media (prefers-reduced-motion: reduce) {
   .nx-rise, .nx-rise-2, .nx-rise-3 { animation: none; }
   body.nx-app *, body.nx-app *::after, body.nx-app *::before { transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================
+   5. CREATIVE SIGNATURE (amplified) — one brand gradient,
+   used deliberately across a few moments so it reads as
+   identity rather than decoration.
+   ============================================================ */
+
+/* Page-title icon chip */
+.nx-page-head__title { display: flex; align-items: center; gap: 14px; }
+.nx-page-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; background: var(--nx-brand-grad);
+  box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
+}
+
+/* Designed count pill with gradient numerals */
+.nx-count-pill {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 14px; border-radius: var(--nx-radius-pill);
+  border: 1px solid var(--nx-border); background: var(--nx-card);
+}
+.nx-count-pill__label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--nx-text-meta); }
+.nx-count-pill__value {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
+  font-size: 16px; font-weight: 700; line-height: 1;
+  background: var(--nx-brand-grad); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* Branded row hover: a subtle accent rail slides in */
+.nx-table tbody tr:not(.details-row):hover { background: var(--nx-alt); box-shadow: inset 2px 0 0 0 var(--nx-accent); }
+
+/* Gradient rail on the active sidebar item — a brand cue on every page */
+.sidebar-nav-item { position: relative; }
+.sidebar-nav-item--active::before {
+  content: ""; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--nx-brand-grad);
 }

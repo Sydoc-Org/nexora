@@ -7,11 +7,16 @@
 
 {# Page header: title + optional subtitle on the left, free-form
    actions slot on the right (pass via `caller()` using {% call %}). #}
-{% macro page_header(title, subtitle='') %}
+{% macro page_header(title, subtitle='', icon='') %}
 <div class="nx-page-head nx-rise">
   <div class="nx-page-head__main">
-    <h1 class="nx-title">{{ title }}</h1>
-    {% if subtitle %}<p class="nx-subtitle">{{ subtitle }}</p>{% endif %}
+    <div class="nx-page-head__title">
+      {% if icon %}<span class="nx-page-icon"><i class="fas {{ icon }}"></i></span>{% endif %}
+      <div>
+        <h1 class="nx-title">{{ title }}</h1>
+        {% if subtitle %}<p class="nx-subtitle">{{ subtitle }}</p>{% endif %}
+      </div>
+    </div>
   </div>
   {% if caller %}<div class="nx-page-head__actions">{{ caller() }}</div>{% endif %}
 </div>

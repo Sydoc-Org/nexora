@@ -51,12 +51,19 @@
 
     <div class="nx-page-head nx-rise">
       <div class="nx-page-head__main">
-        <h1 class="nx-title">{{ _("Workitems overview") }}</h1>
-        <p class="nx-subtitle">{{ _("List of all workitems") }}</p>
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-layer-group"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Workitems overview") }}</h1>
+            <p class="nx-subtitle">{{ _("List of all workitems") }}</p>
+          </div>
+        </div>
       </div>
       <div class="nx-page-head__actions">
-        <span class="nx-meta">{{ _("Total") }}</span>
-        <span class="nx-chip-count" id="totalItemsCount">—</span>
+        <div class="nx-count-pill">
+          <span class="nx-count-pill__label">{{ _("Total") }}</span>
+          <span class="nx-count-pill__value" id="totalItemsCount">—</span>
+        </div>
       </div>
     </div>
 
