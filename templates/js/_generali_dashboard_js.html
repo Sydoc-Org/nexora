@@ -1,6 +1,15 @@
 <script>
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
+    // Re-render Chart.js charts when dark mode is toggled so token-based
+    // canvas text (see nkSumLabels) repaints for the active theme.
+    new MutationObserver(() => {
+        document.querySelectorAll('canvas').forEach(c => {
+            const ch = (window.Chart && Chart.getChart) ? Chart.getChart(c) : null;
+            if (ch) ch.update('none');
+        });
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     const PALETTE = ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f43f5e','#84cc16','#f97316','#0ea5e9'];
     // Kommunikation lines skip indigo (Total) and red (Expected) to stay visually distinct.
     const KOMM_PALETTE = ['#10b981','#f59e0b','#8b5cf6','#06b6d4','#f43f5e','#84cc16','#f97316','#0ea5e9'];
@@ -33,7 +42,7 @@
             const ctx = chart.ctx;
             ctx.save();
             ctx.font = '600 11px sans-serif';
-            ctx.fillStyle = '#374151';
+            ctx.fillStyle = (getComputedStyle(document.body).getPropertyValue('--nx-text') || '#374151').trim();
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
             for (let i = 0; i < labels.length; i++) {
