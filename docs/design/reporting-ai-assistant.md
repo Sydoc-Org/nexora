@@ -1,6 +1,6 @@
 # Design — AI assistant in the Reporting page
 
-> **Status:** Draft for discussion (not yet planned/scheduled).
+> **Status:** Phase 1 and Phase 2 implemented (see §12 for phase status).
 > **Author:** initial draft via Claude Code, 2026-06-03.
 > **Scope:** an in-page AI that turns natural language into *helpful, smart*
 > statistics — building reports for you, and writing SQL you can run or
@@ -49,7 +49,7 @@ SQL passes today. This single decision removes most of the risk surface.
 Every AI feature reduces to producing one of two artifacts. Both already have a
 trusted validator in the codebase.
 
-### Surface A — NL → **report definition** (SQL-free, safest)
+### Surface A — NL → **report definition** (SQL-free, safest) ✅ implemented (2026-06-03)
 
 The model emits the **v1 report-definition JSON** (`source`, `columns`,
 `filters`, `sort`, `groupBy`, `scope`, `rowLimit`). It then flows through the
@@ -305,17 +305,24 @@ should be computed deterministically:
 
 ## 12. Phased roadmap
 
-| Phase | Deliverable | Reuses | Rough effort |
-|---|---|---|---|
-| **1 — MVP** | "Ask AI" → SQL **into the editor only** (no auto-run) + 1-line explanation; server-side provider call; schema from RO `INFORMATION_SCHEMA` + catalogs; `reporting.ai.use/sql`; `ReportingAiAudit` | gate, ack, run, audit | ~days |
-| **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days |
-| **3 — Agentic + stats + RAG** | Tier-2 tool-loop with self-repair, `compute_stats`, "explain results" (gated), follow-up conversation, glossary RAG | embeddings table | ~1–2 wks |
-| **4 — Semantic layer** | Canonical metrics/dimensions → trustworthy, consistent numbers | semantic.py | strategic, larger |
+| Phase | Deliverable | Reuses | Rough effort | Status |
+|---|---|---|---|---|
+| **1 — MVP** | "Ask AI" → SQL **into the editor only** (no auto-run) + 1-line explanation; server-side provider call; schema from RO `INFORMATION_SCHEMA` + catalogs; `reporting.ai.use/sql`; `ReportingAiAudit` | gate, ack, run, audit | ~days | ✅ done (2026-06-03) |
+| **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days | ✅ done (2026-06-03) |
+| **3 — Agentic + stats + RAG** | Tier-2 tool-loop with self-repair, `compute_stats`, "explain results" (gated), follow-up conversation, glossary RAG | embeddings table | ~1–2 wks | planned |
+| **4 — Semantic layer** | Canonical metrics/dimensions → trustworthy, consistent numbers | semantic.py | strategic, larger | planned |
 
 **Phase-1 acceptance:** a user with `reporting.ai.sql` types a question, gets
 valid T-SQL in the editor that passes `validate_select`, can run it via the
 existing gated path, and the interaction is in `ReportingAiAudit`. No new
 execution path; no data egress beyond the question + schema metadata.
+
+**Phase-2 acceptance:** a user with `reporting.ai.use` (no SQL perm needed)
+types a question, the server returns a validated v1 report definition, **Open in
+builder** fills the wells, the user runs it via the existing `/api/reporting/run`
+path (row-scoping and whitelist intact), and the interaction is in
+`ReportingAiAudit` with `Surface='definition'`. An optional `chartHint` enables
+**Make a chart** in one click. No new permission, table, or migration.
 
 ---
 

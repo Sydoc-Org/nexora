@@ -296,7 +296,40 @@ or advancing `NextRunAt` — useful for a first smoke test. Graph mail uses the
 existing `GRAPH_*` credentials (the same ones the password-reset mail uses); if
 Graph is unconfigured the runner logs the failure per-schedule and continues.
 
-## AI assistant (Phase 1)
+## AI assistant
+
+The **Ask AI** tab in the report builder offers two sub-modes: **Build a report**
+(Surface A, default) and **Write SQL** (Surface B; only shown when the user also
+holds `reporting.ai.sql`). Both modes send only the user's question and curated-source
+catalog metadata to the model — never result rows.
+
+### Build a report (Surface A)
+
+Route: `POST /api/reporting/ai/build`
+
+**Access:** only `reporting.ai.use` is required. `reporting.ai.sql` and
+`reporting.sql.run` are **not** needed.
+
+The model produces a v1 report definition (source, columns, filters, sort, scope,
+rowLimit). The server validates the draft through `validate_report_definition` — the
+same whitelist validator used by `/api/reporting/run` — and attempts one self-repair
+retry if the first draft fails validation. On success, the panel shows a summary and
+two buttons:
+
+- **Open in builder** — calls `applyDefinition()` to fill the builder wells; the user
+  then runs the report via the existing `POST /api/reporting/run` path (so row-scoping
+  via `reporting.scope.process.*` and the source field whitelist still apply — no data
+  bypass).
+- **Make a chart** — appears only when the model returns a `chartHint`; one-click
+  renders the hinted chart type via the existing chart view.
+
+Every call is audited to `dbo.ReportingAiAudit` with `Surface='definition'`. The
+per-user/day cap (`AI_DAILY_LIMIT`) applies. No new permission, table, or migration.
+
+**Egress:** the model receives the question plus the curated-source field catalog
+metadata only — never result rows.
+
+### Write SQL (Phase 1 — Surface B)
 
 The **Ask AI** tab in the report builder lets a user ask a question in plain
 language and receive a read-only T-SQL draft placed in the SQL editor. The user

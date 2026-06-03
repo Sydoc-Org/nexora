@@ -9,6 +9,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- **Reporting AI assistant (Phase 2 — Build a report):** a "Build a report" sub-mode
+  in the Ask-AI panel turns a natural-language question into a v1 report definition
+  that auto-fills the builder wells (whitelist-safe; row-scoping preserved; **no SQL
+  permission required** — only `reporting.ai.use`). Route `POST /api/reporting/ai/build`
+  self-validates the draft through `validate_report_definition` with one self-repair
+  retry, and audits to `dbo.ReportingAiAudit` (`Surface='definition'`). An optional AI
+  "Make a chart" suggestion (`chartHint`) one-clicks into the existing chart view. No new
+  permission or migration.
 - **Reporting AI assistant — per-user/day cost cap.** New optional `AI_DAILY_LIMIT`
   env var caps how many AI asks a user can make per UTC day. When the cap is hit,
   `POST /api/reporting/ai/ask` returns **429** *before* any provider call (so a
