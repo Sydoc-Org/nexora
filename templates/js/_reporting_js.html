@@ -581,6 +581,9 @@
   // Open an AI definition in the builder, run it, then show it as the hinted chart.
   function applyDefinitionAndChart(def, hint) {
     applyDefinition(def, def.title || 'AI report', null);
+    // Clear any prior result so a failed run (run() swallows errors) can't leave
+    // stale data that the guard below would chart against.
+    state.lastResult = null;
     var p = run();
     if (p && p.then) {
       p.then(function () {

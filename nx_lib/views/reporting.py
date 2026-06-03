@@ -263,20 +263,31 @@ def _ai_schema_text():
 def _accessible_curated_sources():
     """Curated sources the caller can access, shaped for the AI catalog serializer."""
     perms = set(session.get("permissions", []))
+    allowed_processes = _allowed_processes()
     out = []
     for s in accessible(_effective_sources(), perms):
         if s.get("kind") != "curated":
             continue
-        catalog = table_source_catalog(s.get("columns")) if s.get("columns") else []
-        if s.get("provider") in (None, "docprocessing"):
-            # docprocessing fields come from the locale catalog; fall back to columns
-            catalog = catalog or []
+        provider = s.get("provider") or "docprocessing"
+        if provider == "docprocessing":
+            # Fields come from the locale-aware Statconfig catalog, scoped to the
+            # caller's allowed processes (mirrors /api/reporting/run + api_sources),
+            # so the model grounds on the same fields the validator will check.
+            try:
+                catalog = fetch_docprocessing_catalog(allowed_processes, str(get_locale()))
+            except Exception as e:  # a catalog failure degrades to "no fields", never 500
+                current_app.logger.warning(f"reporting.ai catalog: docprocessing unavailable: {e}")
+                catalog = []
+            processes = allowed_processes
+        else:
+            catalog = table_source_catalog(s.get("columns"))
+            processes = s.get("processes") or []
         out.append(
             {
                 "id": s.get("id"),
                 "label": s.get("label"),
                 "fields": catalog,
-                "processes": s.get("processes") or [],
+                "processes": processes,
             }
         )
     return out
