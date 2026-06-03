@@ -382,3 +382,9 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-stat__chip--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg); }
 .nx-stat__chip--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
 .nx-stat__chip--green  { background: var(--nx-l-green);  color: var(--nx-l-green-fg); }
+
+/* Bare card surface (no padding) — for custom layouts like chat panels */
+.nx-surface { background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); }
+
+/* Chat: own-message bubble carries the brand gradient */
+.nx-bubble-me { background: var(--nx-brand-grad); }
