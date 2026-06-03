@@ -192,6 +192,117 @@ def _extract(text):
     return text, ""
 
 
+_SYSTEM_DEF = (
+    "You are a careful analyst for an internal reporting tool. Given a list of "
+    "available data SOURCES (each with a fixed set of fields, their types, and "
+    "whether each field is filterable/sortable) and a question, return ONE report "
+    "DEFINITION that answers it using ONLY one source and ONLY that source's "
+    "fields. Do not invent fields or sources. Respond with STRICT JSON: "
+    '{"definition": {"schemaVersion": 1, "visualization": "table", "source": '
+    '"<id>", "title": "<short>", "subtitle": null, "columns": [{"field": "<key>", '
+    '"header": "<label>"}], "filters": [{"field": "<key>", "op": "<op>", "value": '
+    '<v>}], "sort": [{"field": "<key>", "dir": "asc"|"desc"}], "scope": {"clients": '
+    '[], "processes": []}, "rowLimit": 5000}, "explanation": "<one sentence>"}. '
+    "Valid filter ops: eq, ne, in, not_in, gt, gte, lt, lte, between (value is a "
+    "2-element list), contains, starts_with, is_null, is_not_null (these two take "
+    "no value). No prose outside JSON."
+)
+
+
+@dataclass
+class AiDefinitionResult:
+    definition: dict | None
+    explanation: str
+    model: str
+    provider: str
+    tokens_in: int | None
+    tokens_out: int | None
+
+
+def _parse_json_object(text):
+    """Parse model text into a JSON object (dict), tolerating a ```json fence. None if not parseable."""
+    text = (text or "").strip()
+    m = _SQL_FENCE.search(text)
+    candidates = [text, m.group(1).strip() if m else None]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            obj = json.loads(candidate)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return None
+
+
+def _definition_user_prompt(question, catalog_text, prior_error):
+    base = (
+        f"Available sources and fields:\n{catalog_text}\n\n"
+        f"Question: {question}\n\n"
+        'Return STRICT JSON {"definition": {...}, "explanation": ...}.'
+    )
+    if prior_error:
+        base += (
+            f"\n\nYour previous attempt was REJECTED by the validator with: "
+            f"{prior_error}\nFix it and return corrected STRICT JSON."
+        )
+    return base
+
+
+def ask_definition(
+    question,
+    catalog_text,
+    *,
+    provider,
+    model,
+    api_key,
+    endpoint=None,
+    deployment=None,
+    api_version="2024-10-21",
+    url=None,
+    prior_error=None,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Draft one v1 report-definition for `question`. Returns AiDefinitionResult.
+
+    No DB validation here: `definition` is the parsed JSON object (or None if the
+    reply was not parseable). The caller validates it against the source catalog
+    and may retry once with `prior_error` set.
+    """
+    text, tin, tout = _dispatch(
+        _SYSTEM_DEF,
+        _definition_user_prompt(question, catalog_text, prior_error),
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        endpoint=endpoint,
+        deployment=deployment,
+        api_version=api_version,
+        url=url,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        transport=transport,
+    )
+    definition, explanation = None, ""
+    obj = _parse_json_object(text)
+    if isinstance(obj, dict):
+        d = obj.get("definition")
+        if isinstance(d, dict):
+            definition = d
+        explanation = str(obj.get("explanation", "")).strip()
+    return AiDefinitionResult(
+        definition=definition,
+        explanation=explanation,
+        model=model,
+        provider=provider,
+        tokens_in=tin,
+        tokens_out=tout,
+    )
+
+
 def ask(
     question,
     schema_text,
