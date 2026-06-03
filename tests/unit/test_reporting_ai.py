@@ -94,3 +94,52 @@ def test_ask_falls_back_to_fenced_block_when_not_json():
 def test_ask_unknown_provider_raises():
     with pytest.raises(ai.AiError):
         ai.ask("q", "s", provider="bogus", model="m", api_key="k", transport=_fake_transport({}))
+
+
+def test_ask_raises_on_missing_api_key():
+    with pytest.raises(ai.AiError):
+        ai.ask(
+            "q", "s", provider="anthropic", model="m", api_key=None, transport=_fake_transport({})
+        )
+
+
+def test_ask_azure_requires_endpoint_and_deployment():
+    with pytest.raises(ai.AiError):
+        ai.ask(
+            "q",
+            "s",
+            provider="azure",
+            model="gpt-4o",
+            api_key="k",
+            endpoint=None,
+            deployment="gpt-4o",
+            transport=_fake_transport({}),
+        )
+
+
+def test_ask_raises_on_anthropic_error_envelope():
+    body = {"type": "error", "error": {"type": "overloaded_error", "message": "overloaded"}}
+    with pytest.raises(ai.AiError):
+        ai.ask(
+            "q",
+            "s",
+            provider="anthropic",
+            model="m",
+            api_key="k",
+            transport=_fake_transport(body),
+        )
+
+
+def test_ask_extracts_from_json_fence():
+    text = '```json\n{"sql":"SELECT 3 AS Z","explanation":"three"}\n```'
+    body = {"content": [{"type": "text", "text": text}], "usage": {}}
+    res = ai.ask(
+        "three",
+        "(* none *)",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=_fake_transport(body),
+    )
+    assert res.sql == "SELECT 3 AS Z"
+    assert res.valid is True

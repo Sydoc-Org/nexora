@@ -20,7 +20,7 @@ DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MAX_TOKENS = 1024
 DEFAULT_TIMEOUT_S = 30
 
-_SQL_FENCE = re.compile(r"```(?:sql)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
+_SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 
 _SYSTEM = (
     "You are a careful Microsoft SQL Server (T-SQL) analyst for an internal "
@@ -75,8 +75,11 @@ def _call_anthropic(question, schema_text, *, model, api_key, url, max_tokens, t
         "content-type": "application/json",
     }
     data = transport(url or DEFAULT_ANTHROPIC_URL, headers, body, timeout)
+    if isinstance(data, dict) and data.get("type") == "error":
+        msg = (data.get("error") or {}).get("message", "unknown")
+        raise AiError(f"provider error: {msg}")
     parts = data.get("content") or []
-    text = "".join(p.get("text", "") for p in parts if p.get("type", "text") == "text")
+    text = "".join(p.get("text", "") for p in parts if p.get("type") == "text")
     usage = data.get("usage") or {}
     return text, usage.get("input_tokens"), usage.get("output_tokens")
 
@@ -115,18 +118,31 @@ def _call_azure(
     return text, usage.get("prompt_tokens"), usage.get("completion_tokens")
 
 
-def _extract(text):
-    """Pull (sql, explanation) from the model text: JSON first, then a fenced block."""
-    text = (text or "").strip()
+def _extract_json(text):
+    """Return (sql, explanation) if `text` is a JSON object with an `sql` key, else None."""
     try:
         obj = json.loads(text)
-        if isinstance(obj, dict) and obj.get("sql"):
-            return str(obj["sql"]).strip(), str(obj.get("explanation", "")).strip()
     except (ValueError, TypeError):
-        pass
+        return None
+    if isinstance(obj, dict) and obj.get("sql"):
+        return str(obj["sql"]).strip(), str(obj.get("explanation", "")).strip()
+    return None
+
+
+def _extract(text):
+    """Pull (sql, explanation) from the model text: JSON first, then a fenced block.
+
+    A fenced block may itself contain JSON (e.g. a ```json {...} ``` wrapper), so
+    its inner content is re-parsed as JSON before falling back to the raw query.
+    """
+    text = (text or "").strip()
+    found = _extract_json(text)
+    if found:
+        return found
     m = _SQL_FENCE.search(text)
     if m:
-        return m.group(1).strip(), ""
+        inner = m.group(1).strip()
+        return _extract_json(inner) or (inner, "")
     return text, ""
 
 
