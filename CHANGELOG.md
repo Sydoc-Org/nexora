@@ -9,6 +9,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- **Reporting AI assistant (Phase 1):** an "Ask AI" mode that turns a natural-language
+  question into read-only T-SQL placed in the SQL editor (no auto-run). Server-side,
+  provider-agnostic (`AI_PROVIDER` = `anthropic` | `azure` | `none`); schema-only egress
+  (the model never receives result rows); every interaction self-validated through the
+  sqlglot gate and audited to `dbo.ReportingAiAudit`. New perms `reporting.ai.use` /
+  `reporting.ai.sql`; route `POST /api/reporting/ai/ask`. Disabled until a provider key
+  is configured.
 - Reporting — **motion / micro-interactions.** Added a purely additive animation
   layer (`templates/js/_reporting_anim_js.html`) built on **Motion**
   ([motion.dev](https://motion.dev), pinned `motion@12.40.0` from jsdelivr with

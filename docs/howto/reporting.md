@@ -130,6 +130,8 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
+| `reporting.ai.use` | Use the AI assistant — ask natural-language questions (see below). Admins seeded. |
+| `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -294,6 +296,78 @@ or advancing `NextRunAt` — useful for a first smoke test. Graph mail uses the
 existing `GRAPH_*` credentials (the same ones the password-reset mail uses); if
 Graph is unconfigured the runner logs the failure per-schedule and continues.
 
+## AI assistant (Phase 1)
+
+The **Ask AI** tab in the report builder lets a user ask a question in plain
+language and receive a read-only T-SQL draft placed in the SQL editor. The user
+then reviews and runs it via the normal SQL sandbox path — the assistant never
+executes anything itself.
+
+### Access
+
+Two permissions control the feature:
+
+| Code | Grants |
+|------|--------|
+| `reporting.ai.use` | See the **Ask AI** tab (question → model call). |
+| `reporting.ai.sql` | Receive the AI-drafted SQL into the editor. Grant alongside `reporting.sql.run` so the user can then run it. |
+
+Admins have both seeded; grant them per-user via the normal Permissions admin UI.
+If neither permission is held the tab does not appear.
+
+### Route
+
+`POST /api/reporting/ai/ask` — accepts `{"question": "..."}`, returns
+`{"sql": "...", "explanation": "...", "valid": true|false, "gate_verdict": "valid"|"invalid"}`.
+Every call is audited to `dbo.ReportingAiAudit` (user, question, model,
+provider, duration, gate verdict, token counts).
+
+### Configuration (`AI_*` env vars)
+
+Set these in `env/INT.env` and `env/PROD.env`:
+
+| Var | Purpose |
+|-----|---------|
+| `AI_PROVIDER` | `anthropic`, `azure`, or `none`. Route returns 503 until set to a real provider. |
+| `AI_MODEL` | Model name (e.g. `claude-3-5-haiku-20241022` for Anthropic; the deployment name for Azure). |
+| `ANTHROPIC_API_KEY` | Anthropic API key (required when `AI_PROVIDER=anthropic`). |
+| `ANTHROPIC_API_URL` | Override the Anthropic endpoint (optional; defaults to `https://api.anthropic.com/v1/messages`). |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint (required when `AI_PROVIDER=azure`). |
+| `AZURE_OPENAI_KEY` | Azure OpenAI API key (required when `AI_PROVIDER=azure`). |
+| `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
+| `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). |
+
+Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
+does not render. Sanitised key names are committed in `env/*.env.example`.
+
+### Safety & privacy
+
+- **Schema-only egress:** the model receives the user's question and schema
+  metadata (table/column names and types) only — never result rows or user data.
+  This is enforced in `nx_lib/reporting/ai_schema.py` (the bounded serializer
+  strips everything beyond name/type/description).
+- **sqlglot gate:** every AI-drafted query is validated by `sqlglot` (same gate
+  as the SQL sandbox) before it is returned to the client. A draft that fails
+  the read-only check is still shown to the user but flagged with a warning;
+  it is never auto-inserted silently.
+- **No new execution path:** the only action available from the AI panel is
+  **Insert into SQL editor**. The user then runs it via the existing gated
+  `POST /api/reporting/sql/run` path — the same read-only login, row cap,
+  timeout, and audit trail as any other SQL sandbox run.
+- **Audit:** every AI interaction (question, model, provider, gate verdict,
+  token counts, duration, status) is written to `dbo.ReportingAiAudit`
+  (migration `0013_create_reporting_ai_tables.sql`).
+
+### Implementation
+
+- `nx_lib/reporting/ai.py` — provider-agnostic client (Anthropic + Azure
+  OpenAI); HTTP transport is injectable for tests.
+- `nx_lib/reporting/ai_schema.py` — bounded schema serializer.
+- `templates/reporting.html` + `templates/js/_reporting_ai_js.html` — Ask AI
+  panel and JS.
+
+See `docs/design/reporting-ai-assistant.md` for the full design spec.
+
 ## Live SQL sandbox
 
 The **SQL** tab in the report builder is a power-user escape hatch for when the
@@ -346,10 +420,11 @@ login is set.
 ## See also
 
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
-  `query.py`, `export.py`, `sandbox.py`).
+  `query.py`, `export.py`, `sandbox.py`, `ai.py`, `ai_schema.py`).
 - `nx_lib/views/reporting.py` — Flask routes.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
-  — chart + drag-and-drop pivot (`window.ReportingViz`).
+  — chart + drag-and-drop pivot (`window.ReportingViz`);
+  `templates/js/_reporting_ai_js.html` — Ask AI panel.
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.
 - `sql/_migrations/NexoraDB/0005_seed_reporting_permissions.sql` — permission seed.
 - `sql/_migrations/NexoraDB/0006_create_reporting_sql_tables.sql` —
@@ -358,5 +433,8 @@ login is set.
   `reporting.sql.run` permission + admin seed.
 - `sql/_migrations/NexoraDB/0008_seed_reporting_sql_octopus_permission.sql` —
   `reporting.sql.target.octopus` permission + admin seed.
+- `sql/_migrations/NexoraDB/0013_create_reporting_ai_tables.sql` —
+  `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql` seed.
+- `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).
