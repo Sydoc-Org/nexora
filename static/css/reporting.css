@@ -362,3 +362,18 @@
 .reporting-admin-msg { font-size: 13px; color: #059669; }
 .reporting-sources-link { margin-left: 4px; }
 @media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }
+
+/* --- Animation layer (Motion). The entrance pre-hide is applied only when
+   motion is enabled (<html class="rp-anim">, set by an inline head script).
+   Users with prefers-reduced-motion never get the class, so content shows
+   instantly; js/_reporting_anim_js.html reveals + animates the columns and
+   removes the class once the entrance finishes. --- */
+.rp-anim .reporting-fields,
+.rp-anim .reporting-results,
+.rp-anim .reporting-wells { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-anim .reporting-fields,
+  .rp-anim .reporting-results,
+  .rp-anim .reporting-wells { opacity: 1; }
+}

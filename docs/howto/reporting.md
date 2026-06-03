@@ -21,6 +21,14 @@ Each report run POSTs a **report definition** (v1 JSON — see below) to
 field, and scope entry against a server-side whitelist (the source's field
 catalog); nothing user-supplied reaches SQL unchecked.
 
+> **Motion:** the page has a thin, additive animation layer
+> (`templates/js/_reporting_anim_js.html`, built on [Motion](https://motion.dev)
+> loaded via a pinned + SRI'd `<script>`): a staggered column entrance, rows
+> that stream in after **Run**, fade-in chart/pivot views, spring-in modals, and
+> hover/press button feedback. It only observes the DOM the builder produces, so
+> the page behaves identically with it removed, and it no-ops under
+> `prefers-reduced-motion` or if the CDN is unavailable.
+
 ### Combine clients/processes
 
 The scope wells let users include rows from multiple clients or processes in a

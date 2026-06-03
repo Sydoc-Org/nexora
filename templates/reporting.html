@@ -12,6 +12,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <script>
+    // Enable the no-FOUC entrance only when the user hasn't asked for reduced
+    // motion. The .rp-anim class pre-hides the entrance columns; the deferred
+    // animation layer (js/_reporting_anim_js.html) reveals + animates them.
+    (function () {
+      try {
+        if (!window.matchMedia ||
+            !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('rp-anim');
+        }
+      } catch (e) { /* leave content visible on any failure */ }
+    }());
+  </script>
 </head>
 
 <body class="bg-gray-50 text-gray-800">
@@ -152,6 +165,9 @@
 
   {% include 'js/_reporting_viz_js.html' %}
   {% include 'js/_reporting_js.html' %}
+  <!-- Motion (motion.dev) — vanilla-JS animation library, pinned + SRI. -->
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/motion.js" integrity="sha384-pEZauOIyg+epFndlKew0sgl5yX3MHgf+30BAvpAlckfutfh4WwijcDbz6xua1VjD" crossorigin="anonymous"></script>
+  {% include 'js/_reporting_anim_js.html' %}
 </body>
 
 </html>

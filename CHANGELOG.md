@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
 
 ### Added
+- Reporting — **motion / micro-interactions.** Added a purely additive animation
+  layer (`templates/js/_reporting_anim_js.html`) built on **Motion**
+  ([motion.dev](https://motion.dev), pinned `motion@12.40.0` from jsdelivr with
+  Subresource Integrity): a staggered three-column entrance, result rows that
+  stream in after **Run**, chart/pivot views that fade in on switch, spring-in
+  modals (SQL ack / Share / Schedule), and hover/press feedback on buttons and
+  toggles. It observes the existing DOM only — no reporting logic changed — and
+  fully respects `prefers-reduced-motion` (and degrades to a static, fully
+  functional page if the CDN script is blocked).
 - Reporting — **scheduled & emailed reports.** A saved report can be run on a
   recurring schedule (daily / weekly / monthly at a UTC time) and emailed as
   xlsx or csv to recipients. New `dbo.ReportSchedules` table (migration `0012`),
