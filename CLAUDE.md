@@ -105,6 +105,7 @@ Documentation is part of the change, not a follow-up. Whenever you add, rename, 
 - **Rate limiting:** `flask_limiter` is configured globally (`limiter = Limiter(...)`); apply `@limiter.limit(...)` per route when needed.
 - **File uploads:** Use `werkzeug.utils.secure_filename` plus `python-magic-bin` (`magic`) for MIME sniffing — existing upload handlers follow that pattern; don't trust the client-reported content type.
 - **Prefix middleware:** `PrefixMiddleware` exists for deploying under a URL prefix; it's defined but only wired up when needed.
+- **Workitems document viewer / source highlighting:** the workitems page renders document pages as images (`api_get_media_raw`) and extracted index-field values via `api_get_media_info`, both backed by the Octopus document service in `nx_lib/octo.py` (`get_extensions_urls_fields`). `api_get_media_info` also returns `field_sources` — where each value was found on the page — parsed from `IndexField.Location` by the pure helper `nx_lib/field_locations.py` (raw image-pixel rects; the browser normalizes against the page image's `naturalWidth/Height`). The "Show sources" overlay (lightbox + thumbnails, click-to-locate, un-locatable badge) lives in `templates/js/_workitems_overview_js.html` with styles in `static/css/source-highlight.css`; it reuses `workitems.details.view.images` + `.fields` (no new permission).
 
 ## Testing & browser automation
 
