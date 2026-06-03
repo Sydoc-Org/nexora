@@ -143,3 +143,23 @@ def test_ask_extracts_from_json_fence():
     )
     assert res.sql == "SELECT 3 AS Z"
     assert res.valid is True
+
+
+def test_dispatch_passes_system_and_user_through():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["body"] = body
+        return {"content": [{"type": "text", "text": "{}"}], "usage": {}}
+
+    ai._dispatch(
+        "SYS",
+        "USR",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=transport,
+    )
+    # Anthropic body carries system top-level and the user message verbatim.
+    assert captured["body"]["system"] == "SYS"
+    assert captured["body"]["messages"][0]["content"] == "USR"

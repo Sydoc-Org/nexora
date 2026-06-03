@@ -62,12 +62,12 @@ def _user_prompt(question, schema_text):
     )
 
 
-def _call_anthropic(question, schema_text, *, model, api_key, url, max_tokens, timeout, transport):
+def _call_anthropic(system, user, *, model, api_key, url, max_tokens, timeout, transport):
     body = {
         "model": model,
         "max_tokens": max_tokens,
-        "system": _SYSTEM,
-        "messages": [{"role": "user", "content": _user_prompt(question, schema_text)}],
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
     }
     headers = {
         "x-api-key": api_key,
@@ -79,14 +79,14 @@ def _call_anthropic(question, schema_text, *, model, api_key, url, max_tokens, t
         msg = (data.get("error") or {}).get("message", "unknown")
         raise AiError(f"provider error: {msg}")
     parts = data.get("content") or []
-    text = "".join(p.get("text", "") for p in parts if p.get("type") == "text")
+    text = "".join(p.get("text", "") for p in parts if p.get("type", "text") == "text")
     usage = data.get("usage") or {}
     return text, usage.get("input_tokens"), usage.get("output_tokens")
 
 
 def _call_azure(
-    question,
-    schema_text,
+    system,
+    user,
     *,
     model,
     api_key,
@@ -106,8 +106,8 @@ def _call_azure(
     body = {
         "max_tokens": max_tokens,
         "messages": [
-            {"role": "system", "content": _SYSTEM},
-            {"role": "user", "content": _user_prompt(question, schema_text)},
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
         ],
     }
     headers = {"api-key": api_key, "content-type": "application/json"}
@@ -116,6 +116,52 @@ def _call_azure(
     text = (choices[0].get("message") or {}).get("content", "")
     usage = data.get("usage") or {}
     return text, usage.get("prompt_tokens"), usage.get("completion_tokens")
+
+
+def _dispatch(
+    system,
+    user,
+    *,
+    provider,
+    model,
+    api_key,
+    endpoint=None,
+    deployment=None,
+    api_version="2024-10-21",
+    url=None,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Provider-agnostic single round-trip. Returns (text, tokens_in, tokens_out)."""
+    if not api_key:
+        raise AiError("AI provider API key is not configured")
+    provider = (provider or "").lower()
+    if provider == "anthropic":
+        return _call_anthropic(
+            system,
+            user,
+            model=model,
+            api_key=api_key,
+            url=url,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            transport=transport,
+        )
+    if provider == "azure":
+        return _call_azure(
+            system,
+            user,
+            model=model,
+            api_key=api_key,
+            endpoint=endpoint,
+            deployment=deployment,
+            api_version=api_version,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            transport=transport,
+        )
+    raise AiError(f"unknown AI provider: {provider!r}")
 
 
 def _extract_json(text):
@@ -167,35 +213,21 @@ def ask(
     SQL is validated through the sqlglot gate; an invalid draft is still returned
     (so the user can see/fix it) but flagged valid=False.
     """
-    if not api_key:
-        raise AiError("AI provider API key is not configured")
     provider = (provider or "").lower()
-    if provider == "anthropic":
-        text, tin, tout = _call_anthropic(
-            question,
-            schema_text,
-            model=model,
-            api_key=api_key,
-            url=url,
-            max_tokens=max_tokens,
-            timeout=timeout,
-            transport=transport,
-        )
-    elif provider == "azure":
-        text, tin, tout = _call_azure(
-            question,
-            schema_text,
-            model=model,
-            api_key=api_key,
-            endpoint=endpoint,
-            deployment=deployment,
-            api_version=api_version,
-            max_tokens=max_tokens,
-            timeout=timeout,
-            transport=transport,
-        )
-    else:
-        raise AiError(f"unknown AI provider: {provider!r}")
+    text, tin, tout = _dispatch(
+        _SYSTEM,
+        _user_prompt(question, schema_text),
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        endpoint=endpoint,
+        deployment=deployment,
+        api_version=api_version,
+        url=url,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        transport=transport,
+    )
 
     sql, explanation = _extract(text)
     try:
