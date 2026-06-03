@@ -139,6 +139,20 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
+  (1) the curated-source catalog shown to the model now lists each field as
+  `key "Human Label":type`, and the prompt instructs the model to emit the exact
+  key (the label only aids field selection / column headers) — so docprocessing
+  "Build a report" no longer drafts label-named fields the validator rejects;
+  (2) the Build-mode definition summary in `_reporting_ai_js.html` (`"source"`,
+  `"columns"`, `"filter(s)"`, `"sorted"`, fallback title, and the error strings)
+  is now translated (de/fr/it) instead of hard-coded English;
+  (3) a provider **misconfiguration** on `POST /api/reporting/ai/{ask,build}` now
+  leaves an audit trace (`dbo.ReportingAiAudit` `Status='misconfig'`) instead of a
+  silent 503 — `misconfig` is excluded from the `AI_DAILY_LIMIT` count so a broken
+  provider never burns a user's daily quota;
+  (4) the `_audit_ai` log line reports the actual `surface` instead of a hard-coded
+  `reporting.ai.ask` (the DB `Surface` column was already correct).
 - **Reporting — 500 on SQL/curated results containing binary or time cells.**
   `/api/reporting/sql/run` and `/api/reporting/run` returned raw pyodbc values to
   `jsonify`; Flask's default JSON encoder cannot serialize `bytes`/`bytearray`/

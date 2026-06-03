@@ -112,6 +112,34 @@ def test_serialize_sources_catalog_lists_ids_fields_and_flags():
     assert truncated is False
 
 
+def test_serialize_sources_catalog_shows_label_with_key():
+    # docprocessing fields carry an internal KEY plus a human LABEL. The serializer
+    # must show both as `key "Label"` so the model can map a NL question to a field
+    # yet still emit the validator-checked key. The label is dropped when == key.
+    sources = [
+        {
+            "id": "docproc",
+            "label": "Document Processing",
+            "fields": [
+                {
+                    "field": "documenttype",
+                    "label": "Document Type",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+                # label == field -> rendered as the bare key (no redundant quotes)
+                {"field": "Outcome", "label": "Outcome", "type": "string"},
+            ],
+            "processes": [],
+        }
+    ]
+    text, _ = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
+    assert 'documenttype "Document Type":string' in text
+    assert "Outcome:string" in text
+    assert '"Outcome"' not in text  # no redundant key=="label" quoting
+
+
 def test_serialize_sources_catalog_truncates_and_logs(caplog):
     big = [
         {

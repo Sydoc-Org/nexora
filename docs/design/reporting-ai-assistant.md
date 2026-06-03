@@ -59,6 +59,12 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   against the source's field catalog — **off-catalog ⇒ rejected**.
 - `reporting.scope.process.*` row-scoping still applies (no data leak).
 - No raw SQL is produced; no `reporting.sql.run` needed.
+- **Field grounding:** the catalog text shows each field as `key "Human Label":type`
+  (label omitted when it equals the key). The model is told to put the **exact key**
+  in every `field` (the validator checks keys), using the quoted label only to pick
+  the right field and as a column `header`. This stops docprocessing — whose keys are
+  internal Statconfig codes, not the human labels the model would otherwise guess —
+  from drafting label-named fields the validator rejects.
 
 **Best for:** non-technical users, scoped sources (Generali / Octopus curated),
 "just build me the report." **Limit:** only what the builder can express.
@@ -218,6 +224,12 @@ New audit table `dbo.ReportingAiAudit` (or an `origin` + `prompt` column added t
 `ReportingSqlAudit`): `{user, prompt, surface, generated_sql_or_definition,
 model, tokens_in/out, gate_verdict, rows_returned, ms, created_at}`. Every AI
 interaction that touches data is auditable end to end.
+
+`Status` vocabulary (the column is open `NVARCHAR(16)`, no CHECK constraint):
+`ok` (provider answered), `error` (provider call raised), `blocked` (throttled by
+`AI_DAILY_LIMIT` before any provider call), `misconfig` (provider misconfigured —
+the route 503s). Only `ok`/`error` count toward the daily cap, so `blocked` and
+`misconfig` never compound or burn a user's quota.
 
 ---
 

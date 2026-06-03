@@ -197,7 +197,11 @@ _SYSTEM_DEF = (
     "available data SOURCES (each with a fixed set of fields, their types, and "
     "whether each field is filterable/sortable) and a question, return ONE report "
     "DEFINITION that answers it using ONLY one source and ONLY that source's "
-    "fields. Do not invent fields or sources. Respond with STRICT JSON: "
+    "fields. Do not invent fields or sources. Each field is listed as "
+    '`key "Human Label":type`; every "field" value in your definition MUST be the '
+    "exact key (the token before the quoted label), NEVER the label — the quoted "
+    "label only helps you choose the right field and may be reused as a column "
+    '"header". Respond with STRICT JSON: '
     '{"definition": {"schemaVersion": 1, "visualization": "table", "source": '
     '"<id>", "title": "<short>", "subtitle": null, "columns": [{"field": "<key>", '
     '"header": "<label>"}], "filters": [{"field": "<key>", "op": "<op>", "value": '

@@ -69,9 +69,11 @@ def _serialize_curated(curated):
 def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     """Compact, bounded text block of the caller's accessible curated sources.
 
-    `sources`: list of {id, label, fields:[{field,type,filterable,sortable}],
-    processes:[ids]}. Returns (text, truncated_bool); on overflow the text is cut
-    to the budget with a visible marker and the truncation is logged.
+    `sources`: list of {id, label, fields:[{field,label,type,filterable,sortable}],
+    processes:[ids]}. Each field renders as `key "Human Label":type (flags)` (the
+    label is dropped when it equals the key). Returns (text, truncated_bool); on
+    overflow the text is cut to the budget with a visible marker and the truncation
+    is logged.
     """
     lines = []
     for s in sources or []:
@@ -83,7 +85,14 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
             if f.get("sortable"):
                 flags.append("sortable")
             flag_txt = f" ({', '.join(flags)})" if flags else ""
-            flags_fields.append(f"{f.get('field')}:{f.get('type', 'string')}{flag_txt}")
+            field = f.get("field")
+            label = f.get("label")
+            # Show the human label next to the key so the model can map a NL
+            # question to the right field, while the validator-checked KEY stays
+            # the leading token. Omitted when the label is just the key (table
+            # sources default label==field) to keep the catalog compact.
+            label_txt = f' "{label}"' if label and label != field else ""
+            flags_fields.append(f"{field}{label_txt}:{f.get('type', 'string')}{flag_txt}")
         lines.append(f'SOURCE {s.get("id")} "{s.get("label")}": ' + "; ".join(flags_fields))
         procs = s.get("processes") or []
         if procs:

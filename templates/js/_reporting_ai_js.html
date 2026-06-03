@@ -57,9 +57,13 @@
 
   function summarize(def) {
     var cols = (def.columns || []).map(function (c) { return c.header || c.field; }).join(", ");
-    var parts = ['"' + (def.title || "report") + '"', "source " + def.source, "columns: " + cols];
-    if ((def.filters || []).length) parts.push((def.filters.length) + " filter(s)");
-    if ((def.sort || []).length) parts.push("sorted");
+    var parts = [
+      '"' + (def.title || '{{ _("report") }}') + '"',
+      '{{ _("source") }} ' + def.source,
+      '{{ _("columns") }}: ' + cols
+    ];
+    if ((def.filters || []).length) parts.push(def.filters.length + ' {{ _("filter(s)") }}');
+    if ((def.sort || []).length) parts.push('{{ _("sorted") }}');
     return parts.join(" · ");
   }
 
@@ -75,7 +79,7 @@
     }).then(function (res) {
       askBtn.disabled = false;
       if (!res.ok) {
-        errorEl.textContent = (res.data && res.data.error) || "Error";
+        errorEl.textContent = (res.data && res.data.error) || '{{ _("Error") }}';
         errorEl.hidden = false; defResult.hidden = true; return;
       }
       lastDef = res.data.definition;
@@ -86,7 +90,7 @@
       if (makeChartBtn) makeChartBtn.hidden = !(lastDef && lastDef.chartHint && res.data.valid !== false);
     }).catch(function () {
       askBtn.disabled = false;
-      errorEl.textContent = "Network error"; errorEl.hidden = false;
+      errorEl.textContent = '{{ _("Network error") }}'; errorEl.hidden = false;
     });
   }
 
@@ -102,7 +106,7 @@
     }).then(function (res) {
       askBtn.disabled = false;
       if (!res.ok) {
-        errorEl.textContent = (res.data && res.data.error) || "Error";
+        errorEl.textContent = (res.data && res.data.error) || '{{ _("Error") }}';
         errorEl.hidden = false;
         resultEl.hidden = true;
         return;
@@ -114,7 +118,7 @@
       resultEl.hidden = false;
     }).catch(function () {
       askBtn.disabled = false;
-      errorEl.textContent = "Network error";
+      errorEl.textContent = '{{ _("Network error") }}';
       errorEl.hidden = false;
     });
   }

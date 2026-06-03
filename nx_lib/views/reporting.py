@@ -391,8 +391,8 @@ def _audit_ai(
     except Exception as e:
         current_app.logger.error(f"reporting ai audit insert failed: {e}")
     current_app.logger.info(
-        f"reporting.ai.ask user={userid} provider={provider} verdict={gate_verdict} "
-        f"status={status} ms={duration_ms}"
+        f"reporting.ai surface={surface} user={userid} provider={provider} "
+        f"verdict={gate_verdict} status={status} ms={duration_ms}"
     )
 
 
@@ -883,6 +883,22 @@ def api_ai_ask():
         )
     except AiError as e:
         current_app.logger.warning(f"/api/reporting/ai/ask config error: {e}")
+        # Misconfig leaves a trace too, but as 'misconfig' (not 'error') so a broken
+        # provider never burns the user's daily quota (_ai_asks_today counts ok|error).
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "sql",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "misconfig",
+            int((time.monotonic() - start) * 1000),
+        )
         return jsonify({"error": _("The AI assistant is not configured")}), 503
     except Exception as e:
         current_app.logger.error(f"/api/reporting/ai/ask provider error: {e}")
@@ -990,6 +1006,22 @@ def api_ai_build():
             )
         except AiError as e:
             current_app.logger.warning(f"/api/reporting/ai/build config error: {e}")
+            # 'misconfig' (not 'error') so a broken provider never counts against the
+            # user's daily cap (_ai_asks_today counts only ok|error).
+            _audit_ai(
+                userid,
+                username,
+                question,
+                "definition",
+                None,
+                cfg.get("provider"),
+                cfg.get("model"),
+                None,
+                None,
+                "na",
+                "misconfig",
+                int((time.monotonic() - start) * 1000),
+            )
             return jsonify({"error": _("The AI assistant is not configured")}), 503
         except Exception as e:
             current_app.logger.error(f"/api/reporting/ai/build provider error: {e}")

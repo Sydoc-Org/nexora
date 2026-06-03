@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from nx_lib.reporting.ai import AiDefinitionResult, AiResult
+from nx_lib.reporting.ai import AiDefinitionResult, AiError, AiResult
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
 # inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
@@ -251,3 +251,48 @@ def test_ai_build_503_when_provider_unconfigured(user_client):
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "hi"})
     assert resp.status_code == 503
+
+
+def test_ai_ask_audits_misconfig_on_aierror(user_client):
+    # A configured-looking provider that raises AiError mid-call (e.g. unknown
+    # provider / bad endpoint) -> 503, but it leaves a 'misconfig' audit trace so a
+    # broken provider is debuggable. 'misconfig' (not 'error') keeps it off the cap.
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai_ask", side_effect=AiError("unknown provider")),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/ask", json={"question": "x"})
+    assert resp.status_code == 503
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "sql"  # Surface
+    assert audit.call_args.args[-2] == "misconfig"  # Status
+
+
+def test_ai_build_audits_misconfig_on_aierror(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch(
+            "nx_lib.views.reporting.ai_ask_definition",
+            side_effect=AiError("Azure OpenAI requires endpoint and deployment"),
+        ),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "x"})
+    assert resp.status_code == 503
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "definition"  # Surface
+    assert audit.call_args.args[-2] == "misconfig"  # Status
