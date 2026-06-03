@@ -332,7 +332,7 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | Var | Purpose |
 |-----|---------|
 | `AI_PROVIDER` | `anthropic`, `azure`, or `none`. Route returns 503 until set to a real provider. |
-| `AI_MODEL` | Model name (e.g. `claude-3-5-haiku-20241022` for Anthropic; the deployment name for Azure). |
+| `AI_MODEL` | Model name (defaults to `claude-sonnet-4-6` for Anthropic; for Azure the deployment name is used instead, via `AZURE_OPENAI_DEPLOYMENT`). |
 | `ANTHROPIC_API_KEY` | Anthropic API key (required when `AI_PROVIDER=anthropic`). |
 | `ANTHROPIC_API_URL` | Override the Anthropic endpoint (optional; defaults to `https://api.anthropic.com/v1/messages`). |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint (required when `AI_PROVIDER=azure`). |
