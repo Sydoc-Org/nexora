@@ -69,8 +69,8 @@ body.admin-page main {
 /* Buttons */
 .admin-btn          { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: background-color 0.12s, border-color 0.12s; }
 .admin-btn:focus    { outline: none; box-shadow: 0 0 0 3px var(--a-indigo-soft); }
-.admin-btn-primary  { background: var(--a-ink); color: #fff; }
-.admin-btn-primary:hover { background: var(--a-ink-hover); }
+.admin-btn-primary  { background: var(--nx-brand-grad, var(--a-ink)); color: #fff; box-shadow: 0 2px 8px -2px rgba(79,70,229,0.45); }
+.admin-btn-primary:hover { filter: brightness(1.08); box-shadow: 0 4px 12px -2px rgba(79,70,229,0.5); }
 .admin-btn-secondary { background: var(--a-card); color: var(--a-text); border-color: var(--a-border-input); }
 .admin-btn-secondary:hover { background: var(--a-alt); }
 .admin-btn-danger   { background: var(--a-danger); color: #fff; }

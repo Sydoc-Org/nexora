@@ -126,6 +126,22 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **Automated test suite build-out.** pytest unit coverage across the app factory, Flask extensions, request-lifecycle hooks, logging, DB helpers (URL builder + `ping_db` / `ping_dbs_parallel`), security/permissions, i18n locale fallback, maintenance banner/lockout, `PrefixMiddleware`, notifications, the Octopus client, process helpers, and the nx CLI (REPL + doctor). Route-level tests covering every view module (auth, core, dashboard, profile, admin, workitems, invoices, notifications, chat). Playwright E2E browser tests across login / 2FA, dashboard, workitems, invoices, chat, profile, admin, and misc pages, with a cross-browser login smoke. pytest-cov wired in with per-module ratcheting coverage thresholds; test layout, fixtures, and run commands documented under `docs/`.
 
 ### Changed
+- **App-wide UI redesign — the `nexora-ui` design system.** A shared
+  `static/css/nexora-ui.css` (global `--nx-*` design tokens + `.nx-*` components:
+  cards, buttons, inputs, filter bars, tables, GitHub-style status labels, KPI
+  stat cards, empty states, dark mode) plus a `templates/_ui.html` Jinja macro
+  library, loaded globally from `_header.html`. The business pages (Workitems,
+  Dashboard, Invoices, Chat) and all eight Generali pages (dashboard, documents,
+  reporting, additional-services, base-services, project-management, pdqm,
+  import-status) were migrated off ad-hoc Tailwind utilities onto the system —
+  GitHub-structured (one indigo accent, hairline keylines, calm dense tables,
+  tabular-mono identifiers) with a restrained indigo→violet brand-gradient
+  signature (page-title icon chips, primary CTAs, the active-nav rail, count
+  pills, own-message chat bubbles, empty-state orbs). Admin/Profile already used
+  the precursor token system and were aligned (gradient primary button + nav
+  rail). The Reporting page is intentionally untouched. Behaviour, routes, ids,
+  `data-testid`s and form fields are unchanged — presentational only. Fixed a
+  pre-existing duplicate nested `<main>` on Workitems along the way.
 - **Templates — CDN assets pinned + Subresource Integrity.** Every
   jsdelivr/cdnjs `<script>`/`<link>` across all templates (Chart.js, flatpickr,
   xlsx, `@tailwindcss/browser`, `@tailwindplus/elements`, Font Awesome,
