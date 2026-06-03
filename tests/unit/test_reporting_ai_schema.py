@@ -90,3 +90,39 @@ def test_serialize_schema_includes_curated_catalogs():
     ]
     text, _ = ai_schema.serialize_schema(targets={}, curated=curated, char_budget=10000)
     assert "Generali" in text and "Process" in text and "Outcome" in text
+
+
+def test_serialize_sources_catalog_lists_ids_fields_and_flags():
+    sources = [
+        {
+            "id": "gen_pdqm",
+            "label": "Generali — PDQM",
+            "fields": [
+                {"field": "Outcome", "type": "string", "filterable": True, "sortable": True},
+                {"field": "Qty", "type": "number", "filterable": False, "sortable": True},
+            ],
+            "processes": ["p1", "p2"],
+        }
+    ]
+    text, truncated = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
+    assert "gen_pdqm" in text and "Generali — PDQM" in text
+    assert "Outcome" in text and "string" in text
+    assert "filterable" in text and "sortable" in text
+    assert "p1" in text and "p2" in text  # caller's allowed scope
+    assert truncated is False
+
+
+def test_serialize_sources_catalog_truncates_and_logs(caplog):
+    big = [
+        {
+            "id": f"s{i}",
+            "label": f"S{i}",
+            "fields": [{"field": "F", "type": "string", "filterable": True, "sortable": True}],
+            "processes": [],
+        }
+        for i in range(500)
+    ]
+    text, truncated = ai_schema.serialize_sources_catalog(big, char_budget=300)
+    assert len(text) <= 400
+    assert truncated is True
+    assert "truncated" in text.lower()

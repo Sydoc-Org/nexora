@@ -66,6 +66,37 @@ def _serialize_curated(curated):
     return "\n".join(lines)
 
 
+def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
+    """Compact, bounded text block of the caller's accessible curated sources.
+
+    `sources`: list of {id, label, fields:[{field,type,filterable,sortable}],
+    processes:[ids]}. Returns (text, truncated_bool); on overflow the text is cut
+    to the budget with a visible marker and the truncation is logged.
+    """
+    lines = []
+    for s in sources or []:
+        flags_fields = []
+        for f in s.get("fields", []):
+            flags = []
+            if f.get("filterable"):
+                flags.append("filterable")
+            if f.get("sortable"):
+                flags.append("sortable")
+            flag_txt = f" ({', '.join(flags)})" if flags else ""
+            flags_fields.append(f"{f.get('field')}:{f.get('type', 'string')}{flag_txt}")
+        lines.append(f'SOURCE {s.get("id")} "{s.get("label")}": ' + "; ".join(flags_fields))
+        procs = s.get("processes") or []
+        if procs:
+            lines.append(f"  allowed scope.processes: {', '.join(map(str, procs))}")
+    text = "\n".join(lines)
+    if len(text) > char_budget:
+        logger.info(
+            "ai_schema: sources catalog truncated from %d to %d chars", len(text), char_budget
+        )
+        return text[:char_budget] + "\n... (catalog truncated)", True
+    return text, False
+
+
 def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
     """Combine RO targets + curated catalogs into a budgeted text block.
 
