@@ -21,7 +21,11 @@ _COLUMNS_SQL = (
 
 
 def serialize_target(target_name, cursor_factory, *, max_tables=MAX_TABLES_PER_TARGET):
-    """Serialize one RO target's columns grouped by table. `cursor_factory()` -> cursor."""
+    """Serialize one RO target's columns grouped by table. `cursor_factory()` -> cursor.
+
+    Returns (text, was_capped) where was_capped is True iff the per-target table cap
+    fired (i.e. some tables were dropped from the serialization).
+    """
     cur = cursor_factory()
     cur.execute(_COLUMNS_SQL)
     tables = {}
@@ -29,22 +33,29 @@ def serialize_target(target_name, cursor_factory, *, max_tables=MAX_TABLES_PER_T
         key = f"{r.TABLE_SCHEMA}.{r.TABLE_NAME}"
         tables.setdefault(key, []).append(f"{r.COLUMN_NAME} {r.DATA_TYPE}")
     lines = [f"# Target: {target_name}"]
+    was_capped = False
     for i, (tbl, cols) in enumerate(tables.items()):
         if i >= max_tables:
-            lines.append(f"  ... ({len(tables) - max_tables} more tables truncated)")
+            dropped = len(tables) - max_tables
+            noun = "table" if dropped == 1 else "tables"
+            lines.append(f"  ... ({dropped} more {noun} truncated)")
             logger.info("ai_schema: target=%s truncated to %d tables", target_name, max_tables)
+            was_capped = True
             break
         lines.append(f"TABLE {tbl}({', '.join(cols)})")
-    return "\n".join(lines)
+    return "\n".join(lines), was_capped
 
 
 def _serialize_curated(curated):
     lines = []
     for src in curated or []:
         fields = ", ".join(
-            f"{f.get('field')} {f.get('type', 'string')}" for f in src.get("fields", [])
+            f"{f.get('field')} {f.get('type', 'string')}"
+            for f in src.get("fields", [])
+            if f.get("field")
         )
-        lines.append(f"# Curated source: {src.get('label')}\nFIELDS({fields})")
+        label = src.get("label") or "(unnamed)"
+        lines.append(f"# Curated source: {label}\nFIELDS({fields})")
     return "\n".join(lines)
 
 
@@ -52,15 +63,21 @@ def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
     """Combine RO targets + curated catalogs into a budgeted text block.
 
     `targets`: {name: cursor_factory}. `curated`: list of {label, fields:[{field,type}]}.
-    Returns (text, truncated_bool). On overflow, the text is cut to the budget and a
-    visible marker appended; truncation is logged.
+    Returns (text, truncated_bool). truncated_bool is True if the char budget cut the
+    text *or* any per-target table cap dropped tables — both are coverage limits the
+    caller surfaces to the user. On char overflow the text is cut and a visible marker
+    appended; truncation is logged.
     """
     blocks = []
+    target_capped = False
     for name, factory in (targets or {}).items():
         try:
-            blocks.append(serialize_target(name, factory))
+            block, was_capped = serialize_target(name, factory)
         except Exception as e:  # a missing/unconfigured RO target degrades, not 500s
             logger.warning("ai_schema: target %s unavailable: %s", name, e)
+            continue
+        blocks.append(block)
+        target_capped = target_capped or was_capped
     curated_block = _serialize_curated(curated)
     if curated_block:
         blocks.append(curated_block)
@@ -68,4 +85,4 @@ def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
     if len(text) > char_budget:
         logger.info("ai_schema: schema truncated from %d to %d chars", len(text), char_budget)
         return text[:char_budget] + "\n... (schema truncated)", True
-    return text, False
+    return text, target_capped

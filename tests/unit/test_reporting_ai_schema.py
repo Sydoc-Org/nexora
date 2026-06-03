@@ -1,5 +1,7 @@
 """Unit tests for AI schema serialization (DB injected as a fake cursor)."""
 
+import logging
+
 from nx_lib.reporting import ai_schema
 
 
@@ -32,21 +34,35 @@ def test_serialize_target_groups_columns_by_table():
             ("dbo", "Users", "UserId", "int"),
         )
     )
-    text = ai_schema.serialize_target("statistics", lambda: cur)
+    text, _ = ai_schema.serialize_target("statistics", lambda: cur)
     assert "dbo.Workitems" in text and "Id int" in text and "Status nvarchar" in text
     assert "dbo.Users" in text and "UserId int" in text
 
 
 def test_serialize_schema_respects_char_budget_and_logs(monkeypatch, caplog):
     cur = _FakeCursor(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(200)]))
-    text, truncated = ai_schema.serialize_schema(
-        targets={"statistics": (lambda: cur)},
-        curated=[],
-        char_budget=200,
-    )
+    with caplog.at_level(logging.INFO):
+        text, truncated = ai_schema.serialize_schema(
+            targets={"statistics": (lambda: cur)},
+            curated=[],
+            char_budget=200,
+        )
     assert len(text) <= 400  # budget + a small truncation marker
     assert truncated is True
     assert "truncated" in text.lower()
+    assert "truncat" in caplog.text.lower()
+
+
+def test_serialize_schema_flags_per_target_cap_truncation():
+    n = ai_schema.MAX_TABLES_PER_TARGET + 20
+    cur = _FakeCursor(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(n)]))
+    text, truncated = ai_schema.serialize_schema(
+        targets={"statistics": (lambda: cur)},
+        curated=[],
+        char_budget=100000,  # high budget so only the per-target cap fires
+    )
+    assert truncated is True
+    assert "more tables truncated" in text
 
 
 def test_serialize_schema_includes_curated_catalogs():
