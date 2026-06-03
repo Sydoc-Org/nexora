@@ -818,5 +818,6 @@
 
   loadSources();
   loadReports();
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode });
 }());
 </script>

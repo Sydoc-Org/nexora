@@ -24,41 +24,71 @@
   var wellsEl = document.querySelector(".reporting-wells");
   var lastSql = "";
 
+  var modeBuild = document.getElementById("rpAiModeBuild");
+  var modeSqlBtn = document.getElementById("rpAiModeSql");          // may be absent (no ai.sql)
+  var defResult = document.getElementById("rpAiDefResult");
+  var defSummary = document.getElementById("rpAiDefSummary");
+  var defInvalid = document.getElementById("rpAiDefInvalid");
+  var openBuilderBtn = document.getElementById("rpAiOpenBuilder");
+  var hintBuild = document.getElementById("rpAiHintBuild");
+  var hintSql = document.getElementById("rpAiHintSql");
+  var aiSurface = "build";                                          // "build" | "sql"
+  var lastDef = null;
+
   function csrfToken() {
     var m = document.querySelector('meta[name="csrf-token"]');
     return m ? m.getAttribute("content") : "";
   }
 
-  function showAiMode() {
-    [modeTable, modeSql, modeAi].forEach(function (b) { if (b) b.classList.remove("active"); });
-    modeAi.classList.add("active");
-    if (sqlPanel) sqlPanel.hidden = true;
-    // FIX A — hide the field/wells sidebars in AI mode (symmetric with setMode's
-    // SQL-mode hiding). setMode('table') restores them with style.display = ''.
-    if (fieldsEl) fieldsEl.style.display = "none";
-    if (wellsEl) wellsEl.style.display = "none";
-    panel.hidden = false;
+  function setSurface(s) {
+    aiSurface = s;
+    if (modeBuild) modeBuild.classList.toggle("active", s === "build");
+    if (modeSqlBtn) modeSqlBtn.classList.toggle("active", s === "sql");
+    if (hintBuild) hintBuild.hidden = s !== "build";
+    if (hintSql) hintSql.hidden = s !== "sql";
+    // hide both result blocks + error on switch
+    if (resultEl) resultEl.hidden = true;
+    if (defResult) defResult.hidden = true;
+    if (errorEl) errorEl.hidden = true;
   }
-  modeAi.addEventListener("click", showAiMode);
+  if (modeBuild) modeBuild.addEventListener("click", function () { setSurface("build"); });
+  if (modeSqlBtn) modeSqlBtn.addEventListener("click", function () { setSurface("sql"); });
 
-  // FIX 1 — panel persistence: hide AI panel when user switches to Table or SQL mode.
-  // These listeners fire alongside the existing setMode listeners in _reporting_js.html.
-  if (modeTable) {
-    modeTable.addEventListener("click", function () {
-      panel.hidden = true;
-      modeAi.classList.remove("active");
-    });
-  }
-  if (modeSql) {
-    modeSql.addEventListener("click", function () {
-      panel.hidden = true;
-      modeAi.classList.remove("active");
-    });
+  function summarize(def) {
+    var cols = (def.columns || []).map(function (c) { return c.header || c.field; }).join(", ");
+    var parts = ['"' + (def.title || "report") + '"', "source " + def.source, "columns: " + cols];
+    if ((def.filters || []).length) parts.push((def.filters.length) + " filter(s)");
+    if ((def.sort || []).length) parts.push("sorted");
+    return parts.join(" · ");
   }
 
-  function ask() {
-    var question = (promptEl.value || "").trim();
-    if (!question) { promptEl.focus(); return; }
+  function askBuild(question) {
+    askBtn.disabled = true;
+    errorEl.hidden = true;
+    fetch("/api/reporting/ai/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+      body: JSON.stringify({ question: question })
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+    }).then(function (res) {
+      askBtn.disabled = false;
+      if (!res.ok) {
+        errorEl.textContent = (res.data && res.data.error) || "Error";
+        errorEl.hidden = false; defResult.hidden = true; return;
+      }
+      lastDef = res.data.definition;
+      defSummary.textContent = lastDef ? summarize(lastDef) : (res.data.explanation || "");
+      defInvalid.hidden = res.data.valid !== false;
+      openBuilderBtn.disabled = !lastDef || res.data.valid === false;
+      defResult.hidden = false;
+    }).catch(function () {
+      askBtn.disabled = false;
+      errorEl.textContent = "Network error"; errorEl.hidden = false;
+    });
+  }
+
+  function askSql(question) {
     askBtn.disabled = true;
     errorEl.hidden = true;
     fetch("/api/reporting/ai/ask", {
@@ -86,6 +116,42 @@
       errorEl.hidden = false;
     });
   }
+
+  function ask() {
+    var question = (promptEl.value || "").trim();
+    if (!question) { promptEl.focus(); return; }
+    if (aiSurface === "build") return askBuild(question);
+    return askSql(question);
+  }
+
+  function showAiMode() {
+    [modeTable, modeSql, modeAi].forEach(function (b) { if (b) b.classList.remove("active"); });
+    modeAi.classList.add("active");
+    if (sqlPanel) sqlPanel.hidden = true;
+    // FIX A — hide the field/wells sidebars in AI mode (symmetric with setMode's
+    // SQL-mode hiding). setMode('table') restores them with style.display = ''.
+    if (fieldsEl) fieldsEl.style.display = "none";
+    if (wellsEl) wellsEl.style.display = "none";
+    panel.hidden = false;
+    setSurface(aiSurface);
+  }
+  modeAi.addEventListener("click", showAiMode);
+
+  // FIX 1 — panel persistence: hide AI panel when user switches to Table or SQL mode.
+  // These listeners fire alongside the existing setMode listeners in _reporting_js.html.
+  if (modeTable) {
+    modeTable.addEventListener("click", function () {
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+    });
+  }
+  if (modeSql) {
+    modeSql.addEventListener("click", function () {
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+    });
+  }
+
   askBtn.addEventListener("click", ask);
   promptEl.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); ask(); }
@@ -110,6 +176,13 @@
 
   if (copyBtn) copyBtn.addEventListener("click", function () {
     if (navigator.clipboard && lastSql) navigator.clipboard.writeText(lastSql);
+  });
+
+  if (openBuilderBtn) openBuilderBtn.addEventListener("click", function () {
+    if (!lastDef || !window.Reporting || !window.Reporting.applyDefinition) return;
+    window.Reporting.applyDefinition(lastDef, lastDef.title || "AI report", null);
+    panel.hidden = true;
+    modeAi.classList.remove("active");
   });
 })();
 </script>

@@ -85,25 +85,39 @@
                   placeholder="SELECT TOP (100) * FROM ..." data-testid="reporting-sql-editor"></textarea>
       </div>
       {% if ai_enabled %}
-      <div id="rpAiPanel" class="reporting-ai-panel rp-anim-ai" hidden data-testid="reporting-ai-panel">
-        <div class="reporting-ai-bar">
-          <input id="rpAiPrompt" class="reporting-ai-prompt"
-                 placeholder="{{ _('Ask in plain language — e.g. “top 10 processes by volume this month”') }}"
-                 data-testid="reporting-ai-prompt">
-          <button id="rpAiAsk" class="reporting-btn reporting-btn-primary"
-                  data-testid="reporting-ai-ask">{{ _("Ask") }}</button>
+      <div id=”rpAiPanel” class=”reporting-ai-panel rp-anim-ai” hidden data-testid=”reporting-ai-panel”>
+        <div class=”reporting-ai-submode” data-testid=”reporting-ai-submode”>
+          <button id=”rpAiModeBuild” class=”active” data-testid=”reporting-ai-mode-build”>{{ _(“Build a report”) }}</button>
+          {% if ai_sql_enabled %}
+          <button id=”rpAiModeSql” data-testid=”reporting-ai-mode-sql”>{{ _(“Write SQL”) }}</button>
+          {% endif %}
         </div>
-        <p class="reporting-ai-hint">{{ _("The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.") }}</p>
-        <div id="rpAiResult" class="reporting-ai-result" hidden data-testid="reporting-ai-result">
-          <pre id="rpAiSql" class="reporting-ai-sql" data-testid="reporting-ai-sql"></pre>
-          <p id="rpAiExplain" class="reporting-ai-explain"></p>
-          <p id="rpAiInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted SQL did not pass the read-only check — review it before running.") }}</p>
-          <div class="reporting-ai-actions">
-            <button id="rpAiInsert" class="reporting-btn" data-testid="reporting-ai-insert">{{ _("Insert into SQL editor") }}</button>
-            <button id="rpAiCopy" class="reporting-link" data-testid="reporting-ai-copy">{{ _("Copy") }}</button>
+        <div class=”reporting-ai-bar”>
+          <input id=”rpAiPrompt” class=”reporting-ai-prompt”
+                 placeholder=”{{ _('Ask in plain language — e.g. “top 10 processes by volume this month”') }}”
+                 data-testid=”reporting-ai-prompt”>
+          <button id=”rpAiAsk” class=”reporting-btn reporting-btn-primary”
+                  data-testid=”reporting-ai-ask”>{{ _(“Ask”) }}</button>
+        </div>
+        <p id=”rpAiHintBuild” class=”reporting-ai-hint”>{{ _(“The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.”) }}</p>
+        <p id=”rpAiHintSql” class=”reporting-ai-hint” hidden>{{ _(“The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.”) }}</p>
+        <div id=”rpAiResult” class=”reporting-ai-result” hidden data-testid=”reporting-ai-result”>
+          <pre id=”rpAiSql” class=”reporting-ai-sql” data-testid=”reporting-ai-sql”></pre>
+          <p id=”rpAiExplain” class=”reporting-ai-explain”></p>
+          <p id=”rpAiInvalid” class=”reporting-ai-invalid” hidden>{{ _(“⚠ The drafted SQL did not pass the read-only check — review it before running.”) }}</p>
+          <div class=”reporting-ai-actions”>
+            <button id=”rpAiInsert” class=”reporting-btn” data-testid=”reporting-ai-insert”>{{ _(“Insert into SQL editor”) }}</button>
+            <button id=”rpAiCopy” class=”reporting-link” data-testid=”reporting-ai-copy”>{{ _(“Copy”) }}</button>
           </div>
         </div>
-        <p id="rpAiError" class="reporting-ai-error" hidden data-testid="reporting-ai-error"></p>
+        <div id=”rpAiDefResult” class=”reporting-ai-result” hidden data-testid=”reporting-ai-def-result”>
+          <p id=”rpAiDefSummary” class=”reporting-ai-explain” data-testid=”reporting-ai-def-summary”></p>
+          <p id=”rpAiDefInvalid” class=”reporting-ai-invalid” hidden>{{ _(“⚠ The drafted report could not be validated — try rephrasing.”) }}</p>
+          <div class=”reporting-ai-actions”>
+            <button id=”rpAiOpenBuilder” class=”reporting-btn” data-testid=”reporting-ai-open-builder”>{{ _(“Open in builder”) }}</button>
+          </div>
+        </div>
+        <p id=”rpAiError” class=”reporting-ai-error” hidden data-testid=”reporting-ai-error”></p>
       </div>
       {% endif %}
       <div id="rpViewToggle" class="reporting-view-toggle" hidden data-testid="reporting-view-toggle">

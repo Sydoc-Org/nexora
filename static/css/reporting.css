@@ -392,3 +392,8 @@
 /* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
 .rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
+
+/* --- AI assistant: Surface-A sub-mode (Phase 2) --- */
+.reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
+.reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--rp-border, #d0d7de); background: #fff; border-radius: 6px; cursor: pointer; }
+.reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
