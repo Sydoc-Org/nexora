@@ -18,6 +18,18 @@ class _FakeCursor:
         return self._rows
 
 
+class _FakeConn:
+    def __init__(self, rows):
+        self._cursor = _FakeCursor(rows)
+        self.closed = False
+
+    def cursor(self):
+        return self._cursor
+
+    def close(self):
+        self.closed = True
+
+
 def _rows(*triples):
     # (TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE)
     return [
@@ -27,23 +39,24 @@ def _rows(*triples):
 
 
 def test_serialize_target_groups_columns_by_table():
-    cur = _FakeCursor(
+    conn = _FakeConn(
         _rows(
             ("dbo", "Workitems", "Id", "int"),
             ("dbo", "Workitems", "Status", "nvarchar"),
             ("dbo", "Users", "UserId", "int"),
         )
     )
-    text, _ = ai_schema.serialize_target("statistics", lambda: cur)
+    text, _ = ai_schema.serialize_target("statistics", lambda: conn)
     assert "dbo.Workitems" in text and "Id int" in text and "Status nvarchar" in text
     assert "dbo.Users" in text and "UserId int" in text
+    assert conn.closed is True
 
 
 def test_serialize_schema_respects_char_budget_and_logs(monkeypatch, caplog):
-    cur = _FakeCursor(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(200)]))
+    conn = _FakeConn(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(200)]))
     with caplog.at_level(logging.INFO):
         text, truncated = ai_schema.serialize_schema(
-            targets={"statistics": (lambda: cur)},
+            targets={"statistics": (lambda: conn)},
             curated=[],
             char_budget=200,
         )
@@ -55,9 +68,9 @@ def test_serialize_schema_respects_char_budget_and_logs(monkeypatch, caplog):
 
 def test_serialize_schema_flags_per_target_cap_truncation():
     n = ai_schema.MAX_TABLES_PER_TARGET + 20
-    cur = _FakeCursor(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(n)]))
+    conn = _FakeConn(_rows(*[("dbo", f"T{i}", "C", "int") for i in range(n)]))
     text, truncated = ai_schema.serialize_schema(
-        targets={"statistics": (lambda: cur)},
+        targets={"statistics": (lambda: conn)},
         curated=[],
         char_budget=100000,  # high budget so only the per-target cap fires
     )

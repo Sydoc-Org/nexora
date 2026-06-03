@@ -227,7 +227,8 @@ def _ai_config():
 
 
 def _accessible_sql_targets():
-    """RO SQL targets the caller may use (gated like the SQL sandbox)."""
+    """RO SQL targets the caller may use -> RO connection factories (gated like the
+    SQL sandbox). serialize_target() owns and closes each connection it yields."""
     out = {}
     for target, engine in _SQL_TARGET_ENGINES.items():
         perm = _SQL_TARGET_PERMISSION.get(target)
@@ -235,7 +236,7 @@ def _accessible_sql_targets():
             continue
         if engine is None:
             continue
-        out[target] = lambda e=engine: e.raw_connection().cursor()
+        out[target] = lambda e=engine: e.raw_connection()
     return out
 
 

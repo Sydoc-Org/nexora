@@ -77,3 +77,23 @@ def test_ai_ask_rejects_empty_question(user_client):
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "   "})
     assert resp.status_code == 400
+
+
+def test_ai_ask_502_on_provider_error(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai_ask", side_effect=RuntimeError("boom")),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/ask", json={"question": "x"})
+    assert resp.status_code == 502
+    audit.assert_called_once()
+    # error path audits with status="error" (the second-to-last positional arg)
+    assert "error" in audit.call_args.args
+    assert audit.call_args.args[-2] == "error"

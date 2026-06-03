@@ -3,7 +3,8 @@
 Turns the RO SQL targets' INFORMATION_SCHEMA and the curated source catalogs into
 a compact text block for the prompt. Bounded by a character budget and a per-target
 table cap; truncation is appended as a visible marker and logged so coverage limits
-are never silent. Cursor factories are injected so this is unit-testable without a DB.
+are never silent. Connection factories are injected so this is unit-testable without
+a DB; the connection they yield is closed here so pooled RO connections never leak.
 """
 
 import logging
@@ -20,16 +21,22 @@ _COLUMNS_SQL = (
 )
 
 
-def serialize_target(target_name, cursor_factory, *, max_tables=MAX_TABLES_PER_TARGET):
-    """Serialize one RO target's columns grouped by table. `cursor_factory()` -> cursor.
+def serialize_target(target_name, conn_factory, *, max_tables=MAX_TABLES_PER_TARGET):
+    """Serialize one RO target's columns grouped by table. `conn_factory()` -> a DBAPI
+    connection (closed here); its cursor runs the INFORMATION_SCHEMA query.
 
     Returns (text, was_capped) where was_capped is True iff the per-target table cap
     fired (i.e. some tables were dropped from the serialization).
     """
-    cur = cursor_factory()
-    cur.execute(_COLUMNS_SQL)
+    conn = conn_factory()
+    try:
+        cur = conn.cursor()
+        cur.execute(_COLUMNS_SQL)
+        rows = cur.fetchall()
+    finally:
+        conn.close()
     tables = {}
-    for r in cur.fetchall():
+    for r in rows:
         key = f"{r.TABLE_SCHEMA}.{r.TABLE_NAME}"
         tables.setdefault(key, []).append(f"{r.COLUMN_NAME} {r.DATA_TYPE}")
     lines = [f"# Target: {target_name}"]
@@ -62,7 +69,7 @@ def _serialize_curated(curated):
 def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
     """Combine RO targets + curated catalogs into a budgeted text block.
 
-    `targets`: {name: cursor_factory}. `curated`: list of {label, fields:[{field,type}]}.
+    `targets`: {name: conn_factory}. `curated`: list of {label, fields:[{field,type}]}.
     Returns (text, truncated_bool). truncated_bool is True if the char budget cut the
     text *or* any per-target table cap dropped tables — both are coverage limits the
     caller surfaces to the user. On char overflow the text is cut and a visible marker
