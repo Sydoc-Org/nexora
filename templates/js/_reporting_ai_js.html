@@ -1,0 +1,107 @@
+<script>
+(function () {
+  "use strict";
+  var modeAi = document.getElementById("rpModeAi");
+  var panel = document.getElementById("rpAiPanel");
+  if (!modeAi || !panel) return;
+
+  var modeTable = document.getElementById("rpModeTable");
+  var modeSql = document.getElementById("rpModeSql");
+  var sqlPanel = document.getElementById("rpSqlPanel");
+  var sqlEditor = document.getElementById("rpSqlEditor");
+  var promptEl = document.getElementById("rpAiPrompt");
+  var askBtn = document.getElementById("rpAiAsk");
+  var resultEl = document.getElementById("rpAiResult");
+  var sqlEl = document.getElementById("rpAiSql");
+  var explainEl = document.getElementById("rpAiExplain");
+  var invalidEl = document.getElementById("rpAiInvalid");
+  var insertBtn = document.getElementById("rpAiInsert");
+  var copyBtn = document.getElementById("rpAiCopy");
+  var errorEl = document.getElementById("rpAiError");
+  var lastSql = "";
+
+  function csrfToken() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.getAttribute("content") : "";
+  }
+
+  function showAiMode() {
+    [modeTable, modeSql, modeAi].forEach(function (b) { if (b) b.classList.remove("active"); });
+    modeAi.classList.add("active");
+    if (sqlPanel) sqlPanel.hidden = true;
+    panel.hidden = false;
+  }
+  modeAi.addEventListener("click", showAiMode);
+
+  // FIX 1 — panel persistence: hide AI panel when user switches to Table or SQL mode.
+  // These listeners fire alongside the existing setMode listeners in _reporting_js.html.
+  if (modeTable) {
+    modeTable.addEventListener("click", function () {
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+    });
+  }
+  if (modeSql) {
+    modeSql.addEventListener("click", function () {
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+    });
+  }
+
+  function ask() {
+    var question = (promptEl.value || "").trim();
+    if (!question) { promptEl.focus(); return; }
+    askBtn.disabled = true;
+    errorEl.hidden = true;
+    fetch("/api/reporting/ai/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+      body: JSON.stringify({ question: question })
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; });
+    }).then(function (res) {
+      askBtn.disabled = false;
+      if (!res.ok) {
+        errorEl.textContent = (res.data && res.data.error) || "Error";
+        errorEl.hidden = false;
+        resultEl.hidden = true;
+        return;
+      }
+      lastSql = res.data.sql || "";
+      sqlEl.textContent = lastSql;
+      explainEl.textContent = res.data.explanation || "";
+      invalidEl.hidden = res.data.valid !== false;
+      resultEl.hidden = false;
+    }).catch(function () {
+      askBtn.disabled = false;
+      errorEl.textContent = "Network error";
+      errorEl.hidden = false;
+    });
+  }
+  askBtn.addEventListener("click", ask);
+  promptEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); ask(); }
+  });
+
+  insertBtn.addEventListener("click", function () {
+    if (!lastSql || !sqlEditor) return;
+    sqlEditor.value = lastSql;
+    // FIX 2 — disabled SQL button: modeSql is disabled when user lacks reporting.sql.run.
+    // If it is enabled, delegate to the existing mode-switch handler (setMode('sql')).
+    // If it is disabled, manually reveal the SQL panel so the inserted SQL is visible.
+    if (modeSql && !modeSql.disabled) {
+      modeSql.click();  // triggers setMode('sql') in _reporting_js.html
+    } else if (sqlPanel) {
+      // degrade gracefully: show SQL panel, hide AI panel, fix active state
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+      sqlPanel.hidden = false;
+    }
+    sqlEditor.focus();
+  });
+
+  copyBtn.addEventListener("click", function () {
+    if (navigator.clipboard && lastSql) navigator.clipboard.writeText(lastSql);
+  });
+})();
+</script>

@@ -377,3 +377,18 @@
   .rp-anim .reporting-results,
   .rp-anim .reporting-wells { opacity: 1; }
 }
+
+/* --- AI assistant panel (Phase 1) --- */
+.reporting-ai-panel { padding: .75rem; border: 1px solid var(--rp-border, #d0d7de); border-radius: 6px; margin-bottom: .5rem; }
+.reporting-ai-bar { display: flex; gap: .5rem; }
+.reporting-ai-prompt { flex: 1; padding: .4rem .6rem; }
+.reporting-ai-hint { font-size: .8rem; color: #57606a; margin: .4rem 0 0; }
+.reporting-ai-result { margin-top: .6rem; }
+.reporting-ai-sql { background: #f6f8fa; padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
+.reporting-ai-explain { font-size: .85rem; color: #24292f; }
+.reporting-ai-invalid { color: #9a6700; font-size: .85rem; }
+.reporting-ai-error { color: #cf222e; font-size: .85rem; }
+.reporting-ai-actions { display: flex; gap: .5rem; align-items: center; margin-top: .4rem; }
+/* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
+.rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
