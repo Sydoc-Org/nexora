@@ -4848,3 +4848,19 @@ msgid ""
 "download PDF copies from the Actions column."
 msgstr ""
 
+
+#: templates/js/_workitems_overview_js.html
+msgid "Show sources"
+msgstr ""
+#: templates/js/_workitems_overview_js.html
+msgid "Hide sources"
+msgstr ""
+#: templates/js/_workitems_overview_js.html
+msgid "no source location"
+msgstr ""
+#: templates/js/_workitems_overview_js.html
+msgid "Click to locate on the document"
+msgstr ""
+#: templates/js/_workitems_overview_js.html
+msgid "Show where extracted values were found on the document"
+msgstr ""

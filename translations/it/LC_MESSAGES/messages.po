@@ -4995,3 +4995,19 @@ msgstr ""
 #~ msgid "Coming soon"
 #~ msgstr "Presto disponibile"
 
+
+#: templates/js/_workitems_overview_js.html
+msgid "Show sources"
+msgstr "Mostra origini"
+#: templates/js/_workitems_overview_js.html
+msgid "Hide sources"
+msgstr "Nascondi origini"
+#: templates/js/_workitems_overview_js.html
+msgid "no source location"
+msgstr "nessuna posizione di origine"
+#: templates/js/_workitems_overview_js.html
+msgid "Click to locate on the document"
+msgstr "Fai clic per individuare nel documento"
+#: templates/js/_workitems_overview_js.html
+msgid "Show where extracted values were found on the document"
+msgstr "Mostra dove sono stati trovati i valori estratti nel documento"

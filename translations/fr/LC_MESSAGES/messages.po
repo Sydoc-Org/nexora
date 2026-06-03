@@ -5006,3 +5006,19 @@ msgstr ""
 #~ msgid "Coming soon"
 #~ msgstr "Prochainement"
 
+
+#: templates/js/_workitems_overview_js.html
+msgid "Show sources"
+msgstr "Afficher les sources"
+#: templates/js/_workitems_overview_js.html
+msgid "Hide sources"
+msgstr "Masquer les sources"
+#: templates/js/_workitems_overview_js.html
+msgid "no source location"
+msgstr "aucune source localisée"
+#: templates/js/_workitems_overview_js.html
+msgid "Click to locate on the document"
+msgstr "Cliquer pour localiser sur le document"
+#: templates/js/_workitems_overview_js.html
+msgid "Show where extracted values were found on the document"
+msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"

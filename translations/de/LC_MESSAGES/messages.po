@@ -5011,3 +5011,19 @@ msgstr ""
 #~ msgid "Coming soon"
 #~ msgstr "Demnächst verfügbar"
 
+
+#: templates/js/_workitems_overview_js.html
+msgid "Show sources"
+msgstr "Quellen anzeigen"
+#: templates/js/_workitems_overview_js.html
+msgid "Hide sources"
+msgstr "Quellen ausblenden"
+#: templates/js/_workitems_overview_js.html
+msgid "no source location"
+msgstr "keine Fundstelle"
+#: templates/js/_workitems_overview_js.html
+msgid "Click to locate on the document"
+msgstr "Zum Lokalisieren im Dokument klicken"
+#: templates/js/_workitems_overview_js.html
+msgid "Show where extracted values were found on the document"
+msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
