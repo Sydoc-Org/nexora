@@ -25,6 +25,24 @@ def _num(v):
     return f
 
 
+def _confidence(fobj):
+    """Extraction confidence for an IndexField as a 0..1 float, or None.
+
+    Octopus exposes ``Confidence`` on the IndexField; some pipelines put it on
+    ``FieldValue`` instead, so try both. Scales vary (a 0..1 fraction or a 0..100
+    percent), so normalize to a 0..1 fraction the UI can bucket into
+    high/medium/low. Returns None when absent, unparseable, or negative."""
+    raw = fobj.get("Confidence")
+    if raw is None:
+        raw = (fobj.get("FieldValue") or {}).get("Confidence")
+    c = _num(raw)
+    if c is None or c < 0:
+        return None
+    if c > 1:  # 0..100 percent scale -> fraction
+        c = c / 100.0
+    return min(c, 1.0)
+
+
 def _rect_from_octo(r):
     """Validate one Octopus rectangle ``{Left,Top,Width,Height}`` (pixels).
 
@@ -76,12 +94,13 @@ def _count_image_media(item):
 def extract_field_locations(doc_json, field_mapping):
     """Build the field_sources list from an Octopus thin-document response.
 
-    Returns ``[{key, label, value, locations:[{page, rect}]}]`` — one entry per
-    mapped index field that has a (non-None) value, mirroring the existing
-    ``fields`` dict (first occurrence of a target key wins). ``locations == []``
-    means the field has no usable coordinates (un-locatable). ``rect`` is in
-    image pixels; ``page`` is the 0-based media index (matching
-    api_get_media_raw).
+    Returns ``[{key, label, value, locations:[{page, rect}], confidence?}]`` —
+    one entry per mapped index field that has a (non-None) value, mirroring the
+    existing ``fields`` dict (first occurrence of a target key wins).
+    ``locations == []`` means the field has no usable coordinates (un-locatable).
+    ``rect`` is in image pixels; ``page`` is the 0-based media index (matching
+    api_get_media_raw). ``confidence`` (optional, 0..1) is present only when
+    Octopus reports an extraction confidence; the UI colours boxes by it.
     """
     out = []
     seen = set()
@@ -106,6 +125,10 @@ def extract_field_locations(doc_json, field_mapping):
                     page = media_offset + int(page_index)
                     for rect in _rects_from_location(loc):
                         locations.append({"page": page, "rect": rect})
-            out.append({"key": key, "label": key, "value": value, "locations": locations})
+            entry = {"key": key, "label": key, "value": value, "locations": locations}
+            conf = _confidence(fobj)
+            if conf is not None:
+                entry["confidence"] = conf  # optional: 0..1, drives box colour in the UI
+            out.append(entry)
         media_offset += _count_image_media(item)
     return out

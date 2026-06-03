@@ -143,3 +143,51 @@ def test_batch_child_documents_offset_page_by_prior_image_media():
     out = {o["key"]: o for o in extract_field_locations(doc, MAPPING)}
     assert out["Doc number"]["locations"][0]["page"] == 0  # child0, offset 0
     assert out["Doc date"]["locations"][0]["page"] == 1  # child1, offset +1
+
+
+# --- confidence (optional key) --------------------------------------------
+
+
+def _field_conf(name, text, confidence, location=None):
+    f = _field(name, text, location)
+    f["Confidence"] = confidence
+    return f
+
+
+def test_confidence_fraction_scale_passthrough():
+    doc = {"IndexFields": [_field_conf("DocNo", "INV", 0.91, _loc(0, [(1, 1, 5, 5)]))]}
+    assert extract_field_locations(doc, MAPPING)[0]["confidence"] == 0.91
+
+
+def test_confidence_percent_scale_normalized():
+    doc = {"IndexFields": [_field_conf("DocNo", "INV", 91, _loc(0, [(1, 1, 5, 5)]))]}
+    assert extract_field_locations(doc, MAPPING)[0]["confidence"] == 0.91
+
+
+def test_confidence_clamped_to_one():
+    doc = {"IndexFields": [_field_conf("DocNo", "INV", 150, _loc(0, [(1, 1, 5, 5)]))]}
+    assert extract_field_locations(doc, MAPPING)[0]["confidence"] == 1.0
+
+
+def test_confidence_absent_key_omitted():
+    doc = {"IndexFields": [_field("DocNo", "INV", _loc(0, [(1, 1, 5, 5)]))]}
+    assert "confidence" not in extract_field_locations(doc, MAPPING)[0]
+
+
+def test_confidence_negative_is_omitted():
+    doc = {"IndexFields": [_field_conf("DocNo", "INV", -1, _loc(0, [(1, 1, 5, 5)]))]}
+    assert "confidence" not in extract_field_locations(doc, MAPPING)[0]
+
+
+def test_confidence_from_fieldvalue_fallback():
+    f = _field("DocNo", "INV", _loc(0, [(1, 1, 5, 5)]))
+    f["FieldValue"]["Confidence"] = 80  # IndexField has no Confidence; FieldValue does
+    out = extract_field_locations({"IndexFields": [f]}, MAPPING)
+    assert out[0]["confidence"] == 0.8
+
+
+def test_confidence_present_on_unlocatable_field():
+    # confidence is independent of whether the field has usable coordinates
+    doc = {"IndexFields": [_field_conf("DocNo", "INV", 0.6, location=None)]}
+    out = extract_field_locations(doc, MAPPING)
+    assert out[0]["locations"] == [] and out[0]["confidence"] == 0.6
