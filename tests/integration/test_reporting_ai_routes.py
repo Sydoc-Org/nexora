@@ -328,13 +328,17 @@ def _agentic_result(answer="Built a report by outcome.", definition_ok=True):
     )
 
 
-def _agent_patches(perm=True, sql_perm=True):
+def _agent_patches(perm=True, sql_perm=True, explain_perm=False, run_perm=True):
     """Common patches for the agent route, entered via ExitStack (helper tuple
     can't be star-unpacked inside a parenthesized `with`)."""
 
     def _has(code):
         if code == "reporting.ai.sql":
             return sql_perm
+        if code == "reporting.ai.explain_data":
+            return explain_perm
+        if code == "reporting.sql.run":
+            return run_perm
         return perm
 
     return [
@@ -465,3 +469,99 @@ def test_ai_agent_binds_sql_tool_only_with_sql_perm(user_client):
     assert resp.status_code == 200
     assert "build_definition" in captured["tools"]
     assert "validate_sql" not in captured["tools"]  # gated on reporting.ai.sql
+
+
+def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
+    """Phase 3e: reporting.ai.explain_data (+ reporting.sql.run) binds run_sql +
+    compute_stats and injects the runner so result rows flow back to the model."""
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        captured["system"] = kwargs["system"]
+        return lambda messages: None
+
+    def fake_loop(initial, *, registry, agent_step, **kw):
+        captured["run_sql_bound"] = registry._run_sql is not None
+        return _agentic_result()
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+    assert resp.status_code == 200
+    assert resp.get_json()["explainData"] is True
+    assert {"run_sql", "compute_stats"} <= set(captured["tools"])
+    assert captured["run_sql_bound"] is True
+    assert "run_sql" in captured["system"]  # explain suffix appended
+    assert audit.call_args.args[-2] == "ok"
+
+
+def test_ai_agent_no_data_tools_without_explain_data(user_client):
+    """Default posture: without reporting.ai.explain_data the loop stays schema-only —
+    run_sql / compute_stats are never bound and the runner is not injected."""
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        captured["system"] = kwargs["system"]
+        return lambda messages: None
+
+    def fake_loop(initial, *, registry, agent_step, **kw):
+        captured["run_sql_bound"] = registry._run_sql is not None
+        return _agentic_result()
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=False):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+    assert resp.status_code == 200
+    assert resp.get_json()["explainData"] is False
+    assert "run_sql" not in captured["tools"]
+    assert "compute_stats" not in captured["tools"]
+    assert captured["run_sql_bound"] is False
+    assert "run_sql" not in captured["system"]
+
+
+def test_ai_agent_explain_data_inert_without_sql_run(user_client):
+    """explain_data without reporting.sql.run does NOT bind run_sql — you can't let
+    the model run SQL the user isn't allowed to run."""
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        return lambda messages: None
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=False):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
+    assert resp.status_code == 200
+    assert resp.get_json()["explainData"] is False
+    assert "run_sql" not in captured["tools"]

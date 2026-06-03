@@ -20,10 +20,19 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
   tools to the model (`build_definition` always, `validate_sql` with
   `reporting.ai.sql`), stays **schema-only** (no result rows reach the model), audits
   `Surface='agent'`, honours `AI_DAILY_LIMIT`, and returns a validated definition/SQL
-  for one-click Open-in-builder / Insert-SQL. No new permission, table, or migration.
-  Activating `run_sql` / `compute_stats` in the live loop (results flow back to the
-  model) is **deferred to Phase 3e** behind a new `reporting.ai.explain_data` permission
-  and a data-egress decision. See `docs/superpowers/plans/2026-06-03-reporting-ai-phase3.md`.
+  for one-click Open-in-builder / Insert-SQL.
+  See `docs/superpowers/plans/2026-06-03-reporting-ai-phase3.md`.
+- **Reporting AI assistant (Phase 3e — explain the data).** New opt-in permission
+  `reporting.ai.explain_data` (migration `0015`; admins seeded) lets the agentic loop
+  bind the data-returning tools `run_sql` and `compute_stats` so the model can run
+  validated read-only SELECTs and **narrate the actual result numbers** (exact
+  aggregates via the deterministic stats engine). This is a deliberate **data-egress**
+  grant — result rows reach the model — so it is gated separately from
+  `reporting.ai.use` / `reporting.ai.sql` and is only effective together with
+  `reporting.sql.run`. Without it the agent stays **schema-only** (no result rows ever
+  reach the model), the default posture. Audited `Surface='agent'` with an
+  `explainData` flag; the route also returns `explainData` so the UI can surface that
+  the answer is grounded in fetched data.
 - **Workitems — source highlighting.** A "Show sources" toggle on the document viewer
   overlays where each extracted index-field value was found on the page (read-only).
   Coordinates come from the Octopus document service (`IndexField.Location`), captured

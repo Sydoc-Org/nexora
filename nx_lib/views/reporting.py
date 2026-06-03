@@ -1083,6 +1083,18 @@ _AGENT_SYSTEM = (
     "two-sentence plain-language answer. Do not ask the user questions."
 )
 
+# Appended to the system prompt only when the caller holds reporting.ai.explain_data
+# (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
+# back to the model and compute_stats gives exact aggregates over them, so the model
+# may narrate concrete numbers instead of only drafting an artifact.
+_AGENT_EXPLAIN_SUFFIX = (
+    " You may run validated read-only SELECTs with run_sql and summarise the actual "
+    "rows returned, and use compute_stats for exact aggregates (describe, group_by, "
+    "percentiles, value_counts, correlation, top_n) over rows you fetched. Always "
+    "validate_sql before run_sql. Report only concrete numbers taken from the data "
+    "you fetched — never estimate or fabricate values."
+)
+
 
 def _extract_agent_artifacts(tool_trace):
     """Pull the last validated definition / SQL out of the loop's tool trace.
@@ -1153,23 +1165,41 @@ def api_ai_agent():
             }
         ), 429
 
-    # Schema-only egress: bind only data-free tools to the model. validate_sql is
-    # gated on reporting.ai.sql; run_sql / compute_stats (results would egress to
-    # the model) are deferred to Phase 3e behind reporting.ai.explain_data.
+    # Tool binding follows the caller's permissions. build_definition is always
+    # data-free. validate_sql (also data-free — a gate check) needs reporting.ai.sql.
+    # run_sql / compute_stats feed real result rows/stats back to the model, so they
+    # are bound ONLY with reporting.ai.explain_data (Phase 3e data-egress grant) AND
+    # reporting.sql.run (the live-SQL gate). Without explain_data the loop stays
+    # schema-only: no result rows ever reach the model.
     has_sql = has_permission("reporting.ai.sql")
-    tool_names = {"build_definition"} | ({"validate_sql"} if has_sql else set())
+    explain = has_permission("reporting.ai.explain_data") and has_permission("reporting.sql.run")
+    tool_names = {"build_definition"}
+    if has_sql:
+        tool_names.add("validate_sql")
+    if explain:
+        tool_names.update({"run_sql", "compute_stats"})
     tools = [t for t in TOOL_SPECS if t["name"] in tool_names]
-    registry = ToolRegistry(validate_definition=_validate_definition_for_user)
+
+    run_sql_bound = None
+    if explain:
+
+        def run_sql_bound(target, sql):
+            return _run_sql(target, sql, userid=userid, username=username)
+
+    registry = ToolRegistry(
+        run_sql=run_sql_bound, validate_definition=_validate_definition_for_user
+    )
 
     grounding = f"Available report sources and fields:\n{_ai_catalog_text()}"
-    if has_sql:
-        grounding += f"\n\nSQL schema (for validate_sql):\n{_ai_schema_text()}"
+    if has_sql or explain:
+        grounding += f"\n\nSQL schema (for validate_sql / run_sql):\n{_ai_schema_text()}"
     initial = f"{grounding}\n\nQuestion: {question}"
+    system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 
     start = time.monotonic()
     try:
         step = make_agent_step(
-            system=_AGENT_SYSTEM,
+            system=system_prompt,
             tools=tools,
             provider=cfg["provider"],
             model=cfg.get("model"),
@@ -1222,9 +1252,13 @@ def api_ai_agent():
         username,
         question,
         "agent",
-        json.dumps({"answer": result.answer, "tools": [t["name"] for t in result.tool_trace]})[
-            :4000
-        ],
+        json.dumps(
+            {
+                "answer": result.answer,
+                "tools": [t["name"] for t in result.tool_trace],
+                "explainData": explain,
+            }
+        )[:4000],
         cfg.get("provider"),
         cfg.get("model"),
         result.tokens_in,
@@ -1241,6 +1275,7 @@ def api_ai_agent():
             "toolTrace": result.tool_trace,
             "turns": result.turns,
             "stoppedReason": result.stopped_reason,
+            "explainData": explain,
         }
     )
 
