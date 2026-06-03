@@ -18,6 +18,7 @@ from .config import (
 )
 from .db import engine_nexora_db
 from .extensions import cache
+from .field_locations import extract_field_locations
 
 
 def get_access_token(domain=None):
@@ -118,7 +119,7 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None):
         doc_json = response.json()
     except Exception as e:
         current_app.logger.error(f"Error fetching document details: {e}")
-        return [], [], {}
+        return [], [], {}, []
 
     urls = []
     extensions = []
@@ -147,7 +148,9 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None):
                 field_value = field_obj.get("FieldValue", {}).get("Text")
                 if target_key not in fields and field_value is not None:
                     fields[target_key] = field_value
-    return extensions, urls, fields
+
+    field_sources = extract_field_locations(doc_json, field_mapping)
+    return extensions, urls, fields, field_sources
 
 
 def get_media(url, domain=None):

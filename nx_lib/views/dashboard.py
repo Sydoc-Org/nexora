@@ -1461,7 +1461,7 @@ def api_recent_activity():
         activity = []
         for row in raw_rows[:3]:
             workitemdata, doc_id = get_workitemdata_param(row.ID, OCTO_DOMAIN)
-            _ext, _urls, fields = get_extensions_urls_fields(workitemdata, doc_id, OCTO_DOMAIN)
+            _ext, _urls, fields, _fs = get_extensions_urls_fields(workitemdata, doc_id, OCTO_DOMAIN)
             fields = {k: v for k, v in fields.items() if v}
             activity.append(
                 {

@@ -611,7 +611,7 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields = get_extensions_urls_fields(
+                            extensions, urls, fields, _fs = get_extensions_urls_fields(
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
@@ -979,14 +979,23 @@ def api_get_media_info(workitem_id):
         can_view_images = has_permission("workitems.details.view.images")
         can_view_fields = has_permission("workitems.details.view.fields")
 
+        def _suppress(data):
+            # Highlighting needs BOTH perms: fields to see the values, images to
+            # see WHERE (boxes are drawn over the page image). Returns a copy so
+            # the cached object is never mutated.
+            d = data.copy()
+            if not can_view_images:
+                d["media_count"] = 0
+            if not can_view_fields:
+                d["fields"] = {}
+                d["field_sources"] = []
+            elif not can_view_images:
+                d["field_sources"] = [{**s, "locations": []} for s in d.get("field_sources", [])]
+            return d
+
         cached_info = cache.get(f"media_info_{workitem_id}")
         if cached_info:
-            response_data = cached_info.copy()
-            if not can_view_images:
-                response_data["media_count"] = 0
-            if not can_view_fields:
-                response_data["fields"] = {}
-            return jsonify(response_data)
+            return jsonify(_suppress(cached_info))
 
         domain = get_domain_for_workitem(workitem_id)
         returndata = get_workitemdata_param(workitem_id, domain)
@@ -994,7 +1003,9 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+        extensions, urls, fields, field_sources = get_extensions_urls_fields(
+            workitemdata, document_id, domain
+        )
 
         media_count = len(urls) if urls else 0
 
@@ -1005,17 +1016,12 @@ def api_get_media_info(workitem_id):
             "workitem_id": workitem_id,
             "media_count": media_count,
             "fields": fields,
+            "field_sources": field_sources,
         }
 
         cache.set(f"media_info_{workitem_id}", response_data)
 
-        filtered_response = response_data.copy()
-        if not can_view_images:
-            filtered_response["media_count"] = 0
-        if not can_view_fields:
-            filtered_response["fields"] = {}
-
-        return jsonify(filtered_response)
+        return jsonify(_suppress(response_data))
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
@@ -1032,7 +1038,9 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+            extensions, urls, fields, _fs = get_extensions_urls_fields(
+                workitemdata, document_id, domain
+            )
             media_data = {"extensions": extensions, "urls": urls}
             cache.set(f"media_data_{workitem_id}", media_data)
 
