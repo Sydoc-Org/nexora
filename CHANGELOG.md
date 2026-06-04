@@ -6,7 +6,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural change beyond the 2FA clock-skew fix below.
+Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
 - **Reporting AI assistant (Phase 3 — agentic loop + deterministic stats, spine):**
@@ -244,6 +244,9 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
 - **2FA:** accept adjacent TOTP windows on verify, tolerating small client/server clock skew.
 - **generali-import:** store the full CSV filename in the import log.
 - **pre-commit:** exclude `sql/` from the `mixed-line-ending` hook (it already excluded `end-of-file-fixer` / `trailing-whitespace`). The auto-generated dumps are CRLF from mssql-scripter and LF-normalized by `.gitattributes`, so the fixer perpetually re-flagged them on Windows, blocking commits of any regenerated dump.
+- **db-migrate — non-ASCII corruption via sqlcmd codepage.** `scripts/db-migrate.py` ran migrations through `sqlcmd -i <file>` without a UTF-8 input codepage, so sqlcmd read UTF-8 migration files in the host OEM/ANSI codepage and silently corrupted any non-ASCII text on INSERT (German/French strings, dashes, …). This is how migration `0011` stored the mojibake source label "Generali â€" PDQM Report". The runner now passes `-f 65001` (UTF-8 in/out) and decodes captured output as UTF-8; migration `0016_fix_generali_pdqm_label_encoding.sql` repairs the already-stored label (codepage-safe via `NCHAR(0x2014)`).
+- **Reporting AI (agent, explain-data) — run_sql against builder-only sources.** The schema grounding listed curated `table`-provider sources (e.g. Generali PDQM, which lives on GeneraliDB) without noting that `run_sql` cannot reach them (it only targets the statistics/octopus RO engines). The explain-data agent therefore drafted `SELECT … FROM <source>` against a run_sql target and got an unrecoverable 208 "invalid object name". `nx_lib/reporting/ai_schema.py` now marks these sources **builder-only — answer with `build_definition`, NOT queryable with `run_sql`** in the prompt.
+- **Footer — stale hard-coded version.** `templates/_nexora_version.html` hard-coded `nexora 2.5.60`, a third copy of the version that silently drifted from `pyproject.toml`. The version is now single-sourced in `nx_lib/version.py`, injected app-wide via a `nexora_version` context processor, and consumed by both the footer and the dev CLI; `tests/unit/test_version.py` enforces it stays in sync with `pyproject.toml`.
 
 ### Removed
 - **`dbo.SearchConfig`:** dropped 12 unused columns (`col_scanbatchnr`, `col_pid`, `col_personalfileid`, `col_employmentfileid`, `col_doctypeidtargetsystem`, `col_doctypeidsydoc`, `col_registeridtargetsystem`, `col_masterdataseparatorsheettype`, `col_masterdatabirthday`, `col_masterdatafirstname`, `col_masterdatalastname`, `col_masterdataseparatorsheetid`) via migration `0002_remove_unused_columns_searchconfig.sql`.

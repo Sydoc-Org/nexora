@@ -129,9 +129,16 @@ def file_checksum(p: Path) -> bytes:
     return hashlib.sha256(p.read_bytes()).digest()
 
 
-def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> None:
-    """Run a migration through sqlcmd. Raises on non-zero exit."""
-    cmd = [
+def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> list[str]:
+    """Build the sqlcmd argv for one migration file.
+
+    ``-f 65001`` forces the UTF-8 codepage for both the input file and sqlcmd's
+    output. Migration files are UTF-8; without this, sqlcmd reads them in the
+    host's OEM/ANSI codepage and silently corrupts any non-ASCII text on INSERT
+    (this is how ``0011`` stored a mojibake source label). apply_one decodes the
+    captured output as UTF-8 to match.
+    """
+    return [
         sqlcmd_exe,
         "-S",
         f"{server},1433",
@@ -143,13 +150,20 @@ def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Pa
         pwd,
         "-i",
         str(mig),
+        "-f",
+        "65001",  # UTF-8 in/out so non-ASCII migration text is not corrupted
         "-b",  # exit non-zero on SQL errors
         "-X",
         "1",  # disable interactive commands (ED, !!, etc.)
         "-r",
         "1",  # all error messages -> stderr
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+
+
+def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> None:
+    """Run a migration through sqlcmd. Raises on non-zero exit."""
+    cmd = _sqlcmd_args(sqlcmd_exe, server, db, uid, pwd, mig)
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if res.stdout:
         sys.stdout.write(res.stdout)
     if res.returncode != 0:

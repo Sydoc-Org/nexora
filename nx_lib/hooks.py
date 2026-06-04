@@ -31,6 +31,7 @@ from .security import (
     load_permissions_for_user,
 )
 from .users import resolve_user_icon_url
+from .version import __version__
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
@@ -199,6 +200,10 @@ def _utility_processor():
     return dict(get_user_icon_url=resolve_user_icon_url, has_permission=has_permission)
 
 
+def _inject_app_version():
+    return {"nexora_version": __version__}
+
+
 def init_app(app):
     app.before_request(_start_timer)
     app.before_request(_enforce_active_session)
@@ -214,3 +219,4 @@ def init_app(app):
 
     app.context_processor(_inject_current_lang)
     app.context_processor(_utility_processor)
+    app.context_processor(_inject_app_version)

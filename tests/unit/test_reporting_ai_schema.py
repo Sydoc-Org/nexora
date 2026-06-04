@@ -92,6 +92,26 @@ def test_serialize_schema_includes_curated_catalogs():
     assert "Generali" in text and "Process" in text and "Outcome" in text
 
 
+def test_serialize_curated_marks_sources_builder_only():
+    # Curated (table-provider) sources in the schema block live on databases that
+    # run_sql cannot reach (it only targets the statistics/octopus RO engines). The
+    # serializer must say so explicitly, or the explain-data agent drafts
+    # `SELECT ... FROM <source id>` against a run_sql target and gets a 208
+    # "invalid object name" it can't recover from.
+    curated = [
+        {
+            "label": "Generali — PDQM Report",
+            "fields": [{"field": "Outcome", "type": "string"}],
+        }
+    ]
+    text, _ = ai_schema.serialize_schema(targets={}, curated=curated, char_budget=10000)
+    assert "build_definition" in text  # the tool it MUST use
+    assert "run_sql" in text  # explicitly names the tool it must NOT use
+    assert "builder-only" in text.lower()
+    # fields and label still present so build_definition can ground on them
+    assert "Generali" in text and "Outcome" in text
+
+
 def test_serialize_sources_catalog_lists_ids_fields_and_flags():
     sources = [
         {

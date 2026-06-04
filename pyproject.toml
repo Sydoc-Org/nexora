@@ -1,6 +1,7 @@
 [project]
 name = "nexora"
-version = "2.5.60"
+# Keep in sync with nx_lib/version.py (tests/unit/test_version.py enforces it).
+version = "2.5.63"
 description = "Sydoc internal portal: workitems, invoices, chat, admin"
 requires-python = ">=3.13"
 readme = "README.md"

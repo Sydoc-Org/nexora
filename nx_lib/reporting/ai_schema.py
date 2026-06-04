@@ -62,7 +62,14 @@ def _serialize_curated(curated):
             if f.get("field")
         )
         label = src.get("label") or "(unnamed)"
-        lines.append(f"# Curated source: {label}\nFIELDS({fields})")
+        # These curated (table-provider) sources live on databases run_sql cannot
+        # reach (run_sql only targets the statistics/octopus RO engines). Spell that
+        # out so the explain-data agent uses build_definition for them instead of
+        # drafting `SELECT ... FROM <source>` against a run_sql target (→ 208).
+        lines.append(
+            f"# Curated source (builder-only — answer with build_definition; "
+            f"NOT queryable with run_sql): {label}\nFIELDS({fields})"
+        )
     return "\n".join(lines)
 
 
