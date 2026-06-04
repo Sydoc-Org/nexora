@@ -34,6 +34,19 @@ Disabling the auto-pick / plugin-finder / superpowers session-start injection re
 - **Writer/Reviewer with worktrees.** Implement in one worktree (created under `.claude/worktrees/`); review the diff in a *fresh* session or with the `/code-review` skill before merging, so the reviewer isn't biased toward code it just wrote.
 - **Git policy.** Feature branches allow stage/commit/push; `main` allows no modifying git ops (PR instead). Never `--no-verify`; if the SQL hook can't reach INT (e.g. a fresh worktree without `env/INT.env`), use `SQL_SYNC_SKIP=1 git commit`.
 
+## Plays (nexora-specific)
+
+Concrete recurring workflows, ranked by payoff. Scale figures are from the 2.5.63 tree.
+
+1. **Read-less navigation of the fat view files.** `nx_lib/views/generali.py` (~3.4k lines), `reporting.py` (~2.2k), `admin.py`, `workitems.py`, `dashboard.py` are each 1.5k–3.4k lines — reading one whole costs ~6–12k tokens. Locate with `gitnexus_context` / `gitnexus_query` (or a subagent), then `Read` only the relevant span with `offset`/`limit`. **Never read these whole.**
+2. **UI change → screenshot-verify loop.** Edit template/partial → **restart the dev server** (Jinja caches templates per process) → `nx -u -b --loginas:<user>` → drive Playwright → screenshot to `var/screenshots/` → compare to intent → iterate. Use `/nx-ui-verify`. For the nexora-ui rollout to Reporting, fan out one page at a time with before/after shots.
+3. **i18n delta sweep.** ~1,077 strings, kept at 0 fuzzy. After any text change, `/nx-i18n`, fill only the new msgids across de/fr/it, gate on `test_translations.py`. Every feature lands with its translations done.
+4. **Schema change, INT-first.** `/nx-migrate <Db> <desc>` → idempotent SQL → commit auto-applies to INT → `db-migrate.py --env INT --mark-applied` if prototyped in SSMS → changelog → `SQL_SYNC_SKIP=1` when a worktree can't reach INT.
+5. **Coverage ratchet.** Per-module targets live in `tests/unit/test_coverage_thresholds.py` (`MIN_COVERAGE`); `fail_under` is 0 by design. Target a module, write tests, `pytest --cov`, raise that module's entry (upward only). Use `/nx-cover`.
+6. **Writer/Reviewer pre-merge.** Implement in a worktree → `/code-review` on the diff in a fresh context → fix → merge.
+
+**Refactor candidate:** `nx_lib/views/generali.py` (~3.4k lines) — `gitnexus_impact` → plan mode → split into a `nx_lib/views/generali/` package → gate on the generali e2e tests.
+
 ## See also
 
 - `docs/howto/nx.md` — the `nx` dev-server CLI (`-u`, `-b --loginas:`, `--doctor`)
