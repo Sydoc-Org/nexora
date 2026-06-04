@@ -565,3 +565,94 @@ def test_ai_agent_explain_data_inert_without_sql_run(user_client):
     assert resp.status_code == 200
     assert resp.get_json()["explainData"] is False
     assert "run_sql" not in captured["tools"]
+
+
+def test_ai_agent_skips_data_tools_for_builder_only_source(user_client):
+    """A builder-only curated source (table provider, e.g. Generali on GeneraliDB)
+    is unreachable by run_sql, so the data tools are NOT bound even with
+    explain_data + sql.run — the model must use build_definition instead of looping
+    on run_sql 'invalid object name' errors against a source run_sql can't reach."""
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        return lambda messages: None
+
+    def fake_loop(initial, *, registry, agent_step, **kw):
+        captured["run_sql_bound"] = registry._run_sql is not None
+        return _agentic_result()
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._get_effective_source",
+                return_value={
+                    "id": "gen_pdqm",
+                    "kind": "curated",
+                    "provider": "generali",
+                    "label": "Generali — PDQM Report",
+                },
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "how many?", "source": "gen_pdqm"}
+        )
+    assert resp.status_code == 200
+    assert resp.get_json()["explainData"] is False
+    assert "run_sql" not in captured["tools"]
+    assert "compute_stats" not in captured["tools"]
+    assert captured["run_sql_bound"] is False
+
+
+def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):
+    """The source-aware gate only blocks builder-only sources: a run_sql-able source
+    (docprocessing → statistics RO target) still binds the data tools with explain_data."""
+    captured = {}
+
+    def fake_make_step(**kwargs):
+        captured["tools"] = [t["name"] for t in kwargs["tools"]]
+        return lambda messages: None
+
+    def fake_loop(initial, *, registry, agent_step, **kw):
+        captured["run_sql_bound"] = registry._run_sql is not None
+        return _agentic_result()
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._get_effective_source",
+                return_value={
+                    "id": "docproc",
+                    "kind": "curated",
+                    "provider": "docprocessing",
+                    "label": "Document Processing",
+                },
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "how many?", "source": "docproc"}
+        )
+    assert resp.status_code == 200
+    assert resp.get_json()["explainData"] is True
+    assert {"run_sql", "compute_stats"} <= set(captured["tools"])
+    assert captured["run_sql_bound"] is True

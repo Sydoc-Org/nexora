@@ -1095,6 +1095,11 @@ _AGENT_EXPLAIN_SUFFIX = (
     "percentiles, value_counts, correlation, top_n) over rows you fetched. Always "
     "validate_sql before run_sql. Report only concrete numbers taken from the data "
     "you fetched — never estimate or fabricate values."
+    " run_sql can ONLY query the SQL-schema targets named below (e.g. statistics, "
+    "octopus). NEVER pass a report SOURCE id as a table name, and NEVER call run_sql "
+    "for a source marked 'builder-only' — answer those with build_definition instead. "
+    "If a builder-only source needs a calculation build_definition cannot express, say "
+    "so plainly rather than retrying run_sql."
 )
 
 
@@ -1173,8 +1178,26 @@ def api_ai_agent():
     # are bound ONLY with reporting.ai.explain_data (Phase 3e data-egress grant) AND
     # reporting.sql.run (the live-SQL gate). Without explain_data the loop stays
     # schema-only: no result rows ever reach the model.
+    # The client sends the active builder source so the data tools can be gated on
+    # whether run_sql can actually reach it. A curated table-provider source (e.g.
+    # Generali on GeneraliDB) has no RO SQL target, so binding run_sql for it only
+    # makes the model loop on "invalid object name" — bind build_definition instead.
+    active_source = None
+    source_id = (body.get("source") or "").strip()
+    if source_id:
+        active_source = _get_effective_source(source_id)
+    source_blocks_run_sql = bool(
+        active_source
+        and active_source.get("kind") == "curated"
+        and (active_source.get("provider") or "docprocessing") != "docprocessing"
+    )
+
     has_sql = has_permission("reporting.ai.sql")
-    explain = has_permission("reporting.ai.explain_data") and has_permission("reporting.sql.run")
+    explain = (
+        has_permission("reporting.ai.explain_data")
+        and has_permission("reporting.sql.run")
+        and not source_blocks_run_sql
+    )
     tool_names = {"build_definition"}
     if has_sql:
         tool_names.add("validate_sql")
@@ -1195,6 +1218,15 @@ def api_ai_agent():
     grounding = f"Available report sources and fields:\n{_ai_catalog_text()}"
     if has_sql or explain:
         grounding += f"\n\nSQL schema (for validate_sql / run_sql):\n{_ai_schema_text()}"
+    if active_source:
+        grounding += (
+            f'\n\nThe user\'s selected source is "{active_source.get("label")}" '
+            f'(id {active_source.get("id")}); "this source" in the question means it.'
+        )
+        if source_blocks_run_sql:
+            grounding += (
+                " It is builder-only — answer it with build_definition; run_sql cannot " "reach it."
+            )
     initial = f"{grounding}\n\nQuestion: {question}"
     system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 

@@ -199,7 +199,11 @@
     fetch("/api/reporting/ai/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
-      body: JSON.stringify({ question: agentContext() + question })
+      body: JSON.stringify({
+        question: agentContext() + question,
+        // Active source lets the server gate run_sql to sources it can reach.
+        source: (document.getElementById("rpSource") || {}).value || null
+      })
     }).then(function (r) {
       return r.json().then(function (data) { return { ok: r.ok, data: data }; });
     }).then(function (res) {
