@@ -9,6 +9,20 @@
 <body>
     <script>
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        // Source-highlight confidence helpers (shared by the field list, thumbnails
+        // and the lightbox overlay). field_sources entries may carry an optional
+        // 0..1 `confidence`; map it to a colour bucket and a rounded percentage.
+        // No confidence -> '' (boxes keep the neutral "located" orange).
+        window.srcConfClass = function (conf) {
+            if (typeof conf !== 'number' || isNaN(conf)) return '';
+            if (conf >= 0.9) return 'src-conf-high';
+            if (conf >= 0.7) return 'src-conf-med';
+            return 'src-conf-low';
+        };
+        window.srcConfPct = function (conf) {
+            if (typeof conf !== 'number' || isNaN(conf)) return '';
+            return Math.round(conf * 100) + '%';
+        };
         let animationTimeouts = [];
         let mentionableUsers = [];
         let docValuesCache = [];
@@ -624,11 +638,15 @@
                                             ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
                                         const titleAttr = hasLoc
                                             ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                                        const confCls = src ? window.srcConfClass(src.confidence) : '';
+                                        const confBadge = confCls
+                                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
+                                            : '';
 
                                         fieldsHtml += `
                                             <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
                                                 <dt class="text-gray-500 truncate">${label}${badge}</dt>
-                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}</dd>
+                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}${confBadge}</dd>
                                             </div>`;
                                     }
                                 }
@@ -683,7 +701,8 @@
             srcs.forEach(s => (s.locations || []).forEach(loc => {
                 if (loc.page !== page) return;
                 const b = document.createElement('div');
-                b.className = 'src-hl-box';
+                const confCls = window.srcConfClass(s.confidence);
+                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '');
                 b.style.left = (offX + loc.rect.left * scale) + 'px';
                 b.style.top = (offY + loc.rect.top * scale) + 'px';
                 b.style.width = (loc.rect.width * scale) + 'px';
@@ -1917,13 +1936,18 @@ async function uploadBatchFiles(files, processName) {
                 currentSources().forEach(src => {
                     (src.locations || []).forEach(loc => {
                         if (loc.page !== currentIndex) return;
+                        const confCls = window.srcConfClass(src.confidence);
                         const box = document.createElement('div');
-                        box.className = 'src-hl-box' + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
+                        box.className = 'src-hl-box'
+                            + (confCls ? ' ' + confCls : '')
+                            + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
                         box.style.left = (loc.rect.left / natW * r.width) + 'px';
                         box.style.top = (loc.rect.top / natH * r.height) + 'px';
                         box.style.width = (loc.rect.width / natW * r.width) + 'px';
                         box.style.height = (loc.rect.height / natH * r.height) + 'px';
-                        box.title = src.label + ': ' + (src.value == null ? '' : src.value);
+                        const confPct = window.srcConfPct(src.confidence);
+                        box.title = src.label + ': ' + (src.value == null ? '' : src.value)
+                            + (confPct ? ' (' + confPct + ')' : '');
                         srcHlLayer.appendChild(box);
                     });
                 });
