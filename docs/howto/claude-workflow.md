@@ -47,6 +47,43 @@ Concrete recurring workflows, ranked by payoff. Scale figures are from the 2.5.6
 
 **Refactor candidate:** `nx_lib/views/generali.py` (~3.4k lines) — `gitnexus_impact` → plan mode → split into a `nx_lib/views/generali/` package → gate on the generali e2e tests.
 
+## External MCP integrations (optional)
+
+These connect Claude to the systems nexora actually talks to. Both are **user-scope** (`claude mcp add -s user`) — per-developer, credentials kept local and never committed. Each adds only a handful of tools (unlike the removed claude-flow server).
+
+### Read-only SQL Server (Statistics / Octopus runtime DBs)
+
+The app-owned schemas (`NexoraDB`, `GeneraliDB`) are already in the repo as per-object DDL under `sql/`. A read-only MSSQL MCP **complements** that by giving Claude live read access to the **untracked runtime DBs** — `StatisticsDB` (`sydoc_stat`, where reporting queries run) and `OctoDB` — using the `db_datareader` RO logins already provisioned for the reporting sandbox.
+
+Server: [trainerroad/mcp-sqlserver](https://github.com/trainerroad/mcp-sqlserver) (read-only, `ApplicationIntent=ReadOnly`, write-blocking, schema caching). Build per its README to `~/.claude/mcp-sqlserver/dist/index.js`, then register against the Statistics DB with the reporting RO login (substitute the values from `env/INT.env`):
+
+```
+claude mcp add mssql-stats -s user ^
+  -e SQLSERVER_HOST=<DB_SERVER_PRD> ^
+  -e SQLSERVER_DATABASE=sydoc_stat ^
+  -e SQLSERVER_AUTH_MODE=sql ^
+  -e SQLSERVER_USER=<DB_REPORTING_RO_USER> ^
+  -e SQLSERVER_PASSWORD=<DB_REPORTING_RO_PWD> ^
+  -e SQLSERVER_ENCRYPT=true ^
+  -- node "%USERPROFILE%/.claude/mcp-sqlserver/dist/index.js"
+```
+
+Add a second `mssql-octo` entry pointing at the Octopus DB with `DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD`. **Rules:** RO login only — never the app write user; keep it read-only; the credentials come from `env/INT.env` and must not be pasted anywhere committed.
+
+### Confluence + Jira (official Atlassian MCP)
+
+nexora's product documentation lives in Confluence. The official remote MCP (GA Feb 2026, Claude launch partner) reads/writes Confluence + Jira over OAuth and respects your account's permissions:
+
+```
+claude mcp add atlassian -s user -- npx -y mcp-remote@latest https://mcp.atlassian.com/v1/sse
+```
+
+First use opens a browser OAuth flow. As a remote OAuth server it may be unavailable in headless / cron / remote-agent runs — it's for interactive sessions.
+
+### GitHub
+
+Use the `gh` CLI (already installed + authenticated) rather than a GitHub MCP — it's more context-efficient for PRs, issues, and Actions.
+
 ## See also
 
 - `docs/howto/nx.md` — the `nx` dev-server CLI (`-u`, `-b --loginas:`, `--doctor`)
