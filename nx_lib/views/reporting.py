@@ -696,6 +696,8 @@ def reporting():
         pageV=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
         ai_sql_enabled=has_permission("reporting.ai.sql"),
+        ai_explain_enabled=has_permission("reporting.ai.explain_data")
+        and has_permission("reporting.sql.run"),
     )
 
 

@@ -33,8 +33,23 @@
   var makeChartBtn = document.getElementById("rpAiMakeChart");
   var hintBuild = document.getElementById("rpAiHintBuild");
   var hintSql = document.getElementById("rpAiHintSql");
-  var aiSurface = "build";                                          // "build" | "sql"
+  var aiSurface = "build";                                          // "build" | "sql" | "agent"
   var lastDef = null;
+
+  // Agent (Surface C) elements + state
+  var modeAgentBtn = document.getElementById("rpAiModeAgent");
+  var hintAgent = document.getElementById("rpAiHintAgent");
+  var agentResult = document.getElementById("rpAiAgentResult");
+  var agentThreadEl = document.getElementById("rpAiAgentThread");
+  var agentTraceWrap = document.getElementById("rpAiAgentTraceWrap");
+  var agentTraceEl = document.getElementById("rpAiAgentTrace");
+  var agentTurnsEl = document.getElementById("rpAiAgentTurns");
+  var agentInvalid = document.getElementById("rpAiAgentInvalid");
+  var agentOpenBuilderBtn = document.getElementById("rpAiAgentOpenBuilder");
+  var agentInsertSqlBtn = document.getElementById("rpAiAgentInsertSql");
+  var agentThread = [];          // [{q, a}] — drives the conversation + follow-up context
+  var lastAgentDef = null;
+  var lastAgentSql = "";
 
   function csrfToken() {
     var m = document.querySelector('meta[name="csrf-token"]');
@@ -45,15 +60,22 @@
     aiSurface = s;
     if (modeBuild) modeBuild.classList.toggle("active", s === "build");
     if (modeSqlBtn) modeSqlBtn.classList.toggle("active", s === "sql");
+    if (modeAgentBtn) modeAgentBtn.classList.toggle("active", s === "agent");
     if (hintBuild) hintBuild.hidden = s !== "build";
     if (hintSql) hintSql.hidden = s !== "sql";
-    // hide both result blocks + error on switch
+    if (hintAgent) hintAgent.hidden = s !== "agent";
+    // hide all result blocks + error on switch; the agent thread persists so a
+    // user can flip away and back, but its result block hides until shown again.
     if (resultEl) resultEl.hidden = true;
     if (defResult) defResult.hidden = true;
+    if (agentResult) agentResult.hidden = !(s === "agent" && agentThread.length);
     if (errorEl) errorEl.hidden = true;
+    if (askBtn) askBtn.textContent = (s === "agent" && agentThread.length)
+      ? '{{ _("Ask follow-up") }}' : '{{ _("Ask") }}';
   }
   if (modeBuild) modeBuild.addEventListener("click", function () { setSurface("build"); });
   if (modeSqlBtn) modeSqlBtn.addEventListener("click", function () { setSurface("sql"); });
+  if (modeAgentBtn) modeAgentBtn.addEventListener("click", function () { setSurface("agent"); });
 
   function summarize(def) {
     var cols = (def.columns || []).map(function (c) { return c.header || c.field; }).join(", ");
@@ -123,10 +145,93 @@
     });
   }
 
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function renderAgentThread() {
+    if (!agentThreadEl) return;
+    agentThreadEl.innerHTML = agentThread.map(function (turn) {
+      return '<div class="reporting-ai-turn">' +
+        '<p class="reporting-ai-q"><span class="reporting-ai-q-badge">{{ _("You") }}</span>' +
+        escapeHtml(turn.q) + '</p>' +
+        '<p class="reporting-ai-a">' + escapeHtml(turn.a || '{{ _("(no answer)") }}') + '</p>' +
+        '</div>';
+    }).join("");
+  }
+
+  function renderAgentTrace(trace, turns) {
+    if (!agentTraceEl || !agentTraceWrap) return;
+    if (!trace || !trace.length) { agentTraceWrap.hidden = true; return; }
+    agentTraceEl.innerHTML = trace.map(function (step) {
+      var ok = step.result && step.result.ok;
+      var chip = '<span class="reporting-ai-step-chip ' +
+        (ok ? "is-ok" : "is-err") + '">' + (ok ? "✓" : "✗") + '</span>';
+      var detail = ok ? "" : ' — ' + escapeHtml((step.result && step.result.error) || "");
+      var meta = "";
+      if (ok && step.result && typeof step.result.rowCount === "number") {
+        meta = ' <span class="reporting-ai-step-meta">' +
+          step.result.rowCount + ' {{ _("rows") }}</span>';
+      }
+      return '<li class="reporting-ai-step">' + chip +
+        '<code class="reporting-ai-step-name">' + escapeHtml(step.name) + '</code>' +
+        meta + detail + '</li>';
+    }).join("");
+    if (agentTurnsEl) agentTurnsEl.textContent =
+      (turns || trace.length) + ' {{ _("steps") }}';
+    agentTraceWrap.hidden = false;
+  }
+
+  function agentContext() {
+    // Carry only the model's own prior answer as follow-up context (schema-only:
+    // no result rows are echoed back here — the server never returned any to us).
+    if (!agentThread.length) return "";
+    var last = agentThread[agentThread.length - 1];
+    return '(Continuing our conversation. Your previous answer was: "' +
+      (last.a || "") + '")\n\n';
+  }
+
+  function askAgent(question) {
+    askBtn.disabled = true;
+    errorEl.hidden = true;
+    fetch("/api/reporting/ai/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+      body: JSON.stringify({ question: agentContext() + question })
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+    }).then(function (res) {
+      askBtn.disabled = false;
+      if (!res.ok) {
+        errorEl.textContent = (res.data && res.data.error) || '{{ _("Error") }}';
+        errorEl.hidden = false; agentResult.hidden = true; return;
+      }
+      var d = res.data;
+      agentThread.push({ q: question, a: d.answer || "" });
+      renderAgentThread();
+      renderAgentTrace(d.toolTrace, d.turns);
+      lastAgentDef = d.definition || null;
+      lastAgentSql = d.sql || "";
+      if (agentOpenBuilderBtn) agentOpenBuilderBtn.hidden = !lastAgentDef;
+      if (agentInsertSqlBtn) agentInsertSqlBtn.hidden = !(lastAgentSql && sqlEditor);
+      if (agentInvalid)
+        agentInvalid.hidden = !!(d.answer && (lastAgentDef || lastAgentSql));
+      agentResult.hidden = false;
+      promptEl.value = "";
+      askBtn.textContent = '{{ _("Ask follow-up") }}';
+    }).catch(function () {
+      askBtn.disabled = false;
+      errorEl.textContent = '{{ _("Network error") }}'; errorEl.hidden = false;
+    });
+  }
+
   function ask() {
     var question = (promptEl.value || "").trim();
     if (!question) { promptEl.focus(); return; }
     if (aiSurface === "build") return askBuild(question);
+    if (aiSurface === "agent") return askAgent(question);
     return askSql(question);
   }
 
@@ -196,6 +301,26 @@
     window.Reporting.applyDefinitionAndChart(lastDef, lastDef.chartHint);
     panel.hidden = true;
     modeAi.classList.remove("active");
+  });
+
+  if (agentOpenBuilderBtn) agentOpenBuilderBtn.addEventListener("click", function () {
+    if (!lastAgentDef || !window.Reporting || !window.Reporting.applyDefinition) return;
+    window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || "AI report", null);
+    panel.hidden = true;
+    modeAi.classList.remove("active");
+  });
+
+  if (agentInsertSqlBtn) agentInsertSqlBtn.addEventListener("click", function () {
+    if (!lastAgentSql || !sqlEditor) return;
+    sqlEditor.value = lastAgentSql;
+    if (modeSql && !modeSql.disabled) {
+      modeSql.click();  // setMode('sql') in _reporting_js.html
+    } else if (sqlPanel) {
+      panel.hidden = true;
+      modeAi.classList.remove("active");
+      sqlPanel.hidden = false;
+    }
+    sqlEditor.focus();
   });
 })();
 </script>

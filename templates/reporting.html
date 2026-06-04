@@ -91,6 +91,7 @@
           {% if ai_sql_enabled %}
           <button id="rpAiModeSql" data-testid="reporting-ai-mode-sql">{{ _("Write SQL") }}</button>
           {% endif %}
+          <button id="rpAiModeAgent" data-testid="reporting-ai-mode-agent">{{ _("Agent") }}</button>
         </div>
         <div class="reporting-ai-bar">
           <input id="rpAiPrompt" class="reporting-ai-prompt"
@@ -101,6 +102,7 @@
         </div>
         <p id="rpAiHintBuild" class="reporting-ai-hint">{{ _("The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.") }}</p>
         <p id="rpAiHintSql" class="reporting-ai-hint" hidden>{{ _("The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.") }}</p>
+        <p id="rpAiHintAgent" class="reporting-ai-hint" hidden>{% if ai_explain_enabled %}{{ _("The agent works step by step, showing each tool it uses. It can run read-only queries and report the actual numbers from the data it fetched.") }}{% else %}{{ _("The agent works step by step, showing each tool it uses to validate and draft — grounded only in the schema you can access. It never sees result data.") }}{% endif %}</p>
         <div id="rpAiResult" class="reporting-ai-result" hidden data-testid="reporting-ai-result">
           <pre id="rpAiSql" class="reporting-ai-sql" data-testid="reporting-ai-sql"></pre>
           <p id="rpAiExplain" class="reporting-ai-explain"></p>
@@ -116,6 +118,18 @@
           <div class="reporting-ai-actions">
             <button id="rpAiOpenBuilder" class="reporting-btn" data-testid="reporting-ai-open-builder">{{ _("Open in builder") }}</button>
             <button id="rpAiMakeChart" class="reporting-btn" hidden data-testid="reporting-ai-make-chart">{{ _("Make a chart") }}</button>
+          </div>
+        </div>
+        <div id="rpAiAgentResult" class="reporting-ai-result" hidden data-testid="reporting-ai-agent-result">
+          <div id="rpAiAgentThread" class="reporting-ai-thread" data-testid="reporting-ai-agent-thread"></div>
+          <details id="rpAiAgentTraceWrap" class="reporting-ai-trace-wrap" hidden>
+            <summary class="reporting-ai-trace-summary">{{ _("How the agent worked") }} · <span id="rpAiAgentTurns"></span></summary>
+            <ol id="rpAiAgentTrace" class="reporting-ai-trace" data-testid="reporting-ai-agent-trace"></ol>
+          </details>
+          <p id="rpAiAgentInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The agent stopped before producing a validated result — try rephrasing.") }}</p>
+          <div class="reporting-ai-actions">
+            <button id="rpAiAgentOpenBuilder" class="reporting-btn" hidden data-testid="reporting-ai-agent-open-builder">{{ _("Open in builder") }}</button>
+            <button id="rpAiAgentInsertSql" class="reporting-btn" hidden data-testid="reporting-ai-agent-insert-sql">{{ _("Insert into SQL editor") }}</button>
           </div>
         </div>
         <p id="rpAiError" class="reporting-ai-error" hidden data-testid="reporting-ai-error"></p>

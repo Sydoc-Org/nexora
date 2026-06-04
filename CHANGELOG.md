@@ -43,6 +43,13 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
   location are click-to-locate (jump + pulse); values without one show a "no source
   location" badge. Reuses `workitems.details.view.images` + `.fields` — no new
   permission, no migration. CSS isolated in `static/css/source-highlight.css`.
+- **Workitems — source-highlight confidence visualization.** When the Octopus
+  document service reports a per-field extraction `Confidence`, `field_sources`
+  now carries an optional normalized `confidence` (0–1; `nx_lib/field_locations.py`
+  handles 0–1 and 0–100 scales, clamps, drops negatives), and the "Show sources"
+  overlay colours each box + adds a per-field confidence chip — green ≥ 90 %,
+  amber ≥ 70 %, red < 70 % — while fields without a reported confidence keep the
+  neutral "located" orange. Read-only over existing data; no new permission.
 - **Reporting AI assistant (Phase 2 — Build a report):** a "Build a report" sub-mode
   in the Ask-AI panel turns a natural-language question into a v1 report definition
   that auto-fills the builder wells (whitelist-safe; row-scoping preserved; **no SQL
@@ -173,9 +180,22 @@ Test-coverage and dev-tooling work toward 2.5.62. No user-facing behavioural cha
   signature (page-title icon chips, primary CTAs, the active-nav rail, count
   pills, own-message chat bubbles, empty-state orbs). Admin/Profile already used
   the precursor token system and were aligned (gradient primary button + nav
-  rail). The Reporting page is intentionally untouched. Behaviour, routes, ids,
+  rail). Behaviour, routes, ids,
   `data-testid`s and form fields are unchanged — presentational only. Fixed a
   pre-existing duplicate nested `<main>` on Workitems along the way.
+- **UI redesign — pre-login (auth) pages brought onto `nexora-ui`.** The auth
+  pages (login, forgot/reset password, 2FA setup + verify) load a shared new
+  `static/css/auth.css` that maps their common Tailwind structure onto the brand —
+  indigo→violet gradient buttons, a gradient top-accent card, nx radius/shadow, a
+  soft brand wash and accent focus rings — plus `nexora-ui.css` for the tokens. The
+  403/404/500 error pages already carried a distinct brand-aligned "cosmic" design
+  and were left as-is.
+- **UI redesign — Reporting page brought onto `nexora-ui`.** The Reporting builder
+  now consumes the global `--nx-*` tokens via a harmonization layer appended to
+  `static/css/reporting.css`: panels, toolbar, buttons, mode/view toggles, inputs,
+  tables, pivot shelf, modals and the AI panel share the indigo→violet brand
+  signature, hairline keylines and dark-mode awareness (primary CTAs + active
+  toggles use the brand gradient). Layout, ids and `data-testid`s are unchanged.
 - **Templates — CDN assets pinned + Subresource Integrity.** Every
   jsdelivr/cdnjs `<script>`/`<link>` across all templates (Chart.js, flatpickr,
   xlsx, `@tailwindcss/browser`, `@tailwindplus/elements`, Font Awesome,

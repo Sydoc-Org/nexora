@@ -397,3 +397,200 @@
 .reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
 .reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--rp-border, #d0d7de); background: #fff; border-radius: 6px; cursor: pointer; }
 .reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
+
+/* ============================================================
+   nexora-ui HARMONIZATION (appended last → overrides the page's
+   own palette). Maps the reporting builder onto the global
+   --nx-* design tokens (loaded app-wide from _header.html), so
+   it shares the indigo→violet brand signature, hairline keylines
+   and dark-mode awareness of the rest of the app. Layout (grids/
+   flex) is untouched — only colour, border, radius, type, shadow.
+   These rules are unlayered, so they also win over Tailwind's
+   utility layer (e.g. body bg-gray-50). See the design-system
+   memory for the token vocabulary + the Tailwind-layer gotcha.
+   ============================================================ */
+body.bg-gray-50 {
+  background: var(--nx-page);
+  color: var(--nx-text);
+  font-family: var(--nx-font);
+}
+
+.reporting-main { font-family: var(--nx-font); }
+
+/* Panels / surfaces */
+.reporting-fields,
+.reporting-wells,
+.reporting-results,
+.reporting-admin section {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  box-shadow: var(--nx-shadow);
+  color: var(--nx-text);
+}
+
+/* Typography helpers */
+.reporting-label,
+.reporting-well h4,
+.reporting-share-h,
+.reporting-viz-lbl,
+.reporting-pivot-zone h5 { color: var(--nx-text-meta); }
+.reporting-empty,
+.reporting-viz-note,
+.reporting-admin-note { color: var(--nx-text-sec); }
+.reporting-error { color: var(--nx-danger); }
+.reporting-admin-msg { color: var(--nx-success); }
+
+/* Buttons — solid accent default, brand-gradient primary */
+.reporting-btn {
+  background: var(--nx-accent);
+  border: 1px solid transparent;
+  border-radius: var(--nx-radius-sm);
+  transition: filter var(--nx-dur) var(--nx-ease);
+}
+.reporting-btn:hover { background: var(--nx-accent-hover); filter: brightness(1.02); }
+.reporting-btn-primary,
+.reporting-modal-actions .reporting-btn-primary {
+  background: var(--nx-brand-grad);
+  border-color: transparent;
+  color: #fff;
+}
+.reporting-btn-primary:hover { filter: brightness(1.05); }
+.reporting-link { color: var(--nx-accent); }
+.reporting-link:hover { color: var(--nx-accent-hover); text-decoration: underline; }
+
+/* Mode + view + sub-mode toggles share the active brand gradient */
+.reporting-mode-toggle button,
+.reporting-view-toggle button,
+.reporting-ai-submode button {
+  background: var(--nx-card);
+  color: var(--nx-text-sec);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  cursor: pointer;
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.reporting-mode-toggle button:hover:not([disabled]):not(.active),
+.reporting-view-toggle button:hover:not(.active),
+.reporting-ai-submode button:hover:not(.active) { background: var(--nx-accent-tint); }
+.reporting-mode-toggle button.active,
+.reporting-view-toggle button.active {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-color: transparent;
+}
+.reporting-ai-submode button.active {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent-soft);
+  color: var(--nx-accent);
+  font-weight: 600;
+}
+
+/* Inputs / selects / textareas */
+.reporting-input,
+.reporting-title-input,
+.reporting-saved select,
+.reporting-export-format,
+#rpSource,
+.reporting-well ul li input,
+.reporting-filter-row select,
+.reporting-filter-row input,
+.reporting-viz-bar select,
+.reporting-sql-editor,
+.reporting-ai-prompt {
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+.reporting-input:focus,
+.reporting-title-input:focus,
+#rpSource:focus,
+.reporting-sql-editor:focus,
+.reporting-ai-prompt:focus,
+.reporting-saved select:focus,
+.reporting-viz-bar select:focus {
+  outline: none;
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-tint);
+}
+
+/* Field list + table */
+.reporting-field-list li:hover { background: var(--nx-accent-tint); }
+.reporting-table th,
+.reporting-table td { border-color: var(--nx-border); }
+.reporting-table th,
+.reporting-pivot-table thead th,
+.reporting-pivot-rowhdr { background: var(--nx-alt); color: var(--nx-text); }
+.reporting-pivot-corner,
+.reporting-pivot-total { background: var(--nx-sunken); }
+
+/* Pivot shelf */
+.reporting-pivot-zone { background: var(--nx-alt); border-color: var(--nx-border); }
+.reporting-pivot-zone.drop-hover { border-color: var(--nx-accent); background: var(--nx-accent-tint); }
+.reporting-pivot-chip {
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  color: var(--nx-text);
+}
+.reporting-pivot-chip select { border-color: var(--nx-accent-soft); background: var(--nx-card); color: var(--nx-text); }
+.reporting-pivot-rm { color: var(--nx-accent); }
+
+/* Modals */
+.reporting-modal-box {
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  box-shadow: var(--nx-shadow-pop);
+}
+
+/* AI panel chrome */
+.reporting-ai-panel {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-alt);
+}
+.reporting-ai-hint { color: var(--nx-text-sec); }
+.reporting-ai-sql { background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); }
+.reporting-ai-explain { color: var(--nx-text); }
+.reporting-ai-invalid { color: var(--nx-warning); }
+.reporting-ai-error { color: var(--nx-danger); }
+
+/* --- Agent (Surface C) thread + tool-step trace --- */
+.reporting-ai-thread { display: flex; flex-direction: column; gap: .5rem; }
+.reporting-ai-turn {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  padding: .5rem .6rem;
+  background: var(--nx-card);
+}
+.reporting-ai-q { margin: 0 0 .25rem; font-size: .85rem; color: var(--nx-text-sec); }
+.reporting-ai-q-badge {
+  display: inline-block; margin-right: .4rem; padding: 0 .4rem;
+  border-radius: var(--nx-radius-pill); font-size: .7rem; font-weight: 600;
+  background: var(--nx-accent-tint); color: var(--nx-accent);
+}
+.reporting-ai-a { margin: 0; font-size: .9rem; color: var(--nx-text); white-space: pre-wrap; }
+.reporting-ai-trace-wrap { margin-top: .5rem; }
+.reporting-ai-trace-summary {
+  cursor: pointer; font-size: .8rem; color: var(--nx-text-meta);
+  user-select: none;
+}
+.reporting-ai-trace { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
+.reporting-ai-step {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  font-size: .8rem; color: var(--nx-text-sec);
+}
+.reporting-ai-step-name {
+  font-family: var(--nx-mono); font-size: .78rem;
+  background: var(--nx-sunken); padding: .05rem .35rem; border-radius: var(--nx-radius-sm);
+}
+.reporting-ai-step-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.05rem; height: 1.05rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 700; color: #fff;
+}
+.reporting-ai-step-chip.is-ok { background: var(--nx-success); }
+.reporting-ai-step-chip.is-err { background: var(--nx-danger); }
+.reporting-ai-step-meta { color: var(--nx-text-meta); font-size: .72rem; }
