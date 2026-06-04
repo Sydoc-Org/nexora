@@ -1,8 +1,11 @@
 # Design — AI assistant in the Reporting page
 
-> **Status:** Phase 1 and Phase 2 implemented; Phase 3 **spine** landed (agentic
-> loop + deterministic stats engine + a schema-only drafter route) — see §12 for
-> phase status.
+> **Status:** Phase 1, Phase 2 and Phase 3 implemented — the agentic loop +
+> deterministic stats engine + drafter route (3a–3d), the **Agent** sub-mode UI
+> (3d Task 7), and **Phase 3e** data egress (the `reporting.ai.explain_data`
+> permission binds `run_sql` + `compute_stats` into the loop so the model narrates
+> real numbers; off by default → schema-only). Glossary RAG (the other 3e item)
+> remains planned (needs a curation owner). See §12 for phase status.
 > **Author:** initial draft via Claude Code, 2026-06-03.
 > **Scope:** an in-page AI that turns natural language into *helpful, smart*
 > statistics — building reports for you, and writing SQL you can run or
@@ -324,8 +327,8 @@ should be computed deterministically:
 | **1 — MVP** | "Ask AI" → SQL **into the editor only** (no auto-run) + 1-line explanation; server-side provider call; schema from RO `INFORMATION_SCHEMA` + catalogs; `reporting.ai.use/sql`; `ReportingAiAudit` | gate, ack, run, audit | ~days | ✅ done (2026-06-03) |
 | **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days | ✅ done (2026-06-03) |
 | **3a–3c — Agentic spine** | Tier-2 tool-loop (`ask_agentic`) with self-repair + turn cap; provider tool-calling (Azure + Anthropic); tool layer (`ai_tools.py`); deterministic stats engine (`stats.py`, stdlib) | gate, run, validator, audit | ~days | ✅ done (2026-06-03) |
-| **3d — Drafter route** | `POST /api/reporting/ai/agent` (Surface C): schema-only self-repairing drafter; binds only data-free tools (`build_definition`, `validate_sql`); returns a validated artifact; audits `Surface='agent'` | the spine | ~days | ✅ route done; UI pending |
-| **3e — Data egress + RAG** | Activate `run_sql` / `compute_stats` in the live loop + "explain results" (results flow back to the model) behind **`reporting.ai.explain_data`**; glossary RAG | embeddings table, new perm | ~1 wk | planned — needs §13-Q2/Q5 decision |
+| **3d — Drafter route + Agent UI** | `POST /api/reporting/ai/agent` (Surface C): self-repairing drafter; binds data-free tools by default (`build_definition`, `validate_sql`); returns a validated artifact + tool trace; audits `Surface='agent'`. **Agent sub-mode** UI: visible tool-step trace + follow-up conversation | the spine | ~days | ✅ done (2026-06-04) |
+| **3e — Data egress** | `run_sql` / `compute_stats` bound into the live loop behind **`reporting.ai.explain_data`** (migration `0015`; admins seeded; only effective with `reporting.sql.run`) so the model narrates real result numbers; off by default → schema-only. (Glossary RAG deferred — needs a curation owner) | new perm + migration | ~days | ✅ data egress done (2026-06-04); RAG planned |
 | **4 — Semantic layer** | Canonical metrics/dimensions → trustworthy, consistent numbers | semantic.py | strategic, larger | planned |
 
 **Phase-1 acceptance:** a user with `reporting.ai.sql` types a question, gets

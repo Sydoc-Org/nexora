@@ -361,27 +361,31 @@ token counts are **not** returned to the client — they are recorded only in th
 ### Agent (Surface C — Phase 3, drafter)
 
 Route: `POST /api/reporting/ai/agent` — accepts `{"question": "..."}` and returns
-`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason"}`. Unlike
-Surfaces A/B (single draft + one retry), this runs a **Tier-2 agentic tool-loop**
-(`nx_lib/reporting/ai.py: ask_agentic`): the model calls tools, sees their results,
-and **self-repairs** until it has a validated artifact or hits a hard turn cap.
+`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData"}`.
+Unlike Surfaces A/B (single draft + one retry), this runs a **Tier-2 agentic
+tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`): the model calls tools, sees
+their results, and **self-repairs** until it has a validated artifact or hits a
+hard turn cap. In the UI it is the **Agent** sub-mode of the Ask-AI panel, which
+shows a conversation thread, a visible tool-step trace (each step + ok/error
+chip + row count), and a follow-up input.
 
-**Access:** `reporting.ai.use`. The loop binds only **data-free** tools to the
-model — `build_definition` (always) and `validate_sql` (only with
-`reporting.ai.sql`). Egress stays **schema-only**: the model receives the question
-plus the source catalog / SQL schema, and tool results are ok/error only — **no
-result rows ever reach the model**. `AI_DAILY_LIMIT` applies; audited with
-`Surface='agent'` (and `Status='misconfig'` if the provider is broken,
-`'blocked'` when the cap is hit). The last validated definition/SQL in the tool
-trace is returned for one-click **Open in builder** / **Insert SQL**.
+**Access:** `reporting.ai.use`. By default the loop binds only **data-free** tools
+to the model — `build_definition` (always) and `validate_sql` (only with
+`reporting.ai.sql`) — so egress stays **schema-only**: the model receives the
+question plus the source catalog / SQL schema, and tool results are ok/error only.
+`AI_DAILY_LIMIT` applies; audited with `Surface='agent'` (and `Status='misconfig'`
+if the provider is broken, `'blocked'` when the cap is hit). The last validated
+definition/SQL in the tool trace is returned for one-click **Open in builder** /
+**Insert SQL**.
 
-> **Deferred (Phase 3e, needs a data-egress decision):** running queries
-> (`run_sql`) and computing statistics (`compute_stats`, `nx_lib/reporting/stats.py`)
-> *inside* the loop feeds their results back to the model so it can narrate
-> numbers. That is data egress, so it is gated behind a future
-> `reporting.ai.explain_data` permission and is **not** active in the drafter
-> route above. The stats engine and tool layer are built and tested; only their
-> in-loop activation waits on the decision.
+> **Phase 3e — explain the data (opt-in).** When the caller holds
+> `reporting.ai.explain_data` **and** `reporting.sql.run`, the loop additionally
+> binds `run_sql` and `compute_stats` (`nx_lib/reporting/stats.py`), so the model
+> runs validated read-only SELECTs and **narrates the actual numbers** — a
+> deliberate **data-egress** path (result rows reach the model). Seeded to admins
+> by migration `0015`; grantable per-user; **off by default** (then the loop stays
+> schema-only as above). The response/audit carry an `explainData` flag. Glossary
+> RAG (the other Phase 3e item) is still planned — it needs a curation owner.
 
 ### Configuration (`AI_*` env vars)
 
