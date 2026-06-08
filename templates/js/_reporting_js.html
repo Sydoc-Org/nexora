@@ -5,7 +5,10 @@
     source: null, fields: [], columns: [], filters: [], sort: [], processes: [],
     mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
     lastResult: null, view: 'grid', currentReportId: null, currentReportName: null,
-    currentReportOwned: true, currentReportCanEdit: true
+    currentReportOwned: true, currentReportCanEdit: true,
+    // Semantic metrics: cached full map {sourceId: [{code,label,...}]} (null until
+    // fetched), the per-source available list, and the selected metric codes.
+    metricsBySource: null, availableMetrics: [], metrics: []
   };
 
   async function api(url, opts) {
@@ -34,6 +37,9 @@
       groupBy: [],
       filters: state.filters,
       sort: state.sort,
+      // Canonical metrics: when present the selected Columns become the grouping
+      // and the server returns these as aggregations. Omit when none selected.
+      metrics: state.metrics.map(function (c) { return { metric: c }; }),
       scope: { clients: [], processes: state.processes },
       rowLimit: 5000,
       sql: null,
@@ -357,6 +363,8 @@
         state.columns = [];
         renderFields();
         renderWells();
+        // Re-derive the per-source metric list (prunes now-unavailable picks).
+        refreshAvailableMetrics();
       }
       sel.onchange = pick;
       if (curated.length) pick();
@@ -491,6 +499,94 @@
     });
   }
 
+  // ---- Metrics ----
+
+  // Look up a selected metric's display metadata for the current source.
+  function metricMeta(code) {
+    return state.availableMetrics.find(function (m) { return m.code === code; })
+      || { code: code, label: code };
+  }
+
+  // Derive the available metrics for the currently-selected source from the
+  // cached map, and prune any selected codes the new source doesn't offer.
+  function refreshAvailableMetrics() {
+    var map = state.metricsBySource || {};
+    state.availableMetrics = map[state.source] || [];
+    var codes = {};
+    state.availableMetrics.forEach(function (m) { codes[m.code] = true; });
+    state.metrics = state.metrics.filter(function (c) { return codes[c]; });
+    renderMetrics();
+  }
+
+  // Fetch the full accessible-metrics map once and cache it, then derive the
+  // per-source list. A failed fetch is non-fatal: treat as "no metrics".
+  function loadMetrics() {
+    api('/api/reporting/metrics').then(function (res) { return res.json(); })
+      .then(function (map) {
+        state.metricsBySource = map || {};
+        refreshAvailableMetrics();
+      }).catch(function (e) {
+        console.error('{{ _("Could not load metrics") }}:', e.message);
+        state.metricsBySource = {};
+        refreshAvailableMetrics();
+      });
+  }
+
+  function renderMetrics() {
+    var ul = document.getElementById('rpWellMetrics');
+    ul.innerHTML = '';
+    state.metrics.forEach(function (code, i) {
+      var li = document.createElement('li');
+      li.className = 'reporting-metric-row';
+      // A <select> per row (current code + any unselected codes) lets the user
+      // swap which metric this row is — same pattern as the Sort well's field
+      // picker. If the code isn't in the catalog (stale saved report), still
+      // show it as a synthetic option so the row round-trips.
+      var sel = document.createElement('select');
+      sel.setAttribute('data-testid', 'reporting-metric-select');
+      var opts = state.availableMetrics.filter(function (m) {
+        return m.code === code || state.metrics.indexOf(m.code) === -1;
+      });
+      if (!opts.find(function (m) { return m.code === code; })) {
+        opts = [metricMeta(code)].concat(opts);
+      }
+      opts.forEach(function (m) {
+        var opt = document.createElement('option');
+        opt.value = m.code;
+        opt.textContent = m.label || m.code;
+        sel.appendChild(opt);
+      });
+      sel.value = code;
+      sel.onchange = function (e) { state.metrics[i] = e.target.value; renderMetrics(); };
+      li.appendChild(sel);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = '×';
+      rm.onclick = function () { state.metrics.splice(i, 1); renderMetrics(); };
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+    // The hint explains that Columns become the grouping once a metric is picked.
+    document.getElementById('rpMetricHint').hidden = state.metrics.length === 0;
+    var addBtn = document.getElementById('rpAddMetric');
+    // No remaining unselected metrics for this source => nothing to add.
+    var remaining = state.availableMetrics.filter(function (m) {
+      return state.metrics.indexOf(m.code) === -1;
+    });
+    addBtn.disabled = remaining.length === 0;
+  }
+
+  // Add a metric. Mirrors addSort/addFilter: append the first available
+  // unselected code, then re-render so its row appears with a pick <select>.
+  function addMetric() {
+    var remaining = state.availableMetrics.filter(function (m) {
+      return state.metrics.indexOf(m.code) === -1;
+    });
+    if (!remaining.length) return;
+    state.metrics.push(remaining[0].code);
+    renderMetrics();
+  }
+
   function loadReports() {
     api('/api/reporting/reports').then(function (res) { return res.json(); })
       .then(function (reports) {
@@ -572,10 +668,19 @@
     });
     state.filters = (def.filters || []).map(function (f) { return Object.assign({}, f); });
     state.sort = (def.sort || []).map(function (s) { return Object.assign({}, s); });
+    // Restore selected metrics (def.metrics = [{metric: code}, ...]); derive the
+    // available list for the restored source, then keep only codes it still offers.
+    state.availableMetrics = (state.metricsBySource || {})[state.source] || [];
+    var availCodes = {};
+    state.availableMetrics.forEach(function (m) { availCodes[m.code] = true; });
+    state.metrics = (def.metrics || [])
+      .map(function (m) { return m && m.metric; })
+      .filter(function (c) { return c && availCodes[c]; });
     document.getElementById('rpSubtitle').value = def.subtitle || '';
     renderFields();
     renderWells();
     renderFilters();
+    renderMetrics();
   }
 
   // Open an AI definition in the builder, run it, then show it as the hinted chart.
@@ -831,7 +936,9 @@
   document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
   document.getElementById('rpAddSort').addEventListener('click', addSort);
+  document.getElementById('rpAddMetric').addEventListener('click', addMetric);
 
+  loadMetrics();
   loadSources();
   loadReports();
   window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart });

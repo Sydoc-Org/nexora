@@ -163,6 +163,11 @@
     </section>
 
     <aside class="reporting-wells" data-testid="reporting-wells">
+      <div class="reporting-well"><h4>{{ _("Metrics") }}</h4>
+        <ul id="rpWellMetrics" data-testid="reporting-well-metrics"></ul>
+        <button id="rpAddMetric" class="reporting-link" data-testid="reporting-add-metric">+ {{ _("Add metric") }}</button>
+        <p id="rpMetricHint" class="reporting-ai-hint" hidden>{{ _("With a metric selected, the Columns above become the grouping.") }}</p>
+      </div>
       <div class="reporting-well"><h4>{{ _("Columns") }}</h4><ul id="rpWellColumns"></ul></div>
       <div class="reporting-well"><h4>{{ _("Filters") }}</h4><div id="rpWellFilters"></div>
         <button id="rpAddFilter" class="reporting-link">+ {{ _("Add filter") }}</button></div>

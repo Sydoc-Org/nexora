@@ -176,6 +176,17 @@
   padding: 0 4px;
 }
 
+/* Metrics well: each selected-metric row is a <select> + remove button. The
+   input-only flex rule above doesn't cover <select>, so stretch it here. */
+.reporting-well ul li.reporting-metric-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
 .reporting-filter-row {
   display: flex;
   gap: 4px;
