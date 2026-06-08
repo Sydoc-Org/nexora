@@ -7,6 +7,8 @@ returns (sql, params) for the statistics engine. Every column/table name comes
 from the injected maps/configs; only filter *values* become ? parameters.
 """
 
+from .semantic import build_aggregate_sql
+
 _OP_SQL = {
     "eq": "= ?",
     "ne": "<> ?",
@@ -103,13 +105,15 @@ def _scope_by_processname(process_configs, filters):
     return result
 
 
-def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
+def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_metrics=None):
     """Build (sql, params) for a table report.
 
     process_configs: [{process, table, export_col, import_col, condition}] already
       filtered to the effective (permitted ∩ requested) process scope.
     field_col_maps: {process: {field_key: actual_column_name}}.
     row_cap: server-enforced TOP cap (min of definition rowLimit and server max).
+    resolved_metrics: optional list of resolved metric specs from semantic.resolve_metrics.
+      When non-empty the UNION is wrapped in an outer GROUP BY aggregate query.
 
     Column/table names come exclusively from process_configs and field_col_maps
     (injected, not from the report definition directly). Only filter *values*
@@ -122,6 +126,11 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
     filters = rd.get("filters") or []
     sort = rd.get("sort") or []
     cap = min(int(rd.get("rowLimit", row_cap)), int(row_cap))
+
+    metric_base_fields = [m["base_field"] for m in (resolved_metrics or []) if m.get("base_field")]
+    # Fields to project in each subquery: the group-by dims plus any metric base
+    # fields (deduped, order-stable). For the row path this is just `columns`.
+    projected_fields = list(dict.fromkeys(columns + metric_base_fields))
 
     # Validate that every requested column field is known across all maps.
     # "processname" is a synthetic field always available; others must appear
@@ -157,7 +166,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
             continue
 
         select_exprs = []
-        for field in columns:
+        for field in projected_fields:
             if field == "processname":
                 select_exprs.append("? AS [processname]")
                 params.append(cfg["process"])
@@ -184,6 +193,17 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap):
         raise QueryBuildError("no subqueries produced for the requested scope/filters")
 
     inner = " UNION ALL ".join(sub_queries)
+
+    if resolved_metrics:
+        sql = build_aggregate_sql(
+            inner_from=f"({inner}) t",
+            dim_fields=columns,
+            resolved_metrics=resolved_metrics,
+            sort=sort,
+            cap=cap,
+        )
+        return sql, params
+
     out_cols = ", ".join(f"[{c}]" for c in columns)
     sql = f"SELECT TOP ({cap}) {out_cols} FROM ({inner}) t"
     if sort:

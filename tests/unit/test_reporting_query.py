@@ -186,3 +186,31 @@ def test_in_filter_with_none_value_matches_nothing():
     sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
     assert "1 = 0" in sql
     assert params == []
+
+
+def test_docprocessing_aggregate_wraps_union():
+    from nx_lib.reporting.query import build_table_query
+
+    rd = _rd(
+        columns=[{"field": "doctype"}], filters=[], sort=[{"field": "doc_count", "dir": "desc"}]
+    )
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert sql.startswith("SELECT TOP (100) [doctype], COUNT(*) AS [doc_count] FROM (")
+    assert sql.rstrip().endswith("GROUP BY [doctype] ORDER BY [doc_count] DESC")
+    assert "UNION ALL" in sql
+
+
+def test_docprocessing_aggregate_projects_base_field_into_union():
+    from nx_lib.reporting.query import build_table_query
+
+    rd = _rd(columns=[{"field": "doctype"}], filters=[], sort=[])
+    resolved = [{"code": "pages_sum", "aggregation": "sum", "base_field": "pages"}]
+    sql, _ = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=50, resolved_metrics=resolved
+    )
+    # 'pages' is only mapped in acme.inv -> projected there, NULL in acme.hr.
+    assert "AS [pages]" in sql
+    assert "SUM([pages]) AS [pages_sum]" in sql
