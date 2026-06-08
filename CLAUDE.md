@@ -118,6 +118,10 @@ The `nx` CLI tool starts and inspects the nexora dev server. Full reference: `do
 
 Playwright screenshot artifacts go in `screenshots/` (never the repo root).
 
+## Working with Claude Code
+
+Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission, use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores.
+
 ## Git — Branch-based policy
 
 **On a feature branch** (any branch that isn't `main`): allowed to stage (`git add`), commit (`git commit`), and push (`git push`) without further authorization. Other modifying operations (branch delete, reset, rebase, worktree prune, etc.) still require explicit per-turn opt-in.
