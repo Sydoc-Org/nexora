@@ -208,6 +208,15 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   tables, pivot shelf, modals and the AI panel share the indigo→violet brand
   signature, hairline keylines and dark-mode awareness (primary CTAs + active
   toggles use the brand gradient). Layout, ids and `data-testid`s are unchanged.
+- **Reporting page — branded page header to match the other pages.** Following the
+  colour harmonization above, the Reporting builder and the source-registry admin
+  page (`/reporting/sources`) now open with the same `nx-page-head` block every
+  other page carries — the indigo→violet gradient icon chip, page title and
+  subtitle — and use the `nx-app` body shell. The "Sources" admin link moved from
+  the builder toolbar into the page-header actions (restyled as an `nx-btn`,
+  `data-testid` unchanged); "Back to Reporting" likewise sits in the registry
+  page's header. Builder layout, ids and the remaining `data-testid`s are
+  unchanged; one new translated string (de/fr/it) for the subtitle.
 - **Templates — CDN assets pinned + Subresource Integrity.** Every
   jsdelivr/cdnjs `<script>`/`<link>` across all templates (Chart.js, flatpickr,
   xlsx, `@tailwindcss/browser`, `@tailwindplus/elements`, Font Awesome,

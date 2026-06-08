@@ -344,7 +344,6 @@
 
 /* --- A3: source-registry admin page --- */
 .reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
-.reporting-admin-head { display: flex; justify-content: space-between; align-items: center; }
 .reporting-admin-note { color: #64748b; font-size: 13px; margin: 4px 0 16px; }
 .reporting-admin section {
   background: #fff; border: 1px solid #eef; border-radius: 14px; padding: 14px; margin-bottom: 16px;
@@ -360,7 +359,6 @@
 .reporting-admin-cols .reporting-sql-editor { min-height: 110px; }
 .reporting-admin-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 .reporting-admin-msg { font-size: 13px; color: #059669; }
-.reporting-sources-link { margin-left: 4px; }
 @media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }
 
 /* --- Animation layer (Motion). The entrance pre-hide is applied only when
@@ -409,13 +407,20 @@
    utility layer (e.g. body bg-gray-50). See the design-system
    memory for the token vocabulary + the Tailwind-layer gotcha.
    ============================================================ */
-body.bg-gray-50 {
+body.nx-app {
   background: var(--nx-page);
   color: var(--nx-text);
   font-family: var(--nx-font);
 }
 
 .reporting-main { font-family: var(--nx-font); }
+
+/* Branded page header — sits above the builder grid (a sibling, not a grid
+   child) so its right-aligned actions stay on-screen even when the builder
+   grid overflows horizontally. Left padding matches the grid's 20px so the
+   title lines up with the Source panel; the grid's own padding-top supplies
+   the gap below. */
+.reporting-page-head { padding: 20px 20px 0; margin-bottom: 0; }
 
 /* Panels / surfaces */
 .reporting-fields,

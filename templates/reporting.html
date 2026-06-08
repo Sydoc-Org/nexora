@@ -27,8 +27,29 @@
   </script>
 </head>
 
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <div class="nx-page-head nx-rise reporting-page-head">
+    <div class="nx-page-head__main">
+      <div class="nx-page-head__title">
+        <span class="nx-page-icon"><i class="fas fa-chart-column"></i></span>
+        <div>
+          <h1 class="nx-title">{{ _("Reporting") }}</h1>
+          <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
+        </div>
+      </div>
+    </div>
+    {% if has_permission('reporting.admin.sources') %}
+    <div class="nx-page-head__actions">
+      <a href="{{ url_for('reporting_sources_admin') }}"
+         class="nx-btn nx-btn--secondary" data-testid="reporting-sources-link"
+         title="{{ _('Manage data sources') }}">
+        <i class="fas fa-database"></i><span class="hidden sm:inline">{{ _("Sources") }}</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
 
   <main class="reporting-main" data-testid="reporting-page">
     <aside class="reporting-fields" data-testid="reporting-field-panel">
@@ -47,10 +68,6 @@
           <button id="rpModeAi" data-testid="reporting-mode-ai">{{ _("Ask AI") }}</button>
           {% endif %}
         </div>
-        {% if has_permission('reporting.admin.sources') %}
-        <a href="{{ url_for('reporting_sources_admin') }}" class="reporting-link reporting-sources-link"
-           data-testid="reporting-sources-link" title="{{ _('Manage data sources') }}">{{ _("Sources") }}</a>
-        {% endif %}
         <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
         <div class="reporting-saved" data-testid="reporting-saved">
           <select id="rpSavedReports" data-testid="reporting-saved-reports">

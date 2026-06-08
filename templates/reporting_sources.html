@@ -11,13 +11,24 @@
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
 
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'reporting' %} {% include '_header.html' %}
 
   <main class="reporting-admin" data-testid="reporting-sources-admin">
-    <div class="reporting-admin-head">
-      <h2>{{ _("Reporting source registry") }}</h2>
-      <a href="{{ url_for('reporting') }}" class="reporting-link">&larr; {{ _("Back to Reporting") }}</a>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-database"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Reporting source registry") }}</h1>
+          </div>
+        </div>
+      </div>
+      <div class="nx-page-head__actions">
+        <a href="{{ url_for('reporting') }}" class="nx-btn nx-btn--secondary" data-testid="reporting-sources-back">
+          <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back to Reporting") }}</span>
+        </a>
+      </div>
     </div>
     <p class="reporting-admin-note">{{ _("Registry rows augment or override the built-in sources — relabel, enable/disable, reorder, re-permission, or register new ones. Curated sources bind to a provider: 'docprocessing' (built-in) or 'table' (generic single-object, configured with a base object + columns).") }}</p>
 
