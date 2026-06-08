@@ -65,6 +65,7 @@ from ..reporting.schema import (
     validate_report_definition,
     validate_sql_definition,
 )
+from ..reporting.semantic import AGGREGATIONS, MetricResolveError, resolve_metrics
 from ..reporting.sources import (
     DEFAULT_ROW_LIMIT,
     MAX_ROW_LIMIT,
@@ -165,6 +166,52 @@ def _get_effective_source(source_id):
         if s.get("id") == source_id:
             return s
     return None
+
+
+def _load_db_metrics():
+    """Read enabled dbo.ReportingMetrics as {code: {...}} (best-effort).
+
+    A missing table or read error yields an empty dict, so the page degrades to
+    "no metrics" rather than 500-ing — mirrors _load_db_sources.
+    """
+    try:
+        conn = engine_nexora_db.raw_connection()
+    except Exception as e:
+        current_app.logger.warning(f"reporting metrics: registry unavailable: {e}")
+        return {}
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT Code, SourceId, Label, Aggregation, BaseField, Description, "
+            "Format, Enabled, SortOrder FROM dbo.ReportingMetrics WHERE Enabled = 1"
+        )
+        out = {}
+        for r in cur.fetchall():
+            out[r.Code] = {
+                "code": r.Code,
+                "source_id": r.SourceId,
+                "label": r.Label,
+                "aggregation": r.Aggregation,
+                "base_field": r.BaseField,
+                "description": r.Description,
+                "format": r.Format,
+                "sort_order": r.SortOrder,
+            }
+        return out
+    except Exception as e:
+        current_app.logger.warning(f"reporting metrics: registry read failed: {e}")
+        return {}
+    finally:
+        conn.close()
+
+
+def _metrics_for_source(source_id):
+    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
+    return {
+        code: {"aggregation": m["aggregation"], "base_field": m["base_field"]}
+        for code, m in _load_db_metrics().items()
+        if m["source_id"] == source_id
+    }
 
 
 def _authorize_sql_target(target):
@@ -565,14 +612,39 @@ def _effective_scope(rd, allowed):
     return [p for p in requested if p in allowed_set]
 
 
+def _catalog_for_source(source):
+    """Build the field catalog + field sets for a curated source.
+
+    Returns (catalog, catalog_fields, filterable, sortable). Dispatches on the
+    source's provider so callers (the run builder and the metrics-admin form)
+    share one definition of "what columns this source exposes".
+    """
+    provider = source.get("provider") or "docprocessing"
+    if provider == "docprocessing":
+        allowed = _allowed_processes()
+        catalog = fetch_docprocessing_catalog(allowed, str(get_locale()))
+    elif provider == "table":
+        catalog = table_source_catalog(source.get("columns"))
+    else:
+        raise ReportDefinitionError("unsupported source provider")
+    catalog_fields = {f["field"] for f in catalog}
+    filterable = {f["field"] for f in catalog if f["filterable"]}
+    sortable = {f["field"] for f in catalog if f["sortable"]}
+    return catalog, catalog_fields, filterable, sortable
+
+
 def _prepare_run(rd):
     """Validate + build a query for a curated report.
 
     Returns (columns, sql, params, engine). Dispatches on the source's provider:
     'docprocessing' (the Statconfig builder over Statistics) or 'table' (the
-    generic single-object builder over the source's configured engine).
+    generic single-object builder over the source's configured engine). When the
+    definition carries `metrics`, the metric codes are validated against the
+    source's metric registry and resolved into aggregation specs; the returned
+    columns are then the dims + metric codes.
 
-    Raises ReportDefinitionError / QueryBuildError / TableQueryError on bad input.
+    Raises ReportDefinitionError / QueryBuildError / TableQueryError /
+    MetricResolveError on bad input.
     """
     source = _get_effective_source(rd.get("source"))
     if source is None or source.get("kind") != "curated":
@@ -582,40 +654,67 @@ def _prepare_run(rd):
 
     provider = source.get("provider") or "docprocessing"
     if provider == "docprocessing":
-        allowed = _allowed_processes()
-        catalog = fetch_docprocessing_catalog(allowed, str(get_locale()))
-        catalog_fields = {f["field"] for f in catalog}
-        filterable = {f["field"] for f in catalog if f["filterable"]}
-        sortable = {f["field"] for f in catalog if f["sortable"]}
+        catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
+        source_metrics = _metrics_for_source(source["id"])
         validate_report_definition(
-            rd, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            rd,
+            catalog_fields,
+            filterable,
+            sortable,
+            max_row_limit=MAX_ROW_LIMIT,
+            metric_codes=set(source_metrics),
         )
+        resolved = (
+            resolve_metrics(rd.get("metrics"), source_metrics, catalog_fields)
+            if rd.get("metrics")
+            else None
+        )
+        allowed = _allowed_processes()
         scope = _effective_scope(rd, allowed)
         configs = _load_process_configs(scope)
         col_maps = _load_field_col_maps(scope)
         sql, params = build_table_query(
-            rd, configs, col_maps, row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT)
+            rd,
+            configs,
+            col_maps,
+            row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
+            resolved_metrics=resolved,
         )
-        return rd["columns"], sql, params, engine_statistics_db
+        out_columns = (
+            rd["columns"] + [{"field": m["code"]} for m in resolved] if resolved else rd["columns"]
+        )
+        return out_columns, sql, params, engine_statistics_db
 
     if provider == "table":
-        catalog = table_source_catalog(source.get("columns"))
-        catalog_fields = {f["field"] for f in catalog}
-        filterable = {f["field"] for f in catalog if f["filterable"]}
-        sortable = {f["field"] for f in catalog if f["sortable"]}
+        catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
+        source_metrics = _metrics_for_source(source["id"])
         validate_report_definition(
-            rd, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            rd,
+            catalog_fields,
+            filterable,
+            sortable,
+            max_row_limit=MAX_ROW_LIMIT,
+            metric_codes=set(source_metrics),
+        )
+        resolved = (
+            resolve_metrics(rd.get("metrics"), source_metrics, catalog_fields)
+            if rd.get("metrics")
+            else None
         )
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),
             catalog,
             row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
+            resolved_metrics=resolved,
         )
         engine = _CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
             raise ReportDefinitionError("source engine is not configured")
-        return rd["columns"], sql, params, engine
+        out_columns = (
+            rd["columns"] + [{"field": m["code"]} for m in resolved] if resolved else rd["columns"]
+        )
+        return out_columns, sql, params, engine
 
     raise ReportDefinitionError("unsupported source provider")
 
@@ -738,7 +837,7 @@ def api_run():
         columns, sql, params, engine = _prepare_run(rd)
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
-    except (ReportDefinitionError, QueryBuildError, TableQueryError) as e:
+    except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run prepare error: {e}")
@@ -1350,7 +1449,7 @@ def api_export():
         rows = _execute(engine, sql, params)
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
-    except (ReportDefinitionError, QueryBuildError, TableQueryError) as e:
+    except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
@@ -1917,6 +2016,42 @@ def _source_insert_params(p):
     )
 
 
+# ---- Metrics-registry admin (reporting.semantic.admin) --------------------
+
+_METRIC_CODE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_metric_payload(p):
+    """Return an error string for an invalid metric payload, else None."""
+    if not isinstance(p, dict):
+        return _("Invalid body")
+    if not _METRIC_CODE_RE.match((p.get("code") or "").strip()):
+        return _("code must start with a letter/underscore: letters, digits, _")
+    if not (p.get("sourceId") or "").strip():
+        return _("sourceId is required")
+    if not (p.get("label") or "").strip():
+        return _("label is required")
+    agg = (p.get("aggregation") or "").strip()
+    if agg not in AGGREGATIONS:
+        return _("aggregation must be one of: ") + ", ".join(sorted(AGGREGATIONS))
+    if agg != "count" and not (p.get("baseField") or "").strip():
+        return _("baseField is required unless aggregation is 'count'")
+    return None
+
+
+def _metric_insert_params(p):
+    return (
+        p["code"].strip(),
+        p["sourceId"].strip(),
+        p["label"].strip(),
+        p["aggregation"].strip(),
+        (p.get("baseField") or "").strip() or None,
+        p.get("format") or None,
+        1 if p.get("enabled", True) else 0,
+        int(p.get("sortOrder") or 100),
+    )
+
+
 @require_permission("reporting.admin.sources")
 def reporting_sources_admin():
     return render_template(
@@ -2036,6 +2171,149 @@ def api_admin_sources_delete(source_id):
         conn.close()
 
 
+@require_permission("reporting.semantic.admin")
+def reporting_metrics_admin():
+    return render_template(
+        "reporting_metrics.html",
+        logged_in_user=session.get("username", "Unknown"),
+        fullname=session.get("fullname"),
+        pageV=page_visibility(),
+    )
+
+
+@require_permission("reporting.semantic.admin")
+def api_admin_metrics_list():
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT MetricID, Code, SourceId, Label, Aggregation, BaseField, "
+            "Description, Format, Enabled, SortOrder FROM dbo.ReportingMetrics "
+            "ORDER BY SortOrder, Label"
+        )
+        rows = [
+            {
+                "id": r.MetricID,
+                "code": r.Code,
+                "sourceId": r.SourceId,
+                "label": r.Label,
+                "aggregation": r.Aggregation,
+                "baseField": r.BaseField,
+                "description": r.Description,
+                "format": r.Format,
+                "enabled": bool(r.Enabled),
+                "sortOrder": r.SortOrder,
+            }
+            for r in cur.fetchall()
+        ]
+    except Exception as e:
+        current_app.logger.error(f"reporting admin metrics list error: {e}")
+        return jsonify({"error": _("Could not list metrics")}), 500
+    finally:
+        conn.close()
+    sources = [{"id": s["id"], "label": s["label"]} for s in _effective_sources()]
+    return jsonify({"rows": rows, "sources": sources})
+
+
+@require_permission("reporting.semantic.admin")
+@limiter.limit("60 per minute")
+def api_admin_metrics_create():
+    p = request.get_json(silent=True) or {}
+    err = _validate_metric_payload(p)
+    if err:
+        return jsonify({"error": err}), 400
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO dbo.ReportingMetrics "
+            "(Code, SourceId, Label, Aggregation, BaseField, Format, Enabled, SortOrder) "
+            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            _metric_insert_params(p),
+        )
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        return jsonify({"id": new_id, "ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin metrics create error: {e}")
+        return jsonify({"error": _("Could not save metric (code already exists?)")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.semantic.admin")
+@limiter.limit("60 per minute")
+def api_admin_metrics_update(metric_id):
+    p = request.get_json(silent=True) or {}
+    err = _validate_metric_payload(p)
+    if err:
+        return jsonify({"error": err}), 400
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        params = (*_metric_insert_params(p), metric_id)
+        cur.execute(
+            "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, Aggregation=?, "
+            "BaseField=?, Format=?, Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() "
+            "WHERE MetricID=?",
+            params,
+        )
+        affected = cur.rowcount
+        conn.commit()
+        if not affected:
+            return jsonify({"error": _("Not found")}), 404
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin metrics update error: {e}")
+        return jsonify({"error": _("Could not update metric")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.semantic.admin")
+def api_admin_metrics_delete(metric_id):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportingMetrics WHERE MetricID = ?", (metric_id,))
+        affected = cur.rowcount
+        conn.commit()
+        if not affected:
+            return jsonify({"error": _("Not found")}), 404
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"reporting admin metrics delete error: {e}")
+        return jsonify({"error": _("Could not delete metric")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.view")
+def api_metrics():
+    """Accessible metrics grouped by source id -> [{code,label,aggregation,...}].
+
+    Only metrics bound to a source whose permission the caller holds are returned,
+    so the builder offers exactly the metrics each visible source supports.
+    """
+    perms = set(session.get("permissions", []))
+    allowed_sources = {s["id"] for s in accessible(_effective_sources(), perms)}
+    out = {}
+    for m in _load_db_metrics().values():
+        sid = m["source_id"]
+        if sid not in allowed_sources:
+            continue
+        out.setdefault(sid, []).append(
+            {
+                "code": m["code"],
+                "label": m["label"],
+                "aggregation": m["aggregation"],
+                "baseField": m["base_field"],
+                "format": m["format"],
+            }
+        )
+    return jsonify(out)
+
+
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
     app.add_url_rule(
@@ -2065,6 +2343,39 @@ def register_routes(app):
         endpoint="reporting_admin_sources_delete",
         view_func=api_admin_sources_delete,
         methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/reporting/metrics",
+        endpoint="reporting_metrics_admin",
+        view_func=reporting_metrics_admin,
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/metrics",
+        endpoint="reporting_admin_metrics_list",
+        view_func=api_admin_metrics_list,
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/metrics",
+        endpoint="reporting_admin_metrics_create",
+        view_func=api_admin_metrics_create,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/metrics/<int:metric_id>",
+        endpoint="reporting_admin_metrics_update",
+        view_func=api_admin_metrics_update,
+        methods=["PUT"],
+    )
+    app.add_url_rule(
+        "/api/reporting/admin/metrics/<int:metric_id>",
+        endpoint="reporting_admin_metrics_delete",
+        view_func=api_admin_metrics_delete,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/reporting/metrics",
+        endpoint="reporting_metrics",
+        view_func=api_metrics,
     )
     app.add_url_rule("/api/reporting/sources", endpoint="reporting_sources", view_func=api_sources)
     app.add_url_rule(

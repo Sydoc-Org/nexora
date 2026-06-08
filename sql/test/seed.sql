@@ -83,6 +83,7 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
     ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
     ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
+    ('reporting.semantic.admin', 'Reporting: manage the canonical metrics registry'),
     ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
     ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),
     ('reporting.schedule', 'Reporting: schedule a report to run and be emailed');

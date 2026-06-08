@@ -20,6 +20,7 @@ GO
 -- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
 -- a clean, fully idempotent reset.
 IF OBJECT_ID('dbo.ReportSchedules', 'U') IS NOT NULL DROP TABLE dbo.ReportSchedules;
+IF OBJECT_ID('dbo.ReportingMetrics', 'U') IS NOT NULL DROP TABLE dbo.ReportingMetrics;
 IF OBJECT_ID('dbo.ReportingSources', 'U') IS NOT NULL DROP TABLE dbo.ReportingSources;
 IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
 IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
@@ -254,6 +255,29 @@ BEGIN
         CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_UpdatedAt DEFAULT SYSUTCDATETIME(),
         CONSTRAINT CK_ReportingSources_Kind CHECK (Kind IN ('curated', 'sql'))
+    );
+END;
+GO
+
+-- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql).
+IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingMetrics (
+        MetricID     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportingMetrics PRIMARY KEY,
+        Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingMetrics_Code UNIQUE,
+        SourceId     NVARCHAR(64) NOT NULL,
+        Label        NVARCHAR(120) NOT NULL,
+        Aggregation  NVARCHAR(16) NOT NULL,
+        BaseField    NVARCHAR(128) NULL,
+        FilterJson   NVARCHAR(MAX) NULL,
+        Description  NVARCHAR(512) NULL,
+        Format       NVARCHAR(16) NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportingMetrics_Enabled DEFAULT 1,
+        SortOrder    INT NOT NULL CONSTRAINT DF_ReportingMetrics_SortOrder DEFAULT 100,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT CK_ReportingMetrics_Aggregation
+            CHECK (Aggregation IN ('count','count_distinct','sum','avg','min','max'))
     );
 END;
 GO

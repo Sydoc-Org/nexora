@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Reporting semantic layer (Slice 1 — metrics registry wiring).** A
+  DB-backed canonical-metrics registry (`dbo.ReportingMetrics`, migration
+  `0017`) is now wired into the reporting views. A report definition's optional
+  `metrics` list resolves server-side into safe aggregation specs (`_prepare_run`
+  validates the metric codes against the source's registry and resolves them via
+  `nx_lib/reporting/semantic.py`; the existing `columns` become the GROUP BY).
+  New permission `reporting.semantic.admin` gates a metrics-admin page
+  (`GET /reporting/metrics`) and CRUD API
+  (`GET/POST/PUT/DELETE /api/reporting/admin/metrics[/<id>]`); a builder-facing
+  `GET /api/reporting/metrics` returns the caller's accessible metrics grouped by
+  source. `MetricResolveError` maps to HTTP 400 in the run/export handlers. The
+  `/reporting/metrics` admin page template ships as a placeholder for this slice.
 - **`.claudeignore` + enforcing PreToolUse hook.** A repo-root `.claudeignore`
   lists which paths AI coding tools should skip (secrets, Python bytecode,
   virtualenvs/vendored deps, build artifacts, tool/index caches, `uv.lock`,
