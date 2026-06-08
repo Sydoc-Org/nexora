@@ -113,10 +113,28 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     return text, False
 
 
-def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
-    """Combine RO targets + curated catalogs into a budgeted text block.
+def serialize_metrics_catalog(metrics):
+    """One line per blessed metric: `METRIC <code> "<label>" = <agg>(<col|*>) on <source>`.
+
+    Lets the AI reference canonical metrics by code and get consistent numbers.
+    """
+    lines = []
+    for m in metrics or []:
+        col = m.get("base_field") or "*"
+        label = f' "{m.get("label")}"' if m.get("label") else ""
+        lines.append(
+            f"METRIC {m.get('code')}{label} = "
+            f"{m.get('aggregation')}({col}) on {m.get('source_id')}"
+        )
+    return "\n".join(lines)
+
+
+def serialize_schema(*, targets, curated, metrics=None, char_budget=DEFAULT_CHAR_BUDGET):
+    """Combine RO targets + curated catalogs + canonical metrics into a budgeted text block.
 
     `targets`: {name: conn_factory}. `curated`: list of {label, fields:[{field,type}]}.
+    `metrics`: optional list of {code, label, aggregation, base_field, source_id} blessed
+    metrics to append under a `# Canonical metrics` header.
     Returns (text, truncated_bool). truncated_bool is True if the char budget cut the
     text *or* any per-target table cap dropped tables — both are coverage limits the
     caller surfaces to the user. On char overflow the text is cut and a visible marker
@@ -135,6 +153,10 @@ def serialize_schema(*, targets, curated, char_budget=DEFAULT_CHAR_BUDGET):
     curated_block = _serialize_curated(curated)
     if curated_block:
         blocks.append(curated_block)
+    if metrics:
+        metrics_body = serialize_metrics_catalog(metrics)
+        if metrics_body:
+            blocks.append(f"# Canonical metrics\n{metrics_body}")
     text = "\n\n".join(b for b in blocks if b)
     if len(text) > char_budget:
         logger.info("ai_schema: schema truncated from %d to %d chars", len(text), char_budget)

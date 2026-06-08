@@ -174,3 +174,50 @@ def test_serialize_sources_catalog_truncates_and_logs(caplog):
     assert len(text) <= 400
     assert truncated is True
     assert "truncated" in text.lower()
+
+
+def test_serialize_metrics_catalog_lists_blessed_metrics():
+    from nx_lib.reporting.ai_schema import serialize_metrics_catalog
+
+    metrics = [
+        {
+            "code": "doc_count",
+            "label": "Document count",
+            "aggregation": "count",
+            "base_field": None,
+            "source_id": "docprocessing",
+        },
+        {
+            "code": "pages_sum",
+            "label": "Total pages",
+            "aggregation": "sum",
+            "base_field": "pages",
+            "source_id": "docprocessing",
+        },
+    ]
+    text = serialize_metrics_catalog(metrics)
+    assert "METRIC doc_count" in text
+    assert "count(*) on docprocessing" in text
+    assert "sum(pages) on docprocessing" in text
+
+
+def test_serialize_schema_includes_metrics_block():
+    metrics = [
+        {
+            "code": "doc_count",
+            "label": "Document count",
+            "aggregation": "count",
+            "base_field": None,
+            "source_id": "docprocessing",
+        },
+    ]
+    text, _ = ai_schema.serialize_schema(targets={}, curated=[], metrics=metrics, char_budget=10000)
+    assert "METRIC doc_count" in text
+    assert "# Canonical metrics" in text
+
+
+def test_serialize_schema_metrics_none_by_default():
+    # Existing callers pass no metrics kwarg; must not raise and must produce same output
+    text, truncated = ai_schema.serialize_schema(targets={}, curated=[], char_budget=10000)
+    assert "# Canonical metrics" not in text
+    assert truncated is False

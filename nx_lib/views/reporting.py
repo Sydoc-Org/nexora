@@ -214,6 +214,28 @@ def _metrics_for_source(source_id):
     }
 
 
+def _accessible_metrics():
+    """Flat list of enabled metric dicts the caller may use, filtered to accessible sources.
+
+    Each dict carries {code, label, aggregation, base_field, source_id} — the shape
+    serialize_metrics_catalog expects. Only metrics whose source_id belongs to a source
+    the caller can access (same permission gate as api_metrics) are included.
+    """
+    perms = set(session.get("permissions", []))
+    allowed_sources = {s["id"] for s in accessible(_effective_sources(), perms)}
+    return [
+        {
+            "code": m["code"],
+            "label": m["label"],
+            "aggregation": m["aggregation"],
+            "base_field": m["base_field"],
+            "source_id": m["source_id"],
+        }
+        for m in _load_db_metrics().values()
+        if m["source_id"] in allowed_sources
+    ]
+
+
 def _authorize_sql_target(target):
     """Raise PermissionError unless the caller may use this SQL target.
 
@@ -294,7 +316,7 @@ def _accessible_sql_targets():
 
 
 def _ai_schema_text():
-    """Build the schema grounding text from accessible RO targets + curated catalogs."""
+    """Build the schema grounding text from accessible RO targets + curated catalogs + metrics."""
     targets = _accessible_sql_targets()
     perms = set(session.get("permissions", []))
     curated = []
@@ -303,7 +325,8 @@ def _ai_schema_text():
             curated.append(
                 {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
             )
-    text, truncated = serialize_schema(targets=targets, curated=curated)
+    metrics = _accessible_metrics()
+    text, truncated = serialize_schema(targets=targets, curated=curated, metrics=metrics or None)
     if truncated:
         current_app.logger.info("reporting.ai schema truncated for user=%s", session.get("userid"))
     return text
@@ -2295,6 +2318,9 @@ def api_metrics():
     Only metrics bound to a source whose permission the caller holds are returned,
     so the builder offers exactly the metrics each visible source supports.
     """
+    # _load_db_metrics() returns {code: {...}} including format; _accessible_metrics()
+    # strips format for the AI catalog. Rebuild from _load_db_metrics filtered by the
+    # same source gate so we keep the format field for the builder.
     perms = set(session.get("permissions", []))
     allowed_sources = {s["id"] for s in accessible(_effective_sources(), perms)}
     out = {}
