@@ -50,3 +50,56 @@ def resolve_metrics(metric_refs, metric_registry, catalog_fields):
         seen.add(code)
         out.append({"code": code, "aggregation": agg, "base_field": base})
     return out
+
+
+_AGG_SQL = {
+    "count_distinct": "COUNT(DISTINCT {})",
+    "sum": "SUM({})",
+    "avg": "AVG({})",
+    "min": "MIN({})",
+    "max": "MAX({})",
+}
+_SORT_DIRS = {"asc": "ASC", "desc": "DESC"}
+
+
+def metric_select_expr(resolved, col_for_field):
+    """Build 'AGG(col) AS [code]'. `col_for_field(field)` returns a safe, already
+    bracket-quoted column reference, keeping this provider-agnostic."""
+    code = resolved["code"]
+    agg = resolved["aggregation"]
+    if agg == "count":
+        return f"COUNT(*) AS [{code}]"
+    return f"{_AGG_SQL[agg].format(col_for_field(resolved['base_field']))} AS [{code}]"
+
+
+def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap):
+    """Assemble `SELECT TOP(cap) <dims>, <agg exprs> FROM <inner_from>
+    GROUP BY <dims> [ORDER BY ...]`.
+
+    `inner_from` is an already-safe FROM body (a bracket-quoted object, or a
+    `(<union>) t` subquery). `dim_fields` are whitelisted field keys projected as
+    `[field]`; the same alias names back the aggregate columns. Sort may target a
+    dim or a metric code; anything else raises (defence in depth)."""
+
+    def bracket(field):
+        return f"[{field}]"
+
+    dim_select = ", ".join(bracket(d) for d in dim_fields)
+    metric_exprs = ", ".join(metric_select_expr(m, bracket) for m in resolved_metrics)
+    select_list = ", ".join(p for p in (dim_select, metric_exprs) if p)
+    group_by = ", ".join(bracket(d) for d in dim_fields)
+    sql = f"SELECT TOP ({int(cap)}) {select_list} FROM {inner_from} GROUP BY {group_by}"
+
+    projected = set(dim_fields) | {m["code"] for m in resolved_metrics}
+    order_parts = []
+    for s in sort or []:
+        field = s.get("field")
+        if field not in projected:
+            raise MetricResolveError(f"sort field not projected: {field!r}")
+        direction = _SORT_DIRS.get(str(s.get("dir")).lower())
+        if direction is None:
+            raise MetricResolveError(f"invalid sort dir: {s.get('dir')!r}")
+        order_parts.append(f"[{field}] {direction}")
+    if order_parts:
+        sql += " ORDER BY " + ", ".join(order_parts)
+    return sql
