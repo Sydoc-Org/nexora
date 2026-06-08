@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **`.claudeignore` + enforcing PreToolUse hook.** A repo-root `.claudeignore`
+  lists which paths AI coding tools should skip (secrets, Python bytecode,
+  virtualenvs/vendored deps, build artifacts, tool/index caches, `uv.lock`,
+  compiled message catalogs, and `var/` runtime data). Because current Claude
+  Code does not natively read `.claudeignore`, a stdlib PreToolUse hook
+  (`.claude/hooks/claudeignore_guard.py`, wired in
+  `.claude/settings.local.json` for `Read|Grep|Glob`) parses it and denies any
+  matching read/search (gitignore syntax incl. `!` negation). The generated
+  `sql/` per-object dumps and `messages.pot` are intentionally left readable
+  (documented but not enforced) so schema/i18n search still works.
+  `.claudeignore` is added to the `deploy.yml` `/XF` exclude list (dev-only
+  file); `.claude/` is already excluded via `/XD`.
 - **Reporting AI assistant (Phase 3 — agentic loop + deterministic stats, spine):**
   a Tier-2 **agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`) that drives
   *model → tool → model* with self-repair and a hard turn cap, over a provider-neutral
