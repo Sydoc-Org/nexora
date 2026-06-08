@@ -9,6 +9,8 @@ among the catalog's columns and supply *values*, which are always parameterized.
 
 import re
 
+from .semantic import build_aggregate_sql
+
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 _OP_SYMBOLS = {"eq": "=", "ne": "<>", "gt": ">", "gte": ">=", "lt": "<", "lte": "<="}
@@ -58,33 +60,16 @@ def table_source_catalog(columns):
     return out
 
 
-def build_generic_query(rd, base_object, columns, *, row_cap):
-    """Build (sql, params) for a 'table' source.
-
-    columns: the source field-catalog (table_source_catalog output). Projects
-    rd['columns'] from base_object with rd['filters'] and rd['sort'], capped via
-    TOP. The caller runs schema.validate_report_definition first, so fields are
-    already whitelisted; this re-checks defensively and quotes every identifier.
-    """
-    by_field = {c["field"]: c for c in columns}
-    proj = [c.get("field") for c in rd.get("columns", [])]
-    select_cols = [_quote_ident(f) for f in proj if f in by_field]
-    if not select_cols:
-        raise TableQueryError("no valid columns selected")
-
-    sql = [
-        f"SELECT TOP ({int(row_cap)}) {', '.join(select_cols)} FROM {_quote_object(base_object)}"
-    ]
-    params = []
-
-    conds = []
+def _build_conditions(rd, by_field):
+    """Return (conds, params) for rd['filters'] against the whitelisted catalog.
+    Identical semantics to the prior inline loop; values are parameterized."""
+    conds, params = [], []
     for f in rd.get("filters") or []:
         field = f.get("field")
         if field not in by_field:
             raise TableQueryError(f"unknown filter field: {field!r}")
         col = _quote_ident(field)
-        op = f.get("op")
-        val = f.get("value")
+        op, val = f.get("op"), f.get("value")
         if op in _OP_SYMBOLS:
             conds.append(f"{col} {_OP_SYMBOLS[op]} ?")
             params.append(val)
@@ -113,6 +98,45 @@ def build_generic_query(rd, base_object, columns, *, row_cap):
             conds.append(f"{col} IS NOT NULL")
         else:
             raise TableQueryError(f"unsupported filter op: {op!r}")
+    return conds, params
+
+
+def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=None):
+    """Build (sql, params) for a 'table' source.
+
+    columns: the source field-catalog (table_source_catalog output). Projects
+    rd['columns'] from base_object with rd['filters'] and rd['sort'], capped via
+    TOP. The caller runs schema.validate_report_definition first, so fields are
+    already whitelisted; this re-checks defensively and quotes every identifier.
+
+    When resolved_metrics is non-empty the query uses a GROUP BY aggregate branch
+    (via semantic.build_aggregate_sql); otherwise the existing row-projection path
+    is used unchanged.
+    """
+    by_field = {c["field"]: c for c in columns}
+    proj = [c.get("field") for c in rd.get("columns", [])]
+    select_cols = [_quote_ident(f) for f in proj if f in by_field]
+    if not select_cols:
+        raise TableQueryError("no valid columns selected")
+
+    conds, params = _build_conditions(rd, by_field)
+
+    if resolved_metrics:
+        dim_fields = [f for f in proj if f in by_field]
+        where = (" WHERE " + " AND ".join(conds)) if conds else ""
+        inner_from = f"{_quote_object(base_object)}{where}"
+        sql = build_aggregate_sql(
+            inner_from=inner_from,
+            dim_fields=dim_fields,
+            resolved_metrics=resolved_metrics,
+            sort=rd.get("sort") or [],
+            cap=row_cap,
+        )
+        return sql, params
+
+    sql = [
+        f"SELECT TOP ({int(row_cap)}) {', '.join(select_cols)} FROM {_quote_object(base_object)}"
+    ]
     if conds:
         sql.append("WHERE " + " AND ".join(conds))
 

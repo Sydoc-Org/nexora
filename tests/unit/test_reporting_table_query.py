@@ -92,3 +92,27 @@ def test_unsafe_identifier_in_catalog_rejected():
     rd = _rd(columns=[{"field": "a]; DROP"}])
     with pytest.raises(TableQueryError):
         build_generic_query(rd, "dbo.V", table_source_catalog(bad_cols), row_cap=10)
+
+
+def test_generic_aggregate_groups_and_aggregates():
+    from nx_lib.reporting.table_query import build_generic_query
+
+    rd = {
+        "columns": [{"field": "client"}],
+        "filters": [{"field": "client", "op": "eq", "value": "ACME"}],
+        "sort": [{"field": "amount_sum", "dir": "desc"}],
+    }
+    cols = [
+        {"field": "client", "type": "string"},
+        {"field": "amount", "type": "number"},
+    ]
+    resolved = [{"code": "amount_sum", "aggregation": "sum", "base_field": "amount"}]
+    sql, params = build_generic_query(
+        rd, "Db.dbo.Sales", cols, row_cap=100, resolved_metrics=resolved
+    )
+    assert sql == (
+        "SELECT TOP (100) [client], SUM([amount]) AS [amount_sum] "
+        "FROM [Db].[dbo].[Sales] WHERE [client] = ? "
+        "GROUP BY [client] ORDER BY [amount_sum] DESC"
+    )
+    assert params == ["ACME"]
