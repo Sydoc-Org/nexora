@@ -83,8 +83,9 @@ New table on `NexoraDB`, created by migration
   (CHECK-constrained enum).
 - `BaseField` — the source column key the aggregation applies to; `NULL` only
   for `count` (i.e. `COUNT(*)`).
-- `FilterJson` — optional JSON array of locked filters baked into the metric
-  (same filter shape the builder/validator already use), `NULL` = none.
+- `FilterJson` — **reserved for Slice 3**: optional JSON array of locked filters
+  baked into the metric. The column is created in Slice 1 (so no later migration)
+  but is **not applied by the engine nor exposed in the admin form** until Slice 3.
 - `Description` — optional; surfaced to users + the AI catalog.
 - `Format` — `int | decimal | percent` (display hint; no engine effect in S1).
 - `Enabled` — bit, default 1.
@@ -129,9 +130,9 @@ metric's `BaseField` (when set) must be in the source's whitelisted catalog.
 ### 5.4 Resolver + aggregate builders
 
 New `nx_lib/reporting/semantic.py`:
-- `resolve_metrics(metric_codes, source_id, registry) -> [ResolvedMetric]` —
-  looks up each Code, returns concrete `{code, aggregation, base_field,
-  locked_filters}`; raises on unknown/disabled/cross-source/whitelist miss.
+- `resolve_metrics(metric_refs, registry, catalog_fields) -> [ResolvedMetric]` —
+  looks up each Code, returns concrete `{code, aggregation, base_field}`; raises
+  on unknown/duplicate/unsafe-code/whitelist miss. (Locked filters are Slice 3.)
 - Helpers to emit a single aggregate `SELECT` expression
   (`AGG(<col>) AS [<Code>]`) from a `ResolvedMetric`, with `count` →
   `COUNT(*)`, `count_distinct` → `COUNT(DISTINCT <col>)`.
@@ -221,8 +222,8 @@ Tier-3 glossary grounding. No new route; reuses `ReportingAiAudit`.
 
 ## 8. Testing strategy
 
-- **Unit** (pure, DB-free): `semantic.py` resolver (unknown/disabled/
-  cross-source/whitelist-miss rejection; locked-filter merge); aggregate SQL +
+- **Unit** (pure, DB-free): `semantic.py` resolver (unknown/duplicate/
+  unsafe-code/whitelist-miss rejection); aggregate SQL +
   params for both builders (table + docprocessing UNION-wrap); `count` vs
   `count_distinct` vs binary aggs; sort-by-metric alias; backward-compat
   (empty `metrics` → identical SQL to today).
@@ -238,9 +239,10 @@ Tier-3 glossary grounding. No new route; reuses `ReportingAiAudit`.
 ## 9. Out of scope (Slice 1)
 
 Conformed dimensions across sources (Slice 2), cross-source side-by-side
-comparison (Slice 2), derived/ratio metrics (Slice 3), units/percent formatting
-beyond a display hint, semantic versioning/change history (Slice 3), any live
-cross-server JOIN (never — conformed dimensions only).
+comparison (Slice 2), **per-metric locked filters** (`FilterJson` column exists
+but is unused — Slice 3), derived/ratio metrics (Slice 3), units/percent
+formatting beyond a display hint, semantic versioning/change history (Slice 3),
+any live cross-server JOIN (never — conformed dimensions only).
 
 ## 10. Open questions
 
