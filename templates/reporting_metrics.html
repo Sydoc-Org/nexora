@@ -20,7 +20,7 @@
         <div class="nx-page-head__title">
           <span class="nx-page-icon"><i class="fas fa-calculator"></i></span>
           <div>
-            <h1 class="nx-title">{{ _("Reporting metrics registry") }}</h1>
+            <h1 class="nx-title">{{ _("Reporting metrics") }}</h1>
           </div>
         </div>
       </div>
@@ -30,10 +30,53 @@
         </a>
       </div>
     </div>
-    <p class="reporting-admin-note">{{ _("A metric is a named server-side aggregation (an aggregation over a base field) bound to a source. Add it to a report's metrics list to group the report's columns and compute the aggregate.") }}</p>
+    <p class="reporting-admin-note">{{ _("Canonical metrics are named server-side aggregations bound to a source. A report's selected columns become the grouping; each metric adds an aggregated column.") }}</p>
 
-    {# Full registry table + form land in a later slice task; the route renders now. #}
+    <section>
+      <h3>{{ _("Registered metrics") }}</h3>
+      <table class="reporting-table" data-testid="reporting-metrics-rows">
+        <thead><tr>
+          <th>{{ _("Code") }}</th><th>{{ _("Source") }}</th><th>{{ _("Label") }}</th>
+          <th>{{ _("Aggregation") }}</th><th>{{ _("Base field") }}</th>
+          <th>{{ _("Enabled") }}</th><th>{{ _("Order") }}</th><th></th>
+        </tr></thead>
+        <tbody id="rpmRows"></tbody>
+      </table>
+    </section>
+
+    <section class="reporting-admin-form">
+      <h3 id="rpmFormTitle">{{ _("Add metric") }}</h3>
+      <div class="reporting-admin-grid">
+        <label>{{ _("Code") }}<input id="rpmCode" class="reporting-input" data-testid="rpm-code"></label>
+        <label>{{ _("Source") }}<select id="rpmSource" class="reporting-input" data-testid="rpm-source"></select></label>
+        <label>{{ _("Label") }}<input id="rpmLabel" class="reporting-input" data-testid="rpm-label"></label>
+        <label>{{ _("Aggregation") }}<select id="rpmAggregation" class="reporting-input">
+          <option value="count">count</option>
+          <option value="count_distinct">count_distinct</option>
+          <option value="sum">sum</option>
+          <option value="avg">avg</option>
+          <option value="min">min</option>
+          <option value="max">max</option>
+        </select></label>
+        <label>{{ _("Base field") }}<input id="rpmBaseField" class="reporting-input" data-testid="rpm-basefield"></label>
+        <label>{{ _("Format") }}<select id="rpmFormat" class="reporting-input">
+          <option value="">—</option>
+          <option value="int">int</option>
+          <option value="decimal">decimal</option>
+          <option value="percent">percent</option>
+        </select></label>
+        <label>{{ _("Sort order") }}<input id="rpmSortOrder" class="reporting-input" type="number" value="100"></label>
+        <label class="reporting-admin-check"><input id="rpmEnabled" type="checkbox" checked> {{ _("Enabled") }}</label>
+      </div>
+      <div class="reporting-admin-actions">
+        <button id="rpmSave" class="reporting-btn" data-testid="rpm-save">{{ _("Save") }}</button>
+        <button id="rpmReset" class="reporting-link" data-testid="rpm-reset">{{ _("Clear form") }}</button>
+        <span id="rpmMsg" class="reporting-admin-msg" data-testid="rpm-msg"></span>
+      </div>
+    </section>
   </main>
+
+  {% include 'js/_reporting_metrics_js.html' %}
 </body>
 
 </html>
