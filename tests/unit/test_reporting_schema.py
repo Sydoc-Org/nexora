@@ -204,3 +204,41 @@ def test_sql_definition_missing_sql():
             {"kind": "sql", "target": "statistics", "sql": "", "title": "t"},
             allowed_targets={"statistics"},
         )
+
+
+# ---------------------------------------------------------------------------
+# metrics validation (Slice 1)
+# ---------------------------------------------------------------------------
+
+
+def test_metrics_unknown_code_rejected():
+    d = _valid_def()
+    d["metrics"] = [{"metric": "not_a_real_metric"}]
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            d,
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            metric_codes={"doc_count"},
+        )
+
+
+def test_metrics_known_code_passes():
+    d = _valid_def()
+    d["metrics"] = [{"metric": "doc_count"}]
+    validate_report_definition(
+        d,
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        metric_codes={"doc_count"},
+    )
+
+
+def test_metrics_absent_still_validates_backward_compat():
+    d = _valid_def()
+    # no "metrics" key — must pass with default empty metric_codes
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)

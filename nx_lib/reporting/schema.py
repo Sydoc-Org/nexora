@@ -2,9 +2,9 @@
 
 A report definition is the saved/sent description of a report:
 source, visualization, columns (+ custom headers), filters, sort, scope,
-and a row limit. Validation is whitelist-based: every field/op/dir must
-already exist in the source's catalog, so nothing user-supplied can reach
-SQL unchecked.
+a row limit, and an optional metrics list. Validation is whitelist-based:
+every field/op/dir/metric must already exist in the source's catalog, so
+nothing user-supplied can reach SQL unchecked.
 
 The caller is responsible for resolving `source` to its catalog and passing
 the resulting field sets in; this function does not validate that `source`
@@ -40,12 +40,20 @@ class ReportDefinitionError(ValueError):
 
 
 def validate_report_definition(
-    rd, catalog_fields, filterable_fields, sortable_fields, *, max_row_limit
+    rd,
+    catalog_fields,
+    filterable_fields,
+    sortable_fields,
+    *,
+    max_row_limit,
+    metric_codes=frozenset(),
 ):
     """Validate `rd` (a dict) against the v1 schema. Raises ReportDefinitionError.
 
     `catalog_fields`, `filterable_fields`, `sortable_fields` are sets of the
     field keys the chosen source exposes. `max_row_limit` is the server cap.
+    `metric_codes` is an optional set of canonical metric codes the source
+    exposes; when absent the default is empty (any metrics key is rejected).
 
     The caller is responsible for resolving `source` to its catalog (and
     supplying those field sets); this function does not validate that `source`
@@ -110,6 +118,21 @@ def validate_report_definition(
         val = scope.get(key, [])
         if not isinstance(val, list) or not all(isinstance(x, str) for x in val):
             raise ReportDefinitionError(f"scope.{key} must be a list of strings")
+
+    metrics = rd.get("metrics")
+    if metrics is not None:
+        if not isinstance(metrics, list):
+            raise ReportDefinitionError("metrics must be a list")
+        seen_metrics = set()
+        for m in metrics:
+            if not isinstance(m, dict):
+                raise ReportDefinitionError("metric must be an object")
+            code = m.get("metric")
+            if code not in metric_codes:
+                raise ReportDefinitionError(f"unknown metric: {code!r}")
+            if code in seen_metrics:
+                raise ReportDefinitionError(f"duplicate metric: {code!r}")
+            seen_metrics.add(code)
 
     row_limit = rd.get("rowLimit")
     if (
