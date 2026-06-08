@@ -45,8 +45,15 @@ def resolve_metrics(metric_refs, metric_registry, catalog_fields):
         base = spec.get("base_field")
         if agg == "count":
             base = None
-        elif base not in catalog_fields:
-            raise MetricResolveError(f"metric base field not in catalog: {base!r}")
+        else:
+            # Defence in depth: base_field is bracketed into the aggregate
+            # expression, so identifier-validate it (symmetric with `code`)
+            # before the catalog membership check — a corrupted registry row
+            # must never reach the SQL with an unsafe identifier.
+            if not isinstance(base, str) or not _CODE.match(base):
+                raise MetricResolveError(f"unsafe metric base field: {base!r}")
+            if base not in catalog_fields:
+                raise MetricResolveError(f"metric base field not in catalog: {base!r}")
         seen.add(code)
         out.append({"code": code, "aggregation": agg, "base_field": base})
     return out

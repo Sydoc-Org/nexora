@@ -50,6 +50,14 @@ def test_resolve_unsafe_code_raises():
         resolve_metrics([{"metric": "a]b"}], reg, CATALOG)
 
 
+def test_resolve_unsafe_base_field_raises():
+    # base_field is bracketed into the aggregate expr; an unsafe identifier must
+    # raise even when it is (mis)configured into the catalog set.
+    reg = {"bad": {"aggregation": "sum", "base_field": "a]b"}}
+    with pytest.raises(MetricResolveError):
+        resolve_metrics([{"metric": "bad"}], reg, {"a]b"})
+
+
 def _bracket(field):
     return f"[{field}]"
 
