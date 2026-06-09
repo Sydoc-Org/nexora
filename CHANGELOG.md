@@ -204,6 +204,25 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **Automated test suite build-out.** pytest unit coverage across the app factory, Flask extensions, request-lifecycle hooks, logging, DB helpers (URL builder + `ping_db` / `ping_dbs_parallel`), security/permissions, i18n locale fallback, maintenance banner/lockout, `PrefixMiddleware`, notifications, the Octopus client, process helpers, and the nx CLI (REPL + doctor). Route-level tests covering every view module (auth, core, dashboard, profile, admin, workitems, invoices, notifications, chat). Playwright E2E browser tests across login / 2FA, dashboard, workitems, invoices, chat, profile, admin, and misc pages, with a cross-browser login smoke. pytest-cov wired in with per-module ratcheting coverage thresholds; test layout, fixtures, and run commands documented under `docs/`.
 
 ### Changed
+- **Reporting page UI redesign.** The reporting builder, which had only received
+  a token re-colour (the `nexora-ui` harmonization left layout/structure alone),
+  was restructured for clarity. The toolbar is regrouped: the mode switch
+  (Table / SQL / Ask AI) and the result-view + AI sub-mode switches are now proper
+  **segmented controls** (they previously shrank and wrapped into a broken vertical
+  stack); the report title reads as an editable document title; saved-report links
+  are grouped; and the action cluster pins right with a single gradient-primary
+  **Run** (Save / Save as / Export are now secondary, instead of every button
+  looking primary). The empty results area gained a branded `.nx-empty` empty state,
+  the metric/filter/sort wells became a divided stack with dashed "+ Add" ghost
+  buttons, the field list shows an add affordance on hover, and the data table
+  adopted the calm GitHub-style header/divider treatment. **Fixed** a pre-existing
+  layout bug where SQL and Ask-AI modes (which hide both sidebars) collapsed the
+  results column into the grid's narrow 260px first track — those modes now span
+  full width via a `.reporting-main--single` class toggled by the mode switch.
+  Pure CSS + structural grouping; every `id` / `data-testid` / JS hook preserved.
+  Also corrected the SQL-target display label "Live SQL — Octopus" →
+  "Live SQL — Octo" (`nx_lib/reporting/sources.py`; the `sql_octopus` id and
+  `reporting.sql.target.octopus` permission are unchanged). de/fr/it translated.
 - **App-wide UI redesign — the `nexora-ui` design system.** A shared
   `static/css/nexora-ui.css` (global `--nx-*` design tokens + `.nx-*` components:
   cards, buttons, inputs, filter bars, tables, GitHub-style status labels, KPI

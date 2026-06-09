@@ -610,3 +610,271 @@ body.nx-app {
 .reporting-ai-step-chip.is-ok { background: var(--nx-success); }
 .reporting-ai-step-chip.is-err { background: var(--nx-danger); }
 .reporting-ai-step-meta { color: var(--nx-text-meta); font-size: .72rem; }
+
+/* ============================================================
+   REDESIGN — layout, density & structure (appended last).
+   The harmonization block above mapped colour onto the --nx-*
+   tokens but explicitly left layout/grids/flex alone. This block
+   fixes the structural problems that made the page look unfinished:
+   a cramped single-row toolbar, the mode toggle wrapping into a
+   broken vertical stack, every button reading as a primary, the
+   empty results void, the giant blank side cards, and the bare
+   metric wells. Built on the global nexora-ui components; every
+   id/.class/data-testid the JS + e2e suite use is preserved.
+   ============================================================ */
+
+/* Top-align the three columns so the side cards hug their content
+   instead of stretching to the tall results card. */
+.reporting-main {
+  gap: 20px;
+  padding: 20px 24px 32px;
+  align-items: start;
+}
+.reporting-fields,
+.reporting-wells { align-self: start; }
+.reporting-results { padding: 18px 20px; min-height: 70vh; }
+
+/* --- Source panel --- */
+.reporting-fields { padding: 16px; }
+#rpSource { margin: 6px 0 0; }
+#rpFieldSearch { margin: 12px 0 8px; }
+.reporting-field-list { margin: 0; }
+.reporting-field-list li {
+  position: relative;
+  padding: 8px 28px 8px 10px;
+  border-radius: var(--nx-radius-sm);
+  color: var(--nx-text);
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.reporting-field-list li::after {
+  content: "+";
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; font-weight: 700; line-height: 1;
+  color: var(--nx-accent); opacity: 0;
+  transition: opacity var(--nx-dur) var(--nx-ease);
+}
+.reporting-field-list li:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+.reporting-field-list li:hover::after { opacity: 1; }
+
+/* --- Toolbar: structured, wraps as groups, one primary action --- */
+.reporting-toolbar {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--nx-divider);
+}
+
+/* Mode toggle → segmented control (was shrinking + wrapping vertically) */
+.reporting-mode-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+.reporting-mode-toggle button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 14px;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  color: var(--nx-text-sec);
+}
+.reporting-mode-toggle button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+}
+
+/* Report title — reads as an editable document title, fills the slack */
+.reporting-title-input {
+  flex: 1 1 200px;
+  min-width: 150px;
+  margin: 0;
+  padding: 7px 10px;
+  font-size: 15px; font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.reporting-title-input:hover { border-color: var(--nx-border); }
+.reporting-title-input::placeholder { font-weight: 500; }
+
+/* Saved-report cluster */
+.reporting-saved { flex-shrink: 0; gap: 8px; }
+.reporting-saved select { margin: 0; }
+.reporting-saved-links { display: inline-flex; align-items: center; gap: 2px; }
+.reporting-saved .reporting-link {
+  padding: 5px 7px;
+  border-radius: var(--nx-radius-sm);
+  font-size: 12.5px;
+}
+.reporting-saved .reporting-link:hover { background: var(--nx-accent-tint); text-decoration: none; }
+.reporting-saved .reporting-link:disabled { opacity: .4; cursor: not-allowed; background: none; }
+
+/* Action cluster pinned right */
+.reporting-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.reporting-actions-sep {
+  width: 1px; align-self: stretch; margin: 2px 2px;
+  background: var(--nx-border);
+}
+
+/* Buttons — default is now SECONDARY; gradient reserved for the one
+   primary (Run) so the toolbar has a single clear call to action. */
+.reporting-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px;
+  font-size: 13px; font-weight: 500;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  white-space: nowrap;
+}
+.reporting-btn:hover { background: var(--nx-alt); filter: none; }
+.reporting-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
+.reporting-btn .fas { font-size: 11px; }
+.reporting-btn-primary,
+.reporting-actions .reporting-btn-primary,
+.reporting-modal-actions .reporting-btn-primary {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.45);
+}
+.reporting-btn-primary:hover { filter: brightness(1.06); background: var(--nx-brand-grad); }
+.reporting-export-format { margin: 0; padding: 7px 9px; }
+
+/* View toggle (Grid / Chart / Pivot) → segmented, matches mode toggle */
+.reporting-view-toggle {
+  display: inline-flex;
+  gap: 3px; padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  margin-bottom: 14px;
+}
+.reporting-view-toggle button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--nx-text-sec);
+}
+.reporting-view-toggle button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+}
+
+/* --- Right wells: a clean divided stack instead of floating labels --- */
+.reporting-wells { padding: 4px 16px 12px; }
+.reporting-well {
+  margin: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.reporting-well:last-child { border-bottom: none; padding-bottom: 4px; }
+.reporting-well h4 { margin: 0 0 8px; }
+.reporting-well ul:empty { display: none; }
+.reporting-well ul li input,
+.reporting-well ul li.reporting-metric-row select,
+.reporting-filter-row select,
+.reporting-filter-row input { padding: 6px 8px; }
+.reporting-filter-row { margin-bottom: 8px; }
+
+/* "+ Add metric/filter/sort" → dashed ghost add-buttons (fill the dead
+   space + signal the affordance). These are .reporting-link buttons. */
+#rpAddMetric, #rpAddFilter, #rpAddSort {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+  padding: 6px 11px;
+  border: 1px dashed var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  font-size: 12.5px; font-weight: 500;
+  color: var(--nx-accent);
+}
+#rpAddMetric:hover, #rpAddFilter:hover, #rpAddSort:hover {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent-soft);
+  border-style: solid;
+  text-decoration: none;
+}
+#rpSubtitle { margin: 6px 0 0; }
+
+/* --- Results: empty state + a calmer, GitHub-style data table --- */
+.reporting-table-wrap { min-height: 64vh; }
+.reporting-empty-state { padding: 64px 24px; min-height: inherit; }
+.reporting-empty,
+.reporting-error { text-align: center; padding: 48px 24px; font-size: 14px; }
+
+.reporting-table th,
+.reporting-table td {
+  border: none;
+  border-bottom: 1px solid var(--nx-divider);
+  padding: 10px 14px;
+}
+.reporting-table thead th {
+  background: var(--nx-alt);
+  border-bottom: 1px solid var(--nx-border);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--nx-text-meta);
+}
+.reporting-table tbody tr:hover { background: var(--nx-alt); }
+.reporting-table tbody tr:last-child td { border-bottom: none; }
+
+/* --- AI panel: a touch more padding so it doesn't feel cramped --- */
+.reporting-ai-panel { padding: 14px 16px; }
+.reporting-ai-bar { gap: 8px; }
+.reporting-ai-prompt { padding: 8px 12px; }
+
+/* SQL / Ask-AI modes hide both sidebars (JS adds .reporting-main--single):
+   collapse to one full-width column so the editor/assistant gets the room
+   instead of being squeezed into the 260px builder track. */
+.reporting-main--single { grid-template-columns: 1fr; }
+
+/* AI sub-mode switch (Build a report / Write SQL / Agent) → segmented control,
+   matching the main mode toggle (was wrapping into a broken vertical stack). */
+.reporting-ai-submode {
+  display: inline-flex;
+  gap: 3px; padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  margin-bottom: 12px;
+}
+.reporting-ai-submode button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 14px;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  color: var(--nx-text-sec);
+}
+.reporting-ai-submode button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+  font-weight: 600;
+}
+.reporting-ai-result { max-width: 760px; }
+
+@media (max-width: 1100px) {
+  .reporting-actions { margin-left: 0; }
+  .reporting-title-input { flex-basis: 100%; order: -1; }
+}

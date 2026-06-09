@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 15:47+0200\n"
+"POT-Creation-Date: 2026-06-09 14:09+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -295,10 +295,10 @@ msgstr "Feld-Metadaten konnten nicht abgerufen werden"
 msgid "Could not load layout"
 msgstr "Layout konnte nicht geladen werden"
 
-#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:858
-#: nx_lib/views/reporting.py:891 nx_lib/views/reporting.py:950
-#: nx_lib/views/reporting.py:1078 nx_lib/views/reporting.py:1261
-#: nx_lib/views/reporting.py:1444 nx_lib/views/reporting.py:1494
+#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:871
+#: nx_lib/views/reporting.py:904 nx_lib/views/reporting.py:963
+#: nx_lib/views/reporting.py:1091 nx_lib/views/reporting.py:1274
+#: nx_lib/views/reporting.py:1457 nx_lib/views/reporting.py:1507
 msgid "Invalid JSON body"
 msgstr "Ungültiger JSON-Body"
 
@@ -318,7 +318,7 @@ msgstr "Ungültiges Widget"
 msgid "Could not build query"
 msgstr "Abfrage konnte nicht erstellt werden"
 
-#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:911
+#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:924
 msgid "Could not run query"
 msgstr "Abfrage konnte nicht ausgeführt werden"
 
@@ -349,7 +349,7 @@ msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Beim Herunterladen des PDFs ist ein unerwarteter Fehler aufgetreten."
 
 #: nx_lib/views/notifications.py:11 nx_lib/views/notifications.py:46
-#: nx_lib/views/reporting.py:895 nx_lib/views/reporting.py:927
+#: nx_lib/views/reporting.py:908 nx_lib/views/reporting.py:940
 msgid "Not authenticated"
 msgstr "Nicht authentifiziert"
 
@@ -414,51 +414,51 @@ msgstr "Unerwarteter Fehler"
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
-#: nx_lib/views/reporting.py:862 nx_lib/views/reporting.py:1474
+#: nx_lib/views/reporting.py:875 nx_lib/views/reporting.py:1487
 msgid "Not authorized for this source"
 msgstr "Nicht für diese Quelle autorisiert"
 
-#: nx_lib/views/reporting.py:867
+#: nx_lib/views/reporting.py:880
 msgid "Could not build report"
 msgstr "Bericht konnte nicht erstellt werden"
 
-#: nx_lib/views/reporting.py:872
+#: nx_lib/views/reporting.py:885
 msgid "Could not run report"
 msgstr "Bericht konnte nicht ausgeführt werden"
 
-#: nx_lib/views/reporting.py:897 nx_lib/views/reporting.py:1451
+#: nx_lib/views/reporting.py:910 nx_lib/views/reporting.py:1464
 msgid "Acknowledgment required"
 msgstr "Bestätigung erforderlich"
 
-#: nx_lib/views/reporting.py:902 nx_lib/views/reporting.py:1459
+#: nx_lib/views/reporting.py:915 nx_lib/views/reporting.py:1472
 msgid "Not authorized for this SQL target"
 msgstr "Nicht für dieses SQL-Ziel autorisiert"
 
-#: nx_lib/views/reporting.py:908 nx_lib/views/reporting.py:1465
+#: nx_lib/views/reporting.py:921 nx_lib/views/reporting.py:1478
 msgid "SQL source is not configured"
 msgstr "SQL-Quelle ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:940
+#: nx_lib/views/reporting.py:953
 msgid "Could not record acknowledgment"
 msgstr "Bestätigung konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:953 nx_lib/views/reporting.py:1081
-#: nx_lib/views/reporting.py:1264
+#: nx_lib/views/reporting.py:966 nx_lib/views/reporting.py:1094
+#: nx_lib/views/reporting.py:1277
 msgid "A question is required"
 msgstr "Eine Frage ist erforderlich"
 
-#: nx_lib/views/reporting.py:956
+#: nx_lib/views/reporting.py:969
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Nicht berechtigt, KI-erstelltes SQL zu erhalten"
 
-#: nx_lib/views/reporting.py:960 nx_lib/views/reporting.py:1028
-#: nx_lib/views/reporting.py:1085 nx_lib/views/reporting.py:1151
-#: nx_lib/views/reporting.py:1268 nx_lib/views/reporting.py:1385
+#: nx_lib/views/reporting.py:973 nx_lib/views/reporting.py:1041
+#: nx_lib/views/reporting.py:1098 nx_lib/views/reporting.py:1164
+#: nx_lib/views/reporting.py:1281 nx_lib/views/reporting.py:1398
 msgid "The AI assistant is not configured"
 msgstr "Der KI-Assistent ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:988 nx_lib/views/reporting.py:1107
-#: nx_lib/views/reporting.py:1290
+#: nx_lib/views/reporting.py:1001 nx_lib/views/reporting.py:1120
+#: nx_lib/views/reporting.py:1303
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -467,173 +467,173 @@ msgstr ""
 "Sie haben das tägliche Limit für KI-Anfragen erreicht (%(limit)s). Bitte "
 "versuchen Sie es morgen erneut."
 
-#: nx_lib/views/reporting.py:1045 nx_lib/views/reporting.py:1168
-#: nx_lib/views/reporting.py:1402
+#: nx_lib/views/reporting.py:1058 nx_lib/views/reporting.py:1181
+#: nx_lib/views/reporting.py:1415
 msgid "The AI assistant could not answer right now"
 msgstr "Der KI-Assistent konnte gerade nicht antworten"
 
-#: nx_lib/views/reporting.py:1194
+#: nx_lib/views/reporting.py:1207
 msgid "Could not build a valid report"
 msgstr "Es konnte kein gültiger Bericht erstellt werden"
 
-#: nx_lib/views/reporting.py:1448
+#: nx_lib/views/reporting.py:1461
 msgid "Not authorized for live SQL"
 msgstr "Nicht für Live-SQL autorisiert"
 
-#: nx_lib/views/reporting.py:1468
+#: nx_lib/views/reporting.py:1481
 msgid "Could not export query"
 msgstr "Abfrage konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:1479
+#: nx_lib/views/reporting.py:1492
 msgid "Could not export report"
 msgstr "Bericht konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:1498
+#: nx_lib/views/reporting.py:1511
 msgid "columns and rows are required"
 msgstr "Spalten und Zeilen sind erforderlich"
 
-#: nx_lib/views/reporting.py:1555
+#: nx_lib/views/reporting.py:1568
 msgid "Could not list reports"
 msgstr "Berichte konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:1580 nx_lib/views/reporting.py:1655
-#: nx_lib/views/reporting.py:1677 nx_lib/views/reporting.py:1753
-#: nx_lib/views/reporting.py:1763 nx_lib/views/reporting.py:1813
-#: nx_lib/views/reporting.py:1875 nx_lib/views/reporting.py:1898
-#: nx_lib/views/reporting.py:1929 nx_lib/views/reporting.py:1959
-#: nx_lib/views/reporting.py:1972 nx_lib/views/reporting.py:1983
-#: nx_lib/views/reporting.py:2170 nx_lib/views/reporting.py:2188
-#: nx_lib/views/reporting.py:2287 nx_lib/views/reporting.py:2305
+#: nx_lib/views/reporting.py:1593 nx_lib/views/reporting.py:1668
+#: nx_lib/views/reporting.py:1690 nx_lib/views/reporting.py:1766
+#: nx_lib/views/reporting.py:1776 nx_lib/views/reporting.py:1826
+#: nx_lib/views/reporting.py:1888 nx_lib/views/reporting.py:1911
+#: nx_lib/views/reporting.py:1942 nx_lib/views/reporting.py:1972
+#: nx_lib/views/reporting.py:1985 nx_lib/views/reporting.py:1996
+#: nx_lib/views/reporting.py:2183 nx_lib/views/reporting.py:2201
+#: nx_lib/views/reporting.py:2300 nx_lib/views/reporting.py:2318
 msgid "Not found"
 msgstr "Nicht gefunden"
 
-#: nx_lib/views/reporting.py:1593
+#: nx_lib/views/reporting.py:1606
 msgid "Could not load report"
 msgstr "Bericht konnte nicht geladen werden"
 
-#: nx_lib/views/reporting.py:1606 nx_lib/views/reporting.py:1635
+#: nx_lib/views/reporting.py:1619 nx_lib/views/reporting.py:1648
 msgid "name and definition are required"
 msgstr "Name und Definition sind erforderlich"
 
-#: nx_lib/views/reporting.py:1609 nx_lib/views/reporting.py:1638
+#: nx_lib/views/reporting.py:1622 nx_lib/views/reporting.py:1651
 msgid "Report definition too large"
 msgstr "Berichtsdefinition zu groß"
 
-#: nx_lib/views/reporting.py:1622
+#: nx_lib/views/reporting.py:1635
 msgid "Could not save report"
 msgstr "Bericht konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:1659
+#: nx_lib/views/reporting.py:1672
 msgid "Could not update report"
 msgstr "Bericht konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:1681
+#: nx_lib/views/reporting.py:1694
 msgid "Could not delete report"
 msgstr "Bericht konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:1771
+#: nx_lib/views/reporting.py:1784
 msgid "Invalid visibility"
 msgstr "Ungültige Sichtbarkeit"
 
-#: nx_lib/views/reporting.py:1780
+#: nx_lib/views/reporting.py:1793
 msgid "User not found"
 msgstr "Benutzer nicht gefunden"
 
-#: nx_lib/views/reporting.py:1782
+#: nx_lib/views/reporting.py:1795
 msgid "Cannot share a report with yourself"
 msgstr "Sie können einen Bericht nicht mit sich selbst teilen"
 
-#: nx_lib/views/reporting.py:1803 nx_lib/views/reporting.py:1824
+#: nx_lib/views/reporting.py:1816 nx_lib/views/reporting.py:1837
 msgid "Could not update sharing"
 msgstr "Freigabe konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:1888
+#: nx_lib/views/reporting.py:1901
 msgid "Could not list schedules"
 msgstr "Zeitpläne konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:1919
+#: nx_lib/views/reporting.py:1932
 msgid "Could not save schedule"
 msgstr "Zeitplan konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:1963
+#: nx_lib/views/reporting.py:1976
 msgid "Could not update schedule"
 msgstr "Zeitplan konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:1987
+#: nx_lib/views/reporting.py:2000
 msgid "Could not delete schedule"
 msgstr "Zeitplan konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2000 nx_lib/views/reporting.py:2050
+#: nx_lib/views/reporting.py:2013 nx_lib/views/reporting.py:2063
 msgid "Invalid body"
 msgstr "Ungültiger Body"
 
-#: nx_lib/views/reporting.py:2002
+#: nx_lib/views/reporting.py:2015
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "Code muss 1-64 Zeichen lang sein: Buchstaben, Ziffern, . _ -"
 
-#: nx_lib/views/reporting.py:2004
+#: nx_lib/views/reporting.py:2017
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind muss 'curated' oder 'sql' sein"
 
-#: nx_lib/views/reporting.py:2006 nx_lib/views/reporting.py:2056
+#: nx_lib/views/reporting.py:2019 nx_lib/views/reporting.py:2069
 msgid "label is required"
 msgstr "Bezeichnung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2008
+#: nx_lib/views/reporting.py:2021
 msgid "permission is required"
 msgstr "Berechtigung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2014
+#: nx_lib/views/reporting.py:2027
 msgid "columns must be valid JSON"
 msgstr "Spalten müssen gültiges JSON sein"
 
-#: nx_lib/views/reporting.py:2052
+#: nx_lib/views/reporting.py:2065
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 "code muss mit einem Buchstaben/Unterstrich beginnen: Buchstaben, Ziffern,"
 " _"
 
-#: nx_lib/views/reporting.py:2054
+#: nx_lib/views/reporting.py:2067
 msgid "sourceId is required"
 msgstr "sourceId ist erforderlich"
 
-#: nx_lib/views/reporting.py:2059
+#: nx_lib/views/reporting.py:2072
 msgid "aggregation must be one of: "
 msgstr "aggregation muss einer der folgenden Werte sein: "
 
-#: nx_lib/views/reporting.py:2061
+#: nx_lib/views/reporting.py:2074
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField ist erforderlich, außer wenn aggregation 'count' ist"
 
-#: nx_lib/views/reporting.py:2117
+#: nx_lib/views/reporting.py:2130
 msgid "Could not list sources"
 msgstr "Quellen konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2145
+#: nx_lib/views/reporting.py:2158
 msgid "Could not save source (code already exists?)"
 msgstr "Quelle konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:2174
+#: nx_lib/views/reporting.py:2187
 msgid "Could not update source"
 msgstr "Quelle konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2192
+#: nx_lib/views/reporting.py:2205
 msgid "Could not delete source"
 msgstr "Quelle konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2234
+#: nx_lib/views/reporting.py:2247
 msgid "Could not list metrics"
 msgstr "Metriken konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2262
+#: nx_lib/views/reporting.py:2275
 msgid "Could not save metric (code already exists?)"
 msgstr "Metrik konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:2291
+#: nx_lib/views/reporting.py:2304
 msgid "Could not update metric"
 msgstr "Metrik konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2309
+#: nx_lib/views/reporting.py:2322
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
@@ -981,7 +981,7 @@ msgstr "Keine weiteren Benutzer verfügbar."
 #: templates/generali_projectmanagement.html:255
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:316
-#: templates/generali_reporting.html:341 templates/reporting.html:186
+#: templates/generali_reporting.html:341 templates/reporting.html:199
 #: templates/workitems_overview.html:447 templates/workitems_overview.html:543
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -1433,7 +1433,7 @@ msgstr "Anwesenheit bearbeiten"
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:320
-#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:88
+#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:92
 #: templates/reporting_metrics.html:72 templates/reporting_sources.html:82
 msgid "Save"
 msgstr "Speichern"
@@ -1477,7 +1477,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/admin/_access_control_js.html:639
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:78
+#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:80
 msgid "Delete"
 msgstr "Löschen"
 
@@ -1868,7 +1868,7 @@ msgstr "Berichtsdatum"
 msgid "Email Received"
 msgstr "E-Mail erhalten"
 
-#: templates/generali_reporting.html:301 templates/hero.html:134
+#: templates/generali_reporting.html:301 templates/hero.html:155
 #: templates/js/_generali_reporting_js.html:354
 msgid "Delivery"
 msgstr "Zustellung"
@@ -1878,15 +1878,19 @@ msgstr "Zustellung"
 msgid "Latest Delivery"
 msgstr "Späteste Zustellung"
 
-#: templates/hero.html:31
+#: templates/hero.html:29 templates/hero.html:32
 msgid "Sign In"
 msgstr "Anmelden"
 
-#: templates/hero.html:43
+#: templates/hero.html:44 templates/hero.html:76
+msgid "Real-time updates"
+msgstr "Echtzeit-Updates"
+
+#: templates/hero.html:46
 msgid "Seamless Document Tracking, Complete Peace of Mind."
 msgstr "Nahtlose Dokumentenverfolgung, vollständige Sorglosigkeit."
 
-#: templates/hero.html:46
+#: templates/hero.html:49
 msgid ""
 "Welcome to nexora. Securely monitor your document's journey from import "
 "to validation and final delivery in real-time. Access a complete, "
@@ -1896,35 +1900,43 @@ msgstr ""
 "bis zur Validierung und finalen Zustellung in Echtzeit. Greifen Sie rund "
 "um die Uhr auf eine vollständige, prüfbare Historie zu."
 
-#: templates/hero.html:49
+#: templates/hero.html:53
 msgid "Access Your Portal"
 msgstr "Zugang zu Ihrem Portal"
 
-#: templates/hero.html:63
+#: templates/hero.html:57 templates/hero.html:179
+msgid "Real-time tracking"
+msgstr "Echtzeit-Verfolgung"
+
+#: templates/hero.html:58 templates/hero.html:186
+msgid "Document history"
+msgstr "Dokumenthistorie"
+
+#: templates/hero.html:59 templates/hero.html:193
+msgid "Secure access"
+msgstr "Sicherer Zugang"
+
+#: templates/hero.html:69 templates/hero.html:75
 msgid "Document Status"
 msgstr "Dokumentstatus"
 
-#: templates/hero.html:64
-msgid "Real-time updates"
-msgstr "Echtzeit-Updates"
-
-#: templates/hero.html:69
+#: templates/hero.html:82
 msgid "Invoice"
 msgstr "Rechnung"
 
-#: templates/hero.html:73
+#: templates/hero.html:89
 msgid "Contract"
 msgstr "Vertrag"
 
-#: templates/hero.html:77
+#: templates/hero.html:96
 msgid "Report"
 msgstr "Bericht"
 
-#: templates/hero.html:93
+#: templates/hero.html:114
 msgid "Visualize Your Document's Journey"
 msgstr "Visualisieren Sie den Weg Ihres Dokuments"
 
-#: templates/hero.html:96
+#: templates/hero.html:117
 msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
@@ -1932,36 +1944,32 @@ msgstr ""
 "Unser automatisiertes System erledigt jeden Schritt mit Präzision und "
 "Sicherheit. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:113 templates/js/_workitems_overview_js.html:1042
+#: templates/hero.html:134 templates/js/_workitems_overview_js.html:1042
 #: templates/workitems_overview.html:318
 msgid "Import"
 msgstr "Import"
 
-#: templates/hero.html:120
+#: templates/hero.html:141
 msgid "Extraction"
 msgstr "Extraktion"
 
-#: templates/hero.html:127
+#: templates/hero.html:148
 msgid "Validation"
 msgstr "Validierung"
 
-#: templates/hero.html:140
+#: templates/hero.html:161
 msgid "Initializing..."
 msgstr "Initialisierung..."
 
-#: templates/hero.html:150
+#: templates/hero.html:171
 msgid "Why use nexora"
 msgstr "Warum nexora nutzen"
 
-#: templates/hero.html:151
+#: templates/hero.html:172
 msgid "Everything you need in one secure and convenient place"
 msgstr "Alles, was Sie brauchen, an einem sicheren und praktischen Ort"
 
-#: templates/hero.html:158
-msgid "Real-time tracking"
-msgstr "Echtzeit-Verfolgung"
-
-#: templates/hero.html:159
+#: templates/hero.html:180
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
@@ -1969,11 +1977,7 @@ msgstr ""
 "Verfolgen Sie den Weg Ihres Dokuments vom Import bis zur Validierung und "
 "finalen Zustellung – Schritt für Schritt"
 
-#: templates/hero.html:165
-msgid "Document history"
-msgstr "Dokumenthistorie"
-
-#: templates/hero.html:166
+#: templates/hero.html:187
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
@@ -1981,11 +1985,7 @@ msgstr ""
 "Greifen Sie rund um die Uhr auf eine vollständige, prüfbare Historie "
 "aller Ihrer verarbeiteten Dokumente zu."
 
-#: templates/hero.html:172
-msgid "Secure access"
-msgstr "Sicherer Zugang"
-
-#: templates/hero.html:173
+#: templates/hero.html:194
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
@@ -1993,103 +1993,11 @@ msgstr ""
 "Ihre Daten sind durch branchenführende Sicherheitsprotokolle geschützt, "
 "die vollständige Vertraulichkeit gewährleisten"
 
-#: templates/hero.html:182
-msgid "Getting Started is Easy"
-msgstr "Der Einstieg ist einfach"
-
-#: templates/hero.html:183
-msgid "Follow these simple steps to begin processing your documents."
-msgstr ""
-"Folgen Sie diesen einfachen Schritten, um mit der Verarbeitung Ihrer "
-"Dokumente zu beginnen."
-
-#: templates/hero.html:188
-msgid "Log In to Your Portal"
-msgstr "In Ihr Portal einloggen"
-
-#: templates/hero.html:189
-msgid "Access your secure dashboard with your provided credentials."
-msgstr ""
-"Greifen Sie mit Ihren bereitgestellten Anmeldedaten auf Ihr sicheres "
-"Dashboard zu."
-
-#: templates/hero.html:193
-msgid "Monitor Your Documents"
-msgstr "Ihre Dokumente überwachen"
-
-#: templates/hero.html:194
-msgid ""
-"Use the dashboard to see the real-time status of all your active "
-"documents."
-msgstr ""
-"Nutzen Sie das Dashboard, um den Echtzeitstatus aller Ihrer aktiven "
-"Dokumente zu sehen."
-
-#: templates/hero.html:198
-msgid "View Completed History"
-msgstr "Abgeschlossene Historie anzeigen"
-
-#: templates/hero.html:199
-msgid "Access detailed archives and audit trails for all processed items."
-msgstr ""
-"Greifen Sie auf detaillierte Archive und Prüfpfade für alle verarbeiteten"
-" Elemente zu."
-
-#: templates/hero.html:208
-msgid "Frequently Asked Questions"
-msgstr "Häufig gestellte Fragen"
-
-#: templates/hero.html:209
-msgid "Have questions? We've got answers."
-msgstr "Haben Sie Fragen? Wir haben Antworten."
-
-#: templates/hero.html:214
-msgid "What document formats can be processed?"
-msgstr "Welche Dokumentformate können verarbeitet werden?"
-
-#: templates/hero.html:218
-msgid ""
-"Our system supports a wide range of formats, including PDF, JPG, PNG, "
-"TIFF, and more. For specific inquiries, please contact our support team."
-msgstr ""
-"Unser System unterstützt eine Vielzahl von Formaten, darunter PDF, JPG, "
-"PNG, TIFF und mehr. Für spezifische Anfragen wenden Sie sich bitte an "
-"unser Support-Team."
-
-#: templates/hero.html:223
-msgid "How secure is my data?"
-msgstr "Wie sicher sind meine Daten?"
-
-#: templates/hero.html:227
-msgid ""
-"Data security is our top priority. We use industry-standard encryption, "
-"secure servers, and strict access protocols to ensure your information is"
-" protected at all times."
-msgstr ""
-"Datensicherheit hat für uns höchste Priorität. Wir verwenden "
-"branchenübliche Verschlüsselung, sichere Server und strenge "
-"Zugriffsprotokolle, um sicherzustellen, dass Ihre Informationen jederzeit"
-" geschützt sind."
-
-#: templates/hero.html:232
-msgid "What is the average processing time for a document?"
-msgstr "Wie lange dauert die durchschnittliche Verarbeitungszeit eines Dokuments?"
-
-#: templates/hero.html:236
-msgid ""
-"Processing times can vary based on document complexity and volume. "
-"However, you can monitor the real-time status of each document directly "
-"from your dashboard."
-msgstr ""
-"Die Verarbeitungszeiten können je nach Dokumentkomplexität und -volumen "
-"variieren. Sie können jedoch den Echtzeitstatus jedes Dokuments direkt "
-"von Ihrem Dashboard aus überwachen."
-
-#: templates/hero.html:246
+#: templates/hero.html:203
 msgid "Ready to See Your Documents in Action?"
 msgstr "Bereit, Ihre Dokumente in Aktion zu sehen?"
 
-#: templates/hero.html:249
+#: templates/hero.html:206
 msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
@@ -2098,7 +2006,7 @@ msgstr ""
 "zuzugreifen, Ihre Historie einzusehen und Ihren Arbeitsablauf mit "
 "Zuversicht zu verwalten."
 
-#: templates/hero.html:252
+#: templates/hero.html:209
 msgid "Access Your Portal Now"
 msgstr "Jetzt auf Ihr Portal zugreifen"
 
@@ -2405,6 +2313,10 @@ msgstr "Quelle"
 msgid "Search fields…"
 msgstr "Felder suchen…"
 
+#: templates/reporting.html:64
+msgid "Report mode"
+msgstr "Berichtsmodus"
+
 #: templates/reporting.html:65
 msgid "Table"
 msgstr "Tabelle"
@@ -2425,81 +2337,85 @@ msgstr "KI fragen"
 msgid "Untitled report"
 msgstr "Unbenannter Bericht"
 
-#: templates/js/_reporting_js.html:598 templates/reporting.html:74
+#: templates/reporting.html:72
+msgid "Report title"
+msgstr "Berichtstitel"
+
+#: templates/js/_reporting_js.html:602 templates/reporting.html:75
 msgid "Saved reports…"
 msgstr "Gespeicherte Berichte…"
 
-#: templates/reporting.html:76
+#: templates/reporting.html:77
 msgid "Load"
 msgstr "Laden"
 
-#: templates/reporting.html:77
+#: templates/reporting.html:79
 msgid "Rename"
 msgstr "Umbenennen"
 
-#: templates/reporting.html:80
+#: templates/reporting.html:82
 msgid "Share the selected report you own"
 msgstr "Den ausgewählten eigenen Bericht teilen"
 
-#: templates/reporting.html:80
+#: templates/reporting.html:82
 msgid "Share"
 msgstr "Teilen"
 
-#: templates/reporting.html:83
+#: templates/reporting.html:85
 msgid "Schedule the selected report you own"
 msgstr "Den ausgewählten eigenen Bericht planen"
 
-#: templates/reporting.html:83
+#: templates/reporting.html:85
 msgid "Schedule"
 msgstr "Planen"
 
-#: templates/reporting.html:87
+#: templates/reporting.html:91
 msgid "Run"
 msgstr "Ausführen"
 
-#: templates/reporting.html:89
+#: templates/reporting.html:93
 msgid "Save as"
 msgstr "Speichern unter"
 
-#: templates/reporting.html:90
+#: templates/reporting.html:95
 msgid "Export format"
 msgstr "Exportformat"
 
-#: templates/reporting.html:91 templates/reporting.html:231
+#: templates/reporting.html:96 templates/reporting.html:244
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/reporting.html:94
+#: templates/reporting.html:100
 msgid "Export"
 msgstr "Exportieren"
 
-#: templates/reporting.html:98
+#: templates/reporting.html:105
 msgid "Target"
 msgstr "Ziel"
 
-#: templates/reporting.html:107
+#: templates/reporting.html:114
 msgid "Build a report"
 msgstr "Bericht erstellen"
 
-#: templates/reporting.html:109
+#: templates/reporting.html:116
 msgid "Write SQL"
 msgstr "SQL schreiben"
 
-#: templates/reporting.html:111
+#: templates/reporting.html:118
 msgid "Agent"
 msgstr "Agent"
 
-#: templates/reporting.html:115
+#: templates/reporting.html:122
 msgid "Ask in plain language — e.g. “top 10 processes by volume this month”"
 msgstr ""
 "Stellen Sie Ihre Frage in normaler Sprache — z. B. „Top 10 Prozesse nach "
 "Volumen diesen Monat”"
 
-#: templates/js/_reporting_ai_js.html:74 templates/reporting.html:118
+#: templates/js/_reporting_ai_js.html:74 templates/reporting.html:125
 msgid "Ask"
 msgstr "Fragen"
 
-#: templates/reporting.html:120
+#: templates/reporting.html:127
 msgid ""
 "The assistant drafts a report definition from the sources you can access "
 "— it never sees result data. Review it, then open it in the builder and "
@@ -2509,7 +2425,7 @@ msgstr ""
 "Sie Zugriff haben — er sieht nie Ergebnisdaten. Prüfen Sie sie, öffnen "
 "Sie sie dann im Builder und führen Sie sie selbst aus."
 
-#: templates/reporting.html:121
+#: templates/reporting.html:128
 msgid ""
 "The assistant drafts read-only SQL from the database schema. It never "
 "sees result data. Review the SQL, then run it yourself."
@@ -2518,7 +2434,7 @@ msgstr ""
 " sieht niemals Ergebnisdaten. Prüfen Sie das SQL und führen Sie es selbst"
 " aus."
 
-#: templates/reporting.html:122
+#: templates/reporting.html:129
 msgid ""
 "The agent works step by step, showing each tool it uses. It can run read-"
 "only queries and report the actual numbers from the data it fetched."
@@ -2527,7 +2443,7 @@ msgstr ""
 "Werkzeug an. Er kann schreibgeschützte Abfragen ausführen und die "
 "tatsächlichen Zahlen aus den abgerufenen Daten nennen."
 
-#: templates/reporting.html:122
+#: templates/reporting.html:129
 msgid ""
 "The agent works step by step, showing each tool it uses to validate and "
 "draft — grounded only in the schema you can access. It never sees result "
@@ -2537,7 +2453,7 @@ msgstr ""
 "Werkzeug zum Validieren und Entwerfen an – ausschließlich auf Basis des "
 "Schemas, auf das Sie Zugriff haben. Er sieht niemals Ergebnisdaten."
 
-#: templates/reporting.html:126
+#: templates/reporting.html:133
 msgid ""
 "⚠ The drafted SQL did not pass the read-only check — review it before "
 "running."
@@ -2545,97 +2461,110 @@ msgstr ""
 "⚠ Das erstellte SQL hat die Schreibschutzprüfung nicht bestanden — prüfen"
 " Sie es vor dem Ausführen."
 
-#: templates/reporting.html:128 templates/reporting.html:149
+#: templates/reporting.html:135 templates/reporting.html:156
 msgid "Insert into SQL editor"
 msgstr "In SQL-Editor einfügen"
 
-#: templates/admin/logs.html:151 templates/reporting.html:129
+#: templates/admin/logs.html:151 templates/reporting.html:136
 msgid "Copy"
 msgstr "Kopieren"
 
-#: templates/reporting.html:134
+#: templates/reporting.html:141
 msgid "⚠ The drafted report could not be validated — try rephrasing."
 msgstr ""
 "⚠ Der entworfene Bericht konnte nicht validiert werden — bitte "
 "umformulieren."
 
-#: templates/reporting.html:136 templates/reporting.html:148
+#: templates/reporting.html:143 templates/reporting.html:155
 msgid "Open in builder"
 msgstr "Im Builder öffnen"
 
-#: templates/reporting.html:137
+#: templates/reporting.html:144
 msgid "Make a chart"
 msgstr "Diagramm erstellen"
 
-#: templates/reporting.html:143
+#: templates/reporting.html:150
 msgid "How the agent worked"
 msgstr "So ist der Agent vorgegangen"
 
-#: templates/reporting.html:146
+#: templates/reporting.html:153
 msgid "⚠ The agent stopped before producing a validated result — try rephrasing."
 msgstr ""
 "⚠ Der Agent hat angehalten, bevor ein validiertes Ergebnis vorlag – bitte"
 " formulieren Sie die Frage um."
 
-#: templates/reporting.html:156
+#: templates/reporting.html:163
 msgid "Grid"
 msgstr "Tabelle"
 
-#: templates/reporting.html:157
+#: templates/reporting.html:164
 msgid "Chart"
 msgstr "Diagramm"
 
-#: templates/reporting.html:158
+#: templates/reporting.html:165
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/reporting.html:166
+#: templates/reporting.html:170
+msgid "Build a report to see results"
+msgstr "Erstellen Sie einen Bericht, um Ergebnisse zu sehen"
+
+#: templates/reporting.html:171
+msgid ""
+"Choose a source on the left, add columns and filters, then press Run — or"
+" switch to Ask AI to draft one in plain language."
+msgstr ""
+"Wählen Sie links eine Quelle, fügen Sie Spalten und Filter hinzu und klicken "
+"Sie auf Ausführen — oder wechseln Sie zu „KI fragen“, um einen Bericht in "
+"natürlicher Sprache entwerfen zu lassen."
+
+#: templates/reporting.html:179
 msgid "Metrics"
 msgstr "Metriken"
 
-#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:168
+#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:181
 #: templates/reporting_metrics.html:48
 msgid "Add metric"
 msgstr "Metrik hinzufügen"
 
-#: templates/reporting.html:169
+#: templates/reporting.html:182
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr "Wenn eine Metrik ausgewählt ist, werden die Spalten oben zur Gruppierung."
 
-#: templates/js/_reporting_viz_js.html:567 templates/reporting.html:171
+#: templates/js/_reporting_viz_js.html:567 templates/reporting.html:184
 msgid "Columns"
 msgstr "Spalten"
 
-#: templates/reporting.html:172
+#: templates/reporting.html:185
 msgid "Filters"
 msgstr "Filter"
 
-#: templates/reporting.html:173 templates/workitems_overview.html:280
+#: templates/reporting.html:186 templates/workitems_overview.html:280
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
-#: templates/reporting.html:174
+#: templates/reporting.html:187
 msgid "Sort"
 msgstr "Sortierung"
 
-#: templates/reporting.html:175
+#: templates/reporting.html:188
 msgid "Add sort"
 msgstr "Sortierung hinzufügen"
 
-#: templates/reporting.html:176 templates/reporting.html:230
+#: templates/reporting.html:189 templates/reporting.html:243
 #: templates/reporting_metrics.html:62
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:177
+#: templates/reporting.html:190
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: templates/reporting.html:183
+#: templates/reporting.html:196
 msgid "Live SQL — read-only"
 msgstr "Live-SQL — schreibgeschützt"
 
-#: templates/reporting.html:184
+#: templates/reporting.html:197
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -2646,108 +2575,108 @@ msgstr ""
 "Ausführung wird protokolliert. Überprüfen Sie Ihre Abfrage vor dem "
 "Ausführen."
 
-#: templates/reporting.html:187
+#: templates/reporting.html:200
 msgid "I understand"
 msgstr "Ich verstehe"
 
-#: templates/reporting.html:194
+#: templates/reporting.html:207
 msgid "Share report"
 msgstr "Bericht teilen"
 
-#: templates/reporting.html:197
+#: templates/reporting.html:210
 msgid "Private — only me"
 msgstr "Privat — nur ich"
 
-#: templates/reporting.html:199
+#: templates/reporting.html:212
 msgid "Shared with everyone who can use Reporting"
 msgstr "Mit allen geteilt, die Reporting nutzen können"
 
-#: templates/reporting.html:201
+#: templates/reporting.html:214
 msgid "Shared with specific people"
 msgstr "Mit bestimmten Personen geteilt"
 
-#: templates/reporting.html:204
+#: templates/reporting.html:217
 msgid "Email or username"
 msgstr "E-Mail oder Benutzername"
 
-#: templates/reporting.html:205
+#: templates/reporting.html:218
 msgid "Can edit"
 msgstr "Kann bearbeiten"
 
-#: templates/reporting.html:206
+#: templates/reporting.html:219
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: templates/admin/logs.html:157 templates/reporting.html:209
-#: templates/reporting.html:237
+#: templates/admin/logs.html:157 templates/reporting.html:222
+#: templates/reporting.html:250
 msgid "Close"
 msgstr "Schließen"
 
-#: templates/reporting.html:216
+#: templates/reporting.html:229
 msgid "Schedule report"
 msgstr "Bericht planen"
 
-#: templates/reporting.html:219
+#: templates/reporting.html:232
 msgid "Frequency"
 msgstr "Häufigkeit"
 
-#: templates/js/_reporting_js.html:833 templates/reporting.html:220
+#: templates/js/_reporting_js.html:837 templates/reporting.html:233
 msgid "Daily"
 msgstr "Täglich"
 
-#: templates/js/_reporting_js.html:833 templates/reporting.html:221
+#: templates/js/_reporting_js.html:837 templates/reporting.html:234
 msgid "Weekly"
 msgstr "Wöchentlich"
 
-#: templates/js/_reporting_js.html:833 templates/reporting.html:222
+#: templates/js/_reporting_js.html:837 templates/reporting.html:235
 msgid "Monthly"
 msgstr "Monatlich"
 
-#: templates/reporting.html:223
+#: templates/reporting.html:236
 msgid "Time (UTC)"
 msgstr "Zeit (UTC)"
 
-#: templates/reporting.html:224
+#: templates/reporting.html:237
 msgid "Weekday"
 msgstr "Wochentag"
 
-#: templates/reporting.html:225
+#: templates/reporting.html:238
 msgid "Monday"
 msgstr "Montag"
 
-#: templates/reporting.html:225
+#: templates/reporting.html:238
 msgid "Tuesday"
 msgstr "Dienstag"
 
-#: templates/reporting.html:226
+#: templates/reporting.html:239
 msgid "Wednesday"
 msgstr "Mittwoch"
 
-#: templates/reporting.html:226
+#: templates/reporting.html:239
 msgid "Thursday"
 msgstr "Donnerstag"
 
-#: templates/reporting.html:227
+#: templates/reporting.html:240
 msgid "Friday"
 msgstr "Freitag"
 
-#: templates/reporting.html:227
+#: templates/reporting.html:240
 msgid "Saturday"
 msgstr "Samstag"
 
-#: templates/reporting.html:228
+#: templates/reporting.html:241
 msgid "Sunday"
 msgstr "Sonntag"
 
-#: templates/reporting.html:229
+#: templates/reporting.html:242
 msgid "Day of month"
 msgstr "Tag des Monats"
 
-#: templates/reporting.html:233
+#: templates/reporting.html:246
 msgid "Recipients (comma-separated)"
 msgstr "Empfänger (kommagetrennt)"
 
-#: templates/reporting.html:236
+#: templates/reporting.html:249
 msgid "Add schedule"
 msgstr "Zeitplan hinzufügen"
 
@@ -4189,85 +4118,85 @@ msgstr "Schritte"
 msgid "No rows."
 msgstr "Keine Zeilen."
 
-#: templates/js/_reporting_js.html:252
+#: templates/js/_reporting_js.html:256
 msgid "Report name"
 msgstr "Berichtsname"
 
-#: templates/js/_reporting_js.html:264 templates/js/_reporting_js.html:275
+#: templates/js/_reporting_js.html:268 templates/js/_reporting_js.html:279
 #: templates/js/_reporting_metrics_js.html:134
 #: templates/js/_reporting_sources_js.html:110
 msgid "Saved"
 msgstr "Gespeichert"
 
-#: templates/js/_reporting_js.html:265 templates/js/_reporting_js.html:276
+#: templates/js/_reporting_js.html:269 templates/js/_reporting_js.html:280
 msgid "Save failed"
 msgstr "Speichern fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:295 templates/js/_reporting_js.html:312
+#: templates/js/_reporting_js.html:299 templates/js/_reporting_js.html:316
 msgid "Export failed"
 msgstr "Export fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:303 templates/js/_reporting_js.html:319
+#: templates/js/_reporting_js.html:307 templates/js/_reporting_js.html:323
 msgid "Nothing to export."
 msgstr "Nichts zu exportieren."
 
-#: templates/js/_reporting_js.html:372
+#: templates/js/_reporting_js.html:376
 msgid "Could not load sources"
 msgstr "Quellen konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:529
+#: templates/js/_reporting_js.html:533
 msgid "Could not load metrics"
 msgstr "Metriken konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:605
+#: templates/js/_reporting_js.html:609
 msgid "shared"
 msgstr "geteilt"
 
-#: templates/js/_reporting_js.html:615
+#: templates/js/_reporting_js.html:619
 msgid "My reports"
 msgstr "Meine Berichte"
 
-#: templates/js/_reporting_js.html:621
+#: templates/js/_reporting_js.html:625
 msgid "Shared with me"
 msgstr "Mit mir geteilt"
 
-#: templates/js/_reporting_js.html:628
+#: templates/js/_reporting_js.html:632
 msgid "Could not load saved reports"
 msgstr "Gespeicherte Berichte konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:719
+#: templates/js/_reporting_js.html:723
 msgid "New name"
 msgstr "Neuer Name"
 
-#: templates/js/_reporting_js.html:729
+#: templates/js/_reporting_js.html:733
 msgid "Rename failed"
 msgstr "Umbenennen fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:736
+#: templates/js/_reporting_js.html:740
 msgid "Delete this saved report?"
 msgstr "Diesen gespeicherten Bericht löschen?"
 
-#: templates/js/_reporting_js.html:744
+#: templates/js/_reporting_js.html:748
 msgid "Delete failed"
 msgstr "Löschen fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:775
+#: templates/js/_reporting_js.html:779
 msgid "can edit"
 msgstr "kann bearbeiten"
 
-#: templates/js/_reporting_js.html:780 templates/js/_reporting_js.html:879
+#: templates/js/_reporting_js.html:784 templates/js/_reporting_js.html:883
 msgid "Remove"
 msgstr "Entfernen"
 
-#: templates/js/_reporting_js.html:788
+#: templates/js/_reporting_js.html:792
 msgid "Not shared with anyone yet."
 msgstr "Noch mit niemandem geteilt."
 
-#: templates/js/_reporting_js.html:863
+#: templates/js/_reporting_js.html:867
 msgid "No schedules yet."
 msgstr "Noch keine Zeitpläne."
 
-#: templates/js/_reporting_js.html:871
+#: templates/js/_reporting_js.html:875
 msgid "disabled"
 msgstr "deaktiviert"
 
@@ -5229,4 +5158,98 @@ msgstr ""
 
 #~ msgid "No records found for the selected criteria."
 #~ msgstr "Keine Einträge für die ausgewählten Kriterien gefunden."
+
+#~ msgid "Getting Started is Easy"
+#~ msgstr "Der Einstieg ist einfach"
+
+#~ msgid "Follow these simple steps to begin processing your documents."
+#~ msgstr ""
+#~ "Folgen Sie diesen einfachen Schritten, "
+#~ "um mit der Verarbeitung Ihrer Dokumente"
+#~ " zu beginnen."
+
+#~ msgid "Log In to Your Portal"
+#~ msgstr "In Ihr Portal einloggen"
+
+#~ msgid "Access your secure dashboard with your provided credentials."
+#~ msgstr ""
+#~ "Greifen Sie mit Ihren bereitgestellten "
+#~ "Anmeldedaten auf Ihr sicheres Dashboard "
+#~ "zu."
+
+#~ msgid "Monitor Your Documents"
+#~ msgstr "Ihre Dokumente überwachen"
+
+#~ msgid ""
+#~ "Use the dashboard to see the "
+#~ "real-time status of all your active"
+#~ " documents."
+#~ msgstr ""
+#~ "Nutzen Sie das Dashboard, um den "
+#~ "Echtzeitstatus aller Ihrer aktiven Dokumente"
+#~ " zu sehen."
+
+#~ msgid "View Completed History"
+#~ msgstr "Abgeschlossene Historie anzeigen"
+
+#~ msgid "Access detailed archives and audit trails for all processed items."
+#~ msgstr ""
+#~ "Greifen Sie auf detaillierte Archive und"
+#~ " Prüfpfade für alle verarbeiteten Elemente"
+#~ " zu."
+
+#~ msgid "Frequently Asked Questions"
+#~ msgstr "Häufig gestellte Fragen"
+
+#~ msgid "Have questions? We've got answers."
+#~ msgstr "Haben Sie Fragen? Wir haben Antworten."
+
+#~ msgid "What document formats can be processed?"
+#~ msgstr "Welche Dokumentformate können verarbeitet werden?"
+
+#~ msgid ""
+#~ "Our system supports a wide range "
+#~ "of formats, including PDF, JPG, PNG, "
+#~ "TIFF, and more. For specific inquiries,"
+#~ " please contact our support team."
+#~ msgstr ""
+#~ "Unser System unterstützt eine Vielzahl "
+#~ "von Formaten, darunter PDF, JPG, PNG,"
+#~ " TIFF und mehr. Für spezifische "
+#~ "Anfragen wenden Sie sich bitte an "
+#~ "unser Support-Team."
+
+#~ msgid "How secure is my data?"
+#~ msgstr "Wie sicher sind meine Daten?"
+
+#~ msgid ""
+#~ "Data security is our top priority. "
+#~ "We use industry-standard encryption, "
+#~ "secure servers, and strict access "
+#~ "protocols to ensure your information is"
+#~ " protected at all times."
+#~ msgstr ""
+#~ "Datensicherheit hat für uns höchste "
+#~ "Priorität. Wir verwenden branchenübliche "
+#~ "Verschlüsselung, sichere Server und strenge"
+#~ " Zugriffsprotokolle, um sicherzustellen, dass "
+#~ "Ihre Informationen jederzeit geschützt sind."
+
+#~ msgid "What is the average processing time for a document?"
+#~ msgstr ""
+#~ "Wie lange dauert die durchschnittliche "
+#~ "Verarbeitungszeit eines Dokuments?"
+
+#~ msgid ""
+#~ "Processing times can vary based on "
+#~ "document complexity and volume. However, "
+#~ "you can monitor the real-time "
+#~ "status of each document directly from"
+#~ " your dashboard."
+#~ msgstr ""
+#~ "Die Verarbeitungszeiten können je nach "
+#~ "Dokumentkomplexität und -volumen variieren. "
+#~ "Sie können jedoch den Echtzeitstatus "
+#~ "jedes Dokuments direkt von Ihrem "
+#~ "Dashboard aus überwachen."
 

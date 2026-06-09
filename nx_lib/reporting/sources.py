@@ -33,7 +33,7 @@ _SOURCES = {
     "sql_octopus": {
         "id": "sql_octopus",
         "kind": "sql",
-        "label": "Live SQL — Octopus",
+        "label": "Live SQL — Octo",
         "permission": "reporting.sql.target.octopus",
         "engine": "octo_ro",
         "target": "octopus",

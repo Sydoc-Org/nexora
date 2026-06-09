@@ -191,6 +191,10 @@
     document.getElementById('rpSqlPanel').hidden = !sqlOn;
     document.querySelector('.reporting-fields').style.display = sqlOn ? 'none' : '';
     document.querySelector('.reporting-wells').style.display = sqlOn ? 'none' : '';
+    // SQL mode hides both sidebars; span the results column full-width so it
+    // doesn't collapse into the grid's narrow first track. Table mode restores
+    // the 3-column builder layout.
+    document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
   }
 
   function showError(msg) {

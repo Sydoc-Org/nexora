@@ -247,6 +247,10 @@
     // SQL-mode hiding). setMode('table') restores them with style.display = ''.
     if (fieldsEl) fieldsEl.style.display = "none";
     if (wellsEl) wellsEl.style.display = "none";
+    // With both sidebars hidden, let the results column span the full width
+    // (otherwise grid auto-placement drops it into the narrow first track).
+    var main = document.querySelector(".reporting-main");
+    if (main) main.classList.add("reporting-main--single");
     panel.hidden = false;
     setSurface(aiSurface);
   }

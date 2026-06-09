@@ -61,37 +61,44 @@
 
     <section class="reporting-results">
       <div class="reporting-toolbar">
-        <div class="reporting-mode-toggle">
+        <div class="reporting-mode-toggle" role="tablist" aria-label="{{ _('Report mode') }}">
           <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
           <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
           {% if ai_enabled %}
           <button id="rpModeAi" data-testid="reporting-mode-ai">{{ _("Ask AI") }}</button>
           {% endif %}
         </div>
-        <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title">
+        <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title"
+               aria-label="{{ _('Report title') }}">
         <div class="reporting-saved" data-testid="reporting-saved">
           <select id="rpSavedReports" data-testid="reporting-saved-reports">
             <option value="">{{ _("Saved reports…") }}</option>
           </select>
           <button id="rpLoad" class="reporting-btn" data-testid="reporting-load">{{ _("Load") }}</button>
-          <button id="rpRename" class="reporting-link" data-testid="reporting-rename">{{ _("Rename") }}</button>
-          <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
-          <button id="rpShare" class="reporting-link" data-testid="reporting-share" disabled
-                  title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
-          {% if has_permission('reporting.schedule') %}
-          <button id="rpSchedule" class="reporting-link" data-testid="reporting-schedule" disabled
-                  title="{{ _('Schedule the selected report you own') }}">{{ _("Schedule") }}</button>
-          {% endif %}
+          <span class="reporting-saved-links">
+            <button id="rpRename" class="reporting-link" data-testid="reporting-rename">{{ _("Rename") }}</button>
+            <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
+            <button id="rpShare" class="reporting-link" data-testid="reporting-share" disabled
+                    title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
+            {% if has_permission('reporting.schedule') %}
+            <button id="rpSchedule" class="reporting-link" data-testid="reporting-schedule" disabled
+                    title="{{ _('Schedule the selected report you own') }}">{{ _("Schedule") }}</button>
+            {% endif %}
+          </span>
         </div>
-        <span style="flex:1"></span>
-        <button id="rpRun" class="reporting-btn" data-testid="reporting-run">{{ _("Run") }}</button>
-        <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
-        <button id="rpSaveAs" class="reporting-btn" data-testid="reporting-save-as">{{ _("Save as") }}</button>
-        <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
-          <option value="xlsx">{{ _("Excel") }}</option>
-          <option value="csv">CSV</option>
-        </select>
-        <button id="rpExport" class="reporting-btn" data-testid="reporting-export">{{ _("Export") }}</button>
+        <div class="reporting-actions">
+          <button id="rpRun" class="reporting-btn reporting-btn-primary" data-testid="reporting-run">
+            <i class="fas fa-play" aria-hidden="true"></i>{{ _("Run") }}</button>
+          <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
+          <button id="rpSaveAs" class="reporting-btn" data-testid="reporting-save-as">{{ _("Save as") }}</button>
+          <span class="reporting-actions-sep" aria-hidden="true"></span>
+          <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
+            <option value="xlsx">{{ _("Excel") }}</option>
+            <option value="csv">CSV</option>
+          </select>
+          <button id="rpExport" class="reporting-btn" data-testid="reporting-export">
+            <i class="fas fa-file-export" aria-hidden="true"></i>{{ _("Export") }}</button>
+        </div>
       </div>
       <div id="rpSqlPanel" class="reporting-sql-panel" hidden data-testid="reporting-sql-panel">
         <div class="reporting-sql-bar">
@@ -157,7 +164,13 @@
         <button id="rpViewChart" data-testid="reporting-view-chart">{{ _("Chart") }}</button>
         <button id="rpViewPivot" data-testid="reporting-view-pivot">{{ _("Pivot") }}</button>
       </div>
-      <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results"></div>
+      <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">
+        <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
+          <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
+          <p class="nx-empty__title">{{ _("Build a report to see results") }}</p>
+          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or switch to Ask AI to draft one in plain language.") }}</p>
+        </div>
+      </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
       <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
     </section>
