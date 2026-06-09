@@ -1997,6 +1997,19 @@ async function uploadBatchFiles(files, processName) {
             const srcHlToggle = document.getElementById('srcHlToggle');
             const srcHlToggleLabel = document.getElementById('srcHlToggleLabel');
 
+            // Safety net: keep the overlay locked to the image's box if it changes size
+            // after the initial draw for any reason other than the open zoom (e.g. the
+            // values panel reflowing, late image decode, viewport resize). Skipped while a
+            // zoom animation is mid-flight -- that frame is handled by drawOverlayWhenStable
+            // once the animation finishes, so boxes never flash out of register.
+            if (window.ResizeObserver && modalImg) {
+                new ResizeObserver(() => {
+                    if (!modal || modal.style.display !== 'flex') return;
+                    const animating = modalImg.getAnimations && modalImg.getAnimations().length;
+                    if (!animating) renderModalOverlay();
+                }).observe(modalImg);
+            }
+
             function currentSources() {
                 return allSources(srcHl.workitemid);
             }
@@ -2100,6 +2113,27 @@ async function uploadBatchFiles(files, processName) {
                 panel.hidden = !html;
             }
 
+            // Render the overlay only once the displayed page is geometrically SETTLED:
+            // (1) the image bitmap is decoded (so its layout box reflects the real page
+            // aspect) and (2) the open-zoom animation (scale 0.5 -> 1) has finished. The
+            // overlay layer is a SIBLING of the image, so it never inherits that zoom
+            // transform -- drawing mid-animation strands the boxes off the still-scaling
+            // page (boxes already visible but in the wrong place), and they only snapped
+            // into register on a later hide/show that re-rendered against the settled
+            // image. Waiting for each running animation's `finished` promise makes the
+            // boxes appear already aligned. With no animation running (e.g. reopening the
+            // same lightbox, or prev/next navigation) it renders immediately.
+            function drawOverlayWhenStable(pulse) {
+                const render = () => requestAnimationFrame(() => renderModalOverlay(pulse));
+                const afterDecode = () => {
+                    const anims = modalImg.getAnimations ? modalImg.getAnimations() : [];
+                    if (anims.length) Promise.allSettled(anims.map(a => a.finished)).then(render);
+                    else render();
+                };
+                if (modalImg.complete && modalImg.naturalWidth) afterDecode();
+                else modalImg.addEventListener('load', afterDecode, { once: true });
+            }
+
             function showImage(index) {
                 if (index >= 0 && index < currentImages.length) {
                     modalImg.src = currentImages[index];
@@ -2108,12 +2142,7 @@ async function uploadBatchFiles(files, processName) {
                     nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
                     const pulse = srcHl.pendingPulse;
                     srcHl.pendingPulse = null;
-                    // Defer to the next frame so the lightbox has completed layout before
-                    // renderModalOverlay reads the image's offset metrics (mapping boxes to
-                    // the final displayed page, not a mid-open frame).
-                    const draw = () => requestAnimationFrame(() => renderModalOverlay(pulse));
-                    if (modalImg.complete && modalImg.naturalWidth) draw();
-                    else modalImg.addEventListener('load', draw, { once: true });
+                    drawOverlayWhenStable(pulse);
                 }
             }
 

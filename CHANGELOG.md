@@ -296,6 +296,20 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   map to the displayed page on first open and stay put across hide/show. Lightbox
   boxes also get a subtle white halo + drop shadow so they read clearly on white
   paper and over dark text/logos (confidence colour unchanged).
+- **Workitems "Show sources" — boxes shown out of register on lightbox open.**
+  A residual of the fix above: with the image cached, the overlay rendered on the
+  very next frame after open, *during* the `.modal-content` open-zoom animation
+  (`scale(0.5) → 1`). Because `#srcHlLayer` is a **sibling** of the image it does
+  not inherit that transform, so the boxes — drawn at the page's final layout
+  coordinates — floated off the still-scaling page ("already visible when you open
+  it, locations wrong") and only snapped into place on a manual hide/show that
+  happened to re-render against the settled image. The overlay's first render now
+  waits until the page is geometrically settled — the image bitmap is decoded
+  **and** every running animation on it has `finished` — via a new
+  `drawOverlayWhenStable()` (reopen / prev-next, with no animation running, render
+  immediately). A `ResizeObserver` on the modal image re-renders the boxes on any
+  later box-size change (values-panel reflow, late decode, viewport resize),
+  keeping them locked to the page without a manual toggle.
 - **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
   (1) the curated-source catalog shown to the model now lists each field as
   `key "Human Label":type`, and the prompt instructs the model to emit the exact
