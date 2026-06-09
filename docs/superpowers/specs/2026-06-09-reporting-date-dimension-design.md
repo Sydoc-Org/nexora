@@ -171,8 +171,8 @@ preserved.
 
 - When a **grainable** date field is added as a column, its Columns-well row
   gains a small grain `<select>` (Day / Week / Month / Quarter / Year) next to
-  the header input. Default = Month (the most common BI grain) — or Day; decide
-  in review.
+  the header input. **Default = Month** (the most common BI grain); the user can
+  switch per column.
 - `buildDefinition` includes `grain` on those columns; `applyDefinition` restores
   it (carry `grain` + `type`/`grainable` into `state.columns`).
 - Pivot, chart, CSV/XLSX export, save/share/schedule are **unchanged** — they
@@ -220,7 +220,14 @@ reporting route tests).
 6. Browser verification on INT (filter by import-date range; group `doc_count`
    by `import_date` month) + screenshots.
 
-## Risks / open questions
+## Decisions (resolved in review)
+
+- **Grain set:** Day / Week / Month / Quarter / Year (full).
+- **Default grain** when adding a date column in the Advanced UI: **Month**.
+- **Week anchoring:** Monday, via `DATEADD(week, DATEDIFF(week, 0, d), 0)`
+  (independent of `SET DATEFIRST`).
+
+## Risks
 
 - **Column type variance.** `ImportTime`, `Export`, etc. may be `datetime`,
   `date`, or `varchar`. `CAST(... AS date)` covers datetime/date; string columns
@@ -228,10 +235,6 @@ reporting route tests).
   the same assumption). If a string column lacks `CONVERT`, that process's date
   errors at run — same failure mode as the dashboard; acceptable, and the
   process picker lets users avoid it.
-- **Default grain** in the Advanced UI: Month vs Day — pick during review.
-- **Quarter** grain: include or drop for v1? (Listed; trivial to cut.)
-- **Week anchoring**: Monday-anchored via `DATEDIFF(week, 0, d)` (independent of
-  `SET DATEFIRST`); confirm that matches stakeholder expectation vs ISO week.
 
 ## Spec 2 preview (not built here)
 
