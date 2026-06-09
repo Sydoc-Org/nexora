@@ -1,3 +1,8 @@
+> ➡️ **NEWER HANDOFF (read this instead for current state):**
+> `docs/superpowers/handoffs/2026-06-09-reporting-date-dimension-complete.md`
+> — Tasks 8–10 are done, the translation test is green, migration `0019` is committed, and the
+> date-dimension plan is complete.
+
 # Handoff — Reporting redesign: process picker, field-scoping & the date dimension (Tasks 1–7)
 
 - **Date:** 2026-06-09 (evening session)
