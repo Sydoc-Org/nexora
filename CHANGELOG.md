@@ -9,6 +9,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Workitems table / line-item source highlighting.** The read-only "Show
+  sources" overlay now extends from scalar index fields to **table / line-item
+  extractions**. `api_get_media_info` opt-in-fetches table data
+  (`get_extensions_urls_fields(..., with_tables=True)`, only on the viewer path
+  so the scalar-only callers pay nothing) and returns a new `table_sources`
+  array, parsed from the Octopus `Tables[].Rows[].Cells[]` structure by the pure
+  helper `nx_lib/table_locations.py` (same `IndexField.Location` rect shape,
+  reusing `field_locations.py`'s rect/confidence/page-offset helpers). The field
+  panel grows a compact **line-item grid** below the scalar fields whose located
+  cells are click-to-locate; on the page each cell renders a **dashed** highlight
+  box (distinct from the solid scalar-field boxes, confidence colour preserved)
+  in both the lightbox and thumbnails, under the same single "Show sources"
+  toggle. Reuses `workitems.details.view.images` + `.fields` (**no new
+  permission, no migration**); `table_sources` is permission-suppressed
+  identically to `field_sources`. Extracted document content is HTML-escaped
+  before rendering (the same hardening was applied to the pre-existing scalar
+  rows). See `docs/superpowers/specs/2026-06-09-workitem-table-highlighting-design.md`.
 - **Reporting semantic layer (Slice 1 — metrics registry wiring).** A
   DB-backed canonical-metrics registry (`dbo.ReportingMetrics`, migration
   `0017`) is now wired into the reporting views. A report definition's optional
