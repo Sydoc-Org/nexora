@@ -38,14 +38,20 @@ def _patch(monkeypatch, perms):
         lambda *a, **k: ([".jpg"], ["u0", "u1"], {"x": "y"}, [], TABLES),
     )
     monkeypatch.setattr(w, "has_permission", lambda code: code in perms)
-    w.cache.delete("media_info_123")
-    w.cache.delete("media_data_123")
+
+
+# A dedicated workitem id no other test caches, so this file is immune to a
+# stale media_info_* cache entry left by another test (cache writes happen in a
+# request context; test-side cache mutation does not reliably reach it). The
+# route stores the full payload and applies _suppress per-request, so all three
+# perm cases stay correct even if these tests share one cached entry.
+WID = 980123
 
 
 def _get(client):
     with client.session_transaction() as s:
         s["userid"], s["username"] = "1", "tester"
-    return client.get("/api/get_media_info/123")
+    return client.get(f"/api/get_media_info/{WID}")
 
 
 ALL = {"workitems.details.view", "workitems.details.view.images", "workitems.details.view.fields"}

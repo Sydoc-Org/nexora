@@ -617,8 +617,12 @@
                         // Source locations (where each extracted value was found on the page).
                         window.__srcByWorkitem = window.__srcByWorkitem || {};
                         window.__srcByWorkitem[workitemid] = mediaInfo.field_sources || [];
+                        // Table / line-item cell sources (same shape, grouped into rows).
+                        window.__tableByWorkitem = window.__tableByWorkitem || {};
+                        window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
 
                         if (fieldsContainer) {
+                            let detailHtml = '';
                             if (Object.keys(fields).length > 0) {
                                 const srcByKey = {};
                                 (window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
@@ -651,11 +655,13 @@
                                     }
                                 }
                                 fieldsHtml += '</dl>';
-                                fieldsContainer.innerHTML = fieldsHtml;
+                                detailHtml += fieldsHtml;
                             }
-                             else {
-                                fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
-                            }
+                            // Line-item tables render below the scalar fields (a table
+                            // can exist with no scalar fields, so this is independent).
+                            detailHtml += renderTableGrids(workitemid);
+                            fieldsContainer.innerHTML = detailHtml
+                                || `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                         }
                         if (imageContainer) {
                             imageContainer.dataset.loaded = 'true';
@@ -683,6 +689,60 @@
             }
         }
 
+        // A table cell is "just another source": flatten line-item cells to the
+        // same {key,label,value,locations,confidence,kind} shape the overlay draws.
+        // key encodes table/row/cell so a grid cell click can pulse exactly its box.
+        function tableCellSources(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            const out = [];
+            tables.forEach((t, ti) => (t.rows || []).forEach((row, ri) => row.forEach((c, ci) => {
+                out.push({
+                    key: `t${ti}r${ri}c${ci}`, label: c.col, value: c.value,
+                    locations: c.locations || [], confidence: c.confidence, kind: 'cell',
+                });
+            })));
+            return out;
+        }
+
+        // Scalar field sources + table-cell sources, drawn by the same loops.
+        function allSources(workitemid) {
+            const fields = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            return fields.concat(tableCellSources(workitemid));
+        }
+
+        // Line-item grid(s) for the field panel. Located cells are click-to-locate
+        // (same page+pulse path as scalar field rows); data-key matches the cell's
+        // source key so renderModalOverlay pulses exactly that box.
+        function renderTableGrids(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            let html = '';
+            tables.forEach((t, ti) => {
+                const cols = (t.columns && t.columns.length) ? t.columns : [];
+                const title = t.title ? `<div class="src-table-title">${t.title}</div>` : '';
+                const head = cols.map(c => `<th>${c}</th>`).join('');
+                const body = (t.rows || []).map((row, ri) => {
+                    const byCol = {};
+                    row.forEach((c, ci) => { byCol[c.col] = { c, ci }; });
+                    const tds = cols.map(col => {
+                        const entry = byCol[col];
+                        if (!entry) return '<td class="src-table-cell"></td>';
+                        const { c, ci } = entry;
+                        const hasLoc = !!(c.locations && c.locations.length);
+                        const page = hasLoc ? c.locations[0].page : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const cls = 'src-table-cell' + (hasLoc ? ' src-cell-loc' : '');
+                        const val = (c.value == null ? '' : c.value);
+                        return `<td class="${cls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>${val}</td>`;
+                    }).join('');
+                    return `<tr>${tds}</tr>`;
+                }).join('');
+                html += `<div class="src-table-grid">${title}`
+                    + `<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`;
+            });
+            return html;
+        }
+
         // Thumbnails use object-contain (full page, letterboxed) so boxes map
         // correctly; we account for the letterbox offset/scale within the 160px box.
         // Module scope so loadImage's onload handler (and setSrcHl) can reach it.
@@ -690,7 +750,7 @@
             const old = wrap.querySelector('.src-hl-layer-thumb');
             if (old) old.remove();
             if (localStorage.getItem('srcHlOn') !== '1') return;
-            const srcs = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            const srcs = allSources(workitemid);
             const natW = imgEl.naturalWidth, natH = imgEl.naturalHeight;
             const w = imgEl.clientWidth, h = imgEl.clientHeight;
             if (!natW || !natH || !w || !h) return;
@@ -702,7 +762,8 @@
                 if (loc.page !== page) return;
                 const b = document.createElement('div');
                 const confCls = window.srcConfClass(s.confidence);
-                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '');
+                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '')
+                    + (s.kind === 'cell' ? ' src-hl-box--cell' : '');
                 b.style.left = (offX + loc.rect.left * scale) + 'px';
                 b.style.top = (offY + loc.rect.top * scale) + 'px';
                 b.style.width = (loc.rect.width * scale) + 'px';
@@ -1905,7 +1966,7 @@ async function uploadBatchFiles(files, processName) {
             const srcHlToggleLabel = document.getElementById('srcHlToggleLabel');
 
             function currentSources() {
-                return (window.__srcByWorkitem && window.__srcByWorkitem[srcHl.workitemid]) || [];
+                return allSources(srcHl.workitemid);
             }
 
             function hasAnyLocation() {
@@ -1940,6 +2001,7 @@ async function uploadBatchFiles(files, processName) {
                         const box = document.createElement('div');
                         box.className = 'src-hl-box'
                             + (confCls ? ' ' + confCls : '')
+                            + (src.kind === 'cell' ? ' src-hl-box--cell' : '')
                             + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
                         box.style.left = (loc.rect.left / natW * r.width) + 'px';
                         box.style.top = (loc.rect.top / natH * r.height) + 'px';
@@ -2019,6 +2081,16 @@ async function uploadBatchFiles(files, processName) {
                 if (!fc) return;
                 const workitemid = fc.id.replace('fields-container-', '');
                 openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
+            });
+
+            // Click a located line-item cell -> open its page + pulse its cell box.
+            document.addEventListener('click', (event) => {
+                const td = event.target.closest('td.src-cell-loc');
+                if (!td) return;
+                const fc = td.closest('[id^="fields-container-"]');
+                if (!fc) return;
+                const workitemid = fc.id.replace('fields-container-', '');
+                openModalForWorkitem(workitemid, parseInt(td.dataset.page || '0', 10), td.dataset.key);
             });
 
             if (closeBtn) closeBtn.addEventListener('click', closeModal);
