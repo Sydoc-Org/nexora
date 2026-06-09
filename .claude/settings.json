@@ -21,8 +21,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "msg.exe console /TIME:10 \"Claude Code: Done - your turn\"",
-            "timeout": 5000
+            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Done - your turn\"",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Question - your input needed\"",
+            "timeout": 15000
           }
         ]
       }
@@ -33,18 +45,7 @@
           {
             "type": "command",
             "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Needs your attention\"",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "Elicitation": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Question - your input needed\"",
-            "timeout": 5000
+            "timeout": 15000
           }
         ]
       }
@@ -55,7 +56,7 @@
           {
             "type": "command",
             "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Permission requested\"",
-            "timeout": 5000
+            "timeout": 15000
           }
         ]
       }
