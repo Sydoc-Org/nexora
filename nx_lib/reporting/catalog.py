@@ -10,6 +10,7 @@ FieldMetadata does not exist on every environment).
 """
 
 from flask import current_app
+from flask_babel import gettext as _
 
 from ..db import engine_nexora_db
 
@@ -153,7 +154,24 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
                     availability.setdefault(col[len("col_") :], []).append(row.ProcessName)
         availability["processname"] = list(allowed_processes)
 
-        return build_catalog(meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str))
+        catalog = build_catalog(
+            meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str)
+        )
+
+        # Synthetic date dimension from Statconfig (a different table from
+        # SearchConfig): import_date / export_date as first-class date fields.
+        try:
+            cur.execute("SELECT ProcessName, ImportColumn, ExportColumn FROM Statconfig")
+            statconfig_rows = cur.fetchall()
+        except Exception:
+            current_app.logger.warning("reporting catalog: Statconfig unavailable")
+            statconfig_rows = []
+        date_avail = date_availability(statconfig_rows, allowed_processes)
+        catalog += date_catalog_entries(
+            date_avail, {"import_date": _("Import date"), "export_date": _("Export date")}
+        )
+        catalog.sort(key=lambda e: e["label"])
+        return catalog
     finally:
         if conn:
             conn.close()
