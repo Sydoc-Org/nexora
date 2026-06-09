@@ -227,6 +227,27 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   soft brand wash and accent focus rings — plus `nexora-ui.css` for the tokens. The
   403/404/500 error pages already carried a distinct brand-aligned "cosmic" design
   and were left as-is.
+- **UI redesign — public landing (hero) page + 2FA brand consistency.** The public
+  `hero.html` landing page was reworked into a premium light "Trust & Authority"
+  enterprise hero (per the ui-ux-pro design guide): a token-based (`--nx-*`) light
+  fold with a restrained indigo→violet aurora accent and a faint hairline grid, an
+  eyebrow status pill, a single primary CTA, a trust-signal row, and a crisp product-window
+  mock of the document-status card. Because the whole page is token-based it follows
+  the app's `html.dark` preference automatically — light by default, dark as a user
+  preference. `static/css/hero.css` was rewritten onto the `--nx-*` tokens; the
+  page was trimmed to hero → process journey → feature cards → CTA (the "Getting
+  Started" steps and the FAQ accordion were removed), and the remaining sections,
+  the closing CTA and the `_small_footer` all flow on a single continuous light
+  wash — no per-section colour bands, the footer blends in with a hairline top
+  rule — so the page reads smooth instead of as stacked blocks. Avoids a full-bleed
+  purple wash (an explicit anti-pattern). The two 2FA pages (`init_2FA`,
+  `verify_2fa`), which were still on residual
+  `blue-600` buttons/badges, were brought onto the brand gradient (gradient buttons,
+  gradient shield chip, `rounded-xl shadow-2xl` cards, accent focus rings); the
+  shared `_small_footer` link-hover moved from blue to the brand accent. The login
+  and forgot/reset/init-reset pages already matched and were left unchanged.
+  Presentational only — all JS hooks (preloader logo-flight, process animation, FAQ
+  accordion), routes, ids and `data-testid`s unchanged.
 - **UI redesign — Reporting page brought onto `nexora-ui`.** The Reporting builder
   now consumes the global `--nx-*` tokens via a harmonization layer appended to
   `static/css/reporting.css`: panels, toolbar, buttons, mode/view toggles, inputs,

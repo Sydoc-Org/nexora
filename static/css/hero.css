@@ -1,92 +1,273 @@
-body {
-            font-family: 'Inter', sans-serif;
-        }
-        .animate-blob {
-            animation: blob 8s infinite;
-        }
-        .animation-delay-2000 {
-            animation-delay: -2s;
-        }
-        .animation-delay-4000 {
-            animation-delay: -4s;
-        }
-        @keyframes blob {
-            0% { transform: translate(0px, 0px) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-            100% { transform: translate(0px, 0px) scale(1); }
-        }
+/* ============================================================
+   hero (public landing) — adopts the nexora-ui design system.
+   nexora-ui.css loads BEFORE this file, so the --nx-* tokens are
+   available here. This is the light brand identity only (the
+   public page has no dark-mode toggle), mirroring auth.css.
 
-        .step-icon-wrapper {
-            transition: all 0.4s ease-in-out;
-        }
+   Keeps every JS hook intact: #preloader / #preloader-logo /
+   #header-logo-wrapper / #signin / #main-content-wrapper (the
+   logo-flight reveal) and #progress-line + .step-icon-wrapper
+   .active/.completed + .process-step p .active/.completed (the
+   process animation).
+   ============================================================ */
 
-        .step-icon-wrapper.active {
-            border-color: #6366f1; 
-            background-color: #eef2ff; 
-            transform: scale(1.1);
-        }
-        .step-icon-wrapper.active i {
-            color: #4f46e5; 
-        }
-        .process-step p.active {
-            color: #111827; 
-            font-weight: 700;
-        }
-        
-        .step-icon-wrapper.completed {
-            border-color: #22c55e; 
-            background-color: #f0fdf4; 
-        }
-        .step-icon-wrapper.completed i {
-            color: #16a34a; 
-        }
-        .process-step p.completed {
-            color: #374151;
-        }
+body.hero-body {
+    font-family: var(--nx-font, 'Inter', system-ui, sans-serif);
+    color: var(--nx-text, #1f2937);
+    /* One continuous, gently-shifting indigo→violet wash spanning the
+       whole page so the sections flow into each other instead of
+       stacking as separate colored bands. The cards + spacing carry the
+       rhythm; there are no hard horizontal seams. */
+    background:
+        radial-gradient(46rem 40rem at 88% 1%,  var(--nx-accent-tint, #eef2ff) 0%, transparent 46%),
+        radial-gradient(44rem 40rem at 6% 24%,  #f5f3ff 0%, transparent 44%),
+        radial-gradient(42rem 38rem at 97% 50%, rgba(124, 58, 237, 0.06) 0%, transparent 44%),
+        radial-gradient(44rem 40rem at 3% 76%,  var(--nx-accent-soft, rgba(79, 70, 229, 0.10)) 0%, transparent 46%),
+        radial-gradient(48rem 40rem at 92% 99%, #f3f0ff 0%, transparent 48%),
+        var(--nx-page, #f9fafb);
+}
 
-.faq-panel {
-    max-height: 0;
+/* Generic brand-gradient fill (header sign-in on mobile, etc.) */
+.hero-grad { background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)); }
+
+/* — Buttons ————————————————————————————————————————————————————— */
+/* Big primary CTA — the brand-gradient signature. */
+.hero-cta {
+    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
+    color: #fff;
+    box-shadow: 0 10px 24px -8px rgba(79, 70, 229, 0.55);
+    transition: transform .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1)),
+                box-shadow .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1)),
+                filter .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1));
+}
+.hero-cta:hover {
+    filter: brightness(1.06);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -10px rgba(79, 70, 229, 0.60);
+}
+
+/* — Feature cards ("Why use nexora") — nx-card with a hover lift —— */
+.hero-feat {
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border, #e5e7eb);
+    border-radius: var(--nx-radius, 10px);
+    transition: border-color .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1)),
+                box-shadow .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1)),
+                transform .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1));
+}
+.hero-feat:hover {
+    border-color: transparent;
+    box-shadow: var(--nx-shadow-pop, 0 12px 32px rgba(16, 24, 40, 0.12));
+    transform: translateY(-4px);
+}
+/* Gradient icon chip inside each feature card. */
+.hero-feat-icon {
+    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
+    color: #fff;
+    box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.55);
+}
+
+/* ============================================================
+   ENTERPRISE HERO — "Trust & Authority" (per ui-ux-pro), LIGHT.
+   Light by default and fully token-based (--nx-*), so it follows
+   the app's html.dark preference automatically — dark mode is a
+   user preference, not the page default. A restrained indigo→violet
+   aurora + a faint hairline grid keep it premium without a flat
+   purple wash (an explicit anti-pattern).
+   ============================================================ */
+
+/* Sticky header */
+.hero-header {
+    background: var(--nx-card, #ffffff);
+    border-bottom: 1px solid var(--nx-border, #e5e7eb);
+}
+
+/* The hero band — light surface with a restrained aurora accent */
+.hero-band {
+    color: var(--nx-text, #1f2937);
+    background:
+        radial-gradient(46rem 32rem at 82% -16%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)), transparent 60%),
+        radial-gradient(40rem 30rem at 4% 2%, rgba(124, 58, 237, 0.10), transparent 55%),
+        var(--nx-page, #f9fafb);
+}
+/* faint hairline grid, masked so it fades toward the edges */
+.hero-band__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(79, 70, 229, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 70, 229, 0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(78% 70% at 50% 24%, #000 35%, transparent 82%);
+    mask-image: radial-gradient(78% 70% at 50% 24%, #000 35%, transparent 82%);
+}
+
+/* Eyebrow pill with a live pulse dot */
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--nx-radius-pill, 999px);
+    background: var(--nx-accent-tint, #eef2ff);
+    border: 1px solid var(--nx-border, #e5e7eb);
+    color: var(--nx-accent-hover, #4338ca);
+    font-size: 13px;
+    font-weight: 600;
+}
+.hero-eyebrow .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--nx-success, #059669);
+    animation: hero-pulse 2.2s infinite;
+}
+@keyframes hero-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.45); }
+    70%  { box-shadow: 0 0 0 9px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+
+/* Secondary (outline) button — light, used in hero + header */
+.hero-ghost-btn {
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border-strong, #d1d5db);
+    color: var(--nx-text, #1f2937);
+    transition: background-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                border-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                box-shadow var(--nx-dur, 150ms) var(--nx-ease, ease);
+}
+.hero-ghost-btn:hover {
+    background: var(--nx-alt, #f9fafb);
+    border-color: var(--nx-accent, #4f46e5);
+    box-shadow: 0 0 0 3px var(--nx-accent-soft, rgba(79, 70, 229, 0.12));
+}
+
+/* Trust-signal row */
+.hero-trust { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.hero-trust__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--nx-text-sec, #6b7280);
+    font-size: 13.5px;
+    font-weight: 500;
+}
+.hero-trust__item i { color: var(--nx-accent, #4f46e5); font-size: 13px; }
+
+/* Product-window mock + its soft aura */
+.hero-window-wrap::before {
+    content: "";
+    position: absolute;
+    inset: -12% -8% -16%;
+    background: radial-gradient(circle at 62% 38%, rgba(124, 58, 237, 0.18), transparent 62%);
+    filter: blur(46px);
+    z-index: 0;
+}
+.hero-window {
+    position: relative;
+    z-index: 1;
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border, #e5e7eb);
+    border-radius: 16px;
+    box-shadow: var(--nx-shadow-pop, 0 24px 50px -12px rgba(17, 24, 39, 0.18));
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+}
+.hero-window__bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--nx-divider, #f3f4f6);
+    background: var(--nx-alt, #f9fafb);
+}
+.hero-window__dot { width: 11px; height: 11px; border-radius: 50%; }
+.hero-window__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    background: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5, #7c3aed));
+    box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.45);
 }
 
-.faq-btn.active + .faq-panel {
-    max-height: 200px;
+/* Closing CTA — a soft centered glow over the page wash (no hard band),
+   so it reads as the page settling into the call-to-action rather than
+   another stacked block. */
+.hero-band-cta {
+    background: radial-gradient(46rem 26rem at 50% 60%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)) 0%, transparent 62%);
 }
 
-.faq-btn.active i {
-    transform: rotate(180deg);
+/* — Process animation — retuned to brand tokens ————————————————— */
+.step-icon-wrapper {
+    transition: all 0.4s ease-in-out;
+}
+.step-icon-wrapper.active {
+    border-color: var(--nx-accent, #4f46e5);
+    background-color: var(--nx-accent-tint, #eef2ff);
+    transform: scale(1.1);
+}
+.step-icon-wrapper.active i {
+    color: var(--nx-accent, #4f46e5);
+}
+.process-step p.active {
+    color: var(--nx-text, #111827);
+    font-weight: 700;
+}
+.step-icon-wrapper.completed {
+    border-color: var(--nx-success, #059669);
+    background-color: #ecfdf5;
+}
+.step-icon-wrapper.completed i {
+    color: var(--nx-success, #059669);
+}
+.process-step p.completed {
+    color: var(--nx-text-sec, #374151);
+}
+/* The completed step JS injects a bare <i class="fas fa-check ..."> —
+   tint it with the success token to match the wrapper. */
+.step-icon-wrapper.completed i.fa-check { color: var(--nx-success, #059669); }
+
+/* Progress rail carries the brand gradient. */
+#progress-line {
+    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
 }
 
-        #preloader {
-            transition: background-color 0.6s ease-out;
-        }
-        #preloader-logo {
-            transform: scale(1.5); 
-            transform-origin: top left;
-            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
-        }
-        #preloader .nexora-title .nexora-subtitle {
-            transition: opacity 0.4s ease-out;
-        }
-        #header-logo-wrapper {
-            opacity: 0;
-            transition: opacity 0.3s ease-in;
-        }
-        #main-content-wrapper {
-            opacity: 0;
-            transition: opacity 0.6s ease-in;
-        }
-        #signin{
-            opacity: 0;
-            transition: opacity 0.6s ease-in;
-        }
+/* — Preloader + reveal transitions (hooks unchanged) ——————————— */
+#preloader {
+    transition: background-color 0.6s ease-out;
+}
+#preloader-logo {
+    transform: scale(1.5);
+    transform-origin: top left;
+    transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+#preloader .nexora-title .nexora-subtitle {
+    transition: opacity 0.4s ease-out;
+}
+#header-logo-wrapper {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+}
+#main-content-wrapper {
+    opacity: 0;
+    transition: opacity 0.6s ease-in;
+}
+#signin {
+    opacity: 0;
+    transition: opacity 0.6s ease-in;
+}
 
-        /* Mobile */
-        @media (max-width: 768px) {
-            #preloader-logo { transform: scale(1.1); }
-            .step-icon-wrapper { width: 2.75rem !important; height: 2.75rem !important; }
-            .process-step .step-label { font-size: 0.75rem; }
-            .process-step i { font-size: 1rem !important; }
-        }
+/* — Mobile ———————————————————————————————————————————————————— */
+@media (max-width: 768px) {
+    #preloader-logo { transform: scale(1.1); }
+    .step-icon-wrapper { width: 2.75rem !important; height: 2.75rem !important; }
+    .process-step .step-label { font-size: 0.75rem; }
+    .process-step i { font-size: 1rem !important; }
+}
