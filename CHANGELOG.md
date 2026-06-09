@@ -213,8 +213,9 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   document page with its highlight boxes on the **left** and the extracted
   values on the **right** — the full scalar field list (label + value +
   confidence chip + "no source location" badge) plus the line-item grid, all
-  click-to-locate (clicking a value navigates the page + pulses its box, in
-  place). Replaces the centred image-only lightbox. The values markup is shared
+  click-to-locate (clicking a value navigates the page, pulses its box in
+  place, and switches the boxes on — toggle flips to "Hide sources").
+  Replaces the centred image-only lightbox. The values markup is shared
   with the inline Document Details panel via one builder so they never drift,
   and the right panel hides itself for documents with no extracted values
   (plain media viewing stays full-width). New string `Extracted values`

@@ -2052,6 +2052,16 @@ async function uploadBatchFiles(files, processName) {
                 refreshThumbOverlays();
             }
 
+            // A value/cell was clicked to locate it -> make sure source boxes are on so
+            // the user sees them in context. The toggle flips to "Hide sources" on the
+            // next renderModalOverlay (driven by showImage). No-op if already on.
+            function ensureSourcesOn() {
+                if (srcHl.on) return;
+                srcHl.on = true;
+                localStorage.setItem('srcHlOn', '1');
+                refreshThumbOverlays();
+            }
+
             // Open the lightbox for a specific workitem + page (used by click-to-locate
             // and the thumbnail click handler). pulseKey flashes one field's box.
             function openModalForWorkitem(workitemid, index, pulseKey) {
@@ -2062,6 +2072,7 @@ async function uploadBatchFiles(files, processName) {
                 currentImages = allImages.map(img => img.src);
                 srcHl.workitemid = String(workitemid);
                 srcHl.pendingPulse = pulseKey || null;
+                if (pulseKey) ensureSourcesOn();   // located via a value click -> show boxes
                 renderReviewPanel(String(workitemid));
                 modal.style.display = 'flex';
                 showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
@@ -2146,6 +2157,7 @@ async function uploadBatchFiles(files, processName) {
                 if (!panel) return;
                 const row = event.target.closest('.src-field-row.is-locatable, td.src-cell-loc');
                 if (!row || !panel.contains(row)) return;
+                ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
                 srcHl.pendingPulse = row.dataset.key;
                 showImage(parseInt(row.dataset.page || '0', 10));
             });
