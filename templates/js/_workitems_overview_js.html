@@ -649,8 +649,8 @@
 
                                         fieldsHtml += `
                                             <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
-                                                <dt class="text-gray-500 truncate">${label}${badge}</dt>
-                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}${confBadge}</dd>
+                                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
                                             </div>`;
                                     }
                                 }
@@ -689,6 +689,16 @@
             }
         }
 
+        // Escape values interpolated into innerHTML. Field/cell values + column
+        // names are extracted document content (attacker-influenceable via a crafted
+        // document), so they must never be injected raw. (Box .title is set via the
+        // DOM property, which is already safe.)
+        function srcEsc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // A table cell is "just another source": flatten line-item cells to the
         // same {key,label,value,locations,confidence,kind} shape the overlay draws.
         // key encodes table/row/cell so a grid cell click can pulse exactly its box.
@@ -718,8 +728,8 @@
             let html = '';
             tables.forEach((t, ti) => {
                 const cols = (t.columns && t.columns.length) ? t.columns : [];
-                const title = t.title ? `<div class="src-table-title">${t.title}</div>` : '';
-                const head = cols.map(c => `<th>${c}</th>`).join('');
+                const title = t.title ? `<div class="src-table-title">${srcEsc(t.title)}</div>` : '';
+                const head = cols.map(c => `<th>${srcEsc(c)}</th>`).join('');
                 const body = (t.rows || []).map((row, ri) => {
                     const byCol = {};
                     row.forEach((c, ci) => { byCol[c.col] = { c, ci }; });
@@ -732,7 +742,7 @@
                         const titleAttr = hasLoc
                             ? ` title="{{ _('Click to locate on the document') }}"` : '';
                         const cls = 'src-table-cell' + (hasLoc ? ' src-cell-loc' : '');
-                        const val = (c.value == null ? '' : c.value);
+                        const val = srcEsc(c.value);
                         return `<td class="${cls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>${val}</td>`;
                     }).join('');
                     return `<tr>${tds}</tr>`;
