@@ -48,6 +48,15 @@ requesting a client/process the user has no `reporting.scope.process.*` grant fo
 silently excludes it (no data leak). The selection is saved with the report and
 restored on load.
 
+The **field list scopes to the selected process(es)**, mirroring the workitems
+field picker. Not every process populates every `SearchConfig.col_*`, so each
+catalog field carries the `processes` that expose it; the left-panel list shows a
+field only when at least one selected process exposes it (union — `All
+processes` shows every field). This is purely client-side off the catalog already
+loaded. Narrowing the scope also **prunes any already-added column / filter / sort**
+whose field is no longer available, so a definition can't reference a field absent
+from every scoped process (which the query builder would reject).
+
 ### Save & load
 
 Reports are saved per user in the `dbo.Reports` table (NexoraDB). A saved

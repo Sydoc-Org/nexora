@@ -96,7 +96,7 @@
     } else {
       state.selProcesses = state.selProcesses.concat([p]);
     }
-    renderProcessPicker();
+    onScopeChanged();
   }
 
   function toggleClient(client) {
@@ -110,12 +110,48 @@
       var add = procs.filter(function (p) { return !isSelected(p); });
       state.selProcesses = state.selProcesses.concat(add);
     }
-    renderProcessPicker();
+    onScopeChanged();
   }
 
   function selectAllProcesses() {
     state.selProcesses = state.allProcesses.slice();
+    onScopeChanged();
+  }
+
+  // A docprocessing field is available when at least one selected process exposes
+  // it (mirrors the workitems field list: a single process shows its own fields,
+  // "all" shows the union). Fields with no `processes` tag — e.g. table sources —
+  // are always shown.
+  function isFieldAvailable(f) {
+    if (!state.allProcesses.length) return true;          // non-docprocessing: no scope
+    if (!f.processes || !f.processes.length) return true;
+    for (var i = 0; i < f.processes.length; i++) {
+      if (state.selProcesses.indexOf(f.processes[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Drop selected columns / filters / sort whose field is no longer available under
+  // the current process scope, so narrowing the scope can't leave a broken
+  // definition (the query builder rejects a field absent from every scoped process).
+  function pruneUnavailableSelections() {
+    var avail = {};
+    state.fields.forEach(function (f) { if (isFieldAvailable(f)) avail[f.field] = true; });
+    state.columns = state.columns.filter(function (c) { return avail[c.field]; });
+    state.filters = state.filters.filter(function (f) {
+      return f.field === 'processname' || avail[f.field]; // processname is synthetic + always valid
+    });
+    state.sort = state.sort.filter(function (s) { return avail[s.field]; });
+  }
+
+  // The user changed the process scope: refresh the picker, prune now-invalid
+  // picks, and re-render the field list + wells + filters.
+  function onScopeChanged() {
     renderProcessPicker();
+    pruneUnavailableSelections();
+    renderFields();
+    renderWells();
+    renderFilters();
   }
 
   // One checkbox row (a <label> wrapping the box + text). Clicking the label
@@ -243,7 +279,7 @@
     var ul = document.getElementById('rpFieldList');
     ul.innerHTML = '';
     state.fields.filter(function (f) {
-      return f.label.toLowerCase().indexOf(q) !== -1;
+      return isFieldAvailable(f) && f.label.toLowerCase().indexOf(q) !== -1;
     }).forEach(function (f) {
       var li = document.createElement('li');
       li.textContent = f.label;
@@ -558,8 +594,9 @@
   }
 
   function addFilter() {
-    if (!state.fields.length) return;
-    state.filters.push({ field: state.fields[0].field, op: 'eq', value: '' });
+    var first = state.fields.find(function (f) { return f.filterable && isFieldAvailable(f); });
+    if (!first) return;
+    state.filters.push({ field: first.field, op: 'eq', value: '' });
     renderFilters();
   }
 
@@ -572,7 +609,7 @@
 
       var fld = document.createElement('select');
       state.fields.filter(function (x) {
-        return x.filterable;
+        return x.filterable && isFieldAvailable(x);
       }).forEach(function (x) {
         var opt = document.createElement('option');
         opt.value = x.field;

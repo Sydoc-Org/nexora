@@ -19,8 +19,13 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   now **honors `scope.clients`** (previously a dead field): it narrows the
   caller's allowed set to *(client ∈ clients) ∪ (process ∈ processes)*, with the
   `reporting.scope.process.*` grant still the security boundary. Hidden for
-  `table` sources (Generali / Octo), which carry no processes. de/fr/it
-  translated.
+  `table` sources (Generali / Octo), which carry no processes. The left-panel
+  **field list now scopes to the selected process(es)** (mirroring the workitems
+  field picker): a docprocessing field shows only when at least one selected
+  process exposes it (union; each catalog field already carries its `processes`
+  list, so this is client-side), and narrowing the scope **prunes any
+  already-added column / filter / sort** whose field falls out of scope so a run
+  can't break. de/fr/it translated.
 - **Generali PDQM mapping seed.** Added the `PDQMMapping` row
   `Adressverifikation` / `QSTAT 27` via migration
   `sql/_migrations/GeneraliDB/0002_insert_pdqmmapping_adressverifikation_qstat27.sql`
