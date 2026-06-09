@@ -8,10 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/hero.css') }}">
 
 </head>
-<body class="bg-gray-50">
+<body class="hero-body">
 
     <div id="preloader" class="fixed inset-0 bg-white z-[100] flex items-center justify-center">
         <div id="preloader-logo" class="brand title-wrap">
@@ -24,10 +25,10 @@
                 <div id="header-logo-wrapper" class="text-2xl font-bold text-indigo-600">
                     {% include 'nexora_logo/_nexora_logo.html' %}
                 </div>
-                <a href="{{ url_for('login') }}" id="signin" class="hidden md:inline-block bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-100 transition duration-300" data-testid="hero-signin-desktop">
-                    Sign In
+                <a href="{{ url_for('login') }}" id="signin" class="hero-signin hidden md:inline-block font-semibold py-2 px-4 rounded-lg transition duration-300" data-testid="hero-signin-desktop">
+                    {{ _("Sign In") }}
                 </a>
-                <a href="{{ url_for('login') }}" class="md:hidden bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition" data-testid="hero-signin-mobile">
+                <a href="{{ url_for('login') }}" class="hero-grad md:hidden text-white font-semibold py-2 px-4 rounded-lg transition" data-testid="hero-signin-mobile">
                     {{ _("Sign In") }}
                 </a>
             </div>
@@ -39,24 +40,24 @@
                     <div class="container mx-auto px-6">
                         <div class="grid md:grid-cols-2 gap-12 items-center">
                             <div class="text-center md:text-left">
-                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+                                <h1 class="nx-grad-text text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 pb-1">
                                     {{ _("Seamless Document Tracking, Complete Peace of Mind.") }}
                                 </h1>
                                 <p class="text-lg text-gray-600 mb-10">
                                     {{ _("Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.") }}
                                 </p>
-                                <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg" data-testid="hero-access-portal">
+                                <a href="{{ url_for('login') }}" class="hero-cta inline-block font-bold py-4 px-8 rounded-lg text-lg" data-testid="hero-access-portal">
                                     {{ _("Access Your Portal") }}
                                 </a>
                             </div>
 
                             <div class="hidden md:flex items-center justify-center">
                                 <div class="relative w-full max-w-lg">
-                                    <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-                                    <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                                    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+                                    <div class="absolute top-0 -left-4 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+                                    <div class="absolute top-0 -right-4 w-72 h-72 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+                                    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
-                                    <div class="relative bg-white/60 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
+                                    <div class="hero-preview relative overflow-hidden bg-white/70 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
                                         <div class="flex items-center text-indigo-600 mb-5">
                                             <i class="fas fa-file-alt text-4xl mr-4"></i>
                                             <div>
@@ -85,7 +86,7 @@
                     </div>
                 </section>
 
-                <section id="how-it-works" class="bg-gray-100 py-20 sm:py-24">
+                <section id="how-it-works" class="hero-band-tint py-20 sm:py-24">
                     <div class="container mx-auto px-6">
 
                         <div class="text-center mb-16">
@@ -103,7 +104,7 @@
 
                                 <div class="absolute top-1/2 h-1 transform -translate-y-1/2" style="left: 2rem; right: 2rem;">
                                     <div class="absolute top-0 left-0 w-full h-full bg-gray-200 rounded-full"></div>
-                                    <div id="progress-line" class="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style="width: 0%; transition: width 0.8s ease-in-out;"></div>
+                                    <div id="progress-line" class="absolute top-0 left-0 h-full rounded-full" style="width: 0%; transition: width 0.8s ease-in-out;"></div>
                                 </div>
 
                                 <div id="step-1" class="process-step z-10 flex flex-col items-center text-center">
@@ -151,23 +152,23 @@
                                 <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ _("Everything you need in one secure and convenient place") }}. </p>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
-                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
-                                         <i class="fas fa-search-location text-3xl text-indigo-600"></i>
+                                <div class="hero-feat p-8 rounded-xl text-center">
+                                    <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
+                                         <i class="fas fa-search-location text-3xl text-white"></i>
                                     </div>
                                     <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Real-time tracking") }} </h3>
                                     <p class="text-gray-600">{{ _("Monitor your document's journey from import to validation and final delivery, every step of the way") }}. </p>
                                 </div>
-                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
-                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
-                                        <i class="fas fa-history text-3xl text-indigo-600"></i>
+                                <div class="hero-feat p-8 rounded-xl text-center">
+                                    <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
+                                        <i class="fas fa-history text-3xl text-white"></i>
                                     </div>
                                     <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Document history") }} </h3>
                                     <p class="text-gray-600">{{ _("Access a complete, auditable history of all your processed documents available 24/7.") }} </p>
                                 </div>
-                                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:border-indigo-200 hover:-translate-y-2">
-                                    <div class="flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mx-auto mb-6">
-                                        <i class="fas fa-shield-alt text-3xl text-indigo-600"></i>
+                                <div class="hero-feat p-8 rounded-xl text-center">
+                                    <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
+                                        <i class="fas fa-shield-alt text-3xl text-white"></i>
                                     </div>
                                     <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Secure access") }} </h3>
                                     <p class="text-gray-600">{{ _("Your data is protected with industry-leading security protocols, ensuring complete confidentiality") }}.</p>
@@ -176,7 +177,7 @@
                         </div>
                 </section>
 
-                <section id="getting-started" class="bg-gray-100 py-20 sm:py-24">
+                <section id="getting-started" class="hero-band-tint py-20 sm:py-24">
                     <div class="container mx-auto px-6">
                         <div class="text-center mb-16">
                             <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{{ _("Getting Started is Easy") }}</h2>
@@ -184,17 +185,17 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                             <div class="flex flex-col items-center">
-                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">1</div>
+                                <div class="hero-step-num flex items-center justify-center w-24 h-24 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">1</div>
                                 <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Log In to Your Portal") }}</h3>
                                 <p class="text-gray-600">{{ _("Access your secure dashboard with your provided credentials.") }}</p>
                             </div>
                             <div class="flex flex-col items-center">
-                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">2</div>
+                                <div class="hero-step-num flex items-center justify-center w-24 h-24 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">2</div>
                                 <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Monitor Your Documents") }}</h3>
                                 <p class="text-gray-600">{{ _("Use the dashboard to see the real-time status of all your active documents.") }}</p>
                             </div>
                             <div class="flex flex-col items-center">
-                                <div class="flex items-center justify-center w-24 h-24 bg-indigo-600 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">3</div>
+                                <div class="hero-step-num flex items-center justify-center w-24 h-24 text-white rounded-full text-3xl font-bold mb-4 shadow-lg">3</div>
                                 <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("View Completed History") }}</h3>
                                 <p class="text-gray-600">{{ _("Access detailed archives and audit trails for all processed items.") }}</p>
                             </div>
@@ -209,7 +210,7 @@
                             <p class="text-lg text-gray-600">{{ _("Have questions? We've got answers.") }}</p>
                         </div>
                         <div class="space-y-4">
-                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                            <div class="hero-faq-item">
                                 <button class="faq-btn flex items-center justify-between w-full p-6" data-testid="hero-faq-formats">
                                     <span class="text-lg font-semibold text-gray-800">{{ _("What document formats can be processed?") }}</span>
                                     <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
@@ -218,7 +219,7 @@
                                     <p class="p-6 pt-0 text-gray-600">{{ _("Our system supports a wide range of formats, including PDF, JPG, PNG, TIFF, and more. For specific inquiries, please contact our support team.") }}</p>
                                 </div>
                             </div>
-                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                            <div class="hero-faq-item">
                                 <button class="faq-btn flex items-center justify-between w-full p-6" data-testid="hero-faq-security">
                                     <span class="text-lg font-semibold text-gray-800">{{ _("How secure is my data?") }}</span>
                                     <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
@@ -227,7 +228,7 @@
                                     <p class="p-6 pt-0 text-gray-600">{{ _("Data security is our top priority. We use industry-standard encryption, secure servers, and strict access protocols to ensure your information is protected at all times.") }}</p>
                                 </div>
                             </div>
-                            <div class="bg-gray-50 border-2 border-gray-200 rounded-lg">
+                            <div class="hero-faq-item">
                                 <button class="faq-btn flex items-center justify-between w-full p-6" data-testid="hero-faq-processing-time">
                                     <span class="text-lg font-semibold text-gray-800">{{ _("What is the average processing time for a document?") }}</span>
                                     <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
@@ -240,15 +241,15 @@
                     </div>
                 </section>
 
-                <section class="bg-gray-100">
+                <section class="hero-band-grad">
                     <div class="container mx-auto px-6 py-20 text-center">
-                         <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                         <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
                             {{ _("Ready to See Your Documents in Action?") }}
                         </h2>
-                        <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+                        <p class="text-lg text-indigo-100 max-w-2xl mx-auto mb-8">
                             {{ _("Log in to your portal to access real-time tracking, view your history, and manage your workflow with confidence.") }}
                         </p>
-                        <a href="{{ url_for('login') }}" class="inline-block bg-indigo-600 text-white font-bold py-4 px-10 rounded-lg text-lg hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:-translate-y-1 shadow-lg" data-testid="hero-access-portal-cta">
+                        <a href="{{ url_for('login') }}" class="hero-cta-inverse inline-block font-bold py-4 px-10 rounded-lg text-lg" data-testid="hero-access-portal-cta">
                             {{ _("Access Your Portal Now") }}
                         </a>
                     </div>

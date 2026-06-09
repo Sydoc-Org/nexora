@@ -223,6 +223,21 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   soft brand wash and accent focus rings — plus `nexora-ui.css` for the tokens. The
   403/404/500 error pages already carried a distinct brand-aligned "cosmic" design
   and were left as-is.
+- **UI redesign — public landing (hero) page + 2FA brand consistency.** The public
+  `hero.html` landing page now adopts the `nexora-ui` design system (loads
+  `nexora-ui.css`; `static/css/hero.css` rewritten onto the `--nx-*` tokens): a
+  gradient headline, brand-gradient CTAs, `nx-card`-style feature cards with
+  gradient icon chips, gradient "getting started" medallions, a brand-gradient
+  process rail and a full-bleed gradient closing band, a gradient top-accent on the
+  status-preview card, and a subtle indigo→violet section wash — replacing the
+  ad-hoc indigo/purple/yellow/pink palette (decorative blobs kept deliberately
+  faint). The two 2FA pages (`init_2FA`, `verify_2fa`), which were still on residual
+  `blue-600` buttons/badges, were brought onto the brand gradient (gradient buttons,
+  gradient shield chip, `rounded-xl shadow-2xl` cards, accent focus rings); the
+  shared `_small_footer` link-hover moved from blue to the brand accent. The login
+  and forgot/reset/init-reset pages already matched and were left unchanged.
+  Presentational only — all JS hooks (preloader logo-flight, process animation, FAQ
+  accordion), routes, ids and `data-testid`s unchanged.
 - **UI redesign — Reporting page brought onto `nexora-ui`.** The Reporting builder
   now consumes the global `--nx-*` tokens via a harmonization layer appended to
   `static/css/reporting.css`: panels, toolbar, buttons, mode/view toggles, inputs,
