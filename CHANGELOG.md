@@ -26,6 +26,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   identically to `field_sources`. Extracted document content is HTML-escaped
   before rendering (the same hardening was applied to the pre-existing scalar
   rows). See `docs/superpowers/specs/2026-06-09-workitem-table-highlighting-design.md`.
+- **Two new workitems source-highlight permissions** (migration `0018`,
+  seeded to admin profiles). `workitems.details.view.confidence` gates the
+  extraction **confidence %** (the per-field/cell chips + the confidence colour
+  on the boxes); `workitems.details.view.source_location` gates seeing **where**
+  each value was found on the page (the highlight boxes + click-to-locate; only
+  effective together with `workitems.details.view.images`, since boxes draw over
+  the page image). `api_get_media_info` strips `confidence` / `locations` from
+  `field_sources` + `table_sources` per permission and returns a
+  `source_location_visible` flag so the viewer hides the "no source location"
+  badge when the perm is absent (a permission state, not missing data). Both
+  appear in the admin access-control grant UI automatically (it reads
+  `dbo.Permission`).
 - **Reporting semantic layer (Slice 1 — metrics registry wiring).** A
   DB-backed canonical-metrics registry (`dbo.ReportingMetrics`, migration
   `0017`) is now wired into the reporting views. A report definition's optional

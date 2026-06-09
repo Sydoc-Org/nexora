@@ -1,9 +1,9 @@
 """api_get_media_info exposes table_sources, permission-suppressed.
 
-Table/line-item highlighting reuses the same two perms as scalar fields:
-workitems.details.view.images (page image the boxes are drawn over) and
-.view.fields (the cell values). Without fields perm: table_sources is empty.
-Without images perm: cell values stay but every cell's box locations are stripped.
+Table/line-item highlighting is gated identically to scalar fields:
+  .view.fields                    -> cell values (else table_sources=[]).
+  .view.images + .source_location -> cell box `locations`.
+  .view.confidence                -> cell `confidence`.
 """
 
 import nx_lib.views.workitems as w
@@ -54,7 +54,13 @@ def _get(client):
     return client.get(f"/api/get_media_info/{WID}")
 
 
-ALL = {"workitems.details.view", "workitems.details.view.images", "workitems.details.view.fields"}
+ALL = {
+    "workitems.details.view",
+    "workitems.details.view.images",
+    "workitems.details.view.fields",
+    "workitems.details.view.confidence",
+    "workitems.details.view.source_location",
+}
 
 
 def test_media_info_includes_table_sources(client, monkeypatch):
@@ -76,3 +82,22 @@ def test_table_cell_locations_stripped_without_images_perm(client, monkeypatch):
     # values preserved, every cell box removed
     assert [c["value"] for c in cells] == ["236.82", "7.7"]
     assert all(c["locations"] == [] for c in cells)
+
+
+def test_table_cell_locations_stripped_without_source_location_perm(client, monkeypatch):
+    # images + fields + confidence, but NOT source_location -> cell boxes removed,
+    # values + confidence kept.
+    _patch(monkeypatch, ALL - {"workitems.details.view.source_location"})
+    cells = [c for t in _get(client).get_json()["table_sources"] for row in t["rows"] for c in row]
+    assert [c["value"] for c in cells] == ["236.82", "7.7"]
+    assert all(c["locations"] == [] for c in cells)
+    assert cells[0].get("confidence") == 0.0
+
+
+def test_table_cell_confidence_stripped_without_confidence_perm(client, monkeypatch):
+    # images + fields + source_location, but NOT confidence -> cell confidence
+    # removed, boxes kept.
+    _patch(monkeypatch, ALL - {"workitems.details.view.confidence"})
+    cells = [c for t in _get(client).get_json()["table_sources"] for row in t["rows"] for c in row]
+    assert all("confidence" not in c for c in cells)
+    assert cells[0]["locations"] == TABLES[0]["rows"][0][0]["locations"]

@@ -620,6 +620,11 @@
                         // Table / line-item cell sources (same shape, grouped into rows).
                         window.__tableByWorkitem = window.__tableByWorkitem || {};
                         window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
+                        // Whether the user may see source locations at all (perm-gated). When
+                        // false the "no source location" badge is suppressed — it's a
+                        // permission state, not genuinely-missing location data.
+                        window.__srcLocVisibleByWorkitem = window.__srcLocVisibleByWorkitem || {};
+                        window.__srcLocVisibleByWorkitem[workitemid] = mediaInfo.source_location_visible !== false;
 
                         if (fieldsContainer) {
                             // Stash the scalar values so the shared builder
@@ -727,6 +732,11 @@
         // the same click-to-locate + box-pulse path). Returns '' when there is nothing.
         function buildSourceDetailsHtml(workitemid) {
             const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
+            // Suppress the "no source location" badge when the user lacks the
+            // source-location perm (the backend strips locations from everything,
+            // so it's a permission state, not missing data).
+            const locVisible = !(window.__srcLocVisibleByWorkitem
+                && window.__srcLocVisibleByWorkitem[workitemid] === false);
             let html = '';
             if (Object.keys(fields).length > 0) {
                 const srcByKey = {};
@@ -741,7 +751,7 @@
                         const page = hasLoc ? src.locations[0].page : '';
                         const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
                             + (hasLoc ? ' is-locatable' : '');
-                        const badge = (src && !hasLoc)
+                        const badge = (locVisible && src && !hasLoc)
                             ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
                         const titleAttr = hasLoc
                             ? ` title="{{ _('Click to locate on the document') }}"` : '';
