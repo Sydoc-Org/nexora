@@ -187,6 +187,16 @@
 .reporting-scope-client { font-weight: 600; }
 .reporting-scope-proc { padding-left: 26px; color: #444; }
 
+/* Grain selector on a date column in the Columns well */
+.reporting-grain {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+
 .reporting-well {
   margin-bottom: 16px;
 }

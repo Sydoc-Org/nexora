@@ -234,7 +234,9 @@
       title: document.getElementById('rpTitle').value || 'Untitled report',
       subtitle: document.getElementById('rpSubtitle').value || null,
       columns: state.columns.map(function (c) {
-        return { field: c.field, header: c.header || c.label, agg: null };
+        var col = { field: c.field, header: c.header || c.label, agg: null };
+        if (c.grain) col.grain = c.grain;
+        return col;
       }),
       groupBy: [],
       filters: state.filters,
@@ -285,7 +287,10 @@
       li.textContent = f.label;
       li.onclick = function () {
         if (!state.columns.find(function (c) { return c.field === f.field; })) {
-          state.columns.push(Object.assign({}, f, { header: f.label }));
+          state.columns.push(Object.assign({}, f, {
+            header: f.label,
+            grain: f.grainable ? 'month' : undefined,
+          }));
           renderWells();
         }
       };
@@ -301,10 +306,25 @@
       var inp = document.createElement('input');
       inp.value = c.header;
       inp.oninput = function (e) { c.header = e.target.value; };
+      // Date columns get a grain selector (day/week/month/quarter/year).
+      var grainSel = null;
+      if (c.grainable) {
+        grainSel = document.createElement('select');
+        grainSel.className = 'reporting-grain';
+        [['day', '{{ _("Day") }}'], ['week', '{{ _("Week") }}'], ['month', '{{ _("Month") }}'],
+         ['quarter', '{{ _("Quarter") }}'], ['year', '{{ _("Year") }}']].forEach(function (g) {
+          var opt = document.createElement('option');
+          opt.value = g[0]; opt.textContent = g[1];
+          grainSel.appendChild(opt);
+        });
+        grainSel.value = c.grain || 'month';
+        grainSel.onchange = function (e) { c.grain = e.target.value; };
+      }
       var rm = document.createElement('button');
       rm.textContent = '×';
       rm.onclick = function () { state.columns.splice(i, 1); renderWells(); };
       li.appendChild(inp);
+      if (grainSel) li.appendChild(grainSel);
       li.appendChild(rm);
       cols.appendChild(li);
     });
@@ -873,7 +893,9 @@
     state.columns = (def.columns || []).map(function (c) {
       var meta = state.fields.find(function (f) { return f.field === c.field; })
         || { field: c.field, label: c.field };
-      return Object.assign({}, meta, { header: c.header || meta.label });
+      var col = Object.assign({}, meta, { header: c.header || meta.label });
+      if (c.grain) col.grain = c.grain;
+      return col;
     });
     state.filters = (def.filters || []).map(function (f) { return Object.assign({}, f); });
     state.sort = (def.sort || []).map(function (s) { return Object.assign({}, s); });
