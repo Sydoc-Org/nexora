@@ -554,16 +554,25 @@ $data | ForEach-Object {
 
     <div id="imageModal" class="modal">
       <span class="modal-close">&times;</span>
-      <button type="button" id="srcHlToggle" class="src-hl-toggle" hidden
-              title="{{ _('Show where extracted values were found on the document') }}"
-              data-testid="workitems-src-toggle">
-        <i class="fas fa-magnifying-glass-location"></i>
-        <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
-      </button>
-      <img class="modal-content" id="modalImage">
-      <div id="srcHlLayer"></div>
-      <a class="modal-prev">&#10094;</a>
-      <a class="modal-next">&#10095;</a>
+      <div class="src-modal-body">
+        <div class="src-modal-page">
+          <button type="button" id="srcHlToggle" class="src-hl-toggle" hidden
+                  title="{{ _('Show where extracted values were found on the document') }}"
+                  data-testid="workitems-src-toggle">
+            <i class="fas fa-magnifying-glass-location"></i>
+            <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
+          </button>
+          <img class="modal-content" id="modalImage">
+          <div id="srcHlLayer"></div>
+          <a class="modal-prev">&#10094;</a>
+          <a class="modal-next">&#10095;</a>
+        </div>
+        <aside id="srcReviewPanel" class="src-modal-values" hidden
+               aria-label="{{ _('Extracted values') }}" data-testid="workitems-src-review-panel">
+          <h3 class="src-modal-values-title">{{ _('Extracted values') }}</h3>
+          <div id="srcReviewPanelBody"></div>
+        </aside>
+      </div>
     </div>
 
     {% include '_small_footer.html' %}

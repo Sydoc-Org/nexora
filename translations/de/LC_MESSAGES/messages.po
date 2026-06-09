@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-09 09:11+0200\n"
+"POT-Creation-Date: 2026-06-09 11:17+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1932,7 +1932,7 @@ msgstr ""
 "Unser automatisiertes System erledigt jeden Schritt mit Präzision und "
 "Sicherheit. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:113 templates/js/_workitems_overview_js.html:1113
+#: templates/hero.html:113 templates/js/_workitems_overview_js.html:1125
 #: templates/workitems_overview.html:318
 msgid "Import"
 msgstr "Import"
@@ -2984,7 +2984,7 @@ msgstr "Letzte Bewegung am"
 msgid "Tag"
 msgstr "Tag"
 
-#: templates/js/_workitems_overview_js.html:1511
+#: templates/js/_workitems_overview_js.html:1523
 #: templates/workitems_overview.html:392
 msgid "selected"
 msgstr "ausgewählt"
@@ -3009,7 +3009,7 @@ msgstr "Prozess auswählen..."
 msgid "Please select a valid process."
 msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 
-#: templates/js/_workitems_overview_js.html:1117
+#: templates/js/_workitems_overview_js.html:1129
 #: templates/workitems_overview.html:451
 msgid "Import File"
 msgstr "Datei importieren"
@@ -3082,14 +3082,18 @@ msgstr ""
 "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert "
 "(nicht nur die aktuelle Seite)."
 
-#: templates/workitems_overview.html:558
+#: templates/workitems_overview.html:560
 msgid "Show where extracted values were found on the document"
 msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
 
-#: templates/js/_workitems_overview_js.html:1995
-#: templates/workitems_overview.html:561
+#: templates/js/_workitems_overview_js.html:2007
+#: templates/workitems_overview.html:563
 msgid "Show sources"
 msgstr "Quellen anzeigen"
+
+#: templates/workitems_overview.html:571 templates/workitems_overview.html:572
+msgid "Extracted values"
+msgstr "Extrahierte Werte"
 
 #: templates/admin/access_control.html:6
 msgid "Access Control - nexora"
@@ -3425,14 +3429,14 @@ msgstr "Details"
 
 #: templates/admin/logs.html:124 templates/admin/user_detail.html:234
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1776
+#: templates/js/_workitems_overview_js.html:1788
 msgid "Previous"
 msgstr "Vorherige"
 
 #: templates/admin/logs.html:125 templates/admin/user_detail.html:235
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1782
+#: templates/js/_workitems_overview_js.html:1794
 #: templates/js/archive/_tour_js.html:17
 msgid "Next"
 msgstr "Nächste"
@@ -3812,7 +3816,7 @@ msgstr "Keine Einträge gefunden."
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1623
+#: templates/js/_workitems_overview_js.html:1635
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
@@ -3885,7 +3889,7 @@ msgstr "Dokumente"
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1496
+#: templates/js/_workitems_overview_js.html:1508
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
 
@@ -4436,91 +4440,91 @@ msgstr "Kommentar posten"
 msgid "Checking for media..."
 msgstr "Medien werden gesucht..."
 
-#: templates/js/_workitems_overview_js.html:642
-msgid "no source location"
-msgstr "keine Fundstelle"
-
-#: templates/js/_workitems_overview_js.html:644
-#: templates/js/_workitems_overview_js.html:743
-msgid "Click to locate on the document"
-msgstr "Zum Lokalisieren im Dokument klicken"
-
-#: templates/js/_workitems_overview_js.html:647
-msgid "Extraction confidence"
-msgstr "Extraktions-Konfidenz"
-
-#: templates/js/_workitems_overview_js.html:664
+#: templates/js/_workitems_overview_js.html:632
 msgid "No additional details found."
 msgstr "Keine weiteren Details gefunden."
 
-#: templates/js/_workitems_overview_js.html:669
+#: templates/js/_workitems_overview_js.html:637
 msgid "No media found for this workitem."
 msgstr "Keine Medien für dieses Workitem gefunden."
 
-#: templates/js/_workitems_overview_js.html:682
+#: templates/js/_workitems_overview_js.html:650
 msgid "Could not load media."
 msgstr "Medien konnten nicht geladen werden."
 
-#: templates/js/_workitems_overview_js.html:822
+#: templates/js/_workitems_overview_js.html:711
+#: templates/js/_workitems_overview_js.html:747
+msgid "Click to locate on the document"
+msgstr "Zum Lokalisieren im Dokument klicken"
+
+#: templates/js/_workitems_overview_js.html:745
+msgid "no source location"
+msgstr "keine Fundstelle"
+
+#: templates/js/_workitems_overview_js.html:750
+msgid "Extraction confidence"
+msgstr "Extraktions-Konfidenz"
+
+#: templates/js/_workitems_overview_js.html:834
 msgid "Media"
 msgstr "Medien"
 
-#: templates/js/_workitems_overview_js.html:822
+#: templates/js/_workitems_overview_js.html:834
 msgid "for workitem "
 msgstr "für Workitem "
 
-#: templates/js/_workitems_overview_js.html:845
+#: templates/js/_workitems_overview_js.html:857
 msgid "Failed to load image "
 msgstr "Bild konnte nicht geladen werden "
 
-#: templates/js/_workitems_overview_js.html:965
-#: templates/js/_workitems_overview_js.html:1637
+#: templates/js/_workitems_overview_js.html:977
+#: templates/js/_workitems_overview_js.html:1649
 msgid "High Priority"
 msgstr "Hohe Priorität"
 
-#: templates/js/_workitems_overview_js.html:966
-#: templates/js/_workitems_overview_js.html:1638
+#: templates/js/_workitems_overview_js.html:978
+#: templates/js/_workitems_overview_js.html:1650
 msgid "Medium Priority"
 msgstr "Mittlere Priorität"
 
-#: templates/js/_workitems_overview_js.html:967
-#: templates/js/_workitems_overview_js.html:1639
+#: templates/js/_workitems_overview_js.html:979
+#: templates/js/_workitems_overview_js.html:1651
 msgid "Low Priority"
 msgstr "Niedrige Priorität"
 
-#: templates/js/_workitems_overview_js.html:999
+#: templates/js/_workitems_overview_js.html:1011
 msgid "Please select valid PDF files."
 msgstr "Bitte wählen Sie gültige PDF-Dateien aus."
 
-#: templates/js/_workitems_overview_js.html:1012
+#: templates/js/_workitems_overview_js.html:1024
 msgid "files selected"
 msgstr "Dateien ausgewählt"
 
-#: templates/js/_workitems_overview_js.html:1198
+#: templates/js/_workitems_overview_js.html:1210
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overview_js.html:1472
+#: templates/js/_workitems_overview_js.html:1484
 msgid "Loading workitems..."
 msgstr "Workitems werden geladen..."
 
-#: templates/js/_workitems_overview_js.html:1539
+#: templates/js/_workitems_overview_js.html:1551
 msgid "selected workitems will be exported"
 msgstr "ausgewählte Workitems werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1540
+#: templates/js/_workitems_overview_js.html:1552
 msgid "All workitems matching current filters will be exported"
 msgstr "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1605
+#: templates/js/_workitems_overview_js.html:1617
 msgid "Export failed. Please try again."
 msgstr "Export fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: templates/js/_workitems_overview_js.html:1622
+#: templates/js/_workitems_overview_js.html:1634
 msgid "No workitems found"
 msgstr "Keine Workitems gefunden"
 
-#: templates/js/_workitems_overview_js.html:1995
+#: templates/js/_workitems_overview_js.html:2007
 msgid "Hide sources"
 msgstr "Quellen ausblenden"
 

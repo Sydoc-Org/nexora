@@ -622,45 +622,13 @@
                         window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
 
                         if (fieldsContainer) {
-                            let detailHtml = '';
-                            if (Object.keys(fields).length > 0) {
-                                const srcByKey = {};
-                                (window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
-                                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
-
-                                for (const key in fields) {
-                                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
-                                        const labelKey = key.toLowerCase();
-                                        const label = fieldConfig.labels[labelKey] || key;
-
-                                        const src = srcByKey[key];
-                                        const hasLoc = !!(src && src.locations && src.locations.length);
-                                        const page = hasLoc ? src.locations[0].page : '';
-                                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
-                                            + (hasLoc ? ' is-locatable' : '');
-                                        const badge = (src && !hasLoc)
-                                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
-                                        const titleAttr = hasLoc
-                                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
-                                        const confCls = src ? window.srcConfClass(src.confidence) : '';
-                                        const confBadge = confCls
-                                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
-                                            : '';
-
-                                        fieldsHtml += `
-                                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
-                                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
-                                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
-                                            </div>`;
-                                    }
-                                }
-                                fieldsHtml += '</dl>';
-                                detailHtml += fieldsHtml;
-                            }
-                            // Line-item tables render below the scalar fields (a table
-                            // can exist with no scalar fields, so this is independent).
-                            detailHtml += renderTableGrids(workitemid);
-                            fieldsContainer.innerHTML = detailHtml
+                            // Stash the scalar values so the shared builder
+                            // (buildSourceDetailsHtml) can rebuild this exact markup for the
+                            // in-lightbox review panel too. The line-item grid is appended by
+                            // the builder (a table can exist with no scalar fields).
+                            window.__fieldsByWorkitem = window.__fieldsByWorkitem || {};
+                            window.__fieldsByWorkitem[workitemid] = fields;
+                            fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid)
                                 || `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                         }
                         if (imageContainer) {
@@ -750,6 +718,50 @@
                 html += `<div class="src-table-grid">${title}`
                     + `<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`;
             });
+            return html;
+        }
+
+        // Build the extracted-values markup (scalar field <dl> + line-item grids) for a
+        // workitem. Shared by the inline "Document Details" panel and the in-lightbox
+        // source-review panel, so both render identical rows (same data-key/data-page ->
+        // the same click-to-locate + box-pulse path). Returns '' when there is nothing.
+        function buildSourceDetailsHtml(workitemid) {
+            const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
+            let html = '';
+            if (Object.keys(fields).length > 0) {
+                const srcByKey = {};
+                (window.__srcByWorkitem && window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
+                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                for (const key in fields) {
+                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                        const labelKey = key.toLowerCase();
+                        const label = fieldConfig.labels[labelKey] || key;
+                        const src = srcByKey[key];
+                        const hasLoc = !!(src && src.locations && src.locations.length);
+                        const page = hasLoc ? src.locations[0].page : '';
+                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                            + (hasLoc ? ' is-locatable' : '');
+                        const badge = (src && !hasLoc)
+                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const confCls = src ? window.srcConfClass(src.confidence) : '';
+                        const confBadge = confCls
+                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
+                            : '';
+                        fieldsHtml += `
+                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
+                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
+                            </div>`;
+                    }
+                }
+                fieldsHtml += '</dl>';
+                html += fieldsHtml;
+            }
+            // Line-item tables render below the scalar fields (a table can exist with
+            // no scalar fields, so this is independent).
+            html += renderTableGrids(workitemid);
             return html;
         }
 
@@ -2050,8 +2062,21 @@ async function uploadBatchFiles(files, processName) {
                 currentImages = allImages.map(img => img.src);
                 srcHl.workitemid = String(workitemid);
                 srcHl.pendingPulse = pulseKey || null;
+                renderReviewPanel(String(workitemid));
                 modal.style.display = 'flex';
                 showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
+            }
+
+            // Fill the in-lightbox review panel (right pane) with the workitem's extracted
+            // values, reusing the exact same rows as the inline panel. Hidden (image goes
+            // full-width) when the document has no extracted values.
+            function renderReviewPanel(workitemid) {
+                const panel = document.getElementById('srcReviewPanel');
+                const body = document.getElementById('srcReviewPanelBody');
+                if (!panel || !body) return;
+                const html = buildSourceDetailsHtml(workitemid);
+                body.innerHTML = html;
+                panel.hidden = !html;
             }
 
             function showImage(index) {
@@ -2114,9 +2139,22 @@ async function uploadBatchFiles(files, processName) {
                 openModalForWorkitem(workitemid, parseInt(td.dataset.page || '0', 10), td.dataset.key);
             });
 
+            // Click a value/cell in the in-lightbox review panel -> the modal is already
+            // open, so just navigate to that field's page and pulse its box.
+            document.addEventListener('click', (event) => {
+                const panel = document.getElementById('srcReviewPanel');
+                if (!panel) return;
+                const row = event.target.closest('.src-field-row.is-locatable, td.src-cell-loc');
+                if (!row || !panel.contains(row)) return;
+                srcHl.pendingPulse = row.dataset.key;
+                showImage(parseInt(row.dataset.page || '0', 10));
+            });
+
             if (closeBtn) closeBtn.addEventListener('click', closeModal);
             if (modal) modal.addEventListener('click', (event) => {
-                if (event.target === modal) {
+                // Close when clicking the backdrop or the empty letterbox area around the
+                // page (but not the image, the values panel, the nav arrows or the toggle).
+                if (event.target === modal || event.target.classList.contains('src-modal-page')) {
                     closeModal();
                 }
             });

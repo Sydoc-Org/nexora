@@ -208,6 +208,17 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **Automated test suite build-out.** pytest unit coverage across the app factory, Flask extensions, request-lifecycle hooks, logging, DB helpers (URL builder + `ping_db` / `ping_dbs_parallel`), security/permissions, i18n locale fallback, maintenance banner/lockout, `PrefixMiddleware`, notifications, the Octopus client, process helpers, and the nx CLI (REPL + doctor). Route-level tests covering every view module (auth, core, dashboard, profile, admin, workitems, invoices, notifications, chat). Playwright E2E browser tests across login / 2FA, dashboard, workitems, invoices, chat, profile, admin, and misc pages, with a cross-browser login smoke. pytest-cov wired in with per-module ratcheting coverage thresholds; test layout, fixtures, and run commands documented under `docs/`.
 
 ### Changed
+- **Workitems "Show sources" is now a full-page split review.** Opening the
+  source view (clicking a page or a value's locate action) shows the whole
+  document page with its highlight boxes on the **left** and the extracted
+  values on the **right** — the full scalar field list (label + value +
+  confidence chip + "no source location" badge) plus the line-item grid, all
+  click-to-locate (clicking a value navigates the page + pulses its box, in
+  place). Replaces the centred image-only lightbox. The values markup is shared
+  with the inline Document Details panel via one builder so they never drift,
+  and the right panel hides itself for documents with no extracted values
+  (plain media viewing stays full-width). New string `Extracted values`
+  (de/fr/it).
 - **App-wide UI redesign — the `nexora-ui` design system.** A shared
   `static/css/nexora-ui.css` (global `--nx-*` design tokens + `.nx-*` components:
   cards, buttons, inputs, filter bars, tables, GitHub-style status labels, KPI

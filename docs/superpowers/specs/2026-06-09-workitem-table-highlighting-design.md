@@ -58,6 +58,16 @@ The extracted data is **never modified** — purely a visualization of provenanc
   and on thumbnails; the field `<dl>` in `fields-container-${wid}` makes located
   rows click-to-locate and badges un-locatable ones; `#srcHlToggle` flips all
   boxes; state persists in `localStorage('srcHlOn')`.
+- **Full-page split review:** `#imageModal` is a two-pane flex layout
+  (`.src-modal-body`): the page + overlay + nav + toggle on the **left**
+  (`.src-modal-page`, the `position:relative` containing block for `#srcHlLayer`),
+  the extracted values on the **right** (`#srcReviewPanel`). The values markup is
+  produced by one shared builder `buildSourceDetailsHtml(wid)` (scalar `<dl>` +
+  `renderTableGrids`) reused by both the inline Document Details panel and the
+  review panel, reading `window.__fieldsByWorkitem[wid]` — so the two never drift.
+  Clicking a value/cell in the panel navigates the open view to that page and
+  pulses its box (no re-open). The panel hides (`hidden`) for documents with no
+  extracted values, so plain media viewing stays full-width.
 - Three **other** callers of `get_extensions_urls_fields` discard `field_sources`
   and use only `fields`/`urls`: dashboard activity, CSV export, `api_get_media_raw`.
 
