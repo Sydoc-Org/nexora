@@ -227,7 +227,7 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   `hero.html` landing page was reworked into a premium light "Trust & Authority"
   enterprise hero (per the ui-ux-pro design guide): a token-based (`--nx-*`) light
   fold with a restrained indigo→violet aurora accent and a faint hairline grid, an
-  eyebrow status pill, a dual CTA, a trust-signal row, and a crisp product-window
+  eyebrow status pill, a single primary CTA, a trust-signal row, and a crisp product-window
   mock of the document-status card. Because the whole page is token-based it follows
   the app's `html.dark` preference automatically — light by default, dark as a user
   preference. `static/css/hero.css` was rewritten onto the `--nx-*` tokens; the
