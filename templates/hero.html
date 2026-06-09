@@ -36,47 +36,44 @@
 
         <div id="main-content-wrapper">
             <main>
-                <section class="relative bg-white pt-20 pb-24">
-                    <div class="container mx-auto px-6">
+                <section class="hero-hero relative overflow-hidden pt-20 pb-28 md:pt-24 md:pb-32">
+                    <span class="hero-hero__glow" aria-hidden="true"></span>
+                    <div class="container mx-auto px-6 relative z-10">
                         <div class="grid md:grid-cols-2 gap-12 items-center">
                             <div class="text-center md:text-left">
-                                <h1 class="nx-grad-text text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 pb-1">
+                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-white">
                                     {{ _("Seamless Document Tracking, Complete Peace of Mind.") }}
                                 </h1>
-                                <p class="text-lg text-gray-600 mb-10">
+                                <p class="text-lg text-indigo-100 mb-10 max-w-xl mx-auto md:mx-0">
                                     {{ _("Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.") }}
                                 </p>
-                                <a href="{{ url_for('login') }}" class="hero-cta inline-block font-bold py-4 px-8 rounded-lg text-lg" data-testid="hero-access-portal">
+                                <a href="{{ url_for('login') }}" class="hero-cta-inverse inline-block font-bold py-4 px-8 rounded-lg text-lg" data-testid="hero-access-portal">
                                     {{ _("Access Your Portal") }}
                                 </a>
                             </div>
 
                             <div class="hidden md:flex items-center justify-center">
                                 <div class="relative w-full max-w-lg">
-                                    <div class="absolute top-0 -left-4 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-                                    <div class="absolute top-0 -right-4 w-72 h-72 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
-                                    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
-
-                                    <div class="hero-preview relative overflow-hidden bg-white/70 backdrop-blur-lg rounded-xl p-8 shadow-2xl border border-gray-200">
-                                        <div class="flex items-center text-indigo-600 mb-5">
-                                            <i class="fas fa-file-alt text-4xl mr-4"></i>
+                                    <div class="hero-glass relative overflow-hidden rounded-2xl p-8">
+                                        <div class="flex items-center mb-5">
+                                            <i class="fas fa-file-alt text-4xl mr-4 text-white/90"></i>
                                             <div>
-                                                <h3 class="font-bold text-xl text-gray-800">{{ _("Document Status") }}</h3>
-                                                <p class="text-gray-500">{{ _("Real-time updates") }}</p>
+                                                <h3 class="font-bold text-xl text-white">{{ _("Document Status") }}</h3>
+                                                <p class="text-indigo-100/90">{{ _("Real-time updates") }}</p>
                                             </div>
                                         </div>
                                         <div class="space-y-4">
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Invoice") }} #431</span>
-                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-green-500 h-2.5 rounded-full" style="width: 100%"></div></div>
+                                                <span class="w-28 text-sm font-medium text-indigo-100">{{ _("Invoice") }} #431</span>
+                                                <div class="w-full bg-white/20 rounded-full h-2.5 ml-4"><div class="bg-emerald-400 h-2.5 rounded-full" style="width: 100%"></div></div>
                                             </div>
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Contract") }} #A89</span>
-                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 75%"></div></div>
+                                                <span class="w-28 text-sm font-medium text-indigo-100">{{ _("Contract") }} #A89</span>
+                                                <div class="w-full bg-white/20 rounded-full h-2.5 ml-4"><div class="bg-sky-400 h-2.5 rounded-full" style="width: 75%"></div></div>
                                             </div>
                                             <div class="flex items-center">
-                                                <span class="w-28 text-sm font-medium text-gray-600">{{ _("Report") }} Q3</span>
-                                                <div class="w-full bg-gray-200 rounded-full h-2.5 ml-4"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 35%"></div></div>
+                                                <span class="w-28 text-sm font-medium text-indigo-100">{{ _("Report") }} Q3</span>
+                                                <div class="w-full bg-white/20 rounded-full h-2.5 ml-4"><div class="bg-amber-400 h-2.5 rounded-full" style="width: 35%"></div></div>
                                             </div>
                                         </div>
                                     </div>

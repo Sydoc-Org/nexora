@@ -111,34 +111,41 @@ body.hero-body {
 }
 .hero-faq-item:hover { border-color: var(--nx-border-strong, #d1d5db); }
 
-/* — Status preview card — signature gradient top edge ———————————— */
-/* A 4px gradient strip via ::before so it doesn't override the card's
-   other borders the way border-image would. Card sets overflow-hidden. */
-.hero-preview::before {
+/* — Bold gradient hero band (the fold) ——————————————————————————
+   Full-bleed indigo→violet under the white header. A white headline and
+   a glass status card float on it; a soft white radial + faint dot-grid
+   overlay adds depth so it reads as a designed hero, not a flat fill. */
+.hero-hero {
+    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
+    background-color: #4f46e5;
+}
+.hero-hero__glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(42rem 30rem at 82% -12%, rgba(255, 255, 255, 0.28), transparent 60%),
+        radial-gradient(36rem 28rem at -6% 118%, rgba(124, 58, 237, 0.45), transparent 55%),
+        radial-gradient(circle, rgba(255, 255, 255, 0.10) 1px, transparent 1.6px);
+    background-size: auto, auto, 24px 24px;
+}
+
+/* Glass status card sitting on the gradient hero. */
+.hero-glass {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 28px 60px -16px rgba(15, 23, 42, 0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+.hero-glass::before {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     top: 0;
-    height: 4px;
-    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
-}
-
-/* — Decorative blobs — kept deliberately subtle (brand-tinted) ——— */
-.animate-blob {
-    animation: blob 9s infinite;
-}
-.animation-delay-2000 {
-    animation-delay: -3s;
-}
-.animation-delay-4000 {
-    animation-delay: -6s;
-}
-@keyframes blob {
-    0%   { transform: translate(0px, 0px) scale(1); }
-    33%  { transform: translate(24px, -40px) scale(1.08); }
-    66%  { transform: translate(-16px, 16px) scale(0.94); }
-    100% { transform: translate(0px, 0px) scale(1); }
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
 }
 
 /* — Process animation — retuned to brand tokens ————————————————— */
