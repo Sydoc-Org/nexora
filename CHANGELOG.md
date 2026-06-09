@@ -251,6 +251,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Reporting AI — table-source drafts no longer bounce on labels/missing fields.**
+  Small models (e.g. gpt-4o-mini) reliably emitted *near-valid* report definitions
+  for curated **table** sources — using a column's human **label** ("Date") where
+  the schema wants its **key** (`ForDate`), or omitting `schemaVersion`/`title` — so
+  Surface A ("Build a report") and the Surface C agent's `build_definition` tool
+  rejected them and the agent often looped to `max_turns` without an artifact. A new
+  whitelist-safe repair (`schema.coerce_definition`, run inside the shared
+  `_validate_definition_for_user` gate) now resolves a label back to its catalog key
+  (columns, filters, sort, chart axes), backfills the column header with the label,
+  and fills `schemaVersion`/`visualization`/a synthesized `title`/a default-or-clamped
+  `rowLimit` — only ever swapping a label that maps to exactly one field, and a no-op
+  for already-valid drafts. The human builder path (`/run`) is untouched.
 - **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
   (1) the curated-source catalog shown to the model now lists each field as
   `key "Human Label":type`, and the prompt instructs the model to emit the exact

@@ -70,6 +70,18 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   the right field and as a column `header`. This stops docprocessing — whose keys are
   internal Statconfig codes, not the human labels the model would otherwise guess —
   from drafting label-named fields the validator rejects.
+- **Tolerant repair (server-side safety net):** prompting alone is not enough for
+  small models on curated **table** sources (CamelCase keys like `ForDate` vs. the
+  label "Date"). Before validation, `schema.coerce_definition` repairs the draft
+  **in place**: it resolves a `field` given as a human **label** back to its catalog
+  **key** (columns, filters, sort, chart axes), backfills the column `header` with
+  that label, and fills the obvious scalars (`schemaVersion`, `visualization`,
+  a synthesized `title`, a default/clamped `rowLimit`). It is **whitelist-safe** — a
+  label is only swapped when it maps to exactly one catalog field; an unknown value
+  is left to be rejected — and a no-op for an already-valid draft. The same gate
+  (`_validate_definition_for_user`) backs both Surface A and the agent's
+  `build_definition` tool, so both benefit; the human builder path (`/run`) is
+  untouched.
 
 **Best for:** non-technical users, scoped sources (Generali / Octopus curated),
 "just build me the report." **Limit:** only what the builder can express.

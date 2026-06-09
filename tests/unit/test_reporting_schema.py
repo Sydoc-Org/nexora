@@ -5,6 +5,7 @@ import pytest
 from nx_lib.reporting.schema import (
     REPORT_SCHEMA_VERSION,
     ReportDefinitionError,
+    coerce_definition,
     validate_report_definition,
     validate_sql_definition,
 )
@@ -242,3 +243,180 @@ def test_metrics_absent_still_validates_backward_compat():
     d = _valid_def()
     # no "metrics" key — must pass with default empty metric_codes
     validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+# ---------------------------------------------------------------------------
+# coerce_definition — best-effort, whitelist-safe repair of AI-drafted defs.
+# Catalog carries human labels so we can prove label->key resolution.
+# ---------------------------------------------------------------------------
+
+# Keys are CamelCase like the real curated table sources (ForDate/ParentCategory);
+# labels are what a small model tends to emit instead.
+CATALOG = [
+    {"field": "ForDate", "label": "Date", "filterable": True, "sortable": True},
+    {"field": "ParentCategory", "label": "Parent category", "filterable": True, "sortable": True},
+    {"field": "RecordCount", "label": "Records", "filterable": False, "sortable": True},
+]
+
+
+def _model_def(**over):
+    d = {
+        "schemaVersion": 1,
+        "visualization": "table",
+        "source": "gen_pdqm",
+        "title": "By category",
+        "columns": [{"field": "ForDate"}],
+        "rowLimit": 5000,
+    }
+    d.update(over)
+    return d
+
+
+def test_coerce_resolves_column_label_to_key():
+    d = _model_def(columns=[{"field": "Date"}, {"field": "Parent category"}])
+    coerce_definition(d, CATALOG)
+    assert [c["field"] for c in d["columns"]] == ["ForDate", "ParentCategory"]
+
+
+def test_coerce_backfills_header_from_label_on_remap():
+    d = _model_def(columns=[{"field": "Date"}])
+    coerce_definition(d, CATALOG)
+    assert d["columns"][0] == {"field": "ForDate", "header": "Date"}
+
+
+def test_coerce_keeps_existing_header_on_remap():
+    d = _model_def(columns=[{"field": "Date", "header": "When"}])
+    coerce_definition(d, CATALOG)
+    assert d["columns"][0] == {"field": "ForDate", "header": "When"}
+
+
+def test_coerce_label_match_is_case_insensitive():
+    d = _model_def(columns=[{"field": "DATE"}, {"field": "  parent CATEGORY "}])
+    coerce_definition(d, CATALOG)
+    assert [c["field"] for c in d["columns"]] == ["ForDate", "ParentCategory"]
+
+
+def test_coerce_leaves_valid_keys_untouched():
+    d = _model_def(columns=[{"field": "ForDate", "header": "Date"}])
+    coerce_definition(d, CATALOG)
+    assert d["columns"] == [{"field": "ForDate", "header": "Date"}]
+
+
+def test_coerce_resolves_filter_and_sort_labels():
+    d = _model_def(
+        filters=[{"field": "Parent category", "op": "eq", "value": "x"}],
+        sort=[{"field": "Date", "dir": "asc"}],
+    )
+    coerce_definition(d, CATALOG)
+    assert d["filters"][0]["field"] == "ParentCategory"
+    assert d["sort"][0]["field"] == "ForDate"
+
+
+def test_coerce_resolves_chart_hint_axes():
+    d = _model_def(chartHint={"type": "bar", "x": "Parent category", "y": "Records"})
+    coerce_definition(d, CATALOG)
+    assert d["chartHint"]["x"] == "ParentCategory"
+    assert d["chartHint"]["y"] == "RecordCount"
+
+
+def test_coerce_does_not_invent_unknown_field():
+    # A value that is neither a key nor a label is left as-is (validation rejects it).
+    d = _model_def(columns=[{"field": "Nonsense"}])
+    coerce_definition(d, CATALOG)
+    assert d["columns"][0]["field"] == "Nonsense"
+
+
+def test_coerce_skips_ambiguous_label():
+    # Two fields share the label "Total" -> ambiguous -> not remapped (left to fail).
+    catalog = [
+        {"field": "TotalA", "label": "Total"},
+        {"field": "TotalB", "label": "Total"},
+    ]
+    d = _model_def(columns=[{"field": "Total"}])
+    coerce_definition(d, catalog)
+    assert d["columns"][0]["field"] == "Total"
+
+
+def test_coerce_fills_missing_schema_version():
+    d = _model_def()
+    del d["schemaVersion"]
+    coerce_definition(d, CATALOG)
+    assert d["schemaVersion"] == REPORT_SCHEMA_VERSION
+
+
+def test_coerce_normalizes_stringy_schema_version():
+    coerced = coerce_definition(_model_def(schemaVersion="1"), CATALOG)
+    assert coerced["schemaVersion"] == REPORT_SCHEMA_VERSION
+
+
+def test_coerce_leaves_unsupported_schema_version_to_fail():
+    coerced = coerce_definition(_model_def(schemaVersion=2), CATALOG)
+    assert coerced["schemaVersion"] == 2
+
+
+def test_coerce_fills_missing_visualization():
+    d = _model_def()
+    del d["visualization"]
+    coerce_definition(d, CATALOG)
+    assert d["visualization"] == "table"
+
+
+def test_coerce_normalizes_nontable_visualization():
+    coerced = coerce_definition(_model_def(visualization="bar"), CATALOG)
+    assert coerced["visualization"] == "table"
+
+
+def test_coerce_synthesizes_missing_title():
+    d = _model_def()
+    del d["title"]
+    coerce_definition(d, CATALOG, default_title="Generali — PDQM")
+    assert d["title"] == "Generali — PDQM"
+
+
+def test_coerce_title_falls_back_to_report_when_no_default():
+    d = _model_def(title="   ")
+    coerce_definition(d, CATALOG)
+    assert d["title"] == "Report"
+
+
+def test_coerce_defaults_missing_row_limit():
+    d = _model_def()
+    del d["rowLimit"]
+    coerce_definition(d, CATALOG, default_row_limit=5000)
+    assert d["rowLimit"] == 5000
+
+
+def test_coerce_clamps_oversized_row_limit():
+    coerced = coerce_definition(
+        _model_def(rowLimit=999999), CATALOG, default_row_limit=5000, max_row_limit=50000
+    )
+    assert coerced["rowLimit"] == 50000
+
+
+def test_coerce_non_dict_passthrough():
+    assert coerce_definition(None, CATALOG) is None
+    assert coerce_definition("nope", CATALOG) == "nope"
+
+
+def test_coerce_returns_same_object_mutated_in_place():
+    d = _model_def(columns=[{"field": "Date"}])
+    out = coerce_definition(d, CATALOG)
+    assert out is d  # in-place: callers that hold the ref see the fix
+
+
+def test_coerced_label_definition_passes_validation():
+    # The end-to-end point: a model definition that used LABELS and omitted
+    # schemaVersion/title becomes valid after coercion.
+    d = {
+        "source": "gen_pdqm",
+        "columns": [{"field": "Date"}, {"field": "Parent category"}],
+        "filters": [{"field": "Parent category", "op": "eq", "value": "PDQM"}],
+        "sort": [{"field": "Date", "dir": "desc"}],
+    }
+    coerce_definition(
+        d, CATALOG, default_title="Generali", default_row_limit=5000, max_row_limit=50000
+    )
+    catalog_fields = {c["field"] for c in CATALOG}
+    filterable = {c["field"] for c in CATALOG if c.get("filterable")}
+    sortable = {c["field"] for c in CATALOG if c.get("sortable")}
+    validate_report_definition(d, catalog_fields, filterable, sortable, max_row_limit=50000)

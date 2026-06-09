@@ -144,6 +144,97 @@ def validate_report_definition(
         raise ReportDefinitionError(f"rowLimit must be an int in [1, {max_row_limit}]")
 
 
+def coerce_definition(
+    rd, catalog, *, default_title=None, default_row_limit=None, max_row_limit=None
+):
+    """Best-effort, whitelist-safe repair of an AI-drafted report definition.
+
+    Small models routinely emit a definition that is *almost* valid: they use a
+    column's human LABEL where the schema wants its field KEY, omit schemaVersion
+    or the title, or pick a chart-style visualization. This fixes those classes of
+    mistake IN PLACE (and returns the same object) BEFORE validation, so an
+    otherwise-correct draft is accepted instead of bounced.
+
+    It never widens the whitelist: a label is only swapped for a key when that
+    label maps to exactly one catalog field and the supplied value is not already
+    a valid key; an unknown value is left untouched (and validation still rejects
+    it). Coercion is a no-op for an already-valid definition, so it is safe to run
+    on every AI-drafted definition (Surface A + the agent's build_definition tool).
+
+    `catalog` is the source field-catalog: a list of {field, label, ...} dicts.
+    A non-dict `rd` is returned unchanged.
+    """
+    if not isinstance(rd, dict):
+        return rd
+
+    # label (casefolded) -> field key, dropping ambiguous labels and bare keys.
+    keys = set()
+    label_to_key = {}
+    ambiguous = set()
+    for c in catalog or []:
+        key = c.get("field")
+        if not key:
+            continue
+        keys.add(key)
+        label = c.get("label")
+        if isinstance(label, str) and label.strip():
+            norm = label.strip().casefold()
+            if norm in label_to_key and label_to_key[norm] != key:
+                ambiguous.add(norm)
+            label_to_key.setdefault(norm, key)
+    for norm in ambiguous:
+        label_to_key.pop(norm, None)
+
+    def _resolve(value):
+        """Return (key, original_label) if `value` is a known label, else (value, None)."""
+        if not isinstance(value, str) or value in keys:
+            return value, None
+        key = label_to_key.get(value.strip().casefold())
+        return (key, value) if key else (value, None)
+
+    for col in rd.get("columns") or []:
+        if not isinstance(col, dict):
+            continue
+        key, label = _resolve(col.get("field"))
+        if label is not None:
+            col["field"] = key
+            if not (isinstance(col.get("header"), str) and col["header"].strip()):
+                col["header"] = label
+
+    for spec in (rd.get("filters") or []) + (rd.get("sort") or []):
+        if isinstance(spec, dict):
+            key, label = _resolve(spec.get("field"))
+            if label is not None:
+                spec["field"] = key
+
+    chart = rd.get("chartHint")
+    if isinstance(chart, dict):
+        for axis in ("x", "y"):
+            key, label = _resolve(chart.get(axis))
+            if label is not None:
+                chart[axis] = key
+
+    sv = rd.get("schemaVersion")
+    if sv is None or (not isinstance(sv, bool) and str(sv).strip() in ("1", "1.0")):
+        rd["schemaVersion"] = REPORT_SCHEMA_VERSION
+
+    if rd.get("visualization") != "table":
+        rd["visualization"] = "table"
+
+    title = rd.get("title")
+    if not (isinstance(title, str) and title.strip()):
+        rd["title"] = (default_title or "").strip() or "Report"
+
+    rl = rd.get("rowLimit")
+    if isinstance(rl, bool) or not isinstance(rl, int) or rl < 1:
+        if default_row_limit is not None:
+            rd["rowLimit"] = default_row_limit
+    elif max_row_limit is not None and rl > max_row_limit:
+        rd["rowLimit"] = max_row_limit
+
+    return rd
+
+
 def validate_sql_definition(rd, *, allowed_targets):
     """Validate a saved/exported live-SQL definition shape. Raises ReportDefinitionError.
 

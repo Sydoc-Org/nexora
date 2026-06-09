@@ -62,6 +62,7 @@ from ..reporting.sandbox import SqlSandboxError, validate_select, wrap_with_cap
 from ..reporting.schedule import compute_next_run, utcnow, validate_schedule
 from ..reporting.schema import (
     ReportDefinitionError,
+    coerce_definition,
     validate_report_definition,
     validate_sql_definition,
 )
@@ -396,6 +397,18 @@ def _validate_definition_for_user(definition):
         catalog_fields = {f["field"] for f in catalog}
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
+        # Repair common small-model near-misses in place (labels-for-keys, missing
+        # schemaVersion/title) so an otherwise-correct AI draft is accepted, not
+        # bounced. Whitelist-safe: only resolves labels that map to a real field.
+        # Mutating `definition` here propagates to what the caller returns/applies
+        # (Surface A's result.definition; the agent's build_definition trace args).
+        coerce_definition(
+            definition,
+            catalog,
+            default_title=source.get("label"),
+            default_row_limit=DEFAULT_ROW_LIMIT,
+            max_row_limit=MAX_ROW_LIMIT,
+        )
         to_validate = {k: v for k, v in definition.items() if k != "chartHint"}
         validate_report_definition(
             to_validate, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT

@@ -656,3 +656,55 @@ def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):
     assert resp.get_json()["explainData"] is True
     assert {"run_sql", "compute_stats"} <= set(captured["tools"])
     assert captured["run_sql_bound"] is True
+
+
+# ---- _validate_definition_for_user coercion wiring (table sources) --------
+# The AI surfaces (build + agent) share this validator. It must repair the
+# common small-model mistakes — labels-for-keys, missing schemaVersion/title —
+# so a near-miss draft for a curated table source is accepted, not bounced.
+
+_TABLE_SOURCE = {
+    "id": "gen_pdqm",
+    "kind": "curated",
+    "provider": "table",
+    "permission": "reporting.source.generali.pdqm",
+    "label": "Generali — PDQM",
+    "engine": "generali",
+    "baseObject": "GeneraliDB.dbo.PdqmReport",
+    "columns": [
+        {"field": "ForDate", "label": "Date", "filterable": True, "sortable": True},
+        {
+            "field": "ParentCategory",
+            "label": "Parent category",
+            "filterable": True,
+            "sortable": True,
+        },
+    ],
+}
+
+
+def test_validate_definition_coerces_table_source_labels_and_defaults():
+    from nx_lib.views.reporting import _validate_definition_for_user
+
+    # A model draft that used LABELS and omitted schemaVersion + title.
+    defn = {
+        "source": "gen_pdqm",
+        "columns": [{"field": "Date"}, {"field": "Parent category"}],
+        "sort": [{"field": "Date", "dir": "desc"}],
+    }
+    with ExitStack() as es:
+        es.enter_context(
+            patch("nx_lib.views.reporting._get_effective_source", return_value=_TABLE_SOURCE)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
+        ok, err = _validate_definition_for_user(defn)
+
+    assert (ok, err) == (True, None)
+    # labels were resolved to keys in place, and headers backfilled from the label
+    assert defn["columns"] == [
+        {"field": "ForDate", "header": "Date"},
+        {"field": "ParentCategory", "header": "Parent category"},
+    ]
+    assert defn["sort"][0]["field"] == "ForDate"
+    assert defn["schemaVersion"] == 1
+    assert defn["title"] == "Generali — PDQM"  # synthesized from the source label
