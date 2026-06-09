@@ -232,7 +232,63 @@ whatever rects are present. No grain is hard-coded.
 5. i18n (extract → translate de/fr/it → compile).
 6. e2e + CHANGELOG + CLAUDE.md doc note.
 
-## Verified shape (INT spike) — TO BE FILLED BY STEP 1
+## Verified shape (INT spike, 2026-06-09)
 
-_(Recorded here after the spike, like the base feature's "Verified coordinate
-shape" section. Until then the Data contract above is the working assumption.)_
+Confirmed live against INT (WID 18299, the base feature's invoice). The shape
+differs from the "Data contract" assumption above — implementation follows this.
+
+- **Tables live at `doc["Tables"]`** (and at each `ChildDocuments[i]["Tables"]`),
+  an array of `{ "Name": "TabVat", "Rows": [ {"ID": "...", "Cells": [ ... ]} ] }`.
+  **`Name`, not `Title`. No `Columns` array** — columns are derived from the union
+  (in first-seen order) of each cell's `ColumnName`.
+- **A row is an object** `{ID, Cells:[...]}` — iterate `row["Cells"]`, not the row.
+- **A cell** = `{ "ColumnName": "TabNetAmount", "CapturedValue": "236.82",
+  "CellValue": {"Text": "236.82", "TypedValue": 236.82, "IsSet": true},
+  "Confidence": 0.0, "CellType": 5, "Location": {DtoImageBasedLocation},
+  "CapturedLocation": null }`.
+  - **Value** = `CellValue.Text`, fallback `CapturedValue`. (Empty cells have both
+    null → skipped, mirroring scalar `field_sources`.)
+  - **Column key/label** = `ColumnName`.
+  - **`Location`** is the *same* `DtoImageBasedLocation` as scalar fields:
+    `PageIndex` (0-based), `Rectangle` / `Rectangles` `{Left,Top,Width,Height}` in
+    image pixels, origin top-left. Derived/summary cells carry `{0,0,0,0}`
+    (→ un-locatable, dropped by the shared `rect_from_octo`). Use `Location`,
+    fall back to `CapturedLocation`.
+  - **`Confidence`** on the cell (0..1 here; reuse `confidence_of`). Note many
+    located table cells report `0.0` — the UI will colour them low/red, which is
+    faithful to the data.
+- **Payload:** `WithTables=true` added only ~24 KB / ~6% (412,690 → 437,311 bytes)
+  and did **not** change the document decomposition. Opt-in fetch keeps even that
+  off the three scalar-only callers. Risk #2 is effectively retired.
+
+**Page-alignment finding (important).** WID 18299 is a `DPSI_Document` whose real
+media, located `IndexFields`, *and* located table cells all live in
+`ChildDocuments[1]` (root has `image_media=0`, `indexfields_real_rect=0`). The
+shipped `get_extensions_urls_fields` / `extract_field_locations` iterate
+**root-only** for non-`Batch` docs, so for such nested docs they surface nothing —
+a **pre-existing** limitation affecting scalar fields too, *not* introduced here.
+**Rule for this feature:** `extract_table_locations` reuses the **identical item
+iteration** (`items_of`) and per-item page offset (`count_image_media`) as the
+scalar parser, so table-cell `page` indices align with the `urls` list
+`api_get_media_raw` serves *by construction*, whatever the document shape. Making
+nested `DPSI_Document`s light up (media+fields+tables together, at child level) is
+a larger shared change to `get_extensions_urls_fields` — **out of scope here**,
+noted as a follow-up.
+
+**Corrected internal contract** (supersedes the "Data contract" JSON above):
+```python
+table_sources = [
+  { "title": "TabVat",                       # Octopus Tables[].Name
+    "columns": ["TabNetAmount", "TabVatAmount", "TabVatRate", "TabVatCode"],
+    "rows": [
+      [ {"col": "TabNetAmount", "value": "236.82",
+         "locations": [{"page": 1, "rect": {"left":851,"top":2407,"width":543,"height":544}}],
+         "confidence": 0.0},
+        {"col": "TabVatRate", "value": "7.7", "locations": []} ],   # {0,0,0,0} → un-locatable
+    ] } ]
+```
+
+**Screenshots:** as with the base feature, no detail-perm-visible workitem carries
+real *line-item* table coords (WID 18299 only populates the `TabVat` summary;
+`TabOrderItems` is empty), so live screenshots use injected representative table
+cell coords on a real page — data correctness is proven by the spike + unit tests.
