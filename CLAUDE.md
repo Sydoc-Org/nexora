@@ -122,6 +122,8 @@ Playwright screenshot artifacts go in `screenshots/` (never the repo root).
 
 Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission, use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores.
 
+**Session handoff loop:** when a batch of work is done (committed, tests green, nothing queued) or the conversation is getting heavy (nearing auto-compact), run `/handoff-session-state` **unprompted** — it writes a zero-context handoff, commits it, drops the gitignored `var/handoff-pending` flag, and prompts the user to `/clear`. On the next session start, a SessionStart hook reads the flag and instructs the fresh session to resume via `/reset-session`, which consumes the flag. Details: `docs/howto/claude-workflow.md` ("Session handoff loop").
+
 ## Git — Branch-based policy
 
 **On a feature branch** (any branch that isn't `main`): allowed to stage (`git add`), commit (`git commit`), and push (`git push`) without further authorization. Other modifying operations (branch delete, reset, rebase, worktree prune, etc.) still require explicit per-turn opt-in.

@@ -7,6 +7,9 @@ Wrap up the current work session so the **next** session can resume with zero co
 **fully autonomously, in order** — don't ask questions unless genuinely blocked (e.g. you're on
 `main`). Optional focus from the user: `$ARGUMENTS`.
 
+Run this **unprompted** when a batch of work is done (committed, tests green, nothing queued) or
+the conversation is getting heavy — see "Session handoff loop" in `docs/howto/claude-workflow.md`.
+
 ## 1. Reconstruct what happened
 
 Run `git branch --show-current`, `git status`, `git log --oneline -15`, and `git diff --stat`.
@@ -16,7 +19,7 @@ conversation for decisions/gotchas that aren't obvious from the diff. **Do not f
 ## 2. `main` guard
 
 If on `main`: do **not** stage/commit/modify any ref (nexora policy — `main` is read-only even with
-per-turn permission). Stop, say so, tell the user to switch to a feature branch, and skip steps 3–5.
+per-turn permission). Stop, say so, tell the user to switch to a feature branch, and skip steps 3–6.
 
 ## 3. Write the handoff
 
@@ -54,7 +57,14 @@ per-turn permission). Stop, say so, tell the user to switch to a feature branch,
   even if `$ARGUMENTS` asks to push (only commit; tell them to push).
 - After committing, show `git log -1 --stat` and capture the short hash.
 
-## 5. Prompt to clear
+## 5. Drop the resume flag
+
+Write the handoff's repo-relative path (e.g. `docs/superpowers/handoffs/2026-06-09-foo.md`) as the
+single line of `var/handoff-pending` (gitignored — never commit it). The SessionStart hook
+(`.claude/helpers/check-handoff-pending.ps1`) reads this flag in the next fresh session and points
+it at `/reset-session`, which consumes the flag.
+
+## 6. Prompt to clear
 
 Only the user can run `/clear`. **End your entire response** with one prominent line and nothing
 after it:

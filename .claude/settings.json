@@ -4,6 +4,18 @@
     "command": "sh -c 'exec node \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/statusline.cjs\"'"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/check-handoff-pending.ps1",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

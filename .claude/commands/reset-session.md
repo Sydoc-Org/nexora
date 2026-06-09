@@ -8,10 +8,13 @@ context the user passed: `$ARGUMENTS`.
 
 ## 1. Load the handoff
 
-- Look in `docs/superpowers/handoffs/` (fall back to `docs/handoffs/`). Pick the **most recent** by
-  filename date — unless `$ARGUMENTS` names a specific handoff file, in which case use that. If two
-  handoffs share the newest date, the older one carries a forward-pointer banner at the top (written
-  by `/handoff-session-state`) — follow it. **Read the handoff in full.**
+- **Flag file first:** if `var/handoff-pending` exists, its first line is the handoff to load
+  (still overridden by an explicit `$ARGUMENTS` path). **Delete the flag file** once the handoff is
+  read, so later sessions don't re-trigger.
+- Otherwise look in `docs/superpowers/handoffs/` (fall back to `docs/handoffs/`). Pick the **most
+  recent** by filename date — unless `$ARGUMENTS` names a specific handoff file, in which case use
+  that. If two handoffs share the newest date, the older one carries a forward-pointer banner at the
+  top (written by `/handoff-session-state`) — follow it. **Read the handoff in full.**
 - Follow its **"Prior handoff"** link and read any design doc, plan, or source files it references
   that you'll need to act (e.g. `docs/design/*`, `docs/superpowers/plans/*`). Don't read the whole
   repo — just what the handoff points at.

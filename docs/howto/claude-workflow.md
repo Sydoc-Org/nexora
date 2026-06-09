@@ -34,6 +34,30 @@ Disabling the auto-pick / plugin-finder / superpowers session-start injection re
 - **Writer/Reviewer with worktrees.** Implement in one worktree (created under `.claude/worktrees/`); review the diff in a *fresh* session or with the `/code-review` skill before merging, so the reviewer isn't biased toward code it just wrote.
 - **Git policy.** Feature branches allow stage/commit/push; `main` allows no modifying git ops (PR instead). Never `--no-verify`; if the SQL hook can't reach INT (e.g. a fresh worktree without `env/INT.env`), use `SQL_SYNC_SKIP=1 git commit`.
 
+## Session handoff loop (fresh context per batch)
+
+The cheapest context is a fresh one. Instead of letting a long session degrade into auto-compact,
+close each batch of work with a handoff document and restart clean — state crosses the session
+boundary as **docs in the repo**, not conversation tokens:
+
+1. **The agent hands off, unprompted.** When a batch is done (committed, tests green, nothing
+   queued) or the conversation is getting heavy, the agent runs `/handoff-session-state`: writes a
+   zero-context handoff to `docs/superpowers/handoffs/`, commits it (commit-only), writes the
+   handoff's path into the gitignored flag file `var/handoff-pending`, and ends with a "type
+   `/clear`" prompt.
+2. **You clear and relaunch.** `/clear` (or exit and start `claude` again). The usual session-start
+   hooks run (statusline, auto-pick brief, …).
+3. **The new session auto-resumes.** A SessionStart hook
+   (`.claude/helpers/check-handoff-pending.ps1`, wired in `.claude/settings.json`, matcher
+   `startup|clear`) sees the flag and injects a two-line pointer; the fresh session invokes
+   `/reset-session` — loads the handoff, deletes the flag, orients, front-loads its questions via
+   AskUserQuestion, then runs the next batch to completion.
+
+The next session starts at the fixed session-start floor (see the budget table above) plus one
+handoff file, instead of dragging a long history behind it. If the first message of the new session
+starts unrelated work, the agent leaves the flag in place — the pointer simply reappears next
+session (or `/reset-session` can be run manually later).
+
 ## Plays (nexora-specific)
 
 Concrete recurring workflows, ranked by payoff. Scale figures are from the 2.5.63 tree.
