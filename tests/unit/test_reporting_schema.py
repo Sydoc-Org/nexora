@@ -420,3 +420,64 @@ def test_coerced_label_definition_passes_validation():
     filterable = {c["field"] for c in CATALOG if c.get("filterable")}
     sortable = {c["field"] for c in CATALOG if c.get("sortable")}
     validate_report_definition(d, catalog_fields, filterable, sortable, max_row_limit=50000)
+
+
+# --- date-column grain modifier (Task 5) -------------------------------------
+
+_GRAINABLE = {"date"}  # 'date' is in CATALOG_FIELDS and acts as a date field here
+
+
+def _grain_def(grain, field="date"):
+    d = _valid_def()
+    d["columns"] = [{"field": field, "header": "X", "agg": None, "grain": grain}]
+    d["sort"] = []
+    return d
+
+
+def test_valid_grain_accepted():
+    validate_report_definition(
+        _grain_def("month"),
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        grainable_fields=_GRAINABLE,
+    )
+
+
+def test_grain_on_non_grainable_field_rejected():
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            _grain_def("month", field="doctype"),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            grainable_fields=_GRAINABLE,
+        )
+
+
+def test_unknown_grain_rejected():
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            _grain_def("fortnight"),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            grainable_fields=_GRAINABLE,
+        )
+
+
+def test_absent_grain_accepted():
+    d = _valid_def()
+    d["columns"] = [{"field": "date", "header": "Raw", "agg": None}]
+    d["sort"] = []
+    validate_report_definition(
+        d,
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        grainable_fields=_GRAINABLE,
+    )

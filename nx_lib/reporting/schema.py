@@ -34,6 +34,10 @@ FILTER_OPS = {
 
 SORT_DIRS = {"asc", "desc"}
 
+# Date-column bucketing grains. Only fields flagged grainable (date fields) may
+# carry one.
+GRAINS = {"day", "week", "month", "quarter", "year"}
+
 
 class ReportDefinitionError(ValueError):
     """Raised when a report definition does not match the v1 schema."""
@@ -47,6 +51,7 @@ def validate_report_definition(
     *,
     max_row_limit,
     metric_codes=frozenset(),
+    grainable_fields=frozenset(),
 ):
     """Validate `rd` (a dict) against the v1 schema. Raises ReportDefinitionError.
 
@@ -85,6 +90,12 @@ def validate_report_definition(
         header = c.get("header")
         if header is not None and not isinstance(header, str):
             raise ReportDefinitionError("column header must be a string or null")
+        grain = c.get("grain")
+        if grain is not None:
+            if c.get("field") not in grainable_fields:
+                raise ReportDefinitionError(f"field not grainable: {c.get('field')!r}")
+            if grain not in GRAINS:
+                raise ReportDefinitionError(f"unknown grain: {grain!r}")
 
     for f in rd.get("filters") or []:
         if not isinstance(f, dict):
