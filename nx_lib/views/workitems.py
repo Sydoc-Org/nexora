@@ -611,7 +611,7 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields, _fs = get_extensions_urls_fields(
+                            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
@@ -989,8 +989,18 @@ def api_get_media_info(workitem_id):
             if not can_view_fields:
                 d["fields"] = {}
                 d["field_sources"] = []
+                d["table_sources"] = []
             elif not can_view_images:
                 d["field_sources"] = [{**s, "locations": []} for s in d.get("field_sources", [])]
+                d["table_sources"] = [
+                    {
+                        **t,
+                        "rows": [
+                            [{**c, "locations": []} for c in row] for row in t.get("rows", [])
+                        ],
+                    }
+                    for t in d.get("table_sources", [])
+                ]
             return d
 
         cached_info = cache.get(f"media_info_{workitem_id}")
@@ -1003,8 +1013,8 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls, fields, field_sources = get_extensions_urls_fields(
-            workitemdata, document_id, domain
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            workitemdata, document_id, domain, with_tables=True
         )
 
         media_count = len(urls) if urls else 0
@@ -1017,6 +1027,7 @@ def api_get_media_info(workitem_id):
             "media_count": media_count,
             "fields": fields,
             "field_sources": field_sources,
+            "table_sources": table_sources,
         }
 
         cache.set(f"media_info_{workitem_id}", response_data)
@@ -1038,7 +1049,7 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields, _fs = get_extensions_urls_fields(
+            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
                 workitemdata, document_id, domain
             )
             media_data = {"extensions": extensions, "urls": urls}

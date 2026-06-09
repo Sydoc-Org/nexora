@@ -25,7 +25,7 @@ def _patch(monkeypatch, perms):
     monkeypatch.setattr(
         w,
         "get_extensions_urls_fields",
-        lambda *a, **k: ([".jpg"], ["u0"], {"Doc number": "INV-1", "VAT rate": "7.7"}, SOURCES),
+        lambda *a, **k: ([".jpg"], ["u0"], {"Doc number": "INV-1", "VAT rate": "7.7"}, SOURCES, []),
     )
     monkeypatch.setattr(w, "has_permission", lambda code: code in perms)
     w.cache.delete("media_info_123")
