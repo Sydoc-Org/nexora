@@ -2,7 +2,11 @@
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const state = {
-    source: null, fields: [], columns: [], filters: [], sort: [], processes: [],
+    source: null, fields: [], columns: [], filters: [], sort: [],
+    // Process scope. `allProcesses` is the caller's allowed '<client>.<process>'
+    // list for the current source (the pickable set); `selProcesses` is the
+    // selected subset. Serialised to scope.clients/processes by buildScope().
+    allProcesses: [], selProcesses: [],
     mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
     lastResult: null, view: 'grid', currentReportId: null, currentReportName: null,
     currentReportOwned: true, currentReportCanEdit: true,
@@ -24,6 +28,168 @@
     return res;
   }
 
+  // ---- Process scope (client / process picker) -------------------------------
+  // Processes are '<client>.<process>'; the client is the text before the first
+  // dot (mirrors nx_lib/process_helpers).
+  function clientOf(p) {
+    var i = p.indexOf('.');
+    return i < 0 ? p : p.slice(0, i);
+  }
+
+  // allProcesses grouped by client, preserving first-seen order.
+  function processGroups() {
+    var groups = [], byClient = {};
+    state.allProcesses.forEach(function (p) {
+      var c = clientOf(p);
+      if (!byClient[c]) { byClient[c] = { client: c, procs: [] }; groups.push(byClient[c]); }
+      byClient[c].procs.push(p);
+    });
+    return groups;
+  }
+
+  function isSelected(p) { return state.selProcesses.indexOf(p) !== -1; }
+
+  // Serialise the selection into {clients, processes}. A fully-selected client is
+  // emitted as a client (durable — it picks up processes added under it later); a
+  // partially selected client emits its individually-picked processes. Everything
+  // selected -> empty scope, which the server reads as "all allowed" (keeps saved
+  // definitions portable and matches the pre-picker default).
+  function buildScope() {
+    var all = state.allProcesses, sel = state.selProcesses;
+    if (!all.length || sel.length >= all.length) return { clients: [], processes: [] };
+    var selSet = {};
+    sel.forEach(function (p) { selSet[p] = true; });
+    var clients = [], processes = [];
+    processGroups().forEach(function (g) {
+      if (g.procs.every(function (p) { return selSet[p]; })) { clients.push(g.client); return; }
+      g.procs.forEach(function (p) { if (selSet[p]) processes.push(p); });
+    });
+    return { clients: clients, processes: processes };
+  }
+
+  // Adopt a source's allowed process list, selecting everything (default) or the
+  // subset implied by a saved scope {clients, processes}.
+  function setProcessScope(allProcesses, savedScope) {
+    state.allProcesses = (allProcesses || []).slice();
+    var sc = savedScope || {};
+    var clients = sc.clients || [], procs = sc.processes || [];
+    if (!clients.length && !procs.length) {
+      state.selProcesses = state.allProcesses.slice();
+    } else {
+      var clientSet = {}; clients.forEach(function (c) { clientSet[c] = true; });
+      var procSet = {}; procs.forEach(function (p) { procSet[p] = true; });
+      state.selProcesses = state.allProcesses.filter(function (p) {
+        return procSet[p] || clientSet[clientOf(p)];
+      });
+      // A saved scope that now resolves to nothing (perms changed) falls back to all.
+      if (!state.selProcesses.length) state.selProcesses = state.allProcesses.slice();
+    }
+    renderProcessPicker();
+  }
+
+  function toggleProcess(p) {
+    if (isSelected(p)) {
+      // Keep at least one selected. The native click already unchecked the box,
+      // so re-render to repaint it to its true (still-selected) state.
+      if (state.selProcesses.length <= 1) { renderProcessPicker(); return; }
+      state.selProcesses = state.selProcesses.filter(function (x) { return x !== p; });
+    } else {
+      state.selProcesses = state.selProcesses.concat([p]);
+    }
+    renderProcessPicker();
+  }
+
+  function toggleClient(client) {
+    var procs = state.allProcesses.filter(function (p) { return clientOf(p) === client; });
+    if (procs.every(isSelected)) {
+      var next = state.selProcesses.filter(function (p) { return clientOf(p) !== client; });
+      // Would empty the whole selection — repaint to undo the native uncheck.
+      if (!next.length) { renderProcessPicker(); return; }
+      state.selProcesses = next;
+    } else {
+      var add = procs.filter(function (p) { return !isSelected(p); });
+      state.selProcesses = state.selProcesses.concat(add);
+    }
+    renderProcessPicker();
+  }
+
+  function selectAllProcesses() {
+    state.selProcesses = state.allProcesses.slice();
+    renderProcessPicker();
+  }
+
+  // One checkbox row (a <label> wrapping the box + text). Clicking the label
+  // toggles the box natively, firing `onToggle`.
+  function scopeRow(labelText, checked, indeterminate, onToggle) {
+    var row = document.createElement('label');
+    row.className = 'reporting-scope-row';
+    var box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = checked;
+    box.indeterminate = !!indeterminate;
+    box.addEventListener('change', onToggle);
+    var span = document.createElement('span');
+    span.textContent = labelText;
+    row.appendChild(box);
+    row.appendChild(span);
+    return row;
+  }
+
+  function renderProcessPicker() {
+    var wrap = document.getElementById('rpScopeWrap');
+    if (!wrap) return;
+    // Only sources that carry processes (docprocessing) get the picker; table
+    // sources have an empty allowed list -> hide the control entirely.
+    if (!state.allProcesses.length) {
+      wrap.hidden = true;
+      toggleScopeMenu(false);
+      return;
+    }
+    wrap.hidden = false;
+
+    var menu = document.getElementById('rpScopeMenu');
+    menu.innerHTML = '';
+    var total = state.allProcesses.length, selN = state.selProcesses.length;
+
+    var allRow = scopeRow('{{ _("All processes") }}', selN >= total, selN > 0 && selN < total,
+      function () { selectAllProcesses(); });
+    allRow.classList.add('reporting-scope-all');
+    menu.appendChild(allRow);
+
+    processGroups().forEach(function (g) {
+      var sel = g.procs.filter(isSelected).length;
+      var clientRow = scopeRow(g.client, sel === g.procs.length, sel > 0 && sel < g.procs.length,
+        (function (c) { return function () { toggleClient(c); }; })(g.client));
+      clientRow.classList.add('reporting-scope-client');
+      menu.appendChild(clientRow);
+      g.procs.forEach(function (p) {
+        var label = p.slice(g.client.length + 1) || p; // process part after '<client>.'
+        var row = scopeRow(label, isSelected(p), false,
+          (function (proc) { return function () { toggleProcess(proc); }; })(p));
+        row.classList.add('reporting-scope-proc');
+        menu.appendChild(row);
+      });
+    });
+
+    updateScopeSummary();
+  }
+
+  function updateScopeSummary() {
+    var summary = document.getElementById('rpScopeSummary');
+    if (!summary) return;
+    var total = state.allProcesses.length, selN = state.selProcesses.length;
+    summary.textContent = (selN >= total) ? '{{ _("All processes") }}' : (selN + ' / ' + total);
+  }
+
+  function toggleScopeMenu(open) {
+    var menu = document.getElementById('rpScopeMenu');
+    var btn = document.getElementById('rpScopeBtn');
+    if (!menu || !btn) return;
+    var willOpen = (open === undefined) ? menu.hidden : open;
+    menu.hidden = !willOpen;
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  }
+
   function buildDefinition() {
     return {
       schemaVersion: 1,
@@ -40,7 +206,7 @@
       // Canonical metrics: when present the selected Columns become the grouping
       // and the server returns these as aggregations. Omit when none selected.
       metrics: state.metrics.map(function (c) { return { metric: c }; }),
-      scope: { clients: [], processes: state.processes },
+      scope: buildScope(),
       rowLimit: 5000,
       sql: null,
       sqlTarget: null,
@@ -363,7 +529,7 @@
         if (!s) return;
         state.source = s.id;
         state.fields = s.fields || [];
-        state.processes = s.processes || [];
+        setProcessScope(s.processes || [], null);
         state.columns = [];
         renderFields();
         renderWells();
@@ -661,7 +827,9 @@
     if (src) {
       document.getElementById('rpSource').value = src.id;
       state.fields = src.fields || [];
-      state.processes = src.processes || [];
+      // Restore the saved process scope (def.scope) against this source's
+      // currently-allowed processes; falls back to "all" when absent.
+      setProcessScope(src.processes || [], def.scope);
     }
     // Re-hydrate column metadata (label/type/filterable) from the live catalog;
     // a field that left the catalog still loads with its raw key as the label.
@@ -941,6 +1109,20 @@
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
   document.getElementById('rpAddSort').addEventListener('click', addSort);
   document.getElementById('rpAddMetric').addEventListener('click', addMetric);
+
+  // Process-scope dropdown: toggle on the button, close on an outside click.
+  var rpScopeBtn = document.getElementById('rpScopeBtn');
+  if (rpScopeBtn) {
+    rpScopeBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleScopeMenu(); });
+    document.addEventListener('click', function (e) {
+      var wrap = document.getElementById('rpScopeWrap');
+      if (wrap && !wrap.contains(e.target)) toggleScopeMenu(false);
+    });
+    // Escape (from the button or any checkbox in the menu) closes + returns focus.
+    document.getElementById('rpScopeWrap').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { toggleScopeMenu(false); rpScopeBtn.focus(); }
+    });
+  }
 
   loadMetrics();
   loadSources();

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-09 15:32+0200\n"
+"POT-Creation-Date: 2026-06-09 17:40+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -295,10 +295,10 @@ msgstr "Impossible de récupérer les métadonnées des champs"
 msgid "Could not load layout"
 msgstr "Impossible de charger la disposition"
 
-#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:871
-#: nx_lib/views/reporting.py:904 nx_lib/views/reporting.py:963
-#: nx_lib/views/reporting.py:1091 nx_lib/views/reporting.py:1274
-#: nx_lib/views/reporting.py:1457 nx_lib/views/reporting.py:1507
+#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:890
+#: nx_lib/views/reporting.py:923 nx_lib/views/reporting.py:982
+#: nx_lib/views/reporting.py:1110 nx_lib/views/reporting.py:1293
+#: nx_lib/views/reporting.py:1476 nx_lib/views/reporting.py:1526
 msgid "Invalid JSON body"
 msgstr "Corps JSON invalide"
 
@@ -318,7 +318,7 @@ msgstr "Widget invalide"
 msgid "Could not build query"
 msgstr "Impossible de générer la requête"
 
-#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:924
+#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:943
 msgid "Could not run query"
 msgstr "Impossible d'exécuter la requête"
 
@@ -347,7 +347,7 @@ msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Une erreur inattendue s'est produite lors du téléchargement du PDF."
 
 #: nx_lib/views/notifications.py:11 nx_lib/views/notifications.py:46
-#: nx_lib/views/reporting.py:908 nx_lib/views/reporting.py:940
+#: nx_lib/views/reporting.py:927 nx_lib/views/reporting.py:959
 msgid "Not authenticated"
 msgstr "Non authentifié"
 
@@ -412,51 +412,51 @@ msgstr "Erreur inattendue"
 msgid "Language changed successfully!"
 msgstr "Langue modifiée avec succès !"
 
-#: nx_lib/views/reporting.py:875 nx_lib/views/reporting.py:1487
+#: nx_lib/views/reporting.py:894 nx_lib/views/reporting.py:1506
 msgid "Not authorized for this source"
 msgstr "Non autorisé pour cette source"
 
-#: nx_lib/views/reporting.py:880
+#: nx_lib/views/reporting.py:899
 msgid "Could not build report"
 msgstr "Impossible de générer le rapport"
 
-#: nx_lib/views/reporting.py:885
+#: nx_lib/views/reporting.py:904
 msgid "Could not run report"
 msgstr "Impossible d'exécuter le rapport"
 
-#: nx_lib/views/reporting.py:910 nx_lib/views/reporting.py:1464
+#: nx_lib/views/reporting.py:929 nx_lib/views/reporting.py:1483
 msgid "Acknowledgment required"
 msgstr "Confirmation requise"
 
-#: nx_lib/views/reporting.py:915 nx_lib/views/reporting.py:1472
+#: nx_lib/views/reporting.py:934 nx_lib/views/reporting.py:1491
 msgid "Not authorized for this SQL target"
 msgstr "Non autorisé pour cette cible SQL"
 
-#: nx_lib/views/reporting.py:921 nx_lib/views/reporting.py:1478
+#: nx_lib/views/reporting.py:940 nx_lib/views/reporting.py:1497
 msgid "SQL source is not configured"
 msgstr "La source SQL n'est pas configurée"
 
-#: nx_lib/views/reporting.py:953
+#: nx_lib/views/reporting.py:972
 msgid "Could not record acknowledgment"
 msgstr "Impossible d'enregistrer la confirmation"
 
-#: nx_lib/views/reporting.py:966 nx_lib/views/reporting.py:1094
-#: nx_lib/views/reporting.py:1277
+#: nx_lib/views/reporting.py:985 nx_lib/views/reporting.py:1113
+#: nx_lib/views/reporting.py:1296
 msgid "A question is required"
 msgstr "Une question est requise"
 
-#: nx_lib/views/reporting.py:969
+#: nx_lib/views/reporting.py:988
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Non autorisé à recevoir du SQL rédigé par l'IA"
 
-#: nx_lib/views/reporting.py:973 nx_lib/views/reporting.py:1041
-#: nx_lib/views/reporting.py:1098 nx_lib/views/reporting.py:1164
-#: nx_lib/views/reporting.py:1281 nx_lib/views/reporting.py:1398
+#: nx_lib/views/reporting.py:992 nx_lib/views/reporting.py:1060
+#: nx_lib/views/reporting.py:1117 nx_lib/views/reporting.py:1183
+#: nx_lib/views/reporting.py:1300 nx_lib/views/reporting.py:1417
 msgid "The AI assistant is not configured"
 msgstr "L'assistant IA n'est pas configuré"
 
-#: nx_lib/views/reporting.py:1001 nx_lib/views/reporting.py:1120
-#: nx_lib/views/reporting.py:1303
+#: nx_lib/views/reporting.py:1020 nx_lib/views/reporting.py:1139
+#: nx_lib/views/reporting.py:1322
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -465,173 +465,173 @@ msgstr ""
 "Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
 "Veuillez réessayer demain."
 
-#: nx_lib/views/reporting.py:1058 nx_lib/views/reporting.py:1181
-#: nx_lib/views/reporting.py:1415
+#: nx_lib/views/reporting.py:1077 nx_lib/views/reporting.py:1200
+#: nx_lib/views/reporting.py:1434
 msgid "The AI assistant could not answer right now"
 msgstr "L'assistant IA n'a pas pu répondre pour le moment"
 
-#: nx_lib/views/reporting.py:1207
+#: nx_lib/views/reporting.py:1226
 msgid "Could not build a valid report"
 msgstr "Impossible de créer un rapport valide"
 
-#: nx_lib/views/reporting.py:1461
+#: nx_lib/views/reporting.py:1480
 msgid "Not authorized for live SQL"
 msgstr "Non autorisé pour le SQL en direct"
 
-#: nx_lib/views/reporting.py:1481
+#: nx_lib/views/reporting.py:1500
 msgid "Could not export query"
 msgstr "Impossible d'exporter la requête"
 
-#: nx_lib/views/reporting.py:1492
+#: nx_lib/views/reporting.py:1511
 msgid "Could not export report"
 msgstr "Impossible d'exporter le rapport"
 
-#: nx_lib/views/reporting.py:1511
+#: nx_lib/views/reporting.py:1530
 msgid "columns and rows are required"
 msgstr "les colonnes et les lignes sont obligatoires"
 
-#: nx_lib/views/reporting.py:1568
+#: nx_lib/views/reporting.py:1587
 msgid "Could not list reports"
 msgstr "Impossible de lister les rapports"
 
-#: nx_lib/views/reporting.py:1593 nx_lib/views/reporting.py:1668
-#: nx_lib/views/reporting.py:1690 nx_lib/views/reporting.py:1766
-#: nx_lib/views/reporting.py:1776 nx_lib/views/reporting.py:1826
-#: nx_lib/views/reporting.py:1888 nx_lib/views/reporting.py:1911
-#: nx_lib/views/reporting.py:1942 nx_lib/views/reporting.py:1972
-#: nx_lib/views/reporting.py:1985 nx_lib/views/reporting.py:1996
-#: nx_lib/views/reporting.py:2183 nx_lib/views/reporting.py:2201
-#: nx_lib/views/reporting.py:2300 nx_lib/views/reporting.py:2318
+#: nx_lib/views/reporting.py:1612 nx_lib/views/reporting.py:1687
+#: nx_lib/views/reporting.py:1709 nx_lib/views/reporting.py:1785
+#: nx_lib/views/reporting.py:1795 nx_lib/views/reporting.py:1845
+#: nx_lib/views/reporting.py:1907 nx_lib/views/reporting.py:1930
+#: nx_lib/views/reporting.py:1961 nx_lib/views/reporting.py:1991
+#: nx_lib/views/reporting.py:2004 nx_lib/views/reporting.py:2015
+#: nx_lib/views/reporting.py:2202 nx_lib/views/reporting.py:2220
+#: nx_lib/views/reporting.py:2319 nx_lib/views/reporting.py:2337
 msgid "Not found"
 msgstr "Introuvable"
 
-#: nx_lib/views/reporting.py:1606
+#: nx_lib/views/reporting.py:1625
 msgid "Could not load report"
 msgstr "Impossible de charger le rapport"
 
-#: nx_lib/views/reporting.py:1619 nx_lib/views/reporting.py:1648
+#: nx_lib/views/reporting.py:1638 nx_lib/views/reporting.py:1667
 msgid "name and definition are required"
 msgstr "le nom et la définition sont obligatoires"
 
-#: nx_lib/views/reporting.py:1622 nx_lib/views/reporting.py:1651
+#: nx_lib/views/reporting.py:1641 nx_lib/views/reporting.py:1670
 msgid "Report definition too large"
 msgstr "Définition du rapport trop volumineuse"
 
-#: nx_lib/views/reporting.py:1635
+#: nx_lib/views/reporting.py:1654
 msgid "Could not save report"
 msgstr "Impossible d'enregistrer le rapport"
 
-#: nx_lib/views/reporting.py:1672
+#: nx_lib/views/reporting.py:1691
 msgid "Could not update report"
 msgstr "Impossible de mettre à jour le rapport"
 
-#: nx_lib/views/reporting.py:1694
+#: nx_lib/views/reporting.py:1713
 msgid "Could not delete report"
 msgstr "Impossible de supprimer le rapport"
 
-#: nx_lib/views/reporting.py:1784
+#: nx_lib/views/reporting.py:1803
 msgid "Invalid visibility"
 msgstr "Visibilité invalide"
 
-#: nx_lib/views/reporting.py:1793
+#: nx_lib/views/reporting.py:1812
 msgid "User not found"
 msgstr "Utilisateur introuvable"
 
-#: nx_lib/views/reporting.py:1795
+#: nx_lib/views/reporting.py:1814
 msgid "Cannot share a report with yourself"
 msgstr "Vous ne pouvez pas partager un rapport avec vous-même"
 
-#: nx_lib/views/reporting.py:1816 nx_lib/views/reporting.py:1837
+#: nx_lib/views/reporting.py:1835 nx_lib/views/reporting.py:1856
 msgid "Could not update sharing"
 msgstr "Impossible de mettre à jour le partage"
 
-#: nx_lib/views/reporting.py:1901
+#: nx_lib/views/reporting.py:1920
 msgid "Could not list schedules"
 msgstr "Impossible de lister les planifications"
 
-#: nx_lib/views/reporting.py:1932
+#: nx_lib/views/reporting.py:1951
 msgid "Could not save schedule"
 msgstr "Impossible d'enregistrer la planification"
 
-#: nx_lib/views/reporting.py:1976
+#: nx_lib/views/reporting.py:1995
 msgid "Could not update schedule"
 msgstr "Impossible de mettre à jour la planification"
 
-#: nx_lib/views/reporting.py:2000
+#: nx_lib/views/reporting.py:2019
 msgid "Could not delete schedule"
 msgstr "Impossible de supprimer la planification"
 
-#: nx_lib/views/reporting.py:2013 nx_lib/views/reporting.py:2063
+#: nx_lib/views/reporting.py:2032 nx_lib/views/reporting.py:2082
 msgid "Invalid body"
 msgstr "Corps invalide"
 
-#: nx_lib/views/reporting.py:2015
+#: nx_lib/views/reporting.py:2034
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "le code doit comporter 1 à 64 caractères : lettres, chiffres, . _ -"
 
-#: nx_lib/views/reporting.py:2017
+#: nx_lib/views/reporting.py:2036
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind doit être 'curated' ou 'sql'"
 
-#: nx_lib/views/reporting.py:2019 nx_lib/views/reporting.py:2069
+#: nx_lib/views/reporting.py:2038 nx_lib/views/reporting.py:2088
 msgid "label is required"
 msgstr "le libellé est obligatoire"
 
-#: nx_lib/views/reporting.py:2021
+#: nx_lib/views/reporting.py:2040
 msgid "permission is required"
 msgstr "l'autorisation est obligatoire"
 
-#: nx_lib/views/reporting.py:2027
+#: nx_lib/views/reporting.py:2046
 msgid "columns must be valid JSON"
 msgstr "les colonnes doivent être au format JSON valide"
 
-#: nx_lib/views/reporting.py:2065
+#: nx_lib/views/reporting.py:2084
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 "le code doit commencer par une lettre/un trait de soulignement : lettres,"
 " chiffres, _"
 
-#: nx_lib/views/reporting.py:2067
+#: nx_lib/views/reporting.py:2086
 msgid "sourceId is required"
 msgstr "sourceId est obligatoire"
 
-#: nx_lib/views/reporting.py:2072
+#: nx_lib/views/reporting.py:2091
 msgid "aggregation must be one of: "
 msgstr "aggregation doit être l'une des valeurs suivantes : "
 
-#: nx_lib/views/reporting.py:2074
+#: nx_lib/views/reporting.py:2093
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField est obligatoire sauf si aggregation vaut 'count'"
 
-#: nx_lib/views/reporting.py:2130
+#: nx_lib/views/reporting.py:2149
 msgid "Could not list sources"
 msgstr "Impossible de lister les sources"
 
-#: nx_lib/views/reporting.py:2158
+#: nx_lib/views/reporting.py:2177
 msgid "Could not save source (code already exists?)"
 msgstr "Impossible d'enregistrer la source (le code existe déjà ?)"
 
-#: nx_lib/views/reporting.py:2187
+#: nx_lib/views/reporting.py:2206
 msgid "Could not update source"
 msgstr "Impossible de mettre à jour la source"
 
-#: nx_lib/views/reporting.py:2205
+#: nx_lib/views/reporting.py:2224
 msgid "Could not delete source"
 msgstr "Impossible de supprimer la source"
 
-#: nx_lib/views/reporting.py:2247
+#: nx_lib/views/reporting.py:2266
 msgid "Could not list metrics"
 msgstr "Impossible de lister les métriques"
 
-#: nx_lib/views/reporting.py:2275
+#: nx_lib/views/reporting.py:2294
 msgid "Could not save metric (code already exists?)"
 msgstr "Impossible d'enregistrer la métrique (le code existe déjà ?)"
 
-#: nx_lib/views/reporting.py:2304
+#: nx_lib/views/reporting.py:2323
 msgid "Could not update metric"
 msgstr "Impossible de mettre à jour la métrique"
 
-#: nx_lib/views/reporting.py:2322
+#: nx_lib/views/reporting.py:2341
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
@@ -979,7 +979,7 @@ msgstr "Aucun autre utilisateur disponible."
 #: templates/generali_projectmanagement.html:255
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:316
-#: templates/generali_reporting.html:341 templates/reporting.html:199
+#: templates/generali_reporting.html:341 templates/reporting.html:209
 #: templates/workitems_overview.html:447 templates/workitems_overview.html:543
 msgid "Cancel"
 msgstr "Annuler"
@@ -1433,7 +1433,7 @@ msgstr "Modifier la présence"
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:320
-#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:92
+#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:102
 #: templates/reporting_metrics.html:72 templates/reporting_sources.html:82
 msgid "Save"
 msgstr "Enregistrer"
@@ -1477,7 +1477,7 @@ msgstr "Cette action est irréversible."
 #: templates/js/admin/_access_control_js.html:639
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:80
+#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:90
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -2304,113 +2304,126 @@ msgstr "Sources"
 msgid "Source"
 msgstr "Source"
 
-#: templates/reporting.html:58
+#: templates/reporting.html:59
+msgid "Processes"
+msgstr "Processus"
+
+#: templates/js/_reporting_js.html:151 templates/js/_reporting_js.html:178
+#: templates/reporting.html:62
+msgid "All processes"
+msgstr "Tous les processus"
+
+#: templates/reporting.html:66
+msgid "Filter by client and process"
+msgstr "Filtrer par client et processus"
+
+#: templates/reporting.html:68
 msgid "Search fields…"
 msgstr "Rechercher des champs…"
 
-#: templates/reporting.html:64
+#: templates/reporting.html:74
 msgid "Report mode"
 msgstr "Mode du rapport"
 
-#: templates/reporting.html:65
+#: templates/reporting.html:75
 msgid "Table"
 msgstr "Tableau"
 
-#: templates/reporting.html:66
+#: templates/reporting.html:76
 msgid "Requires the reporting.sql.run permission"
 msgstr "Nécessite la permission reporting.sql.run"
 
-#: templates/reporting.html:66
+#: templates/reporting.html:76
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/reporting.html:68
+#: templates/reporting.html:78
 msgid "Ask AI"
 msgstr "Demander à l'IA"
 
-#: templates/reporting.html:71
+#: templates/reporting.html:81
 msgid "Untitled report"
 msgstr "Rapport sans titre"
 
-#: templates/reporting.html:72
+#: templates/reporting.html:82
 msgid "Report title"
 msgstr "Titre du rapport"
 
-#: templates/js/_reporting_js.html:602 templates/reporting.html:75
+#: templates/js/_reporting_js.html:765 templates/reporting.html:85
 msgid "Saved reports…"
 msgstr "Rapports enregistrés…"
 
-#: templates/reporting.html:77
+#: templates/reporting.html:87
 msgid "Load"
 msgstr "Charger"
 
-#: templates/reporting.html:79
+#: templates/reporting.html:89
 msgid "Rename"
 msgstr "Renommer"
 
-#: templates/reporting.html:82
+#: templates/reporting.html:92
 msgid "Share the selected report you own"
 msgstr "Partager le rapport sélectionné que vous possédez"
 
-#: templates/reporting.html:82
+#: templates/reporting.html:92
 msgid "Share"
 msgstr "Partager"
 
-#: templates/reporting.html:85
+#: templates/reporting.html:95
 msgid "Schedule the selected report you own"
 msgstr "Planifier le rapport sélectionné que vous possédez"
 
-#: templates/reporting.html:85
+#: templates/reporting.html:95
 msgid "Schedule"
 msgstr "Planifier"
 
-#: templates/reporting.html:91
+#: templates/reporting.html:101
 msgid "Run"
 msgstr "Exécuter"
 
-#: templates/reporting.html:93
+#: templates/reporting.html:103
 msgid "Save as"
 msgstr "Enregistrer sous"
 
-#: templates/reporting.html:95
+#: templates/reporting.html:105
 msgid "Export format"
 msgstr "Format d'export"
 
-#: templates/reporting.html:96 templates/reporting.html:244
+#: templates/reporting.html:106 templates/reporting.html:254
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/reporting.html:100
+#: templates/reporting.html:110
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/reporting.html:105
+#: templates/reporting.html:115
 msgid "Target"
 msgstr "Cible"
 
-#: templates/reporting.html:114
+#: templates/reporting.html:124
 msgid "Build a report"
 msgstr "Créer un rapport"
 
-#: templates/reporting.html:116
+#: templates/reporting.html:126
 msgid "Write SQL"
 msgstr "Écrire du SQL"
 
-#: templates/reporting.html:118
+#: templates/reporting.html:128
 msgid "Agent"
 msgstr "Agent"
 
-#: templates/reporting.html:122
+#: templates/reporting.html:132
 msgid "Ask in plain language — e.g. “top 10 processes by volume this month”"
 msgstr ""
 "Posez votre question en langage courant — p. ex. « top 10 des processus "
 "par volume ce mois-ci »"
 
-#: templates/js/_reporting_ai_js.html:74 templates/reporting.html:125
+#: templates/js/_reporting_ai_js.html:74 templates/reporting.html:135
 msgid "Ask"
 msgstr "Demander"
 
-#: templates/reporting.html:127
+#: templates/reporting.html:137
 msgid ""
 "The assistant drafts a report definition from the sources you can access "
 "— it never sees result data. Review it, then open it in the builder and "
@@ -2420,7 +2433,7 @@ msgstr ""
 "auxquelles vous avez accès — il ne voit jamais les données de résultat. "
 "Vérifiez-la, puis ouvrez-la dans le générateur et exécutez-la vous-même."
 
-#: templates/reporting.html:128
+#: templates/reporting.html:138
 msgid ""
 "The assistant drafts read-only SQL from the database schema. It never "
 "sees result data. Review the SQL, then run it yourself."
@@ -2429,7 +2442,7 @@ msgstr ""
 "de données. Il ne voit jamais les données de résultat. Vérifiez le SQL, "
 "puis exécutez-le vous-même."
 
-#: templates/reporting.html:129
+#: templates/reporting.html:139
 msgid ""
 "The agent works step by step, showing each tool it uses. It can run read-"
 "only queries and report the actual numbers from the data it fetched."
@@ -2438,7 +2451,7 @@ msgstr ""
 "utilise. Il peut exécuter des requêtes en lecture seule et indiquer les "
 "chiffres réels issus des données récupérées."
 
-#: templates/reporting.html:129
+#: templates/reporting.html:139
 msgid ""
 "The agent works step by step, showing each tool it uses to validate and "
 "draft — grounded only in the schema you can access. It never sees result "
@@ -2448,7 +2461,7 @@ msgstr ""
 " pour valider et rédiger — en se fondant uniquement sur le schéma auquel "
 "vous avez accès. Il ne voit jamais les données de résultat."
 
-#: templates/reporting.html:133
+#: templates/reporting.html:143
 msgid ""
 "⚠ The drafted SQL did not pass the read-only check — review it before "
 "running."
@@ -2456,53 +2469,53 @@ msgstr ""
 "⚠ Le SQL rédigé n'a pas passé la vérification en lecture seule — "
 "vérifiez-le avant de l'exécuter."
 
-#: templates/reporting.html:135 templates/reporting.html:156
+#: templates/reporting.html:145 templates/reporting.html:166
 msgid "Insert into SQL editor"
 msgstr "Insérer dans l'éditeur SQL"
 
-#: templates/admin/logs.html:151 templates/reporting.html:136
+#: templates/admin/logs.html:151 templates/reporting.html:146
 msgid "Copy"
 msgstr "Copier"
 
-#: templates/reporting.html:141
+#: templates/reporting.html:151
 msgid "⚠ The drafted report could not be validated — try rephrasing."
 msgstr "⚠ Le rapport proposé n'a pas pu être validé — veuillez reformuler."
 
-#: templates/reporting.html:143 templates/reporting.html:155
+#: templates/reporting.html:153 templates/reporting.html:165
 msgid "Open in builder"
 msgstr "Ouvrir dans le générateur"
 
-#: templates/reporting.html:144
+#: templates/reporting.html:154
 msgid "Make a chart"
 msgstr "Créer un graphique"
 
-#: templates/reporting.html:150
+#: templates/reporting.html:160
 msgid "How the agent worked"
 msgstr "Comment l'agent a procédé"
 
-#: templates/reporting.html:153
+#: templates/reporting.html:163
 msgid "⚠ The agent stopped before producing a validated result — try rephrasing."
 msgstr ""
 "⚠ L'agent s'est arrêté avant de produire un résultat validé — essayez de "
 "reformuler."
 
-#: templates/reporting.html:163
+#: templates/reporting.html:173
 msgid "Grid"
 msgstr "Tableau"
 
-#: templates/reporting.html:164
+#: templates/reporting.html:174
 msgid "Chart"
 msgstr "Graphique"
 
-#: templates/reporting.html:165
+#: templates/reporting.html:175
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/reporting.html:170
+#: templates/reporting.html:180
 msgid "Build a report to see results"
 msgstr "Créez un rapport pour voir les résultats"
 
-#: templates/reporting.html:171
+#: templates/reporting.html:181
 msgid ""
 "Choose a source on the left, add columns and filters, then press Run — or"
 " switch to Ask AI to draft one in plain language."
@@ -2511,55 +2524,55 @@ msgstr ""
 " cliquez sur Exécuter — ou passez à « Demander à l'IA » pour en rédiger "
 "un en langage naturel."
 
-#: templates/reporting.html:179
+#: templates/reporting.html:189
 msgid "Metrics"
 msgstr "Métriques"
 
-#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:181
+#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:191
 #: templates/reporting_metrics.html:48
 msgid "Add metric"
 msgstr "Ajouter une métrique"
 
-#: templates/reporting.html:182
+#: templates/reporting.html:192
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr ""
 "Lorsqu'une métrique est sélectionnée, les colonnes ci-dessus deviennent "
 "le regroupement."
 
-#: templates/js/_reporting_viz_js.html:567 templates/reporting.html:184
+#: templates/js/_reporting_viz_js.html:567 templates/reporting.html:194
 msgid "Columns"
 msgstr "Colonnes"
 
-#: templates/reporting.html:185
+#: templates/reporting.html:195
 msgid "Filters"
 msgstr "Filtres"
 
-#: templates/reporting.html:186 templates/workitems_overview.html:280
+#: templates/reporting.html:196 templates/workitems_overview.html:280
 msgid "Add filter"
 msgstr "Ajouter un filtre"
 
-#: templates/reporting.html:187
+#: templates/reporting.html:197
 msgid "Sort"
 msgstr "Tri"
 
-#: templates/reporting.html:188
+#: templates/reporting.html:198
 msgid "Add sort"
 msgstr "Ajouter un tri"
 
-#: templates/reporting.html:189 templates/reporting.html:243
+#: templates/reporting.html:199 templates/reporting.html:253
 #: templates/reporting_metrics.html:62
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:190
+#: templates/reporting.html:200
 msgid "Subtitle"
 msgstr "Sous-titre"
 
-#: templates/reporting.html:196
+#: templates/reporting.html:206
 msgid "Live SQL — read-only"
 msgstr "SQL en direct — lecture seule"
 
-#: templates/reporting.html:197
+#: templates/reporting.html:207
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -2570,108 +2583,108 @@ msgstr ""
 "données et chaque exécution est journalisée. Vérifiez votre requête avant"
 " de l'exécuter."
 
-#: templates/reporting.html:200
+#: templates/reporting.html:210
 msgid "I understand"
 msgstr "Je comprends"
 
-#: templates/reporting.html:207
+#: templates/reporting.html:217
 msgid "Share report"
 msgstr "Partager le rapport"
 
-#: templates/reporting.html:210
+#: templates/reporting.html:220
 msgid "Private — only me"
 msgstr "Privé — moi uniquement"
 
-#: templates/reporting.html:212
+#: templates/reporting.html:222
 msgid "Shared with everyone who can use Reporting"
 msgstr "Partagé avec tous ceux qui peuvent utiliser Reporting"
 
-#: templates/reporting.html:214
+#: templates/reporting.html:224
 msgid "Shared with specific people"
 msgstr "Partagé avec des personnes spécifiques"
 
-#: templates/reporting.html:217
+#: templates/reporting.html:227
 msgid "Email or username"
 msgstr "E-mail ou nom d'utilisateur"
 
-#: templates/reporting.html:218
+#: templates/reporting.html:228
 msgid "Can edit"
 msgstr "Peut modifier"
 
-#: templates/reporting.html:219
+#: templates/reporting.html:229
 msgid "Add"
 msgstr "Ajouter"
 
-#: templates/admin/logs.html:157 templates/reporting.html:222
-#: templates/reporting.html:250 templates/workitems_overview.html:556
+#: templates/admin/logs.html:157 templates/reporting.html:232
+#: templates/reporting.html:260 templates/workitems_overview.html:556
 msgid "Close"
 msgstr "Fermer"
 
-#: templates/reporting.html:229
+#: templates/reporting.html:239
 msgid "Schedule report"
 msgstr "Planifier le rapport"
 
-#: templates/reporting.html:232
+#: templates/reporting.html:242
 msgid "Frequency"
 msgstr "Fréquence"
 
-#: templates/js/_reporting_js.html:837 templates/reporting.html:233
+#: templates/js/_reporting_js.html:1002 templates/reporting.html:243
 msgid "Daily"
 msgstr "Quotidien"
 
-#: templates/js/_reporting_js.html:837 templates/reporting.html:234
+#: templates/js/_reporting_js.html:1002 templates/reporting.html:244
 msgid "Weekly"
 msgstr "Hebdomadaire"
 
-#: templates/js/_reporting_js.html:837 templates/reporting.html:235
+#: templates/js/_reporting_js.html:1002 templates/reporting.html:245
 msgid "Monthly"
 msgstr "Mensuel"
 
-#: templates/reporting.html:236
+#: templates/reporting.html:246
 msgid "Time (UTC)"
 msgstr "Heure (UTC)"
 
-#: templates/reporting.html:237
+#: templates/reporting.html:247
 msgid "Weekday"
 msgstr "Jour de la semaine"
 
-#: templates/reporting.html:238
+#: templates/reporting.html:248
 msgid "Monday"
 msgstr "Lundi"
 
-#: templates/reporting.html:238
+#: templates/reporting.html:248
 msgid "Tuesday"
 msgstr "Mardi"
 
-#: templates/reporting.html:239
+#: templates/reporting.html:249
 msgid "Wednesday"
 msgstr "Mercredi"
 
-#: templates/reporting.html:239
+#: templates/reporting.html:249
 msgid "Thursday"
 msgstr "Jeudi"
 
-#: templates/reporting.html:240
+#: templates/reporting.html:250
 msgid "Friday"
 msgstr "Vendredi"
 
-#: templates/reporting.html:240
+#: templates/reporting.html:250
 msgid "Saturday"
 msgstr "Samedi"
 
-#: templates/reporting.html:241
+#: templates/reporting.html:251
 msgid "Sunday"
 msgstr "Dimanche"
 
-#: templates/reporting.html:242
+#: templates/reporting.html:252
 msgid "Day of month"
 msgstr "Jour du mois"
 
-#: templates/reporting.html:246
+#: templates/reporting.html:256
 msgid "Recipients (comma-separated)"
 msgstr "Destinataires (séparés par des virgules)"
 
-#: templates/reporting.html:249
+#: templates/reporting.html:259
 msgid "Add schedule"
 msgstr "Ajouter une planification"
 
@@ -4117,89 +4130,89 @@ msgstr "lignes"
 msgid "steps"
 msgstr "étapes"
 
-#: templates/js/_reporting_js.html:154
+#: templates/js/_reporting_js.html:317
 msgid "No rows."
 msgstr "Aucune ligne."
 
-#: templates/js/_reporting_js.html:256
+#: templates/js/_reporting_js.html:419
 msgid "Report name"
 msgstr "Nom du rapport"
 
-#: templates/js/_reporting_js.html:268 templates/js/_reporting_js.html:279
+#: templates/js/_reporting_js.html:431 templates/js/_reporting_js.html:442
 #: templates/js/_reporting_metrics_js.html:134
 #: templates/js/_reporting_sources_js.html:110
 msgid "Saved"
 msgstr "Enregistré"
 
-#: templates/js/_reporting_js.html:269 templates/js/_reporting_js.html:280
+#: templates/js/_reporting_js.html:432 templates/js/_reporting_js.html:443
 msgid "Save failed"
 msgstr "Échec de l'enregistrement"
 
-#: templates/js/_reporting_js.html:299 templates/js/_reporting_js.html:316
+#: templates/js/_reporting_js.html:462 templates/js/_reporting_js.html:479
 msgid "Export failed"
 msgstr "Échec de l'export"
 
-#: templates/js/_reporting_js.html:307 templates/js/_reporting_js.html:323
+#: templates/js/_reporting_js.html:470 templates/js/_reporting_js.html:486
 msgid "Nothing to export."
 msgstr "Rien à exporter."
 
-#: templates/js/_reporting_js.html:376
+#: templates/js/_reporting_js.html:539
 msgid "Could not load sources"
 msgstr "Impossible de charger les sources"
 
-#: templates/js/_reporting_js.html:533
+#: templates/js/_reporting_js.html:696
 msgid "Could not load metrics"
 msgstr "Impossible de charger les métriques"
 
-#: templates/js/_reporting_js.html:609
+#: templates/js/_reporting_js.html:772
 msgid "shared"
 msgstr "partagé"
 
-#: templates/js/_reporting_js.html:619
+#: templates/js/_reporting_js.html:782
 msgid "My reports"
 msgstr "Mes rapports"
 
-#: templates/js/_reporting_js.html:625
+#: templates/js/_reporting_js.html:788
 msgid "Shared with me"
 msgstr "Partagés avec moi"
 
-#: templates/js/_reporting_js.html:632
+#: templates/js/_reporting_js.html:795
 msgid "Could not load saved reports"
 msgstr "Impossible de charger les rapports enregistrés"
 
-#: templates/js/_reporting_js.html:723
+#: templates/js/_reporting_js.html:888
 msgid "New name"
 msgstr "Nouveau nom"
 
-#: templates/js/_reporting_js.html:733
+#: templates/js/_reporting_js.html:898
 msgid "Rename failed"
 msgstr "Échec du renommage"
 
-#: templates/js/_reporting_js.html:740
+#: templates/js/_reporting_js.html:905
 msgid "Delete this saved report?"
 msgstr "Supprimer ce rapport enregistré ?"
 
-#: templates/js/_reporting_js.html:748
+#: templates/js/_reporting_js.html:913
 msgid "Delete failed"
 msgstr "Échec de la suppression"
 
-#: templates/js/_reporting_js.html:779
+#: templates/js/_reporting_js.html:944
 msgid "can edit"
 msgstr "peut modifier"
 
-#: templates/js/_reporting_js.html:784 templates/js/_reporting_js.html:883
+#: templates/js/_reporting_js.html:949 templates/js/_reporting_js.html:1048
 msgid "Remove"
 msgstr "Supprimer"
 
-#: templates/js/_reporting_js.html:792
+#: templates/js/_reporting_js.html:957
 msgid "Not shared with anyone yet."
 msgstr "Pas encore partagé."
 
-#: templates/js/_reporting_js.html:867
+#: templates/js/_reporting_js.html:1032
 msgid "No schedules yet."
 msgstr "Aucune planification pour le moment."
 
-#: templates/js/_reporting_js.html:875
+#: templates/js/_reporting_js.html:1040
 msgid "disabled"
 msgstr "désactivé"
 

@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Reporting process-scope picker (clients / processes).** The builder's left
+  panel gained a **Processes** multi-select dropdown (below **Source**,
+  docprocessing only) listing the caller's allowed `<client>.<process>` grants
+  grouped by client — tick a whole client or individual processes to narrow a
+  report's row scope (default: all). The selection serialises into the
+  definition's `scope` (fully-ticked clients → `scope.clients`, partial →
+  `scope.processes`) and is saved/restored with the report. `_effective_scope`
+  now **honors `scope.clients`** (previously a dead field): it narrows the
+  caller's allowed set to *(client ∈ clients) ∪ (process ∈ processes)*, with the
+  `reporting.scope.process.*` grant still the security boundary. Hidden for
+  `table` sources (Generali / Octo), which carry no processes. de/fr/it
+  translated.
 - **Generali PDQM mapping seed.** Added the `PDQMMapping` row
   `Adressverifikation` / `QSTAT 27` via migration
   `sql/_migrations/GeneraliDB/0002_insert_pdqmmapping_adressverifikation_qstat27.sql`

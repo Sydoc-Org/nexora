@@ -29,12 +29,24 @@ catalog); nothing user-supplied reaches SQL unchecked.
 > the page behaves identically with it removed, and it no-ops under
 > `prefers-reduced-motion` or if the CDN is unavailable.
 
-### Combine clients/processes
+### Pick clients / processes (process scope)
 
-The scope wells let users include rows from multiple clients or processes in a
-single table. The engine intersects the user's requested `scope` with their
-`reporting.scope.process.*` grants — selecting a process the user has no grant
-for silently excludes it (no data leak).
+The **Processes** picker in the left panel (below **Source**, docprocessing only)
+is a multi-select dropdown of the caller's allowed `<client>.<process>` grants,
+grouped by client. Tick a whole client to include all its processes, or tick
+individual processes; the summary shows **All processes** or `selected / total`.
+Default is everything (= no scope restriction). Table sources (e.g. Generali,
+Octo) carry no processes, so the control is hidden for them.
+
+The picker serialises to the definition's `scope`: a fully-ticked client is
+emitted under `scope.clients` (durable — it auto-includes processes added under
+that client later), a partially-ticked client emits its picked
+`scope.processes`. Server-side, `_effective_scope` narrows the caller's allowed
+set to **(client ∈ `scope.clients`) ∪ (process ∈ `scope.processes`)**; empty
+clients *and* processes means all allowed. The grant set is always the boundary —
+requesting a client/process the user has no `reporting.scope.process.*` grant for
+silently excludes it (no data leak). The selection is saved with the report and
+restored on load.
 
 ### Save & load
 

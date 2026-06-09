@@ -639,13 +639,28 @@ def _load_field_col_maps(target_processes):
         conn.close()
 
 
+def _client_of(process):
+    """Client prefix of a '<client>.<process>' scope string (text before the
+    first dot). Mirrors process_helpers' `<client>.<process>` convention."""
+    i = process.find(".")
+    return process[:i] if i >= 0 else process
+
+
 def _effective_scope(rd, allowed):
-    """Intersection of requested scope.processes and the caller's allowed set."""
-    requested = (rd.get("scope") or {}).get("processes") or []
-    allowed_set = set(allowed)
-    if not requested:
+    """Caller's allowed processes narrowed to the requested clients/processes.
+
+    `scope.clients` and `scope.processes` compose by UNION: an allowed process
+    is in scope when its client is listed in `scope.clients` OR it is named in
+    `scope.processes`. Empty clients AND empty processes means "all allowed"
+    (the default). Anything requested that the caller isn't granted is silently
+    dropped — the `reporting.scope.process.*` grant is the security boundary.
+    """
+    scope = rd.get("scope") or {}
+    requested_procs = set(scope.get("processes") or [])
+    requested_clients = set(scope.get("clients") or [])
+    if not requested_procs and not requested_clients:
         return list(allowed)
-    return [p for p in requested if p in allowed_set]
+    return [p for p in allowed if p in requested_procs or _client_of(p) in requested_clients]
 
 
 def _catalog_for_source(source):
