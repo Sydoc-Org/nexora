@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-09 14:09+0200\n"
+"POT-Creation-Date: 2026-06-09 15:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:186
+#: nx_lib/octo.py:194
 msgid "Error fetching activity instance"
 msgstr ""
 
@@ -42,9 +42,9 @@ msgid "Organization already exists."
 msgstr ""
 
 #: nx_lib/views/admin.py:190 nx_lib/views/admin.py:691
-#: nx_lib/views/workitems.py:1340 nx_lib/views/workitems.py:1391
-#: nx_lib/views/workitems.py:1433 nx_lib/views/workitems.py:1644
-#: nx_lib/views/workitems.py:1676
+#: nx_lib/views/workitems.py:1381 nx_lib/views/workitems.py:1432
+#: nx_lib/views/workitems.py:1474 nx_lib/views/workitems.py:1685
+#: nx_lib/views/workitems.py:1717
 msgid "An unexpected error occurred."
 msgstr ""
 
@@ -112,14 +112,14 @@ msgstr ""
 #: nx_lib/views/dashboard.py:1325 nx_lib/views/dashboard.py:1369
 #: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:461
 #: nx_lib/views/workitems.py:924 nx_lib/views/workitems.py:977
-#: nx_lib/views/workitems.py:1154 nx_lib/views/workitems.py:1197
-#: nx_lib/views/workitems.py:1288 nx_lib/views/workitems.py:1350
-#: nx_lib/views/workitems.py:1401 nx_lib/views/workitems.py:1443
-#: nx_lib/views/workitems.py:1594 nx_lib/views/workitems.py:1654
+#: nx_lib/views/workitems.py:1195 nx_lib/views/workitems.py:1238
+#: nx_lib/views/workitems.py:1329 nx_lib/views/workitems.py:1391
+#: nx_lib/views/workitems.py:1442 nx_lib/views/workitems.py:1484
+#: nx_lib/views/workitems.py:1635 nx_lib/views/workitems.py:1695
 msgid "Not authorized"
 msgstr ""
 
-#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1187
+#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1228
 msgid "Could not fetch users"
 msgstr ""
 
@@ -658,87 +658,87 @@ msgstr ""
 msgid "Could not fetch workitem data"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1003 nx_lib/views/workitems.py:1038
+#: nx_lib/views/workitems.py:1043 nx_lib/views/workitems.py:1079
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1027 nx_lib/views/workitems.py:1095
+#: nx_lib/views/workitems.py:1068 nx_lib/views/workitems.py:1136
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1051
+#: nx_lib/views/workitems.py:1092
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1079
+#: nx_lib/views/workitems.py:1120
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1144
+#: nx_lib/views/workitems.py:1185
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1146
+#: nx_lib/views/workitems.py:1187
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1244
+#: nx_lib/views/workitems.py:1285
 msgid "No data found for this workitem."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1278
+#: nx_lib/views/workitems.py:1319
 msgid "Could not fetch interactions"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1293
+#: nx_lib/views/workitems.py:1334
 msgid "Comment cannot be empty."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1337
+#: nx_lib/views/workitems.py:1378
 msgid "Comment added."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1355
+#: nx_lib/views/workitems.py:1396
 msgid "Invalid assignment."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1384
+#: nx_lib/views/workitems.py:1425
 msgid "assigned you on workitem"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1388
+#: nx_lib/views/workitems.py:1429
 msgid "Assignment updated."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1406
+#: nx_lib/views/workitems.py:1447
 msgid "Invalid priority level."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1430
+#: nx_lib/views/workitems.py:1471
 msgid "Priority updated."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1463
+#: nx_lib/views/workitems.py:1504
 msgid "Could not fetch tags"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1601
+#: nx_lib/views/workitems.py:1642
 msgid "Tag name cannot be empty."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1625
+#: nx_lib/views/workitems.py:1666
 msgid "Workitem already has this tag."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1637
+#: nx_lib/views/workitems.py:1678
 msgid "Tag added successfully."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1669
+#: nx_lib/views/workitems.py:1710
 msgid "Tag association not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1673
+#: nx_lib/views/workitems.py:1714
 msgid "Tag removed successfully."
 msgstr ""
 
@@ -1921,7 +1921,7 @@ msgid ""
 "Follow along as a document is processed in real-time."
 msgstr ""
 
-#: templates/hero.html:134 templates/js/_workitems_overview_js.html:1042
+#: templates/hero.html:134 templates/js/_workitems_overview_js.html:1135
 #: templates/workitems_overview.html:318
 msgid "Import"
 msgstr ""
@@ -2538,7 +2538,7 @@ msgid "Add"
 msgstr ""
 
 #: templates/admin/logs.html:157 templates/reporting.html:222
-#: templates/reporting.html:250
+#: templates/reporting.html:250 templates/workitems_overview.html:556
 msgid "Close"
 msgstr ""
 
@@ -2833,7 +2833,7 @@ msgstr ""
 msgid "Tag"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1440
+#: templates/js/_workitems_overview_js.html:1533
 #: templates/workitems_overview.html:392
 msgid "selected"
 msgstr ""
@@ -2858,7 +2858,7 @@ msgstr ""
 msgid "Please select a valid process."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1046
+#: templates/js/_workitems_overview_js.html:1139
 #: templates/workitems_overview.html:451
 msgid "Import File"
 msgstr ""
@@ -2923,13 +2923,17 @@ msgid ""
 " current page)."
 msgstr ""
 
-#: templates/workitems_overview.html:558
+#: templates/workitems_overview.html:562
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1924
-#: templates/workitems_overview.html:561
+#: templates/js/_workitems_overview_js.html:2030
+#: templates/workitems_overview.html:565
 msgid "Show sources"
+msgstr ""
+
+#: templates/workitems_overview.html:573 templates/workitems_overview.html:574
+msgid "Extracted values"
 msgstr ""
 
 #: templates/admin/access_control.html:6
@@ -3266,14 +3270,14 @@ msgstr ""
 
 #: templates/admin/logs.html:124 templates/admin/user_detail.html:234
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1705
+#: templates/js/_workitems_overview_js.html:1798
 msgid "Previous"
 msgstr ""
 
 #: templates/admin/logs.html:125 templates/admin/user_detail.html:235
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1711
+#: templates/js/_workitems_overview_js.html:1804
 #: templates/js/archive/_tour_js.html:17
 msgid "Next"
 msgstr ""
@@ -3639,7 +3643,7 @@ msgstr ""
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1552
+#: templates/js/_workitems_overview_js.html:1645
 msgid "Try adjusting your filters or resetting the search."
 msgstr ""
 
@@ -3712,7 +3716,7 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1425
+#: templates/js/_workitems_overview_js.html:1518
 msgid "Failed to load data. Please try again."
 msgstr ""
 
@@ -4261,90 +4265,91 @@ msgstr ""
 msgid "Checking for media..."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:638
-msgid "no source location"
-msgstr ""
-
-#: templates/js/_workitems_overview_js.html:640
-msgid "Click to locate on the document"
-msgstr ""
-
-#: templates/js/_workitems_overview_js.html:643
-msgid "Extraction confidence"
-msgstr ""
-
-#: templates/js/_workitems_overview_js.html:657
+#: templates/js/_workitems_overview_js.html:637
 msgid "No additional details found."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:663
+#: templates/js/_workitems_overview_js.html:642
 msgid "No media found for this workitem."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:676
+#: templates/js/_workitems_overview_js.html:655
 msgid "Could not load media."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:751
+#: templates/js/_workitems_overview_js.html:716
+#: templates/js/_workitems_overview_js.html:757
+msgid "Click to locate on the document"
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:755
+msgid "no source location"
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:760
+msgid "Extraction confidence"
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:844
 msgid "Media"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:751
+#: templates/js/_workitems_overview_js.html:844
 msgid "for workitem "
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:774
+#: templates/js/_workitems_overview_js.html:867
 msgid "Failed to load image "
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:894
-#: templates/js/_workitems_overview_js.html:1566
+#: templates/js/_workitems_overview_js.html:987
+#: templates/js/_workitems_overview_js.html:1659
 msgid "High Priority"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:895
-#: templates/js/_workitems_overview_js.html:1567
+#: templates/js/_workitems_overview_js.html:988
+#: templates/js/_workitems_overview_js.html:1660
 msgid "Medium Priority"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:896
-#: templates/js/_workitems_overview_js.html:1568
+#: templates/js/_workitems_overview_js.html:989
+#: templates/js/_workitems_overview_js.html:1661
 msgid "Low Priority"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:928
+#: templates/js/_workitems_overview_js.html:1021
 msgid "Please select valid PDF files."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:941
+#: templates/js/_workitems_overview_js.html:1034
 msgid "files selected"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1127
+#: templates/js/_workitems_overview_js.html:1220
 msgid "No fields available"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1401
+#: templates/js/_workitems_overview_js.html:1494
 msgid "Loading workitems..."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1468
+#: templates/js/_workitems_overview_js.html:1561
 msgid "selected workitems will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1469
+#: templates/js/_workitems_overview_js.html:1562
 msgid "All workitems matching current filters will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1534
+#: templates/js/_workitems_overview_js.html:1627
 msgid "Export failed. Please try again."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1551
+#: templates/js/_workitems_overview_js.html:1644
 msgid "No workitems found"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1924
+#: templates/js/_workitems_overview_js.html:2030
 msgid "Hide sources"
 msgstr ""
 

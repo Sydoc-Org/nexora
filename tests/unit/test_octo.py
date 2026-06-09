@@ -185,7 +185,9 @@ def test_get_extensions_urls_fields_single_doc(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc-1")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-1"
+        )
 
     assert extensions == [".png"]
     assert urls == ["https://cdn/x.png"]
@@ -194,6 +196,8 @@ def test_get_extensions_urls_fields_single_doc(app):
     assert field_sources == [
         {"key": "invoice_date", "label": "invoice_date", "value": "2026-06-01", "locations": []}
     ]
+    # with_tables defaults False -> no table payload for the scalar-only callers
+    assert table_sources == []
 
 
 def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
@@ -218,11 +222,14 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
         patch.object(octo_mod, "get_index_field_mappings", return_value={}),
         app.app_context(),
     ):
-        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc-batch")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-batch"
+        )
     assert extensions == [".jpg", ".tif"]
     assert urls == ["https://cdn/a.jpg", "https://cdn/b.tif"]
     assert fields == {}
     assert field_sources == []
+    assert table_sources == []
 
 
 def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
@@ -235,11 +242,64 @@ def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields, field_sources = get_extensions_urls_fields("wid", "doc")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc"
+        )
     assert extensions == []
     assert urls == []
     assert fields == {}
     assert field_sources == []
+    assert table_sources == []
+
+
+def test_get_extensions_urls_fields_with_tables_parses_tables(app):
+    """with_tables=True requests WithTables=true and returns parsed table_sources."""
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.return_value = None
+    fake_resp.json.return_value = {
+        "DocumentType": "Single",
+        "Media": [{"Url": "https://cdn/p.jpg", "Extension": ".jpg"}],
+        "IndexFields": [],
+        "Tables": [
+            {
+                "Name": "TabVat",
+                "Rows": [
+                    {
+                        "Cells": [
+                            {
+                                "ColumnName": "TabNetAmount",
+                                "CellValue": {"Text": "236.82"},
+                                "Confidence": 0.0,
+                                "Location": {
+                                    "PageIndex": 0,
+                                    "Rectangle": {
+                                        "Left": 851,
+                                        "Top": 2407,
+                                        "Width": 543,
+                                        "Height": 544,
+                                    },
+                                },
+                            }
+                        ]
+                    }
+                ],
+            }
+        ],
+    }
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp) as mock_get,
+        patch.object(octo_mod, "get_index_field_mappings", return_value={}),
+        app.app_context(),
+    ):
+        *_rest, table_sources = get_extensions_urls_fields("wid", "doc-t", with_tables=True)
+
+    assert "WithTables=true" in mock_get.call_args.kwargs["url"]
+    assert len(table_sources) == 1
+    assert table_sources[0]["title"] == "TabVat"
+    cell = table_sources[0]["rows"][0][0]
+    assert cell["value"] == "236.82"
+    assert cell["locations"][0]["page"] == 0
 
 
 # ---------- get_media ----------

@@ -611,7 +611,7 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields, _fs = get_extensions_urls_fields(
+                            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
@@ -978,19 +978,59 @@ def api_get_media_info(workitem_id):
     try:
         can_view_images = has_permission("workitems.details.view.images")
         can_view_fields = has_permission("workitems.details.view.fields")
+        can_view_confidence = has_permission("workitems.details.view.confidence")
+        # Source-location boxes are drawn over the page image, so the location data
+        # needs BOTH the dedicated location perm AND images (no image -> nothing to
+        # draw on / broken click-to-locate).
+        can_view_location = can_view_images and has_permission(
+            "workitems.details.view.source_location"
+        )
 
         def _suppress(data):
-            # Highlighting needs BOTH perms: fields to see the values, images to
-            # see WHERE (boxes are drawn over the page image). Returns a copy so
-            # the cached object is never mutated.
+            # Granular per-permission suppression (returns a copy so the cached
+            # object is never mutated):
+            #   fields                    -> see the extracted values at all
+            #   images + source_location  -> see WHERE on the page (boxes + locate)
+            #   confidence                -> see the extraction confidence %
             d = data.copy()
+            # lets the front-end suppress the "no source location" badge when the
+            # perm is absent (vs. a value that genuinely has no location).
+            d["source_location_visible"] = can_view_location
+            d["confidence_visible"] = can_view_confidence
             if not can_view_images:
                 d["media_count"] = 0
             if not can_view_fields:
                 d["fields"] = {}
                 d["field_sources"] = []
-            elif not can_view_images:
-                d["field_sources"] = [{**s, "locations": []} for s in d.get("field_sources", [])]
+                d["table_sources"] = []
+                return d
+            fs = d.get("field_sources", [])
+            ts = d.get("table_sources", [])
+            if not can_view_location:
+                fs = [{**s, "locations": []} for s in fs]
+                ts = [
+                    {
+                        **t,
+                        "rows": [
+                            [{**c, "locations": []} for c in row] for row in t.get("rows", [])
+                        ],
+                    }
+                    for t in ts
+                ]
+            if not can_view_confidence:
+                fs = [{k: v for k, v in s.items() if k != "confidence"} for s in fs]
+                ts = [
+                    {
+                        **t,
+                        "rows": [
+                            [{k: v for k, v in c.items() if k != "confidence"} for c in row]
+                            for row in t.get("rows", [])
+                        ],
+                    }
+                    for t in ts
+                ]
+            d["field_sources"] = fs
+            d["table_sources"] = ts
             return d
 
         cached_info = cache.get(f"media_info_{workitem_id}")
@@ -1003,8 +1043,8 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls, fields, field_sources = get_extensions_urls_fields(
-            workitemdata, document_id, domain
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            workitemdata, document_id, domain, with_tables=True
         )
 
         media_count = len(urls) if urls else 0
@@ -1017,6 +1057,7 @@ def api_get_media_info(workitem_id):
             "media_count": media_count,
             "fields": fields,
             "field_sources": field_sources,
+            "table_sources": table_sources,
         }
 
         cache.set(f"media_info_{workitem_id}", response_data)
@@ -1038,7 +1079,7 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields, _fs = get_extensions_urls_fields(
+            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
                 workitemdata, document_id, domain
             )
             media_data = {"extensions": extensions, "urls": urls}

@@ -19,6 +19,7 @@ from .config import (
 from .db import engine_nexora_db
 from .extensions import cache
 from .field_locations import extract_field_locations
+from .table_locations import extract_table_locations
 
 
 def get_access_token(domain=None):
@@ -98,13 +99,19 @@ def get_index_field_mappings():
     return mapping
 
 
-def get_extensions_urls_fields(workitemdata, document_id, domain=None):
+def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tables=False):
+    """Fetch the Octopus thin document and return
+    ``(extensions, urls, fields, field_sources, table_sources)``.
+
+    ``table_sources`` is always ``[]`` unless ``with_tables=True`` — only the
+    document viewer (``api_get_media_info``) opts in, so the larger
+    ``WithTables=true`` payload never burdens the scalar-only callers."""
     if domain is None:
         domain = OCTO_DOMAIN
     url = (
         f"https://{domain}/api/documentservice/api/v2.1/documentService/thin/Document/"
         f"{document_id}?WithExtensions=false&WithDocumentStructure=true"
-        f"&WithTables=false&WithDocumentAudits=true&LoadMediaStreams=true"
+        f"&WithTables={'true' if with_tables else 'false'}&WithDocumentAudits=true&LoadMediaStreams=true"
     )
     access_token = get_access_token(domain)
     headers = {
@@ -119,7 +126,7 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None):
         doc_json = response.json()
     except Exception as e:
         current_app.logger.error(f"Error fetching document details: {e}")
-        return [], [], {}, []
+        return [], [], {}, [], []
 
     urls = []
     extensions = []
@@ -150,7 +157,8 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None):
                     fields[target_key] = field_value
 
     field_sources = extract_field_locations(doc_json, field_mapping)
-    return extensions, urls, fields, field_sources
+    table_sources = extract_table_locations(doc_json) if with_tables else []
+    return extensions, urls, fields, field_sources, table_sources
 
 
 def get_media(url, domain=None):

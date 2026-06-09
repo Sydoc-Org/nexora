@@ -34,6 +34,35 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   so Surfaces A/C can reference metrics by code. Empty/absent `metrics` keeps the
   row-projection path unchanged. de/fr/it translated. (Per-metric locked
   `FilterJson` is stored but not yet applied — reserved for a later slice.)
+- **Workitems table / line-item source highlighting.** The read-only "Show
+  sources" overlay now extends from scalar index fields to **table / line-item
+  extractions**. `api_get_media_info` opt-in-fetches table data
+  (`get_extensions_urls_fields(..., with_tables=True)`, only on the viewer path
+  so the scalar-only callers pay nothing) and returns a new `table_sources`
+  array, parsed from the Octopus `Tables[].Rows[].Cells[]` structure by the pure
+  helper `nx_lib/table_locations.py` (same `IndexField.Location` rect shape,
+  reusing `field_locations.py`'s rect/confidence/page-offset helpers). The field
+  panel grows a compact **line-item grid** below the scalar fields whose located
+  cells are click-to-locate; on the page each cell renders a **dashed** highlight
+  box (distinct from the solid scalar-field boxes, confidence colour preserved)
+  in both the lightbox and thumbnails, under the same single "Show sources"
+  toggle. Reuses `workitems.details.view.images` + `.fields` (**no new
+  permission, no migration**); `table_sources` is permission-suppressed
+  identically to `field_sources`. Extracted document content is HTML-escaped
+  before rendering (the same hardening was applied to the pre-existing scalar
+  rows). See `docs/superpowers/specs/2026-06-09-workitem-table-highlighting-design.md`.
+- **Two new workitems source-highlight permissions** (migration `0018`,
+  seeded to admin profiles). `workitems.details.view.confidence` gates the
+  extraction **confidence %** (the per-field/cell chips + the confidence colour
+  on the boxes); `workitems.details.view.source_location` gates seeing **where**
+  each value was found on the page (the highlight boxes + click-to-locate; only
+  effective together with `workitems.details.view.images`, since boxes draw over
+  the page image). `api_get_media_info` strips `confidence` / `locations` from
+  `field_sources` + `table_sources` per permission and returns a
+  `source_location_visible` flag so the viewer hides the "no source location"
+  badge when the perm is absent (a permission state, not missing data). Both
+  appear in the admin access-control grant UI automatically (it reads
+  `dbo.Permission`).
 - **`.claudeignore` + enforcing PreToolUse hook.** A repo-root `.claudeignore`
   lists which paths AI coding tools should skip (secrets, Python bytecode,
   virtualenvs/vendored deps, build artifacts, tool/index caches, `uv.lock`,
@@ -223,6 +252,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   Also corrected the SQL-target display label "Live SQL — Octopus" →
   "Live SQL — Octo" (`nx_lib/reporting/sources.py`; the `sql_octopus` id and
   `reporting.sql.target.octopus` permission are unchanged). de/fr/it translated.
+- **Workitems "Show sources" is now a full-page split review.** Opening the
+  source view (clicking a page or a value's locate action) shows the whole
+  document page with its highlight boxes on the **left** and the extracted
+  values on the **right** — the full scalar field list (label + value +
+  confidence chip + "no source location" badge) plus the line-item grid, all
+  click-to-locate (clicking a value navigates the page, pulses its box in
+  place, and switches the boxes on — toggle flips to "Hide sources").
+  Replaces the centred image-only lightbox. The values markup is shared
+  with the inline Document Details panel via one builder so they never drift,
+  and the right panel hides itself for documents with no extracted values
+  (plain media viewing stays full-width). New string `Extracted values`
+  (de/fr/it).
 - **App-wide UI redesign — the `nexora-ui` design system.** A shared
   `static/css/nexora-ui.css` (global `--nx-*` design tokens + `.nx-*` components:
   cards, buttons, inputs, filter bars, tables, GitHub-style status labels, KPI
@@ -307,6 +348,33 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   and fills `schemaVersion`/`visualization`/a synthesized `title`/a default-or-clamped
   `rowLimit` — only ever swapping a label that maps to exactly one field, and a no-op
   for already-valid drafts. The human builder path (`/run`) is untouched.
+- **Workitems "Show sources" — boxes mispositioned in the lightbox.** The
+  full-page overlay measured the modal image with `getBoundingClientRect()`,
+  which returns the *visual* (post-`transform`) rectangle. Because the overlay
+  rendered on the image's `load` event — fired while the lightbox `zoom`
+  animation (`scale(0.5) → 1`) was still mid-flight — the boxes were pinned to a
+  shrunken, centre-pulled frame and never re-measured once the zoom settled, so
+  they appeared stranded in blank space and "jumped" to a different place when
+  the toggle was flipped off/on. The overlay (`#srcHlLayer`) is now
+  `position:absolute` inside `#imageModal` and sized from the image's
+  transform-independent **layout box** (`offsetLeft/Top/Width/Height`), so boxes
+  map to the displayed page on first open and stay put across hide/show. Lightbox
+  boxes also get a subtle white halo + drop shadow so they read clearly on white
+  paper and over dark text/logos (confidence colour unchanged).
+- **Workitems "Show sources" — boxes shown out of register on lightbox open.**
+  A residual of the fix above: with the image cached, the overlay rendered on the
+  very next frame after open, *during* the `.modal-content` open-zoom animation
+  (`scale(0.5) → 1`). Because `#srcHlLayer` is a **sibling** of the image it does
+  not inherit that transform, so the boxes — drawn at the page's final layout
+  coordinates — floated off the still-scaling page ("already visible when you open
+  it, locations wrong") and only snapped into place on a manual hide/show that
+  happened to re-render against the settled image. The overlay's first render now
+  waits until the page is geometrically settled — the image bitmap is decoded
+  **and** every running animation on it has `finished` — via a new
+  `drawOverlayWhenStable()` (reopen / prev-next, with no animation running, render
+  immediately). A `ResizeObserver` on the modal image re-renders the boxes on any
+  later box-size change (values-panel reflow, late decode, viewport resize),
+  keeping them locked to the page without a manual toggle.
 - **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
   (1) the curated-source catalog shown to the model now lists each field as
   `key "Human Label":type`, and the prompt instructs the model to emit the exact

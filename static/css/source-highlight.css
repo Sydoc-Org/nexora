@@ -4,10 +4,14 @@
    naturalWidth/naturalHeight (the rects from Octopus are in image pixels). */
 
 /* ---- Lightbox overlay ---- */
-/* Positioned with inline left/top/width/height (set from the modal image's
-   getBoundingClientRect), so it sits exactly over the displayed page. */
+/* Absolutely positioned inside #imageModal (the positioned ancestor), with inline
+   left/top/width/height set from the modal image's LAYOUT box (offsetLeft/Top/
+   Width/Height). Layout metrics are immune to the image's open-zoom
+   `transform: scale()` animation — reading getBoundingClientRect() instead pinned
+   the overlay to a mid-zoom (shrunken) frame that never updated once the zoom
+   settled, stranding the boxes in blank space. */
 #srcHlLayer {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   z-index: 1001;
   overflow: hidden;
@@ -19,6 +23,14 @@
   border-radius: 2px;
   box-sizing: border-box;
   pointer-events: none;
+}
+/* In the full-page lightbox, lift the boxes so they read clearly on white paper
+   AND over dark text / logos / QR codes: a thin white ring just outside the
+   coloured border, plus a soft drop shadow. The confidence colour (border + fill)
+   is untouched. Thumbnails stay hairline-thin (handled below). */
+#srcHlLayer .src-hl-box {
+  border-width: 2.5px;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 1px 5px rgba(15, 23, 42, 0.35);
 }
 .src-hl-box.is-pulse {
   animation: srcHlPulse 1.1s ease-out 2;
@@ -96,3 +108,151 @@
 .src-conf-badge.src-conf-high { background: rgba(22, 163, 74, 0.14); color: #15803d; }
 .src-conf-badge.src-conf-med  { background: rgba(217, 119, 6, 0.16); color: #b45309; }
 .src-conf-badge.src-conf-low  { background: rgba(220, 38, 38, 0.14); color: #b91c1c; }
+
+/* ---- Table / line-item cells ----
+   A table-cell box is distinguished from a scalar-field box by a DASHED border
+   (not a competing colour), so the confidence colour above still reads on the
+   border. Works in both the lightbox and thumbnail layers. */
+.src-hl-box--cell { border-style: dashed; }
+
+/* Line-item grid in the field panel (rendered below the scalar <dl>). */
+.src-table-grid { margin-top: 0.85rem; }
+.src-table-grid .src-table-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 0.25rem 0;
+}
+.src-table-grid table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.src-table-grid th, .src-table-grid td {
+  border: 1px solid #e5e7eb;
+  padding: 2px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.src-table-grid th { background: #f9fafb; font-weight: 600; color: #374151; white-space: nowrap; }
+.src-table-cell.src-cell-loc { cursor: pointer; }
+.src-table-cell.src-cell-loc:hover { background: rgba(234, 88, 12, 0.08); }
+
+/* ---- Full-page source review (split lightbox) ----
+   #imageModal is a two-pane review: the document page (with the highlight overlay)
+   on the LEFT, the extracted values on the RIGHT. The values panel hides itself for
+   documents with no extracted values, so plain media viewing stays full-width. */
+#imageModal .src-modal-body {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+}
+.src-modal-page {
+  position: relative;          /* containing block for #srcHlLayer + the nav arrows */
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+}
+/* Image fills the page pane (overrides the centred-lightbox 90% / 85vh sizing). */
+.src-modal-page .modal-content {
+  max-width: 100%;
+  max-height: 92vh;
+  margin: 0;
+}
+.src-modal-values {
+  flex: 0 0 auto;
+  width: min(44vw, 480px);
+  background: #ffffff;
+  color: #111827;
+  overflow-y: auto;
+  padding: 1.25rem 1.4rem 2rem;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
+}
+/* Review-panel rows are STACKED (label over value), not side-by-side: in a narrow
+   column the inline panel's `flex justify-between` squeezes long values, truncates
+   labels and wraps the confidence chip. Stacking gives each value the full width
+   (wraps cleanly), keeps labels readable, and reads like a property list. Scoped to
+   #srcReviewPanel so the inline Document Details panel is unchanged. */
+#srcReviewPanel .src-field-row {
+  display: block;            /* override inline `flex justify-between items-center` */
+  padding: 0.5rem 0;
+}
+#srcReviewPanel .src-field-row dt {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;            /* --nx-text-meta */
+  white-space: normal;       /* override Tailwind `truncate` */
+  overflow: visible;
+  margin-bottom: 0.15rem;
+}
+#srcReviewPanel .src-field-row dd {
+  display: block;
+  text-align: left;          /* override `text-right` */
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;    /* long emails / IBANs wrap instead of overflowing */
+}
+.src-modal-values[hidden] { display: none; }
+.src-modal-values-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+/* Close button: a circular icon button harmonised with the nexora-ui palette.
+   It sits over the white values panel (and the dark backdrop), so it carries its
+   own surface + soft shadow. Gray glyph -> danger red on hover, indigo focus ring,
+   subtle press scale. No layout shift (transform is on the absolute button only). */
+#imageModal .modal-close {
+  z-index: 1003;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: #6b7280;                 /* --nx-text-sec */
+  background: #ffffff;            /* --nx-card (panel is always light) */
+  border: 1px solid #e5e7eb;      /* --nx-border */
+  border-radius: 999px;           /* --nx-radius-pill */
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.18);
+  cursor: pointer;
+  transition: color 150ms cubic-bezier(.4, 0, .2, 1),
+              background-color 150ms cubic-bezier(.4, 0, .2, 1),
+              box-shadow 150ms cubic-bezier(.4, 0, .2, 1),
+              transform 150ms cubic-bezier(.4, 0, .2, 1);
+}
+#imageModal .modal-close > i { pointer-events: none; }
+#imageModal .modal-close:hover {
+  color: #dc2626;                 /* --nx-danger */
+  background: #f9fafb;            /* --nx-alt */
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.24);
+}
+#imageModal .modal-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.45);   /* --nx-accent ring */
+}
+#imageModal .modal-close:active { transform: scale(0.92); }
+/* Narrow screens: stack the page over the values panel. */
+@media (max-width: 900px) {
+  #imageModal .src-modal-body { flex-direction: column; }
+  .src-modal-page { padding: 0.5rem; }
+  .src-modal-values {
+    width: 100%;
+    max-height: 38vh;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
+  }
+}

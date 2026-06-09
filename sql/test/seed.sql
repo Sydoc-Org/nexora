@@ -58,6 +58,8 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.details.view.fields', 'View workitem fields'),
     ('workitems.details.view.images', 'View workitem images'),
     ('workitems.details.view.audit', 'View workitem audit history'),
+    ('workitems.details.view.confidence', 'Workitems: view extraction confidence scores in the document viewer'),
+    ('workitems.details.view.source_location', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.view.images)'),
     ('workitems.details.add.comment', 'Add workitem comment'),
     ('workitems.details.add.tag', 'Add workitem tag'),
     ('workitems.details.assign.users', 'Assign workitem users'),

@@ -617,45 +617,24 @@
                         // Source locations (where each extracted value was found on the page).
                         window.__srcByWorkitem = window.__srcByWorkitem || {};
                         window.__srcByWorkitem[workitemid] = mediaInfo.field_sources || [];
+                        // Table / line-item cell sources (same shape, grouped into rows).
+                        window.__tableByWorkitem = window.__tableByWorkitem || {};
+                        window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
+                        // Whether the user may see source locations at all (perm-gated). When
+                        // false the "no source location" badge is suppressed — it's a
+                        // permission state, not genuinely-missing location data.
+                        window.__srcLocVisibleByWorkitem = window.__srcLocVisibleByWorkitem || {};
+                        window.__srcLocVisibleByWorkitem[workitemid] = mediaInfo.source_location_visible !== false;
 
                         if (fieldsContainer) {
-                            if (Object.keys(fields).length > 0) {
-                                const srcByKey = {};
-                                (window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
-                                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
-
-                                for (const key in fields) {
-                                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
-                                        const labelKey = key.toLowerCase();
-                                        const label = fieldConfig.labels[labelKey] || key;
-
-                                        const src = srcByKey[key];
-                                        const hasLoc = !!(src && src.locations && src.locations.length);
-                                        const page = hasLoc ? src.locations[0].page : '';
-                                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
-                                            + (hasLoc ? ' is-locatable' : '');
-                                        const badge = (src && !hasLoc)
-                                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
-                                        const titleAttr = hasLoc
-                                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
-                                        const confCls = src ? window.srcConfClass(src.confidence) : '';
-                                        const confBadge = confCls
-                                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
-                                            : '';
-
-                                        fieldsHtml += `
-                                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
-                                                <dt class="text-gray-500 truncate">${label}${badge}</dt>
-                                                <dd class="font-semibold text-gray-900 text-right">${fields[key]}${confBadge}</dd>
-                                            </div>`;
-                                    }
-                                }
-                                fieldsHtml += '</dl>';
-                                fieldsContainer.innerHTML = fieldsHtml;
-                            }
-                             else {
-                                fieldsContainer.innerHTML = `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
-                            }
+                            // Stash the scalar values so the shared builder
+                            // (buildSourceDetailsHtml) can rebuild this exact markup for the
+                            // in-lightbox review panel too. The line-item grid is appended by
+                            // the builder (a table can exist with no scalar fields).
+                            window.__fieldsByWorkitem = window.__fieldsByWorkitem || {};
+                            window.__fieldsByWorkitem[workitemid] = fields;
+                            fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid)
+                                || `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
                         }
                         if (imageContainer) {
                             imageContainer.dataset.loaded = 'true';
@@ -683,6 +662,119 @@
             }
         }
 
+        // Escape values interpolated into innerHTML. Field/cell values + column
+        // names are extracted document content (attacker-influenceable via a crafted
+        // document), so they must never be injected raw. (Box .title is set via the
+        // DOM property, which is already safe.)
+        function srcEsc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // A table cell is "just another source": flatten line-item cells to the
+        // same {key,label,value,locations,confidence,kind} shape the overlay draws.
+        // key encodes table/row/cell so a grid cell click can pulse exactly its box.
+        function tableCellSources(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            const out = [];
+            tables.forEach((t, ti) => (t.rows || []).forEach((row, ri) => row.forEach((c, ci) => {
+                out.push({
+                    key: `t${ti}r${ri}c${ci}`, label: c.col, value: c.value,
+                    locations: c.locations || [], confidence: c.confidence, kind: 'cell',
+                });
+            })));
+            return out;
+        }
+
+        // Scalar field sources + table-cell sources, drawn by the same loops.
+        function allSources(workitemid) {
+            const fields = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            return fields.concat(tableCellSources(workitemid));
+        }
+
+        // Line-item grid(s) for the field panel. Located cells are click-to-locate
+        // (same page+pulse path as scalar field rows); data-key matches the cell's
+        // source key so renderModalOverlay pulses exactly that box.
+        function renderTableGrids(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            let html = '';
+            tables.forEach((t, ti) => {
+                const cols = (t.columns && t.columns.length) ? t.columns : [];
+                const title = t.title ? `<div class="src-table-title">${srcEsc(t.title)}</div>` : '';
+                const head = cols.map(c => `<th>${srcEsc(c)}</th>`).join('');
+                const body = (t.rows || []).map((row, ri) => {
+                    const byCol = {};
+                    row.forEach((c, ci) => { byCol[c.col] = { c, ci }; });
+                    const tds = cols.map(col => {
+                        const entry = byCol[col];
+                        if (!entry) return '<td class="src-table-cell"></td>';
+                        const { c, ci } = entry;
+                        const hasLoc = !!(c.locations && c.locations.length);
+                        const page = hasLoc ? c.locations[0].page : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const cls = 'src-table-cell' + (hasLoc ? ' src-cell-loc' : '');
+                        const val = srcEsc(c.value);
+                        return `<td class="${cls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>${val}</td>`;
+                    }).join('');
+                    return `<tr>${tds}</tr>`;
+                }).join('');
+                html += `<div class="src-table-grid">${title}`
+                    + `<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`;
+            });
+            return html;
+        }
+
+        // Build the extracted-values markup (scalar field <dl> + line-item grids) for a
+        // workitem. Shared by the inline "Document Details" panel and the in-lightbox
+        // source-review panel, so both render identical rows (same data-key/data-page ->
+        // the same click-to-locate + box-pulse path). Returns '' when there is nothing.
+        function buildSourceDetailsHtml(workitemid) {
+            const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
+            // Suppress the "no source location" badge when the user lacks the
+            // source-location perm (the backend strips locations from everything,
+            // so it's a permission state, not missing data).
+            const locVisible = !(window.__srcLocVisibleByWorkitem
+                && window.__srcLocVisibleByWorkitem[workitemid] === false);
+            let html = '';
+            if (Object.keys(fields).length > 0) {
+                const srcByKey = {};
+                (window.__srcByWorkitem && window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
+                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                for (const key in fields) {
+                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                        const labelKey = key.toLowerCase();
+                        const label = fieldConfig.labels[labelKey] || key;
+                        const src = srcByKey[key];
+                        const hasLoc = !!(src && src.locations && src.locations.length);
+                        const page = hasLoc ? src.locations[0].page : '';
+                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                            + (hasLoc ? ' is-locatable' : '');
+                        const badge = (locVisible && src && !hasLoc)
+                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const confCls = src ? window.srcConfClass(src.confidence) : '';
+                        const confBadge = confCls
+                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
+                            : '';
+                        fieldsHtml += `
+                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
+                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
+                            </div>`;
+                    }
+                }
+                fieldsHtml += '</dl>';
+                html += fieldsHtml;
+            }
+            // Line-item tables render below the scalar fields (a table can exist with
+            // no scalar fields, so this is independent).
+            html += renderTableGrids(workitemid);
+            return html;
+        }
+
         // Thumbnails use object-contain (full page, letterboxed) so boxes map
         // correctly; we account for the letterbox offset/scale within the 160px box.
         // Module scope so loadImage's onload handler (and setSrcHl) can reach it.
@@ -690,7 +782,7 @@
             const old = wrap.querySelector('.src-hl-layer-thumb');
             if (old) old.remove();
             if (localStorage.getItem('srcHlOn') !== '1') return;
-            const srcs = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            const srcs = allSources(workitemid);
             const natW = imgEl.naturalWidth, natH = imgEl.naturalHeight;
             const w = imgEl.clientWidth, h = imgEl.clientHeight;
             if (!natW || !natH || !w || !h) return;
@@ -702,7 +794,8 @@
                 if (loc.page !== page) return;
                 const b = document.createElement('div');
                 const confCls = window.srcConfClass(s.confidence);
-                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '');
+                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '')
+                    + (s.kind === 'cell' ? ' src-hl-box--cell' : '');
                 b.style.left = (offX + loc.rect.left * scale) + 'px';
                 b.style.top = (offY + loc.rect.top * scale) + 'px';
                 b.style.width = (loc.rect.width * scale) + 'px';
@@ -1904,8 +1997,21 @@ async function uploadBatchFiles(files, processName) {
             const srcHlToggle = document.getElementById('srcHlToggle');
             const srcHlToggleLabel = document.getElementById('srcHlToggleLabel');
 
+            // Safety net: keep the overlay locked to the image's box if it changes size
+            // after the initial draw for any reason other than the open zoom (e.g. the
+            // values panel reflowing, late image decode, viewport resize). Skipped while a
+            // zoom animation is mid-flight -- that frame is handled by drawOverlayWhenStable
+            // once the animation finishes, so boxes never flash out of register.
+            if (window.ResizeObserver && modalImg) {
+                new ResizeObserver(() => {
+                    if (!modal || modal.style.display !== 'flex') return;
+                    const animating = modalImg.getAnimations && modalImg.getAnimations().length;
+                    if (!animating) renderModalOverlay();
+                }).observe(modalImg);
+            }
+
             function currentSources() {
-                return (window.__srcByWorkitem && window.__srcByWorkitem[srcHl.workitemid]) || [];
+                return allSources(srcHl.workitemid);
             }
 
             function hasAnyLocation() {
@@ -1927,12 +2033,20 @@ async function uploadBatchFiles(files, processName) {
                 if (!srcHl.on && !pulseKey) return;
                 const natW = modalImg.naturalWidth, natH = modalImg.naturalHeight;
                 if (!natW || !natH) return;  // image not decoded yet
-                const r = modalImg.getBoundingClientRect();
-                if (!r.width || !r.height) return;
-                srcHlLayer.style.left = r.left + 'px';
-                srcHlLayer.style.top = r.top + 'px';
-                srcHlLayer.style.width = r.width + 'px';
-                srcHlLayer.style.height = r.height + 'px';
+                // Measure the image's LAYOUT box (offset*), NOT getBoundingClientRect().
+                // getBoundingClientRect() returns the *visual* (post-transform) rect, so
+                // reading it while the lightbox zoom animation (scale 0.5 -> 1) is mid-flight
+                // pinned the overlay to a shrunken frame that was never updated once the zoom
+                // settled -> boxes stranded in blank space, and "jumping" on hide/show because
+                // the re-render then measured the settled rect. offset* is transform-immune,
+                // so the overlay always maps to the final displayed page. The layer is
+                // position:absolute inside #imageModal, so offsetLeft/Top share its space.
+                const w = modalImg.offsetWidth, h = modalImg.offsetHeight;
+                if (!w || !h) return;  // not laid out yet
+                srcHlLayer.style.left = modalImg.offsetLeft + 'px';
+                srcHlLayer.style.top = modalImg.offsetTop + 'px';
+                srcHlLayer.style.width = w + 'px';
+                srcHlLayer.style.height = h + 'px';
                 currentSources().forEach(src => {
                     (src.locations || []).forEach(loc => {
                         if (loc.page !== currentIndex) return;
@@ -1940,11 +2054,12 @@ async function uploadBatchFiles(files, processName) {
                         const box = document.createElement('div');
                         box.className = 'src-hl-box'
                             + (confCls ? ' ' + confCls : '')
+                            + (src.kind === 'cell' ? ' src-hl-box--cell' : '')
                             + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
-                        box.style.left = (loc.rect.left / natW * r.width) + 'px';
-                        box.style.top = (loc.rect.top / natH * r.height) + 'px';
-                        box.style.width = (loc.rect.width / natW * r.width) + 'px';
-                        box.style.height = (loc.rect.height / natH * r.height) + 'px';
+                        box.style.left = (loc.rect.left / natW * w) + 'px';
+                        box.style.top = (loc.rect.top / natH * h) + 'px';
+                        box.style.width = (loc.rect.width / natW * w) + 'px';
+                        box.style.height = (loc.rect.height / natH * h) + 'px';
                         const confPct = window.srcConfPct(src.confidence);
                         box.title = src.label + ': ' + (src.value == null ? '' : src.value)
                             + (confPct ? ' (' + confPct + ')' : '');
@@ -1960,6 +2075,16 @@ async function uploadBatchFiles(files, processName) {
                 refreshThumbOverlays();
             }
 
+            // A value/cell was clicked to locate it -> make sure source boxes are on so
+            // the user sees them in context. The toggle flips to "Hide sources" on the
+            // next renderModalOverlay (driven by showImage). No-op if already on.
+            function ensureSourcesOn() {
+                if (srcHl.on) return;
+                srcHl.on = true;
+                localStorage.setItem('srcHlOn', '1');
+                refreshThumbOverlays();
+            }
+
             // Open the lightbox for a specific workitem + page (used by click-to-locate
             // and the thumbnail click handler). pulseKey flashes one field's box.
             function openModalForWorkitem(workitemid, index, pulseKey) {
@@ -1970,8 +2095,43 @@ async function uploadBatchFiles(files, processName) {
                 currentImages = allImages.map(img => img.src);
                 srcHl.workitemid = String(workitemid);
                 srcHl.pendingPulse = pulseKey || null;
+                if (pulseKey) ensureSourcesOn();   // located via a value click -> show boxes
+                renderReviewPanel(String(workitemid));
                 modal.style.display = 'flex';
                 showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
+            }
+
+            // Fill the in-lightbox review panel (right pane) with the workitem's extracted
+            // values, reusing the exact same rows as the inline panel. Hidden (image goes
+            // full-width) when the document has no extracted values.
+            function renderReviewPanel(workitemid) {
+                const panel = document.getElementById('srcReviewPanel');
+                const body = document.getElementById('srcReviewPanelBody');
+                if (!panel || !body) return;
+                const html = buildSourceDetailsHtml(workitemid);
+                body.innerHTML = html;
+                panel.hidden = !html;
+            }
+
+            // Render the overlay only once the displayed page is geometrically SETTLED:
+            // (1) the image bitmap is decoded (so its layout box reflects the real page
+            // aspect) and (2) the open-zoom animation (scale 0.5 -> 1) has finished. The
+            // overlay layer is a SIBLING of the image, so it never inherits that zoom
+            // transform -- drawing mid-animation strands the boxes off the still-scaling
+            // page (boxes already visible but in the wrong place), and they only snapped
+            // into register on a later hide/show that re-rendered against the settled
+            // image. Waiting for each running animation's `finished` promise makes the
+            // boxes appear already aligned. With no animation running (e.g. reopening the
+            // same lightbox, or prev/next navigation) it renders immediately.
+            function drawOverlayWhenStable(pulse) {
+                const render = () => requestAnimationFrame(() => renderModalOverlay(pulse));
+                const afterDecode = () => {
+                    const anims = modalImg.getAnimations ? modalImg.getAnimations() : [];
+                    if (anims.length) Promise.allSettled(anims.map(a => a.finished)).then(render);
+                    else render();
+                };
+                if (modalImg.complete && modalImg.naturalWidth) afterDecode();
+                else modalImg.addEventListener('load', afterDecode, { once: true });
             }
 
             function showImage(index) {
@@ -1982,9 +2142,7 @@ async function uploadBatchFiles(files, processName) {
                     nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
                     const pulse = srcHl.pendingPulse;
                     srcHl.pendingPulse = null;
-                    // Render now if the image is already decoded (cached blob), else on load.
-                    if (modalImg.complete && modalImg.naturalWidth) renderModalOverlay(pulse);
-                    else modalImg.addEventListener('load', () => renderModalOverlay(pulse), { once: true });
+                    drawOverlayWhenStable(pulse);
                 }
             }
 
@@ -2021,9 +2179,33 @@ async function uploadBatchFiles(files, processName) {
                 openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
             });
 
+            // Click a located line-item cell -> open its page + pulse its cell box.
+            document.addEventListener('click', (event) => {
+                const td = event.target.closest('td.src-cell-loc');
+                if (!td) return;
+                const fc = td.closest('[id^="fields-container-"]');
+                if (!fc) return;
+                const workitemid = fc.id.replace('fields-container-', '');
+                openModalForWorkitem(workitemid, parseInt(td.dataset.page || '0', 10), td.dataset.key);
+            });
+
+            // Click a value/cell in the in-lightbox review panel -> the modal is already
+            // open, so just navigate to that field's page and pulse its box.
+            document.addEventListener('click', (event) => {
+                const panel = document.getElementById('srcReviewPanel');
+                if (!panel) return;
+                const row = event.target.closest('.src-field-row.is-locatable, td.src-cell-loc');
+                if (!row || !panel.contains(row)) return;
+                ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
+                srcHl.pendingPulse = row.dataset.key;
+                showImage(parseInt(row.dataset.page || '0', 10));
+            });
+
             if (closeBtn) closeBtn.addEventListener('click', closeModal);
             if (modal) modal.addEventListener('click', (event) => {
-                if (event.target === modal) {
+                // Close when clicking the backdrop or the empty letterbox area around the
+                // page (but not the image, the values panel, the nav arrows or the toggle).
+                if (event.target === modal || event.target.classList.contains('src-modal-page')) {
                     closeModal();
                 }
             });
