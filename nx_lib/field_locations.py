@@ -132,3 +132,14 @@ def extract_field_locations(doc_json, field_mapping):
             out.append(entry)
         media_offset += _count_image_media(item)
     return out
+
+
+# Public aliases so the sibling table_locations parser can share one
+# implementation of rect / confidence / page-offset handling (DRY) instead of
+# copy-pasting. Behaviour is identical; the underscore names stay for existing
+# callers/tests.
+num = _num
+rect_from_octo = _rect_from_octo
+confidence_of = _confidence
+items_of = _items
+count_image_media = _count_image_media
