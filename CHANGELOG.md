@@ -26,6 +26,14 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   list, so this is client-side), and narrowing the scope **prunes any
   already-added column / filter / sort** whose field falls out of scope so a run
   can't break. de/fr/it translated.
+- **Reporting date dimension (docprocessing).** Import & export dates are now
+  first-class report fields (`import_date` / `export_date`), synthesized from
+  `Statconfig` (CONVERT-vs-CAST aware, mirroring the dashboard). Date columns
+  take an optional **grain** (`day/week/month/quarter/year`, default month) that
+  the query builder resolves in both the row and aggregate/GROUP BY paths;
+  filters on a date field always use the raw date. Enables date-range filtering
+  and "documents per day/week/month" reporting. Security boundary unchanged
+  (date expressions come only from `Statconfig`). de/fr/it translated.
 - **Generali PDQM mapping seed.** Added the `PDQMMapping` row
   `Adressverifikation` / `QSTAT 27` via migration
   `sql/_migrations/GeneraliDB/0002_insert_pdqmmapping_adressverifikation_qstat27.sql`

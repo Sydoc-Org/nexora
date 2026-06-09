@@ -57,6 +57,21 @@ loaded. Narrowing the scope also **prunes any already-added column / filter / so
 whose field is no longer available, so a definition can't reference a field absent
 from every scoped process (which the query builder would reject).
 
+### Date dimension (import / export date)
+
+The docprocessing source exposes two synthetic **date** fields, `import_date`
+and `export_date`, derived from each process's `Statconfig.ImportColumn` /
+`ExportColumn` (CONVERT-vs-CAST normalized like the dashboard). They are
+filterable (date-range via the flatpickr filter row), sortable, and **grainable**:
+a date column carries an optional `grain` (`day/week/month/quarter/year`, default
+`month`) that the query builder truncates to — `DATEFROMPARTS(...)` for
+month/quarter/year, Monday-anchored `DATEADD/DATEDIFF` for week. Grain applies to
+projection/grouping only; a **filter** on a date field always compares the raw
+date. Combined with a metric (e.g. `doc_count`) and a month-grain `import_date`
+dimension, this produces "documents per month". Date expressions originate solely
+from `Statconfig`, never the client — same trust boundary as the table/condition
+interpolation.
+
 ### Save & load
 
 Reports are saved per user in the `dbo.Reports` table (NexoraDB). A saved
