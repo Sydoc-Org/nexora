@@ -706,6 +706,7 @@ def _prepare_run(rd):
     provider = source.get("provider") or "docprocessing"
     if provider == "docprocessing":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
+        grainable = {f["field"] for f in catalog if f.get("grainable")}
         source_metrics = _metrics_for_source(source["id"])
         validate_report_definition(
             rd,
@@ -714,6 +715,7 @@ def _prepare_run(rd):
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
+            grainable_fields=grainable,
         )
         resolved = (
             resolve_metrics(rd.get("metrics"), source_metrics, catalog_fields)

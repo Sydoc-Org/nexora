@@ -78,8 +78,14 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
         catalog_fields = {f["field"] for f in catalog}
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
+        grainable = {f["field"] for f in catalog if f.get("grainable")}
         validate_report_definition(
-            definition, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            definition,
+            catalog_fields,
+            filterable,
+            sortable,
+            max_row_limit=MAX_ROW_LIMIT,
+            grainable_fields=grainable,
         )
         requested = (definition.get("scope") or {}).get("processes") or []
         allowed_set = set(allowed)
