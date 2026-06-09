@@ -46,5 +46,8 @@ def test_metrics_admin_add_and_list(nexora_server, page):
 def test_metrics_well_present_in_builder(nexora_server, page):
     _login(page, nexora_server, "/reporting")
     expect(page.locator('[data-testid="reporting-page"]')).to_be_visible()
-    expect(page.locator('[data-testid="reporting-well-metrics"]')).to_be_visible()
+    # The well's <ul> is empty (and therefore zero-height) until a metric is
+    # added, so assert it is present in the DOM rather than visibly sized; the
+    # "+ Add metric" control is the visible proof the metrics well renders.
+    expect(page.locator('[data-testid="reporting-well-metrics"]')).to_be_attached()
     expect(page.locator('[data-testid="reporting-add-metric"]')).to_be_visible()
