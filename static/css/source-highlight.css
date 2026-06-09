@@ -164,12 +164,40 @@
 }
 .src-modal-values {
   flex: 0 0 auto;
-  width: min(40vw, 430px);
+  width: min(44vw, 480px);
   background: #ffffff;
   color: #111827;
   overflow-y: auto;
   padding: 1.25rem 1.4rem 2rem;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
+}
+/* Review-panel rows are STACKED (label over value), not side-by-side: in a narrow
+   column the inline panel's `flex justify-between` squeezes long values, truncates
+   labels and wraps the confidence chip. Stacking gives each value the full width
+   (wraps cleanly), keeps labels readable, and reads like a property list. Scoped to
+   #srcReviewPanel so the inline Document Details panel is unchanged. */
+#srcReviewPanel .src-field-row {
+  display: block;            /* override inline `flex justify-between items-center` */
+  padding: 0.5rem 0;
+}
+#srcReviewPanel .src-field-row dt {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;            /* --nx-text-meta */
+  white-space: normal;       /* override Tailwind `truncate` */
+  overflow: visible;
+  margin-bottom: 0.15rem;
+}
+#srcReviewPanel .src-field-row dd {
+  display: block;
+  text-align: left;          /* override `text-right` */
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;    /* long emails / IBANs wrap instead of overflowing */
 }
 .src-modal-values[hidden] { display: none; }
 .src-modal-values-title {
