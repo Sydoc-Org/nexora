@@ -259,6 +259,19 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Workitems "Show sources" — boxes mispositioned in the lightbox.** The
+  full-page overlay measured the modal image with `getBoundingClientRect()`,
+  which returns the *visual* (post-`transform`) rectangle. Because the overlay
+  rendered on the image's `load` event — fired while the lightbox `zoom`
+  animation (`scale(0.5) → 1`) was still mid-flight — the boxes were pinned to a
+  shrunken, centre-pulled frame and never re-measured once the zoom settled, so
+  they appeared stranded in blank space and "jumped" to a different place when
+  the toggle was flipped off/on. The overlay (`#srcHlLayer`) is now
+  `position:absolute` inside `#imageModal` and sized from the image's
+  transform-independent **layout box** (`offsetLeft/Top/Width/Height`), so boxes
+  map to the displayed page on first open and stay put across hide/show. Lightbox
+  boxes also get a subtle white halo + drop shadow so they read clearly on white
+  paper and over dark text/logos (confidence colour unchanged).
 - **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
   (1) the curated-source catalog shown to the model now lists each field as
   `key "Human Label":type`, and the prompt instructs the model to emit the exact

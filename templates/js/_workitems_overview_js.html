@@ -1998,12 +1998,20 @@ async function uploadBatchFiles(files, processName) {
                 if (!srcHl.on && !pulseKey) return;
                 const natW = modalImg.naturalWidth, natH = modalImg.naturalHeight;
                 if (!natW || !natH) return;  // image not decoded yet
-                const r = modalImg.getBoundingClientRect();
-                if (!r.width || !r.height) return;
-                srcHlLayer.style.left = r.left + 'px';
-                srcHlLayer.style.top = r.top + 'px';
-                srcHlLayer.style.width = r.width + 'px';
-                srcHlLayer.style.height = r.height + 'px';
+                // Measure the image's LAYOUT box (offset*), NOT getBoundingClientRect().
+                // getBoundingClientRect() returns the *visual* (post-transform) rect, so
+                // reading it while the lightbox zoom animation (scale 0.5 -> 1) is mid-flight
+                // pinned the overlay to a shrunken frame that was never updated once the zoom
+                // settled -> boxes stranded in blank space, and "jumping" on hide/show because
+                // the re-render then measured the settled rect. offset* is transform-immune,
+                // so the overlay always maps to the final displayed page. The layer is
+                // position:absolute inside #imageModal, so offsetLeft/Top share its space.
+                const w = modalImg.offsetWidth, h = modalImg.offsetHeight;
+                if (!w || !h) return;  // not laid out yet
+                srcHlLayer.style.left = modalImg.offsetLeft + 'px';
+                srcHlLayer.style.top = modalImg.offsetTop + 'px';
+                srcHlLayer.style.width = w + 'px';
+                srcHlLayer.style.height = h + 'px';
                 currentSources().forEach(src => {
                     (src.locations || []).forEach(loc => {
                         if (loc.page !== currentIndex) return;
@@ -2013,10 +2021,10 @@ async function uploadBatchFiles(files, processName) {
                             + (confCls ? ' ' + confCls : '')
                             + (src.kind === 'cell' ? ' src-hl-box--cell' : '')
                             + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
-                        box.style.left = (loc.rect.left / natW * r.width) + 'px';
-                        box.style.top = (loc.rect.top / natH * r.height) + 'px';
-                        box.style.width = (loc.rect.width / natW * r.width) + 'px';
-                        box.style.height = (loc.rect.height / natH * r.height) + 'px';
+                        box.style.left = (loc.rect.left / natW * w) + 'px';
+                        box.style.top = (loc.rect.top / natH * h) + 'px';
+                        box.style.width = (loc.rect.width / natW * w) + 'px';
+                        box.style.height = (loc.rect.height / natH * h) + 'px';
                         const confPct = window.srcConfPct(src.confidence);
                         box.title = src.label + ': ' + (src.value == null ? '' : src.value)
                             + (confPct ? ' (' + confPct + ')' : '');
@@ -2054,9 +2062,12 @@ async function uploadBatchFiles(files, processName) {
                     nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
                     const pulse = srcHl.pendingPulse;
                     srcHl.pendingPulse = null;
-                    // Render now if the image is already decoded (cached blob), else on load.
-                    if (modalImg.complete && modalImg.naturalWidth) renderModalOverlay(pulse);
-                    else modalImg.addEventListener('load', () => renderModalOverlay(pulse), { once: true });
+                    // Defer to the next frame so the lightbox has completed layout before
+                    // renderModalOverlay reads the image's offset metrics (mapping boxes to
+                    // the final displayed page, not a mid-open frame).
+                    const draw = () => requestAnimationFrame(() => renderModalOverlay(pulse));
+                    if (modalImg.complete && modalImg.naturalWidth) draw();
+                    else modalImg.addEventListener('load', draw, { once: true });
                 }
             }
 

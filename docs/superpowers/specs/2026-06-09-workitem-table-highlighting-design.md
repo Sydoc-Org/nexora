@@ -51,7 +51,10 @@ The extracted data is **never modified** — purely a visualization of provenanc
   `locations` stripped.
 - Front-end (`templates/js/_workitems_overview_js.html`): `window.__srcByWorkitem[wid]`
   holds `field_sources`; one `renderBoxes` loop draws boxes in the lightbox
-  (`#srcHlLayer`, positioned via `getBoundingClientRect` ÷ `naturalWidth/Height`)
+  (`#srcHlLayer`, an `position:absolute` overlay sized to the modal image's
+  **layout box** `offsetLeft/Top/Width/Height` ÷ `naturalWidth/Height` — *not*
+  `getBoundingClientRect`, which returns the post-`transform` rect and, read
+  mid open-zoom animation, used to strand the boxes in blank space)
   and on thumbnails; the field `<dl>` in `fields-container-${wid}` makes located
   rows click-to-locate and badges un-locatable ones; `#srcHlToggle` flips all
   boxes; state persists in `localStorage('srcHlOn')`.
