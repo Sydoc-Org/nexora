@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Generali PDQM mapping seed.** Added the `PDQMMapping` row
+  `Adressverifikation` / `QSTAT 27` via migration
+  `sql/_migrations/GeneraliDB/0002_insert_pdqmmapping_adressverifikation_qstat27.sql`
+  (idempotent `IF NOT EXISTS` guard).
 - **Reporting semantic layer (Slice 1 — canonical metrics).** Canonical
   **metrics** (named, blessed server-side aggregations) so the builder and the AI
   assistant produce the same numbers. A DB-backed registry
