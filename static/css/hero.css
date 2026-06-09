@@ -14,21 +14,17 @@
 body.hero-body {
     font-family: var(--nx-font, 'Inter', system-ui, sans-serif);
     color: var(--nx-text, #1f2937);
-    /* a barely-there indigo→violet wash so sections float on brand,
-       not flat gray — matches the auth pages + app shell. */
+    /* One continuous, gently-shifting indigo→violet wash spanning the
+       whole page so the sections flow into each other instead of
+       stacking as separate colored bands. The cards + spacing carry the
+       rhythm; there are no hard horizontal seams. */
     background:
-        radial-gradient(60rem 40rem at 85% -8%, var(--nx-accent-tint, #eef2ff) 0%, transparent 60%),
-        radial-gradient(52rem 38rem at -10% 108%, #f5f3ff 0%, transparent 55%),
+        radial-gradient(46rem 40rem at 88% 1%,  var(--nx-accent-tint, #eef2ff) 0%, transparent 46%),
+        radial-gradient(44rem 40rem at 6% 24%,  #f5f3ff 0%, transparent 44%),
+        radial-gradient(42rem 38rem at 97% 50%, rgba(124, 58, 237, 0.06) 0%, transparent 44%),
+        radial-gradient(44rem 40rem at 3% 76%,  var(--nx-accent-soft, rgba(79, 70, 229, 0.10)) 0%, transparent 46%),
+        radial-gradient(48rem 40rem at 92% 99%, #f3f0ff 0%, transparent 48%),
         var(--nx-page, #f9fafb);
-}
-
-/* — Section bands ——————————————————————————————————————————————
-   the light mid-page sections read as faint brand tint between the
-   dark hero and the dark closing band. */
-.hero-band-tint {
-    background: linear-gradient(180deg,
-        rgba(238, 242, 255, 0.55) 0%,
-        rgba(245, 243, 255, 0.55) 100%);
 }
 
 /* Generic brand-gradient fill (header sign-in on mobile, etc.) */
@@ -217,11 +213,11 @@ body.hero-body {
     box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.45);
 }
 
-/* Closing CTA band — light brand tint, to bookend the hero */
+/* Closing CTA — a soft centered glow over the page wash (no hard band),
+   so it reads as the page settling into the call-to-action rather than
+   another stacked block. */
 .hero-band-cta {
-    background:
-        radial-gradient(40rem 26rem at 50% -30%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)), transparent 60%),
-        linear-gradient(180deg, var(--nx-alt, #f9fafb) 0%, var(--nx-sunken, #f3f4f6) 100%);
+    background: radial-gradient(46rem 26rem at 50% 60%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)) 0%, transparent 62%);
 }
 
 /* — Process animation — retuned to brand tokens ————————————————— */

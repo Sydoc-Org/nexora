@@ -232,9 +232,10 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   the app's `html.dark` preference automatically — light by default, dark as a user
   preference. `static/css/hero.css` was rewritten onto the `--nx-*` tokens; the
   mid-page sections (process journey, feature cards with gradient icon chips,
-  "getting started" medallions, FAQ) and the closing CTA band sit on a light brand
-  tint. Avoids a full-bleed purple wash (an explicit anti-pattern). The two 2FA
-  pages (`init_2FA`, `verify_2fa`), which were still on residual
+  "getting started" medallions, FAQ) and the closing CTA flow on a single
+  continuous light wash — no per-section colour bands — so the page reads smooth
+  instead of as stacked blocks. Avoids a full-bleed purple wash (an explicit
+  anti-pattern). The two 2FA pages (`init_2FA`, `verify_2fa`), which were still on residual
   `blue-600` buttons/badges, were brought onto the brand gradient (gradient buttons,
   gradient shield chip, `rounded-xl shadow-2xl` cards, accent focus rings); the
   shared `_small_footer` link-hover moved from blue to the brand accent. The login
