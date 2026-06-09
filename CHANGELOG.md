@@ -9,18 +9,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
-- **Reporting semantic layer (Slice 1 — metrics registry wiring).** A
-  DB-backed canonical-metrics registry (`dbo.ReportingMetrics`, migration
-  `0017`) is now wired into the reporting views. A report definition's optional
-  `metrics` list resolves server-side into safe aggregation specs (`_prepare_run`
-  validates the metric codes against the source's registry and resolves them via
-  `nx_lib/reporting/semantic.py`; the existing `columns` become the GROUP BY).
-  New permission `reporting.semantic.admin` gates a metrics-admin page
-  (`GET /reporting/metrics`) and CRUD API
-  (`GET/POST/PUT/DELETE /api/reporting/admin/metrics[/<id>]`); a builder-facing
-  `GET /api/reporting/metrics` returns the caller's accessible metrics grouped by
-  source. `MetricResolveError` maps to HTTP 400 in the run/export handlers. The
-  `/reporting/metrics` admin page template ships as a placeholder for this slice.
+- **Reporting semantic layer (Slice 1 — canonical metrics).** Canonical
+  **metrics** (named, blessed server-side aggregations) so the builder and the AI
+  assistant produce the same numbers. A DB-backed registry
+  (`dbo.ReportingMetrics`, migration `0017`) is curated at a new admin page
+  `GET /reporting/metrics` with a CRUD API
+  (`GET/POST/PUT/DELETE /api/reporting/admin/metrics[/<id>]`), both gated by the
+  new permission `reporting.semantic.admin` (admins seeded). A report
+  definition's optional `metrics` list switches the run into **aggregate mode**:
+  the selected `columns` become the `GROUP BY` and each metric adds an
+  `AGG(col) AS [code]` column, resolved server-side via the new pure
+  `nx_lib/reporting/semantic.py` (`resolve_metrics` + `build_aggregate_sql`) and
+  validated against the source's enabled metrics (`MetricResolveError` → HTTP
+  400). Both query builders gained an aggregate branch reusing their existing
+  whitelist + parameterized-value boundary (`table_query.py` direct; `query.py`
+  wraps the docprocessing UNION). The builder gained a **Metrics well** (selected
+  metrics turn the Columns into the grouping), a builder-facing
+  `GET /api/reporting/metrics` (accessible metrics grouped by source), and the
+  metric catalog is injected into the AI schema (`ai_schema.serialize_metrics_catalog`)
+  so Surfaces A/C can reference metrics by code. Empty/absent `metrics` keeps the
+  row-projection path unchanged. de/fr/it translated. (Per-metric locked
+  `FilterJson` is stored but not yet applied — reserved for a later slice.)
 - **`.claudeignore` + enforcing PreToolUse hook.** A repo-root `.claudeignore`
   lists which paths AI coding tools should skip (secrets, Python bytecode,
   virtualenvs/vendored deps, build artifacts, tool/index caches, `uv.lock`,

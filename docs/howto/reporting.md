@@ -129,6 +129,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
+| `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
 | `reporting.ai.use` | Use the AI assistant — ask natural-language questions (see below). Admins seeded. |
 | `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
@@ -170,9 +171,22 @@ This is the shape saved in `dbo.Reports.DefinitionJSON` and sent to
     "clients": ["clientA"],
     "processes": ["clientA.process1", "clientB.process2"]
   },
+  "metrics": [
+    { "metric": "doc_count" }
+  ],
   "rowLimit": 5000
 }
 ```
+
+**Metrics (optional, semantic layer — Slice 1).** When `metrics` is present and
+non-empty, the report runs in **aggregate mode**: the selected `columns` become
+the `GROUP BY` dimensions and each referenced metric adds an aggregated column.
+Each entry is `{ "metric": "<code>" }` referencing a canonical metric from the
+registry (see **Metrics registry** below). The server validates every code
+against the source's enabled metrics and resolves it through
+`nx_lib/reporting/semantic.py` into a safe `AGG(col) AS [code]` expression
+(`MetricResolveError` → HTTP 400). Absent or empty `metrics` keeps today's
+row-projection behaviour, unchanged.
 
 **Filter ops (Phase 1):** `eq`, `ne`, `in`, `not_in`, `gt`, `gte`, `lt`,
 `lte`, `between` (value is a 2-element list), `contains`, `starts_with`,
@@ -218,6 +232,33 @@ gate, so grant it deliberately. Tune the exposed columns/object at
 catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
+
+## Metrics registry (semantic layer, admin)
+
+A **metric** is a named, blessed server-side aggregation (an `Aggregation` over a
+`BaseField`) bound to a registered source, so the builder and the AI assistant
+produce the **same numbers** for the same business question. Metrics live in
+`dbo.ReportingMetrics` (migration `0017`) and are curated at **`/reporting/metrics`**
+by admins holding `reporting.semantic.admin`.
+
+Each metric has a `Code` (`^[A-Za-z_][A-Za-z0-9_]*$`, referenced from a
+definition's `metrics` list), a `SourceId` (which source it aggregates), a
+`Label`, an `Aggregation` (`count`, `count_distinct`, `sum`, `avg`, `min`,
+`max`), and a `BaseField` (a whitelisted column of that source — required for
+every aggregation except `count`). `Format` (`int`/`decimal`/`percent`) is a
+display hint; `Enabled` and `SortOrder` control visibility/ordering. Migration
+`0017` seeds a worked example, `doc_count` (a `count` over the docprocessing
+source).
+
+In the builder, the **Metrics well** (top of the wells column) lets a user add
+canonical metrics for the selected source; once at least one is picked, the
+**Columns** above become the grouping. Selected metrics travel in the definition
+as `metrics: [{ "metric": code }]` (see the JSON above) and the AI assistant is
+told about the accessible metrics so Surfaces A/C can reference them by code.
+
+> Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
+> applied** by the engine in Slice 1 (reserved for a later slice). Report-level
+> `filters` still apply pre-aggregation.
 
 ## How to add a new *bespoke* curated source (code)
 
