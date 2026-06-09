@@ -34,9 +34,10 @@ per-turn permission). Stop, say so, tell the user to switch to a feature branch,
   - **Untracked / left for owner** — call out anything you deliberately didn't commit.
   - **How to verify** — exact commands (flag any currently-failing suite).
   - **Resuming in a fresh session** — point the next session here (and at the plan/spec).
-- **Same-date tie-break:** if another handoff already shares today's date, `/clh` may not pick yours.
-  Add a one-line forward-pointer banner to the TOP of the older same-date handoff pointing at the new
-  file, and in the new file's "Resuming" section note that `/clh <path>` targets a specific file.
+- **Same-date tie-break:** if another handoff already shares today's date, `/reset-session` may not
+  pick yours. Add a one-line forward-pointer banner to the TOP of the older same-date handoff pointing
+  at the new file, and in the new file's "Resuming" section note that `/reset-session <path>` targets
+  a specific file.
 
 ## 4. Commit (nexora policy — see CLAUDE.md "Git")
 
