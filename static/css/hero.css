@@ -6,9 +6,9 @@
 
    Keeps every JS hook intact: #preloader / #preloader-logo /
    #header-logo-wrapper / #signin / #main-content-wrapper (the
-   logo-flight reveal), #progress-line + .step-icon-wrapper
+   logo-flight reveal) and #progress-line + .step-icon-wrapper
    .active/.completed + .process-step p .active/.completed (the
-   process animation), and .faq-btn / .faq-panel (the accordion).
+   process animation).
    ============================================================ */
 
 body.hero-body {
@@ -66,22 +66,6 @@ body.hero-body {
     color: #fff;
     box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.55);
 }
-
-/* — "Getting started" number medallions ——————————————————————— */
-.hero-step-num {
-    background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
-    color: #fff;
-    box-shadow: 0 12px 26px -8px rgba(79, 70, 229, 0.55);
-}
-
-/* — FAQ items ——————————————————————————————————————————————————— */
-.hero-faq-item {
-    background: var(--nx-card, #ffffff);
-    border: 1px solid var(--nx-border, #e5e7eb);
-    border-radius: var(--nx-radius, 10px);
-    transition: border-color .2s var(--nx-ease, ease), box-shadow .2s var(--nx-ease, ease);
-}
-.hero-faq-item:hover { border-color: var(--nx-border-strong, #d1d5db); }
 
 /* ============================================================
    ENTERPRISE HERO — "Trust & Authority" (per ui-ux-pro), LIGHT.
@@ -253,19 +237,6 @@ body.hero-body {
 /* Progress rail carries the brand gradient. */
 #progress-line {
     background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%));
-}
-
-/* — FAQ accordion (hooks unchanged) ———————————————————————————— */
-.faq-panel {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-}
-.faq-btn.active + .faq-panel {
-    max-height: 200px;
-}
-.faq-btn.active i {
-    transform: rotate(180deg);
 }
 
 /* — Preloader + reveal transitions (hooks unchanged) ——————————— */

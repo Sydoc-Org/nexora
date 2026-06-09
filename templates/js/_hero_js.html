@@ -166,18 +166,6 @@
                     runAnimation();
                 });
             }
-
-            const faqButtons = document.querySelectorAll('.faq-btn');
-            faqButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    faqButtons.forEach(otherButton => {
-                        if (otherButton !== button && otherButton.classList.contains('active')) {
-                            otherButton.classList.remove('active');
-                        }
-                    });
-                    button.classList.toggle('active');
-                });
-            });
         });
         </script>
 </body>
