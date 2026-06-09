@@ -15,6 +15,51 @@ from ..db import engine_nexora_db
 
 _LANG_COLS = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}
 
+# Synthetic date fields, derived from Statconfig (not SearchConfig.col_*).
+# field_key -> the Statconfig column attribute holding its date expression.
+_DATE_FIELDS = (("import_date", "ImportColumn"), ("export_date", "ExportColumn"))
+
+
+def date_availability(statconfig_rows, allowed_processes):
+    """{date_field: [process, ...]} for processes (in scope) whose Statconfig
+    Import/Export column is non-null. Pure: rows are objects with ProcessName +
+    ImportColumn/ExportColumn (or dicts with those keys)."""
+    allowed = set(allowed_processes)
+    out = {}
+    for r in statconfig_rows:
+        proc = r["ProcessName"] if isinstance(r, dict) else r.ProcessName
+        if proc not in allowed:
+            continue
+        for field, attr in _DATE_FIELDS:
+            val = r[attr] if isinstance(r, dict) else getattr(r, attr)
+            if val:
+                out.setdefault(field, []).append(proc)
+    return out
+
+
+def date_catalog_entries(date_avail, labels):
+    """Catalog entries for the synthetic date fields. `labels` maps field_key ->
+    localized label. Sorted by label; processes sorted for stable output."""
+    entries = []
+    for field, _attr in _DATE_FIELDS:
+        procs = date_avail.get(field)
+        if not procs:
+            continue
+        entries.append(
+            {
+                "field": field,
+                "label": labels.get(field, field),
+                "type": "date",
+                "aggregable": False,
+                "sortable": True,
+                "filterable": True,
+                "grainable": True,
+                "processes": sorted(procs),
+            }
+        )
+    entries.sort(key=lambda e: e["label"])
+    return entries
+
 
 def build_catalog(meta_rows, label_rows, availability, *, lang_col):
     """Merge availability + labels + optional metadata into a sorted field list.

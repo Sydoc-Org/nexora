@@ -1,12 +1,52 @@
 # tests/unit/test_reporting_catalog.py
 """Unit tests for nx_lib.reporting.catalog — pure row→catalog mapping."""
 
-from nx_lib.reporting.catalog import build_catalog
+from nx_lib.reporting.catalog import (
+    build_catalog,
+    date_availability,
+    date_catalog_entries,
+)
 
 
 class _Row:
     def __init__(self, **kw):
         self.__dict__.update(kw)
+
+
+def test_date_availability_filters_nulls_and_scope():
+    rows = [
+        _Row(
+            ProcessName="compass.01_Invoice_SAP",
+            ImportColumn="ImportDate",
+            ExportColumn="UploadDatetime",
+        ),
+        _Row(ProcessName="privera.03_Invoice_New", ImportColumn="ImportTime", ExportColumn=None),
+        _Row(ProcessName="other.99_Hidden", ImportColumn="X", ExportColumn="Y"),  # out of scope
+    ]
+    avail = date_availability(rows, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
+    assert avail == {
+        "import_date": ["compass.01_Invoice_SAP", "privera.03_Invoice_New"],
+        "export_date": ["compass.01_Invoice_SAP"],
+    }
+
+
+def test_date_catalog_entries_shape():
+    entries = date_catalog_entries(
+        {"import_date": ["b.p", "a.p"]},
+        {"import_date": "Import date", "export_date": "Export date"},
+    )
+    assert entries == [
+        {
+            "field": "import_date",
+            "label": "Import date",
+            "type": "date",
+            "aggregable": False,
+            "sortable": True,
+            "filterable": True,
+            "grainable": True,
+            "processes": ["a.p", "b.p"],
+        }
+    ]
 
 
 def test_build_catalog_merges_meta_labels_and_availability():
