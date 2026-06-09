@@ -49,18 +49,6 @@ body.hero-body {
     transform: translateY(-2px);
     box-shadow: 0 16px 30px -10px rgba(79, 70, 229, 0.60);
 }
-/* Inverse CTA — white pill for use on the gradient closing band. */
-.hero-cta-inverse {
-    background: #fff;
-    color: var(--nx-accent, #4f46e5);
-    box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.35);
-    transition: transform .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1)),
-                box-shadow .25s var(--nx-ease, cubic-bezier(.4, 0, .2, 1));
-}
-.hero-cta-inverse:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 32px -10px rgba(15, 23, 42, 0.42);
-}
 
 /* — Feature cards ("Why use nexora") — nx-card with a hover lift —— */
 .hero-feat {
@@ -100,40 +88,39 @@ body.hero-body {
 .hero-faq-item:hover { border-color: var(--nx-border-strong, #d1d5db); }
 
 /* ============================================================
-   ENTERPRISE HERO — "Trust & Authority" (per ui-ux-pro)
-   A deep navy/slate fold with a *restrained* indigo→violet aurora
-   accent, a faint masked grid, trust signals and a product-window
-   mock. Grounded in navy so it reads premium/credible rather than a
-   generic full-bleed purple wash (an explicit anti-pattern).
+   ENTERPRISE HERO — "Trust & Authority" (per ui-ux-pro), LIGHT.
+   Light by default and fully token-based (--nx-*), so it follows
+   the app's html.dark preference automatically — dark mode is a
+   user preference, not the page default. A restrained indigo→violet
+   aurora + a faint hairline grid keep it premium without a flat
+   purple wash (an explicit anti-pattern).
    ============================================================ */
 
-/* Sticky glass header sitting on the dark hero */
+/* Sticky header */
 .hero-header {
-    background: rgba(11, 16, 32, 0.72);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--nx-card, #ffffff);
+    border-bottom: 1px solid var(--nx-border, #e5e7eb);
 }
 
-/* The dark hero band */
+/* The hero band — light surface with a restrained aurora accent */
 .hero-band {
-    color: #e2e8f0;
+    color: var(--nx-text, #1f2937);
     background:
-        radial-gradient(48rem 34rem at 80% -14%, rgba(124, 58, 237, 0.42), transparent 60%),
-        radial-gradient(40rem 30rem at 6% 4%, rgba(79, 70, 229, 0.30), transparent 55%),
-        linear-gradient(180deg, #0b1020 0%, #0c1226 100%);
+        radial-gradient(46rem 32rem at 82% -16%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)), transparent 60%),
+        radial-gradient(40rem 30rem at 4% 2%, rgba(124, 58, 237, 0.10), transparent 55%),
+        var(--nx-page, #f9fafb);
 }
-/* faint grid, masked so it fades toward the edges */
+/* faint hairline grid, masked so it fades toward the edges */
 .hero-band__grid {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background-image:
-        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 58px 58px;
-    -webkit-mask-image: radial-gradient(80% 72% at 50% 22%, #000 35%, transparent 82%);
-    mask-image: radial-gradient(80% 72% at 50% 22%, #000 35%, transparent 82%);
+        linear-gradient(rgba(79, 70, 229, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 70, 229, 0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(78% 70% at 50% 24%, #000 35%, transparent 82%);
+    mask-image: radial-gradient(78% 70% at 50% 24%, #000 35%, transparent 82%);
 }
 
 /* Eyebrow pill with a live pulse dot */
@@ -143,36 +130,38 @@ body.hero-body {
     gap: 8px;
     padding: 6px 14px;
     border-radius: var(--nx-radius-pill, 999px);
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #c7d2fe;
+    background: var(--nx-accent-tint, #eef2ff);
+    border: 1px solid var(--nx-border, #e5e7eb);
+    color: var(--nx-accent-hover, #4338ca);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
 }
 .hero-eyebrow .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #34d399;
+    background: var(--nx-success, #059669);
     animation: hero-pulse 2.2s infinite;
 }
 @keyframes hero-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
-    70%  { box-shadow: 0 0 0 9px rgba(52, 211, 153, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.45); }
+    70%  { box-shadow: 0 0 0 9px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
 }
 
-/* Secondary (ghost) button — used in hero + header */
+/* Secondary (outline) button — light, used in hero + header */
 .hero-ghost-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    color: #fff;
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border-strong, #d1d5db);
+    color: var(--nx-text, #1f2937);
     transition: background-color var(--nx-dur, 150ms) var(--nx-ease, ease),
-                border-color var(--nx-dur, 150ms) var(--nx-ease, ease);
+                border-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                box-shadow var(--nx-dur, 150ms) var(--nx-ease, ease);
 }
 .hero-ghost-btn:hover {
-    background: rgba(255, 255, 255, 0.13);
-    border-color: rgba(255, 255, 255, 0.34);
+    background: var(--nx-alt, #f9fafb);
+    border-color: var(--nx-accent, #4f46e5);
+    box-shadow: 0 0 0 3px var(--nx-accent-soft, rgba(79, 70, 229, 0.12));
 }
 
 /* Trust-signal row */
@@ -181,30 +170,28 @@ body.hero-body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #cbd5e1;
+    color: var(--nx-text-sec, #6b7280);
     font-size: 13.5px;
     font-weight: 500;
 }
-.hero-trust__item i { color: #a78bfa; font-size: 13px; }
+.hero-trust__item i { color: var(--nx-accent, #4f46e5); font-size: 13px; }
 
-/* Product-window mock + its aura */
+/* Product-window mock + its soft aura */
 .hero-window-wrap::before {
     content: "";
     position: absolute;
-    inset: -14% -10% -18%;
-    background: radial-gradient(circle at 62% 42%, rgba(124, 58, 237, 0.50), transparent 60%);
-    filter: blur(48px);
+    inset: -12% -8% -16%;
+    background: radial-gradient(circle at 62% 38%, rgba(124, 58, 237, 0.18), transparent 62%);
+    filter: blur(46px);
     z-index: 0;
 }
 .hero-window {
     position: relative;
     z-index: 1;
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border, #e5e7eb);
     border-radius: 16px;
-    box-shadow: 0 40px 80px -28px rgba(0, 0, 0, 0.70);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    box-shadow: var(--nx-shadow-pop, 0 24px 50px -12px rgba(17, 24, 39, 0.18));
     overflow: hidden;
 }
 .hero-window__bar {
@@ -212,8 +199,8 @@ body.hero-body {
     align-items: center;
     gap: 7px;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--nx-divider, #f3f4f6);
+    background: var(--nx-alt, #f9fafb);
 }
 .hero-window__dot { width: 11px; height: 11px; border-radius: 50%; }
 .hero-window__icon {
@@ -227,14 +214,14 @@ body.hero-body {
     font-size: 16px;
     color: #fff;
     background: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5, #7c3aed));
-    box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.60);
+    box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.45);
 }
 
-/* Closing CTA band — dark, to bookend the hero */
-.hero-band-dark {
+/* Closing CTA band — light brand tint, to bookend the hero */
+.hero-band-cta {
     background:
-        radial-gradient(40rem 26rem at 50% -25%, rgba(124, 58, 237, 0.40), transparent 60%),
-        linear-gradient(180deg, #0c1226 0%, #0b1020 100%);
+        radial-gradient(40rem 26rem at 50% -30%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)), transparent 60%),
+        linear-gradient(180deg, var(--nx-alt, #f9fafb) 0%, var(--nx-sunken, #f3f4f6) 100%);
 }
 
 /* — Process animation — retuned to brand tokens ————————————————— */
