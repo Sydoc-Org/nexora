@@ -25,6 +25,47 @@ _SORT_DIRS = {"ASC", "DESC"}
 # Filter ops handled specially below (not via the _OP_SQL binary-op fallback).
 _SPECIAL_OPS = {"in", "not_in", "between", "contains", "starts_with"}
 
+_DATE_GRAINS = {"day", "week", "month", "quarter", "year"}
+
+# Synthetic date field -> the process-config key holding its raw column expression.
+_DATE_FIELD_COL = {"import_date": "import_col", "export_date": "export_col"}
+
+
+def _date_base(col_expr):
+    """Normalize a Statconfig date column to a DATE-typed expression, mirroring
+    the dashboard: a value already containing CONVERT(...) is trusted as-is;
+    otherwise wrap with CAST(... AS date). The expression originates only from
+    Statconfig (server config), never the client."""
+    return col_expr if "convert" in col_expr.lower() else f"CAST({col_expr} AS date)"
+
+
+def _grain_sql(d, grain):
+    """Wrap a DATE expression `d` for the requested grain. None/'day' = raw.
+    Month/quarter/year via DATEFROMPARTS; week is Monday-anchored and
+    DATEFIRST-independent."""
+    if grain in (None, "day"):
+        return d
+    if grain == "week":
+        return f"DATEADD(week, DATEDIFF(week, 0, {d}), 0)"
+    if grain == "month":
+        return f"DATEFROMPARTS(YEAR({d}), MONTH({d}), 1)"
+    if grain == "quarter":
+        return f"DATEFROMPARTS(YEAR({d}), (DATEPART(quarter, {d}) - 1) * 3 + 1, 1)"
+    if grain == "year":
+        return f"DATEFROMPARTS(YEAR({d}), 1, 1)"
+    raise QueryBuildError(f"unsupported date grain: {grain!r}")
+
+
+def _date_exprs_for(cfg, grain_by_field):
+    """{date_field: sql_expr} for the date fields this process exposes, applying
+    each field's grain (grain_by_field maps field -> grain; missing = raw)."""
+    out = {}
+    for field, cfg_key in _DATE_FIELD_COL.items():
+        col = cfg.get(cfg_key)
+        if col:
+            out[field] = _grain_sql(_date_base(col), grain_by_field.get(field))
+    return out
+
 
 class QueryBuildError(ValueError):
     """Raised when a report definition cannot be turned into SQL."""
@@ -127,6 +168,9 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     sort = rd.get("sort") or []
     cap = min(int(rd.get("rowLimit", row_cap)), int(row_cap))
 
+    # Per-column grain (date fields only); raw date otherwise.
+    grain_by_field = {c["field"]: c.get("grain") for c in rd["columns"]}
+
     metric_base_fields = [m["base_field"] for m in (resolved_metrics or []) if m.get("base_field")]
     # Fields to project in each subquery: the group-by dims plus any metric base
     # fields (deduped, order-stable). For the row path this is just `columns`.
@@ -141,6 +185,8 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     all_known_fields = {"processname"}
     for colmap in field_col_maps.values():
         all_known_fields.update(colmap.keys())
+    for cfg in process_configs:
+        all_known_fields.update(_date_exprs_for(cfg, grain_by_field).keys())
     for field in columns:
         if field not in all_known_fields:
             raise QueryBuildError(f"unknown column field: {field!r}")
@@ -159,10 +205,13 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     params = []
     for cfg in process_configs:
         colmap = field_col_maps.get(cfg["process"], {})
+        # Projection uses the column grain; filters always use the RAW date.
+        proj_resolved = {**colmap, **_date_exprs_for(cfg, grain_by_field)}
+        filt_resolved = {**colmap, **_date_exprs_for(cfg, {})}
 
         # A filter referencing a field this process doesn't expose can never
         # match here — drop the whole subquery for correctness.
-        if any(f["field"] not in colmap for f in col_filters):
+        if any(f["field"] not in filt_resolved for f in col_filters):
             continue
 
         select_exprs = []
@@ -171,7 +220,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
                 select_exprs.append("? AS [processname]")
                 params.append(cfg["process"])
             else:
-                actual = colmap.get(field)
+                actual = proj_resolved.get(field)
                 if actual:
                     select_exprs.append(f"{actual} AS [{field}]")
                 else:
@@ -179,7 +228,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
 
         where = ["1 = 1"]
         for f in col_filters:
-            col = colmap.get(f["field"])
+            col = filt_resolved.get(f["field"])
             if not col:
                 continue
             where.append(_filter_clause(col, f["op"], f.get("value"), params))

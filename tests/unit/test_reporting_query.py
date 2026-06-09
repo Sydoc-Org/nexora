@@ -3,7 +3,13 @@
 
 import pytest
 
-from nx_lib.reporting.query import QueryBuildError, build_table_query
+from nx_lib.reporting.query import (
+    QueryBuildError,
+    _date_base,
+    _date_exprs_for,
+    _grain_sql,
+    build_table_query,
+)
 
 # Two processes; 'pages' only mapped in proc A.
 PROCESS_CONFIGS = [
@@ -214,3 +220,101 @@ def test_docprocessing_aggregate_projects_base_field_into_union():
     # 'pages' is only mapped in acme.inv -> projected there, NULL in acme.hr.
     assert "AS [pages]" in sql
     assert "SUM([pages]) AS [pages_sum]" in sql
+
+
+# --- date dimension: pure helpers (Task 3) -----------------------------------
+
+
+def test_date_base_cast_vs_convert_passthrough():
+    assert _date_base("ImportDate") == "CAST(ImportDate AS date)"
+    expr = "CONVERT(date, SomeStr, 104)"  # already a CONVERT -> used as-is
+    assert _date_base(expr) == expr
+
+
+def test_grain_sql_each_grain():
+    d = "CAST(ImportDate AS date)"
+    assert _grain_sql(d, None) == d
+    assert _grain_sql(d, "day") == d
+    assert _grain_sql(d, "week") == f"DATEADD(week, DATEDIFF(week, 0, {d}), 0)"
+    assert _grain_sql(d, "month") == f"DATEFROMPARTS(YEAR({d}), MONTH({d}), 1)"
+    assert (
+        _grain_sql(d, "quarter")
+        == f"DATEFROMPARTS(YEAR({d}), (DATEPART(quarter, {d}) - 1) * 3 + 1, 1)"
+    )
+    assert _grain_sql(d, "year") == f"DATEFROMPARTS(YEAR({d}), 1, 1)"
+
+
+def test_grain_sql_rejects_unknown():
+    with pytest.raises(QueryBuildError):
+        _grain_sql("x", "fortnight")
+
+
+def test_date_exprs_for_uses_cfg_columns_and_grain():
+    cfg = {"process": "acme.inv", "import_col": "ImportDate", "export_col": "ExpD"}
+    out = _date_exprs_for(cfg, {"import_date": "month"})
+    assert (
+        out["import_date"]
+        == "DATEFROMPARTS(YEAR(CAST(ImportDate AS date)), MONTH(CAST(ImportDate AS date)), 1)"
+    )
+    assert out["export_date"] == "CAST(ExpD AS date)"  # no grain -> raw
+    # A cfg missing a column omits that date field entirely.
+    assert _date_exprs_for({"process": "p", "import_col": None, "export_col": "E"}, {}) == {
+        "export_date": "CAST(E AS date)"
+    }
+
+
+# --- date dimension: build_table_query resolution (Task 4) -------------------
+
+
+def test_projects_raw_import_date():
+    rd = _rd(columns=[{"field": "import_date", "header": "Imported", "agg": None}], sort=[])
+    sql, _ = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "CAST(ImportDate AS date) AS [import_date]" in sql  # acme.inv
+    assert "CAST(ImpD AS date) AS [import_date]" in sql  # acme.hr
+
+
+def test_projects_month_grain_import_date():
+    rd = _rd(
+        columns=[{"field": "import_date", "header": "Month", "agg": None, "grain": "month"}],
+        sort=[],
+    )
+    sql, _ = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert (
+        "DATEFROMPARTS(YEAR(CAST(ImportDate AS date)), MONTH(CAST(ImportDate AS date)), 1) "
+        "AS [import_date]" in sql
+    )
+
+
+def test_date_filter_uses_raw_even_when_column_grained():
+    rd = _rd(
+        columns=[{"field": "import_date", "header": "Month", "agg": None, "grain": "month"}],
+        filters=[{"field": "import_date", "op": "gte", "value": "2026-01-01"}],
+        sort=[],
+    )
+    sql, params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "CAST(ImportDate AS date) >= ?" in sql  # raw in WHERE
+    assert "DATEFROMPARTS(YEAR(CAST(ImportDate AS date))" in sql  # month in SELECT
+    assert "2026-01-01" in params
+
+
+def test_unknown_date_like_field_still_rejected():
+    rd = _rd(columns=[{"field": "nope_date", "header": "x", "agg": None}], sort=[])
+    with pytest.raises(QueryBuildError):
+        build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+
+
+def test_aggregate_groups_by_month_grain_dim():
+    rd = _rd(
+        columns=[{"field": "import_date", "header": "Month", "agg": None, "grain": "month"}],
+        sort=[],
+    )
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, _ = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "COUNT(*) AS [doc_count]" in sql
+    assert "GROUP BY [import_date]" in sql
+    assert (
+        "DATEFROMPARTS(YEAR(CAST(ImportDate AS date)), MONTH(CAST(ImportDate AS date)), 1) "
+        "AS [import_date]" in sql
+    )
