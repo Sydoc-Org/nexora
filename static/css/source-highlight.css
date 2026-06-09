@@ -180,23 +180,44 @@
   padding-bottom: 0.6rem;
   border-bottom: 1px solid #e5e7eb;
 }
-/* The close button now sits over the white panel — give it a chip so it stays
-   readable + clickable above the panel content. */
+/* Close button: a circular icon button harmonised with the nexora-ui palette.
+   It sits over the white values panel (and the dark backdrop), so it carries its
+   own surface + soft shadow. Gray glyph -> danger red on hover, indigo focus ring,
+   subtle press scale. No layout shift (transform is on the absolute button only). */
 #imageModal .modal-close {
   z-index: 1003;
-  top: 14px;
-  right: 18px;
-  width: 2.4rem;
-  height: 2.4rem;
-  font-size: 1.9rem;
-  color: #334155;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 9999px;
-  display: flex;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  font-size: 1.05rem;
+  line-height: 1;
+  color: #6b7280;                 /* --nx-text-sec */
+  background: #ffffff;            /* --nx-card (panel is always light) */
+  border: 1px solid #e5e7eb;      /* --nx-border */
+  border-radius: 999px;           /* --nx-radius-pill */
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.18);
+  cursor: pointer;
+  transition: color 150ms cubic-bezier(.4, 0, .2, 1),
+              background-color 150ms cubic-bezier(.4, 0, .2, 1),
+              box-shadow 150ms cubic-bezier(.4, 0, .2, 1),
+              transform 150ms cubic-bezier(.4, 0, .2, 1);
 }
+#imageModal .modal-close > i { pointer-events: none; }
+#imageModal .modal-close:hover {
+  color: #dc2626;                 /* --nx-danger */
+  background: #f9fafb;            /* --nx-alt */
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.24);
+}
+#imageModal .modal-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.45);   /* --nx-accent ring */
+}
+#imageModal .modal-close:active { transform: scale(0.92); }
 /* Narrow screens: stack the page over the values panel. */
 @media (max-width: 900px) {
   #imageModal .src-modal-body { flex-direction: column; }

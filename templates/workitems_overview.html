@@ -553,7 +553,9 @@ $data | ForEach-Object {
     </div>
 
     <div id="imageModal" class="modal">
-      <span class="modal-close">&times;</span>
+      <button type="button" class="modal-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
       <div class="src-modal-body">
         <div class="src-modal-page">
           <button type="button" id="srcHlToggle" class="src-hl-toggle" hidden
