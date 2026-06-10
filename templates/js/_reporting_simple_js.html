@@ -339,6 +339,248 @@
     });
   }
 
+  // ---------- Wizard ----------
+  function choiceBtn(label, onpick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-choice';
+    b.textContent = label;
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(b.parentNode.children, function (s) {
+        s.classList.remove('is-selected');
+      });
+      b.classList.add('is-selected');
+      onpick();
+    });
+    return b;
+  }
+
+  async function loadSourcesCatalog() {
+    if (state.sources) return state.sources;
+    var res = await api('/api/reporting/sources');
+    state.sources = (res.ok && Array.isArray(res.data)) ? res.data : [];
+    return state.sources;
+  }
+
+  async function startWizard() {
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    state.wiz = { measure: null, source: null, breakdown: null,
+                  scopeProcs: [], range: null, dateField: null, _fp: null };
+    setView('wizard');
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    renderMeasureStep();
+  }
+
+  function renderMeasureStep() {
+    var list = el('rsMeasureList');
+    list.innerHTML = '';
+    var bySource = state.metricsBySource || {};
+    var visible = Object.keys(bySource).filter(function (sid) {
+      return (state.sources || []).some(function (s) { return s.id === sid; });
+    });
+    var multi = visible.length > 1;
+    visible.forEach(function (sid) {
+      var src = state.sources.find(function (s) { return s.id === sid; });
+      (bySource[sid] || []).forEach(function (m) {
+        // Sources without metrics never appear; admins grow the wizard's
+        // reach by adding rows in the metrics registry, zero code change.
+        var label = multi ? (m.label + ' · ' + src.label) : m.label;
+        list.appendChild(choiceBtn(label, function () {
+          state.wiz.measure = m;
+          state.wiz.source = src;   // picking a measure pins the source
+          renderBreakdownStep();
+        }));
+      });
+    });
+    if (!list.children.length) {
+      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
+    }
+  }
+
+  function renderBreakdownStep() {
+    el('rsStepBreakdown').hidden = false;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    var list = el('rsBreakdownList');
+    list.innerHTML = '';
+    el('rsGrainWrap').hidden = true;
+    var fields = state.wiz.source.fields || [];
+    var dateFields = fields.filter(function (f) { return f.grainable; });
+    var catFields = fields.filter(function (f) {
+      return f.type === 'string' && f.filterable && f.field !== 'processname';
+    });
+
+    dateFields.forEach(function (f) {
+      list.appendChild(choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+        state.wiz.breakdown = { kind: 'date', field: f };
+        el('rsGrainWrap').hidden = false;
+        renderTimeStep();
+      }));
+    });
+    // processname first (the natural docprocessing category), then the rest.
+    var procField = fields.find(function (f) { return f.field === 'processname'; });
+    if (procField) catFields.unshift(procField);
+    catFields.slice(0, 12).forEach(function (f) {
+      list.appendChild(choiceBtn(f.label, function () {
+        state.wiz.breakdown = { kind: 'category', field: f };
+        el('rsGrainWrap').hidden = true;
+        renderTimeStep();
+      }));
+    });
+    list.appendChild(choiceBtn(I18N.justTotal, function () {
+      state.wiz.breakdown = { kind: 'none' };
+      el('rsGrainWrap').hidden = true;
+      renderTimeStep();
+    }));
+
+    // Optional collapsed process picker (docprocessing only). Emits the same
+    // scope serialisation as the Advanced picker; empty/full = all allowed
+    // (the server clamps to grants either way).
+    var scopeWrap = el('rsScopeWrap');
+    var procs = state.wiz.source.processes || [];
+    scopeWrap.hidden = !procs.length;
+    if (procs.length) {
+      var box = el('rsScopeList');
+      box.innerHTML = '';
+      procs.forEach(function (p) {
+        var lbl = document.createElement('label');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = p; cb.checked = true;
+        cb.addEventListener('change', function () {
+          state.wiz.scopeProcs = Array.prototype.map.call(
+            box.querySelectorAll('input:checked'), function (c) { return c.value; });
+        });
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(' ' + p));
+        box.appendChild(lbl);
+      });
+      state.wiz.scopeProcs = procs.slice();
+    }
+  }
+
+  function isoDate(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function presetRange(key) {
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
+    if (key === 'this_month') return [new Date(y, m, 1), new Date(y, m + 1, 0)];
+    if (key === 'last_month') return [new Date(y, m - 1, 1), new Date(y, m, 0)];
+    if (key === 'last_3_months') return [new Date(y, m - 2, 1), new Date(y, m + 1, 0)];
+    if (key === 'this_year') return [new Date(y, 0, 1), new Date(y, 11, 31)];
+    if (key === 'last_year') return [new Date(y - 1, 0, 1), new Date(y - 1, 11, 31)];
+    return null;  // all_time
+  }
+
+  function renderTimeStep() {
+    el('rsStepTime').hidden = false;
+    el('rsWizardRun').hidden = false;
+    el('rsTimeCustom').hidden = true;
+    var fields = state.wiz.source.fields || [];
+    var dateFields = fields.filter(function (f) { return f.grainable; });
+    var list = el('rsTimeList');
+    // Skipped when the source exposes no date field.
+    if (!dateFields.length) {
+      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noDateField) + '</p>';
+      el('rsTimeFieldWrap').hidden = true;
+      state.wiz.range = null;
+      return;
+    }
+    // Date field defaults to import_date, switchable to export_date.
+    var sel = el('rsTimeField');
+    sel.innerHTML = '';
+    dateFields.forEach(function (f) {
+      var o = document.createElement('option');
+      o.value = f.field; o.textContent = f.label;
+      sel.appendChild(o);
+    });
+    if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
+      sel.value = 'import_date';
+    }
+    el('rsTimeFieldWrap').hidden = dateFields.length < 2;
+    state.wiz.dateField = sel.value;
+    sel.onchange = function () { state.wiz.dateField = sel.value; };
+
+    list.innerHTML = '';
+    [['this_month', I18N.thisMonth], ['last_month', I18N.lastMonth],
+     ['last_3_months', I18N.last3Months], ['this_year', I18N.thisYear],
+     ['last_year', I18N.lastYear], ['all_time', I18N.allTime],
+     ['custom', I18N.custom]].forEach(function (p) {
+      list.appendChild(choiceBtn(p[1], function () {
+        el('rsTimeCustom').hidden = p[0] !== 'custom';
+        if (p[0] === 'custom') {
+          if (!state.wiz._fp && window.flatpickr) {
+            state.wiz._fp = flatpickr(el('rsTimeRange'), {
+              mode: 'range', dateFormat: 'Y-m-d',
+              onChange: function (picked) {
+                if (picked.length === 2) {
+                  state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
+                }
+              }
+            });
+          }
+          state.wiz.range = null;
+        } else {
+          var r = presetRange(p[0]);
+          state.wiz.range = r ? [isoDate(r[0]), isoDate(r[1])] : null;
+        }
+      }));
+    });
+    state.wiz.range = null;  // default: all time
+  }
+
+  // Wizard invariants (validator-enforced server-side): sort fields are among
+  // the selected columns or metric codes; grain only on grainable fields;
+  // metric codes from the registry; the between filter always targets the
+  // RAW date field (the Spec-1 contract), never the bucketed expression.
+  function wizardDefinition() {
+    var w = state.wiz;
+    var columns = [], sort = [], filters = [];
+    var title = w.measure.label;
+    if (w.breakdown.kind === 'date') {
+      var grain = el('rsGrain').value;
+      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label,
+                     grain: grain });
+      sort.push({ field: w.breakdown.field.field, dir: 'asc' });
+      title += ' ' + I18N.per + ' ' +
+        el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase();
+    } else if (w.breakdown.kind === 'category') {
+      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label });
+      sort.push({ field: w.measure.code, dir: 'desc' });
+      title += ' ' + I18N.by + ' ' + w.breakdown.field.label;
+    }
+    if (w.range && w.dateField) {
+      filters.push({ field: w.dateField, op: 'between', value: w.range });
+    }
+    var scope = { clients: [], processes: [] };
+    var allProcs = w.source.processes || [];
+    if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
+      scope.processes = w.scopeProcs.slice();
+    }
+    return {
+      schemaVersion: 1, source: w.source.id, visualization: 'table',
+      title: title, subtitle: null,
+      columns: columns,
+      metrics: [{ metric: w.measure.code }],
+      filters: filters, sort: sort, scope: scope, rowLimit: 5000
+    };
+  }
+
+  el('rsNewReport').addEventListener('click', startWizard);
+  el('rsWizardBack').addEventListener('click', function () { setView('library'); });
+  el('rsWizardRun').addEventListener('click', function () {
+    if (!state.wiz || !state.wiz.measure || !state.wiz.breakdown) return;
+    var def = wizardDefinition();
+    state.current = { def: def, name: def.title, reportId: null,
+                      owned: true, canEdit: true, fromWizard: true };
+    runCurrent();
+  });
+
   // ---------- init ----------
   function initOnce() {
     if (state.loaded) return;
