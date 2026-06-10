@@ -70,6 +70,21 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   the right field and as a column `header`. This stops docprocessing — whose keys are
   internal Statconfig codes, not the human labels the model would otherwise guess —
   from drafting label-named fields the validator rejects.
+- **Date grounding:** today's date is injected into the user prompt and the agent
+  grounding so relative time expressions ("last month", "this year") resolve to
+  correct absolute date ranges, not training-data dates. The agent system prompt
+  also instructs the model to use this date and not its training knowledge.
+- **Distinct/unique values:** the system prompts teach both surfaces that answering
+  "different X" / "unique X" questions requires `columns: [X]` plus a count metric
+  (which makes X a GROUP BY dimension), not bare columns (which would return
+  duplicate rows, one per source document).
+- **Humanized process labels:** each process id in `allowed scope.processes` is
+  rendered with a derived human label in parentheses
+  (e.g. `privera.03_Invoice_New ("privera Invoice New")`). The prompts instruct
+  the model to match natural-language process names case-insensitively against both
+  the id and the label, and to include all matches rather than guessing one.
+  The egress guarantee is unchanged — the date is not user data; the process labels
+  are derived from the process id alone (no DB lookup).
 - **Tolerant repair (server-side safety net):** prompting alone is not enough for
   small models on curated **table** sources (CamelCase keys like `ForDate` vs. the
   label "Date"). Before validation, `schema.coerce_definition` repairs the draft

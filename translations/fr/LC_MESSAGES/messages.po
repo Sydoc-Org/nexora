@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 11:08+0200\n"
+"POT-Creation-Date: 2026-06-10 13:24+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -30,15 +30,15 @@ msgstr "Date invalide"
 msgid "Date is outside the allowed entry window"
 msgstr "La date est en dehors de la période de saisie autorisée"
 
-#: nx_lib/reporting/catalog.py:218
+#: nx_lib/reporting/catalog.py:214
 msgid "Import date"
 msgstr "Date d'import"
 
-#: nx_lib/reporting/catalog.py:218
+#: nx_lib/reporting/catalog.py:214
 msgid "Export date"
 msgstr "Date d'export"
 
-#: nx_lib/reporting/catalog.py:221
+#: nx_lib/reporting/catalog.py:217
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
@@ -309,8 +309,8 @@ msgstr "Impossible de charger la disposition"
 
 #: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:916
 #: nx_lib/views/reporting.py:949 nx_lib/views/reporting.py:1008
-#: nx_lib/views/reporting.py:1136 nx_lib/views/reporting.py:1319
-#: nx_lib/views/reporting.py:1502 nx_lib/views/reporting.py:1552
+#: nx_lib/views/reporting.py:1136 nx_lib/views/reporting.py:1291
+#: nx_lib/views/reporting.py:1477 nx_lib/views/reporting.py:1527
 msgid "Invalid JSON body"
 msgstr "Corps JSON invalide"
 
@@ -424,7 +424,7 @@ msgstr "Erreur inattendue"
 msgid "Language changed successfully!"
 msgstr "Langue modifiée avec succès !"
 
-#: nx_lib/views/reporting.py:920 nx_lib/views/reporting.py:1532
+#: nx_lib/views/reporting.py:920 nx_lib/views/reporting.py:1507
 msgid "Not authorized for this source"
 msgstr "Non autorisé pour cette source"
 
@@ -436,15 +436,15 @@ msgstr "Impossible de générer le rapport"
 msgid "Could not run report"
 msgstr "Impossible d'exécuter le rapport"
 
-#: nx_lib/views/reporting.py:955 nx_lib/views/reporting.py:1509
+#: nx_lib/views/reporting.py:955 nx_lib/views/reporting.py:1484
 msgid "Acknowledgment required"
 msgstr "Confirmation requise"
 
-#: nx_lib/views/reporting.py:960 nx_lib/views/reporting.py:1517
+#: nx_lib/views/reporting.py:960 nx_lib/views/reporting.py:1492
 msgid "Not authorized for this SQL target"
 msgstr "Non autorisé pour cette cible SQL"
 
-#: nx_lib/views/reporting.py:966 nx_lib/views/reporting.py:1523
+#: nx_lib/views/reporting.py:966 nx_lib/views/reporting.py:1498
 msgid "SQL source is not configured"
 msgstr "La source SQL n'est pas configurée"
 
@@ -453,7 +453,7 @@ msgid "Could not record acknowledgment"
 msgstr "Impossible d'enregistrer la confirmation"
 
 #: nx_lib/views/reporting.py:1011 nx_lib/views/reporting.py:1139
-#: nx_lib/views/reporting.py:1322
+#: nx_lib/views/reporting.py:1294
 msgid "A question is required"
 msgstr "Une question est requise"
 
@@ -462,13 +462,13 @@ msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Non autorisé à recevoir du SQL rédigé par l'IA"
 
 #: nx_lib/views/reporting.py:1018 nx_lib/views/reporting.py:1086
-#: nx_lib/views/reporting.py:1143 nx_lib/views/reporting.py:1209
-#: nx_lib/views/reporting.py:1326 nx_lib/views/reporting.py:1443
+#: nx_lib/views/reporting.py:1143 nx_lib/views/reporting.py:1210
+#: nx_lib/views/reporting.py:1298 nx_lib/views/reporting.py:1418
 msgid "The AI assistant is not configured"
 msgstr "L'assistant IA n'est pas configuré"
 
 #: nx_lib/views/reporting.py:1046 nx_lib/views/reporting.py:1165
-#: nx_lib/views/reporting.py:1348
+#: nx_lib/views/reporting.py:1320
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -477,173 +477,173 @@ msgstr ""
 "Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
 "Veuillez réessayer demain."
 
-#: nx_lib/views/reporting.py:1103 nx_lib/views/reporting.py:1226
-#: nx_lib/views/reporting.py:1460
+#: nx_lib/views/reporting.py:1103 nx_lib/views/reporting.py:1227
+#: nx_lib/views/reporting.py:1435
 msgid "The AI assistant could not answer right now"
 msgstr "L'assistant IA n'a pas pu répondre pour le moment"
 
-#: nx_lib/views/reporting.py:1252
+#: nx_lib/views/reporting.py:1253
 msgid "Could not build a valid report"
 msgstr "Impossible de créer un rapport valide"
 
-#: nx_lib/views/reporting.py:1506
+#: nx_lib/views/reporting.py:1481
 msgid "Not authorized for live SQL"
 msgstr "Non autorisé pour le SQL en direct"
 
-#: nx_lib/views/reporting.py:1526
+#: nx_lib/views/reporting.py:1501
 msgid "Could not export query"
 msgstr "Impossible d'exporter la requête"
 
-#: nx_lib/views/reporting.py:1537
+#: nx_lib/views/reporting.py:1512
 msgid "Could not export report"
 msgstr "Impossible d'exporter le rapport"
 
-#: nx_lib/views/reporting.py:1556
+#: nx_lib/views/reporting.py:1531
 msgid "columns and rows are required"
 msgstr "les colonnes et les lignes sont obligatoires"
 
-#: nx_lib/views/reporting.py:1613
+#: nx_lib/views/reporting.py:1588
 msgid "Could not list reports"
 msgstr "Impossible de lister les rapports"
 
-#: nx_lib/views/reporting.py:1638 nx_lib/views/reporting.py:1713
-#: nx_lib/views/reporting.py:1735 nx_lib/views/reporting.py:1811
-#: nx_lib/views/reporting.py:1821 nx_lib/views/reporting.py:1871
-#: nx_lib/views/reporting.py:1933 nx_lib/views/reporting.py:1956
-#: nx_lib/views/reporting.py:1987 nx_lib/views/reporting.py:2017
-#: nx_lib/views/reporting.py:2030 nx_lib/views/reporting.py:2041
-#: nx_lib/views/reporting.py:2228 nx_lib/views/reporting.py:2246
-#: nx_lib/views/reporting.py:2345 nx_lib/views/reporting.py:2363
+#: nx_lib/views/reporting.py:1613 nx_lib/views/reporting.py:1688
+#: nx_lib/views/reporting.py:1710 nx_lib/views/reporting.py:1786
+#: nx_lib/views/reporting.py:1796 nx_lib/views/reporting.py:1846
+#: nx_lib/views/reporting.py:1908 nx_lib/views/reporting.py:1931
+#: nx_lib/views/reporting.py:1962 nx_lib/views/reporting.py:1992
+#: nx_lib/views/reporting.py:2005 nx_lib/views/reporting.py:2016
+#: nx_lib/views/reporting.py:2203 nx_lib/views/reporting.py:2221
+#: nx_lib/views/reporting.py:2320 nx_lib/views/reporting.py:2338
 msgid "Not found"
 msgstr "Introuvable"
 
-#: nx_lib/views/reporting.py:1651
+#: nx_lib/views/reporting.py:1626
 msgid "Could not load report"
 msgstr "Impossible de charger le rapport"
 
-#: nx_lib/views/reporting.py:1664 nx_lib/views/reporting.py:1693
+#: nx_lib/views/reporting.py:1639 nx_lib/views/reporting.py:1668
 msgid "name and definition are required"
 msgstr "le nom et la définition sont obligatoires"
 
-#: nx_lib/views/reporting.py:1667 nx_lib/views/reporting.py:1696
+#: nx_lib/views/reporting.py:1642 nx_lib/views/reporting.py:1671
 msgid "Report definition too large"
 msgstr "Définition du rapport trop volumineuse"
 
-#: nx_lib/views/reporting.py:1680
+#: nx_lib/views/reporting.py:1655
 msgid "Could not save report"
 msgstr "Impossible d'enregistrer le rapport"
 
-#: nx_lib/views/reporting.py:1717
+#: nx_lib/views/reporting.py:1692
 msgid "Could not update report"
 msgstr "Impossible de mettre à jour le rapport"
 
-#: nx_lib/views/reporting.py:1739
+#: nx_lib/views/reporting.py:1714
 msgid "Could not delete report"
 msgstr "Impossible de supprimer le rapport"
 
-#: nx_lib/views/reporting.py:1829
+#: nx_lib/views/reporting.py:1804
 msgid "Invalid visibility"
 msgstr "Visibilité invalide"
 
-#: nx_lib/views/reporting.py:1838
+#: nx_lib/views/reporting.py:1813
 msgid "User not found"
 msgstr "Utilisateur introuvable"
 
-#: nx_lib/views/reporting.py:1840
+#: nx_lib/views/reporting.py:1815
 msgid "Cannot share a report with yourself"
 msgstr "Vous ne pouvez pas partager un rapport avec vous-même"
 
-#: nx_lib/views/reporting.py:1861 nx_lib/views/reporting.py:1882
+#: nx_lib/views/reporting.py:1836 nx_lib/views/reporting.py:1857
 msgid "Could not update sharing"
 msgstr "Impossible de mettre à jour le partage"
 
-#: nx_lib/views/reporting.py:1946
+#: nx_lib/views/reporting.py:1921
 msgid "Could not list schedules"
 msgstr "Impossible de lister les planifications"
 
-#: nx_lib/views/reporting.py:1977
+#: nx_lib/views/reporting.py:1952
 msgid "Could not save schedule"
 msgstr "Impossible d'enregistrer la planification"
 
-#: nx_lib/views/reporting.py:2021
+#: nx_lib/views/reporting.py:1996
 msgid "Could not update schedule"
 msgstr "Impossible de mettre à jour la planification"
 
-#: nx_lib/views/reporting.py:2045
+#: nx_lib/views/reporting.py:2020
 msgid "Could not delete schedule"
 msgstr "Impossible de supprimer la planification"
 
-#: nx_lib/views/reporting.py:2058 nx_lib/views/reporting.py:2108
+#: nx_lib/views/reporting.py:2033 nx_lib/views/reporting.py:2083
 msgid "Invalid body"
 msgstr "Corps invalide"
 
-#: nx_lib/views/reporting.py:2060
+#: nx_lib/views/reporting.py:2035
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "le code doit comporter 1 à 64 caractères : lettres, chiffres, . _ -"
 
-#: nx_lib/views/reporting.py:2062
+#: nx_lib/views/reporting.py:2037
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind doit être 'curated' ou 'sql'"
 
-#: nx_lib/views/reporting.py:2064 nx_lib/views/reporting.py:2114
+#: nx_lib/views/reporting.py:2039 nx_lib/views/reporting.py:2089
 msgid "label is required"
 msgstr "le libellé est obligatoire"
 
-#: nx_lib/views/reporting.py:2066
+#: nx_lib/views/reporting.py:2041
 msgid "permission is required"
 msgstr "l'autorisation est obligatoire"
 
-#: nx_lib/views/reporting.py:2072
+#: nx_lib/views/reporting.py:2047
 msgid "columns must be valid JSON"
 msgstr "les colonnes doivent être au format JSON valide"
 
-#: nx_lib/views/reporting.py:2110
+#: nx_lib/views/reporting.py:2085
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 "le code doit commencer par une lettre/un trait de soulignement : lettres,"
 " chiffres, _"
 
-#: nx_lib/views/reporting.py:2112
+#: nx_lib/views/reporting.py:2087
 msgid "sourceId is required"
 msgstr "sourceId est obligatoire"
 
-#: nx_lib/views/reporting.py:2117
+#: nx_lib/views/reporting.py:2092
 msgid "aggregation must be one of: "
 msgstr "aggregation doit être l'une des valeurs suivantes : "
 
-#: nx_lib/views/reporting.py:2119
+#: nx_lib/views/reporting.py:2094
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField est obligatoire sauf si aggregation vaut 'count'"
 
-#: nx_lib/views/reporting.py:2175
+#: nx_lib/views/reporting.py:2150
 msgid "Could not list sources"
 msgstr "Impossible de lister les sources"
 
-#: nx_lib/views/reporting.py:2203
+#: nx_lib/views/reporting.py:2178
 msgid "Could not save source (code already exists?)"
 msgstr "Impossible d'enregistrer la source (le code existe déjà ?)"
 
-#: nx_lib/views/reporting.py:2232
+#: nx_lib/views/reporting.py:2207
 msgid "Could not update source"
 msgstr "Impossible de mettre à jour la source"
 
-#: nx_lib/views/reporting.py:2250
+#: nx_lib/views/reporting.py:2225
 msgid "Could not delete source"
 msgstr "Impossible de supprimer la source"
 
-#: nx_lib/views/reporting.py:2292
+#: nx_lib/views/reporting.py:2267
 msgid "Could not list metrics"
 msgstr "Impossible de lister les métriques"
 
-#: nx_lib/views/reporting.py:2320
+#: nx_lib/views/reporting.py:2295
 msgid "Could not save metric (code already exists?)"
 msgstr "Impossible d'enregistrer la métrique (le code existe déjà ?)"
 
-#: nx_lib/views/reporting.py:2349
+#: nx_lib/views/reporting.py:2324
 msgid "Could not update metric"
 msgstr "Impossible de mettre à jour la métrique"
 
-#: nx_lib/views/reporting.py:2367
+#: nx_lib/views/reporting.py:2342
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
@@ -2424,7 +2424,7 @@ msgstr "Simple"
 msgid "Source"
 msgstr "Source"
 
-#: templates/reporting.html:79
+#: templates/js/_reporting_simple_js.html:44 templates/reporting.html:79
 msgid "Processes"
 msgstr "Processus"
 
@@ -2655,7 +2655,7 @@ msgstr ""
 msgid "Columns"
 msgstr "Colonnes"
 
-#: templates/reporting.html:215
+#: templates/js/_reporting_simple_js.html:43 templates/reporting.html:215
 msgid "Filters"
 msgstr "Filtres"
 
@@ -4442,6 +4442,10 @@ msgstr "L'IA n'a pas pu rédiger ce rapport — reformulez."
 #: templates/js/_reporting_simple_js.html:42
 msgid "The AI daily limit is reached — try again tomorrow."
 msgstr "La limite quotidienne de l'IA est atteinte — réessayez demain."
+
+#: templates/js/_reporting_simple_js.html:45
+msgid "no filters"
+msgstr "aucun filtre"
 
 #: templates/js/_reporting_sources_js.html:49
 msgid "Delete this source?"

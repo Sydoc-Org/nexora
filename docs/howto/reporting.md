@@ -32,7 +32,10 @@ custom-header, save/load, and Excel-export support.
     included), a **chart card** (line for date breakdowns, bar for categories;
     ≤50 categories), and a **Show table** toggle. *Save* always creates a new
     row under My reports; *Open in Advanced* pre-fills the builder; *Export*
-    downloads Excel (needs `reporting.export`).
+    downloads Excel (needs `reporting.export`). For AI-built results, a
+    **transparency line** below the report title shows the AI's explanation
+    and the filters/processes it applied, so a wrong guess (bad date range,
+    wrong process) is immediately visible.
 - **Advanced** — the full three-panel builder described below, unchanged.
 
 Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`
@@ -457,8 +460,21 @@ contract — including zero-column grand totals — so drafts can aggregate the 
 way the builder does. The server validates the draft through
 `validate_report_definition` — the same whitelist validator used by
 `/api/reporting/run`, with the same `metric_codes`/`grainable_fields` — and
-attempts one self-repair retry if the first draft fails validation. On success, the panel shows a summary and
-two buttons:
+attempts one self-repair retry if the first draft fails validation.
+
+**Prompt grounding (AI quality):**
+- **Today's date** is injected into the user prompt so relative time expressions
+  ("last month", "this year", "yesterday") resolve to correct absolute date ranges,
+  not to training-data dates.
+- **Distinct/different values:** the system prompt teaches the model that
+  answering "different X" questions requires `columns: [X]` plus a count metric,
+  which triggers GROUP BY so each value appears once (bare columns produce duplicate rows).
+- **Process labels:** each process id in the catalog is shown with a derived human
+  label in parentheses (e.g. `privera.03_Invoice_New ("privera Invoice New")`),
+  and the model is instructed to match natural-language process names
+  case-insensitively against both the id and the label, including all matches.
+
+On success, the panel shows a summary and two buttons:
 
 - **Open in builder** — calls `applyDefinition()` to fill the builder wells; the user
   then runs the report via the existing `POST /api/reporting/run` path (so row-scoping
@@ -517,6 +533,9 @@ chip + row count), and a follow-up input.
 to the model — `build_definition` (always) and `validate_sql` (only with
 `reporting.ai.sql`) — so egress stays **schema-only**: the model receives the
 question plus the source catalog / SQL schema, and tool results are ok/error only.
+The grounding prepends today's date and the system prompt instructs the model to
+resolve relative time expressions against it; process matching, distinct-values,
+and humanized process labels apply identically to Surface A (see above).
 `AI_DAILY_LIMIT` applies; audited with `Surface='agent'` (and `Status='misconfig'`
 if the provider is broken, `'blocked'` when the cap is hit). The last validated
 definition/SQL in the tool trace is returned for one-click **Open in builder** /

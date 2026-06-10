@@ -126,6 +126,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   badge when the perm is absent (a permission state, not missing data). Both
   appear in the admin access-control grant UI automatically (it reads
   `dbo.Permission`).
+- **Reporting AI — humanized process ids in catalog grounding.** The AI catalog
+  now shows each process id with a derived human label in parentheses
+  (e.g. `privera.03_Invoice_New ("privera Invoice New")`), and the prompts
+  instruct the model to match natural-language process names against both the raw
+  id and this label. Process matching is now case-insensitive and includes all
+  matches rather than guessing one.
+- **Reporting Simple tab — AI transparency line.** After an Ask-AI request returns a
+  valid definition, the result view now shows a one-line summary below the report
+  title: the AI's own explanation plus the filters and processes it chose. Wrong
+  guesses (bad date range, wrong process) are immediately visible instead of
+  silently rendering an empty table. Rendered via `textContent` (XSS-safe).
+  de/fr/it translated.
 - **`.claudeignore` + enforcing PreToolUse hook.** A repo-root `.claudeignore`
   lists which paths AI coding tools should skip (secrets, Python bytecode,
   virtualenvs/vendored deps, build artifacts, tool/index caches, `uv.lock`,
@@ -496,6 +508,19 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **db-migrate — non-ASCII corruption via sqlcmd codepage.** `scripts/db-migrate.py` ran migrations through `sqlcmd -i <file>` without a UTF-8 input codepage, so sqlcmd read UTF-8 migration files in the host OEM/ANSI codepage and silently corrupted any non-ASCII text on INSERT (German/French strings, dashes, …). This is how migration `0011` stored the mojibake source label "Generali â€" PDQM Report". The runner now passes `-f 65001` (UTF-8 in/out) and decodes captured output as UTF-8; migration `0016_fix_generali_pdqm_label_encoding.sql` repairs the already-stored label (codepage-safe via `NCHAR(0x2014)`).
 - **Reporting AI (agent, explain-data) — run_sql against builder-only sources.** Curated `table`-provider sources (e.g. Generali PDQM, which lives on GeneraliDB) are not reachable by `run_sql` (it only targets the statistics/octopus RO engines), but the explain-data agent bound `run_sql` unconditionally and drafted `SELECT … FROM <source>` against a run_sql target, looping on an unrecoverable 208 "invalid object name". The agent route is now **source-aware**: the client sends the active builder source and `POST /api/reporting/ai/agent` binds the data tools (`run_sql`/`compute_stats`) **only when that source is run_sql-able**, so a builder-only source confines the model to `build_definition` (and `explainData` is reported `false`). The schema grounding (`nx_lib/reporting/ai_schema.py`) also labels such sources **builder-only — answer with `build_definition`, NOT queryable with `run_sql`**, and the explain suffix spells out that `run_sql` only hits the named SQL targets.
 - **Footer — stale hard-coded version.** `templates/_nexora_version.html` hard-coded `nexora 2.5.60`, a third copy of the version that silently drifted from `pyproject.toml`. The version is now single-sourced in `nx_lib/version.py`, injected app-wide via a `nexora_version` context processor, and consumed by both the footer and the dev CLI; `tests/unit/test_version.py` enforces it stays in sync with `pyproject.toml`.
+
+- **Reporting AI — correct dates for "last month", "this year", etc.** The AI
+  definition drafter (Surface A) and the agentic loop (Surface C) had no concept of
+  the current date; gpt-4o-mini fell back to training-data dates and turned "last
+  month" into a range from 2023. Both surfaces now receive today's date in their
+  prompts and grounding and are instructed to resolve all relative time expressions
+  against it.
+- **Reporting AI — "different docsources" returned duplicate rows.** A columns-only
+  definition (no `metrics`) compiles to a plain projection with no GROUP BY, so
+  asking for the distinct values of a field produced one row per document, not one
+  per value. The prompts now teach both surfaces the correct pattern: put the target
+  field in `columns` and add a count metric, which makes the columns GROUP BY
+  dimensions so each value appears once.
 
 ### Removed
 - **`dbo.SearchConfig`:** dropped 12 unused columns (`col_scanbatchnr`, `col_pid`, `col_personalfileid`, `col_employmentfileid`, `col_doctypeidtargetsystem`, `col_doctypeidsydoc`, `col_registeridtargetsystem`, `col_masterdataseparatorsheettype`, `col_masterdatabirthday`, `col_masterdatafirstname`, `col_masterdatalastname`, `col_masterdataseparatorsheetid`) via migration `0002_remove_unused_columns_searchconfig.sql`.
