@@ -581,6 +581,40 @@
     runCurrent();
   });
 
+  // ---------- Ask-AI helper ----------
+  var aiBar = el('rsAiBar');  // rendered only {% if ai_enabled %}
+  if (aiBar) {
+    el('rsAiAsk').addEventListener('click', askAi);
+    el('rsAiPrompt').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') askAi();
+    });
+  }
+
+  async function askAi() {
+    var q = el('rsAiPrompt').value.trim();
+    if (!q) return;
+    el('rsAiAsk').disabled = true;
+    var res = await api('/api/reporting/ai/build', {
+      method: 'POST', body: JSON.stringify({ question: q })
+    });
+    el('rsAiAsk').disabled = false;
+    if (res.status === 503) {            // AI unconfigured: hide the helper
+      aiBar.hidden = true;
+      aiBar.dataset.gone = '1';
+      return;
+    }
+    if (res.status === 429) { showResultError(I18N.aiLimit); return; }
+    // Check data.valid, not res.ok: the route returns 200 for invalid drafts.
+    if (!res.ok || !res.data || !res.data.valid || !res.data.definition) {
+      var why = (res.data && (res.data.explanation || res.data.error)) || '';
+      showResultError(I18N.aiInvalid + (why ? ' (' + why + ')' : ''));
+      return;
+    }
+    state.current = { def: res.data.definition, name: res.data.definition.title,
+                      reportId: null, owned: true, canEdit: true, fromWizard: true };
+    runCurrent();
+  }
+
   // ---------- init ----------
   function initOnce() {
     if (state.loaded) return;
