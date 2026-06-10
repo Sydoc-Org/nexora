@@ -69,7 +69,7 @@
   <div id="rsResult" class="reporting-simple-result" hidden data-testid="rs-result">
     <div class="reporting-simple-resultbar">
       <button id="rsBack" class="reporting-link" data-testid="rs-back">&larr; {{ _("Back") }}</button>
-      <h3 id="rsResultTitle" class="reporting-simple-rtitle"></h3>
+      <h3 id="rsResultTitle" class="reporting-simple-rtitle" data-testid="rs-result-title"></h3>
       <span class="reporting-simple-ractions">
         <input id="rsSaveName" class="reporting-input" hidden data-testid="rs-save-name"
                aria-label="{{ _('Report name') }}">
@@ -80,6 +80,12 @@
         {% endif %}
       </span>
     </div>
+    {% if ai_enabled %}
+    <div id="rsAiLoading" class="reporting-ai-loading" hidden data-testid="rs-ai-loading">
+      <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span id="rsAiLoadingText" role="status"></span>
+    </div>
+    {% endif %}
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>
     <div class="reporting-simple-cards">

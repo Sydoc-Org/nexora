@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 17:11+0200\n"
+"POT-Creation-Date: 2026-06-10 17:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1017,7 +1017,7 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: templates/_reporting_simple.html:97
+#: templates/_reporting_simple.html:103
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr ""
@@ -4371,6 +4371,18 @@ msgstr ""
 #: templates/js/_reporting_simple_js.html:50
 #, python-brace-format
 msgid "Last {n} days"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:51
+msgid "Asking the AI…"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:52
+msgid "Drafting your report…"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:53
+msgid "Checking the result…"
 msgstr ""
 
 #: templates/js/_reporting_sources_js.html:49

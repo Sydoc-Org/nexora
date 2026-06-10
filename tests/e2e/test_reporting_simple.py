@@ -126,6 +126,82 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         )
 
 
+STUB_AI_DEFINITION = {
+    "schemaVersion": 1,
+    "source": "docprocessing",
+    "visualization": "table",
+    "title": "stub ai report",
+    "subtitle": None,
+    "columns": [{"field": "processname"}],
+    "filters": [{"field": "processname", "op": "eq", "value": "acme.inv"}],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 100,
+    "groupBy": [],
+    "sql": None,
+    "sqlTarget": None,
+}
+
+
+def _stub_ai_build(page, definition=None, delay_s=0.0):
+    import json
+
+    body = json.dumps(
+        {
+            "definition": definition or STUB_AI_DEFINITION,
+            "explanation": "stubbed explanation",
+            "valid": True,
+            "error": None,
+        }
+    )
+
+    def handler(route):
+        route.fulfill(status=200, content_type="application/json", body=body)
+
+    page.route("**/api/reporting/ai/build", handler)
+
+
+def test_ai_ask_shows_loading_then_result(nexora_server, page):
+    """Loading indicator appears while AI request is in-flight and hides once
+    the result is ready.  We verify appearance by injecting a JS latch that
+    records whether rsAiLoading was ever un-hidden, then assert on end-state.
+    """
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    # Inject a MutationObserver that sets window.__aiLoadingWasSeen = true
+    # the first time rsAiLoading.hidden flips to false.
+    page.evaluate("""() => {
+        window.__aiLoadingWasSeen = false;
+        const el = document.getElementById('rsAiLoading');
+        if (!el) return;
+        if (!el.hidden) { window.__aiLoadingWasSeen = true; return; }
+        const obs = new MutationObserver(() => {
+            if (!el.hidden) {
+                window.__aiLoadingWasSeen = true;
+                obs.disconnect();
+            }
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    }""")
+
+    _stub_ai_build(page)
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+
+    # Wait for the result to finish loading (explanation text appears).
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-msg")).to_contain_text("stubbed explanation")
+
+    # Loading indicator must be hidden again now that the result is rendered.
+    expect(page.get_by_test_id("rs-ai-loading")).to_be_hidden()
+
+    # MutationObserver must have recorded that rsAiLoading was shown during
+    # the in-flight period.
+    was_seen = page.evaluate("() => window.__aiLoadingWasSeen")
+    assert was_seen, "rsAiLoading was never made visible during the AI request"
+
+
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
     # Seed an admin source backed by dbo.Reports (NexoraDB — always available in
     # TEST) with a grainable date column, so we can save + run a token report

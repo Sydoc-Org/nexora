@@ -88,7 +88,10 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.semantic.admin', 'Reporting: manage the canonical metrics registry'),
     ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
     ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),
-    ('reporting.schedule', 'Reporting: schedule a report to run and be emailed');
+    ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
+    ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
+    ('reporting.ai.sql', 'Reporting: AI may emit live SQL (advanced)'),
+    ('reporting.ai.explain', 'Reporting: see AI explanation on results');
 GO
 
 -- Access profiles

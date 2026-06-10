@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 17:11+0200\n"
+"POT-Creation-Date: 2026-06-10 17:21+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1031,7 +1031,7 @@ msgstr "Ouvrir dans Avancé"
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/_reporting_simple.html:97
+#: templates/_reporting_simple.html:103
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr "Afficher le tableau"
@@ -4477,6 +4477,18 @@ msgstr "aucun filtre"
 #, python-brace-format
 msgid "Last {n} days"
 msgstr "{n} derniers jours"
+
+#: templates/js/_reporting_simple_js.html:51
+msgid "Asking the AI…"
+msgstr "Interrogation de l’IA…"
+
+#: templates/js/_reporting_simple_js.html:52
+msgid "Drafting your report…"
+msgstr "Rédaction du rapport…"
+
+#: templates/js/_reporting_simple_js.html:53
+msgid "Checking the result…"
+msgstr "Vérification du résultat…"
 
 #: templates/js/_reporting_sources_js.html:49
 msgid "Delete this source?"

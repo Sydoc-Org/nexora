@@ -996,3 +996,23 @@ body.nx-app {
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 @media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }
+
+/* AI thinking indicator (Simple pane) */
+.reporting-ai-loading {
+  display: flex; align-items: center; justify-content: center; gap: .6rem;
+  padding: 2.5rem 0; color: var(--nx-text-muted, #6b7280);
+}
+.reporting-ai-dots i {
+  display: inline-block; width: 8px; height: 8px; margin: 0 2px;
+  border-radius: 50%; background: currentColor;
+  animation: rs-ai-pulse 1.2s infinite ease-in-out;
+}
+.reporting-ai-dots i:nth-child(2) { animation-delay: .2s; }
+.reporting-ai-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes rs-ai-pulse {
+  0%, 80%, 100% { opacity: .25; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reporting-ai-dots i { animation: none; }
+}

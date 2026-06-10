@@ -47,7 +47,10 @@
     tokenYesterday: {{ _("Yesterday")|tojson }},
     thisWeek: {{ _("This week")|tojson }},
     lastWeek: {{ _("Last week")|tojson }},
-    lastNDays: {{ _("Last {n} days")|tojson }}
+    lastNDays: {{ _("Last {n} days")|tojson }},
+    aiThinking: {{ _("Asking the AI…")|tojson }},
+    aiDrafting: {{ _("Drafting your report…")|tojson }},
+    aiChecking: {{ _("Checking the result…")|tojson }}
   };
 
   var state = {
@@ -165,6 +168,7 @@
 
   // ---------- Result view ----------
   function showResultError(msg) {
+    hideAiLoading();
     setView('result');
     el('rsResultTitle').textContent = '';
     el('rsMsg').hidden = true;
@@ -287,6 +291,35 @@
   // one, so a slow report's late responses can't render under a newer
   // report's title (and a double-click renders only once).
   var runSeq = 0;
+
+  // AI in-flight state: shared by ask + refine. The indicator owns the result
+  // area while waiting; the rotating line is purely cosmetic.
+  var aiBusy = false;
+  var aiLoadingTimer = null;
+  function showAiLoading() {
+    setView('result');
+    el('rsResultTitle').textContent = '';
+    el('rsError').hidden = true;
+    el('rsMsg').hidden = true;
+    el('rsSaveName').hidden = true;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+    var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
+    var i = 0;
+    el('rsAiLoadingText').textContent = lines[0];
+    el('rsAiLoading').hidden = false;
+    aiLoadingTimer = setInterval(function () {
+      i = (i + 1) % lines.length;
+      el('rsAiLoadingText').textContent = lines[i];
+    }, 3000);
+  }
+  function hideAiLoading() {
+    var box = el('rsAiLoading');
+    if (box) box.hidden = true;
+    if (aiLoadingTimer) { clearInterval(aiLoadingTimer); aiLoadingTimer = null; }
+  }
 
   async function runCurrent() {
     var cur = state.current;
@@ -684,15 +717,20 @@
 
   async function askAi() {
     var q = el('rsAiPrompt').value.trim();
-    if (!q) return;
+    if (!q || aiBusy) return;
+    aiBusy = true;
     el('rsAiAsk').disabled = true;
+    showAiLoading();
     var res = await api('/api/reporting/ai/build', {
       method: 'POST', body: JSON.stringify({ question: q })
     });
+    aiBusy = false;
     el('rsAiAsk').disabled = false;
+    hideAiLoading();
     if (res.status === 503) {            // AI unconfigured: hide the helper
       aiBar.hidden = true;
       aiBar.dataset.gone = '1';
+      setView('library');
       return;
     }
     if (res.status === 429) { showResultError(I18N.aiLimit); return; }
@@ -704,7 +742,8 @@
     }
     state.current = { def: res.data.definition, name: res.data.definition.title,
                       reportId: null, owned: true, canEdit: true, fromWizard: true,
-                      aiExplanation: res.data.explanation || '' };
+                      aiExplanation: res.data.explanation || '',
+                      aiQuestion: q };
     runCurrent();
   }
 
