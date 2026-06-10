@@ -150,7 +150,7 @@
     if (res.ok && res.data) state.metricsBySource = res.data;
   }
 
-  // ---------- Result view (Task 11) ----------
+  // ---------- Result view ----------
   function showResultError(msg) {
     setView('result');
     el('rsError').textContent = msg;
@@ -161,7 +161,183 @@
     el('rsTableWrap').hidden = true;
   }
 
-  function runCurrent() { /* implemented in the result-view task */ }
+  function friendlyRunError(status, data) {
+    if (status === 403) return I18N.noAccess;
+    if (status === 400) return I18N.outdated;
+    return (data && data.error) || I18N.couldNotRun;
+  }
+
+  function fmtNumber(v) {
+    if (v == null) return '–';
+    var n = Number(v);
+    return isNaN(n) ? String(v) : n.toLocaleString();
+  }
+
+  function metricLabelFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return '';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return hit ? hit.label : m.metric;
+  }
+
+  function renderTable(columns, rows) {
+    var html = '<table class="reporting-table"><thead><tr>';
+    columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(function (r) {
+      html += '<tr>';
+      r.forEach(function (v) { html += '<td>' + esc(v == null ? '' : v) + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    el('rsTableWrap').innerHTML = html;
+  }
+
+  // Simple owns its OWN Chart.js instance on a private canvas. It must never
+  // call ReportingViz.mountChart: that module is a singleton wired to the
+  // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
+  function mountChart(def, columns, rows) {
+    destroyChart();
+    var dims = (def.columns || []).length;
+    if (!dims || !rows.length || rows.length > 50 || !window.Chart) {
+      el('rsChartCard').hidden = true; return;
+    }
+    var firstCol = def.columns[0];
+    var isDate = !!firstCol.grain || /date/.test(firstCol.field);
+    var metricIdx = columns.length - (def.metrics || []).length;
+    var labels = rows.map(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10); });
+    var datasets = (def.metrics || []).map(function (m, i) {
+      var col = columns[metricIdx + i];
+      return {
+        label: col ? (col.header || m.metric) : m.metric,
+        data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
+        borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
+      };
+    });
+    el('rsChartCard').hidden = false;
+    state.chart = new Chart(el('rsChartCanvas'), {
+      type: isDate ? 'line' : 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: false,
+                 plugins: { legend: { display: datasets.length > 1 } } }
+    });
+  }
+
+  async function runCurrent() {
+    var cur = state.current;
+    setView('result');
+    el('rsError').hidden = true;
+    el('rsMsg').hidden = true;
+    el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    el('rsSaveName').hidden = true;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+
+    var def = cur.def;
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+
+    // Grand total via a zero-column clone: correct for every aggregation
+    // (avg/count_distinct included), unlike a client-side sum of grouped rows.
+    if (hasMetrics) {
+      var totalDef = JSON.parse(JSON.stringify(def));
+      totalDef.columns = [];
+      totalDef.sort = [];
+      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      if (t.ok && t.data && t.data.rows && t.data.rows.length) {
+        el('rsStatLabel').textContent = metricLabelFor(def);
+        el('rsStatValue').textContent = fmtNumber(t.data.rows[0][0]);
+        el('rsStatCard').hidden = false;
+      }
+    }
+
+    // Breakdown run (or the plain grid run for non-metric definitions).
+    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    var columns = res.data.columns || [], rows = res.data.rows || [];
+    if (!rows.length && el('rsStatCard').hidden) {
+      el('rsTableWrap').innerHTML =
+        '<div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox" aria-hidden="true"></i></div>' +
+        '<p class="nx-empty__title">' + esc(I18N.noData) + '</p></div>';
+      el('rsTableWrap').hidden = false;
+      return;
+    }
+    if (hasMetrics && (def.columns || []).length) mountChart(def, columns, rows);
+    renderTable(columns, rows);
+    if (hasMetrics) {
+      el('rsTableToggle').hidden = false;
+      el('rsTableToggle').textContent = I18N.showTable;
+      el('rsTableWrap').hidden = true;
+    } else {
+      el('rsTableWrap').hidden = false;   // plain table reports: grid directly
+    }
+  }
+
+  el('rsTableToggle').addEventListener('click', function () {
+    var w = el('rsTableWrap');
+    w.hidden = !w.hidden;
+    el('rsTableToggle').textContent = w.hidden ? I18N.showTable : I18N.hideTable;
+  });
+
+  // Save: always a NEW row (inline name input, no window.prompt).
+  el('rsSave').addEventListener('click', async function () {
+    var nameInput = el('rsSaveName');
+    if (nameInput.hidden) {
+      nameInput.hidden = false;
+      nameInput.value = state.current.name || state.current.def.title || '';
+      nameInput.focus();
+      return;
+    }
+    var name = nameInput.value.trim();
+    if (!name) return;
+    var res = await api('/api/reporting/reports', {
+      method: 'POST',
+      body: JSON.stringify({ name: name, definition: state.current.def })
+    });
+    if (res.ok) {
+      nameInput.hidden = true;
+      el('rsMsg').textContent = I18N.savedToMine;
+      el('rsMsg').hidden = false;
+    } else {
+      el('rsError').textContent = (res.data && res.data.error) || I18N.couldNotSave;
+      el('rsError').hidden = false;
+    }
+  });
+
+  // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
+  // shares mutate shared reports in place; a null id makes Advanced's Save
+  // default to create-a-copy.
+  el('rsOpenAdvanced').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
+    var id = (cur.owned && cur.canEdit) ? cur.reportId : null;
+    window.Reporting.applyDefinition(cur.def, cur.name || cur.def.title, id);
+    window.ReportingTabs.show('advanced');
+  });
+
+  if (EXPORT_ALLOWED) {
+    el('rsExport').addEventListener('click', async function () {
+      var body = Object.assign({}, state.current.def, { format: 'xlsx' });
+      var res = await fetch('/api/reporting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        el('rsError').textContent = I18N.couldNotExport;
+        el('rsError').hidden = false;
+        return;
+      }
+      var blob = await res.blob();
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (state.current.name || 'report') + '.xlsx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }
 
   // ---------- init ----------
   function initOnce() {
