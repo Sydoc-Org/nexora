@@ -538,3 +538,37 @@ def test_zero_columns_with_empty_metrics_list_rejected():
             max_row_limit=50000,
             metric_codes={"doc_count"},
         )
+
+
+def test_sort_on_metric_code_accepted_when_metric_selected():
+    # The Simple wizard sorts category breakdowns by the metric (e.g. doc_count
+    # desc). build_aggregate_sql projects dims + metric codes, so the validator
+    # must accept a sort target that is a selected metric code.
+    d = _valid_def()
+    d["columns"] = [{"field": "doctype", "header": "Type", "agg": None}]
+    d["metrics"] = [{"metric": "doc_count"}]
+    d["sort"] = [{"field": "doc_count", "dir": "desc"}]
+    validate_report_definition(
+        d,
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        metric_codes={"doc_count"},
+    )
+
+
+def test_sort_on_unselected_metric_code_rejected():
+    d = _valid_def()
+    d["columns"] = [{"field": "doctype", "header": "Type", "agg": None}]
+    d["metrics"] = [{"metric": "doc_count"}]
+    d["sort"] = [{"field": "other_metric", "dir": "desc"}]
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            d,
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            metric_codes={"doc_count", "other_metric"},
+        )

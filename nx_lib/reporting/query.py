@@ -163,13 +163,15 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     if not process_configs:
         raise QueryBuildError("no processes in scope")
 
-    columns = [c["field"] for c in rd["columns"]]
+    # `columns` may be absent/empty for zero-dimension metric definitions.
+    rd_columns = rd.get("columns") or []
+    columns = [c["field"] for c in rd_columns]
     filters = rd.get("filters") or []
     sort = rd.get("sort") or []
     cap = min(int(rd.get("rowLimit", row_cap)), int(row_cap))
 
     # Per-column grain (date fields only); raw date otherwise.
-    grain_by_field = {c["field"]: c.get("grain") for c in rd["columns"]}
+    grain_by_field = {c["field"]: c.get("grain") for c in rd_columns}
 
     metric_base_fields = [m["base_field"] for m in (resolved_metrics or []) if m.get("base_field")]
     # Fields to project in each subquery: the group-by dims plus any metric base

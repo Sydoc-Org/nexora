@@ -123,8 +123,13 @@ def validate_report_definition(
             if op in ("in", "not_in") and not isinstance(value, list):
                 raise ReportDefinitionError(f"filter op {op!r} value must be a list")
 
+    # A sort may target a selected metric code (the aggregate SQL projects
+    # dims + metric codes), e.g. a category breakdown sorted by doc_count.
+    sort_targets = set(sortable_fields)
+    if has_metrics:
+        sort_targets |= {m.get("metric") for m in metrics_list if isinstance(m, dict)}
     for s in rd.get("sort") or []:
-        if not isinstance(s, dict) or s.get("field") not in sortable_fields:
+        if not isinstance(s, dict) or s.get("field") not in sort_targets:
             raise ReportDefinitionError(f"field not sortable: {s.get('field')!r}")
         if s.get("dir") not in SORT_DIRS:
             raise ReportDefinitionError("sort dir must be 'asc' or 'desc'")

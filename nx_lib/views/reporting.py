@@ -757,8 +757,9 @@ def _prepare_run(rd):
             row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
         )
+        rd_columns = rd.get("columns") or []
         out_columns = (
-            rd["columns"] + [{"field": m["code"]} for m in resolved] if resolved else rd["columns"]
+            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
         )
         return out_columns, sql, params, engine_statistics_db
 
@@ -788,8 +789,9 @@ def _prepare_run(rd):
         engine = _CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
             raise ReportDefinitionError("source engine is not configured")
+        rd_columns = rd.get("columns") or []
         out_columns = (
-            rd["columns"] + [{"field": m["code"]} for m in resolved] if resolved else rd["columns"]
+            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
         )
         return out_columns, sql, params, engine
 

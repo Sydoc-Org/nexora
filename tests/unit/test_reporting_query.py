@@ -341,3 +341,16 @@ def test_zero_dim_sum_metric_projects_base_field():
     assert "SUM([pages]) AS [total_pages]" in sql
     assert "AS [pages]" in sql  # base field projected in the union
     assert "GROUP BY" not in sql
+
+
+def test_missing_columns_key_with_metrics_builds_global_total():
+    # The validator accepts a metrics definition with no 'columns' key at all
+    # (treated as []); the builder must not KeyError on it.
+    rd = _rd(sort=[])
+    del rd["columns"]
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "COUNT(*) AS [doc_count]" in sql
+    assert "GROUP BY" not in sql
