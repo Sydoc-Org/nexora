@@ -582,7 +582,7 @@
   });
 
   // ---------- Ask-AI helper ----------
-  var aiBar = el('rsAiBar');  // rendered only {% if ai_enabled %}
+  var aiBar = el('rsAiBar');  // only in the DOM when ai_enabled
   if (aiBar) {
     el('rsAiAsk').addEventListener('click', askAi);
     el('rsAiPrompt').addEventListener('keydown', function (e) {
