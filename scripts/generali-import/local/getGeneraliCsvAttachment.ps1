@@ -1,14 +1,25 @@
 $root_location = "\\prdimpexp01\d$\sydoc\scripts\generali"
 $destDir = "$root_location\import"
-$envVars = Get-Content -Raw "$root_location\env.json" | ConvertFrom-Json
 
-$TENANT_ID = $envVars.TENANT_ID
-$CLIENT_ID = $envVars.CLIENT_ID
-$USERNAME = $envVars.USERNAME
-$PASSWORD = $envVars.PASSWORD
-$GRANT_TYPE = $envVars.GRANT_TYPE
-$SCOPE = $envVars.SCOPE
-$CLIENT_SECRET = $envVars.CLIENT_SECRET
+function load_from_dot_env([string]$Path = '.env') {
+    Get-Content $Path | ForEach-Object {
+        $nvSplit = $_ -split '=', 2
+        $name, $value = $nvSplit
+        if ([string]::IsNullOrWhiteSpace($name) -or $name.Contains('#')) {
+            return
+        }
+        Set-Content env:\$name $value
+    }
+}
+load_from_dot_env "$root_location\.env"
+
+$TENANT_ID = $env:TENANT_ID
+$CLIENT_ID = $env:CLIENT_ID
+$USERNAME = $env:USERNAME
+$PASSWORD = $env:PASSWORD
+$GRANT_TYPE = $env:GRANT_TYPE
+$SCOPE = $env:SCOPE
+$CLIENT_SECRET = $env:CLIENT_SECRET
 
 $logDir = Join-Path $root_location 'logs'
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -16,7 +27,8 @@ $logFile = Join-Path $logDir "getGeneraliCsvAttachment_$(Get-Date -Format 'yyyy-
 $script:errorList = [System.Collections.Generic.List[string]]::new()
 
 function isLocal {
-    return (Get-Location).Path -like "*bes*"
+    # local backup copy: always interactive (confirmation prompts + progress) when run by hand.
+    return $true
 }
 
 function Log {
@@ -38,14 +50,14 @@ function get_access_token_graphAPI {
         "Content-Type" = "application/x-www-form-urlencoded"
     }
     $body = @{
-        client_id     = $envVars.CLIENT_ID
-        username      = $envVars.USERNAME
-        password      = $envVars.PASSWORD
-        grant_type    = $envVars.GRANT_TYPE
+        client_id     = $env:CLIENT_ID
+        username      = $env:USERNAME
+        password      = $env:PASSWORD
+        grant_type    = $env:GRANT_TYPE
         scope         = "Mail.Send"
-        client_secret = $envVars.CLIENT_SECRET
+        client_secret = $env:CLIENT_SECRET
     }
-    $tenant_id = $envVars.TENANT_ID
+    $tenant_id = $env:TENANT_ID
     $uri = "https://login.microsoftonline.com/$tenant_id/oauth2/v2.0/token"
     $tokenrequest = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body
     return $tokenrequest.access_token
@@ -130,9 +142,9 @@ try {
     $access_token = $token_request.access_token
     Log "Access token acquired (length=$($access_token.Length))"
 
-    $GeneraliMailBoxID = $envVars.GENERALI_MAILBOX_ID
-    $GeneraliMailBoxChildPosteingangID = $envVars.GENERALI_MAILBOX_POSTEINGANG_ID
-    $GeneraliMailBoxChildGelöschtID = $envVars.GENERALI_MAILBOX_GELOESCHT_ID
+    $GeneraliMailBoxID = $env:GENERALI_MAILBOX_ID
+    $GeneraliMailBoxChildPosteingangID = $env:GENERALI_MAILBOX_POSTEINGANG_ID
+    $GeneraliMailBoxChildGelöschtID = $env:GENERALI_MAILBOX_GELOESCHT_ID
 
     $ListMailBoxMessagesURI = "https://graph.microsoft.com/v1.0/me/mailFolders/$GeneraliMailBoxID/childFolders/$GeneraliMailBoxChildPosteingangID/messages"
     $headers = @{

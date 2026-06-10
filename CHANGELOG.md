@@ -258,6 +258,17 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **Automated test suite build-out.** pytest unit coverage across the app factory, Flask extensions, request-lifecycle hooks, logging, DB helpers (URL builder + `ping_db` / `ping_dbs_parallel`), security/permissions, i18n locale fallback, maintenance banner/lockout, `PrefixMiddleware`, notifications, the Octopus client, process helpers, and the nx CLI (REPL + doctor). Route-level tests covering every view module (auth, core, dashboard, profile, admin, workitems, invoices, notifications, chat). Playwright E2E browser tests across login / 2FA, dashboard, workitems, invoices, chat, profile, admin, and misc pages, with a cross-browser login smoke. pytest-cov wired in with per-module ratcheting coverage thresholds; test layout, fixtures, and run commands documented under `docs/`.
 
 ### Changed
+- **Generali import scripts: `.env` instead of `env.json`, split into `remote/` +
+  `local/`.** `scripts/generali-import/` now loads secrets from a `.env` file via a
+  `load_from_dot_env` helper (process env vars, `$env:*`) instead of
+  `Get-Content env.json | ConvertFrom-Json`. The two scripts were duplicated into
+  `remote/` (the unattended copies the Task Scheduler runs on prdimpexp01,
+  `isLocal` → `$false`) and `local/` (hand-run backup copies, `isLocal` → `$true`
+  for confirmation prompts + progress) — identical otherwise: same
+  `\\prdimpexp01\d$\sydoc\scripts\generali` paths, same `.env`, same SQL servers and
+  mailbox. Replaces the fragile `(Get-Location).Path -like "*bes*"` local-detection.
+  Added `.env.example` + a `README.md`; `env.json` removed. See
+  `scripts/generali-import/README.md`.
 - **Reporting page UI redesign.** The reporting builder, which had only received
   a token re-colour (the `nexora-ui` harmonization left layout/structure alone),
   was restructured for clarity. The toolbar is regrouped: the mode switch

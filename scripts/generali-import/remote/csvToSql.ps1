@@ -1,9 +1,22 @@
-$datafoldergen = "\\prdimpexp01\d$\sydoc\scripts\generali\import"
-$envVars = Get-Content -Raw "\\prdimpexp01\d$\sydoc\scripts\generali\env.json" | ConvertFrom-Json
+$root_location = "\\prdimpexp01\d$\sydoc\scripts\generali"
+$datafoldergen = "$root_location\import"
+
+function load_from_dot_env([string]$Path = '.env') {
+    Get-Content $Path | ForEach-Object {
+        $nvSplit = $_ -split '=', 2
+        $name, $value = $nvSplit
+        if ([string]::IsNullOrWhiteSpace($name) -or $name.Contains('#')) {
+            return
+        }
+        Set-Content env:\$name $value
+    }
+}
+load_from_dot_env "$root_location\.env"
+
 $fullData = Get-ChildItem $datafoldergen -File
 $serverInstances = @('INTSQL01', 'PRDSQL01')
 
-$logDir = "\\prdimpexp01\d$\sydoc\scripts\generali\logs"
+$logDir = "$root_location\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $logFile = Join-Path $logDir "csvToSql_$(Get-Date -Format 'yyyy-MM-dd').log"
 
@@ -13,15 +26,15 @@ function get_access_token_graphAPI {
     }
 
     $body = @{
-        "client_id"     = $envVars.CLIENT_ID
-        "username"      = $envVars.USERNAME
-        "password"      = $envVars.PASSWORD
-        "grant_type"    = $envVars.GRANT_TYPE
+        "client_id"     = $env:CLIENT_ID
+        "username"      = $env:USERNAME
+        "password"      = $env:PASSWORD
+        "grant_type"    = $env:GRANT_TYPE
         "scope"         = "Mail.Send"
-        "client_secret" = $envVars.CLIENT_SECRET
+        "client_secret" = $env:CLIENT_SECRET
     }
 
-    $tenant_id = $envVars.TENANT_ID
+    $tenant_id = $env:TENANT_ID
     $uri = "https://login.microsoftonline.com/$tenant_id/oauth2/v2.0/token"
     $tokenrequest = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body
 
@@ -61,7 +74,8 @@ function send_email_graphAPI($subject) {
 
 
 function isLocal{
-    return (Get-Location).Path -like "*bes*"
+    # remote (unattended) copy: never interactive. The local/ backup copy sets this to $true.
+    return $false
 }
 
 function Log {
@@ -136,12 +150,12 @@ INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUp
 OUTPUT INSERTED.ID AS NewID
 VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
 "@
-    $startResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
+    $startResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $env:DATABASE -TrustServerCertificate -Query $startQuery -ErrorAction Stop
     $importLogID = [int]$startResult.NewID
     Log "Processing '$csvFileNameShort' (rows=$csvRows, import_log_id=$importLogID)"
 
     function Flush_Batch {
-        param($valuesList, $docIdsInBatch, $csvRowsInserted, $csvRows, $envVars)
+        param($valuesList, $docIdsInBatch, $csvRowsInserted, $csvRows)
         $cols = @(
             'CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID',
             'DOC_DateCreated', 'DOC_COUVERTDOCCOUNT', 'DOC_KOMMUNIKATION', 'DOC_INITIAL_USER',
@@ -191,7 +205,7 @@ SELECT
 FROM @actions;
 "@
         $script:lastQuery = $query
-        $batchResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
+        $batchResult = Invoke-Sqlcmd -ServerInstance $serverinstance -Database $env:DATABASE -TrustServerCertificate -Query $query -ErrorAction Stop
         $valuesList.Clear()
         $docIdsInBatch.Clear()
         return @{
@@ -317,7 +331,7 @@ FROM @actions;
             }
 
             if ($valuesList.Count -ge $batchSize) {
-                $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows $envVars
+                $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows
                 $insertedTotal += $stats.Inserted
                 $updatedTotal += $stats.Updated
             }
@@ -325,7 +339,7 @@ FROM @actions;
         }
 
         if ($valuesList.Count -gt 0) {
-            $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows $envVars
+            $stats = Flush_Batch $valuesList $docIdsInBatch $csvRowsInserted $csvRows
             $insertedTotal += $stats.Inserted
             $updatedTotal += $stats.Updated
         }
@@ -344,7 +358,7 @@ UPDATE CSVImportLog SET
 WHERE ID = $importLogID;
 "@
         $script:lastQuery = $endQuery
-        Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
+        Invoke-Sqlcmd -ServerInstance $serverinstance -Database $env:DATABASE -TrustServerCertificate -Query $endQuery -ErrorAction Stop
     }
     catch {
         Log "Insert interrupted due to an Error in '$csvFileNameShort' - see '$logFile' for full details" 'ERROR'
@@ -398,7 +412,7 @@ UPDATE CSVImportLog SET
     [Status] = 'failed'
 WHERE ID = $importLogID;
 "@
-        try { Invoke-Sqlcmd -ServerInstance $serverinstance -Database $envVars.DATABASE -TrustServerCertificate -Query $failQuery } catch {}
+        try { Invoke-Sqlcmd -ServerInstance $serverinstance -Database $env:DATABASE -TrustServerCertificate -Query $failQuery } catch {}
 
         $errorText = ($_ | Out-String).Trim()
         if ($_.ScriptStackTrace) { $errorText += "`n`nStack trace:`n" + $_.ScriptStackTrace }
