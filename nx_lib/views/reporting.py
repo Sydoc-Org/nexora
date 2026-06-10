@@ -49,7 +49,7 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
-from ..reporting.ai import AiError, ask_agentic
+from ..reporting.ai import _AGENT_EXPLAIN_SUFFIX, _AGENT_SYSTEM, AiError, ask_agentic
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
@@ -1252,35 +1252,6 @@ def api_ai_build():
             "error": None if valid else (prior_error or _("Could not build a valid report")),
         }
     )
-
-
-_AGENT_SYSTEM = (
-    "You are a careful analyst for an internal reporting tool. Use the provided "
-    "TOOLS to answer the question, grounded ONLY in the data SOURCES/SCHEMA given "
-    "— never invent fields, tables, or sources. Prefer build_definition for any "
-    "report the builder can express (it validates against the source field "
-    "catalog). If validate_sql is available, draft ONE read-only SELECT and "
-    "validate it before presenting. When a tool returns an error, fix your input "
-    "and try again. Stop once you have a validated artifact and give a one- or "
-    "two-sentence plain-language answer. Do not ask the user questions."
-)
-
-# Appended to the system prompt only when the caller holds reporting.ai.explain_data
-# (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
-# back to the model and compute_stats gives exact aggregates over them, so the model
-# may narrate concrete numbers instead of only drafting an artifact.
-_AGENT_EXPLAIN_SUFFIX = (
-    " You may run validated read-only SELECTs with run_sql and summarise the actual "
-    "rows returned, and use compute_stats for exact aggregates (describe, group_by, "
-    "percentiles, value_counts, correlation, top_n) over rows you fetched. Always "
-    "validate_sql before run_sql. Report only concrete numbers taken from the data "
-    "you fetched — never estimate or fabricate values."
-    " run_sql can ONLY query the SQL-schema targets named below (e.g. statistics, "
-    "octopus). NEVER pass a report SOURCE id as a table name, and NEVER call run_sql "
-    "for a source marked 'builder-only' — answer those with build_definition instead. "
-    "If a builder-only source needs a calculation build_definition cannot express, say "
-    "so plainly rather than retrying run_sql."
-)
 
 
 def _extract_agent_artifacts(tool_trace):

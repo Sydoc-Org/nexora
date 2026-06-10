@@ -87,3 +87,27 @@ def test_system_def_documents_metrics_and_grain():
     assert '"metrics"' in _SYSTEM_DEF
     assert '"grain"' in _SYSTEM_DEF
     assert "grainable" in _SYSTEM_DEF
+
+
+def test_agent_system_prompt_stops_after_repeated_failures():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    # gpt-4o-mini loops forever when build_definition keeps failing;
+    # the prompt must tell it to stop and explain after a bounded number of retries.
+    assert "2 failed" in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_stops_after_successful_tool():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    # After any tool returns ok:true the model must give a final text answer,
+    # not call more tools.
+    assert "ok:true" in _AGENT_SYSTEM or "ok: true" in _AGENT_SYSTEM
+
+
+def test_agent_explain_suffix_stops_after_run_sql():
+    from nx_lib.reporting.ai import _AGENT_EXPLAIN_SUFFIX
+
+    # After run_sql returns data the model must stop looping and write its summary.
+    lower = _AGENT_EXPLAIN_SUFFIX.lower()
+    assert "stop" in lower and "run_sql" in lower
