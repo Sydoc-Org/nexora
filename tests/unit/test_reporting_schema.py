@@ -422,6 +422,86 @@ def test_coerced_label_definition_passes_validation():
     validate_report_definition(d, catalog_fields, filterable, sortable, max_row_limit=50000)
 
 
+# Case-normalization: small models emit "Month"/"EQ"/"ASC" — coerce should lowercase
+_GRAINABLE_CATALOG = [
+    {
+        "field": "import_date",
+        "label": "Import date",
+        "filterable": True,
+        "sortable": True,
+        "grainable": True,
+    },
+    {"field": "doctype", "label": "Doc type", "filterable": True, "sortable": True},
+]
+
+
+def test_coerce_normalizes_grain_case():
+    d = _model_def(columns=[{"field": "import_date", "grain": "Month"}])
+    coerce_definition(d, _GRAINABLE_CATALOG)
+    assert d["columns"][0]["grain"] == "month"
+
+
+def test_coerce_normalizes_grain_case_upper():
+    d = _model_def(columns=[{"field": "import_date", "grain": "YEAR"}])
+    coerce_definition(d, _GRAINABLE_CATALOG)
+    assert d["columns"][0]["grain"] == "year"
+
+
+def test_coerce_leaves_invalid_grain_untouched():
+    d = _model_def(columns=[{"field": "import_date", "grain": "fortnight"}])
+    coerce_definition(d, _GRAINABLE_CATALOG)
+    assert d["columns"][0]["grain"] == "fortnight"  # unknown — left for validator to reject
+
+
+def test_coerce_normalizes_filter_op_case():
+    d = _model_def(filters=[{"field": "ForDate", "op": "EQ", "value": "x"}])
+    coerce_definition(d, CATALOG)
+    assert d["filters"][0]["op"] == "eq"
+
+
+def test_coerce_normalizes_filter_op_case_mixed():
+    d = _model_def(filters=[{"field": "ForDate", "op": "Contains", "value": "x"}])
+    coerce_definition(d, CATALOG)
+    assert d["filters"][0]["op"] == "contains"
+
+
+def test_coerce_normalizes_sort_dir_case():
+    d = _model_def(sort=[{"field": "ForDate", "dir": "DESC"}])
+    coerce_definition(d, CATALOG)
+    assert d["sort"][0]["dir"] == "desc"
+
+
+def test_coerce_normalizes_sort_dir_case_upper():
+    d = _model_def(sort=[{"field": "ForDate", "dir": "ASC"}])
+    coerce_definition(d, CATALOG)
+    assert d["sort"][0]["dir"] == "asc"
+
+
+def test_coerce_leaves_invalid_op_untouched():
+    d = _model_def(filters=[{"field": "ForDate", "op": "LIKE", "value": "x"}])
+    coerce_definition(d, CATALOG)
+    assert d["filters"][0]["op"] == "LIKE"  # unknown — left for validator to reject
+
+
+def test_coerced_mixed_case_definition_passes_validation():
+    # End-to-end: a model using uppercase grain/op/dir becomes runnable after coercion.
+    catalog = _GRAINABLE_CATALOG
+    d = {
+        "source": "docprocessing",
+        "columns": [{"field": "import_date", "grain": "Month"}, {"field": "doctype"}],
+        "filters": [{"field": "doctype", "op": "NE", "value": "unknown"}],
+        "sort": [{"field": "doctype", "dir": "ASC"}],
+    }
+    coerce_definition(d, catalog, default_title="Test", default_row_limit=5000, max_row_limit=50000)
+    catalog_fields = {c["field"] for c in catalog}
+    filterable = {c["field"] for c in catalog if c.get("filterable")}
+    sortable = {c["field"] for c in catalog if c.get("sortable")}
+    grainable = {c["field"] for c in catalog if c.get("grainable")}
+    validate_report_definition(
+        d, catalog_fields, filterable, sortable, max_row_limit=50000, grainable_fields=grainable
+    )
+
+
 # --- date-column grain modifier (Task 5) -------------------------------------
 
 _GRAINABLE = {"date"}  # 'date' is in CATALOG_FIELDS and acts as a date field here

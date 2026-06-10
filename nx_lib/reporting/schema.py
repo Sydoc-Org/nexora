@@ -225,12 +225,27 @@ def coerce_definition(
             col["field"] = key
             if not (isinstance(col.get("header"), str) and col["header"].strip()):
                 col["header"] = label
+        grain = col.get("grain")
+        if isinstance(grain, str) and grain.lower() in GRAINS:
+            col["grain"] = grain.lower()
 
-    for spec in (rd.get("filters") or []) + (rd.get("sort") or []):
+    for spec in rd.get("filters") or []:
         if isinstance(spec, dict):
             key, label = _resolve(spec.get("field"))
             if label is not None:
                 spec["field"] = key
+            op = spec.get("op")
+            if isinstance(op, str) and op.lower() in FILTER_OPS:
+                spec["op"] = op.lower()
+
+    for spec in rd.get("sort") or []:
+        if isinstance(spec, dict):
+            key, label = _resolve(spec.get("field"))
+            if label is not None:
+                spec["field"] = key
+            dir_val = spec.get("dir")
+            if isinstance(dir_val, str) and dir_val.lower() in SORT_DIRS:
+                spec["dir"] = dir_val.lower()
 
     chart = rd.get("chartHint")
     if isinstance(chart, dict):
