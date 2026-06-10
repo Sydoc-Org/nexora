@@ -337,6 +337,18 @@ def _accessible_curated_sources():
     """Curated sources the caller can access, shaped for the AI catalog serializer."""
     perms = set(session.get("permissions", []))
     allowed_processes = _allowed_processes()
+    # Canonical metrics per source so the model can draft metric definitions
+    # (the serializer renders them as a per-source `metrics:` line).
+    metrics_by_source = {}
+    for m in _load_db_metrics().values():
+        metrics_by_source.setdefault(m["source_id"], []).append(
+            {
+                "code": m["code"],
+                "label": m["label"],
+                "aggregation": m["aggregation"],
+                "base_field": m["base_field"],
+            }
+        )
     out = []
     for s in accessible(_effective_sources(), perms):
         if s.get("kind") != "curated":
@@ -361,6 +373,7 @@ def _accessible_curated_sources():
                 "label": s.get("label"),
                 "fields": catalog,
                 "processes": processes,
+                "metrics": metrics_by_source.get(s.get("id"), []),
             }
         )
     return out

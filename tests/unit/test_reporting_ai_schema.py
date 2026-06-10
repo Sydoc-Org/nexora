@@ -221,3 +221,46 @@ def test_serialize_schema_metrics_none_by_default():
     text, truncated = ai_schema.serialize_schema(targets={}, curated=[], char_budget=10000)
     assert "# Canonical metrics" not in text
     assert truncated is False
+
+
+def test_serialize_sources_catalog_marks_grainable_fields():
+    sources = [
+        {
+            "id": "docprocessing",
+            "label": "Doc Processing",
+            "fields": [
+                {
+                    "field": "import_date",
+                    "label": "Import date",
+                    "type": "date",
+                    "filterable": True,
+                    "sortable": True,
+                    "grainable": True,
+                }
+            ],
+            "processes": [],
+        }
+    ]
+    text, _tr = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
+    assert "grainable" in text
+
+
+def test_serialize_sources_catalog_lists_source_metrics():
+    sources = [
+        {
+            "id": "docprocessing",
+            "label": "Doc Processing",
+            "fields": [{"field": "client", "type": "string", "filterable": True, "sortable": True}],
+            "processes": [],
+            "metrics": [
+                {
+                    "code": "doc_count",
+                    "label": "Documents",
+                    "aggregation": "count",
+                    "base_field": None,
+                }
+            ],
+        }
+    ]
+    text, _tr = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
+    assert 'metrics: doc_count "Documents" = count(*)' in text

@@ -76,11 +76,14 @@ def _serialize_curated(curated):
 def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     """Compact, bounded text block of the caller's accessible curated sources.
 
-    `sources`: list of {id, label, fields:[{field,label,type,filterable,sortable}],
-    processes:[ids]}. Each field renders as `key "Human Label":type (flags)` (the
-    label is dropped when it equals the key). Returns (text, truncated_bool); on
-    overflow the text is cut to the budget with a visible marker and the truncation
-    is logged.
+    `sources`: list of {id, label, fields:[{field,label,type,filterable,sortable,
+    grainable}], processes:[ids], metrics:[{code,label,aggregation,base_field}]}.
+    Each field renders as `key "Human Label":type (flags)` (the label is dropped
+    when it equals the key); grainable fields are date fields whose column may
+    carry a grain (day/week/month/quarter/year). A source's canonical metrics
+    render as one `  metrics: code "Label" = agg(col)` line. Returns
+    (text, truncated_bool); on overflow the text is cut to the budget with a
+    visible marker and the truncation is logged.
     """
     lines = []
     for s in sources or []:
@@ -91,6 +94,10 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
                 flags.append("filterable")
             if f.get("sortable"):
                 flags.append("sortable")
+            if f.get("grainable"):
+                # Date field: a column for it may carry a grain
+                # (day/week/month/quarter/year) to bucket it.
+                flags.append("grainable")
             flag_txt = f" ({', '.join(flags)})" if flags else ""
             field = f.get("field")
             label = f.get("label")
@@ -104,6 +111,14 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
         procs = s.get("processes") or []
         if procs:
             lines.append(f"  allowed scope.processes: {', '.join(map(str, procs))}")
+        mets = s.get("metrics") or []
+        if mets:
+            parts = []
+            for m in mets:
+                col = m.get("base_field") or "*"
+                label = f' "{m.get("label")}"' if m.get("label") else ""
+                parts.append(f"{m.get('code')}{label} = {m.get('aggregation')}({col})")
+            lines.append(f"  metrics: {'; '.join(parts)}")
     text = "\n".join(lines)
     if len(text) > char_budget:
         logger.info(
