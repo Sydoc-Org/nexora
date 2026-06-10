@@ -85,6 +85,13 @@
       <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
       <span id="rsAiLoadingText" role="status"></span>
     </div>
+    <div id="rsRefineBar" class="reporting-simple-refine" hidden data-testid="rs-refine-bar">
+      <input id="rsRefineInput" class="reporting-input" data-testid="rs-refine-input"
+             placeholder="{{ _('Refine your question…') }}"
+             aria-label="{{ _('Refine your question…') }}">
+      <button id="rsRefine" class="nx-btn nx-btn--secondary" data-testid="rs-refine">
+        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Refine") }}</button>
+    </div>
     {% endif %}
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>

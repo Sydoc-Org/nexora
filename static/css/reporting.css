@@ -1016,3 +1016,7 @@ body.nx-app {
 @media (prefers-reduced-motion: reduce) {
   .reporting-ai-dots i { animation: none; }
 }
+
+/* Refine bar (Simple pane, F2-T4) */
+.reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
+.reporting-simple-refine .reporting-input { flex: 1; }

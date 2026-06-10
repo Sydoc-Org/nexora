@@ -1,5 +1,7 @@
 """e2e: the Simple/Advanced tabs and the Simple library (Spec 2)."""
 
+import json
+
 from playwright.sync_api import expect
 
 
@@ -263,3 +265,38 @@ def test_saved_token_report_shows_resolved_range(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_refine_sends_prior_context_and_replaces_result(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    seen = []
+
+    def handler(route):
+        payload = route.request.post_data_json
+        seen.append(payload)
+        # First call: return the base stub definition so it gets stored as the
+        # prior; second call: return the refined title so the result updates.
+        if len(seen) == 1:
+            defn = STUB_AI_DEFINITION
+            expl = "stubbed explanation"
+        else:
+            defn = dict(STUB_AI_DEFINITION, title="refined report")
+            expl = "refined expl"
+        body = json.dumps({"definition": defn, "explanation": expl, "valid": True, "error": None})
+        route.fulfill(status=200, content_type="application/json", body=body)
+
+    page.route("**/api/reporting/ai/build", handler)
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+    expect(page.get_by_test_id("rs-refine-bar")).to_be_visible()
+    # The bar is pre-filled with the asked question.
+    expect(page.get_by_test_id("rs-refine-input")).to_have_value("docs by process")
+
+    page.get_by_test_id("rs-refine-input").fill("only acme please")
+    page.get_by_test_id("rs-refine").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("refined report")
+    assert seen[0].get("priorQuestion") is None
+    assert seen[1]["priorQuestion"] == "docs by process"
+    assert seen[1]["priorDefinition"]["title"] == "stub ai report"
+    assert seen[1]["question"] == "only acme please"
