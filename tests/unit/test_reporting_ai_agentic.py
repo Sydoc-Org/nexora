@@ -216,6 +216,12 @@ def test_anthropic_tool_use_parsed():
     assert turn.tokens_in == 3 and turn.tokens_out == 9
 
 
+def test_agent_system_prompt_grounds_relative_dates():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "today's date" in _AGENT_SYSTEM.lower()
+
+
 def test_anthropic_translates_prior_tool_results():
     captured = {}
 

@@ -401,6 +401,8 @@ _AGENT_SYSTEM = (
     "and write your final answer explaining what you could and could not do. "
     "Once any tool returns ok:true, stop calling tools immediately and give a "
     "one- or two-sentence plain-language answer. Do not ask the user questions."
+    " The grounding states today's date; resolve relative time expressions"
+    ' ("last month", "this year") against it, never against your training data.'
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data

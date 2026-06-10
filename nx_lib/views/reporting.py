@@ -1367,7 +1367,10 @@ def api_ai_agent():
         run_sql=run_sql_bound, validate_definition=_validate_definition_for_user
     )
 
-    grounding = f"Available report sources and fields:\n{_ai_catalog_text()}"
+    grounding = (
+        f"Today's date is {datetime.date.today().isoformat()}.\n\n"
+        f"Available report sources and fields:\n{_ai_catalog_text()}"
+    )
     if has_sql or explain:
         grounding += f"\n\nSQL schema (for validate_sql / run_sql):\n{_ai_schema_text()}"
     if active_source:

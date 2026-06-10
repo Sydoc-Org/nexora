@@ -355,6 +355,25 @@ def _agent_patches(perm=True, sql_perm=True, explain_perm=False, run_perm=True):
     ]
 
 
+def test_ai_agent_grounding_states_todays_date(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        loop = es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        user_client.post("/api/reporting/ai/agent", json={"question": "docs last month"})
+    initial = loop.call_args.args[0]
+    assert initial.startswith(f"Today's date is {datetime.date.today().isoformat()}")
+
+
 def test_ai_agent_requires_use_permission(user_client):
     with patch("nx_lib.views.reporting.has_permission", return_value=False):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "hi"})
