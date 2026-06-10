@@ -652,3 +652,128 @@ def test_sort_on_unselected_metric_code_rejected():
             max_row_limit=50000,
             metric_codes={"doc_count", "other_metric"},
         )
+
+
+# ---------------------------------------------------------------------------
+# relative-date token filters (F1)
+# ---------------------------------------------------------------------------
+
+DATE_FIELDS = {"date"}
+
+
+def _token_def(value, field="date", op="between"):
+    d = _valid_def()
+    d["filters"] = [{"field": field, "op": op, "value": value}]
+    return d
+
+
+def test_token_filter_accepted_on_date_field():
+    validate_report_definition(
+        _token_def({"token": "last_month"}),
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        date_fields=DATE_FIELDS,
+    )
+    validate_report_definition(
+        _token_def({"token": "last_n_days", "n": 30}),
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        date_fields=DATE_FIELDS,
+    )
+
+
+def test_token_filter_rejected_on_non_date_field():
+    with pytest.raises(ReportDefinitionError, match="relative dates"):
+        validate_report_definition(
+            _token_def({"token": "last_month"}, field="status"),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            date_fields=DATE_FIELDS,
+        )
+
+
+def test_token_filter_rejected_without_date_fields_param():
+    # Default date_fields is empty: callers must opt fields in explicitly.
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            _token_def({"token": "last_month"}),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+        )
+
+
+def test_token_filter_rejected_with_non_between_op():
+    with pytest.raises(ReportDefinitionError, match="between"):
+        validate_report_definition(
+            _token_def({"token": "last_month"}, op="eq"),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            date_fields=DATE_FIELDS,
+        )
+
+
+def test_unknown_token_rejected_with_vocabulary_in_message():
+    with pytest.raises(ReportDefinitionError, match="last_fortnight"):
+        validate_report_definition(
+            _token_def({"token": "last_fortnight"}),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            date_fields=DATE_FIELDS,
+        )
+
+
+def test_coerce_normalizes_token_case_and_numeric_n():
+    catalog = [{"field": "date", "label": "Date"}]
+    rd = {
+        "filters": [
+            {"field": "date", "op": "between", "value": {"token": "Last_Month"}},
+            {"field": "date", "op": "between", "value": {"token": "last_n_days", "n": "30"}},
+        ]
+    }
+    coerce_definition(rd, catalog)
+    assert rd["filters"][0]["value"]["token"] == "last_month"
+    assert rd["filters"][1]["value"]["n"] == 30
+
+
+def test_coerce_leaves_unknown_token_untouched():
+    catalog = [{"field": "date", "label": "Date"}]
+    rd = {
+        "filters": [
+            {"field": "date", "op": "between", "value": {"token": "NOPE", "n": "5"}},
+        ]
+    }
+    coerce_definition(rd, catalog)
+    assert rd["filters"][0]["value"]["token"] == "NOPE"  # not lowercased
+    assert rd["filters"][0]["value"]["n"] == "5"  # not cast to int
+
+
+@pytest.mark.parametrize(
+    "bad_value",
+    [
+        {"token": "last_n_days"},  # n missing
+        {"token": "last_month", "n": 3},  # stray n
+        {"token": "last_n_days", "n": 0},  # n out of range
+    ],
+)
+def test_malformed_token_structure_rejected(bad_value):
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            _token_def(bad_value),
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            date_fields=DATE_FIELDS,
+        )

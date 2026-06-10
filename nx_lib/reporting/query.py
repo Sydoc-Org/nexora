@@ -124,6 +124,10 @@ def _filter_clause(col, op, value, params):
     """Append a single filter clause for `col`. Returns the SQL fragment."""
     if op not in _OP_SQL and op not in _SPECIAL_OPS:
         raise QueryBuildError(f"unsupported filter op: {op!r}")
+    if isinstance(value, dict):
+        # A relative-date token reached the SQL layer: resolve_definition_tokens
+        # (nx_lib.reporting.tokens) must run before query building.
+        raise QueryBuildError(f"unresolved relative-date value for {col}")
     if op in ("is_null", "is_not_null"):
         return f"{col} {_OP_SQL[op]}"
     if op in ("in", "not_in"):

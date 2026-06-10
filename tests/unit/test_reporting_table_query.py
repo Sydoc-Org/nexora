@@ -132,3 +132,11 @@ def test_zero_dim_without_metrics_still_rejected_generic():
     rd = _rd(columns=[], sort=[])
     with pytest.raises(TableQueryError):
         build_generic_query(rd, "Db.dbo.V", _COLUMNS, row_cap=100)
+
+
+def test_build_conditions_rejects_unresolved_token_value():
+    from nx_lib.reporting.table_query import _build_conditions
+
+    rd = {"filters": [{"field": "client", "op": "between", "value": {"token": "last_month"}}]}
+    with pytest.raises(TableQueryError, match="unresolved"):
+        _build_conditions(rd, {"client": {"field": "client"}})

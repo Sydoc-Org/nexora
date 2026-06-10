@@ -148,6 +148,13 @@ def test_sort_invalid_direction_raises():
         build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
 
 
+def test_filter_clause_rejects_unresolved_token_value():
+    from nx_lib.reporting.query import _filter_clause
+
+    with pytest.raises(QueryBuildError, match="unresolved"):
+        _filter_clause("[d]", "between", {"token": "last_month"}, [])
+
+
 def test_sort_field_not_in_projection_raises():
     # 'status' is not among the selected columns (doctype, pages)
     rd = _rd(sort=[{"field": "status", "dir": "asc"}])

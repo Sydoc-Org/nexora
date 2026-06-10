@@ -70,6 +70,8 @@ def _build_conditions(rd, by_field):
             raise TableQueryError(f"unknown filter field: {field!r}")
         col = _quote_ident(field)
         op, val = f.get("op"), f.get("value")
+        if isinstance(val, dict):
+            raise TableQueryError(f"unresolved relative-date value for {field!r}")
         if op in _OP_SYMBOLS:
             conds.append(f"{col} {_OP_SYMBOLS[op]} ?")
             params.append(val)

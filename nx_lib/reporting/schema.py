@@ -11,6 +11,8 @@ the resulting field sets in; this function does not validate that `source`
 names a known source.
 """
 
+from .tokens import RELATIVE_DATE_TOKENS, validate_token_value
+
 REPORT_SCHEMA_VERSION = 1
 
 SUPPORTED_VISUALIZATIONS = {"table"}
@@ -52,6 +54,7 @@ def validate_report_definition(
     max_row_limit,
     metric_codes=frozenset(),
     grainable_fields=frozenset(),
+    date_fields=frozenset(),
 ):
     """Validate `rd` (a dict) against the v1 schema. Raises ReportDefinitionError.
 
@@ -118,6 +121,21 @@ def validate_report_definition(
             value = f.get("value")
             if value is None:
                 raise ReportDefinitionError(f"filter op {op!r} requires a value")
+            if isinstance(value, dict):
+                # Relative-date token: resolved to absolute dates at run time
+                # (nx_lib.reporting.tokens). Only date fields, only 'between'.
+                if op != "between":
+                    raise ReportDefinitionError(
+                        f"a relative-date value requires op 'between', got {op!r}"
+                    )
+                if f.get("field") not in date_fields:
+                    raise ReportDefinitionError(
+                        f"field does not accept relative dates: {f.get('field')!r}"
+                    )
+                err = validate_token_value(value)
+                if err:
+                    raise ReportDefinitionError(err)
+                continue
             if op == "between" and (not isinstance(value, list) or len(value) != 2):
                 raise ReportDefinitionError("between value must be a 2-element list")
             if op in ("in", "not_in") and not isinstance(value, list):
@@ -237,6 +255,14 @@ def coerce_definition(
             op = spec.get("op")
             if isinstance(op, str) and op.lower() in FILTER_OPS:
                 spec["op"] = op.lower()
+            value = spec.get("value")
+            if isinstance(value, dict) and isinstance(value.get("token"), str):
+                tok = value["token"].strip().lower()
+                if tok in RELATIVE_DATE_TOKENS:
+                    value["token"] = tok
+                    n = value.get("n")
+                    if isinstance(n, str) and n.strip().isdigit():
+                        value["n"] = int(n.strip())
 
     for spec in rd.get("sort") or []:
         if isinstance(spec, dict):
