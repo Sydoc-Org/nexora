@@ -1,5 +1,182 @@
 <script>
-// Simple pane behavior (Spec 2) — filled task by task. Self-contained IIFE.
+// Simple pane behavior (Spec 2). Self-contained IIFE: talks only to the
+// existing REST endpoints plus window.Reporting / window.ReportingTabs.
+// Never touches the Advanced builder's DOM or ReportingViz (the builder's
+// chart singleton); the result view owns a private Chart.js instance.
 (function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var EXPORT_ALLOWED = !!document.getElementById('rsExport');
+
+  // Translated strings (tojson-escaped — several translations carry quotes).
+  var I18N = {
+    today: {{ _("today")|tojson }},
+    yesterday: {{ _("yesterday")|tojson }},
+    daysAgo: {{ _("days ago")|tojson }},
+    weekAgo: {{ _("week ago")|tojson }},
+    weeksAgo: {{ _("weeks ago")|tojson }},
+    nothingHere: {{ _("Nothing here yet.")|tojson }},
+    couldNotLoad: {{ _("Could not load this report.")|tojson }},
+    couldNotRun: {{ _("Could not run this report.")|tojson }},
+    couldNotSave: {{ _("Could not save.")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }},
+    noAccess: {{ _("You don't have access to the data behind this report.")|tojson }},
+    outdated: {{ _("This report is outdated — open it in Advanced to fix it.")|tojson }},
+    noData: {{ _("No data for this report")|tojson }},
+    savedToMine: {{ _("Saved to My reports.")|tojson }},
+    showTable: {{ _("Show table")|tojson }},
+    hideTable: {{ _("Hide table")|tojson }},
+    overTime: {{ _("Over time")|tojson }},
+    justTotal: {{ _("None — just the total")|tojson }},
+    noMeasures: {{ _("No measures are configured yet — ask an administrator to add metrics.")|tojson }},
+    noDateField: {{ _("This source has no date field — showing all data.")|tojson }},
+    per: {{ _("per")|tojson }},
+    by: {{ _("by")|tojson }},
+    thisMonth: {{ _("This month")|tojson }},
+    lastMonth: {{ _("Last month")|tojson }},
+    last3Months: {{ _("Last 3 months")|tojson }},
+    thisYear: {{ _("This year")|tojson }},
+    lastYear: {{ _("Last year")|tojson }},
+    allTime: {{ _("All time")|tojson }},
+    custom: {{ _("Custom")|tojson }},
+    aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
+    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }}
+  };
+
+  var state = {
+    reports: [],            // /api/reporting/reports rows (kind!=='sql')
+    sources: null,          // /api/reporting/sources cache
+    metricsBySource: null,  // /api/reporting/metrics cache
+    loaded: false,
+    view: 'library',        // library | wizard | result
+    current: null,          // { def, name, reportId, owned, canEdit, fromWizard }
+    chart: null,            // private Chart.js instance
+    wiz: null               // wizard state
+  };
+
+  function el(id) { return document.getElementById(id); }
+
+  async function api(url, opts) {
+    opts = opts || {};
+    var res = await fetch(url, Object.assign(
+      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { ok: res.ok, status: res.status, data: data };
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function relTime(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return I18N.today;
+    if (days === 1) return I18N.yesterday;
+    if (days < 7) return days + ' ' + I18N.daysAgo;
+    var w = Math.floor(days / 7);
+    return w + ' ' + (w === 1 ? I18N.weekAgo : I18N.weeksAgo);
+  }
+
+  function setView(view) {
+    state.view = view;
+    el('rsLibrary').hidden = view !== 'library';
+    el('rsSearch').hidden = view !== 'library';
+    el('rsNewReport').hidden = view !== 'library';
+    var aiBar = el('rsAiBar');
+    if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
+    el('rsWizard').hidden = view !== 'wizard';
+    el('rsResult').hidden = view !== 'result';
+    if (view !== 'result') destroyChart();
+  }
+
+  function destroyChart() {
+    if (state.chart) { state.chart.destroy(); state.chart = null; }
+  }
+
+  // ---------- Library ----------
+  function card(r) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-card';
+    b.setAttribute('data-testid', 'rs-card');
+    b.innerHTML = '<p class="rs-card-name">' + esc(r.name) + '</p>' +
+      '<p class="rs-card-meta">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</p>';
+    b.addEventListener('click', function () { openReport(r); });
+    return b;
+  }
+
+  function renderLibrary() {
+    var q = (el('rsSearch').value || '').toLowerCase();
+    var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
+    Object.keys(groups).forEach(function (k) { groups[k].innerHTML = ''; });
+    state.reports.forEach(function (r) {
+      if (q && r.name.toLowerCase().indexOf(q) === -1) return;
+      var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
+      groups[g].appendChild(card(r));
+    });
+    Object.keys(groups).forEach(function (k) {
+      if (!groups[k].children.length) {
+        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.nothingHere) + '</p>';
+      }
+    });
+  }
+
+  async function loadLibrary() {
+    var res = await api('/api/reporting/reports');
+    if (!res.ok || !Array.isArray(res.data)) return;
+    // Viewers can't run sql-kind reports (/api/reporting/run rejects them);
+    // they stay fully usable in Advanced.
+    state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
+    renderLibrary();
+  }
+
+  async function openReport(r) {
+    var res = await api('/api/reporting/reports/' + r.id);
+    if (!res.ok || !res.data || !res.data.definition) {
+      showResultError(I18N.couldNotLoad); return;
+    }
+    state.current = {
+      def: res.data.definition, name: res.data.name, reportId: r.id,
+      owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false
+    };
+    runCurrent();
+  }
+
+  async function loadMetricsCatalog() {
+    var res = await api('/api/reporting/metrics');
+    if (res.ok && res.data) state.metricsBySource = res.data;
+  }
+
+  // ---------- Result view (Task 11) ----------
+  function showResultError(msg) {
+    setView('result');
+    el('rsError').textContent = msg;
+    el('rsError').hidden = false;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+  }
+
+  function runCurrent() { /* implemented in the result-view task */ }
+
+  // ---------- init ----------
+  function initOnce() {
+    if (state.loaded) return;
+    state.loaded = true;
+    loadMetricsCatalog();
+    loadLibrary();
+  }
+
+  el('rsSearch').addEventListener('input', renderLibrary);
+  el('rsBack').addEventListener('click', function () { setView('library'); loadLibrary(); });
+
+  document.addEventListener('rp:tabshown', function (e) {
+    if (e.detail.tab === 'simple') initOnce();
+  });
+  if (window.ReportingTabs && window.ReportingTabs.current() === 'simple') initOnce();
 }());
 </script>
