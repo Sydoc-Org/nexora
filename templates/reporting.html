@@ -13,16 +13,22 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   <script>
-    // Enable the no-FOUC entrance only when the user hasn't asked for reduced
-    // motion. The .rp-anim class pre-hides the entrance columns; the deferred
-    // animation layer (js/_reporting_anim_js.html) reveals + animates them.
+    // Resolve the initial tab synchronously (?tab= > localStorage > 'simple')
+    // and enable the no-FOUC builder entrance only when landing on Advanced
+    // with motion allowed (the .rp-anim class pre-hides the builder columns;
+    // js/_reporting_anim_js.html reveals + animates them). Simple uses the
+    // design system's .nx-rise entrance instead.
     (function () {
       try {
-        if (!window.matchMedia ||
-            !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        var tab = new URLSearchParams(window.location.search).get('tab')
+          || localStorage.getItem('nx.reporting.tab') || 'simple';
+        window.__rpInitialTab = tab === 'advanced' ? 'advanced' : 'simple';
+        if (window.__rpInitialTab === 'advanced' &&
+            (!window.matchMedia ||
+             !window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
           document.documentElement.classList.add('rp-anim');
         }
-      } catch (e) { /* leave content visible on any failure */ }
+      } catch (e) { window.__rpInitialTab = 'simple'; }
     }());
   </script>
 </head>
@@ -51,6 +57,20 @@
     {% endif %}
   </div>
 
+  <div class="nx-tabs reporting-tabs" role="tablist" aria-label="{{ _('Reporting view') }}" data-testid="reporting-tabs">
+    <button id="rpTabSimple" class="nx-tab" role="tab" aria-selected="false"
+            aria-controls="rpPaneSimple" data-testid="reporting-tab-simple">
+      <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("Simple") }}</button>
+    <button id="rpTabAdvanced" class="nx-tab" role="tab" aria-selected="false"
+            aria-controls="rpPaneAdvanced" data-testid="reporting-tab-advanced">
+      <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Advanced") }}</button>
+  </div>
+
+  <div id="rpPaneSimple" role="tabpanel" aria-labelledby="rpTabSimple" hidden>
+    {% include '_reporting_simple.html' %}
+  </div>
+
+  <div id="rpPaneAdvanced" role="tabpanel" aria-labelledby="rpTabAdvanced" hidden>
   <main class="reporting-main" data-testid="reporting-page">
     <aside class="reporting-fields" data-testid="reporting-field-panel">
       <label class="reporting-label">{{ _("Source") }}</label>
@@ -200,6 +220,7 @@
         <input id="rpSubtitle" class="reporting-input" placeholder="{{ _('Subtitle') }}"></div>
     </aside>
   </main>
+  </div>
 
   <div id="rpSqlAck" class="reporting-modal" hidden data-testid="reporting-sql-ack">
     <div class="reporting-modal-box">
@@ -270,6 +291,9 @@
   {% if ai_enabled %}
   {% include 'js/_reporting_ai_js.html' %}
   {% endif %}
+  {# Tabs controller LAST: its initial show() dispatches rp:tabshown, which the
+     Simple pane's IIFE (included inside _reporting_simple.html) listens for. #}
+  {% include 'js/_reporting_tabs_js.html' %}
 </body>
 
 </html>

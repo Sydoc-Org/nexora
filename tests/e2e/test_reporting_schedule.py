@@ -11,7 +11,7 @@ from playwright.sync_api import expect
 
 def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
-    page.goto(f"{base}/reporting")
+    page.goto(f"{base}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
 
 
@@ -36,7 +36,7 @@ def test_schedule_modal_adds_schedule(nexora_server, page):
     assert created.ok, created.text()
     rid = created.json()["id"]
 
-    page.goto(f"{nexora_server}/reporting")
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
     page.locator(f'[data-testid="reporting-saved-reports"] option[value="{rid}"]').wait_for(
         state="attached"

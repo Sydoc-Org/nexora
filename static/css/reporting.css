@@ -962,3 +962,6 @@ body.nx-app {
   .reporting-actions { margin-left: 0; }
   .reporting-title-input { flex-basis: 100%; order: -1; }
 }
+
+/* --- Simple/Advanced tabs (Spec 2) --- */
+.reporting-tabs { margin: 0 24px 12px; }

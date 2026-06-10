@@ -11,7 +11,7 @@ from playwright.sync_api import expect
 
 def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
-    page.goto(f"{base}/reporting")
+    page.goto(f"{base}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
 
 
@@ -45,7 +45,7 @@ def test_save_overwrites_loaded_report_in_place(nexora_server, page):
     assert ack.ok, ack.text()
 
     # Reload, select and load the report through the UI.
-    page.goto(f"{nexora_server}/reporting")
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
     page.locator(f'[data-testid="reporting-saved-reports"] option[value="{rid}"]').wait_for(
         state="attached"

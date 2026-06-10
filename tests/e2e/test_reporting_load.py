@@ -12,7 +12,7 @@ from playwright.sync_api import expect
 
 def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
-    page.goto(f"{base}/reporting")
+    page.goto(f"{base}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
 
 
@@ -43,7 +43,7 @@ def test_saved_report_load_round_trip(nexora_server, page):
     assert resp.ok, resp.text()
 
     # Reload so the dropdown repopulates, then load the report through the UI.
-    page.goto(f"{nexora_server}/reporting")
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
     option = page.locator(
         '[data-testid="reporting-saved-reports"] option', has_text="E2E Load Report"

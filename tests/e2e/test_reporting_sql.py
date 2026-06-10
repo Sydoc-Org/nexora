@@ -15,7 +15,7 @@ from nx_lib.db import engine_nexora_db
 
 def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
-    page.goto(f"{base}/reporting")
+    page.goto(f"{base}/reporting?tab=advanced")
     page.wait_for_load_state("domcontentloaded")
 
 
