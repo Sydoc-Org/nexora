@@ -965,3 +965,34 @@ body.nx-app {
 
 /* --- Simple/Advanced tabs (Spec 2) --- */
 .reporting-tabs { margin: 0 24px 12px; }
+
+/* --- Simple pane (Spec 2) --- */
+.reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }
+.reporting-simple-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.reporting-simple-aibar { display: flex; gap: 8px; flex: 1; min-width: 260px; }
+.reporting-simple-aibar .reporting-input { flex: 1; }
+.reporting-simple-search { max-width: 220px; margin-left: auto; }
+.reporting-simple-h { font-size: 13px; font-weight: 600; color: #57606a; text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 10px; }
+.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.reporting-simple-card { text-align: left; cursor: pointer; border: 1px solid var(--nx-border, #d0d7de); border-radius: 8px; padding: 12px 14px; background: #fff; font-family: inherit; }
+.reporting-simple-card:hover { border-color: var(--nx-accent, #4f46e5); box-shadow: 0 2px 8px rgba(79,70,229,.12); }
+.reporting-simple-card .rs-card-name { font-weight: 600; font-size: 14px; margin: 0 0 4px; }
+.reporting-simple-card .rs-card-meta { font-size: 12px; color: #57606a; margin: 0; }
+.reporting-simple-empty { font-size: 13px; color: #57606a; padding: 8px 0 4px; }
+.reporting-simple-step { margin: 18px 0; }
+.reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.reporting-simple-choice { border: 1px solid var(--nx-border, #d0d7de); border-radius: 999px; background: #fff; padding: 7px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.reporting-simple-choice.is-selected { border-color: var(--nx-accent, #4f46e5); background: #eef2ff; font-weight: 600; }
+.reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: #555; }
+.reporting-simple-scope { margin-top: 10px; font-size: 13px; }
+.reporting-simple-scope label { display: block; padding: 2px 0; }
+.reporting-simple-runbtn { margin-top: 14px; }
+.reporting-simple-resultbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.reporting-simple-rtitle { margin: 0; font-size: 16px; flex: 1; }
+.reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
+.reporting-simple-cards { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
+.reporting-simple-cards:has(#rsChartCard[hidden]) { grid-template-columns: 260px; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; }
+.reporting-simple-chartcard canvas { max-height: 320px; }
+.reporting-simple-table { margin-top: 12px; }
+@media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }

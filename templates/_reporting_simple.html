@@ -1,2 +1,101 @@
-{# Simple pane (Spec 2) — stub; filled by the Simple-pane task. #}
-<section class="reporting-simple nx-rise" data-testid="reporting-simple"></section>
+{# ============================================================
+   Simple pane (Spec 2) — report library + guided wizard + ask-AI
+   helper, card-based results. Self-contained: behavior lives in
+   js/_reporting_simple_js.html (included at the bottom) and talks
+   only to the existing REST endpoints + window.Reporting /
+   window.ReportingTabs. Advanced (the full builder) is untouched.
+   ============================================================ #}
+<section class="reporting-simple nx-rise" data-testid="reporting-simple">
+  <div class="reporting-simple-top">
+    <button id="rsNewReport" class="nx-btn nx-btn--primary" data-testid="rs-new-report">
+      <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report") }}</button>
+    {% if ai_enabled %}
+    <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
+      <input id="rsAiPrompt" class="reporting-input"
+             placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
+             data-testid="rs-ai-prompt">
+      <button id="rsAiAsk" class="nx-btn nx-btn--secondary" data-testid="rs-ai-ask">
+        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Ask AI") }}</button>
+    </div>
+    {% endif %}
+    <input id="rsSearch" class="reporting-input reporting-simple-search"
+           placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
+  </div>
+
+  <div id="rsLibrary" data-testid="rs-library">
+    <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
+    <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
+    <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
+    <div id="rsGroupMine" class="reporting-simple-grid" data-testid="rs-group-mine"></div>
+    <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
+    <div id="rsGroupDirect" class="reporting-simple-grid" data-testid="rs-group-direct"></div>
+  </div>
+
+  <div id="rsWizard" class="reporting-simple-wizard" hidden data-testid="rs-wizard">
+    <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+    <div class="reporting-simple-step" id="rsStepMeasure">
+      <h3 class="reporting-simple-h">1. {{ _("What do you want to measure?") }}</h3>
+      <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
+    </div>
+    <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
+      <h3 class="reporting-simple-h">2. {{ _("Break it down by…") }}</h3>
+      <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
+      <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
+        <select id="rsGrain" class="reporting-input">
+          <option value="day">{{ _("Day") }}</option>
+          <option value="week">{{ _("Week") }}</option>
+          <option value="month" selected>{{ _("Month") }}</option>
+          <option value="quarter">{{ _("Quarter") }}</option>
+          <option value="year">{{ _("Year") }}</option>
+        </select></label>
+      <details id="rsScopeWrap" class="reporting-simple-scope" hidden>
+        <summary>{{ _("Limit to specific processes") }}</summary>
+        <div id="rsScopeList" data-testid="rs-scope-list"></div>
+      </details>
+    </div>
+    <div class="reporting-simple-step" id="rsStepTime" hidden>
+      <h3 class="reporting-simple-h">3. {{ _("Time range") }}</h3>
+      <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
+      <div id="rsTimeCustom" hidden>
+        <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
+      </div>
+      <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
+        <select id="rsTimeField" class="reporting-input"></select></label>
+      <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
+              data-testid="rs-wizard-run">{{ _("Show result") }}</button>
+    </div>
+  </div>
+
+  <div id="rsResult" class="reporting-simple-result" hidden data-testid="rs-result">
+    <div class="reporting-simple-resultbar">
+      <button id="rsBack" class="reporting-link" data-testid="rs-back">&larr; {{ _("Back") }}</button>
+      <h3 id="rsResultTitle" class="reporting-simple-rtitle"></h3>
+      <span class="reporting-simple-ractions">
+        <input id="rsSaveName" class="reporting-input" hidden data-testid="rs-save-name"
+               aria-label="{{ _('Report name') }}">
+        <button id="rsSave" class="reporting-btn" data-testid="rs-save">{{ _("Save") }}</button>
+        <button id="rsOpenAdvanced" class="reporting-btn" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
+        {% if has_permission('reporting.export') %}
+        <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
+        {% endif %}
+      </span>
+    </div>
+    <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
+    <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>
+    <div class="reporting-simple-cards">
+      <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
+        <div>
+          <p class="nx-stat__label" id="rsStatLabel"></p>
+          <div class="nx-stat__value" id="rsStatValue"></div>
+        </div>
+        <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
+      </div>
+      <div class="nx-card nx-card--pad reporting-simple-chartcard" id="rsChartCard" hidden data-testid="rs-chart-card">
+        <canvas id="rsChartCanvas"></canvas>
+      </div>
+    </div>
+    <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
+    <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+  </div>
+</section>
+{% include 'js/_reporting_simple_js.html' %}
