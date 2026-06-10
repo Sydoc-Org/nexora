@@ -1187,6 +1187,7 @@ def api_ai_build():
                 api_version=cfg.get("api_version", "2024-10-21"),
                 url=cfg.get("url"),
                 prior_error=prior_error,
+                today=datetime.date.today().isoformat(),
             )
         except AiError as e:
             current_app.logger.warning(f"/api/reporting/ai/build config error: {e}")

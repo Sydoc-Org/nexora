@@ -249,8 +249,15 @@ def _parse_json_object(text):
     return None
 
 
-def _definition_user_prompt(question, catalog_text, prior_error):
-    base = (
+def _definition_user_prompt(question, catalog_text, prior_error, today=None):
+    base = ""
+    if today:
+        base += (
+            f"Today's date is {today}. Resolve relative time expressions "
+            '("last month", "this year", "yesterday") against this date, '
+            "never against your training data.\n\n"
+        )
+    base += (
         f"Available sources and fields:\n{catalog_text}\n\n"
         f"Question: {question}\n\n"
         'Return STRICT JSON {"definition": {...}, "explanation": ...}.'
@@ -275,6 +282,7 @@ def ask_definition(
     api_version="2024-10-21",
     url=None,
     prior_error=None,
+    today=None,
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
@@ -287,7 +295,7 @@ def ask_definition(
     """
     text, tin, tout = _dispatch(
         _SYSTEM_DEF,
-        _definition_user_prompt(question, catalog_text, prior_error),
+        _definition_user_prompt(question, catalog_text, prior_error, today),
         provider=provider,
         model=model,
         api_key=api_key,

@@ -111,3 +111,42 @@ def test_agent_explain_suffix_stops_after_run_sql():
     # After run_sql returns data the model must stop looping and write its summary.
     lower = _AGENT_EXPLAIN_SUFFIX.lower()
     assert "stop" in lower and "run_sql" in lower
+
+
+def test_ask_definition_includes_today_in_prompt():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["user"] = body["messages"][0]["content"]
+        return _anthropic_body({"definition": {}, "explanation": ""})
+
+    ai.ask_definition(
+        "docs last month",
+        "CATALOG",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        today="2026-06-10",
+        transport=transport,
+    )
+    assert "Today's date is 2026-06-10" in captured["user"]
+    # The date line precedes the catalog so the model reads it first.
+    assert captured["user"].index("Today's date") < captured["user"].index("CATALOG")
+
+
+def test_ask_definition_omits_date_line_without_today():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["user"] = body["messages"][0]["content"]
+        return _anthropic_body({"definition": {}, "explanation": ""})
+
+    ai.ask_definition(
+        "q",
+        "CATALOG",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=transport,
+    )
+    assert "Today's date" not in captured["user"]

@@ -1,5 +1,6 @@
 """Integration tests for POST /api/reporting/ai/ask (perm gating + happy path)."""
 
+import datetime
 from contextlib import ExitStack
 from unittest.mock import patch
 
@@ -769,6 +770,36 @@ def test_validate_definition_accepts_metrics_and_grain_draft():
         ok, err = _validate_definition_for_user(defn)
 
     assert (ok, err) == (True, None)
+
+
+def test_ai_build_passes_today_to_drafter(user_client):
+    stub = AiDefinitionResult(
+        definition=None,
+        explanation="",
+        model="m",
+        provider="anthropic",
+        tokens_in=1,
+        tokens_out=1,
+    )
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch(
+            "nx_lib.views.reporting._validate_definition_for_user",
+            return_value=(False, "no def"),
+        ),
+        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "docs last month"})
+    assert resp.status_code == 200
+    assert drafter.call_args.kwargs["today"] == datetime.date.today().isoformat()
 
 
 def test_validate_definition_zero_columns_with_metric_accepted():
