@@ -1229,10 +1229,15 @@ def api_ai_build():
         not isinstance(prior_question, str) or len(prior_question) > 2000
     ):
         return jsonify({"error": _("Invalid refine context")}), 400
-    if prior_definition is not None and (
-        not isinstance(prior_definition, dict) or len(json.dumps(prior_definition)) > 20000
-    ):
-        return jsonify({"error": _("Invalid refine context")}), 400
+    if prior_definition is not None:
+        if not isinstance(prior_definition, dict):
+            return jsonify({"error": _("Invalid refine context")}), 400
+        try:
+            _pd_json = json.dumps(prior_definition)
+        except (RecursionError, ValueError):
+            return jsonify({"error": _("Invalid refine context")}), 400
+        if len(_pd_json) > 20000:
+            return jsonify({"error": _("Invalid refine context")}), 400
 
     catalog_text = _ai_catalog_text()
     start = time.monotonic()
