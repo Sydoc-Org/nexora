@@ -163,3 +163,10 @@ def test_ask_definition_omits_date_line_without_today():
         transport=transport,
     )
     assert "Today's date" not in captured["user"]
+
+
+def test_system_def_teaches_relative_date_tokens():
+    s = ai._SYSTEM_DEF
+    assert '{"token": "last_month"}' in s
+    assert "last_n_days" in s
+    assert "resolved against the CURRENT date" in s

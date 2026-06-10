@@ -270,3 +270,11 @@ def test_anthropic_translates_prior_tool_results():
         for m in msgs
         if m["role"] == "user"
     )
+
+
+def test_agent_system_prompt_teaches_relative_date_tokens():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    s = _AGENT_SYSTEM
+    assert '"token"' in s
+    assert "last_n_days" in s

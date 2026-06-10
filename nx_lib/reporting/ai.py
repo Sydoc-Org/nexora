@@ -231,6 +231,15 @@ _SYSTEM_DEF = (
     " several ids match, include ALL of them in scope.processes; if none"
     " clearly match, leave scope.processes empty (= all allowed) rather than"
     " guessing one."
+    ' For RELATIVE time ranges ("last month", "this year", "letzte Woche"),'
+    " set the date filter value to a relative-date token object instead of"
+    ' literal dates: {"field": "<date key>", "op": "between", "value":'
+    ' {"token": "last_month"}}. Valid tokens: today, yesterday, this_week,'
+    " last_week, this_month, last_month, this_year, last_year, last_3_months,"
+    ' and {"token": "last_n_days", "n": <1-366>}. Token values are resolved'
+    " against the CURRENT date on every run, so a saved report stays fresh."
+    " Only grainable/date-typed fields accept tokens. For EXPLICIT dates"
+    ' ("May 2026", "2026-01-01 to 2026-03-31") keep literal ISO dates.'
 )
 
 
@@ -265,8 +274,9 @@ def _definition_user_prompt(question, catalog_text, prior_error, today=None):
     base = ""
     if today:
         base += (
-            f"Today's date is {today}. Resolve relative time expressions "
-            '("last month", "this year", "yesterday") against this date, '
+            f"Today's date is {today}. For relative time expressions "
+            '("last month", "this year", "yesterday") emit a relative-date '
+            "token as instructed; resolve explicit dates against this date, "
             "never against your training data.\n\n"
         )
     base += (
@@ -419,6 +429,11 @@ _AGENT_SYSTEM = (
     ' in "columns" plus a count metric — metrics make the columns GROUP BY'
     " dimensions. Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
+    " For relative time ranges set the date filter value to a token object,"
+    ' e.g. {"op": "between", "value": {"token": "last_month"}} (tokens: today,'
+    " yesterday, this_week, last_week, this_month, last_month, this_year,"
+    ' last_year, last_3_months, last_n_days with "n") — these resolve at run'
+    " time; keep literal ISO dates for explicit dates."
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
