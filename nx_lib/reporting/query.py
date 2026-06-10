@@ -226,6 +226,11 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
                 else:
                     select_exprs.append(f"NULL AS [{field}]")
 
+        if not select_exprs:
+            # Zero-dimension + count-only metrics: nothing to project, but the
+            # subquery still needs a SELECT list for the outer COUNT(*).
+            select_exprs.append("1 AS [_one]")
+
         where = ["1 = 1"]
         for f in col_filters:
             col = filt_resolved.get(f["field"])

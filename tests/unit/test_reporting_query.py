@@ -318,3 +318,26 @@ def test_aggregate_groups_by_month_grain_dim():
         "DATEFROMPARTS(YEAR(CAST(ImportDate AS date)), MONTH(CAST(ImportDate AS date)), 1) "
         "AS [import_date]" in sql
     )
+
+
+def test_zero_dim_count_metric_global_total():
+    rd = _rd(columns=[], sort=[])
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "GROUP BY" not in sql
+    assert "COUNT(*) AS [doc_count]" in sql
+    # every subquery must still project something
+    assert "1 AS [_one]" in sql
+
+
+def test_zero_dim_sum_metric_projects_base_field():
+    rd = _rd(columns=[], sort=[])
+    resolved = [{"code": "total_pages", "aggregation": "sum", "base_field": "pages"}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "SUM([pages]) AS [total_pages]" in sql
+    assert "AS [pages]" in sql  # base field projected in the union
+    assert "GROUP BY" not in sql
