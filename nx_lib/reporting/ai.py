@@ -219,6 +219,18 @@ _SYSTEM_DEF = (
     '"day"|"week"|"month"|"quarter"|"year" to bucket it; filters always use '
     "the raw date."
     ' Optionally include "chartHint": {"type": "bar"|"line"|"pie"|"doughnut", "x": "<category field>", "y": "<numeric field>"} inside the definition when a chart would help; omit it otherwise.'
+    " When the question asks for the DISTINCT/different/unique values of a"
+    ' field, put that field in "columns" AND add a count metric in "metrics" —'
+    " with metrics present the selected columns become GROUP BY dimensions, so"
+    " each value appears once (with its count). Never answer a distinct-values"
+    " question with bare columns and no metrics: that returns duplicate rows."
+    ' Process ids in "allowed scope.processes" follow <client>.<NN_Name>; a'
+    " humanized label is shown in parentheses next to each id. Match the"
+    " user's process words case-insensitively against the whole id and its"
+    ' label (e.g. "Privera Invoice" matches privera.03_Invoice_New). If'
+    " several ids match, include ALL of them in scope.processes; if none"
+    " clearly match, leave scope.processes empty (= all allowed) rather than"
+    " guessing one."
 )
 
 
@@ -403,6 +415,10 @@ _AGENT_SYSTEM = (
     "one- or two-sentence plain-language answer. Do not ask the user questions."
     " The grounding states today's date; resolve relative time expressions"
     ' ("last month", "this year") against it, never against your training data.'
+    " For distinct/unique-values questions, build a definition with that field"
+    ' in "columns" plus a count metric — metrics make the columns GROUP BY'
+    " dimensions. Match process words against whole process ids and their"
+    " humanized labels; include all matches, or none rather than a guess."
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data

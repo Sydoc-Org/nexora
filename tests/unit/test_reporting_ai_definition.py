@@ -113,6 +113,19 @@ def test_agent_explain_suffix_stops_after_run_sql():
     assert "stop" in lower and "run_sql" in lower
 
 
+def test_system_def_teaches_distinct_via_metrics():
+    s = ai._SYSTEM_DEF
+    assert "distinct" in s.lower()
+    assert "GROUP BY" in s
+    assert "duplicate rows" in s
+
+
+def test_system_def_teaches_process_matching():
+    s = ai._SYSTEM_DEF
+    assert "scope.processes" in s
+    assert "include ALL of them" in s
+
+
 def test_ask_definition_includes_today_in_prompt():
     captured = {}
 

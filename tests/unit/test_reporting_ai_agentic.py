@@ -216,6 +216,14 @@ def test_anthropic_tool_use_parsed():
     assert turn.tokens_in == 3 and turn.tokens_out == 9
 
 
+def test_agent_system_prompt_teaches_distinct_and_processes():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    s = _AGENT_SYSTEM
+    assert "distinct" in s.lower()
+    assert "GROUP BY" in s
+
+
 def test_agent_system_prompt_grounds_relative_dates():
     from nx_lib.reporting.ai import _AGENT_SYSTEM
 
