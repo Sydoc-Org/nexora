@@ -262,6 +262,7 @@
     return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
   }
   function tokenLabel(v) {
+    if (!v || typeof v.token !== 'string') return '';
     var lbl = TOKEN_LABELS[v.token] || v.token;
     return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
   }
