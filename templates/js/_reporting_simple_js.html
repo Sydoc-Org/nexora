@@ -42,7 +42,12 @@
     aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }},
     aiFilters: {{ _("Filters")|tojson }},
     aiProcesses: {{ _("Processes")|tojson }},
-    aiNoFilters: {{ _("no filters")|tojson }}
+    aiNoFilters: {{ _("no filters")|tojson }},
+    tokenToday: {{ _("Today")|tojson }},
+    tokenYesterday: {{ _("Yesterday")|tojson }},
+    thisWeek: {{ _("This week")|tojson }},
+    lastWeek: {{ _("Last week")|tojson }},
+    lastNDays: {{ _("Last {n} days")|tojson }}
   };
 
   var state = {
@@ -244,12 +249,30 @@
   // model's own explanation plus the filters/scope it chose, so a wrong guess
   // (bad date range, wrong process) is visible instead of silently rendering
   // an empty table.
+  // Relative-date tokens (nx_lib/reporting/tokens.py) — humanized labels for
+  // chips/summary lines. A token value is {token: '<name>'[, n: <int>]}.
+  var TOKEN_LABELS = {
+    today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
+    this_week: I18N.thisWeek, last_week: I18N.lastWeek,
+    this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear,
+    last_year: I18N.lastYear, last_n_days: I18N.lastNDays
+  };
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+  function tokenLabel(v) {
+    var lbl = TOKEN_LABELS[v.token] || v.token;
+    return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
+  }
+
   function aiSummaryLine(cur) {
     var def = cur.def || {};
     var bits = [];
     if (cur.aiExplanation) bits.push(cur.aiExplanation);
     var fs = (def.filters || []).map(function (f) {
-      var v = Array.isArray(f.value) ? f.value.join(' → ')
+      var v = isTokenValue(f.value) ? tokenLabel(f.value)
+            : Array.isArray(f.value) ? f.value.join(' → ')
             : (f.value === null || f.value === undefined ? '' : String(f.value));
       return f.field + ' ' + f.op + (v !== '' ? ' ' + v : '');
     });
@@ -306,6 +329,16 @@
     if (seq !== runSeq) return;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     var columns = res.data.columns || [], rows = res.data.rows || [];
+    var rdates = res.data.resolvedDates || [];
+    if (rdates.length) {
+      var resolvedTxt = rdates.map(function (d) {
+        return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
+      }).join(' · ');
+      var msg = el('rsMsg');
+      msg.textContent = msg.hidden || !msg.textContent
+        ? resolvedTxt : msg.textContent + ' — ' + resolvedTxt;
+      msg.hidden = false;
+    }
     if (hasMetrics && !dims && rows.length) {
       el('rsStatLabel').textContent = metricLabelFor(def);
       el('rsStatValue').textContent = fmtNumber(rows[0][0]);
@@ -529,16 +562,6 @@
       String(d.getDate()).padStart(2, '0');
   }
 
-  function presetRange(key) {
-    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
-    if (key === 'this_month') return [new Date(y, m, 1), new Date(y, m + 1, 0)];
-    if (key === 'last_month') return [new Date(y, m - 1, 1), new Date(y, m, 0)];
-    if (key === 'last_3_months') return [new Date(y, m - 2, 1), new Date(y, m + 1, 0)];
-    if (key === 'this_year') return [new Date(y, 0, 1), new Date(y, 11, 31)];
-    if (key === 'last_year') return [new Date(y - 1, 0, 1), new Date(y - 1, 11, 31)];
-    return null;  // all_time
-  }
-
   function renderTimeStep() {
     el('rsStepTime').hidden = false;
     el('rsWizardRun').hidden = false;
@@ -593,8 +616,9 @@
             ? [isoDate(fp.selectedDates[0]), isoDate(fp.selectedDates[1])]
             : null;
         } else {
-          var r = presetRange(p[0]);
-          state.wiz.range = r ? [isoDate(r[0]), isoDate(r[1])] : null;
+          // Preset = relative-date token: resolved server-side on every run.
+          // all_time = no filter.
+          state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
       }));
     });

@@ -124,3 +124,63 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_saved_token_report_shows_resolved_range(nexora_server, page):
+    # Seed an admin source backed by dbo.Reports (NexoraDB — always available in
+    # TEST) with a grainable date column, so we can save + run a token report
+    # without depending on external DBs (Octo/Generali/Statistics).
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'tok_reports', kind: 'curated', label: 'Token Test Reports',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Reports',
+            columns: [
+              {field: 'Name', label: 'Name', type: 'string',
+               filterable: true, sortable: true},
+              {field: 'CreatedAt', label: 'Created', type: 'date',
+               filterable: true, sortable: true, grainable: true}
+            ],
+            enabled: true, sortOrder: 50});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'tok_reports_count', sourceId: 'tok_reports',
+            label: 'Token report count', aggregation: 'count', format: 'int'});
+          const rpt = await post('/api/reporting/reports', {
+            name: 'e2e token range report',
+            definition: {
+              schemaVersion: 1, source: 'tok_reports', visualization: 'table',
+              title: 'e2e token range report',
+              columns: [{field: 'Name'}],
+              filters: [{field: 'CreatedAt', op: 'between',
+                         value: {token: 'last_month'}}],
+              sort: [], scope: {clients: [], processes: []}, rowLimit: 100}});
+          return {src: src.id, met: met.id, rpt: rpt.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        # Open it from the library — the resolved-range line must appear regardless
+        # of whether there are matching rows.
+        page.get_by_test_id("rs-group-mine").get_by_text("e2e token range report").click()
+        expect(page.get_by_test_id("rs-msg")).to_be_visible()
+        expect(page.get_by_test_id("rs-msg")).to_contain_text("→")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              if (ids.rpt) await del('/api/reporting/reports/' + ids.rpt);
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
