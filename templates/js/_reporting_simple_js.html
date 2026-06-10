@@ -353,6 +353,8 @@
       if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
         var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
         if (parts.length === 2) { f.op = 'between'; f.value = parts; }
+        else if (parts.length === 1) { f.op = 'eq'; f.value = parts[0]; }
+        // else empty input: leave value unchanged
       } else {
         f.value = v;
       }
@@ -366,6 +368,7 @@
 
   async function processChipEditor(cur, chipEl) {
     await loadSourcesCatalog();
+    if (!chipEl.isConnected) return;
     var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
     var all = (src && src.processes) || [];
     if (!all.length) return;
