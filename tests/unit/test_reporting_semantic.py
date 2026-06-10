@@ -106,3 +106,26 @@ def test_build_aggregate_sql_rejects_sort_field_not_projected():
             sort=[{"field": "ghost", "dir": "asc"}],
             cap=10,
         )
+
+
+def test_build_aggregate_sql_zero_dims_omits_group_by():
+    sql = build_aggregate_sql(
+        inner_from="(SELECT 1 AS [_one] FROM [T]) t",
+        dim_fields=[],
+        resolved_metrics=[{"code": "doc_count", "aggregation": "count", "base_field": None}],
+        sort=[],
+        cap=100,
+    )
+    assert sql == "SELECT TOP (100) COUNT(*) AS [doc_count] FROM (SELECT 1 AS [_one] FROM [T]) t"
+    assert "GROUP BY" not in sql
+
+
+def test_build_aggregate_sql_zero_dims_sort_by_metric_allowed():
+    sql = build_aggregate_sql(
+        inner_from="[V]",
+        dim_fields=[],
+        resolved_metrics=[{"code": "total", "aggregation": "sum", "base_field": "amount"}],
+        sort=[{"field": "total", "dir": "desc"}],
+        cap=10,
+    )
+    assert sql.endswith("ORDER BY [total] DESC")

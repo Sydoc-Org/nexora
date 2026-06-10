@@ -85,8 +85,10 @@ def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap):
 
     `inner_from` is an already-safe FROM body (a bracket-quoted object, or a
     `(<union>) t` subquery). `dim_fields` are whitelisted field keys projected as
-    `[field]`; the same alias names back the aggregate columns. Sort may target a
-    dim or a metric code; anything else raises (defence in depth)."""
+    `[field]`; the same alias names back the aggregate columns. Empty dim_fields
+    yields a global aggregate with no GROUP BY (zero-dimension grand total).
+    Sort may target a dim or a metric code; anything else raises (defence in
+    depth)."""
 
     def bracket(field):
         return f"[{field}]"
@@ -94,8 +96,9 @@ def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap):
     dim_select = ", ".join(bracket(d) for d in dim_fields)
     metric_exprs = ", ".join(metric_select_expr(m, bracket) for m in resolved_metrics)
     select_list = ", ".join(p for p in (dim_select, metric_exprs) if p)
-    group_by = ", ".join(bracket(d) for d in dim_fields)
-    sql = f"SELECT TOP ({int(cap)}) {select_list} FROM {inner_from} GROUP BY {group_by}"
+    sql = f"SELECT TOP ({int(cap)}) {select_list} FROM {inner_from}"
+    if dim_fields:
+        sql += " GROUP BY " + ", ".join(bracket(d) for d in dim_fields)
 
     projected = set(dim_fields) | {m["code"] for m in resolved_metrics}
     order_parts = []
