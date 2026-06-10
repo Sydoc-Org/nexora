@@ -144,3 +144,23 @@ def test_registry_is_the_documented_vocabulary():
         "last_3_months",
         "last_n_days",
     }
+
+
+def test_resolved_dates_meta_lists_token_filters_only():
+    from nx_lib.views import reporting as rv
+
+    rd = {
+        "filters": [
+            {"field": "import_date", "op": "between", "value": {"token": "last_month"}},
+            {"field": "import_date", "op": "between", "value": {"token": "last_n_days", "n": 7}},
+            {"field": "doctype", "op": "eq", "value": "Invoice"},
+        ]
+    }
+    meta = rv._resolved_dates_meta(rd)
+    assert [m["token"] for m in meta] == ["last_month", "last_n_days"]
+    assert meta[0]["field"] == "import_date"
+    assert meta[1]["n"] == 7
+    start, end = resolve_token({"token": "last_month"})
+    assert meta[0]["start"] == start.isoformat()
+    assert meta[0]["end"] == end.isoformat()
+    assert rv._resolved_dates_meta({"filters": []}) == []

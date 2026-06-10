@@ -81,6 +81,11 @@ from ..reporting.table_query import (
     build_generic_query,
     table_source_catalog,
 )
+from ..reporting.tokens import (
+    date_fields_from_catalog,
+    resolve_definition_tokens,
+    resolve_token,
+)
 from ..security import has_permission, page_visibility, require_permission
 
 _SCOPE_PREFIX = "reporting.scope.process."
@@ -436,6 +441,7 @@ def _validate_definition_for_user(definition):
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
             grainable_fields=grainable,
+            date_fields=date_fields_from_catalog(catalog),
         )
         return True, None
     except (ReportDefinitionError, PermissionError) as e:
@@ -710,6 +716,40 @@ def _catalog_for_source(source):
     return catalog, catalog_fields, filterable, sortable
 
 
+def _resolve_definition_tokens_or_error(rd):
+    """Token -> absolute dates at run time. A malformed token cannot pass the
+    validator, but saved JSON is not immutable — surface it as a definition
+    error (HTTP 400), never a 500."""
+    try:
+        return resolve_definition_tokens(rd)
+    except ValueError as e:
+        raise ReportDefinitionError(str(e)) from e
+
+
+def _resolved_dates_meta(rd):
+    """[{field, token, n?, start, end}] for each token filter (inclusive display
+    range) — the run response's transparency metadata."""
+    out = []
+    for f in rd.get("filters") or []:
+        value = f.get("value")
+        if not isinstance(value, dict):
+            continue
+        try:
+            start, end = resolve_token(value)
+        except ValueError:
+            continue
+        item = {
+            "field": f.get("field"),
+            "token": value.get("token"),
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }
+        if value.get("n") is not None:
+            item["n"] = value["n"]
+        out.append(item)
+    return out
+
+
 def _prepare_run(rd):
     """Validate + build a query for a curated report.
 
@@ -742,7 +782,9 @@ def _prepare_run(rd):
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
             grainable_fields=grainable,
+            date_fields=date_fields_from_catalog(catalog),
         )
+        rd = _resolve_definition_tokens_or_error(rd)
         resolved = (
             resolve_metrics(rd.get("metrics"), source_metrics, catalog_fields)
             if rd.get("metrics")
@@ -775,7 +817,9 @@ def _prepare_run(rd):
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
+            date_fields=date_fields_from_catalog(catalog),
         )
+        rd = _resolve_definition_tokens_or_error(rd)
         resolved = (
             resolve_metrics(rd.get("metrics"), source_metrics, catalog_fields)
             if rd.get("metrics")
@@ -928,17 +972,18 @@ def api_run():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run exec error: {e}")
         return jsonify({"error": _("Could not run report")}), 500
-    return jsonify(
-        {
-            "columns": [
-                {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
-            ],
-            "rows": _rows_json_safe(rows),
-            "rowCount": len(rows),
-            "truncated": len(rows)
-            >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
-        }
-    )
+    payload = {
+        "columns": [
+            {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
+        ],
+        "rows": _rows_json_safe(rows),
+        "rowCount": len(rows),
+        "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
+    }
+    resolved_dates = _resolved_dates_meta(rd)
+    if resolved_dates:
+        payload["resolvedDates"] = resolved_dates
+    return jsonify(payload)
 
 
 @require_permission("reporting.sql.run")

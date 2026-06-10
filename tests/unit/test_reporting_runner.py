@@ -6,6 +6,8 @@ tests pin the metrics path (a saved definition carrying `metrics` must resolve
 and aggregate exactly like an interactive run) with the view internals faked.
 """
 
+import datetime
+
 import nx_lib.reporting.runner as runner_mod
 
 FAKE_CATALOG = [
@@ -181,3 +183,55 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
 
     assert "COUNT(*) AS [wi_count]" in captured["sql"]
     assert [c["field"] for c in cols] == ["status", "wi_count"]
+
+
+def test_scheduled_definition_with_relative_token_resolves_at_run_time(monkeypatch):
+    from nx_lib.reporting.tokens import resolve_token
+
+    captured = {}
+    _patch_view_internals(monkeypatch, captured)
+    date_catalog = [
+        *FAKE_CATALOG,
+        {
+            "field": "import_date",
+            "label": "Import date",
+            "type": "string",
+            "grainable": True,
+            "filterable": True,
+            "sortable": True,
+            "aggregable": False,
+            "processes": ["acme.inv"],
+        },
+    ]
+    monkeypatch.setattr(
+        runner_mod, "fetch_docprocessing_catalog", lambda allowed, loc: date_catalog
+    )
+    from nx_lib.views import reporting as rv
+
+    monkeypatch.setattr(
+        rv,
+        "_load_process_configs",
+        lambda scope: [
+            {
+                "process": "acme.inv",
+                "table": "dbo.StatA",
+                "export_col": None,
+                "import_col": "ImportDate",
+                "condition": "",
+                "workitem_col": "WorkItem",
+            }
+        ],
+    )
+
+    definition = _definition(
+        filters=[{"field": "import_date", "op": "between", "value": {"token": "last_month"}}]
+    )
+    runner_mod.execute_definition(definition, OWNER_PERMS, 1, "tester", "en")
+
+    start, end = resolve_token({"token": "last_month"})
+    end_excl = end + datetime.timedelta(days=1)
+    assert ">= ?" in captured["sql"] and "< ?" in captured["sql"]
+    assert "BETWEEN" not in captured["sql"]
+    assert captured["params"] == [start.isoformat(), end_excl.isoformat()]
+    # The caller's saved definition object still carries the token.
+    assert definition["filters"][0]["value"] == {"token": "last_month"}

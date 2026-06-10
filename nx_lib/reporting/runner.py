@@ -21,6 +21,7 @@ from .schema import (
 from .semantic import resolve_metrics
 from .sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT
 from .table_query import build_generic_query, table_source_catalog
+from .tokens import date_fields_from_catalog, resolve_definition_tokens
 
 _SCOPE_PREFIX = "reporting.scope.process."
 
@@ -94,7 +95,12 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
             grainable_fields=grainable,
+            date_fields=date_fields_from_catalog(catalog),
         )
+        try:
+            definition = resolve_definition_tokens(definition)
+        except ValueError as e:
+            raise ReportDefinitionError(str(e)) from e
         resolved = (
             resolve_metrics(definition.get("metrics"), source_metrics, catalog_fields)
             if definition.get("metrics")
@@ -129,7 +135,12 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
+            date_fields=date_fields_from_catalog(catalog),
         )
+        try:
+            definition = resolve_definition_tokens(definition)
+        except ValueError as e:
+            raise ReportDefinitionError(str(e)) from e
         resolved = (
             resolve_metrics(definition.get("metrics"), source_metrics, catalog_fields)
             if definition.get("metrics")
