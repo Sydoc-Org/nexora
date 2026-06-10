@@ -5,6 +5,44 @@ replacement for internal users. Phase 1 ships a **table/list** visualization
 over the curated **Document Processing** source with full filter, sort, combine,
 custom-header, save/load, and Excel-export support.
 
+## Simple and Advanced tabs
+
+`/reporting` opens as two tabs (one route, two client-side panes;
+`templates/js/_reporting_tabs_js.html` is the controller):
+
+- **Simple** — the default; built for report *viewers* and non-data-science
+  stakeholders. It is purely a presentation layer over the existing REST
+  endpoints (`templates/_reporting_simple.html` +
+  `templates/js/_reporting_simple_js.html`):
+  - **Library** — every report you can see, grouped into *Library*
+    (org-shared, `Visibility='shared'`, any owner), *My reports*, and *Shared
+    with me*. Click a card to run it (lazy — nothing runs until opened).
+    Live-SQL (`kind:'sql'`) reports are hidden here (viewers can't run them);
+    they stay fully usable in Advanced.
+  - **+ New report (wizard)** — measure (from the metrics registry; picking a
+    measure pins the source — admins grow the wizard's reach by adding rows at
+    `/reporting/metrics`, zero code change) → break down by *over time* (with a
+    grain select, default month) / a category / *none — just the total* → time
+    range (presets or a custom flatpickr range; emits a `between` filter on the
+    **raw** date field, defaulting to `import_date`).
+  - **Ask AI** — one input to Surface A; a valid draft renders straight to the
+    result view. Hidden if AI is unconfigured.
+  - **Result view** — a grand-total **number card** (computed by a zero-column
+    clone run, so it is correct for every aggregation — avg/count_distinct
+    included), a **chart card** (line for date breakdowns, bar for categories;
+    ≤50 categories), and a **Show table** toggle. *Save* always creates a new
+    row under My reports; *Open in Advanced* pre-fills the builder; *Export*
+    downloads Excel (needs `reporting.export`).
+- **Advanced** — the full three-panel builder described below, unchanged.
+
+Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`
+parameter the last-used tab is restored per browser (`localStorage`).
+
+> **Viewer semantics:** a shared library report runs against the *viewer's*
+> grants (`reporting.scope.process.*`, per-source perms) — different users can
+> legitimately see different numbers, or a friendly "you don't have access"
+> message. This is existing run-path behavior, surfaced honestly in the UI.
+
 ## What the page does
 
 Users arrive at a three-panel Layout A builder:
@@ -292,6 +330,13 @@ canonical metrics for the selected source; once at least one is picked, the
 as `metrics: [{ "metric": code }]` (see the JSON above) and the AI assistant is
 told about the accessible metrics so Surfaces A/C can reference them by code.
 
+**Zero-dimension grand totals:** a definition with a non-empty `metrics` list
+may have **zero columns** — both query builders then emit a global aggregate
+`SELECT AGG(...)` with **no GROUP BY**, returning a single total row (the
+docprocessing union projects a constant `1 AS [_one]` per subquery when the
+metric set is count-only so the SELECT list is never empty). This powers the
+Simple tab's number card and works identically in Advanced and the AI surfaces.
+
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level
 > `filters` still apply pre-aggregation.
@@ -388,9 +433,14 @@ Route: `POST /api/reporting/ai/build`
 `reporting.sql.run` are **not** needed.
 
 The model produces a v1 report definition (source, columns, filters, sort, scope,
-rowLimit). The server validates the draft through `validate_report_definition` — the
-same whitelist validator used by `/api/reporting/run` — and attempts one self-repair
-retry if the first draft fails validation. On success, the panel shows a summary and
+rowLimit, optionally `metrics` + per-column `grain`). The catalog the model sees
+marks **grainable** date fields and lists each source's canonical **metrics**
+(code, label, aggregation), and the system prompt documents the metrics/grain
+contract — including zero-column grand totals — so drafts can aggregate the same
+way the builder does. The server validates the draft through
+`validate_report_definition` — the same whitelist validator used by
+`/api/reporting/run`, with the same `metric_codes`/`grainable_fields` — and
+attempts one self-repair retry if the first draft fails validation. On success, the panel shows a summary and
 two buttons:
 
 - **Open in builder** — calls `applyDefinition()` to fill the builder wells; the user

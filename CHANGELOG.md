@@ -9,6 +9,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Reporting Simple/Advanced tabs.** `/reporting` is now split into a **Simple**
+  tab (the new default) and an **Advanced** tab (the full builder, unchanged).
+  Simple is a presentation layer for report *viewers*: a **library** of reports
+  grouped into *Library* (org-shared, `Visibility='shared'`), *My reports*, and
+  *Shared with me* (sql-kind reports are hidden — they stay usable in Advanced);
+  a **guided wizard** (measure from the metrics registry → break down by
+  date-with-grain / category / nothing → time-range presets emitting a `between`
+  filter on the raw date) assembling a standard v1 definition; and an optional
+  **ask-AI** bar (Surface A) rendering valid drafts straight to cards. Results
+  show as a grand-total **number card** (a zero-column clone run, so the total
+  is correct for every aggregation) plus a **chart card** (Simple owns a private
+  Chart.js instance) with a show-table toggle; Save always creates a new row;
+  *Open in Advanced* pre-fills the builder (passing `id:null` for non-owned
+  reports so Advanced's Save defaults to create-a-copy). Deep link
+  `/reporting?tab=advanced`; the last-used tab is remembered per browser
+  (`localStorage`). de/fr/it translated.
+- **Reporting zero-dimension metric definitions (grand totals).** A definition
+  with a non-empty `metrics` list may now have **zero columns** — both the
+  docprocessing and the generic `table` query builders emit a global aggregate
+  `SELECT AGG(...)` with no GROUP BY (count-only metric sets project a constant
+  per union subquery). Powers Simple's number card; Advanced and the AI
+  surfaces inherit it.
+- **Reporting AI Surface-A metrics + grain grounding.** The "Build a report"
+  catalog now marks **grainable** date fields and lists each source's canonical
+  **metrics** (code, label, aggregation), the system prompt documents the
+  `metrics`/`grain` contract (incl. zero-column grand totals), and the
+  validation gate passes `metric_codes`/`grainable_fields` exactly like the run
+  path — AI drafts using metrics or grains now validate instead of bouncing.
 - **Reporting process-scope picker (clients / processes).** The builder's left
   panel gained a **Processes** multi-select dropdown (below **Source**,
   docprocessing only) listing the caller's allowed `<client>.<process>` grants
