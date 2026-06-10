@@ -410,6 +410,11 @@ def _validate_definition_for_user(definition):
         catalog_fields = {f["field"] for f in catalog}
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
+        # Mirror _prepare_run's validator args exactly: without metric_codes and
+        # grainable_fields an AI draft using canonical metrics or a date grain
+        # would bounce here despite being runnable.
+        grainable = {f["field"] for f in catalog if f.get("grainable")}
+        source_metrics = _metrics_for_source(source["id"])
         # Repair common small-model near-misses in place (labels-for-keys, missing
         # schemaVersion/title) so an otherwise-correct AI draft is accepted, not
         # bounced. Whitelist-safe: only resolves labels that map to a real field.
@@ -424,7 +429,13 @@ def _validate_definition_for_user(definition):
         )
         to_validate = {k: v for k, v in definition.items() if k != "chartHint"}
         validate_report_definition(
-            to_validate, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            to_validate,
+            catalog_fields,
+            filterable,
+            sortable,
+            max_row_limit=MAX_ROW_LIMIT,
+            metric_codes=set(source_metrics),
+            grainable_fields=grainable,
         )
         return True, None
     except (ReportDefinitionError, PermissionError) as e:

@@ -79,3 +79,11 @@ def test_ask_definition_includes_prior_error_in_retry_prompt():
         transport=transport,
     )
     assert "unknown column field" in captured["user"]
+
+
+def test_system_def_documents_metrics_and_grain():
+    from nx_lib.reporting.ai import _SYSTEM_DEF
+
+    assert '"metrics"' in _SYSTEM_DEF
+    assert '"grain"' in _SYSTEM_DEF
+    assert "grainable" in _SYSTEM_DEF

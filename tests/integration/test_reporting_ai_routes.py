@@ -708,3 +708,111 @@ def test_validate_definition_coerces_table_source_labels_and_defaults():
     assert defn["sort"][0]["field"] == "ForDate"
     assert defn["schemaVersion"] == 1
     assert defn["title"] == "Generali — PDQM"  # synthesized from the source label
+
+
+def test_validate_definition_accepts_metrics_and_grain_draft():
+    # Surface-A drafts may use canonical metrics + a date grain; the validator
+    # must pass metric_codes/grainable_fields exactly like _prepare_run does.
+    from nx_lib.views.reporting import _validate_definition_for_user
+
+    docproc_source = {
+        "id": "docprocessing",
+        "kind": "curated",
+        "label": "Document Processing",
+        "permission": "reporting.source.docprocessing",
+        "engine": "statistics",
+        "provider": "docprocessing",
+    }
+    catalog = [
+        {
+            "field": "import_date",
+            "label": "Import date",
+            "type": "date",
+            "filterable": True,
+            "sortable": True,
+            "grainable": True,
+        },
+    ]
+    defn = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "Documents per month",
+        "columns": [{"field": "import_date", "header": "Import date", "grain": "month"}],
+        "metrics": [{"metric": "doc_count"}],
+        "filters": [],
+        "sort": [{"field": "import_date", "dir": "asc"}],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 5000,
+    }
+    with ExitStack() as es:
+        es.enter_context(
+            patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.get_locale", return_value="en"))
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.fetch_docprocessing_catalog",
+                return_value=catalog,
+            )
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.inv"])
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._metrics_for_source",
+                return_value={"doc_count": {"aggregation": "count", "base_field": None}},
+            )
+        )
+        ok, err = _validate_definition_for_user(defn)
+
+    assert (ok, err) == (True, None)
+
+
+def test_validate_definition_zero_columns_with_metric_accepted():
+    # The Simple wizard's "just the total": columns [] + a metric must validate.
+    from nx_lib.views.reporting import _validate_definition_for_user
+
+    docproc_source = {
+        "id": "docprocessing",
+        "kind": "curated",
+        "label": "Document Processing",
+        "permission": "reporting.source.docprocessing",
+        "engine": "statistics",
+        "provider": "docprocessing",
+    }
+    defn = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "Total documents",
+        "columns": [],
+        "metrics": [{"metric": "doc_count"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 5000,
+    }
+    with ExitStack() as es:
+        es.enter_context(
+            patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
+        )
+        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.get_locale", return_value="en"))
+        es.enter_context(
+            patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=[])
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.inv"])
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._metrics_for_source",
+                return_value={"doc_count": {"aggregation": "count", "base_field": None}},
+            )
+        )
+        ok, err = _validate_definition_for_user(defn)
+
+    assert (ok, err) == (True, None)

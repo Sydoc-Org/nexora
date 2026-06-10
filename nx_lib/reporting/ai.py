@@ -210,6 +210,14 @@ _SYSTEM_DEF = (
     "Valid filter ops: eq, ne, in, not_in, gt, gte, lt, lte, between (value is a "
     "2-element list), contains, starts_with, is_null, is_not_null (these two take "
     "no value). No prose outside JSON."
+    ' A source may list canonical "metrics" (code = aggregation(column)). To '
+    'aggregate, include "metrics": [{"metric": "<code>"}] in the definition - '
+    "the selected columns then become the GROUP BY dims. For a single grand "
+    'total, use "metrics" with "columns": []. Only metric codes from the '
+    "source's metrics line are valid. Fields flagged (grainable) are date "
+    'fields: a column for one may carry "grain": '
+    '"day"|"week"|"month"|"quarter"|"year" to bucket it; filters always use '
+    "the raw date."
     ' Optionally include "chartHint": {"type": "bar"|"line"|"pie"|"doughnut", "x": "<category field>", "y": "<numeric field>"} inside the definition when a chart would help; omit it otherwise.'
 )
 
