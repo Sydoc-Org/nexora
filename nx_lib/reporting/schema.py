@@ -59,6 +59,7 @@ def validate_report_definition(
     field keys the chosen source exposes. `max_row_limit` is the server cap.
     `metric_codes` is an optional set of canonical metric codes the source
     exposes; when absent the default is empty (any metrics key is rejected).
+    Columns may be empty iff metrics is non-empty (zero-dimension grand totals).
 
     The caller is responsible for resolving `source` to its catalog (and
     supplying those field sets); this function does not validate that `source`
@@ -81,8 +82,16 @@ def validate_report_definition(
     if subtitle is not None and not isinstance(subtitle, str):
         raise ReportDefinitionError("subtitle must be a string or null")
 
+    # columns may be empty/missing iff metrics is non-empty (a zero-dimension
+    # grand total: SELECT AGG(...) with no GROUP BY).
     columns = rd.get("columns")
-    if not isinstance(columns, list) or not columns:
+    if columns is None:
+        columns = []
+    metrics_list = rd.get("metrics")
+    has_metrics = isinstance(metrics_list, list) and len(metrics_list) > 0
+    if not isinstance(columns, list):
+        raise ReportDefinitionError("columns must be a list")
+    if not columns and not has_metrics:
         raise ReportDefinitionError("at least one column is required")
     for c in columns:
         if not isinstance(c, dict) or c.get("field") not in catalog_fields:

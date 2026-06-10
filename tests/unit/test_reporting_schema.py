@@ -481,3 +481,60 @@ def test_absent_grain_accepted():
         max_row_limit=50000,
         grainable_fields=_GRAINABLE,
     )
+
+
+# --- zero-dimension (grand total) definitions: columns may be empty iff metrics ---
+
+
+def test_zero_columns_with_metrics_accepted():
+    d = _valid_def()
+    d["columns"] = []
+    d["sort"] = []
+    d["metrics"] = [{"metric": "doc_count"}]
+    validate_report_definition(
+        d,
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        metric_codes={"doc_count"},
+    )
+
+
+def test_missing_columns_with_metrics_accepted():
+    d = _valid_def()
+    del d["columns"]
+    d["sort"] = []
+    d["metrics"] = [{"metric": "doc_count"}]
+    validate_report_definition(
+        d,
+        CATALOG_FIELDS,
+        FILTERABLE,
+        SORTABLE,
+        max_row_limit=50000,
+        metric_codes={"doc_count"},
+    )
+
+
+def test_zero_columns_without_metrics_still_rejected():
+    d = _valid_def()
+    d["columns"] = []
+    d["sort"] = []
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_zero_columns_with_empty_metrics_list_rejected():
+    d = _valid_def()
+    d["columns"] = []
+    d["sort"] = []
+    d["metrics"] = []
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(
+            d,
+            CATALOG_FIELDS,
+            FILTERABLE,
+            SORTABLE,
+            max_row_limit=50000,
+            metric_codes={"doc_count"},
+        )
