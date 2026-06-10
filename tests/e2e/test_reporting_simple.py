@@ -300,3 +300,35 @@ def test_refine_sends_prior_context_and_replaces_result(nexora_server, page):
     assert seen[1]["priorQuestion"] == "docs by process"
     assert seen[1]["priorDefinition"]["title"] == "stub ai report"
     assert seen[1]["question"] == "only acme please"
+
+
+def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    _stub_ai_build(page)
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+    chips = page.get_by_test_id("rs-chips")
+    expect(chips).to_be_visible()
+    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}]
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname eq acme.inv")
+
+    # Edit the filter value in place; the run payload must carry the new value.
+    run_payloads = []
+
+    def _capture_run(route):
+        run_payloads.append(route.request.post_data_json)
+        route.continue_()
+
+    page.route("**/api/reporting/run", _capture_run)
+    chips.get_by_test_id("rs-chip").first.click()
+    page.get_by_test_id("rs-chip-input").fill("acme.other")
+    page.get_by_test_id("rs-chip-apply").click()
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("acme.other")
+    assert any(
+        p.get("filters") and p["filters"][0].get("value") == "acme.other" for p in run_payloads
+    )
+
+    # Remove the filter chip entirely -> "no filters" placeholder renders.
+    chips.get_by_test_id("rs-chip-remove").first.click()
+    expect(chips).to_contain_text("no filters")

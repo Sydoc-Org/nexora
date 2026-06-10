@@ -50,7 +50,9 @@
     lastNDays: {{ _("Last {n} days")|tojson }},
     aiThinking: {{ _("Asking the AI…")|tojson }},
     aiDrafting: {{ _("Drafting your report…")|tojson }},
-    aiChecking: {{ _("Checking the result…")|tojson }}
+    aiChecking: {{ _("Checking the result…")|tojson }},
+    chipApply: {{ _("Apply")|tojson }},
+    allProcesses: {{ _("All processes")|tojson }}
   };
 
   var state = {
@@ -170,6 +172,7 @@
   function showResultError(msg) {
     hideAiLoading();
     if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
+    if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
     el('rsResultTitle').textContent = '';
     el('rsMsg').hidden = true;
@@ -272,20 +275,161 @@
     return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
   }
 
-  function aiSummaryLine(cur) {
-    var def = cur.def || {};
-    var bits = [];
-    if (cur.aiExplanation) bits.push(cur.aiExplanation);
-    var fs = (def.filters || []).map(function (f) {
-      var v = isTokenValue(f.value) ? tokenLabel(f.value)
-            : Array.isArray(f.value) ? f.value.join(' → ')
-            : (f.value === null || f.value === undefined ? '' : String(f.value));
-      return f.field + ' ' + f.op + (v !== '' ? ' ' + v : '');
+  // ----- Editable AI chips -----
+  function fieldMetaFor(def, fieldKey) {
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
+  }
+
+  function chipValueLabel(v) {
+    if (isTokenValue(v)) return tokenLabel(v);
+    if (Array.isArray(v)) return v.join(' → ');
+    return v === null || v === undefined ? '' : String(v);
+  }
+
+  function chip(text, onEdit, onRemove) {
+    var c = document.createElement('span');
+    c.className = 'rs-chip';
+    c.setAttribute('data-testid', 'rs-chip');
+    var t = document.createElement('span');
+    t.textContent = text;
+    c.appendChild(t);
+    if (onRemove) {
+      var x = document.createElement('span');
+      x.className = 'rs-chip-x';
+      x.setAttribute('data-testid', 'rs-chip-remove');
+      x.textContent = '×';
+      x.addEventListener('click', function (e) { e.stopPropagation(); onRemove(); });
+      c.appendChild(x);
+    }
+    if (onEdit) c.addEventListener('click', function () { onEdit(c); });
+    return c;
+  }
+
+  function filterChipEditor(cur, f, chipEl) {
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    var meta = fieldMetaFor(cur.def, f.field);
+    var isDateField = !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
+    var preset = null;
+    if (isDateField && typeof TOKEN_LABELS !== 'undefined') {
+      preset = document.createElement('select');
+      preset.setAttribute('data-testid', 'rs-chip-preset');
+      var co = document.createElement('option');
+      co.value = '';
+      co.textContent = I18N.custom;
+      preset.appendChild(co);
+      Object.keys(TOKEN_LABELS).forEach(function (k) {
+        if (k === 'last_n_days') return;
+        var o = document.createElement('option');
+        o.value = k;
+        o.textContent = TOKEN_LABELS[k];
+        preset.appendChild(o);
+      });
+      if (isTokenValue(f.value)) preset.value = f.value.token;
+      box.appendChild(preset);
+    }
+    var input = document.createElement('input');
+    input.className = 'reporting-input';
+    input.setAttribute('data-testid', 'rs-chip-input');
+    input.value = Array.isArray(f.value) ? f.value.join(' → ')
+      : isTokenValue(f.value) ? '' : chipValueLabel(f.value);
+    input.hidden = !!(preset && preset.value);
+    if (preset) {
+      preset.onchange = function () { input.hidden = !!preset.value; };
+    }
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      if (preset && preset.value) {
+        f.op = 'between';
+        f.value = { token: preset.value };
+        runCurrent();
+        return;
+      }
+      var v = input.value.trim();
+      if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
+        var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
+        if (parts.length === 2) { f.op = 'between'; f.value = parts; }
+      } else {
+        f.value = v;
+      }
+      runCurrent();
     });
-    bits.push(I18N.aiFilters + ': ' + (fs.length ? fs.join(' · ') : I18N.aiNoFilters));
+    box.appendChild(input);
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+    if (!input.hidden) input.focus();
+  }
+
+  async function processChipEditor(cur, chipEl) {
+    await loadSourcesCatalog();
+    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var all = (src && src.processes) || [];
+    if (!all.length) return;
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-procs');
+    var selected = ((cur.def.scope || {}).processes || []);
+    var inputs = all.map(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = p;
+      cb.checked = !selected.length || selected.indexOf(p) !== -1;
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + p));
+      box.appendChild(lbl);
+      return cb;
+    });
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      var picked = inputs.filter(function (c) { return c.checked; })
+                         .map(function (c) { return c.value; });
+      cur.def.scope = cur.def.scope || { clients: [], processes: [] };
+      cur.def.scope.processes = picked.length === all.length ? [] : picked;
+      runCurrent();
+    });
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+  }
+
+  function renderAiChips(cur) {
+    var wrap = el('rsChips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var aiBuilt = cur.aiExplanation !== undefined;
+    wrap.hidden = !aiBuilt;
+    if (!aiBuilt) return;
+    var def = cur.def || {};
+    (def.filters || []).forEach(function (f) {
+      var label = f.field + ' ' + f.op + ' ' + chipValueLabel(f.value);
+      wrap.appendChild(chip(
+        label,
+        function (chipEl) { filterChipEditor(cur, f, chipEl); },
+        function () {
+          def.filters.splice(def.filters.indexOf(f), 1);
+          runCurrent();
+        }
+      ));
+    });
+    if (!(def.filters || []).length) {
+      var none = document.createElement('span');
+      none.className = 'rs-chip rs-chip--empty';
+      none.textContent = I18N.aiNoFilters;
+      wrap.appendChild(none);
+    }
     var procs = (def.scope && def.scope.processes) || [];
-    if (procs.length) bits.push(I18N.aiProcesses + ': ' + procs.join(', '));
-    return bits.join(' — ');
+    wrap.appendChild(chip(
+      I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : I18N.allProcesses),
+      function (chipEl) { processChipEditor(cur, chipEl); },
+      null
+    ));
   }
 
   // Monotonic run token: a newer runCurrent invalidates every pending older
@@ -330,9 +474,10 @@
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     if (cur.aiExplanation !== undefined) {
-      el('rsMsg').textContent = aiSummaryLine(cur);
-      el('rsMsg').hidden = false;
+      el('rsMsg').textContent = cur.aiExplanation || '';
+      el('rsMsg').hidden = !cur.aiExplanation;
     }
+    renderAiChips(cur);
     var refineBar = el('rsRefineBar');
     if (refineBar) {
       var aiBuilt = cur.aiExplanation !== undefined;

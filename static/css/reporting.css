@@ -1020,3 +1020,16 @@ body.nx-app {
 /* Refine bar (Simple pane, F2-T4) */
 .reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
 .reporting-simple-refine .reporting-input { flex: 1; }
+
+/* Editable AI filter/process chips (Simple pane, F2-T5) */
+.reporting-simple-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 .6rem; }
+.rs-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .15rem .6rem; border-radius: 999px; font-size: .85em;
+  background: var(--nx-surface-2, #eef2ff); border: 1px solid var(--nx-border, #c7d2fe);
+  cursor: pointer;
+}
+.rs-chip--empty { cursor: default; opacity: .7; }
+.rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
+.rs-chip-editor { display: inline-flex; align-items: center; gap: .35rem; }
+.rs-chip-editor input, .rs-chip-editor select { max-width: 11rem; }
