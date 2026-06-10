@@ -15,6 +15,22 @@
     metricsBySource: null, availableMetrics: [], metrics: []
   };
 
+  // Relative-date token presets for date-typed filter fields. Token shape
+  // {token: '<name>'[, n]} matches nx_lib/reporting/tokens.py.
+  var DATE_TOKEN_PRESETS = [
+    ['today', {{ _("Today")|tojson }}],
+    ['yesterday', {{ _("Yesterday")|tojson }}],
+    ['this_week', {{ _("This week")|tojson }}],
+    ['last_week', {{ _("Last week")|tojson }}],
+    ['this_month', {{ _("This month")|tojson }}],
+    ['last_month', {{ _("Last month")|tojson }}],
+    ['last_3_months', {{ _("Last 3 months")|tojson }}],
+    ['this_year', {{ _("This year")|tojson }}],
+    ['last_year', {{ _("Last year")|tojson }}],
+    ['last_n_days', {{ _("Last N days")|tojson }}]
+  ];
+  var CUSTOM_DATES_LABEL = {{ _("Custom dates…")|tojson }};
+
   async function api(url, opts) {
     opts = opts || {};
     const res = await fetch(url, Object.assign(
@@ -637,8 +653,55 @@
         fld.appendChild(opt);
       });
       fld.value = f.field;
-      // Re-render when field changes so flatpickr initializes for date fields.
-      fld.onchange = function (e) { f.field = e.target.value; f.value = ''; renderFilters(); };
+      // Re-render when field changes so flatpickr/presets initialize correctly.
+      // Also reset op to 'eq' so a token-shaped value can't survive a switch to
+      // a non-date field and 400 on run.
+      fld.onchange = function (e) { f.field = e.target.value; f.op = 'eq'; f.value = ''; renderFilters(); };
+
+      var fieldMeta = state.fields.find(function (x) { return x.field === f.field; });
+      var isDateField = !!(fieldMeta && (/date/i.test(fieldMeta.type) || fieldMeta.grainable));
+      var tokenActive = isDateField && f.value && typeof f.value === 'object'
+        && !Array.isArray(f.value) && typeof f.value.token === 'string';
+
+      var preset = null, nInput = null;
+      if (isDateField) {
+        preset = document.createElement('select');
+        var co = document.createElement('option');
+        co.value = '';
+        co.textContent = CUSTOM_DATES_LABEL;
+        preset.appendChild(co);
+        DATE_TOKEN_PRESETS.forEach(function (t) {
+          var o = document.createElement('option');
+          o.value = t[0];
+          o.textContent = t[1];
+          preset.appendChild(o);
+        });
+        nInput = document.createElement('input');
+        nInput.type = 'number';
+        nInput.min = '1';
+        nInput.max = '366';
+        nInput.hidden = true;
+        if (tokenActive) {
+          preset.value = f.value.token;
+          if (f.value.token === 'last_n_days') {
+            nInput.hidden = false;
+            nInput.value = f.value.n || 30;
+          }
+        }
+        preset.onchange = function () {
+          if (!preset.value) { f.op = 'eq'; f.value = ''; renderFilters(); return; }
+          f.op = 'between';
+          f.value = preset.value === 'last_n_days'
+            ? { token: 'last_n_days', n: parseInt(nInput.value, 10) || 30 }
+            : { token: preset.value };
+          renderFilters();
+        };
+        nInput.oninput = function () {
+          if (f.value && f.value.token === 'last_n_days') {
+            f.value.n = Math.max(1, Math.min(366, parseInt(nInput.value, 10) || 30));
+          }
+        };
+      }
 
       var op = document.createElement('select');
       ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
@@ -648,16 +711,18 @@
         opt.textContent = o;
         op.appendChild(opt);
       });
-      op.value = f.op;
+      op.value = tokenActive ? 'eq' : f.op;
       op.onchange = function (e) { f.op = e.target.value; };
+      op.hidden = tokenActive;
 
       var val = document.createElement('input');
-      val.value = f.value != null ? f.value : '';
+      val.value = (!tokenActive && f.value != null) ? f.value : '';
       val.oninput = function (e) { f.value = e.target.value; };
+      val.hidden = tokenActive;
 
       // Initialize flatpickr for date/datetime fields if the library is present.
-      var fieldMeta = state.fields.find(function (x) { return x.field === f.field; });
-      if (fieldMeta && /date/i.test(fieldMeta.type) && typeof flatpickr === 'function') {
+      if (!tokenActive && fieldMeta && /date/i.test(fieldMeta.type)
+          && typeof flatpickr === 'function') {
         var fpOpts = { allowInput: true, onChange: function (d, s) { f.value = s; } };
         if (/time|datetime/i.test(fieldMeta.type)) {
           fpOpts.enableTime = true;
@@ -673,8 +738,10 @@
       rm.onclick = function () { state.filters.splice(i, 1); renderFilters(); };
 
       row.appendChild(fld);
+      if (preset) row.appendChild(preset);
       row.appendChild(op);
       row.appendChild(val);
+      if (nInput) row.appendChild(nInput);
       row.appendChild(rm);
       box.appendChild(row);
     });
