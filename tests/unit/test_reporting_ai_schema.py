@@ -245,6 +245,28 @@ def test_serialize_sources_catalog_marks_grainable_fields():
     assert "grainable" in text
 
 
+def test_catalog_humanizes_process_ids():
+    sources = [
+        {
+            "id": "docprocessing",
+            "label": "Doc processing",
+            "fields": [
+                {
+                    "field": "docsource",
+                    "label": "Document Source",
+                    "type": "string",
+                    "filterable": True,
+                }
+            ],
+            "processes": ["privera.03_Invoice_New", "compass.01_Invoice_SAP"],
+        }
+    ]
+    text, truncated = ai_schema.serialize_sources_catalog(sources)
+    assert 'privera.03_Invoice_New ("privera Invoice New")' in text
+    assert 'compass.01_Invoice_SAP ("compass Invoice SAP")' in text
+    assert truncated is False
+
+
 def test_serialize_sources_catalog_lists_source_metrics():
     sources = [
         {

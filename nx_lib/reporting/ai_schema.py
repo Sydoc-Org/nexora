@@ -8,6 +8,7 @@ a DB; the connection they yield is closed here so pooled RO connections never le
 """
 
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,17 @@ def _serialize_curated(curated):
     return "\n".join(lines)
 
 
+_PROC_NUM_PREFIX = re.compile(r"^\d+_")
+
+
+def _humanize_process_id(pid):
+    """'privera.03_Invoice_New' -> 'privera Invoice New', so the model can
+    match natural-language process names against otherwise-opaque ids."""
+    client, _, rest = str(pid).partition(".")
+    rest = _PROC_NUM_PREFIX.sub("", rest).replace("_", " ").strip()
+    return f"{client} {rest}".strip() if rest else str(pid)
+
+
 def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     """Compact, bounded text block of the caller's accessible curated sources.
 
@@ -110,7 +122,8 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
         lines.append(f'SOURCE {s.get("id")} "{s.get("label")}": ' + "; ".join(flags_fields))
         procs = s.get("processes") or []
         if procs:
-            lines.append(f"  allowed scope.processes: {', '.join(map(str, procs))}")
+            parts = [f'{p} ("{_humanize_process_id(p)}")' for p in procs]
+            lines.append(f"  allowed scope.processes: {', '.join(parts)}")
         mets = s.get("metrics") or []
         if mets:
             parts = []
