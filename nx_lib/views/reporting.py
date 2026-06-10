@@ -1219,6 +1219,21 @@ def api_ai_build():
             }
         ), 429
 
+    # Refine context (optional): prompt grounding ONLY — never executed, never
+    # trusted. The model's output still passes _validate_definition_for_user,
+    # so a crafted prior definition cannot widen access; its risk class equals
+    # free text in `question`. Size caps keep the prompt bounded.
+    prior_question = body.get("priorQuestion")
+    prior_definition = body.get("priorDefinition")
+    if prior_question is not None and (
+        not isinstance(prior_question, str) or len(prior_question) > 2000
+    ):
+        return jsonify({"error": _("Invalid refine context")}), 400
+    if prior_definition is not None and (
+        not isinstance(prior_definition, dict) or len(json.dumps(prior_definition)) > 20000
+    ):
+        return jsonify({"error": _("Invalid refine context")}), 400
+
     catalog_text = _ai_catalog_text()
     start = time.monotonic()
     prior_error = None
@@ -1238,6 +1253,8 @@ def api_ai_build():
                 url=cfg.get("url"),
                 prior_error=prior_error,
                 today=datetime.date.today().isoformat(),
+                prior_question=prior_question or None,
+                prior_definition=prior_definition or None,
             )
         except AiError as e:
             current_app.logger.warning(f"/api/reporting/ai/build config error: {e}")

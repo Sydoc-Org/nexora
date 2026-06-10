@@ -866,3 +866,98 @@ def test_validate_definition_zero_columns_with_metric_accepted():
         ok, err = _validate_definition_for_user(defn)
 
     assert (ok, err) == (True, None)
+
+
+# ---- F2-T2: /ai/build refine context (priorQuestion / priorDefinition) ------
+
+
+def _build_patches():
+    stub = AiDefinitionResult(
+        definition=None,
+        explanation="",
+        model="m",
+        provider="anthropic",
+        tokens_in=1,
+        tokens_out=1,
+    )
+    return stub, [
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch(
+            "nx_lib.views.reporting._validate_definition_for_user",
+            return_value=(False, "no def"),
+        ),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ]
+
+
+def test_ai_build_passes_refine_context_to_drafter(user_client):
+    stub, patches = _build_patches()
+    with (
+        patches[0],
+        patches[1],
+        patches[2],
+        patches[3],
+        patches[4],
+        patches[5],
+        patches[6],
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/build",
+            json={
+                "question": "only May",
+                "priorQuestion": "docs last month",
+                "priorDefinition": {"schemaVersion": 1, "title": "t"},
+            },
+        )
+    assert resp.status_code == 200
+    assert drafter.call_args.kwargs["prior_question"] == "docs last month"
+    assert drafter.call_args.kwargs["prior_definition"] == {"schemaVersion": 1, "title": "t"}
+
+
+def test_ai_build_without_refine_context_passes_none(user_client):
+    stub, patches = _build_patches()
+    with (
+        patches[0],
+        patches[1],
+        patches[2],
+        patches[3],
+        patches[4],
+        patches[5],
+        patches[6],
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+    ):
+        resp = user_client.post("/api/reporting/ai/build", json={"question": "q"})
+    assert resp.status_code == 200
+    assert drafter.call_args.kwargs["prior_question"] is None
+    assert drafter.call_args.kwargs["prior_definition"] is None
+
+
+def test_ai_build_rejects_malformed_refine_context(user_client):
+    stub, patches = _build_patches()
+    bad_bodies = [
+        {"question": "q", "priorQuestion": 7},
+        {"question": "q", "priorDefinition": "not-an-object"},
+        {"question": "q", "priorQuestion": "x" * 2001},
+        {"question": "q", "priorDefinition": {"big": "y" * 20001}},
+    ]
+    with (
+        patches[0],
+        patches[1],
+        patches[2],
+        patches[3],
+        patches[4],
+        patches[5],
+        patches[6],
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub),
+    ):
+        for body in bad_bodies:
+            resp = user_client.post("/api/reporting/ai/build", json=body)
+            assert resp.status_code == 400, body
