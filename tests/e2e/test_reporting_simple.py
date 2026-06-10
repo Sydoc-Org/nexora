@@ -145,6 +145,7 @@ STUB_AI_DEFINITION = {
 
 def _stub_ai_build(page, definition=None, delay_s=0.0):
     import json
+    import time
 
     body = json.dumps(
         {
@@ -156,6 +157,8 @@ def _stub_ai_build(page, definition=None, delay_s=0.0):
     )
 
     def handler(route):
+        if delay_s:
+            time.sleep(delay_s)
         route.fulfill(status=200, content_type="application/json", body=body)
 
     page.route("**/api/reporting/ai/build", handler)
@@ -185,7 +188,7 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
         obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
     }""")
 
-    _stub_ai_build(page)
+    _stub_ai_build(page, delay_s=0.8)
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
 
