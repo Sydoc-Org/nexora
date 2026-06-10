@@ -39,7 +39,10 @@
     allTime: {{ _("All time")|tojson }},
     custom: {{ _("Custom")|tojson }},
     aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
-    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }}
+    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }},
+    aiFilters: {{ _("Filters")|tojson }},
+    aiProcesses: {{ _("Processes")|tojson }},
+    aiNoFilters: {{ _("no filters")|tojson }}
   };
 
   var state = {
@@ -237,6 +240,25 @@
     });
   }
 
+  // One-line transparency note under the title of AI-built reports: the
+  // model's own explanation plus the filters/scope it chose, so a wrong guess
+  // (bad date range, wrong process) is visible instead of silently rendering
+  // an empty table.
+  function aiSummaryLine(cur) {
+    var def = cur.def || {};
+    var bits = [];
+    if (cur.aiExplanation) bits.push(cur.aiExplanation);
+    var fs = (def.filters || []).map(function (f) {
+      var v = Array.isArray(f.value) ? f.value.join(' → ')
+            : (f.value === null || f.value === undefined ? '' : String(f.value));
+      return f.field + ' ' + f.op + (v !== '' ? ' ' + v : '');
+    });
+    bits.push(I18N.aiFilters + ': ' + (fs.length ? fs.join(' · ') : I18N.aiNoFilters));
+    var procs = (def.scope && def.scope.processes) || [];
+    if (procs.length) bits.push(I18N.aiProcesses + ': ' + procs.join(', '));
+    return bits.join(' — ');
+  }
+
   // Monotonic run token: a newer runCurrent invalidates every pending older
   // one, so a slow report's late responses can't render under a newer
   // report's title (and a double-click renders only once).
@@ -249,6 +271,10 @@
     el('rsError').hidden = true;
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    if (cur.aiExplanation !== undefined) {
+      el('rsMsg').textContent = aiSummaryLine(cur);
+      el('rsMsg').hidden = false;
+    }
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
@@ -652,7 +678,8 @@
       return;
     }
     state.current = { def: res.data.definition, name: res.data.definition.title,
-                      reportId: null, owned: true, canEdit: true, fromWizard: true };
+                      reportId: null, owned: true, canEdit: true, fromWizard: true,
+                      aiExplanation: res.data.explanation || '' };
     runCurrent();
   }
 
