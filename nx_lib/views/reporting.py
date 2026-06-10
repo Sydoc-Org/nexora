@@ -736,7 +736,10 @@ def _resolved_dates_meta(rd):
             continue
         try:
             start, end = resolve_token(value)
-        except ValueError:
+        except ValueError as e:
+            current_app.logger.warning(
+                f"reporting: _resolved_dates_meta could not resolve token {value!r}: {e}"
+            )
             continue
         item = {
             "field": f.get("field"),
@@ -980,6 +983,8 @@ def api_run():
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
     }
+    # rd is the original request body (tokens intact) — _prepare_run resolves
+    # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)
     if resolved_dates:
         payload["resolvedDates"] = resolved_dates
