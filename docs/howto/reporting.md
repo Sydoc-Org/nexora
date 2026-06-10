@@ -287,6 +287,37 @@ row-projection behaviour, unchanged.
 `is_null`, `is_not_null`. The validator rejects ops incompatible with a field's
 declared type.
 
+**Relative-date tokens.** Instead of a hard-coded date pair, a `between` filter
+on a date field may carry a token value so the range resolves at run time — saved
+and scheduled reports never go stale.
+
+Token shapes:
+- `{ "token": "<name>" }` — named preset
+- `{ "token": "last_n_days", "n": <1–366> }` — rolling N-day window
+
+Full token vocabulary:
+
+| Token | Period covered |
+|---|---|
+| `today` | Current calendar day |
+| `yesterday` | Previous calendar day |
+| `this_week` | Mon–Sun of the current week |
+| `last_week` | Mon–Sun of the previous week |
+| `this_month` | Full current calendar month |
+| `last_month` | Full previous calendar month |
+| `last_3_months` | Rolling 3-month window (today − 3 months to today) |
+| `this_year` | Full current calendar year (Jan 1 – Dec 31, incl. future days) |
+| `last_year` | Full previous calendar year |
+| `last_n_days` | Today − N days to today (N: 1–366) |
+
+Tokens resolve to the server-local date at the moment the run request is
+processed. The run response includes a `resolvedDates` list (one item per
+token filter) showing the concrete `from`/`to` dates for transparency.
+
+The Simple wizard's presets and the Advanced filter-panel preset dropdown emit
+tokens automatically. The AI assistant drafts tokens for relative-time
+questions.
+
 Custom `header` on a column is presentation-only — it appears as the column
 label in the results table and in the Excel export; it is never used in SQL.
 

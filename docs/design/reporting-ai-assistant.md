@@ -74,6 +74,12 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   grounding so relative time expressions ("last month", "this year") resolve to
   correct absolute date ranges, not training-data dates. The agent system prompt
   also instructs the model to use this date and not its training knowledge.
+- **Relative-date token emission:** Surface A (`ask_definition` / `_SYSTEM_DEF`)
+  and Surface C (`_AGENT_SYSTEM`) both teach the model to emit a token value
+  (`{"token": "last_month"}`, `{"token": "last_n_days", "n": 30}`, etc.) rather
+  than hard-coded date pairs when the question uses relative phrasing. Token
+  values are schema, not user data, so they pass through egress unchanged.
+  Resolution to a concrete date range happens server-side at run time.
 - **Distinct/unique values:** the system prompts teach both surfaces that answering
   "different X" / "unique X" questions requires `columns: [X]` plus a count metric
   (which makes X a GROUP BY dimension), not bare columns (which would return
