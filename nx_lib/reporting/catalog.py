@@ -20,6 +20,11 @@ _LANG_COLS = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}
 # field_key -> the Statconfig column attribute holding its date expression.
 _DATE_FIELDS = (("import_date", "ImportColumn"), ("export_date", "ExportColumn"))
 
+# Synthetic workitem-id field, derived from Statconfig.WorkitemColumn
+# (migration 0020). One canonical field key; the actual column name varies
+# per process (WorkItem / WorkitemID / WID ...).
+_WORKITEM_FIELD = "workitem_id"
+
 
 def date_availability(statconfig_rows, allowed_processes):
     """{date_field: [process, ...]} for processes (in scope) whose Statconfig
@@ -60,6 +65,42 @@ def date_catalog_entries(date_avail, labels):
         )
     entries.sort(key=lambda e: e["label"])
     return entries
+
+
+def workitem_availability(statconfig_rows, allowed_processes):
+    """[process, ...] (in scope) whose Statconfig WorkitemColumn is non-null.
+
+    Pure: rows are objects or dicts with ProcessName + WorkitemColumn. A row
+    without the attribute (pre-0020 Statconfig) counts as unavailable rather
+    than raising, so un-migrated environments simply lack the field."""
+    allowed = set(allowed_processes)
+    out = []
+    for r in statconfig_rows:
+        proc = r["ProcessName"] if isinstance(r, dict) else r.ProcessName
+        if proc not in allowed:
+            continue
+        val = r.get("WorkitemColumn") if isinstance(r, dict) else getattr(r, "WorkitemColumn", None)
+        if val:
+            out.append(proc)
+    return out
+
+
+def workitem_catalog_entries(processes, label):
+    """Catalog entries (empty or one) for the synthetic workitem_id field."""
+    if not processes:
+        return []
+    return [
+        {
+            "field": _WORKITEM_FIELD,
+            "label": label,
+            "type": "string",
+            "aggregable": False,
+            "sortable": True,
+            "filterable": True,
+            "grainable": False,
+            "processes": sorted(processes),
+        }
+    ]
 
 
 def build_catalog(meta_rows, label_rows, availability, *, lang_col):
@@ -158,10 +199,12 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
             meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str)
         )
 
-        # Synthetic date dimension from Statconfig (a different table from
-        # SearchConfig): import_date / export_date as first-class date fields.
+        # Synthetic fields from Statconfig (a different table from SearchConfig):
+        # import_date / export_date as first-class date fields, workitem_id from
+        # WorkitemColumn. SELECT * so a pre-0020 Statconfig (no WorkitemColumn)
+        # still yields the date fields; the helpers read attributes defensively.
         try:
-            cur.execute("SELECT ProcessName, ImportColumn, ExportColumn FROM Statconfig")
+            cur.execute("SELECT * FROM Statconfig")
             statconfig_rows = cur.fetchall()
         except Exception:
             current_app.logger.warning("reporting catalog: Statconfig unavailable")
@@ -169,6 +212,9 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         date_avail = date_availability(statconfig_rows, allowed_processes)
         catalog += date_catalog_entries(
             date_avail, {"import_date": _("Import date"), "export_date": _("Export date")}
+        )
+        catalog += workitem_catalog_entries(
+            workitem_availability(statconfig_rows, allowed_processes), _("Workitem ID")
         )
         catalog.sort(key=lambda e: e["label"])
         return catalog

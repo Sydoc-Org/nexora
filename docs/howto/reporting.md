@@ -110,6 +110,23 @@ dimension, this produces "documents per month". Date expressions originate solel
 from `Statconfig`, never the client — same trust boundary as the table/condition
 interpolation.
 
+### Workitem dimension & distinct count (`workitem_id` / `workitem_count`)
+
+The docprocessing source exposes a synthetic **`workitem_id`** field mapped per
+process by `StatConfig.WorkitemColumn` (migration `0020`; the underlying column
+names vary — `WorkItem`, `WorkitemID`, `WID`, ...). The query builder CASTs
+every mapping to `nvarchar(100)` so the cross-process UNION never mixes the
+columns' native types (nvarchar vs int). A process whose `WorkitemColumn` is
+NULL simply doesn't expose the field — set the column in `StatConfig` to add it
+for a new process, no code change needed.
+
+Its companion metric **`workitem_count`** (`COUNT(DISTINCT workitem_id)`,
+registered in `dbo.ReportingMetrics`) answers "how many workitems" where
+`doc_count` counts *rows* — a workitem that produced several statistics rows is
+counted once. It appears automatically as a measure in the Simple wizard and in
+the AI grounding. Rows from a process without a workitem mapping contribute
+nothing to the distinct count (their `workitem_id` projects as NULL).
+
 ### Save & load
 
 Reports are saved per user in the `dbo.Reports` table (NexoraDB). A saved

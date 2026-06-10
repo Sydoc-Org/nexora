@@ -11,6 +11,7 @@ CREATE TABLE [dbo].[StatConfig](
 	[TableName] [nvarchar](100) NULL,
 	[ExportColumn] [nvarchar](100) NULL,
 	[additionalCondition] [nvarchar](100) NULL,
-	[ImportColumn] [nvarchar](50) NULL
+	[ImportColumn] [nvarchar](50) NULL,
+	[WorkitemColumn] [nvarchar](100) NULL
 ) ON [PRIMARY]
 GO

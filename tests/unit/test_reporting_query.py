@@ -67,6 +67,29 @@ def test_builds_union_over_processes_with_top_and_order():
     assert "NULL AS [pages]" in sql
 
 
+def test_schema_qualified_table_brackets_each_part():
+    # Statconfig TableName values are schema-qualified ('dbo.Compass_Invoice');
+    # bracketing the whole string as one identifier ([dbo.Compass_Invoice])
+    # makes SQL Server look up a table literally named 'dbo.Compass_Invoice'
+    # and 208 on every run.
+    sql, _ = build_table_query(_rd(), PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "FROM [dbo].[StatA]" in sql
+    assert "FROM [dbo].[StatB]" in sql
+    assert "[dbo.StatA]" not in sql
+
+
+def test_unqualified_table_name_brackets_whole_name():
+    cfgs = [dict(PROCESS_CONFIGS[0], table="StatA")]
+    sql, _ = build_table_query(_rd(), cfgs, FIELD_COL_MAPS, row_cap=100)
+    assert "FROM [StatA]" in sql
+
+
+def test_unsafe_table_name_raises():
+    cfgs = [dict(PROCESS_CONFIGS[0], table="dbo.StatA]; DROP TABLE x--")]
+    with pytest.raises(QueryBuildError):
+        build_table_query(_rd(), cfgs, FIELD_COL_MAPS, row_cap=100)
+
+
 def test_unknown_column_raises():
     with pytest.raises(QueryBuildError):
         build_table_query(
@@ -95,8 +118,8 @@ def test_filter_field_unmapped_in_process_excludes_that_process():
     # filter on 'pages' which acme.hr lacks → only acme.inv subquery remains
     rd = _rd(filters=[{"field": "pages", "op": "gt", "value": 3}])
     sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
-    assert "dbo.StatA" in sql
-    assert "dbo.StatB" not in sql
+    assert "[dbo].[StatA]" in sql
+    assert "[StatB]" not in sql
 
 
 def test_additional_condition_is_appended():
@@ -135,15 +158,15 @@ def test_sort_field_not_in_projection_raises():
 def test_processname_eq_filter_restricts_to_single_process():
     rd = _rd(filters=[{"field": "processname", "op": "eq", "value": "acme.inv"}])
     sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
-    assert "dbo.StatA" in sql
-    assert "dbo.StatB" not in sql
+    assert "[dbo].[StatA]" in sql
+    assert "[StatB]" not in sql
 
 
 def test_processname_in_filter_restricts_to_listed_processes():
     rd = _rd(filters=[{"field": "processname", "op": "in", "value": ["acme.hr"]}])
     sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
-    assert "dbo.StatB" in sql
-    assert "dbo.StatA" not in sql
+    assert "[dbo].[StatB]" in sql
+    assert "[StatA]" not in sql
 
 
 def test_processname_filter_emits_no_where_clause():
@@ -354,3 +377,89 @@ def test_missing_columns_key_with_metrics_builds_global_total():
     )
     assert "COUNT(*) AS [doc_count]" in sql
     assert "GROUP BY" not in sql
+
+
+# --- Synthetic workitem_id field (Statconfig WorkitemColumn, migration 0020) --
+
+WI_CONFIGS = [
+    {
+        "process": "acme.inv",
+        "table": "dbo.StatA",
+        "export_col": "ExportDate",
+        "import_col": "ImportDate",
+        "condition": "",
+        "workitem_col": "WorkItem",
+    },
+    {
+        "process": "acme.hr",
+        "table": "dbo.StatB",
+        "export_col": "ExpD",
+        "import_col": "ImpD",
+        "condition": "",
+        "workitem_col": "WID",
+    },
+    {
+        "process": "acme.legacy",
+        "table": "dbo.StatC",
+        "export_col": None,
+        "import_col": None,
+        "condition": "",
+        # no workitem_col: pre-0020 row / process without a workitem column
+    },
+]
+WI_FIELD_COL_MAPS = {
+    "acme.inv": {"doctype": "DocType"},
+    "acme.hr": {"doctype": "DType"},
+    "acme.legacy": {"doctype": "DT"},
+}
+
+
+def test_workitem_id_projection_casts_to_nvarchar_and_nulls_missing():
+    # Mixed underlying types (nvarchar WorkItem vs int WID) must be normalized
+    # to one type or the UNION ALL would coerce by type precedence and fail.
+    rd = _rd(
+        columns=[{"field": "workitem_id", "header": "WI", "agg": None}],
+        sort=[],
+        scope={"clients": [], "processes": []},
+    )
+    sql, params = build_table_query(rd, WI_CONFIGS, WI_FIELD_COL_MAPS, row_cap=100)
+    assert "CAST(WorkItem AS nvarchar(100)) AS [workitem_id]" in sql
+    assert "CAST(WID AS nvarchar(100)) AS [workitem_id]" in sql
+    assert "NULL AS [workitem_id]" in sql  # acme.legacy has no workitem column
+
+
+def test_workitem_id_filter_uses_cast_and_drops_unexposed_process():
+    rd = _rd(
+        columns=[{"field": "doctype", "header": "T", "agg": None}],
+        filters=[{"field": "workitem_id", "op": "eq", "value": "12345"}],
+        sort=[],
+        scope={"clients": [], "processes": []},
+    )
+    sql, params = build_table_query(rd, WI_CONFIGS, WI_FIELD_COL_MAPS, row_cap=100)
+    assert "CAST(WorkItem AS nvarchar(100)) = ?" in sql
+    assert "CAST(WID AS nvarchar(100)) = ?" in sql
+    assert "12345" in params
+    # a process without the workitem column can never match the filter
+    assert "[StatC]" not in sql
+
+
+def test_count_distinct_workitem_metric_groups_by_dims():
+    rd = _rd(
+        columns=[{"field": "doctype", "header": "T", "agg": None}],
+        sort=[],
+        metrics=[{"metric": "workitem_count"}],
+        scope={"clients": [], "processes": []},
+    )
+    resolved = [
+        {"code": "workitem_count", "aggregation": "count_distinct", "base_field": "workitem_id"}
+    ]
+    sql, params = build_table_query(
+        rd, WI_CONFIGS, WI_FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "COUNT(DISTINCT [workitem_id]) AS [workitem_count]" in sql
+    assert "GROUP BY [doctype]" in sql
+    # the base field resolves to the per-process column where mapped...
+    assert "CAST(WorkItem AS nvarchar(100)) AS [workitem_id]" in sql
+    assert "CAST(WID AS nvarchar(100)) AS [workitem_id]" in sql
+    # ...and projects NULL where unmapped (COUNT(DISTINCT ...) ignores NULLs)
+    assert sql.count("NULL AS [workitem_id]") == 1

@@ -7,6 +7,8 @@ returns (sql, params) for the statistics engine. Every column/table name comes
 from the injected maps/configs; only filter *values* become ? parameters.
 """
 
+import re
+
 from .semantic import build_aggregate_sql
 
 _OP_SQL = {
@@ -29,6 +31,12 @@ _DATE_GRAINS = {"day", "week", "month", "quarter", "year"}
 
 # Synthetic date field -> the process-config key holding its raw column expression.
 _DATE_FIELD_COL = {"import_date": "import_col", "export_date": "export_col"}
+
+# Synthetic workitem-id field -> the process-config key with its column name.
+# Always projected via CAST(... AS nvarchar(100)): the per-process workitem
+# columns have mixed types (nvarchar / int / numeric), and an unnormalized
+# UNION ALL would coerce by type precedence and fail on non-numeric ids.
+_WORKITEM_FIELD_COL = {"workitem_id": "workitem_col"}
 
 
 def _date_base(col_expr):
@@ -67,8 +75,35 @@ def _date_exprs_for(cfg, grain_by_field):
     return out
 
 
+def _workitem_exprs_for(cfg):
+    """{workitem_field: sql_expr} when this process maps a workitem column.
+    The column name originates only from Statconfig (server config), never the
+    client — the same SQL-injection boundary as the date expressions."""
+    out = {}
+    for field, cfg_key in _WORKITEM_FIELD_COL.items():
+        col = cfg.get(cfg_key)
+        if col:
+            out[field] = f"CAST({col} AS nvarchar(100))"
+    return out
+
+
 class QueryBuildError(ValueError):
     """Raised when a report definition cannot be turned into SQL."""
+
+
+_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _bracket_object(name):
+    """Validate + bracket-quote a possibly schema-qualified object name
+    part-by-part: 'dbo.X' -> '[dbo].[X]', 'X' -> '[X]'. Bracketing the whole
+    dotted string as one identifier would make SQL Server look up a table
+    literally named 'dbo.X'. Names originate from Statconfig (server config),
+    never the client; the identifier check is defence in depth."""
+    parts = str(name or "").split(".")
+    if not 1 <= len(parts) <= 3 or not all(_IDENT.match(p) for p in parts):
+        raise QueryBuildError(f"unsafe table name: {name!r}")
+    return ".".join(f"[{p}]" for p in parts)
 
 
 def _escape_like(value):
@@ -189,6 +224,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
         all_known_fields.update(colmap.keys())
     for cfg in process_configs:
         all_known_fields.update(_date_exprs_for(cfg, grain_by_field).keys())
+        all_known_fields.update(_workitem_exprs_for(cfg).keys())
     for field in columns:
         if field not in all_known_fields:
             raise QueryBuildError(f"unknown column field: {field!r}")
@@ -208,8 +244,9 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     for cfg in process_configs:
         colmap = field_col_maps.get(cfg["process"], {})
         # Projection uses the column grain; filters always use the RAW date.
-        proj_resolved = {**colmap, **_date_exprs_for(cfg, grain_by_field)}
-        filt_resolved = {**colmap, **_date_exprs_for(cfg, {})}
+        wi_exprs = _workitem_exprs_for(cfg)
+        proj_resolved = {**colmap, **_date_exprs_for(cfg, grain_by_field), **wi_exprs}
+        filt_resolved = {**colmap, **_date_exprs_for(cfg, {}), **wi_exprs}
 
         # A filter referencing a field this process doesn't expose can never
         # match here — drop the whole subquery for correctness.
@@ -241,7 +278,7 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
             where.append(_filter_clause(col, f["op"], f.get("value"), params))
         cond = f" {cfg['condition']}" if cfg.get("condition") else ""
         sub_queries.append(
-            f"SELECT {', '.join(select_exprs)} FROM [{cfg['table']}] "
+            f"SELECT {', '.join(select_exprs)} FROM {_bracket_object(cfg['table'])} "
             f"WHERE {' AND '.join(where)}{cond}"
         )
 

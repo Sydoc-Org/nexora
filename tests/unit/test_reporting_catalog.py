@@ -5,6 +5,8 @@ from nx_lib.reporting.catalog import (
     build_catalog,
     date_availability,
     date_catalog_entries,
+    workitem_availability,
+    workitem_catalog_entries,
 )
 
 
@@ -47,6 +49,43 @@ def test_date_catalog_entries_shape():
             "processes": ["a.p", "b.p"],
         }
     ]
+
+
+def test_workitem_availability_filters_nulls_and_scope():
+    rows = [
+        _Row(ProcessName="compass.01_Invoice_SAP", WorkitemColumn="WorkItem"),
+        _Row(ProcessName="privera.03_Invoice_New", WorkitemColumn=None),
+        _Row(ProcessName="other.99_Hidden", WorkitemColumn="X"),  # out of scope
+    ]
+    avail = workitem_availability(rows, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
+    assert avail == ["compass.01_Invoice_SAP"]
+
+
+def test_workitem_availability_tolerates_pre_migration_rows():
+    # Statconfig without the WorkitemColumn column (migration 0020 not applied):
+    # the field is simply unavailable, never an AttributeError.
+    rows = [_Row(ProcessName="compass.01_Invoice_SAP")]
+    assert workitem_availability(rows, ["compass.01_Invoice_SAP"]) == []
+
+
+def test_workitem_catalog_entries_shape():
+    entries = workitem_catalog_entries(["b.p", "a.p"], "Workitem ID")
+    assert entries == [
+        {
+            "field": "workitem_id",
+            "label": "Workitem ID",
+            "type": "string",
+            "aggregable": False,
+            "sortable": True,
+            "filterable": True,
+            "grainable": False,
+            "processes": ["a.p", "b.p"],
+        }
+    ]
+
+
+def test_workitem_catalog_entries_empty_when_no_process_exposes_it():
+    assert workitem_catalog_entries([], "Workitem ID") == []
 
 
 def test_build_catalog_merges_meta_labels_and_availability():

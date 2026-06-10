@@ -62,6 +62,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   filters on a date field always use the raw date. Enables date-range filtering
   and "documents per day/week/month" reporting. Security boundary unchanged
   (date expressions come only from `Statconfig`). de/fr/it translated.
+- **Reporting workitem dimension + distinct workitem count (docprocessing).**
+  A synthetic **`workitem_id`** field, mapped per process by the new
+  `StatConfig.WorkitemColumn` (migration `0020`; underlying names vary —
+  `WorkItem` / `WorkitemID` / `WID`). The query builder CASTs every mapping to
+  `nvarchar(100)` so the cross-process UNION never mixes native column types;
+  unmapped processes project NULL (and can be added later by setting
+  `WorkitemColumn`, no code change). Ships with the registered metric
+  **`workitem_count`** (`COUNT(DISTINCT workitem_id)`) — "how many workitems"
+  where `doc_count` counts rows — which appears automatically in the Simple
+  wizard's measures and the AI grounding. de/fr/it translated.
 - **Generali PDQM mapping seed.** Added the `PDQMMapping` row
   `Adressverifikation` / `QSTAT 27` via migration
   `sql/_migrations/GeneraliDB/0002_insert_pdqmmapping_adressverifikation_qstat27.sql`
@@ -400,6 +410,15 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Scheduled reports now support metric definitions.** The scheduled-report
+  runner (`nx_lib/reporting/runner.py`) validated saved definitions **without
+  the source's metric codes** and never resolved `metrics` into the aggregate
+  query — any scheduled report carrying a metric (e.g. one saved from the
+  Simple wizard) failed with *unknown metric* since semantic Slice 1. The
+  runner now mirrors the interactive run path for both providers
+  (docprocessing + `table`): it passes `metric_codes` to validation, resolves
+  the metrics, builds the aggregate query, and appends the metric columns to
+  the exported sheet.
 - **Reporting AI — table-source drafts no longer bounce on labels/missing fields.**
   Small models (e.g. gpt-4o-mini) reliably emitted *near-valid* report definitions
   for curated **table** sources — using a column's human **label** ("Date") where

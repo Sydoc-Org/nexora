@@ -614,9 +614,10 @@ def _load_process_configs(target_processes):
     try:
         cur = conn.cursor()
         ph = ",".join(["?"] * len(target_processes))
+        # SELECT * so a pre-0020 Statconfig (no WorkitemColumn yet) still
+        # serves the date columns; WorkitemColumn is read defensively.
         cur.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition "
-            f"FROM Statconfig WHERE ProcessName IN ({ph})",
+            f"SELECT * FROM Statconfig WHERE ProcessName IN ({ph})",
             target_processes,
         )
         return [
@@ -626,6 +627,7 @@ def _load_process_configs(target_processes):
                 "export_col": r.ExportColumn,
                 "import_col": r.ImportColumn,
                 "condition": r.additionalCondition or "",
+                "workitem_col": getattr(r, "WorkitemColumn", None),
             }
             for r in cur.fetchall()
         ]
