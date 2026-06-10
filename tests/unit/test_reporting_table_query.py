@@ -116,3 +116,19 @@ def test_generic_aggregate_groups_and_aggregates():
         "GROUP BY [client] ORDER BY [amount_sum] DESC"
     )
     assert params == ["ACME"]
+
+
+def test_zero_dim_metric_global_total_generic():
+    rd = _rd(columns=[], sort=[])
+    resolved = [{"code": "n", "aggregation": "count", "base_field": None}]
+    sql, params = build_generic_query(
+        rd, "Db.dbo.V", _COLUMNS, row_cap=100, resolved_metrics=resolved
+    )
+    assert sql == "SELECT TOP (100) COUNT(*) AS [n] FROM [Db].[dbo].[V]"
+    assert params == []
+
+
+def test_zero_dim_without_metrics_still_rejected_generic():
+    rd = _rd(columns=[], sort=[])
+    with pytest.raises(TableQueryError):
+        build_generic_query(rd, "Db.dbo.V", _COLUMNS, row_cap=100)

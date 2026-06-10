@@ -115,14 +115,13 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
     """
     by_field = {c["field"]: c for c in columns}
     proj = [c.get("field") for c in rd.get("columns", [])]
-    select_cols = [_quote_ident(f) for f in proj if f in by_field]
-    if not select_cols:
-        raise TableQueryError("no valid columns selected")
+    dim_fields = [f for f in proj if f in by_field]
 
     conds, params = _build_conditions(rd, by_field)
 
     if resolved_metrics:
-        dim_fields = [f for f in proj if f in by_field]
+        # Zero-dimension grand totals: empty dim_fields is valid here and
+        # yields a global aggregate with no GROUP BY.
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
         inner_from = f"{_quote_object(base_object)}{where}"
         sql = build_aggregate_sql(
@@ -133,6 +132,10 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
             cap=row_cap,
         )
         return sql, params
+
+    select_cols = [_quote_ident(f) for f in dim_fields]
+    if not select_cols:
+        raise TableQueryError("no valid columns selected")
 
     sql = [
         f"SELECT TOP ({int(row_cap)}) {', '.join(select_cols)} FROM {_quote_object(base_object)}"
