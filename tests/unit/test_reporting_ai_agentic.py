@@ -278,3 +278,5 @@ def test_agent_system_prompt_teaches_relative_date_tokens():
     s = _AGENT_SYSTEM
     assert '"token"' in s
     assert "last_n_days" in s
+    assert '{"token": "last_month"}' in s
+    assert "resolve at run" in s

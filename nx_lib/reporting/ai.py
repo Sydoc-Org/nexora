@@ -430,7 +430,7 @@ _AGENT_SYSTEM = (
     " dimensions. Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
     " For relative time ranges set the date filter value to a token object,"
-    ' e.g. {"op": "between", "value": {"token": "last_month"}} (tokens: today,'
+    ' e.g. {"field": "<date field>", "op": "between", "value": {"token": "last_month"}} (tokens: today,'
     " yesterday, this_week, last_week, this_month, last_month, this_year,"
     ' last_year, last_3_months, last_n_days with "n") — these resolve at run'
     " time; keep literal ISO dates for explicit dates."
