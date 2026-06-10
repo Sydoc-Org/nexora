@@ -18,6 +18,7 @@ from .schema import (
     validate_report_definition,
     validate_sql_definition,
 )
+from .semantic import resolve_metrics
 from .sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT
 from .table_query import build_generic_query, table_source_catalog
 
@@ -34,11 +35,16 @@ def _allowed_processes_from_perms(perms):
     )
 
 
-def _normalize_columns(definition):
-    return [
+def _normalize_columns(definition, resolved_metrics=None):
+    """Export columns: the definition's dims plus any resolved metric codes
+    (the aggregate query projects dims + metric codes, in that order)."""
+    cols = [
         {"field": c["field"], "header": c.get("header") or c["field"]}
-        for c in definition.get("columns", [])
+        for c in definition.get("columns") or []
     ]
+    for m in resolved_metrics or []:
+        cols.append({"field": m["code"], "header": m["code"]})
+    return cols
 
 
 def execute_definition(definition, owner_perms, owner_id, owner_username, locale):
@@ -79,13 +85,20 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
         grainable = {f["field"] for f in catalog if f.get("grainable")}
+        source_metrics = rv._metrics_for_source(source["id"])
         validate_report_definition(
             definition,
             catalog_fields,
             filterable,
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
+            metric_codes=set(source_metrics),
             grainable_fields=grainable,
+        )
+        resolved = (
+            resolve_metrics(definition.get("metrics"), source_metrics, catalog_fields)
+            if definition.get("metrics")
+            else None
         )
         requested = (definition.get("scope") or {}).get("processes") or []
         allowed_set = set(allowed)
@@ -93,27 +106,45 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
         configs = rv._load_process_configs(scope)
         col_maps = rv._load_field_col_maps(scope)
         sql, params = build_table_query(
-            definition, configs, col_maps, row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT)
+            definition,
+            configs,
+            col_maps,
+            row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT),
+            resolved_metrics=resolved,
         )
-        return _normalize_columns(definition), rv._execute(rv.engine_statistics_db, sql, params)
+        return _normalize_columns(definition, resolved), rv._execute(
+            rv.engine_statistics_db, sql, params
+        )
 
     if provider == "table":
         catalog = table_source_catalog(source.get("columns"))
         catalog_fields = {f["field"] for f in catalog}
         filterable = {f["field"] for f in catalog if f["filterable"]}
         sortable = {f["field"] for f in catalog if f["sortable"]}
+        source_metrics = rv._metrics_for_source(source["id"])
         validate_report_definition(
-            definition, catalog_fields, filterable, sortable, max_row_limit=MAX_ROW_LIMIT
+            definition,
+            catalog_fields,
+            filterable,
+            sortable,
+            max_row_limit=MAX_ROW_LIMIT,
+            metric_codes=set(source_metrics),
+        )
+        resolved = (
+            resolve_metrics(definition.get("metrics"), source_metrics, catalog_fields)
+            if definition.get("metrics")
+            else None
         )
         sql, params = build_generic_query(
             definition,
             source.get("baseObject"),
             catalog,
             row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT),
+            resolved_metrics=resolved,
         )
         engine = rv._CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
             raise ReportDefinitionError("source engine is not configured")
-        return _normalize_columns(definition), rv._execute(engine, sql, params)
+        return _normalize_columns(definition, resolved), rv._execute(engine, sql, params)
 
     raise ReportDefinitionError("unsupported source provider")
