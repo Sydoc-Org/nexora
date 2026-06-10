@@ -57,8 +57,13 @@
 
   async function api(url, opts) {
     opts = opts || {};
-    var res = await fetch(url, Object.assign(
-      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    var res;
+    try {
+      res = await fetch(url, Object.assign(
+        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    } catch (e) {
+      return { ok: false, status: 0, data: null };  // network-level failure
+    }
     var data = null;
     try { data = await res.json(); } catch (e) { /* non-JSON */ }
     return { ok: res.ok, status: res.status, data: data };
@@ -153,6 +158,9 @@
   // ---------- Result view ----------
   function showResultError(msg) {
     setView('result');
+    el('rsResultTitle').textContent = '';
+    el('rsMsg').hidden = true;
+    el('rsSaveName').hidden = true;
     el('rsError').textContent = msg;
     el('rsError').hidden = false;
     el('rsStatCard').hidden = true;
@@ -206,7 +214,12 @@
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     var metricIdx = columns.length - (def.metrics || []).length;
-    var labels = rows.map(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10); });
+    var labels = rows.map(function (r) {
+      var v = String(r[0] == null ? '' : r[0]);
+      // Date values arrive as ISO datetimes — trim to the date part. Category
+      // labels stay intact.
+      return isDate ? v.slice(0, 10) : v;
+    });
     var datasets = (def.metrics || []).map(function (m, i) {
       var col = columns[metricIdx + i];
       return {
@@ -224,8 +237,14 @@
     });
   }
 
+  // Monotonic run token: a newer runCurrent invalidates every pending older
+  // one, so a slow report's late responses can't render under a newer
+  // report's title (and a double-click renders only once).
+  var runSeq = 0;
+
   async function runCurrent() {
     var cur = state.current;
+    var seq = ++runSeq;
     setView('result');
     el('rsError').hidden = true;
     el('rsMsg').hidden = true;
@@ -238,14 +257,17 @@
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    var dims = (def.columns || []).length;
 
     // Grand total via a zero-column clone: correct for every aggregation
     // (avg/count_distinct included), unlike a client-side sum of grouped rows.
-    if (hasMetrics) {
+    // Skipped for zero-dim definitions — there the main run IS the total.
+    if (hasMetrics && dims) {
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = [];
       totalDef.sort = [];
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
         el('rsStatLabel').textContent = metricLabelFor(def);
         el('rsStatValue').textContent = fmtNumber(t.data.rows[0][0]);
@@ -255,8 +277,14 @@
 
     // Breakdown run (or the plain grid run for non-metric definitions).
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    if (seq !== runSeq) return;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     var columns = res.data.columns || [], rows = res.data.rows || [];
+    if (hasMetrics && !dims && rows.length) {
+      el('rsStatLabel').textContent = metricLabelFor(def);
+      el('rsStatValue').textContent = fmtNumber(rows[0][0]);
+      el('rsStatCard').hidden = false;
+    }
     if (!rows.length && el('rsStatCard').hidden) {
       el('rsTableWrap').innerHTML =
         '<div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox" aria-hidden="true"></i></div>' +
@@ -264,7 +292,7 @@
       el('rsTableWrap').hidden = false;
       return;
     }
-    if (hasMetrics && (def.columns || []).length) mountChart(def, columns, rows);
+    if (hasMetrics && dims) mountChart(def, columns, rows);
     renderTable(columns, rows);
     if (hasMetrics) {
       el('rsTableToggle').hidden = false;
@@ -283,6 +311,7 @@
 
   // Save: always a NEW row (inline name input, no window.prompt).
   el('rsSave').addEventListener('click', async function () {
+    if (!state.current) return;  // error view without a loaded report
     var nameInput = el('rsSaveName');
     if (nameInput.hidden) {
       nameInput.hidden = false;
@@ -319,12 +348,16 @@
 
   if (EXPORT_ALLOWED) {
     el('rsExport').addEventListener('click', async function () {
+      if (!state.current) return;  // error view without a loaded report
       var body = Object.assign({}, state.current.def, { format: 'xlsx' });
-      var res = await fetch('/api/reporting/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-        body: JSON.stringify(body)
-      });
+      var res;
+      try {
+        res = await fetch('/api/reporting/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify(body)
+        });
+      } catch (e) { res = { ok: false }; }
       if (!res.ok) {
         el('rsError').textContent = I18N.couldNotExport;
         el('rsError').hidden = false;
@@ -344,12 +377,15 @@
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'reporting-simple-choice';
+    b.setAttribute('aria-pressed', 'false');
     b.textContent = label;
     b.addEventListener('click', function () {
       Array.prototype.forEach.call(b.parentNode.children, function (s) {
         s.classList.remove('is-selected');
+        if (s.setAttribute) s.setAttribute('aria-pressed', 'false');
       });
       b.classList.add('is-selected');
+      b.setAttribute('aria-pressed', 'true');
       onpick();
     });
     return b;
@@ -524,7 +560,12 @@
               }
             });
           }
-          state.wiz.range = null;
+          // Re-selecting Custom keeps whatever range the picker still shows
+          // (display and state must agree); empty picker = no filter yet.
+          var fp = state.wiz._fp;
+          state.wiz.range = (fp && fp.selectedDates && fp.selectedDates.length === 2)
+            ? [isoDate(fp.selectedDates[0]), isoDate(fp.selectedDates[1])]
+            : null;
         } else {
           var r = presetRange(p[0]);
           state.wiz.range = r ? [isoDate(r[0]), isoDate(r[1])] : null;
