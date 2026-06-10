@@ -227,3 +227,74 @@ def test_run_with_unknown_metric_returns_400(admin_client):
         resp = admin_client.post("/api/reporting/run", json=bad)
     # validate_report_definition rejects an unknown metric code (not in metric_codes).
     assert resp.status_code == 400
+
+
+# --- Zero-dimension (grand total) metric runs -------------------------------
+
+
+def test_run_zero_dim_metric_returns_single_total_row(admin_client):
+    # Real-DB round trip over the generic table provider: register a table
+    # source over the TEST Users table plus a count metric, then run a
+    # zero-column definition and expect exactly one grand-total row with only
+    # the metric column.
+    create_src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "zd_users",
+            "kind": "curated",
+            "label": "ZeroDim Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+            ],
+            "enabled": True,
+            "sortOrder": 10,
+        },
+    )
+    assert create_src.status_code == 200, create_src.data
+    sid = create_src.get_json()["id"]
+    create_metric = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "zd_user_count",
+            "sourceId": "zd_users",
+            "label": "User count",
+            "aggregation": "count",
+            "format": "int",
+        },
+    )
+    assert create_metric.status_code == 200, create_metric.data
+    mid = create_metric.get_json()["id"]
+    try:
+        run = admin_client.post(
+            "/api/reporting/run",
+            json={
+                "schemaVersion": 1,
+                "source": "zd_users",
+                "visualization": "table",
+                "title": "Total users",
+                "columns": [],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 100,
+                "metrics": [{"metric": "zd_user_count"}],
+            },
+        )
+        assert run.status_code == 200, run.data
+        data = run.get_json()
+        assert [c["field"] for c in data["columns"]] == ["zd_user_count"]
+        assert data["rowCount"] == 1
+        assert data["rows"][0][0] >= 1
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{sid}")
