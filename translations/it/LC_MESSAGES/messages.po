@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 17:21+0200\n"
+"POT-Creation-Date: 2026-06-10 18:39+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -483,7 +483,7 @@ msgstr "L'assistente IA non è riuscito a rispondere in questo momento"
 #: nx_lib/views/reporting.py:1231 nx_lib/views/reporting.py:1234
 #: nx_lib/views/reporting.py:1238 nx_lib/views/reporting.py:1240
 msgid "Invalid refine context"
-msgstr "Contesto di affinamento non valido"
+msgstr "Contesto di perfezionamento non valido"
 
 #: nx_lib/views/reporting.py:1325
 msgid "Could not build a valid report"
@@ -1027,7 +1027,15 @@ msgstr "Apri in Avanzato"
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/_reporting_simple.html:103
+#: templates/_reporting_simple.html:90 templates/_reporting_simple.html:91
+msgid "Refine your question…"
+msgstr "Perfeziona la tua domanda…"
+
+#: templates/_reporting_simple.html:93
+msgid "Refine"
+msgstr "Perfeziona"
+
+#: templates/_reporting_simple.html:111
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr "Mostra tabella"
@@ -1214,7 +1222,9 @@ msgstr "A"
 #: templates/generali_baseservices.html:107
 #: templates/generali_importstatus.html:70 templates/generali_pdqm.html:127
 #: templates/generali_projectmanagement.html:95
-#: templates/generali_reporting.html:130 templates/js/admin/_logs_js.html:159
+#: templates/generali_reporting.html:130
+#: templates/js/_reporting_simple_js.html:54
+#: templates/js/admin/_logs_js.html:159
 msgid "Apply"
 msgstr "Applica"
 
@@ -2428,7 +2438,7 @@ msgid "Processes"
 msgstr "Processi"
 
 #: templates/js/_reporting_js.html:206 templates/js/_reporting_js.html:233
-#: templates/reporting.html:82
+#: templates/js/_reporting_simple_js.html:55 templates/reporting.html:82
 msgid "All processes"
 msgstr "Tutti i processi"
 
@@ -4470,7 +4480,7 @@ msgstr "Interrogazione dell’IA…"
 
 #: templates/js/_reporting_simple_js.html:52
 msgid "Drafting your report…"
-msgstr "Redazione del rapporto…"
+msgstr "Creazione del rapporto…"
 
 #: templates/js/_reporting_simple_js.html:53
 msgid "Checking the result…"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 17:21+0200\n"
+"POT-Creation-Date: 2026-06-10 18:39+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -485,7 +485,7 @@ msgstr "L'assistant IA n'a pas pu répondre pour le moment"
 #: nx_lib/views/reporting.py:1231 nx_lib/views/reporting.py:1234
 #: nx_lib/views/reporting.py:1238 nx_lib/views/reporting.py:1240
 msgid "Invalid refine context"
-msgstr "Contexte d'affinage invalide"
+msgstr "Contexte de raffinement invalide"
 
 #: nx_lib/views/reporting.py:1325
 msgid "Could not build a valid report"
@@ -1031,7 +1031,15 @@ msgstr "Ouvrir dans Avancé"
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/_reporting_simple.html:103
+#: templates/_reporting_simple.html:90 templates/_reporting_simple.html:91
+msgid "Refine your question…"
+msgstr "Affinez votre question…"
+
+#: templates/_reporting_simple.html:93
+msgid "Refine"
+msgstr "Affiner"
+
+#: templates/_reporting_simple.html:111
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr "Afficher le tableau"
@@ -1218,7 +1226,9 @@ msgstr "Au"
 #: templates/generali_baseservices.html:107
 #: templates/generali_importstatus.html:70 templates/generali_pdqm.html:127
 #: templates/generali_projectmanagement.html:95
-#: templates/generali_reporting.html:130 templates/js/admin/_logs_js.html:159
+#: templates/generali_reporting.html:130
+#: templates/js/_reporting_simple_js.html:54
+#: templates/js/admin/_logs_js.html:159
 msgid "Apply"
 msgstr "Appliquer"
 
@@ -2434,7 +2444,7 @@ msgid "Processes"
 msgstr "Processus"
 
 #: templates/js/_reporting_js.html:206 templates/js/_reporting_js.html:233
-#: templates/reporting.html:82
+#: templates/js/_reporting_simple_js.html:55 templates/reporting.html:82
 msgid "All processes"
 msgstr "Tous les processus"
 
@@ -4480,11 +4490,11 @@ msgstr "{n} derniers jours"
 
 #: templates/js/_reporting_simple_js.html:51
 msgid "Asking the AI…"
-msgstr "Interrogation de l’IA…"
+msgstr "L’IA est interrogée…"
 
 #: templates/js/_reporting_simple_js.html:52
 msgid "Drafting your report…"
-msgstr "Rédaction du rapport…"
+msgstr "Rapport en cours de création…"
 
 #: templates/js/_reporting_simple_js.html:53
 msgid "Checking the result…"

@@ -107,6 +107,14 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
 **Best for:** non-technical users, scoped sources (Generali / Octopus curated),
 "just build me the report." **Limit:** only what the builder can express.
 
+#### AI refine (Surface A)
+
+The Simple tab exposes conversational refinement: each `/api/reporting/ai-build`
+call can receive `priorQuestion` and `priorDefinition` in the request body. These
+are injected into the user-turn prompt so the model can apply targeted changes
+rather than rebuilding from scratch. The model output is still fully validated;
+`priorDefinition` is prompt context only and never executed directly.
+
 ### Surface B — NL → **T-SQL** (powerful, for complex stats)
 
 The model emits T-SQL that flows through the *unchanged* `/api/reporting/sql/run`

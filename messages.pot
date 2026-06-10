@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-10 17:21+0200\n"
+"POT-Creation-Date: 2026-06-10 18:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1017,7 +1017,15 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: templates/_reporting_simple.html:103
+#: templates/_reporting_simple.html:90 templates/_reporting_simple.html:91
+msgid "Refine your question…"
+msgstr ""
+
+#: templates/_reporting_simple.html:93
+msgid "Refine"
+msgstr ""
+
+#: templates/_reporting_simple.html:111
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr ""
@@ -1200,7 +1208,9 @@ msgstr ""
 #: templates/generali_baseservices.html:107
 #: templates/generali_importstatus.html:70 templates/generali_pdqm.html:127
 #: templates/generali_projectmanagement.html:95
-#: templates/generali_reporting.html:130 templates/js/admin/_logs_js.html:159
+#: templates/generali_reporting.html:130
+#: templates/js/_reporting_simple_js.html:54
+#: templates/js/admin/_logs_js.html:159
 msgid "Apply"
 msgstr ""
 
@@ -2396,7 +2406,7 @@ msgid "Processes"
 msgstr ""
 
 #: templates/js/_reporting_js.html:206 templates/js/_reporting_js.html:233
-#: templates/reporting.html:82
+#: templates/js/_reporting_simple_js.html:55 templates/reporting.html:82
 msgid "All processes"
 msgstr ""
 

@@ -520,6 +520,19 @@ per-user/day cap (`AI_DAILY_LIMIT`) applies. No new permission, table, or migrat
 **Egress:** the model receives the question plus the curated-source field catalog
 metadata only — never result rows.
 
+### AI refine (Simple tab)
+
+After an AI-built result renders, a **Refine** bar appears below the explanation.
+Type a follow-up question (e.g. "break it down by month instead") and click
+**Refine** to improve the report without starting over. The AI receives the original
+question and definition as context so it can apply targeted changes rather than
+rebuilding from scratch.
+
+**Filter/process chips** appear below the explanation, showing every filter the AI
+chose and which processes are in scope. Click a chip to edit the value inline; click
+× to remove a filter. The process chip opens a checklist to narrow scope. Each change
+re-runs the report immediately — no AI cost.
+
 ### Write SQL (Phase 1 — Surface B)
 
 The **Ask AI** tab in the report builder lets a user ask a question in plain
