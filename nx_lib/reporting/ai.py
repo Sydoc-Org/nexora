@@ -270,7 +270,14 @@ def _parse_json_object(text):
     return None
 
 
-def _definition_user_prompt(question, catalog_text, prior_error, today=None):
+def _definition_user_prompt(
+    question,
+    catalog_text,
+    prior_error,
+    today=None,
+    prior_question=None,
+    prior_definition=None,
+):
     base = ""
     if today:
         base += (
@@ -278,6 +285,12 @@ def _definition_user_prompt(question, catalog_text, prior_error, today=None):
             '("last month", "this year", "yesterday") emit a relative-date '
             "token as instructed; resolve explicit dates against this date, "
             "never against your training data.\n\n"
+        )
+    if prior_question and prior_definition:
+        compact = json.dumps(prior_definition, separators=(",", ":"))
+        base += (
+            f'The user previously asked: "{prior_question}". You answered with this definition: {compact}\n'
+            "Modify the previous definition to satisfy the new request; keep everything the user did not ask to change.\n\n"
         )
     base += (
         f"Available sources and fields:\n{catalog_text}\n\n"
@@ -305,6 +318,8 @@ def ask_definition(
     url=None,
     prior_error=None,
     today=None,
+    prior_question=None,
+    prior_definition=None,
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
@@ -317,7 +332,14 @@ def ask_definition(
     """
     text, tin, tout = _dispatch(
         _SYSTEM_DEF,
-        _definition_user_prompt(question, catalog_text, prior_error, today),
+        _definition_user_prompt(
+            question,
+            catalog_text,
+            prior_error,
+            today,
+            prior_question=prior_question,
+            prior_definition=prior_definition,
+        ),
         provider=provider,
         model=model,
         api_key=api_key,

@@ -170,3 +170,64 @@ def test_system_def_teaches_relative_date_tokens():
     assert '{"token": "last_month"}' in s
     assert "last_n_days" in s
     assert "resolved against the CURRENT date" in s
+
+
+def test_ask_definition_includes_refine_context():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["user"] = body["messages"][0]["content"]
+        return _anthropic_body({"definition": {}, "explanation": ""})
+
+    ai.ask_definition(
+        "only the Privera invoice process",
+        "CATALOG",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        prior_question="docs last month",
+        prior_definition={"schemaVersion": 1, "title": "t"},
+        transport=transport,
+    )
+    assert 'The user previously asked: "docs last month"' in captured["user"]
+    # Compact JSON (no spaces) keeps the prompt small.
+    assert '{"schemaVersion":1,"title":"t"}' in captured["user"]
+    # The refine block precedes the catalog so the model reads it first.
+    assert captured["user"].index("previously asked") < captured["user"].index("CATALOG")
+
+
+def test_ask_definition_omits_refine_context_by_default():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["user"] = body["messages"][0]["content"]
+        return _anthropic_body({"definition": {}, "explanation": ""})
+
+    ai.ask_definition(
+        "q",
+        "CATALOG",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=transport,
+    )
+    assert "previously asked" not in captured["user"]
+
+
+def test_ask_definition_refine_context_requires_both_priors():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["user"] = body["messages"][0]["content"]
+        return _anthropic_body({"definition": {}, "explanation": ""})
+
+    ai.ask_definition(
+        "q",
+        "CATALOG",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        prior_question="docs last month",  # definition missing -> no refine block
+        transport=transport,
+    )
+    assert "previously asked" not in captured["user"]
