@@ -218,6 +218,14 @@ _SYSTEM_DEF = (
     'fields: a column for one may carry "grain": '
     '"day"|"week"|"month"|"quarter"|"year" to bucket it; filters always use '
     "the raw date."
+    ' When the question groups by a time period ("per month", "monthly",'
+    ' "per week", "by quarter", "over the years"), the date column MUST carry'
+    ' the matching "grain" — e.g. for "<things> per month this year":'
+    ' "columns": [{"field": "<date key>", "header": "Month", "grain": "month"}],'
+    ' "metrics": [{"metric": "<count code>"}], "filters": [{"field":'
+    ' "<date key>", "op": "between", "value": {"token": "this_year"}}].'
+    " A date column WITHOUT grain buckets per raw day, which contradicts any"
+    " per-month/per-week/per-quarter/per-year question."
     ' Optionally include "chartHint": {"type": "bar"|"line"|"pie"|"doughnut", "x": "<category field>", "y": "<numeric field>"} inside the definition when a chart would help; omit it otherwise.'
     " When the question asks for the DISTINCT/different/unique values of a"
     ' field, put that field in "columns" AND add a count metric in "metrics" —'
@@ -454,6 +462,9 @@ _AGENT_SYSTEM = (
     ' in "columns" plus a count metric — metrics make the columns GROUP BY'
     " dimensions. Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
+    " When a question groups by a time period (per day/week/month/quarter/"
+    "year), the date column in the definition MUST carry the matching"
+    ' "grain" (e.g. {"field": "<date key>", "grain": "month"}).'
     " For relative time ranges set the date filter value to a token object,"
     ' e.g. {"field": "<date field>", "op": "between", "value": {"token": "last_month"}} (tokens: today,'
     " yesterday, this_week, last_week, this_month, last_month, this_quarter,"

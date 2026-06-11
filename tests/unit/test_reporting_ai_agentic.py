@@ -287,3 +287,9 @@ def test_agent_system_prompt_teaches_relative_date_tokens():
     assert "last_n_days" in s
     assert '{"token": "last_month"}' in s
     assert "resolve at run" in s
+
+
+def test_agent_system_prompt_requires_grain_for_per_period():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert '"grain"' in _AGENT_SYSTEM

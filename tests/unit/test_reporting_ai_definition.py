@@ -238,3 +238,12 @@ def test_ask_definition_refine_context_requires_both_priors():
         transport=transport,
     )
     assert "previously asked" not in captured["user"]
+
+
+def test_system_def_teaches_grain_with_worked_example():
+    s = ai._SYSTEM_DEF
+    # The hard rule:
+    assert "MUST carry the matching" in s
+    # The worked example (verbatim JSON fragment the model can copy):
+    assert '"grain": "month"' in s
+    assert '"metric": "doc_count"' not in s  # example must stay generic, no real codes
