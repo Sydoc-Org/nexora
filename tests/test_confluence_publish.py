@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -136,3 +137,89 @@ class TestConversionGoldenInvariants:
     def test_unicode_preserved(self, converted_corpus):
         xml = _converted(converted_corpus, "howto/babel.md")
         assert "→" in xml  # arrows in headings must not be mangled
+
+
+class TestEnvFile:
+    def test_parses_quoted_and_bare_values(self, tmp_path):
+        f = tmp_path / "CONFLUENCE.env"
+        f.write_text(
+            "# comment\n"
+            'CONFLUENCE_DOMAIN="sydocteam.atlassian.net"\n'
+            "CONFLUENCE_USER_NAME=bot@sydoc.ch\n"
+            'CONFLUENCE_API_KEY="s3cret"\n'
+            'CONFLUENCE_SPACE_KEY="nexora"\n'
+            "\n",
+            encoding="utf-8",
+        )
+        env = cp.load_env_file(f)
+        assert env["CONFLUENCE_DOMAIN"] == "sydocteam.atlassian.net"
+        assert env["CONFLUENCE_USER_NAME"] == "bot@sydoc.ch"
+
+    def test_missing_required_key_exits_2(self, tmp_path):
+        f = tmp_path / "CONFLUENCE.env"
+        f.write_text('CONFLUENCE_DOMAIN="x"\n', encoding="utf-8")
+        with pytest.raises(SystemExit) as e:
+            cp.load_env_file(f)
+        assert e.value.code == 2
+
+    def test_missing_file_exits_2(self, tmp_path):
+        with pytest.raises(SystemExit) as e:
+            cp.load_env_file(tmp_path / "nope.env")
+        assert e.value.code == 2
+
+
+def _resp(status=200, json_data=None, headers=None):
+    r = mock.Mock()
+    r.status_code = status
+    r.headers = headers or {}
+    r.json.return_value = json_data or {}
+    r.raise_for_status.side_effect = None
+    return r
+
+
+def _client():
+    return cp.ConfluenceClient("sydocteam.atlassian.net", "bot@sydoc.ch", "token")
+
+
+class TestClientRetry:
+    def test_retries_on_429_with_retry_after(self):
+        c = _client()
+        ok = _resp(200, {"ok": True})
+        with (
+            mock.patch.object(
+                c.session, "request", side_effect=[_resp(429, headers={"Retry-After": "0"}), ok]
+            ) as req,
+            mock.patch.object(cp.time, "sleep") as slept,
+        ):
+            out = c.request("GET", "/wiki/api/v2/spaces")
+        assert out is ok
+        assert req.call_count == 2
+        slept.assert_called_once()
+
+    def test_retries_on_500(self):
+        c = _client()
+        ok = _resp(200)
+        with (
+            mock.patch.object(c.session, "request", side_effect=[_resp(500), ok]),
+            mock.patch.object(cp.time, "sleep"),
+        ):
+            assert c.request("GET", "/x") is ok
+
+    def test_401_exits_2_with_rotation_hint(self, capsys):
+        c = _client()
+        with (
+            mock.patch.object(c.session, "request", return_value=_resp(401)),
+            pytest.raises(SystemExit) as e,
+        ):
+            c.request("GET", "/x")
+        assert e.value.code == 2
+        assert "token" in capsys.readouterr().err.lower()
+
+    def test_gives_up_after_max_attempts(self):
+        c = _client()
+        with (
+            mock.patch.object(c.session, "request", return_value=_resp(429, headers={})),
+            mock.patch.object(cp.time, "sleep"),
+            pytest.raises(RuntimeError, match="attempts"),
+        ):
+            c.request("GET", "/x", max_attempts=3)
