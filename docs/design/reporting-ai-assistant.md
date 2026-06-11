@@ -103,6 +103,21 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   (`_validate_definition_for_user`) backs both Surface A and the agent's
   `build_definition` tool, so both benefit; the human builder path (`/run`) is
   untouched.
+- **Distinct-count shadow-column guard:** when the validated definition contains a
+  `count_distinct` metric and the `columns` list includes the metric's own base
+  field (which would make the GROUP BY swallow the distinct count, returning
+  trivially-1 aggregates), the validator **silently drops the shadowing column**
+  from `columns` before the run. This is a mutating repair in the same spirit as
+  `coerce_definition` — same contract, same whitelist-safety — applied only when
+  the dropped column is definitively the `count_distinct` base field and the
+  remaining columns still make a useful report. Applied to both Surface A and
+  the agent's `build_definition` tool.
+- **Gate error surfaced verbatim:** when `POST /api/reporting/ai/build` produces a
+  definition that survives `coerce_definition` + the shadow-column guard but still
+  fails `_validate_definition_for_user`, the JSON error response now carries the
+  validator's message text directly so the Simple tab can display it to the user
+  (rather than showing the model's explanation, which may contradict the actual
+  failure reason).
 
 **Best for:** non-technical users, scoped sources (Generali / Octopus curated),
 "just build me the report." **Limit:** only what the builder can express.

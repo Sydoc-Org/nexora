@@ -305,6 +305,8 @@ Full token vocabulary:
 | `last_week` | Mon–Sun of the previous week |
 | `this_month` | Full current calendar month |
 | `last_month` | Full previous calendar month |
+| `this_quarter` | Full current calendar quarter (Q1 = Jan–Mar, Q2 = Apr–Jun, Q3 = Jul–Sep, Q4 = Oct–Dec) |
+| `last_quarter` | Full previous calendar quarter |
 | `last_3_months` | Rolling 3-month window (today − 3 months to today) |
 | `this_year` | Full current calendar year (Jan 1 – Dec 31, incl. future days) |
 | `last_year` | Full previous calendar year |
