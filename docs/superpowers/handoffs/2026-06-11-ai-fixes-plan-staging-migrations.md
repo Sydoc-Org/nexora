@@ -1,3 +1,7 @@
+> **Newer same-date handoff exists:** `docs/superpowers/handoffs/2026-06-11-confluence-docs-sync-plan.md`
+> (Confluence docs-sync planning, separate workstream on `feat/confluence-docs-sync`). This file
+> remains the latest state of the **AI-fixes** workstream on `feature/2.5.63`.
+
 # Handoff — Stakeholder tour findings → 16-task AI-fixes plan + STAGING unblocked
 
 - **Date:** 2026-06-11
