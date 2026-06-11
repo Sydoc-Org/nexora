@@ -1,3 +1,7 @@
+> **Newer handoff exists for this date:** see
+> `docs/superpowers/handoffs/2026-06-11-show-query-multidim-export-plan.md` (show-query /
+> multi-breakdowns / rich-export plan session, later the same day).
+
 # Handoff — Simple Guide wizard improvements: 11-task plan written (not executed)
 
 - **Date:** 2026-06-11
