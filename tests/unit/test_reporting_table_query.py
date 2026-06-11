@@ -140,3 +140,22 @@ def test_build_conditions_rejects_unresolved_token_value():
     rd = {"filters": [{"field": "client", "op": "between", "value": {"token": "last_month"}}]}
     with pytest.raises(TableQueryError, match="unresolved"):
         _build_conditions(rd, {"client": {"field": "client"}})
+
+
+def test_generic_aggregate_three_dims():
+    """Three dimensions GROUP BY all three, in definition order."""
+    _three_cols = [
+        {"field": "colA", "type": "string"},
+        {"field": "colB", "type": "string"},
+        {"field": "colC", "type": "string"},
+    ]
+    rd = {
+        "columns": [{"field": "colA"}, {"field": "colB"}, {"field": "colC"}],
+        "filters": [],
+        "sort": [{"field": "n", "dir": "desc"}],
+    }
+    resolved = [{"code": "n", "aggregation": "count", "base_field": None}]
+    sql, params = build_generic_query(
+        rd, "Db.dbo.SomeTable", _three_cols, row_cap=100, resolved_metrics=resolved
+    )
+    assert "GROUP BY [colA], [colB], [colC]" in sql
