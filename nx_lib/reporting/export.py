@@ -50,15 +50,19 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None):
     # Row 4+: optional chart image, then header row
     header_row = 4
     if chart_png:
-        from openpyxl.drawing.image import Image as XlsxImage
+        try:
+            from openpyxl.drawing.image import Image as XlsxImage
 
-        img = XlsxImage(io.BytesIO(chart_png))
-        # scale to ~640px wide, keep aspect
-        if img.width and img.width > 640:
-            ratio = 640.0 / img.width
-            img.width, img.height = 640, int(img.height * ratio)
-        ws.add_image(img, "A4")
-        header_row = 4 + max(1, int((img.height or 300) / 20)) + 1
+            img = XlsxImage(io.BytesIO(chart_png))
+            # scale to ~640px wide, keep aspect
+            if img.width and img.width > 640:
+                ratio = 640.0 / img.width
+                img_h = int(img.height * ratio)
+                img.width, img.height = 640, img_h
+            ws.add_image(img, "A4")
+            header_row = 4 + max(1, int((img.height or 300) / 20)) + 1
+        except Exception:
+            pass  # malformed PNG — fall back to chartless layout
 
     # Header row: bold + fill
     header_font = Font(bold=True)
