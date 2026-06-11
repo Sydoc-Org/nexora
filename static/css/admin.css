@@ -1,0 +1,83 @@
+/* ============================================================
+   NEXORA ADMIN — page-scoped components on nexora-ui tokens.
+   Generic chrome (buttons, tables, inputs, badges, cards) comes
+   from nexora-ui.css; only admin-unique structures live here.
+   ============================================================ */
+
+/* Empty / loading table cells (JS partials inject class="admin-empty") */
+.admin-empty { padding: 32px 16px; text-align: center; color: var(--nx-text-meta); font-size: 13px; }
+
+/* HTTP method / status pills (Logs + user-detail Activity; injected by JS) */
+.log-method { font-weight: 700; font-family: var(--nx-mono); font-size: 11px; margin-right: 6px; }
+.log-method--GET    { color: #2563eb; }
+.log-method--POST   { color: #15803d; }
+.log-method--PUT    { color: #b54708; }
+.log-method--DELETE { color: #b42318; }
+html.dark .log-method--GET    { color: #60a5fa; }
+html.dark .log-method--POST   { color: #4ade80; }
+html.dark .log-method--PUT    { color: #fbbf24; }
+html.dark .log-method--DELETE { color: #f87171; }
+.log-status { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; font-family: var(--nx-mono); }
+.log-status--ok    { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.log-status--warn  { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.log-status--error { background: var(--nx-l-red);   color: var(--nx-l-red-fg); }
+
+/* Health strip on the admin overview */
+.health-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.health-card { padding: 16px 18px; }
+.health-card-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin-bottom: 6px; }
+.health-card-value { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; color: var(--nx-text); line-height: 1.2; font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.health-card-value.is-danger { color: var(--nx-danger); }
+.health-card-sub { font-size: 12px; color: var(--nx-text-sec); margin-top: 4px; }
+.health-db-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.health-db-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--nx-radius-pill); font-size: 11px; font-weight: 500; background: var(--nx-l-gray); color: var(--nx-l-gray-fg); }
+.health-db-pill--ok  { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.health-db-pill--err { background: var(--nx-l-red);   color: var(--nx-l-red-fg); }
+.health-db-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+/* Overview launcher cards (2x2 grid on /admin) */
+.admin-overview-card { padding: 28px 28px 24px; min-height: 180px; display: flex; flex-direction: column; }
+.admin-overview-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.admin-overview-card-icon { font-size: 22px; color: var(--nx-text-meta); opacity: 0.55; transition: opacity var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease); }
+.admin-overview-card:hover .admin-overview-card-icon { opacity: 1; color: var(--nx-accent); }
+.admin-overview-card-number { font-size: 44px; font-weight: 600; letter-spacing: -1px; color: var(--nx-text); line-height: 1; font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.admin-overview-card-number--text { font-size: 32px; letter-spacing: -0.6px; font-family: var(--nx-font); }
+.admin-overview-card-label { font-size: 13px; color: var(--nx-text-sec); margin-top: 4px; }
+.admin-overview-card-desc { font-size: 12px; color: var(--nx-text-meta); margin: auto 0 0; padding-top: 16px; }
+
+/* Maintenance: severity pills (rendered by _maintenance_js.html) + toggle switch */
+.sev-pill { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.125rem 0.5rem; border-radius: var(--nx-radius-pill); font-size: 0.75rem; font-weight: 600; }
+.sev-info     { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+.sev-warning  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
+.sev-critical { background: var(--nx-l-red);    color: var(--nx-l-red-fg); }
+.ml-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+.ml-toggle input { opacity: 0; width: 0; height: 0; }
+.ml-toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--nx-sunken); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-pill); transition: 0.2s; }
+.ml-toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; top: 2px; background: var(--nx-card); border-radius: var(--nx-radius-pill); transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+.ml-toggle input:checked + .ml-toggle-slider { background: var(--nx-accent); border-color: var(--nx-accent); }
+.ml-toggle input:checked + .ml-toggle-slider:before { transform: translateX(16px); background: #fff; }
+
+/* Logs: time presets + saved filters (moved from logs.html inline styles) */
+.log-preset-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+.log-preset { padding: 5px 10px; border-radius: 6px; background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
+.log-preset:hover { background: var(--nx-alt); color: var(--nx-text); }
+.log-preset.is-active { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
+.saved-preset-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; min-height: 30px; }
+.saved-preset-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); }
+.saved-preset { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 14px; background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text); cursor: pointer; }
+.saved-preset:hover { background: var(--nx-alt); }
+.saved-preset .name { line-height: 1; }
+.saved-preset .del { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; border-radius: 50%; color: var(--nx-text-meta); font-size: 10px; }
+.saved-preset .del:hover { background: var(--nx-sunken); color: var(--nx-danger); }
+.saved-preset-empty { font-size: 12px; color: var(--nx-text-meta); font-style: italic; }
+.save-preset-btn { padding: 4px 10px; border-radius: 14px; background: transparent; border: 1px dashed var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
+.save-preset-btn:hover { border-style: solid; color: var(--nx-text); }
+
+/* Logs: dark <pre> payload scrollbars (moved from logs.html inline styles) */
+.code-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.code-scroll::-webkit-scrollbar-track { background: #1f2937; }
+.code-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+.code-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+/* Access control permission drawer: row hover (can't use nx-table here — drawer uses raw <table>) */
+.permission-row:hover { background: var(--nx-alt); }
