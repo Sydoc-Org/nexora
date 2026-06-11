@@ -535,7 +535,7 @@
         document.getElementById('dateGroups').innerHTML = '';
         document.getElementById('dateGroups').appendChild(buildDateGroup(getToday()));
         syncDateGroups();
-        if (modalError) { modalError.classList.add('hidden'); modalError.textContent = ''; }
+        if (modalError) { modalError.classList.add('hidden'); document.getElementById('modalErrorText').textContent = ''; }
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
@@ -635,7 +635,7 @@
 
     function showModalError(msg) {
         if (!modalError) return;
-        modalError.textContent = msg;
+        document.getElementById('modalErrorText').textContent = msg;
         modalError.classList.remove('hidden');
     }
 

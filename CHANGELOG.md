@@ -429,6 +429,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Generali add-modals no longer show an empty red strip.** The Tailwind v4
+  browser CDN emits utilities inside `@layer utilities`, so the unlayered
+  `.nx-flash { display:flex }` rule always beat the `hidden` utility and kept
+  the (empty) modal error banner visible on the PDQM, base-services,
+  project-management and reporting add/edit modals. `nexora-ui.css` now
+  re-asserts `.nx-flash.hidden { display:none }` (same pattern as the earlier
+  `pl-10` fix), and the four affected error banners were normalised to the
+  icon + `<span id="…ErrorText">` markup additionalservices already used (the
+  paired JS partials write the message into the span and keep toggling
+  `hidden` on the banner).
 - **Scheduled reports now support metric definitions.** The scheduled-report
   runner (`nx_lib/reporting/runner.py`) validated saved definitions **without
   the source's metric codes** and never resolved `metrics` into the aggregate

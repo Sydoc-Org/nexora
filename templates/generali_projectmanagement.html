@@ -165,7 +165,9 @@
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-      <div id="addModalError" class="hidden mx-6 mt-4 flex-shrink-0 nx-flash nx-flash--error"></div>
+      <div id="addModalError" class="hidden mx-6 mt-4 flex-shrink-0 nx-flash nx-flash--error" role="alert">
+        <i class="fas fa-circle-exclamation"></i><span id="addModalErrorText"></span>
+      </div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         {% if can_add_for_org or can_add_transorg %}
         <div>

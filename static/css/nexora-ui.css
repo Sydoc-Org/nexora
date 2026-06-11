@@ -317,6 +317,9 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-flash { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--nx-radius-sm); border: 1px solid; font-size: 13px; margin-bottom: 16px; }
 .nx-flash--success { background: var(--nx-l-green); border-color: transparent; color: var(--nx-l-green-fg); }
 .nx-flash--error   { background: var(--nx-l-red);   border-color: transparent; color: var(--nx-l-red-fg); }
+/* Tailwind v4 emits .hidden inside @layer utilities; unlayered .nx-flash wins the cascade
+   and keeps an empty flash visible. Re-assert hidden for flash elements. */
+.nx-flash.hidden   { display: none; }
 
 /* ============================================================
    4. SIGNATURE — brand-gradient text + on-load motion
