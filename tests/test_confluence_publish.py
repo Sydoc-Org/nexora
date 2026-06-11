@@ -80,3 +80,59 @@ class TestPreflight:
     def test_real_corpus_titles_unique(self, tmp_path):
         staged = cp.stage_docs(REPO_ROOT, tmp_path)
         cp.preflight_titles(staged)  # must not raise
+
+
+def _converted(stage: Path, staged_rel: str) -> str:
+    """Return the locally-converted XML for one staged file."""
+    out = stage / staged_rel
+    candidates = [out.with_suffix(".csf"), out.with_suffix(".xml")]
+    for c in candidates:
+        if c.exists():
+            return c.read_text(encoding="utf-8")
+    raise AssertionError(f"no converted output for {staged_rel}: tried {candidates}")
+
+
+@pytest.fixture(scope="session")
+def converted_corpus(tmp_path_factory):
+    stage = tmp_path_factory.mktemp("stage")
+    cp.stage_docs(REPO_ROOT, stage)
+    cp.convert_local(stage)
+    return stage
+
+
+class TestConversionGoldenInvariants:
+    def test_whole_corpus_converts(self, converted_corpus):
+        # convert_local raises SystemExit(1) on any failure; reaching here is the assertion
+        assert converted_corpus.exists()
+
+    def test_changelog_angle_brackets_escaped(self, converted_corpus):
+        xml = _converted(converted_corpus, "CHANGELOG.md")
+        # raw HTML tag names that appear as inline code in CHANGELOG must not
+        # survive as live tags in storage XML
+        assert "<thead>" not in xml
+        assert "&lt;thead&gt;" in xml or "thead" in xml  # escaped or inside CDATA
+
+    def test_changelog_mojibake_survives(self, converted_corpus):
+        src = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        marker = "Generali â€"
+        if marker in src:  # the intentional mojibake literal documenting the 0011 bug
+            xml = _converted(converted_corpus, "CHANGELOG.md")
+            assert marker in xml
+
+    def test_nx_table_escaped_pipes(self, converted_corpus):
+        xml = _converted(converted_corpus, "howto/nx.md")
+        # the '`int` \| `staging`' cell must render both words, not truncate at the pipe
+        assert "int" in xml and "staging" in xml
+        assert "<table" in xml
+
+    def test_iis_ordered_list_survives_embedded_fence(self, converted_corpus):
+        xml = _converted(converted_corpus, "howto/iis.md")
+        assert "<ol" in xml  # numbering not flattened by the in-list code fence
+
+    def test_code_macro_emitted_for_powershell(self, converted_corpus):
+        xml = _converted(converted_corpus, "howto/ngrok.md")
+        assert 'ac:name="code"' in xml
+
+    def test_unicode_preserved(self, converted_corpus):
+        xml = _converted(converted_corpus, "howto/babel.md")
+        assert "→" in xml  # arrows in headings must not be mangled
