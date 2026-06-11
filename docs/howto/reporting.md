@@ -25,23 +25,36 @@ custom-header, save/load, and Excel-export support.
     grain select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
     **raw** date field, defaulting to `import_date`).
+    The category list is curated for the Document Processing source — preferred
+    business dimensions (Document Source, Document Type, Forwarding, Owner no.,
+    Property No., Registered, Tenancy no.) come first and technical noise (process
+    name, Bank PK, creditor no., barcode, document date, workitem id) is hidden;
+    other sources list their catalog fields unfiltered. The **"Limit to specific
+    processes"** control is a prominent bordered row with a live selection badge
+    ("All processes" or "n / m").
   - **Ask AI** — one input to Surface A; a valid draft renders straight to the
     result view. Hidden if AI is unconfigured.
   - **Result view** — a grand-total **number card** (computed by a zero-column
     clone run, so it is correct for every aggregation — avg/count_distinct
-    included), a **chart card** (line for date breakdowns, bar for categories;
-    ≤50 categories), and a **Show table** toggle. *Save* always creates a new
-    row under My reports; *Open in Advanced* pre-fills the builder; *Export*
-    downloads Excel (needs `reporting.export`). For AI-built results, a
+    included), a **chart card** (line for date breakdowns, bar for categories by default, with a
+    bar/line/pie/doughnut switcher; the chosen type is saved with the report).
+    Category breakdowns beyond 50 rows chart the top 50 with a note; when no chart
+    is possible the result explains why (single total, too many date points, chart
+    library unavailable). A **Show table** toggle, *Save* (always creates a new
+    row under My reports), *Open in Advanced* (pre-fills the builder), and *Export*
+    (downloads Excel; needs `reporting.export`). For AI-built results, a
     **transparency line** below the report title shows the AI's explanation
     and the filters/processes it applied, so a wrong guess (bad date range,
     wrong process) is immediately visible.
     Every result (wizard-built, library-opened, or AI-built) shows **editable
     filter/process chips** and a **Refine** bar — use them to tweak any result
-    without returning to the wizard or asking the AI again. Wizard-built results
-    also show an **"Adjust in wizard"** button that re-opens the walkthrough
-    with the previous measure, breakdown, and time choices pre-selected, so you
-    can change one step without starting from scratch.
+    without returning to the wizard or asking the AI again.
+    Any result whose definition is wizard-shaped — including saved library reports
+    and simple AI-built ones — shows an **"Adjust in wizard"** button that
+    re-opens the walkthrough with the previous measure, breakdown, time and process
+    choices pre-selected. **Back** on such a result returns to the wizard
+    adjustment; the **✕** button (on both the result bar and the wizard header)
+    exits to the library.
 - **Advanced** — the full three-panel builder described below, unchanged.
 
 Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`
@@ -149,7 +162,8 @@ toolbar groups **My reports** and **Shared with me** (the latter tagged with the
 owner). **Load** restores a curated definition into the builder (source, columns,
 filters, sort, scope, title/subtitle) or a SQL definition into the SQL editor +
 target, switching mode by the saved `kind`. **Rename** and **Delete** act on the
-selected report (owner only).
+selected report (owner only). **Save as** and **Rename** open an in-page name dialog (the browser's
+`window.prompt` has been replaced).
 
 ### Sharing & the shared library
 

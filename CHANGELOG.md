@@ -9,6 +9,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Reporting Simple wizard: chart-type switcher.** Bar/line/pie/doughnut toolbar
+  in the result chart card; the chosen type persists in the saved definition and
+  is restored on library open.
+- **Reporting Simple wizard: "Adjust in wizard" for saved reports.** Any
+  wizard-shaped definition — including saved library reports and simple AI-built
+  results — can re-enter the wizard with all choices pre-selected (definition
+  reverse-mapping; no schema change).
+- **Reporting Simple results: chart-absence explanations.** When no chart can be
+  drawn, the result now explains why (single total, too many date points, chart
+  library unavailable). Category breakdowns >50 rows chart the top 50 with a note.
+- **Reporting Simple: exit buttons.** Explicit ✕ buttons on both the wizard header
+  and the result bar exit straight to the library.
 - **`db-migrate.py --env STAGING`.** The migration runner now accepts `STAGING`
   alongside `INT`/`PROD` (applies without a confirm prompt, like INT) — used to
   bring the prod-copy staging DB up to date for feature testing.
@@ -423,6 +435,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
 ### Changed
+- **Reporting Simple wizard: curated breakdown dimensions.** For the Document
+  Processing source, business dimensions (Document Source, Document Type,
+  Forwarding, Owner no., Property No., Registered, Tenancy no.) are listed first;
+  technical noise (process name, Bank PK, creditor no., barcode, document date,
+  workitem id) is hidden. Other sources are unaffected.
+- **Reporting Simple wizard: prominent process-scope control.** "Limit to specific
+  processes" is now a bordered card-row with a live selection badge.
+- **Reporting Simple: Back navigation.** Back on a wizard-shaped result returns to
+  the wizard adjustment instead of the library.
+- **Reporting Advanced: Save as / Rename use an in-page dialog.** The browser's
+  `window.prompt` is replaced by a `.reporting-modal` name dialog — now drivable
+  by automated tests.
 - Reporting: `workitem_count` metric disabled (migration `0021`) — verified on PROD that the Statistics tables hold one row per workitem, so it always equaled `doc_count`. `workitem_id` remains available as a column/filter; re-enable the metric row if a multi-row-per-workitem source ever appears.
 - **Admin pages migrated to nexora-ui design system.** All 7 admin pages
   (Overview, Organizations, Sessions, System Logs, Maintenance Banners, User
