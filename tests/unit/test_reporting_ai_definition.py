@@ -247,3 +247,9 @@ def test_system_def_teaches_grain_with_worked_example():
     # The worked example (verbatim JSON fragment the model can copy):
     assert '"grain": "month"' in s
     assert '"metric": "doc_count"' not in s  # example must stay generic, no real codes
+
+
+def test_system_def_forbids_grouping_by_the_counted_field():
+    s = ai._SYSTEM_DEF
+    assert "NEVER also add" in s
+    assert "forces every count to 1" in s

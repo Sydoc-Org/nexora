@@ -227,11 +227,16 @@ _SYSTEM_DEF = (
     " A date column WITHOUT grain buckets per raw day, which contradicts any"
     " per-month/per-week/per-quarter/per-year question."
     ' Optionally include "chartHint": {"type": "bar"|"line"|"pie"|"doughnut", "x": "<category field>", "y": "<numeric field>"} inside the definition when a chart would help; omit it otherwise.'
-    " When the question asks for the DISTINCT/different/unique values of a"
-    ' field, put that field in "columns" AND add a count metric in "metrics" —'
-    " with metrics present the selected columns become GROUP BY dimensions, so"
-    " each value appears once (with its count). Never answer a distinct-values"
-    " question with bare columns and no metrics: that returns duplicate rows."
+    " Distinct/unique questions come in two shapes — pick the right one."
+    ' (1) "List the distinct values of X": put X in "columns" and add a plain'
+    " count metric — with metrics present the columns become GROUP BY"
+    " dimensions, so each value appears once with its row count (bare columns"
+    " with no metrics would return duplicate rows)."
+    ' (2) "How many distinct X per Y": put ONLY Y in "columns" and use a'
+    ' distinct-count metric of X — NEVER also add X to "columns": grouping by'
+    " the very field being counted forces every count to 1. With no Y at all"
+    ' ("how many distinct X in total"), use the distinct-count metric with'
+    ' "columns": [].'
     ' Process ids in "allowed scope.processes" follow <client>.<NN_Name>; a'
     " humanized label is shown in parentheses next to each id. Match the"
     " user's process words case-insensitively against the whole id and its"
@@ -458,9 +463,12 @@ _AGENT_SYSTEM = (
     "one- or two-sentence plain-language answer. Do not ask the user questions."
     " The grounding states today's date; resolve relative time expressions"
     ' ("last month", "this year") against it, never against your training data.'
-    " For distinct/unique-values questions, build a definition with that field"
-    ' in "columns" plus a count metric — metrics make the columns GROUP BY'
-    " dimensions. Match process words against whole process ids and their"
+    ' For "list the distinct values of X" build a definition with X in'
+    ' "columns" plus a plain count metric — metrics make the columns GROUP BY'
+    ' dimensions. For "how many distinct X per Y" put ONLY Y in "columns" and'
+    " use a distinct-count metric of X; never group by the counted field"
+    " itself — that forces every count to 1."
+    " Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
     " When a question groups by a time period (per day/week/month/quarter/"
     "year), the date column in the definition MUST carry the matching"

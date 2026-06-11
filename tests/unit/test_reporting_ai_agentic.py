@@ -237,6 +237,12 @@ def test_agent_system_prompt_grounds_relative_dates():
     assert "today's date" in _AGENT_SYSTEM.lower()
 
 
+def test_agent_system_prompt_forbids_grouping_by_the_counted_field():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "forces every count to 1" in _AGENT_SYSTEM
+
+
 def test_anthropic_translates_prior_tool_results():
     captured = {}
 
