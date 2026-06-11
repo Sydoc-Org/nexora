@@ -1,6 +1,7 @@
 """e2e: the Simple/Advanced tabs and the Simple library (Spec 2)."""
 
 import json
+import re
 
 from playwright.sync_api import expect
 
@@ -476,6 +477,56 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
 
         # The "Adjust in wizard" button is still present on the new result.
         expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_total_only_result_explains_missing_chart(nexora_server, page):
+    """A 'None — just the total' wizard run shows the number card plus a
+    note explaining why there is no chart."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_total_note', kind: 'curated', label: 'Wizard Total Note',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 14});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_total_note_count', sourceId: 'wiz_total_note', label: 'Total note count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Total note count").click()
+        # pick "None — just the total" (the last button in breakdown list)
+        page.get_by_test_id("rs-breakdown-list").get_by_role(
+            "button", name=re.compile(r"just the total", re.I)
+        ).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
+        expect(page.get_by_test_id("rs-msg")).to_contain_text("single total")
+        expect(page.get_by_test_id("rs-chart-card")).to_be_hidden()
     finally:
         page.evaluate(
             """async (ids) => {

@@ -995,6 +995,7 @@ body.nx-app {
 .reporting-simple-chartcard { min-height: 260px; position: relative; }
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
+.reporting-simple-chartnote { font-size: 13px; color: #6b7280; margin: 0 0 8px; }
 @media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }
 
 /* AI thinking indicator (Simple pane) */

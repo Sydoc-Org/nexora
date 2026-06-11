@@ -54,7 +54,11 @@
     aiDrafting: {{ _("Drafting your report…")|tojson }},
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
-    allProcesses: {{ _("All processes")|tojson }}
+    allProcesses: {{ _("All processes")|tojson }},
+    noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
+    chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
+    noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
+    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Preferred
@@ -190,6 +194,7 @@
     el('rsError').hidden = false;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsChartNote').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
   }
@@ -230,14 +235,28 @@
   // Simple owns its OWN Chart.js instance on a private canvas. It must never
   // call ReportingViz.mountChart: that module is a singleton wired to the
   // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
+  function chartCardNote(msg) {
+    el('rsChartCanvas').hidden = true;
+    el('rsChartNote').textContent = msg;
+    el('rsChartNote').hidden = false;
+    el('rsChartCard').hidden = false;
+  }
+
   function mountChart(def, columns, rows) {
     destroyChart();
+    el('rsChartNote').hidden = true;
+    el('rsChartCanvas').hidden = false;
     var dims = (def.columns || []).length;
-    if (!dims || !rows.length || rows.length > 50 || !window.Chart) {
-      el('rsChartCard').hidden = true; return;
-    }
+    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
+    if (!window.Chart) { chartCardNote(I18N.noChartLib); return; }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
+    if (rows.length > 50) {
+      if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
+      el('rsChartNote').hidden = false;
+      rows = rows.slice(0, 50);
+    }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
       var v = String(r[0] == null ? '' : r[0]);
@@ -545,6 +564,10 @@
       el('rsStatLabel').textContent = metricLabelFor(def);
       el('rsStatValue').textContent = fmtNumber(rows[0][0]);
       el('rsStatCard').hidden = false;
+      var totMsg = el('rsMsg');
+      totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
+        ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
+      totMsg.hidden = false;
     }
     if (!rows.length && el('rsStatCard').hidden) {
       el('rsTableWrap').innerHTML =
