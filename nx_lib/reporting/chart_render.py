@@ -58,6 +58,7 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
     metrics = list(definition.get("metrics") or [])
     if not metrics or not rows or not 1 <= len(dims) <= 2:
         return None
+    # Assumes query engine places metrics as trailing columns (dims first).
     metric_idx = len(columns) - len(metrics)
     chart_type = definition.get("chartType") or ("line" if dims[0].get("grain") else "bar")
 
@@ -74,6 +75,8 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
             else:
                 ax.bar(labels, values, color=_PALETTE[0])
         else:
+            # 2-dim: grouped bars or lines. Pie is intentionally unsupported here
+            # (summing across the second dim would silently lie for distinct-count metrics).
             # pivot: x = dim1 (row order), series = dim2 (12 largest by total)
             x_order, series_tot, cell = [], {}, {}
             for r in rows:
