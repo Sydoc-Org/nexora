@@ -5,50 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("Maintenance Banners - nexora") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
-    <style>
-      .sev-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.125rem 0.5rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-      .sev-info     { background: #eef2ff; color: #4338ca; }
-      .sev-warning  { background: #fffbeb; color: #b45309; }
-      .sev-critical { background: #fef2f2; color: #b91c1c; }
-      .ml-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
-      .ml-toggle input { opacity: 0; width: 0; height: 0; }
-      .ml-toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #e5e7eb; border-radius: 9999px; transition: 0.2s; }
-      .ml-toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; top: 3px; background: white; border-radius: 9999px; transition: 0.2s; }
-      .ml-toggle input:checked + .ml-toggle-slider { background: #4f46e5; }
-      .ml-toggle input:checked + .ml-toggle-slider:before { transform: translateX(16px); }
-    </style>
 </head>
-<body class="admin-page">
+<body class="nx-app">
     <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
 
     {% set active_page = 'maintenance' %}
     {% include '_header.html' %}
     {% import 'admin/_admin_helpers.html' as a %}
 
-    <main>
+    <main class="nx-main">
         {{ a.page_header(
             title=_('Maintenance Banners'),
             subtitle=_('Schedule downtime announcements shown to all users'),
             back_url=url_for('admin_dashboard') if pageV.adminPagePerm else None,
-            actions=([{'label': _('Add banner'), 'icon': 'fa-plus', 'onclick': 'openMaintModal()', 'variant': 'primary'}] if pageV.adminMaintenanceEditPerm else None)
+            actions=([{'label': _('Add banner'), 'icon': 'fa-plus', 'onclick': 'openMaintModal()', 'variant': 'primary'}] if pageV.adminMaintenanceEditPerm else None),
+            icon='fa-wrench'
         ) }}
 
         {{ a.toolbar(search_id='maintSearchInput', search_placeholder=_('Search title or message...')) }}
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
+        <div class="nx-table-wrap">
+            <table class="nx-table">
                 {{ a.table_header([
                     {'label': _('Title')},
                     {'label': _('Window')},
@@ -59,55 +40,49 @@
                     {'label': _('Actions'), 'align': 'right', 'width': '180px'}
                 ]) }}
                 <tbody id="maint-tbody">
-                    <tr><td colspan="7" style="text-align:center;padding:48px 0"><i class="fas fa-spinner fa-spin" style="color:#4f46e5;font-size:24px"></i></td></tr>
+                    <tr><td colspan="7" style="text-align:center;padding:48px 0"><i class="fas fa-spinner fa-spin" style="color:var(--nx-accent);font-size:24px"></i></td></tr>
                 </tbody>
             </table>
         </div>
     </main>
 
     <!-- Add/Edit modal -->
-    <div id="maintModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6">
-            <h3 id="maintModalTitle" class="text-2xl font-bold mb-4">{{ _("Add banner") }}</h3>
+    <div id="maintModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+        <div class="nx-card w-full max-w-lg p-6">
+            <h3 id="maintModalTitle" class="nx-section mb-4">{{ _("Add banner") }}</h3>
             <form id="maintForm" data-testid="admin-maintenance-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" id="maintID" />
                 <div class="space-y-3">
                     <div>
-                        <label for="maintTitle" class="block mb-1 text-sm font-medium">{{ _("Title") }} <span class="text-gray-400 font-normal">({{ _("optional") }})</span></label>
-                        <input type="text" id="maintTitle" maxlength="200"
-                               class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-title" />
+                        <label for="maintTitle" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Title") }} <span style="color:var(--nx-text-meta);font-weight:normal">({{ _("optional") }})</span></label>
+                        <input type="text" id="maintTitle" maxlength="200" class="nx-input" data-testid="admin-maintenance-title" />
                     </div>
                     <div>
-                        <label for="maintMessage" class="block mb-1 text-sm font-medium">{{ _("Message") }} <span class="text-red-500">*</span></label>
-                        <textarea id="maintMessage" rows="3" maxlength="2000" required
-                                  class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-message"></textarea>
+                        <label for="maintMessage" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Message") }} <span style="color:var(--nx-danger)">*</span></label>
+                        <textarea id="maintMessage" rows="3" maxlength="2000" required class="nx-input" data-testid="admin-maintenance-message"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="maintStartAt" class="block mb-1 text-sm font-medium">{{ _("Start") }} <span class="text-red-500">*</span></label>
-                            <input type="text" id="maintStartAt" placeholder="yyyy-mm-dd hh:mm" required
-                                   class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-start-at" />
+                            <label for="maintStartAt" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Start") }} <span style="color:var(--nx-danger)">*</span></label>
+                            <input type="text" id="maintStartAt" placeholder="yyyy-mm-dd hh:mm" required class="nx-input" data-testid="admin-maintenance-start-at" />
                         </div>
                         <div>
-                            <label for="maintEndAt" class="block mb-1 text-sm font-medium">{{ _("End") }} <span class="text-red-500">*</span></label>
-                            <input type="text" id="maintEndAt" placeholder="yyyy-mm-dd hh:mm" required
-                                   class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-end-at" />
+                            <label for="maintEndAt" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("End") }} <span style="color:var(--nx-danger)">*</span></label>
+                            <input type="text" id="maintEndAt" placeholder="yyyy-mm-dd hh:mm" required class="nx-input" data-testid="admin-maintenance-end-at" />
                         </div>
                     </div>
                     <div>
-                        <label for="maintAnnounce" class="block mb-1 text-sm font-medium">{{ _("Announce users") }}</label>
+                        <label for="maintAnnounce" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Announce users") }}</label>
                         <div class="flex items-center gap-2">
-                            <input type="number" id="maintAnnounce" min="0" max="1440" step="1" value="0"
-                                   class="bg-gray-50 border border-gray-300 text-sm rounded-lg p-2.5 w-24 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-announce" />
-                            <span class="text-sm text-gray-500">{{ _("minutes before start (0 = no announcement)") }}</span>
+                            <input type="number" id="maintAnnounce" min="0" max="1440" step="1" value="0" class="nx-input w-24" data-testid="admin-maintenance-announce" />
+                            <span class="text-sm" style="color:var(--nx-text-sec)">{{ _("minutes before start (0 = no announcement)") }}</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 items-end">
                         <div>
-                            <label for="maintSeverity" class="block mb-1 text-sm font-medium">{{ _("Severity") }}</label>
-                            <select id="maintSeverity"
-                                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500" data-testid="admin-maintenance-severity">
+                            <label for="maintSeverity" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Severity") }}</label>
+                            <select id="maintSeverity" class="nx-select" data-testid="admin-maintenance-severity">
                                 <option value="info">{{ _("Info") }}</option>
                                 <option value="warning">{{ _("Warning") }}</option>
                                 <option value="critical">{{ _("Critical") }}</option>
@@ -121,43 +96,39 @@
                             <span class="text-sm font-medium">{{ _("Active") }}</span>
                         </div>
                     </div>
-                    <div class="border border-red-200 rounded-lg p-3 bg-red-50">
+                    <div class="rounded-lg p-3" style="border:1px solid var(--nx-l-red);background:color-mix(in srgb, var(--nx-l-red) 40%, transparent)">
                         <div class="flex items-start gap-3">
                             <label class="ml-toggle mt-0.5">
                                 <input type="checkbox" id="maintBlockAccess" data-testid="admin-maintenance-block-access" />
                                 <span class="ml-toggle-slider"></span>
                             </label>
                             <div class="flex-1">
-                                <div class="text-sm font-semibold text-red-700">{{ _("Block access during window") }}</div>
-                                <p class="text-xs text-red-600 mt-1">{{ _("When enabled and the window is active, users without admin.maintenance.bypass are logged out and shown a maintenance page. Make sure you have the bypass permission before turning this on.") }}</p>
+                                <div class="text-sm font-semibold" style="color:var(--nx-danger)">{{ _("Block access during window") }}</div>
+                                <p class="text-xs mt-1" style="color:var(--nx-text-sec)">{{ _("When enabled and the window is active, users without admin.maintenance.bypass are logged out and shown a maintenance page. Make sure you have the bypass permission before turning this on.") }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <p id="maintError" class="text-xs text-red-600 mt-3 hidden"></p>
+                <p id="maintError" class="text-xs mt-3 hidden" style="color:var(--nx-danger)"></p>
                 <div class="flex justify-end mt-6 gap-2">
-                    <button type="button" onclick="closeMaintModal()"
-                            class="text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5" data-testid="admin-maintenance-cancel">{{ _("Cancel") }}</button>
-                    <button type="submit"
-                            class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5" data-testid="admin-maintenance-save">{{ _("Save") }}</button>
+                    <button type="button" onclick="closeMaintModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-maintenance-save">{{ _("Save") }}</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Delete confirmation -->
-    <div id="maintDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+    <div id="maintDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden">
+        <div class="nx-card w-full max-w-sm p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full" style="background:var(--nx-l-red)">
+                <i class="fas fa-exclamation-triangle text-lg" style="color:var(--nx-danger)"></i>
             </div>
-            <h3 class="text-lg font-medium mt-4">{{ _("Delete banner") }}</h3>
-            <p class="text-sm text-gray-500 mt-2">{{ _("This action cannot be undone.") }}</p>
+            <h3 class="nx-section mt-4">{{ _("Delete banner") }}</h3>
+            <p class="text-sm mt-2" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
             <div class="mt-6 flex justify-center gap-3">
-                <button type="button" onclick="closeMaintDeleteModal()"
-                        class="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md" data-testid="admin-maintenance-delete-cancel">{{ _("Cancel") }}</button>
-                <button type="button" id="maintDeleteConfirm"
-                        class="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md" data-testid="admin-maintenance-delete-confirm">{{ _("Delete") }}</button>
+                <button type="button" onclick="closeMaintDeleteModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-delete-cancel">{{ _("Cancel") }}</button>
+                <button type="button" id="maintDeleteConfirm" class="nx-btn nx-btn--danger" data-testid="admin-maintenance-delete-confirm">{{ _("Delete") }}</button>
             </div>
         </div>
     </div>
