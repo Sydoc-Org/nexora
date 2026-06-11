@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from nx_lib.db import engine_nexora_db
 from nx_lib.mail import send_mail
+from nx_lib.reporting.chart_render import render_chart_png
 from nx_lib.reporting.export import rows_to_csv, rows_to_xlsx
 from nx_lib.reporting.runner import execute_definition
 from nx_lib.reporting.schedule import compute_next_run, parse_recipients, utcnow
@@ -61,12 +62,17 @@ def _process(conn, row, now, dry_run):
     columns, rows = execute_definition(
         definition, perms, row.OwnerUserID, row.username, row.locale or "en"
     )
+    png = None
+    try:
+        png = render_chart_png(definition, columns, rows)
+    except Exception as e:  # the mail must go out even if the garnish fails
+        app.logger.warning(f"schedule {row.ScheduleID}: chart render failed: {e}")
     fmt = (row.Format or "xlsx").lower()
     if fmt == "csv":
         data, mime, ext = rows_to_csv(columns, rows), "text/csv", ".csv"
     else:
         data, mime, ext = (
-            rows_to_xlsx(columns, rows, title=row.Name or "Report"),
+            rows_to_xlsx(columns, rows, title=row.Name or "Report", chart_png=png),
             _XLSX_MIME,
             ".xlsx",
         )
@@ -74,7 +80,7 @@ def _process(conn, row, now, dry_run):
     if dry_run:
         print(
             f"[dry-run] schedule {row.ScheduleID} '{row.Name}' -> {recipients} "
-            f"({len(rows)} rows, {fmt})"
+            f"({len(rows)} rows, {fmt}, chart={'yes' if png else 'no'})"
         )
         return
     subject = f"nexora report: {row.Name}"
@@ -83,7 +89,13 @@ def _process(conn, row, now, dry_run):
         f"<strong>{html.escape(row.Name or 'Report')}</strong> "
         f"({len(rows)} rows), generated {now:%Y-%m-%d %H:%M} UTC.</p>"
     )
-    send_mail(recipients, subject, body, [(_safe_name(row.Name) + ext, data, mime)])
+    inline = None
+    if png:
+        body += '<p><img src="cid:report-chart" alt="Report chart" style="max-width:640px"></p>'
+        inline = [("report-chart", png, "image/png")]
+    send_mail(
+        recipients, subject, body, [(_safe_name(row.Name) + ext, data, mime)], inline_images=inline
+    )
     nxt = compute_next_run(row.Frequency, row.Hour, row.Minute, row.Weekday, row.DayOfMonth, now)
     cur = conn.cursor()
     cur.execute(
