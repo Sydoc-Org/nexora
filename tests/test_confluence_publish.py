@@ -278,3 +278,30 @@ class TestSpaceLookup:
         ):
             c.get_space("nexora")
         assert e.value.code == 2
+
+
+class TestMainDryRunWithoutCreds:
+    def test_dry_run_local_only_when_no_env_file(self, tmp_path, capsys):
+        rc = cp.main(
+            [
+                "--dry-run",
+                "--env-file",
+                str(tmp_path / "absent.env"),
+                "--stage-dir",
+                str(tmp_path / "stage"),
+            ]
+        )
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "dry-run" in out
+        assert "no credentials" in out.lower()
+        # staged + converted, but never tried to reach Confluence
+        assert (tmp_path / "stage" / "README.md").exists()
+
+
+class TestArgParsing:
+    def test_bootstrap_implies_confirmation_unless_yes(self):
+        args = cp.parse_args(["--bootstrap"])
+        assert args.bootstrap and not args.yes
+        args = cp.parse_args(["--bootstrap", "--yes"])
+        assert args.yes
