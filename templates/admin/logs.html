@@ -5,40 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("System Logs - nexora") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
-    <style>
-      .log-preset-row { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
-      .log-preset     { padding:5px 10px; border-radius:6px; background:var(--a-card); border:1px solid var(--a-border-input); font-size:12px; color:var(--a-text-sec); cursor:pointer; }
-      .log-preset:hover { background:var(--a-alt); color:var(--a-text); }
-      .log-preset.is-active { background:var(--a-ink); color:#fff; border-color:var(--a-ink); }
-      .saved-preset-row { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; align-items:center; min-height:30px; }
-      .saved-preset-label { font-size:11px; font-weight:600; letter-spacing:0.6px; text-transform:uppercase; color:var(--a-text-meta); }
-      .saved-preset { display:inline-flex; align-items:center; gap:6px; padding:4px 4px 4px 10px; border-radius:14px; background:var(--a-card); border:1px solid var(--a-border-input); font-size:12px; color:var(--a-text); cursor:pointer; }
-      .saved-preset:hover { background:var(--a-alt); }
-      .saved-preset .name { line-height:1; }
-      .saved-preset .del { display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; border-radius:50%; color:var(--a-text-meta); font-size:10px; }
-      .saved-preset .del:hover { background:rgba(0,0,0,0.06); color:var(--a-danger); }
-      .saved-preset-empty { font-size:12px; color:var(--a-text-meta); font-style:italic; }
-      .save-preset-btn { padding:4px 10px; border-radius:14px; background:transparent; border:1px dashed var(--a-border-input); font-size:12px; color:var(--a-text-sec); cursor:pointer; }
-      .save-preset-btn:hover { border-style:solid; color:var(--a-text); }
-      .code-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-      .code-scroll::-webkit-scrollbar-track { background: #1f2937; }
-      .code-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-      .code-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-    </style>
 </head>
-<body class="admin-page">
+<body class="nx-app">
     {% set active_page = 'admin_logs' %}
     {% include '_header.html' %}
     {% import 'admin/_admin_helpers.html' as a %}
 
-    <main>
+    <main class="nx-main">
         {{ a.page_header(
             title=_('System Audit Logs'),
             subtitle=_('Filter by user, date, method, status or organization'),
             back_url=url_for('admin_dashboard'),
-            actions=[{'label': _('Export CSV'), 'icon': 'fa-file-csv', 'onclick': 'exportLogsCsv()', 'variant': 'secondary'}]
+            actions=[{'label': _('Export CSV'), 'icon': 'fa-file-csv', 'onclick': 'exportLogsCsv()', 'variant': 'secondary'}],
+            icon='fa-clipboard-list'
         ) }}
 
         <div class="log-preset-row">
@@ -56,16 +37,17 @@
             </button>
         </div>
 
-        <div class="admin-filter-bar">
+        <div class="nx-filter mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-                <label for="filterUser">{{ _('Username') }}</label>
-                <div class="admin-input-icon"><i class="fas fa-user"></i>
-                    <input type="text" id="filterUser" class="admin-input" data-testid="admin-logs-filter-user">
+                <label for="filterUser" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Username') }}</label>
+                <div class="nx-input-icon"><i class="fas fa-user"></i>
+                    <input type="text" id="filterUser" class="nx-input" data-testid="admin-logs-filter-user">
                 </div>
             </div>
             <div>
-                <label for="filterMethod">{{ _('Method') }}</label>
-                <select id="filterMethod" class="admin-select" data-testid="admin-logs-filter-method">
+                <label for="filterMethod" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Method') }}</label>
+                <select id="filterMethod" class="nx-select" data-testid="admin-logs-filter-method">
                     <option value="">{{ _('All') }}</option>
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -74,22 +56,22 @@
                 </select>
             </div>
             <div>
-                <label for="filterPath">{{ _('Path') }}</label>
-                <div class="admin-input-icon"><i class="fas fa-link"></i>
-                    <input type="text" id="filterPath" class="admin-input" placeholder="/api/..." data-testid="admin-logs-filter-path">
+                <label for="filterPath" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Path') }}</label>
+                <div class="nx-input-icon"><i class="fas fa-link"></i>
+                    <input type="text" id="filterPath" class="nx-input" placeholder="/api/..." data-testid="admin-logs-filter-path">
                 </div>
             </div>
             <div>
-                <label for="filterStatus">{{ _('Status') }}</label>
-                <select id="filterStatus" class="admin-select" data-testid="admin-logs-filter-status">
+                <label for="filterStatus" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Status') }}</label>
+                <select id="filterStatus" class="nx-select" data-testid="admin-logs-filter-status">
                     <option value="">{{ _('All') }}</option>
                     <option value="SUCCESS">{{ _('Success (2xx)') }}</option>
                     <option value="FAILURE">{{ _('Failure (4xx/5xx)') }}</option>
                 </select>
             </div>
             <div>
-                <label for="filterOrg">{{ _('Organization') }}</label>
-                <select id="filterOrg" class="admin-select" data-testid="admin-logs-filter-org">
+                <label for="filterOrg" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Organization') }}</label>
+                <select id="filterOrg" class="nx-select" data-testid="admin-logs-filter-org">
                     <option value="">{{ _('All') }}</option>
                     {% for org in organizations %}
                     <option value="{{ org.organizationcode }}">{{ org.organization }}</option>
@@ -97,17 +79,18 @@
                 </select>
             </div>
             <div>
-                <label for="filterStart">{{ _('Start date') }}</label>
-                <input type="date" id="filterStart" class="admin-input" data-testid="admin-logs-filter-start">
+                <label for="filterStart" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Start date') }}</label>
+                <input type="date" id="filterStart" class="nx-input" data-testid="admin-logs-filter-start">
             </div>
             <div>
-                <label for="filterEnd">{{ _('End date') }}</label>
-                <input type="date" id="filterEnd" class="admin-input" data-testid="admin-logs-filter-end">
+                <label for="filterEnd" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('End date') }}</label>
+                <input type="date" id="filterEnd" class="nx-input" data-testid="admin-logs-filter-end">
+            </div>
             </div>
         </div>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
+        <div class="nx-table-wrap">
+            <table class="nx-table">
                 {{ a.table_header([
                     {'label': _('Time'), 'width': '160px'},
                     {'label': _('User'), 'width': '180px'},
@@ -118,11 +101,11 @@
                 ]) }}
                 <tbody id="logsTableBody"></tbody>
             </table>
-            <div style="padding:12px 16px;border-top:1px solid var(--a-border);display:flex;align-items:center;justify-content:space-between" id="paginationControls">
-                <span style="font-size:13px;color:var(--a-text-sec)" id="pageInfo">{{ _('Loading...') }}</span>
+            <div style="padding:12px 16px;border-top:1px solid var(--nx-border);display:flex;align-items:center;justify-content:space-between" id="paginationControls">
+                <span style="font-size:13px;color:var(--nx-text-sec)" id="pageInfo">{{ _('Loading...') }}</span>
                 <div style="display:flex;gap:8px">
-                    <button id="prevBtn" class="admin-btn admin-btn-secondary" onclick="changePage(-1)" disabled data-testid="admin-logs-prev-page">{{ _('Previous') }}</button>
-                    <button id="nextBtn" class="admin-btn admin-btn-secondary" onclick="changePage(1)" disabled data-testid="admin-logs-next-page">{{ _('Next') }}</button>
+                    <button id="prevBtn" class="nx-btn nx-btn--secondary" onclick="changePage(-1)" disabled data-testid="admin-logs-prev-page">{{ _('Previous') }}</button>
+                    <button id="nextBtn" class="nx-btn nx-btn--secondary" onclick="changePage(1)" disabled data-testid="admin-logs-next-page">{{ _('Next') }}</button>
                 </div>
             </div>
         </div>
@@ -133,18 +116,18 @@
         <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" id="modalPanel">
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-100">
-                        <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
-                            <i class="fas fa-terminal text-indigo-500 mr-2"></i> {{ _('Log Details Payload') }}
+                <div class="relative transform overflow-hidden rounded-xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" id="modalPanel" style="background:var(--nx-card)">
+                    <div class="px-4 py-3 sm:px-6 flex justify-between items-center" style="background:var(--nx-alt);border-bottom:1px solid var(--nx-divider)">
+                        <h3 class="text-base font-semibold leading-6" id="modal-title" style="color:var(--nx-text)">
+                            <i class="fas fa-terminal mr-2" style="color:var(--nx-accent)"></i> {{ _('Log Details Payload') }}
                         </h3>
-                        <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
+                        <button onclick="closeLogModal()" class="transition" style="color:var(--nx-text-meta)" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
                     </div>
-                    <div class="px-4 py-5 sm:p-6 bg-white">
-                        <div class="grid grid-cols-3 gap-4 mb-4 text-sm text-gray-500 border-b border-gray-100 pb-4">
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('User') }}</span> <span id="modalUser" class="text-gray-800 font-medium"></span></div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('Action') }}</span> <span id="modalAction" class="text-gray-800 font-medium"></span></div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">{{ _('Time') }}</span> <span id="modalTime" class="text-gray-800 font-medium"></span></div>
+                    <div class="px-4 py-5 sm:p-6" style="background:var(--nx-card)">
+                        <div class="grid grid-cols-3 gap-4 mb-4 text-sm pb-4" style="color:var(--nx-text-sec);border-bottom:1px solid var(--nx-divider)">
+                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('User') }}</span> <span id="modalUser" class="font-medium" style="color:var(--nx-text)"></span></div>
+                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('Action') }}</span> <span id="modalAction" class="font-medium" style="color:var(--nx-text)"></span></div>
+                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('Time') }}</span> <span id="modalTime" class="font-medium" style="color:var(--nx-text)"></span></div>
                         </div>
                         <div class="relative">
                             <button onclick="copyToClipboard()" class="absolute top-2 right-2 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition border border-gray-600 z-10" data-testid="admin-logs-modal-copy">
@@ -153,8 +136,8 @@
                             <pre id="modalCodeContent" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-auto max-h-96 code-scroll whitespace-pre-wrap break-all shadow-inner"></pre>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                        <button type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition" onclick="closeLogModal()" data-testid="admin-logs-modal-close-bottom">{{ _('Close') }}</button>
+                    <div class="px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6" style="background:var(--nx-alt);border-top:1px solid var(--nx-divider)">
+                        <button type="button" class="nx-btn nx-btn--secondary mt-3 sm:mt-0" onclick="closeLogModal()" data-testid="admin-logs-modal-close-bottom">{{ _('Close') }}</button>
                     </div>
                 </div>
             </div>
