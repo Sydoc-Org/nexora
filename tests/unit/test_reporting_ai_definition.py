@@ -258,3 +258,10 @@ def test_system_def_forbids_grouping_by_the_counted_field():
 def test_system_def_requires_metrics_source_for_counting():
     s = ai._SYSTEM_DEF
     assert "metrics: none" in s
+
+
+def test_system_def_defaults_time_filters_to_processing_dates():
+    s = ai._SYSTEM_DEF
+    assert "export_date" in s and "import_date" in s
+    assert "printed on the document" in s  # the Document Date counter-example
+    assert "processing-date" in s

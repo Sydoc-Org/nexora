@@ -299,3 +299,10 @@ def test_agent_system_prompt_requires_grain_for_per_period():
     from nx_lib.reporting.ai import _AGENT_SYSTEM
 
     assert '"grain"' in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_defaults_time_filters_to_processing_dates():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM as _AGENT_SYSTEM
+
+    assert "processing-date" in _AGENT_SYSTEM
+    assert "Document Date" in _AGENT_SYSTEM

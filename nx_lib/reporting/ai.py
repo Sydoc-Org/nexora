@@ -260,6 +260,12 @@ _SYSTEM_DEF = (
     " against the CURRENT date on every run, so a saved report stays fresh."
     " Only grainable/date-typed fields accept tokens. For EXPLICIT dates"
     ' ("May 2026", "2026-01-01 to 2026-03-31") keep literal ISO dates.'
+    " When a question constrains a TIME PERIOD without naming a specific date"
+    " field, put the filter on a (grainable) processing-date field — default"
+    " to the export date (export_date); use the import date (import_date)"
+    " when the question says imported/received/arrived. Content dates such as"
+    ' "Document Date" (the date printed on the document) are correct ONLY'
+    " when the user names that field explicitly."
 )
 
 
@@ -477,6 +483,10 @@ _AGENT_SYSTEM = (
     " When a question groups by a time period (per day/week/month/quarter/"
     "year), the date column in the definition MUST carry the matching"
     ' "grain" (e.g. {"field": "<date key>", "grain": "month"}).'
+    " Time-period filters go on a (grainable) processing-date field — export"
+    " date by default, import date when the question says imported/received —"
+    " never on content dates like Document Date unless the user names that"
+    " field."
     " For relative time ranges set the date filter value to a token object,"
     ' e.g. {"field": "<date field>", "op": "between", "value": {"token": "last_month"}} (tokens: today,'
     " yesterday, this_week, last_week, this_month, last_month, this_quarter,"
