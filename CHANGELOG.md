@@ -9,6 +9,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- Reporting: "Show query" on Simple and Advanced results — reveals the executed SQL and bind parameters, with copy.
+- Reporting Simple wizard: up to three breakdowns (at most one date); two-breakdown results chart as multi-series with a stacked-bar option.
+- Reporting: XLSX exports gain a title block and embed the on-screen chart; Simple gets a chart-PNG download button.
+- Reporting: scheduled report mails embed a server-rendered chart (matplotlib) inline and in the attached XLSX.
 - **Reporting Simple wizard: chart-type switcher.** Bar/line/pie/doughnut toolbar
   in the result chart card; the chosen type persists in the saved definition and
   is restored on library open.
