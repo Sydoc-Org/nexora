@@ -49,7 +49,11 @@
           <option value="year">{{ _("Year") }}</option>
         </select></label>
       <details id="rsScopeWrap" class="reporting-simple-scope" hidden>
-        <summary>{{ _("Limit to specific processes") }}</summary>
+        <summary data-testid="rs-scope-summary">
+          <i class="fas fa-filter" aria-hidden="true"></i>
+          <span>{{ _("Limit to specific processes") }}</span>
+          <span id="rsScopeBadge" class="reporting-simple-scope-badge" data-testid="rs-scope-badge"></span>
+        </summary>
         <div id="rsScopeList" data-testid="rs-scope-list"></div>
       </details>
     </div>

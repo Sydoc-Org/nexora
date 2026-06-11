@@ -820,6 +820,11 @@
       var box = el('rsScopeList');
       box.innerHTML = '';
       var prior = state.wiz.scopeProcs || [];
+      var updateScopeBadge = function () {
+        var picked = (state.wiz.scopeProcs || []).length;
+        el('rsScopeBadge').textContent =
+          (!picked || picked === procs.length) ? I18N.allProcesses : picked + ' / ' + procs.length;
+      };
       procs.forEach(function (p) {
         var lbl = document.createElement('label');
         var cb = document.createElement('input');
@@ -828,12 +833,14 @@
         cb.addEventListener('change', function () {
           state.wiz.scopeProcs = Array.prototype.map.call(
             box.querySelectorAll('input:checked'), function (c) { return c.value; });
+          updateScopeBadge();
         });
         lbl.appendChild(cb);
         lbl.appendChild(document.createTextNode(' ' + p));
         box.appendChild(lbl);
       });
       if (!prior.length) state.wiz.scopeProcs = procs.slice();
+      updateScopeBadge();
     }
   }
 
