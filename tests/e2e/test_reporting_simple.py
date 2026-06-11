@@ -664,6 +664,54 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
         )
 
 
+def test_show_query_reveals_sql(nexora_server, page):
+    """A result offers Show query, revealing the executed SELECT."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_showsql', kind: 'curated', label: 'Show SQL Test',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 18});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_showsql_count', sourceId: 'wiz_showsql', label: 'Show SQL count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Show SQL count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-wizard-run").click()
+        show = page.get_by_test_id("rs-show-sql")
+        expect(show).to_be_visible()
+        show.click()
+        expect(page.get_by_test_id("rs-sql-view")).to_be_visible()
+        expect(page.locator("#rsSqlText")).to_contain_text("SELECT")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 def test_result_back_returns_to_wizard(nexora_server, page):
     """Back on a wizard-built result re-enters the wizard; X exits to library."""
     _login(page, nexora_server)

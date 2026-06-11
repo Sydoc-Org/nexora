@@ -1042,3 +1042,9 @@ body.nx-app {
 .rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
 .rs-chip-editor { display: inline-flex; align-items: center; gap: .35rem; }
 .rs-chip-editor input, .rs-chip-editor select { max-width: 11rem; }
+
+/* --- Show query panel (T7) --- */
+.reporting-sqlview { margin-top: 12px; }
+.reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; max-height: 240px; overflow: auto; margin: 0; }
+.reporting-sqlview-params { font-size: 12px; color: #6b7280; margin: 6px 0 0; }

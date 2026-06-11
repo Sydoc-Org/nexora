@@ -58,7 +58,11 @@
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
     noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
-    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }}
+    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
+    showQuery: {{ _("Show query")|tojson }},
+    hideQuery: {{ _("Hide query")|tojson }},
+    sqlParamsLabel: {{ _("Parameters")|tojson }},
+    copied: {{ _("Copied")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Preferred
@@ -589,6 +593,11 @@
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
     if (seq !== runSeq) return;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    state.current.sql = res.data.sql || null;
+    state.current.params = res.data.params || [];
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = !state.current.sql;
+    el('rsShowSql').textContent = I18N.showQuery;
     var columns = res.data.columns || [], rows = res.data.rows || [];
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {
@@ -638,6 +647,33 @@
     if (!btn || !state.chartData) return;
     if (state.current && state.current.def) state.current.def.chartType = btn.dataset.type;
     renderChart(btn.dataset.type);
+  });
+
+  el('rsShowSql').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var view = el('rsSqlView');
+    view.hidden = !view.hidden;
+    this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
+    if (!view.hidden) {
+      el('rsSqlText').textContent = cur.sql;
+      el('rsSqlParams').textContent = (cur.params || []).length
+        ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
+            return (i + 1) + " = '" + String(p) + "'";
+          }).join(', ')
+        : '';
+    }
+  });
+  el('rsSqlCopy').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var text = cur.sql + '\n-- params: ' + JSON.stringify(cur.params || []);
+    var btn = this;
+    navigator.clipboard.writeText(text).then(function () {
+      var prev = btn.textContent;
+      btn.textContent = I18N.copied;
+      setTimeout(function () { btn.textContent = prev; }, 1200);
+    });
   });
 
   // Save: always a NEW row (inline name input, no window.prompt).

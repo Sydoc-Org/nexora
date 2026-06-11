@@ -88,6 +88,8 @@
         {% if has_permission('reporting.export') %}
         <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
         {% endif %}
+        <button type="button" id="rsShowSql" class="reporting-link" hidden
+                data-testid="rs-show-sql">{{ _("Show query") }}</button>
         <button id="rsExit" class="reporting-link reporting-simple-close" data-testid="rs-exit"
                 title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
       </span>
@@ -129,6 +131,14 @@
     </div>
     <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
     <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+      <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
+        <div class="reporting-sqlview-bar">
+          <span>{{ _("Query sent to the database") }}</span>
+          <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
+        </div>
+        <pre id="rsSqlText"></pre>
+        <p id="rsSqlParams" class="reporting-sqlview-params"></p>
+      </div>
   </div>
 </section>
 {% include 'js/_reporting_simple_js.html' %}
