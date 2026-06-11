@@ -1,25 +1,29 @@
 {# ------------------------------------------------------------------
    Admin UI macros — shared building blocks for every admin page.
    Usage:  {% import 'admin/_admin_helpers.html' as a %}
+   Markup follows the nexora-ui design system (.nx-* classes).
    ------------------------------------------------------------------ #}
 
-{% macro page_header(title, subtitle=None, back_url=None, actions=None) %}
-  <div class="admin-header">
-    <div class="admin-header-left">
-      {% if back_url %}
-        <a href="{{ back_url }}" class="admin-back" aria-label="{{ _('Back') }}" data-testid="admin-helpers-back">
-          <i class="fas fa-arrow-left"></i>
-        </a>
-      {% endif %}
-      <div>
-        <h2 class="admin-title">{{ title }}</h2>
-        {% if subtitle %}<p class="admin-subtitle">{{ subtitle }}</p>{% endif %}
+{% macro page_header(title, subtitle=None, back_url=None, actions=None, icon=None) %}
+  <div class="nx-page-head nx-rise">
+    <div class="nx-page-head__main">
+      <div class="nx-page-head__title">
+        {% if back_url %}
+          <a href="{{ back_url }}" class="nx-btn nx-btn--ghost nx-btn--sm" aria-label="{{ _('Back') }}" data-testid="admin-helpers-back">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+        {% endif %}
+        {% if icon %}<span class="nx-page-icon"><i class="fas {{ icon }}"></i></span>{% endif %}
+        <div>
+          <h1 class="nx-title">{{ title }}</h1>
+          {% if subtitle %}<p class="nx-subtitle">{{ subtitle }}</p>{% endif %}
+        </div>
       </div>
     </div>
     {% if actions %}
-      <div class="admin-header-actions">
+      <div class="nx-page-head__actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}" data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
+          <button type="button" onclick="{{ act.onclick }}" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>
@@ -32,40 +36,42 @@
 
 {% macro filter_bar(filters) %}
   {# filters = [{id, label, type, placeholder?, options?}] where type in 'search'|'select'|'date' #}
-  <div class="admin-filter-bar">
+  <div class="nx-filter mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     {% for f in filters %}
       <div>
-        <label for="{{ f.id }}">{{ f.label }}</label>
+        <label for="{{ f.id }}" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ f.label }}</label>
         {% if f.type == 'search' %}
-          <div class="admin-input-icon">
+          <div class="nx-input-icon">
             <i class="fas fa-search"></i>
-            <input type="text" id="{{ f.id }}" class="admin-input" placeholder="{{ f.placeholder|default('') }}" data-testid="admin-helpers-filter-{{ f.id }}">
+            <input type="text" id="{{ f.id }}" class="nx-input" placeholder="{{ f.placeholder|default('') }}" data-testid="admin-helpers-filter-{{ f.id }}">
           </div>
         {% elif f.type == 'select' %}
-          <select id="{{ f.id }}" class="admin-select" data-testid="admin-helpers-filter-{{ f.id }}">
+          <select id="{{ f.id }}" class="nx-select" data-testid="admin-helpers-filter-{{ f.id }}">
             {% for opt in f.options %}
               <option value="{{ opt.value }}">{{ opt.label }}</option>
             {% endfor %}
           </select>
         {% elif f.type == 'date' %}
-          <input type="date" id="{{ f.id }}" class="admin-input" data-testid="admin-helpers-filter-{{ f.id }}">
+          <input type="date" id="{{ f.id }}" class="nx-input" data-testid="admin-helpers-filter-{{ f.id }}">
         {% endif %}
       </div>
     {% endfor %}
+    </div>
   </div>
 {% endmacro %}
 
 
 {% macro toolbar(search_id, search_placeholder, actions=None) %}
   <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-    <div class="admin-input-icon" style="width:280px">
+    <div class="nx-input-icon" style="width:280px">
       <i class="fas fa-search"></i>
-      <input type="text" id="{{ search_id }}" class="admin-input" placeholder="{{ search_placeholder }}" data-testid="admin-helpers-toolbar-{{ search_id }}">
+      <input type="text" id="{{ search_id }}" class="nx-input" placeholder="{{ search_placeholder }}" data-testid="admin-helpers-toolbar-{{ search_id }}">
     </div>
     {% if actions %}
-      <div class="admin-header-actions">
+      <div class="nx-page-head__actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="admin-btn admin-btn-{{ act.variant|default('primary') }}" data-testid="admin-helpers-toolbar-action-{{ act.testid|default(loop.index) }}">
+          <button type="button" onclick="{{ act.onclick }}" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-toolbar-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>
@@ -94,5 +100,5 @@
 
 
 {% macro badge(label, tone='gray') %}
-  <span class="admin-badge admin-badge--{{ tone }}">{{ label }}</span>
+  <span class="nx-label nx-label--{{ tone }}">{{ label }}</span>
 {% endmacro %}
