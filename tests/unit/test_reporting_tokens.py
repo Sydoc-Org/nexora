@@ -33,6 +33,8 @@ def _d(s):
         ("last_year", "2025-01-01", "2025-12-31"),
         # 1st of month-2 .. last day of current month (wizard preset semantics)
         ("last_3_months", "2026-04-01", "2026-06-30"),
+        ("this_quarter", "2026-04-01", "2026-06-30"),
+        ("last_quarter", "2026-01-01", "2026-03-31"),
     ],
 )
 def test_fixed_token_resolution(token, start, end):
@@ -67,6 +69,24 @@ def test_month_edges_resolve_correctly():
     assert resolve_token({"token": "last_week"}, _d("2026-06-08")) == (
         _d("2026-06-01"),
         _d("2026-06-07"),
+    )
+
+
+def test_quarter_edges_resolve_correctly():
+    # January: last_quarter crosses the year boundary into Q4.
+    assert resolve_token({"token": "last_quarter"}, _d("2026-01-15")) == (
+        _d("2025-10-01"),
+        _d("2025-12-31"),
+    )
+    # Last day of a quarter still resolves to its own quarter.
+    assert resolve_token({"token": "this_quarter"}, _d("2026-03-31")) == (
+        _d("2026-01-01"),
+        _d("2026-03-31"),
+    )
+    # First day of a quarter.
+    assert resolve_token({"token": "this_quarter"}, _d("2026-10-01")) == (
+        _d("2026-10-01"),
+        _d("2026-12-31"),
     )
 
 
@@ -143,6 +163,8 @@ def test_registry_is_the_documented_vocabulary():
         "last_year",
         "last_3_months",
         "last_n_days",
+        "this_quarter",
+        "last_quarter",
     }
 
 

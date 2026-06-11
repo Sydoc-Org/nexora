@@ -36,6 +36,13 @@ def _week_of(d):
     return start, start + datetime.timedelta(days=6)
 
 
+def _quarter_start(d, delta=0):
+    """First day of d's calendar quarter, shifted by `delta` quarters."""
+    q_index = d.year * 4 + (d.month - 1) // 3 + delta
+    year, q = divmod(q_index, 4)
+    return datetime.date(year, q * 3 + 1, 1)
+
+
 # Frozen vocabulary: name -> resolver(today) -> (start_date, end_date), inclusive.
 # last_n_days is parameterized and handled explicitly in resolve_token.
 RELATIVE_DATE_TOKENS = {
@@ -45,6 +52,14 @@ RELATIVE_DATE_TOKENS = {
     "last_week": lambda t: _week_of(t - datetime.timedelta(days=7)),
     "this_month": lambda t: _month_range(t.year, t.month),
     "last_month": lambda t: _month_range(_month_start(t, -1).year, _month_start(t, -1).month),
+    "this_quarter": lambda t: (
+        _quarter_start(t),
+        _quarter_start(t, 1) - datetime.timedelta(days=1),
+    ),
+    "last_quarter": lambda t: (
+        _quarter_start(t, -1),
+        _quarter_start(t) - datetime.timedelta(days=1),
+    ),
     "this_year": lambda t: (datetime.date(t.year, 1, 1), datetime.date(t.year, 12, 31)),
     "last_year": lambda t: (datetime.date(t.year - 1, 1, 1), datetime.date(t.year - 1, 12, 31)),
     "last_3_months": lambda t: (_month_start(t, -2), _month_range(t.year, t.month)[1]),
