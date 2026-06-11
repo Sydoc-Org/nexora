@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix the five AI bugs found in the 2026-06-10 stakeholder browser tour — missing quarter tokens, AI never emitting date grain, the distinct-count-per-group trap, the agent's unknown-SQL-target dead end, metric-less-source misdrafts with confusing error messages — and consolidate the redundant `workitem_count` metric (owner-verified 2026-06-11: all count variants identical on PROD).
+**Goal:** Fix the five AI bugs found in the 2026-06-10 stakeholder browser tour — missing quarter tokens, AI never emitting date grain, the distinct-count-per-group trap, the agent's unknown-SQL-target dead end, metric-less-source misdrafts with confusing error messages — consolidate the redundant `workitem_count` metric (owner-verified 2026-06-11: all count variants identical on PROD), and make **every** Simple result tweakable (refine bar + editable chips on wizard/library results, wizard re-entry with preserved choices).
 
 **Architecture:** All fixes are prompt-engineering + small deterministic guards along the existing Surface A/C pipeline: token vocabulary lives in `nx_lib/reporting/tokens.py`, both system prompts live in `nx_lib/reporting/ai.py` (`_SYSTEM_DEF`, `_AGENT_SYSTEM`), the gate is `_validate_definition_for_user` in `nx_lib/views/reporting.py`, grounding text comes from `nx_lib/reporting/ai_schema.py`, and the Simple-tab UI strings live in `templates/js/_reporting_simple_js.html`. No new tables, no migrations.
 
@@ -47,6 +47,8 @@
 | `translations/{de,fr,it}/LC_MESSAGES/messages.po` | "This quarter" / "Last quarter" (Task 10) |
 | `CHANGELOG.md`, `docs/howto/reporting.md`, `docs/design/reporting-ai-assistant.md` | Token vocabulary + behavior docs (Tasks 11, 12) |
 | `sql/_migrations/NexoraDB/0021_disable_workitem_count_metric.sql` | Create — consolidate to one count metric (Task 12) |
+| `templates/_reporting_simple.html` | "Adjust in wizard" button in the result actions (Task 15) |
+| `templates/js/_reporting_simple_js.html` | Un-gate chips/refine from AI-only (Task 14); wizard re-entry with preserved state (Task 15) |
 
 ---
 
@@ -298,7 +300,7 @@ After the `['last_month', …]` entry (line 26), add:
 - [ ] **Step 5: Sanity-run the template**
 
 Run: `.venv\Scripts\python.exe -m pytest tests\e2e\test_reporting_simple.py -k wizard --collect-only -q`
-Expected: collection succeeds (no Jinja syntax error). Full e2e runs in the final verification task (Task 14).
+Expected: collection succeeds (no Jinja syntax error). Full e2e runs in the final verification task (Task 16).
 
 - [ ] **Step 6: Commit**
 
@@ -1199,7 +1201,393 @@ git commit -m "fix(reporting): AI time filters default to export/import date, no
 
 ---
 
-### Task 14: Full verification — suites + live browser pass
+### Task 14: Tweak any Simple result — refine bar + editable chips everywhere
+
+Today the refine bar and the editable filter/process chips render only for AI-built results: one boolean gates both — `var aiBuilt = cur.aiExplanation !== undefined;` (`templates/js/_reporting_simple_js.html:409` in `renderAiChips`, `:486` in `runCurrent`). Wizard-built (`:860`) and library-opened (`:161`) results never set `aiExplanation`, so they are dead ends. Chips are purely definition-driven and the refine API already accepts a prior definition — only the prompt builder insists on having a prior *question* too (`nx_lib/reporting/ai.py:289` `if prior_question and prior_definition:`). `api_ai_build` already validates `priorQuestion` and `priorDefinition` independently (`nx_lib/views/reporting.py:1226-1240`) — no route change needed.
+
+**Files:**
+- Modify: `nx_lib/reporting/ai.py` — `_definition_user_prompt` (273–305)
+- Modify: `templates/js/_reporting_simple_js.html` — `renderAiChips` (405–411), `runCurrent` (484–488), refine payload (892–893)
+- Test: `tests/unit/test_reporting_ai_definition.py`, `tests/integration/test_reporting_ai_routes.py`, `tests/e2e/test_reporting_simple.py`
+
+- [ ] **Step 1: Write the failing unit test**
+
+Append to `tests/unit/test_reporting_ai_definition.py` (reuse the file's `_transport`/`_anthropic_body` stubs and the captured-body pattern of `test_ask_definition_includes_today_in_prompt`, lines 129–147):
+
+```python
+def test_ask_definition_accepts_prior_definition_without_question():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["body"] = body
+        return _anthropic_body(
+            {"definition": {"schemaVersion": 1, "visualization": "table",
+                            "source": "docprocessing", "title": "T", "columns": [],
+                            "filters": [], "sort": [],
+                            "scope": {"clients": [], "processes": []},
+                            "rowLimit": 5000},
+             "explanation": "x"}
+        )
+
+    ai.ask_definition(
+        "add a breakdown by process",
+        "SOURCE docprocessing ...",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=transport,
+        prior_definition={"schemaVersion": 1, "source": "docprocessing",
+                          "columns": [], "filters": []},
+    )
+    user_msg = json.dumps(captured["body"])
+    assert "built from this definition" in user_msg
+    assert "previously asked" not in user_msg
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `.venv\Scripts\python.exe -m pytest tests\unit\test_reporting_ai_definition.py::test_ask_definition_accepts_prior_definition_without_question -v`
+Expected: FAIL — without `prior_question` the current code skips the prior-context block entirely, so `built from this definition` is absent.
+
+- [ ] **Step 3: Relax `_definition_user_prompt`**
+
+In `nx_lib/reporting/ai.py`, replace (lines 289–294):
+
+```python
+    if prior_question and prior_definition:
+        compact = json.dumps(prior_definition, separators=(",", ":"))
+        base += (
+            f'The user previously asked: "{prior_question}". You answered with this definition: {compact}\n'
+            "Modify the previous definition to satisfy the new request; keep everything the user did not ask to change.\n\n"
+        )
+```
+
+with:
+
+```python
+    if prior_definition:
+        compact = json.dumps(prior_definition, separators=(",", ":"))
+        if prior_question:
+            base += (
+                f'The user previously asked: "{prior_question}". You answered with this definition: {compact}\n'
+            )
+        else:
+            base += (
+                f"The user is viewing a report built from this definition: {compact}\n"
+            )
+        base += (
+            "Modify the previous definition to satisfy the new request; keep everything the user did not ask to change.\n\n"
+        )
+```
+
+- [ ] **Step 4: Run the unit suite**
+
+Run: `.venv\Scripts\python.exe -m pytest tests\unit\test_reporting_ai_definition.py -v`
+Expected: all PASS (the existing both-fields refine tests keep their wording).
+
+- [ ] **Step 5: Un-gate the chips and the refine bar in the JS**
+
+In `templates/js/_reporting_simple_js.html`:
+
+(a) `renderAiChips` — replace (lines 409–411):
+
+```javascript
+    var aiBuilt = cur.aiExplanation !== undefined;
+    wrap.hidden = !aiBuilt;
+    if (!aiBuilt) return;
+```
+
+with:
+
+```javascript
+    // Chips are definition-driven — every Simple result (AI, wizard, library)
+    // gets them; edits mutate the in-memory copy only (Save creates a new row).
+    var hasDef = !!(cur && cur.def);
+    wrap.hidden = !hasDef;
+    if (!hasDef) return;
+```
+
+(b) `runCurrent` — replace (lines 484–488):
+
+```javascript
+    var refineBar = el('rsRefineBar');
+    if (refineBar) {
+      var aiBuilt = cur.aiExplanation !== undefined;
+      refineBar.hidden = !aiBuilt;
+      if (aiBuilt) el('rsRefineInput').value = cur.aiQuestion || '';
+    }
+```
+
+with:
+
+```javascript
+    var refineBar = el('rsRefineBar');
+    if (refineBar) {
+      refineBar.hidden = false;
+      el('rsRefineInput').value = cur.aiQuestion || '';
+    }
+```
+
+(c) Refine payload — replace (lines 892–893):
+
+```javascript
+    if (fromRefine && prior && prior.aiQuestion && prior.def) {
+      payload.priorQuestion = prior.aiQuestion;
+```
+
+with (keep the following `payload.priorDefinition = …` line as-is):
+
+```javascript
+    if (fromRefine && prior && prior.def) {
+      if (prior.aiQuestion) payload.priorQuestion = prior.aiQuestion;
+```
+
+(After a successful refine the result becomes AI-built — `aiExplanation`/`aiQuestion` get set by the existing assignment at lines 929–932; nothing more to wire.)
+
+- [ ] **Step 6: Write the failing integration test**
+
+Append to `tests/integration/test_reporting_ai_routes.py` (same patch set as `test_ai_build_does_not_require_sql_permission`, lines 187–220):
+
+```python
+def test_ai_build_accepts_prior_definition_without_question(user_client):
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()) as draft,
+        patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None)),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/build",
+            json={
+                "question": "add a breakdown by process",
+                "priorDefinition": {"schemaVersion": 1, "source": "gen_pdqm",
+                                    "columns": [], "filters": []},
+            },
+        )
+    assert resp.status_code == 200
+    assert resp.get_json()["valid"] is True
+    assert draft.call_args.kwargs.get("prior_definition") is not None
+    assert draft.call_args.kwargs.get("prior_question") in (None, "")
+```
+
+Run: `.venv\Scripts\python.exe -m pytest tests\integration\test_reporting_ai_routes.py -v -k without_question`
+Expected: PASS already if the route forwards the kwargs unconditionally — if it only forwards them when BOTH are set, fix the forwarding in `api_ai_build` so each is passed independently.
+
+- [ ] **Step 7: e2e — wizard result shows chips + refine bar**
+
+In `tests/e2e/test_reporting_simple.py` there are two tests to crib from: the existing wizard-run e2e (drives measure → breakdown → time preset → `rs-wizard-run`) and `test_refine_sends_prior_context_and_replaces_result` (stubs the AI build endpoint and drives `rs-refine-input`/`rs-refine`). Add a test that runs the **wizard** arrange steps, then asserts the tweak affordances exist on the result:
+
+```python
+    # after the wizard result rendered:
+    expect(page.get_by_test_id("rs-refine-input")).to_be_visible()
+    chips = page.locator("#rsChips")
+    expect(chips).to_be_visible()
+    # the filter chip from the wizard's time preset is editable:
+    chips.locator(".rs-chip").first.click()
+    expect(page.get_by_test_id("rs-chip-apply")).to_be_visible()
+```
+
+Then (optional but preferred) extend it with the refine stub from `test_refine_sends_prior_context_and_replaces_result` and assert the stub received `priorDefinition` and **no** `priorQuestion`.
+
+Run: `python scripts\test_db_reset.py` then `.venv\Scripts\python.exe -m pytest tests\e2e\test_reporting_simple.py -v -k "wizard and (chips or refine)"`
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+```powershell
+$env:SQL_SYNC_SKIP='1'; git add nx_lib/reporting/ai.py templates/js/_reporting_simple_js.html tests/unit/test_reporting_ai_definition.py tests/integration/test_reporting_ai_routes.py tests/e2e/test_reporting_simple.py
+git commit -m "feat(reporting): refine bar and editable chips on every Simple result"
+```
+
+---
+
+### Task 15: "Adjust in wizard" — re-enter the walkthrough with your choices kept
+
+`startWizard()` (`templates/js/_reporting_simple_js.html:649-659`) always resets `state.wiz` and hides steps 2/3. A wizard-built result should offer a way back into the walkthrough with the previous choices pre-selected. Note one quirk: the AI result assignment at line 930 also sets `fromWizard: true` (it means "ephemeral/unsaved" there), so the new button must NOT key off `fromWizard` — introduce an explicit `builtBy: 'wizard'` marker instead.
+
+**Files:**
+- Modify: `templates/_reporting_simple.html` — result actions block (lines 73–81)
+- Modify: `templates/js/_reporting_simple_js.html` — `choiceBtn` (624–636), `renderMeasureStep` (661–685), `renderBreakdownStep` (687–746), `renderTimeStep` (754–805+), wizard-run result assignment (~860), `runCurrent`, new `reopenWizard()`
+- Modify: `messages.pot` + 3× `.po/.mo` (one new string)
+- Test: `tests/e2e/test_reporting_simple.py`
+
+- [ ] **Step 1: Add the button to the result actions**
+
+In `templates/_reporting_simple.html`, before the `rsSave` button (line 76), add:
+
+```html
+        <button id="rsAdjustWizard" class="reporting-btn" hidden
+                data-testid="rs-adjust-wizard">{{ _("Adjust in wizard") }}</button>
+```
+
+- [ ] **Step 2: Let `choiceBtn` render pre-selected**
+
+Replace the head of `choiceBtn` (lines 624–629):
+
+```javascript
+  function choiceBtn(label, onpick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-choice';
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = label;
+```
+
+with:
+
+```javascript
+  function choiceBtn(label, onpick, selected) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-choice';
+    if (selected) b.classList.add('is-selected');
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    b.textContent = label;
+```
+
+- [ ] **Step 3: Make the step renderers honor existing `state.wiz`**
+
+In `renderMeasureStep` (line 675), pass the selected flag:
+
+```javascript
+        list.appendChild(choiceBtn(label, function () {
+          state.wiz.measure = m;
+          state.wiz.source = src;   // picking a measure pins the source
+          renderBreakdownStep();
+        }, !!(state.wiz.measure && state.wiz.measure.code === m.code
+              && state.wiz.source && state.wiz.source.id === src.id)));
+```
+
+In `renderBreakdownStep`:
+- date buttons (line 701): third arg `!!(state.wiz.breakdown && state.wiz.breakdown.kind === 'date' && state.wiz.breakdown.field.field === f.field)`
+- category buttons (line 711): third arg `!!(state.wiz.breakdown && state.wiz.breakdown.kind === 'category' && state.wiz.breakdown.field.field === f.field)`
+- "just the total" (line 717): third arg `!!(state.wiz.breakdown && state.wiz.breakdown.kind === 'none')`
+- grain wrap (line 693): replace `el('rsGrainWrap').hidden = true;` with `el('rsGrainWrap').hidden = !(state.wiz.breakdown && state.wiz.breakdown.kind === 'date');` (the grain `<select>` itself lives in the template, so its value survives re-render untouched)
+- process checkboxes (lines 735 + 744): preserve a prior selection instead of resetting —
+
+```javascript
+      var prior = state.wiz.scopeProcs || [];
+      // inside the loop (line 735):
+        cb.checked = !prior.length || prior.indexOf(p) !== -1;
+      // and replace the unconditional reset (line 744):
+      if (!prior.length) state.wiz.scopeProcs = procs.slice();
+```
+
+In `renderTimeStep`:
+- date-field select (lines 776–780): honor a kept choice —
+
+```javascript
+    if (state.wiz.dateField
+        && dateFields.some(function (f) { return f.field === state.wiz.dateField; })) {
+      sel.value = state.wiz.dateField;
+    } else if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
+      sel.value = 'import_date';
+    }
+```
+
+- preset buttons (the `[['this_month', …]].forEach` list): third arg `state.wiz.range === p[0] || (p[0] === 'custom' && Array.isArray(state.wiz.range))` (presets store the token name in `state.wiz.range`; Custom stores a `[start, end]` array — verify against the click handler right below and match its actual storage), and keep `el('rsTimeCustom').hidden = true;` (line 757) only when the kept range is not an array:
+
+```javascript
+    el('rsTimeCustom').hidden = !Array.isArray(state.wiz.range);
+```
+
+- [ ] **Step 4: `reopenWizard()` + the marker + wiring**
+
+Add next to `startWizard`:
+
+```javascript
+  async function reopenWizard() {
+    if (!state.wiz || !state.wiz.measure) { startWizard(); return; }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    setView('wizard');
+    renderMeasureStep();
+    renderBreakdownStep();
+    renderTimeStep();
+  }
+```
+
+In the wizard-run result assignment (~line 860) add the marker:
+
+```javascript
+                      owned: true, canEdit: true, fromWizard: true,
+                      builtBy: 'wizard' };
+```
+
+In `runCurrent`, next to the refine-bar block, toggle the button:
+
+```javascript
+    var adjustBtn = el('rsAdjustWizard');
+    if (adjustBtn) adjustBtn.hidden = cur.builtBy !== 'wizard';
+```
+
+And bind the click once, next to the existing `rsOpenAdvanced` click binding (grep `rsOpenAdvanced` in this file's wiring section):
+
+```javascript
+    el('rsAdjustWizard').addEventListener('click', reopenWizard);
+```
+
+- [ ] **Step 5: i18n for the new string**
+
+```powershell
+.venv\Scripts\pybabel.exe extract -F babel.cfg -o messages.pot .
+.venv\Scripts\pybabel.exe update -i messages.pot -d translations
+```
+
+| msgid | de | fr | it |
+|---|---|---|---|
+| `Adjust in wizard` | `Im Assistenten anpassen` | `Ajuster dans l'assistant` | `Modifica nella procedura guidata` |
+
+Remove any `#, fuzzy` flags, then:
+
+```powershell
+.venv\Scripts\pybabel.exe compile -d translations
+.venv\Scripts\python.exe -m pytest tests\unit\test_translations.py -v
+```
+
+- [ ] **Step 6: e2e — round trip**
+
+Append to `tests/e2e/test_reporting_simple.py` (crib the wizard arrange steps from the existing wizard e2e test):
+
+```python
+    # run the wizard once, then re-enter it:
+    page.get_by_test_id("rs-adjust-wizard").click()
+    expect(page.get_by_test_id("rs-wizard-run")).to_be_visible()
+    # previous choices survive: the measure button is still pressed
+    expect(page.locator(".reporting-simple-choice.is-selected").first).to_be_visible()
+    # change the time preset, run again, result re-renders
+    page.get_by_test_id("rs-wizard-run").click()
+```
+
+Run: `python scripts\test_db_reset.py` then `.venv\Scripts\python.exe -m pytest tests\e2e\test_reporting_simple.py -v -k adjust`
+Expected: PASS.
+
+- [ ] **Step 7: Changelog + docs**
+
+`CHANGELOG.md` `[Unreleased]` → `### Added`:
+
+```markdown
+- Reporting Simple: every result is now tweakable — the AI refine bar and the editable filter/process chips show on wizard-built and library-opened reports too (refine works without a prior AI question), and wizard-built results get an "Adjust in wizard" button that re-opens the walkthrough with the previous choices pre-selected.
+```
+
+Update the Simple-tab section of `docs/howto/reporting.md` accordingly.
+
+- [ ] **Step 8: Commit**
+
+```powershell
+$env:SQL_SYNC_SKIP='1'; git add templates/_reporting_simple.html templates/js/_reporting_simple_js.html messages.pot translations tests/e2e/test_reporting_simple.py CHANGELOG.md docs/howto/reporting.md
+git commit -m "feat(reporting): adjust-in-wizard re-entry with preserved choices"
+```
+
+---
+
+### Task 16: Full verification — suites + live browser pass
 
 **Files:** none (verification only)
 
@@ -1237,6 +1625,8 @@ Re-ask, screenshot each to `var/screenshots/` (send to the user):
    `SELECT TOP 3 Surface, Status, GateVerdict, CreatedAt FROM dbo.ReportingAiAudit ORDER BY CreatedAt DESC`
 5. Force an invalid draft (ask for a metric on the metric-less `workitems` source, e.g. *"average number of workitems per day in the workitems source"*) → the red line must show the **gate reason**, not the model explanation.
 6. *"How many documents did we process in April 2026?"* → the filter chip must be on **export_date** (literal `2026-04-01 → 2026-04-30`), NOT on Document Date; rephrase with *"imported in April 2026"* → **import_date**.
+7. Build a report via the **wizard**, then on the result: chips are visible and editable, the refine bar is visible — type *"only compass"* and Refine → the AI narrows the scope without a prior question (audit row Surface `definition`, verdict `valid`).
+8. On the same wizard result click **Adjust in wizard** → the walkthrough re-opens with measure/breakdown/time still selected; change only the time preset, run, and the result updates.
 
 - [ ] **Step 4: Update the usability-gaps memory + handoff**
 
@@ -1246,7 +1636,7 @@ Record the outcome (esp. whether the agent now reaches `final`) in memory `proje
 
 ## Self-review notes
 
-- **Spec coverage:** bug 1 → Tasks 1–3, 10, 11; bug 2 → Task 4; bug 3 → Tasks 5–6; bug 4 → Task 7; bug 5 → Tasks 8–9; metric consolidation (PROD parity finding) → Task 12; bug 6 (Document Date mispick) → Task 13. Verification → Task 14.
+- **Spec coverage:** bug 1 → Tasks 1–3, 10, 11; bug 2 → Task 4; bug 3 → Tasks 5–6; bug 4 → Task 7; bug 5 → Tasks 8–9; metric consolidation (PROD parity finding) → Task 12; bug 6 (Document Date mispick) → Task 13; tweak-any-result + wizard re-entry (owner request 2026-06-11) → Tasks 14–15. Verification → Task 16.
 - **Signatures verified against the live tree (2026-06-11):** `_def_result(source="gen_pdqm")` at `tests/integration/test_reporting_ai_routes.py:166` (Task 6 extends it backward-compatibly); `serialize_sources_catalog(sources, *, char_budget=…) -> (text, truncated)` at `nx_lib/reporting/ai_schema.py:88`; `_run_sql(target, sql, *, userid, username)` at `nx_lib/views/reporting.py:543` (the unknown-target branch raises before any engine/app-context use, so it is directly callable in tests); the agent route is `/api/reporting/ai/agent` and calls `ask_agentic(initial, registry=…, agent_step=…)` at line 1473; the agentic result exposes `answer, stopped_reason, tool_trace, turns, tokens_in, tokens_out` (see `tests/unit/test_reporting_ai_agentic.py` usage).
 - **Type consistency:** `drop_columns_shadowing_distinct_metrics(rd, metric_registry)` consumes the exact `{code: {aggregation, base_field}}` shape `_metrics_for_source` returns (`nx_lib/views/reporting.py:214-220`); Tasks 6 unit + integration both use that shape.
 - **Existing-test compatibility:** Task 5's replacement text deliberately keeps the literal phrases `GROUP BY` and `duplicate rows` asserted by the pre-existing prompt tests.
