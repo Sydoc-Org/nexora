@@ -322,6 +322,7 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - Reporting AI: sources without registered metrics are marked "cannot aggregate" in the grounding; failure messages surface the gate error instead of the model's explanation.
 
 ### Changed
+- Reporting: `workitem_count` metric disabled (migration `0021`) — verified on PROD that the Statistics tables hold one row per workitem, so it always equaled `doc_count`. `workitem_id` remains available as a column/filter; re-enable the metric row if a multi-row-per-workitem source ever appears.
 - **Generali import scripts: `.env` instead of `env.json`, split into `remote/` +
   `local/`.** `scripts/generali-import/` now loads secrets from a `.env` file via a
   `load_from_dot_env` helper (process env vars, `$env:*`) instead of

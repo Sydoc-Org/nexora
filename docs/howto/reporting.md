@@ -124,11 +124,16 @@ NULL simply doesn't expose the field — set the column in `StatConfig` to add i
 for a new process, no code change needed.
 
 Its companion metric **`workitem_count`** (`COUNT(DISTINCT workitem_id)`,
-registered in `dbo.ReportingMetrics`) answers "how many workitems" where
-`doc_count` counts *rows* — a workitem that produced several statistics rows is
-counted once. It appears automatically as a measure in the Simple wizard and in
-the AI grounding. Rows from a process without a workitem mapping contribute
-nothing to the distinct count (their `workitem_id` projects as NULL).
+registered in `dbo.ReportingMetrics`) was intended to answer "how many workitems"
+where `doc_count` counts *rows*. The `workitem_count` metric is currently
+**disabled** (see migration `0021`) — all four count variants (`COUNT(*)`,
+`COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)`, `COUNT(Barcode)`) are
+identical on the Statistics tables because there is one row per workitem and no
+NULL workitem ids. The picker therefore offers only `doc_count`. Re-enable the
+metric row in `dbo.ReportingMetrics` if a multi-row-per-workitem source ever
+appears. Rows from a process without a workitem mapping still contribute nothing
+to the `workitem_id` column (it projects as NULL), and the `workitem_id`
+dimension/filter field remains fully available.
 
 ### Save & load
 
