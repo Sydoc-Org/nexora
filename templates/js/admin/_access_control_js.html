@@ -443,7 +443,7 @@
             filterUsersTable();
         } catch {
             document.getElementById('usersTableBody').innerHTML =
-                `<tr><td colspan="6" class="admin-empty" style="color:var(--a-danger)">{{ _("Error loading data.") }}</td></tr>`;
+                `<tr><td colspan="6" class="admin-empty" style="color:var(--nx-danger)">{{ _("Error loading data.") }}</td></tr>`;
         }
     }
 
@@ -476,7 +476,7 @@
                 <td>${badge}</td>
                 <td class="text-sm text-gray-600">${escapeHtml(u.organization || '—')}</td>
                 <td class="text-center">${overrideBadge}</td>
-                <td class="align-right"><i class="fas fa-chevron-right" style="color:var(--a-text-meta);font-size:12px"></i></td>
+                <td class="align-right"><i class="fas fa-chevron-right" style="color:var(--nx-text-meta);font-size:12px"></i></td>
             `;
             tbody.appendChild(tr);
         });
