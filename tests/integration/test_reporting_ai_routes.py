@@ -1026,6 +1026,37 @@ def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
 # ---- Task 7: Agent knows the run_sql targets --------------------------------
 
 
+def test_ai_build_accepts_prior_definition_without_question(user_client):
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()) as draft,
+        patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None)),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/build",
+            json={
+                "question": "add a breakdown by process",
+                "priorDefinition": {
+                    "schemaVersion": 1,
+                    "source": "gen_pdqm",
+                    "columns": [],
+                    "filters": [],
+                },
+            },
+        )
+    assert resp.status_code == 200
+    assert resp.get_json()["valid"] is True
+    assert draft.call_args.kwargs.get("prior_definition") is not None
+    assert draft.call_args.kwargs.get("prior_question") in (None, "")
+
+
 def test_run_sql_unknown_target_error_lists_allowed_targets():
     import pytest
 

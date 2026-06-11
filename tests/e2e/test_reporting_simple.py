@@ -332,3 +332,92 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     # Remove the filter chip entirely -> "no filters" placeholder renders.
     chips.get_by_test_id("rs-chip-remove").first.click()
     expect(chips).to_contain_text("no filters")
+
+
+def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
+    """After a wizard run, chips and refine bar appear (not just for AI-built results)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_chips', kind: 'curated', label: 'Wizard Chips',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 11});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_chips_count', sourceId: 'wiz_chips', label: 'Wizard chips count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Wizard chips count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        # Chips and refine bar are now visible for wizard results too.
+        chips = page.locator("#rsChips")
+        expect(chips).to_be_visible()
+        expect(page.get_by_test_id("rs-refine-input")).to_be_visible()
+
+        # The wizard adds no filters, so the "no filters" placeholder chip renders.
+        expect(chips).to_contain_text("no filters")
+
+        # The refine input starts empty for a wizard result (no aiQuestion).
+        expect(page.get_by_test_id("rs-refine-input")).to_have_value("")
+
+        # Stub the AI build endpoint so refine works without a live AI key.
+        refined_def = dict(STUB_AI_DEFINITION, title="wizard refined report", source="wiz_chips")
+        seen_payloads = []
+
+        def _ai_handler(route):
+            seen_payloads.append(route.request.post_data_json)
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "definition": refined_def,
+                        "explanation": "refined from wizard",
+                        "valid": True,
+                        "error": None,
+                    }
+                ),
+            )
+
+        page.route("**/api/reporting/ai/build", _ai_handler)
+
+        # Refine: fill the input and submit — must send priorDefinition but NO priorQuestion.
+        page.get_by_test_id("rs-refine-input").fill("only compass")
+        page.get_by_test_id("rs-refine").click()
+        expect(page.get_by_test_id("rs-result-title")).to_contain_text("wizard refined report")
+
+        assert len(seen_payloads) == 1
+        payload = seen_payloads[0]
+        assert payload.get("priorDefinition") is not None, "priorDefinition must be sent"
+        assert (
+            "priorQuestion" not in payload or payload.get("priorQuestion") is None
+        ), "priorQuestion must be absent for wizard result refine"
+        assert payload["question"] == "only compass"
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

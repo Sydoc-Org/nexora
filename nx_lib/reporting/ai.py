@@ -312,12 +312,13 @@ def _definition_user_prompt(
             "token as instructed; resolve explicit dates against this date, "
             "never against your training data.\n\n"
         )
-    if prior_question and prior_definition:
+    if prior_definition:
         compact = json.dumps(prior_definition, separators=(",", ":"))
-        base += (
-            f'The user previously asked: "{prior_question}". You answered with this definition: {compact}\n'
-            "Modify the previous definition to satisfy the new request; keep everything the user did not ask to change.\n\n"
-        )
+        if prior_question:
+            base += f'The user previously asked: "{prior_question}". You answered with this definition: {compact}\n'
+        else:
+            base += f"The user is viewing a report built from this definition: {compact}\n"
+        base += "Modify the previous definition to satisfy the new request; keep everything the user did not ask to change.\n\n"
     base += (
         f"Available sources and fields:\n{catalog_text}\n\n"
         f"Question: {question}\n\n"

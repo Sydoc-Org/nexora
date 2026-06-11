@@ -265,3 +265,44 @@ def test_system_def_defaults_time_filters_to_processing_dates():
     assert "export_date" in s and "import_date" in s
     assert "printed on the document" in s  # the Document Date counter-example
     assert "processing-date" in s
+
+
+def test_ask_definition_accepts_prior_definition_without_question():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["body"] = body
+        return _anthropic_body(
+            {
+                "definition": {
+                    "schemaVersion": 1,
+                    "visualization": "table",
+                    "source": "docprocessing",
+                    "title": "T",
+                    "columns": [],
+                    "filters": [],
+                    "sort": [],
+                    "scope": {"clients": [], "processes": []},
+                    "rowLimit": 5000,
+                },
+                "explanation": "x",
+            }
+        )
+
+    ai.ask_definition(
+        "add a breakdown by process",
+        "SOURCE docprocessing ...",
+        provider="anthropic",
+        model="m",
+        api_key="k",
+        transport=transport,
+        prior_definition={
+            "schemaVersion": 1,
+            "source": "docprocessing",
+            "columns": [],
+            "filters": [],
+        },
+    )
+    user_msg = json.dumps(captured["body"])
+    assert "built from this definition" in user_msg
+    assert "previously asked" not in user_msg

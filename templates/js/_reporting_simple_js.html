@@ -409,9 +409,11 @@
     var wrap = el('rsChips');
     if (!wrap) return;
     wrap.innerHTML = '';
-    var aiBuilt = cur.aiExplanation !== undefined;
-    wrap.hidden = !aiBuilt;
-    if (!aiBuilt) return;
+    // Chips are definition-driven — every Simple result (AI, wizard, library)
+    // gets them; edits mutate the in-memory copy only (Save creates a new row).
+    var hasDef = !!(cur && cur.def);
+    wrap.hidden = !hasDef;
+    if (!hasDef) return;
     var def = cur.def || {};
     (def.filters || []).forEach(function (f) {
       var label = f.field + ' ' + f.op + ' ' + chipValueLabel(f.value);
@@ -486,9 +488,8 @@
     renderAiChips(cur);
     var refineBar = el('rsRefineBar');
     if (refineBar) {
-      var aiBuilt = cur.aiExplanation !== undefined;
-      refineBar.hidden = !aiBuilt;
-      if (aiBuilt) el('rsRefineInput').value = cur.aiQuestion || '';
+      refineBar.hidden = false;
+      el('rsRefineInput').value = cur.aiQuestion || '';
     }
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
@@ -892,8 +893,8 @@
     if (!q || aiBusy) return;
     var payload = { question: q };
     var prior = state.current;
-    if (fromRefine && prior && prior.aiQuestion && prior.def) {
-      payload.priorQuestion = prior.aiQuestion;
+    if (fromRefine && prior && prior.def) {
+      if (prior.aiQuestion) payload.priorQuestion = prior.aiQuestion;
       payload.priorDefinition = prior.def;
     }
     aiBusy = true;
