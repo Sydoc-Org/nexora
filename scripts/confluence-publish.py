@@ -29,7 +29,6 @@ DEFAULT_ENV_FILE = REPO_ROOT / "env" / "CONFLUENCE.env"
 
 SPACE_KEY = "nexora"
 OWNED_LABEL = "git-managed"
-ARCHIVE_BATCH = 100
 
 ROOT_FILES = ("README.md", "CONTRIBUTING.md", "CHANGELOG.md")
 DIR_MAP = {"docs/howto": "howto", "docs/design": "design"}
@@ -262,18 +261,17 @@ class ConfluenceClient:
         )
 
     def archive_pages(self, page_ids: list[str]) -> None:
-        """Bulk-archive via the v1 endpoint. Async: polls the long task."""
-        for start in range(0, len(page_ids), ARCHIVE_BATCH):
-            batch = page_ids[start : start + ARCHIVE_BATCH]
+        """Archive pages one at a time (bulk archive requires Confluence Premium)."""
+        for page_id in page_ids:
             resp = self.request(
                 "POST",
                 "/wiki/rest/api/content/archive",
-                json={"pages": [{"id": int(i)} for i in batch]},
+                json={"pages": [{"id": int(page_id)}]},
             )
             task_id = resp.json().get("id")
             if task_id:
                 self._wait_longtask(task_id)
-            print(f"[publish]   archived {len(batch)} page(s)")
+            print(f"[publish]   archived page {page_id}")
 
     def _wait_longtask(self, task_id: str, timeout_s: int = 300) -> None:
         deadline = time.monotonic() + timeout_s

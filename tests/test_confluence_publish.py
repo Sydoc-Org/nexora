@@ -247,19 +247,20 @@ class TestReconcileArithmetic:
         assert orphans == [] and strays == []
 
 
-class TestArchiveBatching:
-    def test_batches_of_100_and_longtask_poll(self):
+class TestArchivePages:
+    def test_archives_one_page_at_a_time(self):
+        # Standard plan does not support bulk archiving; each page is its own request.
         c = _client()
         post = _resp(202, {"id": "task-1"})
         done = _resp(200, {"finished": True})
         with mock.patch.object(
             c, "request", side_effect=[post, done, post, done, post, done]
         ) as req:
-            c.archive_pages([str(i) for i in range(250)])
+            c.archive_pages(["1", "2", "3"])
         posts = [k for k in req.call_args_list if k.args[0] == "POST"]
         assert len(posts) == 3
         sizes = [len(k.kwargs["json"]["pages"]) for k in posts]
-        assert sizes == [100, 100, 50]
+        assert all(s == 1 for s in sizes)
 
 
 class TestSpaceLookup:
