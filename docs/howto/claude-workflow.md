@@ -96,7 +96,7 @@ Add a second `mssql-octo` entry pointing at the Octopus DB with `DB_REPORTING_OC
 
 ### Confluence + Jira (official Atlassian MCP)
 
-nexora's product documentation lives in Confluence. The official remote MCP (GA Feb 2026, Claude launch partner) reads/writes Confluence + Jira over OAuth and respects your account's permissions:
+nexora's docs are authored in git and mirrored read-only to Confluence (see `docs/howto/confluence-sync.md`) — use the MCP for *reading* Confluence/Jira content that lives outside the mirrored docs. The official remote MCP (GA Feb 2026, Claude launch partner) reads/writes Confluence + Jira over OAuth and respects your account's permissions:
 
 ```
 claude mcp add atlassian -s user -- npx -y mcp-remote@latest https://mcp.atlassian.com/v1/sse
@@ -110,6 +110,7 @@ Use the `gh` CLI (already installed + authenticated) rather than a GitHub MCP �
 
 ## See also
 
+- `docs/howto/confluence-sync.md` — git → Confluence docs mirror (publish set, token rotation)
 - `docs/howto/nx.md` — the `nx` dev-server CLI (`-u`, `-b --loginas:`, `--doctor`)
 - `docs/howto/babel.md` — translations
 - `docs/howto/db-migrations.md` — schema migrations (2.5.63+)

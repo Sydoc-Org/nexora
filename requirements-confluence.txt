@@ -1,0 +1,8 @@
+# Requirements for scripts/confluence-publish.py
+# Install separately — not part of the main venv (md2conf needs requests>=2.33,
+# which conflicts with the runtime pin; keep isolated):
+#
+#   pip install -r requirements-confluence.txt
+#
+# The CI workflow (confluence-docs.yml) installs this in a dedicated step.
+markdown-to-confluence==0.6.1

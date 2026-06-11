@@ -1,0 +1,55 @@
+name: Confluence docs sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/howto/**"
+      - "docs/design/**"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "CHANGELOG.md"
+      - "scripts/confluence-publish.py"
+      - ".github/workflows/confluence-docs.yml"
+  workflow_dispatch:
+
+# Two syncs must never interleave (page-version races). Queue, don't cancel:
+# the running sync finishes, the queued one then syncs the newest state.
+concurrency:
+  group: confluence-sync
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python deps
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-dev.txt
+          D:\sydoc\tools\py\python.exe -m pip install --quiet -r requirements-confluence.txt
+
+      - name: Copy CONFLUENCE.env into workspace env/
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $src = "C:\sydoc\runner-secrets\CONFLUENCE.env"
+          if (-not (Test-Path $src)) {
+            throw "Runner is missing $src. Provision it once on the runner machine (see docs/howto/confluence-sync.md)."
+          }
+          Copy-Item $src "${{ github.workspace }}\env\CONFLUENCE.env" -Force
+
+      - name: Publish docs to Confluence
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe scripts/confluence-publish.py --yes
+
+      - name: Remove credentials copy
+        if: always()
+        shell: powershell
+        run: |
+          Remove-Item "${{ github.workspace }}\env\CONFLUENCE.env" -Force -ErrorAction SilentlyContinue
