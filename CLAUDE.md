@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Full product documentation lives in Confluence: https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774
+Documentation is authored in git (`docs/`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`) and auto-published to Confluence (read-only mirror): https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774 — see `docs/howto/confluence-sync.md`.
 
 ## Project overview
 
@@ -93,6 +93,7 @@ Documentation is part of the change, not a follow-up. Whenever you add, rename, 
 - **Changelog:** add an entry under `[Unreleased]` in `CHANGELOG.md` (Keep-a-Changelog categories — Added / Changed / Fixed / Removed). When a version ships, promote `[Unreleased]` to a dated `[x.y.z]` section.
 - **Touched docs:** update whatever the change affects — this file, `README.md`, `CONTRIBUTING.md`, and `docs/howto/*`. Keep the path / flag / symbol references in this file accurate (they drift fast).
 - **Stale docs:** if you notice an existing doc that has drifted (wrong path, renamed symbol, removed flag, superseded workflow), fix it in the same commit rather than leaving it. Prefer correcting or deleting a superseded doc over adding a parallel one.
+- **Confluence:** `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md` and `CHANGELOG.md` are auto-published to the Confluence space on push to `main` (`.github/workflows/confluence-docs.yml`). Never edit those pages in Confluence — the sync overwrites them. Details: `docs/howto/confluence-sync.md`.
 
 ## Architectural conventions
 
