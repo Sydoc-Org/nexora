@@ -1021,3 +1021,53 @@ def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
     data = resp.get_json()
     assert data["valid"] is True
     assert [c["field"] for c in data["definition"]["columns"]] == ["processname"]
+
+
+# ---- Task 7: Agent knows the run_sql targets --------------------------------
+
+
+def test_run_sql_unknown_target_error_lists_allowed_targets():
+    import pytest
+
+    from nx_lib.reporting.schema import ReportDefinitionError
+    from nx_lib.views.reporting import _run_sql
+
+    with pytest.raises(ReportDefinitionError) as e:
+        _run_sql("nope", "SELECT 1", userid="1", username="t")
+    msg = str(e.value)
+    assert "octopus" in msg and "statistics" in msg
+
+
+def test_agent_grounding_names_run_sql_targets(user_client):
+    from types import SimpleNamespace
+
+    captured = {}
+
+    def _fake_agentic(initial, *, registry, agent_step):
+        captured["initial"] = initial
+        return SimpleNamespace(
+            answer="ok",
+            stopped_reason="final",
+            tool_trace=[],
+            turns=1,
+            tokens_in=1,
+            tokens_out=1,
+        )
+
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE docprocessing ..."),
+        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: None),
+        patch("nx_lib.views.reporting.ask_agentic", side_effect=_fake_agentic),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ):
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+    assert resp.status_code == 200
+    assert "statistics" in captured["initial"] and "octopus" in captured["initial"]
+    assert "target" in captured["initial"]

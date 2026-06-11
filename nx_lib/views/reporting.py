@@ -555,7 +555,9 @@ def _run_sql(target, sql, *, userid, username):
     RuntimeError (RO engine unconfigured). Audits rejected/error/run paths.
     """
     if target not in _SQL_TARGETS:
-        raise ReportDefinitionError("unknown SQL target")
+        raise ReportDefinitionError(
+            f"unknown SQL target {target!r} — allowed targets: " + ", ".join(sorted(_SQL_TARGETS))
+        )
     engine = _SQL_TARGET_ENGINES.get(target)
     if engine is None:
         current_app.logger.warning(
@@ -1453,6 +1455,11 @@ def api_ai_agent():
     )
     if has_sql or explain:
         grounding += f"\n\nSQL schema (for validate_sql / run_sql):\n{_ai_schema_text()}"
+        grounding += (
+            '\nrun_sql "target" argument MUST be one of: '
+            + ", ".join(sorted(_SQL_TARGETS))
+            + ". Any other value is rejected."
+        )
     if active_source:
         grounding += (
             f'\n\nThe user\'s selected source is "{active_source.get("label")}" '
