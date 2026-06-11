@@ -106,6 +106,7 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard user count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         run = page.get_by_test_id("rs-wizard-run")
         expect(run).to_be_visible()
         run.click()
@@ -365,6 +366,7 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard chips count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
@@ -457,6 +459,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard adjust count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
@@ -523,6 +526,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role(
             "button", name=re.compile(r"just the total", re.I)
         ).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
         expect(page.get_by_test_id("rs-msg")).to_contain_text("single total")
@@ -570,6 +574,7 @@ def test_chart_type_switcher(nexora_server, page):
         page.get_by_test_id("rs-measure-list").get_by_text("Chart switch count").click()
         # pick the first category breakdown (not 'just the total')
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-chart-card")).to_be_visible()
         expect(page.get_by_test_id("rs-chart-tools")).to_be_visible()
@@ -620,6 +625,7 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Saved adjust count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
         # Save the report: first click reveals the name input, second click saves
@@ -694,6 +700,7 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Show SQL count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         show = page.get_by_test_id("rs-show-sql")
         expect(show).to_be_visible()
@@ -742,6 +749,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
         # Back on a wizard result re-enters the wizard
@@ -754,10 +762,66 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
         page.get_by_test_id("rs-exit").click()
         expect(page.get_by_test_id("rs-library")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_wizard_two_breakdowns(nexora_server, page):
+    """Two category breakdowns produce a 3-column grouped result."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_two_bds', kind: 'curated', label: 'Wizard Two Breakdowns',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [
+              {field: 'username', label: 'Username', type: 'string',
+               filterable: true, sortable: true},
+              {field: 'locale', label: 'Locale', type: 'string',
+               filterable: true, sortable: true}
+            ],
+            enabled: true, sortOrder: 19});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_two_bds_count', sourceId: 'wiz_two_bds', label: 'Two-bd count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Two-bd count").click()
+        chips = page.get_by_test_id("rs-breakdown-list").get_by_role("button")
+        chips.nth(0).click()
+        chips.nth(1).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        # Table is hidden behind the toggle when there are metrics; reveal it.
+        page.get_by_test_id("rs-table-toggle").click()
+        headers = page.locator("#rsTableWrap table thead th")
+        expect(headers).to_have_count(3)  # dim1, dim2, metric
     finally:
         page.evaluate(
             """async (ids) => {

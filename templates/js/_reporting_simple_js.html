@@ -205,6 +205,8 @@
     el('rsChartTools').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = true;
   }
 
   function friendlyRunError(status, data) {
@@ -673,7 +675,7 @@
       var prev = btn.textContent;
       btn.textContent = I18N.copied;
       setTimeout(function () { btn.textContent = prev; }, 1200);
-    });
+    }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
   // Save: always a NEW row (inline name input, no window.prompt).
@@ -771,7 +773,7 @@
   async function startWizard() {
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
-    state.wiz = { measure: null, source: null, breakdown: null,
+    state.wiz = { measure: null, source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null };
     setView('wizard');
     el('rsStepBreakdown').hidden = true;
@@ -813,14 +815,16 @@
     el('rsWizardRun').hidden = true;
     var list = el('rsBreakdownList');
     list.innerHTML = '';
-    el('rsGrainWrap').hidden = !(state.wiz.breakdown && state.wiz.breakdown.kind === 'date');
-    var fields = state.wiz.source.fields || [];
+    var w = state.wiz;
+    if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
+
+    var fields = w.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var catFields = fields.filter(function (f) {
       return f.type === 'string' && f.filterable && f.field !== 'processname';
     });
 
-    if (state.wiz.source.id === 'docprocessing') {
+    if (w.source.id === 'docprocessing') {
       catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
       catFields.sort(function (a, b) {
         var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
@@ -830,25 +834,85 @@
       });
     }
 
+    function isSelected(bd) {
+      if (bd.kind === 'none') return w.breakdowns.length === 0;
+      var i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) return true;
+      }
+      return false;
+    }
+
+    function refreshChips() {
+      var chips = list.querySelectorAll('button[data-bd-kind]');
+      var ci;
+      for (ci = 0; ci < chips.length; ci++) {
+        var btn = chips[ci];
+        var bd = { kind: btn.dataset.bdKind,
+                   field: btn.dataset.bdField ? { field: btn.dataset.bdField } : null };
+        var sel = isSelected(bd);
+        btn.classList.toggle('is-selected', sel);
+        btn.setAttribute('aria-pressed', String(sel));
+      }
+      var hasDate = false;
+      for (ci = 0; ci < w.breakdowns.length; ci++) {
+        if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
+      }
+      el('rsGrainWrap').hidden = !hasDate;
+    }
+
+    function toggleBreakdown(bd) {
+      if (bd.kind === 'none') {
+        w.breakdowns = [];
+        refreshChips();
+        return;
+      }
+      var idx = -1, i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) {
+          idx = i; break;
+        }
+      }
+      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); return; }
+      if (bd.kind === 'date') {
+        w.breakdowns = w.breakdowns.filter(function (b) { return b.kind !== 'date'; });
+      }
+      if (w.breakdowns.length >= 3) { refreshChips(); return; }
+      w.breakdowns.push(bd);
+      refreshChips();
+    }
+
     dateFields.forEach(function (f) {
-      list.appendChild(choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
-        state.wiz.breakdown = { kind: 'date', field: f };
-        el('rsGrainWrap').hidden = false;
-        renderTimeStep();
-      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'date' && state.wiz.breakdown.field.field === f.field)));
+      var bd = { kind: 'date', field: f };
+      var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'date';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
     });
     catFields.slice(0, 12).forEach(function (f) {
-      list.appendChild(choiceBtn(f.label, function () {
-        state.wiz.breakdown = { kind: 'category', field: f };
-        el('rsGrainWrap').hidden = true;
-        renderTimeStep();
-      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'category' && state.wiz.breakdown.field.field === f.field)));
+      var bd = { kind: 'category', field: f };
+      var btn = choiceBtn(f.label, function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'category';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
     });
-    list.appendChild(choiceBtn(I18N.justTotal, function () {
-      state.wiz.breakdown = { kind: 'none' };
-      el('rsGrainWrap').hidden = true;
-      renderTimeStep();
-    }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'none')));
+    var noneBtn = choiceBtn(I18N.justTotal, function () {
+      toggleBreakdown({ kind: 'none' });
+    }, w.breakdowns.length === 0);
+    noneBtn.dataset.bdKind = 'none';
+    list.appendChild(noneBtn);
+
+    // Wire Continue button
+    var nextBtn = el('rsBreakdownNext');
+    if (nextBtn) {
+      nextBtn.onclick = function () { renderTimeStep(); };
+    }
 
     // Optional collapsed process picker (docprocessing only). Emits the same
     // scope serialisation as the Advanced picker; empty/full = all allowed
@@ -968,17 +1032,34 @@
     var w = state.wiz;
     var columns = [], sort = [], filters = [];
     var title = w.measure.label;
-    if (w.breakdown.kind === 'date') {
-      var grain = el('rsGrain').value;
-      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label,
-                     grain: grain });
-      sort.push({ field: w.breakdown.field.field, dir: 'asc' });
-      title += ' ' + I18N.per + ' ' +
-        el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase();
-    } else if (w.breakdown.kind === 'category') {
-      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label });
+    var bds = (w.breakdowns || []).slice();
+    // date first: it becomes the chart axis (X)
+    bds.sort(function (a, b) {
+      return (a.kind === 'date' ? 0 : 1) - (b.kind === 'date' ? 0 : 1);
+    });
+    var grain = el('rsGrain').value || 'month';
+    var titleParts = [];
+    var hasDate = false;
+    bds.slice(0, 3).forEach(function (b) {
+      if (b.kind === 'date') {
+        hasDate = true;
+        columns.push({ field: b.field.field, header: b.field.label, grain: grain });
+        sort.push({ field: b.field.field, dir: 'asc' });
+        titleParts.push(I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase());
+      } else if (b.kind === 'category') {
+        columns.push({ field: b.field.field, header: b.field.label });
+        titleParts.push(b.field.label);
+      }
+    });
+    if (!sort.length && columns.length) {
       sort.push({ field: w.measure.code, dir: 'desc' });
-      title += ' ' + I18N.by + ' ' + w.breakdown.field.label;
+    }
+    if (titleParts.length) {
+      if (hasDate && bds.length === 1) {
+        title += ' ' + titleParts.join(' / ');
+      } else {
+        title += ' ' + I18N.by + ' ' + titleParts.join(' / ');
+      }
     }
     if (w.range && w.dateField) {
       filters.push({ field: w.dateField, op: 'between', value: w.range });
@@ -1012,17 +1093,19 @@
     var m = mlist.find(function (x) { return x.code === def.metrics[0].metric; });
     if (!src || !m) return null;
     var cols = def.columns || [];
-    if (cols.length > 1) return null;
-    var breakdown = { kind: 'none' }, grain = null;
-    if (cols.length === 1) {
-      var f = (src.fields || []).find(function (x) { return x.field === cols[0].field; });
+    if (cols.length > 3) return null;
+    var breakdowns = [], grain = null, dateSeen = false;
+    var ci;
+    for (ci = 0; ci < cols.length; ci++) {
+      var f = (src.fields || []).find(function (x) { return x.field === cols[ci].field; });
       if (!f) return null;
-      if (cols[0].grain) {
-        if (!f.grainable) return null;
-        breakdown = { kind: 'date', field: f };
-        grain = cols[0].grain;
+      if (cols[ci].grain) {
+        if (!f.grainable || dateSeen) return null;
+        dateSeen = true;
+        breakdowns.push({ kind: 'date', field: f });
+        grain = cols[ci].grain;
       } else {
-        breakdown = { kind: 'category', field: f };
+        breakdowns.push({ kind: 'category', field: f });
       }
     }
     var filters = def.filters || [];
@@ -1045,7 +1128,7 @@
     }
     var scope = def.scope || {};
     if ((scope.clients || []).length) return null;
-    return { wiz: { measure: m, source: src, breakdown: breakdown,
+    return { wiz: { measure: m, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
                     range: range, dateField: dateField, _fp: null },
              grain: grain };
@@ -1079,7 +1162,7 @@
   el('rsNewReport').addEventListener('click', startWizard);
   el('rsWizardBack').addEventListener('click', function () { setView('library'); });
   el('rsWizardRun').addEventListener('click', function () {
-    if (!state.wiz || !state.wiz.measure || !state.wiz.breakdown) return;
+    if (!state.wiz || !state.wiz.measure) return;
     var def = wizardDefinition();
     state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,
