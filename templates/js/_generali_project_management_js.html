@@ -250,7 +250,7 @@
         document.getElementById('addComment').value = '';
         if (canAddForOrg) document.getElementById('addUserId').value = '';
         document.getElementById('addModalError').classList.add('hidden');
-        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModalErrorText').textContent = '';
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('addModal').classList.add('flex');
     }
@@ -270,10 +270,11 @@
         const forDate = document.getElementById('addForDate').value.trim();
         const effort  = document.getElementById('addEffortHours').value;
         const comment = document.getElementById('addComment').value.trim();
-        const errEl   = document.getElementById('addModalError');
+        const errEl     = document.getElementById('addModalError');
+        const errTextEl = document.getElementById('addModalErrorText');
 
         if (!forDate || !effort) {
-            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errTextEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -297,13 +298,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = {{ _("Network error.") | tojson }};
+            errTextEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });

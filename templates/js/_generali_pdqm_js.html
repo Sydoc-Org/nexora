@@ -400,7 +400,7 @@
         populateSubSelect(document.getElementById('addSubCategory'), '', null);
         document.getElementById('addQuantity').value = '';
         document.getElementById('addModalError').classList.add('hidden');
-        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModalErrorText').textContent = '';
         {% if can_add_for_org or can_add_transorg %}
         loadOrgUsers();
         {% endif %}
@@ -461,13 +461,14 @@
         const sub        = document.getElementById('addSubCategory').value;
         const quantity   = document.getElementById('addQuantity').value;
         const errEl      = document.getElementById('addModalError');
+        const errTextEl  = document.getElementById('addModalErrorText');
         const userIdEl   = document.getElementById('addUserId');
         const userId     = userIdEl ? (userIdEl.value || null) : null;
 
         const addParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
         const addSubs = (categoriesData[parent] && categoriesData[parent][addParentSubKey]) ? categoriesData[parent][addParentSubKey] : [];
         if (!forDate || !parent || (addSubs.length > 0 && !sub) || !quantity) {
-            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errTextEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -493,13 +494,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = {{ _("Network error.") | tojson }};
+            errTextEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });

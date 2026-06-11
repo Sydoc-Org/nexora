@@ -324,6 +324,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 
 ### Changed
 - Reporting: `workitem_count` metric disabled (migration `0021`) — verified on PROD that the Statistics tables hold one row per workitem, so it always equaled `doc_count`. `workitem_id` remains available as a column/filter; re-enable the metric row if a multi-row-per-workitem source ever appears.
+- **Admin pages migrated to nexora-ui design system.** All 7 admin pages
+  (Overview, Organizations, Sessions, System Logs, Maintenance Banners, User
+  Detail, Access Control) and their JS partials now use the app-wide `--nx-*`
+  tokens and `.nx-*` component classes (same system as Workitems, Dashboard,
+  Invoices, Chat, Generali). `admin-tokens.css` replaced by `admin.css` (admin-
+  specific components only — `sev-pill`, `ml-toggle`, `health-card`,
+  `permission-row` hover — all on `--nx-*` tokens). Dark-mode fixes applied to
+  the permission drawer, user-detail confirm-delete modal, and access-control
+  modals (`bg-white` → `var(--nx-card)`). Tab chrome (`perm-tabs`,
+  `acl-tabs`) replaced by `nx-tabs`/`nx-tab` from `nexora-ui.css`.
 - **Generali import scripts: `.env` instead of `env.json`, split into `remote/` +
   `local/`.** `scripts/generali-import/` now loads secrets from a `.env` file via a
   `load_from_dot_env` helper (process env vars, `$env:*`) instead of
@@ -438,6 +448,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
 
 ### Fixed
+- **Generali add-modals no longer show an empty red strip.** The Tailwind v4
+  browser CDN emits utilities inside `@layer utilities`, so the unlayered
+  `.nx-flash { display:flex }` rule always beat the `hidden` utility and kept
+  the (empty) modal error banner visible on the PDQM, base-services,
+  project-management and reporting add/edit modals. `nexora-ui.css` now
+  re-asserts `.nx-flash.hidden { display:none }` (same pattern as the earlier
+  `pl-10` fix), and the four affected error banners were normalised to the
+  icon + `<span id="…ErrorText">` markup additionalservices already used (the
+  paired JS partials write the message into the span and keep toggling
+  `hidden` on the banner).
 - **Scheduled reports now support metric definitions.** The scheduled-report
   runner (`nx_lib/reporting/runner.py`) validated saved definitions **without
   the source's metric codes** and never resolved `metrics` into the aggregate
