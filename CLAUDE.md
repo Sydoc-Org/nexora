@@ -40,7 +40,7 @@ sql/
   sync-from-db.py  regenerates the per-object dumps from INT via mssql-scripter
   requirements.txt mssql-scripter
 scripts/
-  db-migrate.py    applies pending migrations on INT or PROD
+  db-migrate.py    applies pending migrations on INT, STAGING or PROD
 ```
 
 Only the two app-owned databases are tracked. `StatisticsDB` (sydoc_stat) and `OctoDB` are deliberately excluded — they're treated as runtime/vendor surfaces, not schema we own.

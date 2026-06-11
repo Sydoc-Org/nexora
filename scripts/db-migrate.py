@@ -8,6 +8,7 @@ it has applied in ``dbo.SchemaMigrations`` (created by the bootstrap migration
 Usage:
     python scripts/db-migrate.py --env INT                    # apply pending to all tracked DBs
     python scripts/db-migrate.py --env INT --db NexoraDB      # one DB
+    python scripts/db-migrate.py --env STAGING                # bring STAGING up to date (no prompt)
     python scripts/db-migrate.py --env PROD --dry-run         # preview
     python scripts/db-migrate.py --env PROD                   # apply (one confirm prompt)
     python scripts/db-migrate.py --env INT --check            # exit 1 if pending (pre-commit)
@@ -272,7 +273,7 @@ def main() -> int:
     p.add_argument(
         "--env",
         default="INT",
-        choices=("INT", "PROD"),
+        choices=("INT", "STAGING", "PROD"),
         help="Which .env file to load (default: INT)",
     )
     p.add_argument("--db", default=None, help="Limit to one DB folder (NexoraDB|GeneraliDB)")

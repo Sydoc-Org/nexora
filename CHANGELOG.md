@@ -9,6 +9,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **`db-migrate.py --env STAGING`.** The migration runner now accepts `STAGING`
+  alongside `INT`/`PROD` (applies without a confirm prompt, like INT) — used to
+  bring the prod-copy staging DB up to date for feature testing.
 - **Reporting Simple/Advanced tabs.** `/reporting` is now split into a **Simple**
   tab (the new default) and an **Advanced** tab (the full builder, unchanged).
   Simple is a presentation layer for report *viewers*: a **library** of reports

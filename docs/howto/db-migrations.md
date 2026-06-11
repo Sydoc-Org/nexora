@@ -195,7 +195,11 @@ python scripts/db-migrate.py --env PROD          # one [y/N] confirm per DB
 ```
 python scripts/db-migrate.py [options]
 
---env INT|PROD        Which env/<ENV>.env to load (default: INT).
+--env INT|STAGING|PROD
+                      Which env/<ENV>.env to load (default: INT). STAGING
+                      applies without a confirm prompt (like INT) — use it to
+                      bring the prod-copy staging DB up to date for feature
+                      testing.
 --db NexoraDB|GeneraliDB
                       Limit to a single DB folder (default: all tracked DBs).
 --dry-run             Show what's pending; don't run anything.
