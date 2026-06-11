@@ -308,6 +308,7 @@
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
     if (!window.Chart) { chartCardNote(I18N.noChartLib); return; }
+    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     if (rows.length > 50) {
@@ -316,7 +317,6 @@
       el('rsChartNote').hidden = false;
       rows = rows.slice(0, 50);
     }
-    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
     if (dims === 2) {
       var metricIdx2 = columns.length - (def.metrics || []).length;
       var xOrder = [], cell = {}, seriesTot = {};
