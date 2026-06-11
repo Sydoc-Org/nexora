@@ -321,6 +321,105 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - Reporting AI agent: the grounding and the `run_sql` error now name the valid SQL targets, so the agent can self-repair instead of dying at the turn cap.
 - Reporting AI: sources without registered metrics are marked "cannot aggregate" in the grounding; failure messages surface the gate error instead of the model's explanation.
 
+- **Scheduled reports now support metric definitions.** The scheduled-report
+  runner (`nx_lib/reporting/runner.py`) validated saved definitions **without
+  the source's metric codes** and never resolved `metrics` into the aggregate
+  query — any scheduled report carrying a metric (e.g. one saved from the
+  Simple wizard) failed with *unknown metric* since semantic Slice 1. The
+  runner now mirrors the interactive run path for both providers
+  (docprocessing + `table`): it passes `metric_codes` to validation, resolves
+  the metrics, builds the aggregate query, and appends the metric columns to
+  the exported sheet.
+- **Reporting AI — table-source drafts no longer bounce on labels/missing fields.**
+  Small models (e.g. gpt-4o-mini) reliably emitted *near-valid* report definitions
+  for curated **table** sources — using a column's human **label** ("Date") where
+  the schema wants its **key** (`ForDate`), or omitting `schemaVersion`/`title` — so
+  Surface A ("Build a report") and the Surface C agent's `build_definition` tool
+  rejected them and the agent often looped to `max_turns` without an artifact. A new
+  whitelist-safe repair (`schema.coerce_definition`, run inside the shared
+  `_validate_definition_for_user` gate) now resolves a label back to its catalog key
+  (columns, filters, sort, chart axes), backfills the column header with the label,
+  and fills `schemaVersion`/`visualization`/a synthesized `title`/a default-or-clamped
+  `rowLimit` — only ever swapping a label that maps to exactly one field, and a no-op
+  for already-valid drafts. The human builder path (`/run`) is untouched.
+- **Workitems "Show sources" — boxes mispositioned in the lightbox.** The
+  full-page overlay measured the modal image with `getBoundingClientRect()`,
+  which returns the *visual* (post-`transform`) rectangle. Because the overlay
+  rendered on the image's `load` event — fired while the lightbox `zoom`
+  animation (`scale(0.5) → 1`) was still mid-flight — the boxes were pinned to a
+  shrunken, centre-pulled frame and never re-measured once the zoom settled, so
+  they appeared stranded in blank space and "jumped" to a different place when
+  the toggle was flipped off/on. The overlay (`#srcHlLayer`) is now
+  `position:absolute` inside `#imageModal` and sized from the image's
+  transform-independent **layout box** (`offsetLeft/Top/Width/Height`), so boxes
+  map to the displayed page on first open and stay put across hide/show. Lightbox
+  boxes also get a subtle white halo + drop shadow so they read clearly on white
+  paper and over dark text/logos (confidence colour unchanged).
+- **Workitems "Show sources" — boxes shown out of register on lightbox open.**
+  A residual of the fix above: with the image cached, the overlay rendered on the
+  very next frame after open, *during* the `.modal-content` open-zoom animation
+  (`scale(0.5) → 1`). Because `#srcHlLayer` is a **sibling** of the image it does
+  not inherit that transform, so the boxes — drawn at the page's final layout
+  coordinates — floated off the still-scaling page ("already visible when you open
+  it, locations wrong") and only snapped into place on a manual hide/show that
+  happened to re-render against the settled image. The overlay's first render now
+  waits until the page is geometrically settled — the image bitmap is decoded
+  **and** every running animation on it has `finished` — via a new
+  `drawOverlayWhenStable()` (reopen / prev-next, with no animation running, render
+  immediately). A `ResizeObserver` on the modal image re-renders the boxes on any
+  later box-size change (values-panel reflow, late decode, viewport resize),
+  keeping them locked to the page without a manual toggle.
+- **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
+  (1) the curated-source catalog shown to the model now lists each field as
+  `key "Human Label":type`, and the prompt instructs the model to emit the exact
+  key (the label only aids field selection / column headers) — so docprocessing
+  "Build a report" no longer drafts label-named fields the validator rejects;
+  (2) the Build-mode definition summary in `_reporting_ai_js.html` (`"source"`,
+  `"columns"`, `"filter(s)"`, `"sorted"`, fallback title, and the error strings)
+  is now translated (de/fr/it) instead of hard-coded English;
+  (3) a provider **misconfiguration** on `POST /api/reporting/ai/{ask,build}` now
+  leaves an audit trace (`dbo.ReportingAiAudit` `Status='misconfig'`) instead of a
+  silent 503 — `misconfig` is excluded from the `AI_DAILY_LIMIT` count so a broken
+  provider never burns a user's daily quota;
+  (4) the `_audit_ai` log line reports the actual `surface` instead of a hard-coded
+  `reporting.ai.ask` (the DB `Surface` column was already correct).
+- **Reporting — 500 on SQL/curated results containing binary or time cells.**
+  `/api/reporting/sql/run` and `/api/reporting/run` returned raw pyodbc values to
+  `jsonify`; Flask's default JSON encoder cannot serialize `bytes`/`bytearray`/
+  `memoryview` (varbinary, `rowversion`/`timestamp`, image) or `datetime.time`,
+  so any query selecting such a column 500'd with "Object of type … is not JSON
+  serializable". Result cells are now coerced to JSON-safe values at the response
+  boundary (binary → `0x…` hex, time → ISO string), preserving the types Flask
+  already handles (date/datetime/Decimal/UUID).
+- **i18n — app-wide Python messages now translated.** `babel.cfg` extracted
+  Python strings only from root-level `*.py` (`[python: *.py]`), so every
+  `_()`/`gettext()` route/flash message under `nx_lib/**` fell back to English
+  for de/fr/it. Extraction is now recursive over `nx_lib/**.py`; the ~150
+  newly-surfaced messages (auth, admin, dashboard, workitems, invoices,
+  notifications, profile, reporting, …) are translated to de/fr/it. The
+  `test_translations.py` gate enforces full coverage going forward.
+- **Reporting — `status` synthetic field removed from catalog:** `fetch_docprocessing_catalog` was injecting `status` as always-available alongside `processname`, but `SearchConfig` has no `col_status` column and the query builder cannot synthesize it. Selecting or filtering on `status` produced all-NULL columns or a `QueryBuildError`. Now only `processname` (fully supported by the builder) is injected; `status` will be offered once a real column backs it.
+- **Reporting — empty-cols guard in `_load_field_col_maps`:** added early-return when `SearchConfig` exposes no `col_*` columns, preventing malformed SQL being emitted.
+- **Reporting — flatpickr wired for date filter inputs:** `templates/reporting.html` loaded the flatpickr CSS/JS but `_reporting_js.html` never used it. Date/datetime-typed filter fields now initialize a flatpickr calendar picker; the field dropdown re-renders the row (resetting the value input) when changed so the picker activates immediately.
+- **2FA:** accept adjacent TOTP windows on verify, tolerating small client/server clock skew.
+- **generali-import:** store the full CSV filename in the import log.
+- **pre-commit:** exclude `sql/` from the `mixed-line-ending` hook (it already excluded `end-of-file-fixer` / `trailing-whitespace`). The auto-generated dumps are CRLF from mssql-scripter and LF-normalized by `.gitattributes`, so the fixer perpetually re-flagged them on Windows, blocking commits of any regenerated dump.
+- **db-migrate — non-ASCII corruption via sqlcmd codepage.** `scripts/db-migrate.py` ran migrations through `sqlcmd -i <file>` without a UTF-8 input codepage, so sqlcmd read UTF-8 migration files in the host OEM/ANSI codepage and silently corrupted any non-ASCII text on INSERT (German/French strings, dashes, …). This is how migration `0011` stored the mojibake source label "Generali â€" PDQM Report". The runner now passes `-f 65001` (UTF-8 in/out) and decodes captured output as UTF-8; migration `0016_fix_generali_pdqm_label_encoding.sql` repairs the already-stored label (codepage-safe via `NCHAR(0x2014)`).
+- **Reporting AI (agent, explain-data) — run_sql against builder-only sources.** Curated `table`-provider sources (e.g. Generali PDQM, which lives on GeneraliDB) are not reachable by `run_sql` (it only targets the statistics/octopus RO engines), but the explain-data agent bound `run_sql` unconditionally and drafted `SELECT … FROM <source>` against a run_sql target, looping on an unrecoverable 208 "invalid object name". The agent route is now **source-aware**: the client sends the active builder source and `POST /api/reporting/ai/agent` binds the data tools (`run_sql`/`compute_stats`) **only when that source is run_sql-able**, so a builder-only source confines the model to `build_definition` (and `explainData` is reported `false`). The schema grounding (`nx_lib/reporting/ai_schema.py`) also labels such sources **builder-only — answer with `build_definition`, NOT queryable with `run_sql`**, and the explain suffix spells out that `run_sql` only hits the named SQL targets.
+- **Footer — stale hard-coded version.** `templates/_nexora_version.html` hard-coded `nexora 2.5.60`, a third copy of the version that silently drifted from `pyproject.toml`. The version is now single-sourced in `nx_lib/version.py`, injected app-wide via a `nexora_version` context processor, and consumed by both the footer and the dev CLI; `tests/unit/test_version.py` enforces it stays in sync with `pyproject.toml`.
+
+- **Reporting AI — correct dates for "last month", "this year", etc.** The AI
+  definition drafter (Surface A) and the agentic loop (Surface C) had no concept of
+  the current date; gpt-4o-mini fell back to training-data dates and turned "last
+  month" into a range from 2023. Both surfaces now receive today's date in their
+  prompts and grounding and are instructed to resolve all relative time expressions
+  against it.
+- **Reporting AI — "different docsources" returned duplicate rows.** A columns-only
+  definition (no `metrics`) compiles to a plain projection with no GROUP BY, so
+  asking for the distinct values of a field produced one row per document, not one
+  per value. The prompts now teach both surfaces the correct pattern: put the target
+  field in `columns` and add a count metric, which makes the columns GROUP BY
+  dimensions so each value appears once.
 ### Changed
 - **Generali import scripts: `.env` instead of `env.json`, split into `remote/` +
   `local/`.** `scripts/generali-import/` now loads secrets from a `.env` file via a
@@ -434,107 +533,6 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - Route listing (`nx --routes`) moved out of embedded PowerShell into Python (`nx_lib/cli.py::print_routes`) as the single source of truth shared by the one-shot flag and the REPL `routes` command.
 - `CLAUDE.md` Databases section: corrected the stale git-hook install step (the non-existent `scripts/install-git-hooks.ps1` → `pre-commit install --install-hooks` / `bootstrap.ps1`) and the pre-commit hook reference (`scripts/git-hooks/pre-commit` → the `sql-migrate-int` / `sql-sync-check` hooks in `.pre-commit-config.yaml`).
 - **`dbo.SearchConfig`:** backfilled `col_targetsystemfilename` for the `elektromaterial`/`privera` process rows via migration `0003_update_col_targetsystemfilename_data_searchconfig.sql`.
-
-### Fixed
-- **Scheduled reports now support metric definitions.** The scheduled-report
-  runner (`nx_lib/reporting/runner.py`) validated saved definitions **without
-  the source's metric codes** and never resolved `metrics` into the aggregate
-  query — any scheduled report carrying a metric (e.g. one saved from the
-  Simple wizard) failed with *unknown metric* since semantic Slice 1. The
-  runner now mirrors the interactive run path for both providers
-  (docprocessing + `table`): it passes `metric_codes` to validation, resolves
-  the metrics, builds the aggregate query, and appends the metric columns to
-  the exported sheet.
-- **Reporting AI — table-source drafts no longer bounce on labels/missing fields.**
-  Small models (e.g. gpt-4o-mini) reliably emitted *near-valid* report definitions
-  for curated **table** sources — using a column's human **label** ("Date") where
-  the schema wants its **key** (`ForDate`), or omitting `schemaVersion`/`title` — so
-  Surface A ("Build a report") and the Surface C agent's `build_definition` tool
-  rejected them and the agent often looped to `max_turns` without an artifact. A new
-  whitelist-safe repair (`schema.coerce_definition`, run inside the shared
-  `_validate_definition_for_user` gate) now resolves a label back to its catalog key
-  (columns, filters, sort, chart axes), backfills the column header with the label,
-  and fills `schemaVersion`/`visualization`/a synthesized `title`/a default-or-clamped
-  `rowLimit` — only ever swapping a label that maps to exactly one field, and a no-op
-  for already-valid drafts. The human builder path (`/run`) is untouched.
-- **Workitems "Show sources" — boxes mispositioned in the lightbox.** The
-  full-page overlay measured the modal image with `getBoundingClientRect()`,
-  which returns the *visual* (post-`transform`) rectangle. Because the overlay
-  rendered on the image's `load` event — fired while the lightbox `zoom`
-  animation (`scale(0.5) → 1`) was still mid-flight — the boxes were pinned to a
-  shrunken, centre-pulled frame and never re-measured once the zoom settled, so
-  they appeared stranded in blank space and "jumped" to a different place when
-  the toggle was flipped off/on. The overlay (`#srcHlLayer`) is now
-  `position:absolute` inside `#imageModal` and sized from the image's
-  transform-independent **layout box** (`offsetLeft/Top/Width/Height`), so boxes
-  map to the displayed page on first open and stay put across hide/show. Lightbox
-  boxes also get a subtle white halo + drop shadow so they read clearly on white
-  paper and over dark text/logos (confidence colour unchanged).
-- **Workitems "Show sources" — boxes shown out of register on lightbox open.**
-  A residual of the fix above: with the image cached, the overlay rendered on the
-  very next frame after open, *during* the `.modal-content` open-zoom animation
-  (`scale(0.5) → 1`). Because `#srcHlLayer` is a **sibling** of the image it does
-  not inherit that transform, so the boxes — drawn at the page's final layout
-  coordinates — floated off the still-scaling page ("already visible when you open
-  it, locations wrong") and only snapped into place on a manual hide/show that
-  happened to re-render against the settled image. The overlay's first render now
-  waits until the page is geometrically settled — the image bitmap is decoded
-  **and** every running animation on it has `finished` — via a new
-  `drawOverlayWhenStable()` (reopen / prev-next, with no animation running, render
-  immediately). A `ResizeObserver` on the modal image re-renders the boxes on any
-  later box-size change (values-panel reflow, late decode, viewport resize),
-  keeping them locked to the page without a manual toggle.
-- **Reporting AI (Build a report) — polish.** Four follow-ups to Phase 2:
-  (1) the curated-source catalog shown to the model now lists each field as
-  `key "Human Label":type`, and the prompt instructs the model to emit the exact
-  key (the label only aids field selection / column headers) — so docprocessing
-  "Build a report" no longer drafts label-named fields the validator rejects;
-  (2) the Build-mode definition summary in `_reporting_ai_js.html` (`"source"`,
-  `"columns"`, `"filter(s)"`, `"sorted"`, fallback title, and the error strings)
-  is now translated (de/fr/it) instead of hard-coded English;
-  (3) a provider **misconfiguration** on `POST /api/reporting/ai/{ask,build}` now
-  leaves an audit trace (`dbo.ReportingAiAudit` `Status='misconfig'`) instead of a
-  silent 503 — `misconfig` is excluded from the `AI_DAILY_LIMIT` count so a broken
-  provider never burns a user's daily quota;
-  (4) the `_audit_ai` log line reports the actual `surface` instead of a hard-coded
-  `reporting.ai.ask` (the DB `Surface` column was already correct).
-- **Reporting — 500 on SQL/curated results containing binary or time cells.**
-  `/api/reporting/sql/run` and `/api/reporting/run` returned raw pyodbc values to
-  `jsonify`; Flask's default JSON encoder cannot serialize `bytes`/`bytearray`/
-  `memoryview` (varbinary, `rowversion`/`timestamp`, image) or `datetime.time`,
-  so any query selecting such a column 500'd with "Object of type … is not JSON
-  serializable". Result cells are now coerced to JSON-safe values at the response
-  boundary (binary → `0x…` hex, time → ISO string), preserving the types Flask
-  already handles (date/datetime/Decimal/UUID).
-- **i18n — app-wide Python messages now translated.** `babel.cfg` extracted
-  Python strings only from root-level `*.py` (`[python: *.py]`), so every
-  `_()`/`gettext()` route/flash message under `nx_lib/**` fell back to English
-  for de/fr/it. Extraction is now recursive over `nx_lib/**.py`; the ~150
-  newly-surfaced messages (auth, admin, dashboard, workitems, invoices,
-  notifications, profile, reporting, …) are translated to de/fr/it. The
-  `test_translations.py` gate enforces full coverage going forward.
-- **Reporting — `status` synthetic field removed from catalog:** `fetch_docprocessing_catalog` was injecting `status` as always-available alongside `processname`, but `SearchConfig` has no `col_status` column and the query builder cannot synthesize it. Selecting or filtering on `status` produced all-NULL columns or a `QueryBuildError`. Now only `processname` (fully supported by the builder) is injected; `status` will be offered once a real column backs it.
-- **Reporting — empty-cols guard in `_load_field_col_maps`:** added early-return when `SearchConfig` exposes no `col_*` columns, preventing malformed SQL being emitted.
-- **Reporting — flatpickr wired for date filter inputs:** `templates/reporting.html` loaded the flatpickr CSS/JS but `_reporting_js.html` never used it. Date/datetime-typed filter fields now initialize a flatpickr calendar picker; the field dropdown re-renders the row (resetting the value input) when changed so the picker activates immediately.
-- **2FA:** accept adjacent TOTP windows on verify, tolerating small client/server clock skew.
-- **generali-import:** store the full CSV filename in the import log.
-- **pre-commit:** exclude `sql/` from the `mixed-line-ending` hook (it already excluded `end-of-file-fixer` / `trailing-whitespace`). The auto-generated dumps are CRLF from mssql-scripter and LF-normalized by `.gitattributes`, so the fixer perpetually re-flagged them on Windows, blocking commits of any regenerated dump.
-- **db-migrate — non-ASCII corruption via sqlcmd codepage.** `scripts/db-migrate.py` ran migrations through `sqlcmd -i <file>` without a UTF-8 input codepage, so sqlcmd read UTF-8 migration files in the host OEM/ANSI codepage and silently corrupted any non-ASCII text on INSERT (German/French strings, dashes, …). This is how migration `0011` stored the mojibake source label "Generali â€" PDQM Report". The runner now passes `-f 65001` (UTF-8 in/out) and decodes captured output as UTF-8; migration `0016_fix_generali_pdqm_label_encoding.sql` repairs the already-stored label (codepage-safe via `NCHAR(0x2014)`).
-- **Reporting AI (agent, explain-data) — run_sql against builder-only sources.** Curated `table`-provider sources (e.g. Generali PDQM, which lives on GeneraliDB) are not reachable by `run_sql` (it only targets the statistics/octopus RO engines), but the explain-data agent bound `run_sql` unconditionally and drafted `SELECT … FROM <source>` against a run_sql target, looping on an unrecoverable 208 "invalid object name". The agent route is now **source-aware**: the client sends the active builder source and `POST /api/reporting/ai/agent` binds the data tools (`run_sql`/`compute_stats`) **only when that source is run_sql-able**, so a builder-only source confines the model to `build_definition` (and `explainData` is reported `false`). The schema grounding (`nx_lib/reporting/ai_schema.py`) also labels such sources **builder-only — answer with `build_definition`, NOT queryable with `run_sql`**, and the explain suffix spells out that `run_sql` only hits the named SQL targets.
-- **Footer — stale hard-coded version.** `templates/_nexora_version.html` hard-coded `nexora 2.5.60`, a third copy of the version that silently drifted from `pyproject.toml`. The version is now single-sourced in `nx_lib/version.py`, injected app-wide via a `nexora_version` context processor, and consumed by both the footer and the dev CLI; `tests/unit/test_version.py` enforces it stays in sync with `pyproject.toml`.
-
-- **Reporting AI — correct dates for "last month", "this year", etc.** The AI
-  definition drafter (Surface A) and the agentic loop (Surface C) had no concept of
-  the current date; gpt-4o-mini fell back to training-data dates and turned "last
-  month" into a range from 2023. Both surfaces now receive today's date in their
-  prompts and grounding and are instructed to resolve all relative time expressions
-  against it.
-- **Reporting AI — "different docsources" returned duplicate rows.** A columns-only
-  definition (no `metrics`) compiles to a plain projection with no GROUP BY, so
-  asking for the distinct values of a field produced one row per document, not one
-  per value. The prompts now teach both surfaces the correct pattern: put the target
-  field in `columns` and add a count metric, which makes the columns GROUP BY
-  dimensions so each value appears once.
 
 ### Removed
 - **`dbo.SearchConfig`:** dropped 12 unused columns (`col_scanbatchnr`, `col_pid`, `col_personalfileid`, `col_employmentfileid`, `col_doctypeidtargetsystem`, `col_doctypeidsydoc`, `col_registeridtargetsystem`, `col_masterdataseparatorsheettype`, `col_masterdatabirthday`, `col_masterdatafirstname`, `col_masterdatalastname`, `col_masterdataseparatorsheetid`) via migration `0002_remove_unused_columns_searchconfig.sql`.
