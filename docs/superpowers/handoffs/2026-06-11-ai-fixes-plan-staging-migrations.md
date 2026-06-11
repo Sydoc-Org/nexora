@@ -1,3 +1,7 @@
+> ⏩ **Superseded** — a newer handoff exists for the same date:
+> `docs/superpowers/handoffs/2026-06-11-ai-fixes-complete-verified.md`
+> Use `/reset-session docs/superpowers/handoffs/2026-06-11-ai-fixes-complete-verified.md` to resume.
+
 # Handoff — Stakeholder tour findings → 16-task AI-fixes plan + STAGING unblocked
 
 - **Date:** 2026-06-11
