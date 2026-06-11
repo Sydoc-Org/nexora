@@ -318,6 +318,7 @@
       rows = rows.slice(0, 50);
     }
     if (dims === 2) {
+      // Only the first metric is pivoted into series — wizard always emits one metric.
       var metricIdx2 = columns.length - (def.metrics || []).length;
       var xOrder = [], cell = {}, seriesTot = {};
       rows.forEach(function (r) {
@@ -699,7 +700,11 @@
   el('rsChartTools').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-type]');
     if (!btn || !state.chartData) return;
-    if (state.current && state.current.def) state.current.def.chartType = btn.dataset.type;
+    // 'stacked' is a UI-only virtual type; don't persist it as a chartType since
+    // it maps to 'bar' with stacked scales and is not a valid Chart.js type.
+    if (state.current && state.current.def && btn.dataset.type !== 'stacked') {
+      state.current.def.chartType = btn.dataset.type;
+    }
     renderChart(btn.dataset.type);
   });
 
