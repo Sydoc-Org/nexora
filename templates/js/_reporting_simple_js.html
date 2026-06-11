@@ -916,7 +916,7 @@
     }
     if (res.status === 429) { showResultError(I18N.aiLimit); return; }
     if (!res.ok || !res.data || !res.data.valid || !res.data.definition) {
-      var why = (res.data && (res.data.explanation || res.data.error)) || '';
+      var why = (res.data && (res.data.error || res.data.explanation)) || '';
       if (fromRefine && prior) {
         // Failed refine: re-render the previous result and surface the error
         // above it instead of discarding the user's working report.
