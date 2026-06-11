@@ -32,7 +32,11 @@
   </div>
 
   <div id="rsWizard" class="reporting-simple-wizard" hidden data-testid="rs-wizard">
-    <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+    <div class="reporting-simple-wizbar">
+      <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+      <button id="rsWizardClose" class="reporting-link reporting-simple-close" data-testid="rs-wizard-close"
+              title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
+    </div>
     <div class="reporting-simple-step" id="rsStepMeasure">
       <h3 class="reporting-simple-h">1. {{ _("What do you want to measure?") }}</h3>
       <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
@@ -84,6 +88,8 @@
         {% if has_permission('reporting.export') %}
         <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
         {% endif %}
+        <button id="rsExit" class="reporting-link reporting-simple-close" data-testid="rs-exit"
+                title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
       </span>
     </div>
     {% if ai_enabled %}

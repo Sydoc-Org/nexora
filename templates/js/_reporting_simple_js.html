@@ -1132,7 +1132,20 @@
   }
 
   el('rsSearch').addEventListener('input', renderLibrary);
-  el('rsBack').addEventListener('click', function () { setView('library'); loadLibrary(); });
+  function exitToLibrary() { setView('library'); loadLibrary(); }
+
+  // Back on a result returns to the wizard ADJUSTMENT whenever the definition
+  // is wizard-shaped; the X is the explicit way out to the library.
+  el('rsBack').addEventListener('click', function () {
+    var cur = state.current;
+    var adjustable = cur && (
+      (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure)
+      || wizardStateFromDefinition(cur.def));
+    if (adjustable) { adjustInWizard(); return; }
+    exitToLibrary();
+  });
+  el('rsExit').addEventListener('click', exitToLibrary);
+  el('rsWizardClose').addEventListener('click', exitToLibrary);
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();

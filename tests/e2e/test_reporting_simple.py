@@ -662,3 +662,61 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
               if (r) await fetch('/api/reporting/reports/' + r.id, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
             }"""
         )
+
+
+def test_result_back_returns_to_wizard(nexora_server, page):
+    """Back on a wizard-built result re-enters the wizard; X exits to library."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_back_test', kind: 'curated', label: 'Wizard Back Test',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 17});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_back_count', sourceId: 'wiz_back_test', label: 'Back test count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        # Back on a wizard result re-enters the wizard
+        page.get_by_test_id("rs-back").click()
+        expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+        # X (wizard close) exits to library
+        page.get_by_test_id("rs-wizard-close").click()
+        expect(page.get_by_test_id("rs-library")).to_be_visible()
+        # Now open a fresh wizard result and use rs-exit from the result bar
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        page.get_by_test_id("rs-exit").click()
+        expect(page.get_by_test_id("rs-library")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
