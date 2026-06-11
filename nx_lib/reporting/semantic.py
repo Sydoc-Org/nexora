@@ -59,6 +59,25 @@ def resolve_metrics(metric_refs, metric_registry, catalog_fields):
     return out
 
 
+def drop_columns_shadowing_distinct_metrics(rd, metric_registry):
+    """Remove grouping columns that name the very field a count_distinct
+    metric aggregates — GROUP BY the counted field forces every count to 1,
+    so such a draft is always wrong. Mutates `rd` in place (same contract as
+    coerce_definition); returns the list of dropped field keys."""
+    distinct_bases = set()
+    for ref in rd.get("metrics") or []:
+        spec = metric_registry.get((ref or {}).get("metric")) or {}
+        if spec.get("aggregation") == "count_distinct" and spec.get("base_field"):
+            distinct_bases.add(spec["base_field"])
+    if not distinct_bases:
+        return []
+    cols = rd.get("columns") or []
+    dropped = [c.get("field") for c in cols if c.get("field") in distinct_bases]
+    if dropped:
+        rd["columns"] = [c for c in cols if c.get("field") not in distinct_bases]
+    return dropped
+
+
 _AGG_SQL = {
     "count_distinct": "COUNT(DISTINCT {})",
     "sum": "SUM({})",

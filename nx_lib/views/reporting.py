@@ -66,7 +66,12 @@ from ..reporting.schema import (
     validate_report_definition,
     validate_sql_definition,
 )
-from ..reporting.semantic import AGGREGATIONS, MetricResolveError, resolve_metrics
+from ..reporting.semantic import (
+    AGGREGATIONS,
+    MetricResolveError,
+    drop_columns_shadowing_distinct_metrics,
+    resolve_metrics,
+)
 from ..reporting.sources import (
     DEFAULT_ROW_LIMIT,
     MAX_ROW_LIMIT,
@@ -432,6 +437,9 @@ def _validate_definition_for_user(definition):
             default_row_limit=DEFAULT_ROW_LIMIT,
             max_row_limit=MAX_ROW_LIMIT,
         )
+        # A count_distinct metric grouped by its own base field always yields
+        # 1 per row — drop the shadowing column instead of bouncing the draft.
+        drop_columns_shadowing_distinct_metrics(definition, source_metrics)
         to_validate = {k: v for k, v in definition.items() if k != "chartHint"}
         validate_report_definition(
             to_validate,

@@ -163,9 +163,10 @@ def test_ai_ask_unlimited_when_limit_zero(user_client):
     count.assert_not_called()  # cap disabled -> no usage query
 
 
-def _def_result(source="gen_pdqm"):
+def _def_result(source="gen_pdqm", definition=None, explanation="by outcome"):
     return AiDefinitionResult(
-        definition={
+        definition=definition
+        or {
             "schemaVersion": 1,
             "visualization": "table",
             "source": source,
@@ -176,7 +177,7 @@ def _def_result(source="gen_pdqm"):
             "scope": {"clients": [], "processes": []},
             "rowLimit": 5000,
         },
-        explanation="by outcome",
+        explanation=explanation,
         model="m",
         provider="anthropic",
         tokens_in=10,
@@ -961,3 +962,62 @@ def test_ai_build_rejects_malformed_refine_context(user_client):
         for body in bad_bodies:
             resp = user_client.post("/api/reporting/ai/build", json=body)
             assert resp.status_code == 400, body
+
+
+# ---- Task 6: deterministic shadow-column guard --------------------------------
+
+
+def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
+    drafted = {
+        "schemaVersion": 1,
+        "visualization": "table",
+        "source": "docprocessing",
+        "title": "Distinct workitems per process",
+        "columns": [{"field": "processname"}, {"field": "workitem_id"}],
+        "metrics": [{"metric": "workitem_count"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 5000,
+    }
+    catalog = [
+        {
+            "field": "processname",
+            "label": "Processname",
+            "type": "string",
+            "filterable": True,
+            "sortable": True,
+        },
+        {
+            "field": "workitem_id",
+            "label": "Workitem ID",
+            "type": "string",
+            "filterable": True,
+            "sortable": True,
+        },
+    ]
+    metrics = {"workitem_count": {"aggregation": "count_distinct", "base_field": "workitem_id"}}
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE docprocessing ..."),
+        patch(
+            "nx_lib.views.reporting.ai_ask_definition",
+            return_value=_def_result(definition=drafted, explanation="x"),
+        ),
+        patch("nx_lib.views.reporting._allowed_processes", return_value=["compass.01_Invoice_SAP"]),
+        patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=catalog),
+        patch("nx_lib.views.reporting._metrics_for_source", return_value=metrics),
+        patch("nx_lib.views.reporting._audit_ai"),
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/build", json={"question": "distinct per process"}
+        )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["valid"] is True
+    assert [c["field"] for c in data["definition"]["columns"]] == ["processname"]

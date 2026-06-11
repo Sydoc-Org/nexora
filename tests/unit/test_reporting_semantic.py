@@ -129,3 +129,56 @@ def test_build_aggregate_sql_zero_dims_sort_by_metric_allowed():
         cap=10,
     )
     assert sql.endswith("ORDER BY [total] DESC")
+
+
+# ---- drop_columns_shadowing_distinct_metrics --------------------------------
+
+from nx_lib.reporting.semantic import drop_columns_shadowing_distinct_metrics  # noqa: E402
+
+_SHADOW_REGISTRY = {
+    "doc_count": {"aggregation": "count", "base_field": None},
+    "workitem_count": {"aggregation": "count_distinct", "base_field": "workitem_id"},
+}
+
+
+def test_drops_column_matching_distinct_metric_base_field():
+    rd = {
+        "columns": [{"field": "processname"}, {"field": "workitem_id"}],
+        "metrics": [{"metric": "workitem_count"}],
+    }
+    dropped = drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY)
+    assert dropped == ["workitem_id"]
+    assert [c["field"] for c in rd["columns"]] == ["processname"]
+
+
+def test_drop_can_empty_columns_for_grand_total():
+    rd = {
+        "columns": [{"field": "workitem_id"}],
+        "metrics": [{"metric": "workitem_count"}],
+    }
+    assert drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY) == ["workitem_id"]
+    assert rd["columns"] == []
+
+
+def test_plain_count_metric_never_drops_columns():
+    # "List distinct workitem ids with their row counts" stays intact.
+    rd = {
+        "columns": [{"field": "workitem_id"}],
+        "metrics": [{"metric": "doc_count"}],
+    }
+    assert drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY) == []
+    assert [c["field"] for c in rd["columns"]] == ["workitem_id"]
+
+
+def test_no_metrics_is_a_no_op():
+    rd = {"columns": [{"field": "workitem_id"}], "metrics": []}
+    assert drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY) == []
+    assert rd["columns"] == [{"field": "workitem_id"}]
+
+
+def test_unknown_metric_code_is_ignored():
+    rd = {
+        "columns": [{"field": "workitem_id"}],
+        "metrics": [{"metric": "nope"}],
+    }
+    assert drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY) == []
