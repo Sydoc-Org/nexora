@@ -38,26 +38,39 @@ python scripts/confluence-publish.py --yes        # what CI runs
 python scripts/confluence-publish.py --bootstrap  # FIRST RUN ONLY, see below
 ```
 
+## Credential account
+
+The sync currently runs as **benjamin.streich@sydoc.ch** (personal account).
+This is fine to start, but should be migrated to a dedicated service account
+(e.g. `noreply.sy@sydoc.ch`) once that account has a Confluence product seat
+in the Atlassian org admin. Migration = create token on the service account,
+update both credential files, revoke the old token.
+
+**Pending (owner):** provision `C:\sydoc\runner-secrets\CONFLUENCE.env` on
+SYAPP01 with the credentials from `env/CONFLUENCE.env`, then run the CI
+workflow once to confirm end-to-end.
+
 ## Token rotation (yearly!)
 
 Atlassian API tokens expire after at most 365 days. When the sync fails with
 the 401 token message:
 
-1. Log in as the bot account → <https://id.atlassian.com/manage-profile/security/api-tokens>
+1. Log in as the sync account → <https://id.atlassian.com/manage-profile/security/api-tokens>
    → create a new (unscoped) token.
 2. Update `C:\sydoc\runner-secrets\CONFLUENCE.env` on SYAPP01 (and your local
    `env/CONFLUENCE.env` if you run the script locally).
 3. Re-run the workflow (*Actions → Confluence docs sync → Run workflow*).
 4. Set a reminder for next year; revoke the old token.
 
-## Bootstrap (already done — for reference / disaster recovery)
+## Bootstrap (done 2026-06-11 — for reference / disaster recovery)
 
 `--bootstrap` archives **all** existing non-homepage pages in the space (the
 pre-sync hand-written docs were archived this way; recover any of them via
 Confluence → Space settings → Archived pages), then publishes fresh from git.
-After bootstrap, a space admin makes the space read-only for humans:
-Space settings → Permissions → remove page add/edit/archive from user groups,
-keep full write for the bot account only.
+
+**Pending (owner):** after runner secrets are provisioned and CI is verified,
+make the space read-only for humans: Space settings → Permissions → remove page
+add/edit/archive from user groups, keep full write for the sync account only.
 
 ## Troubleshooting
 
