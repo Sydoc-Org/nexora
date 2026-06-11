@@ -826,7 +826,8 @@
         }
       }, state.wiz.range === p[0] ||
          (state.wiz.range && state.wiz.range.token === p[0]) ||
-         (p[0] === 'custom' && Array.isArray(state.wiz.range))));
+         (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||
+         (p[0] === 'all_time' && state.wiz.range === null)));
     });
     // Only default to all-time if no prior choice is being restored.
     if (!state.wiz.range) state.wiz.range = null;
