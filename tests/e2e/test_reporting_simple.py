@@ -890,3 +890,53 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
             }""",
             ids,
         )
+
+
+def test_chart_png_download(page, nexora_server):
+    """The chart toolbar PNG button downloads a .png file of the current chart."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'chart_png_dl', kind: 'curated', label: 'Chart PNG Download',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [
+              {field: 'locale', label: 'Locale', type: 'string',
+               filterable: true, sortable: true}
+            ],
+            enabled: true, sortOrder: 21});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'chart_png_dl_count', sourceId: 'chart_png_dl', label: 'PNG dl count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("PNG dl count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Locale", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-chart-card")).to_be_visible()
+        with page.expect_download() as dl:
+            page.get_by_test_id("rs-chart-png").click()
+        assert dl.value.suggested_filename.endswith("-chart.png")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

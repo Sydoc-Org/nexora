@@ -575,6 +575,10 @@
     var ext = fmt === 'csv' ? '.csv' : '.xlsx';
     var body = currentDefinition();
     body.format = fmt;
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) body.chartImage = png;
+    }
     var run = function () {
       api('/api/reporting/export', { method: 'POST', body: JSON.stringify(body) })
         .then(function (res) { return res.blob(); })
@@ -592,9 +596,14 @@
     var fmt = exportFormat();
     var ext = fmt === 'csv' ? '.csv' : '.xlsx';
     var title = document.getElementById('rpTitle').value || 'pivot';
+    var gridBody = { columns: ex.columns, rows: ex.rows, title: title, format: fmt };
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) gridBody.chartImage = png;
+    }
     api('/api/reporting/export/grid', {
       method: 'POST',
-      body: JSON.stringify({ columns: ex.columns, rows: ex.rows, title: title, format: fmt }),
+      body: JSON.stringify(gridBody),
     }).then(function (res) { return res.blob(); })
       .then(function (blob) { downloadBlob(blob, title + ext); })
       .catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });

@@ -774,10 +774,33 @@
     window.ReportingTabs.show('advanced');
   });
 
+  function chartPngDataUrl() {
+    if (!state.chart) return null;
+    var src = el('rsChartCanvas');
+    var c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(src, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  el('rsChartPng').addEventListener('click', function () {
+    var url = chartPngDataUrl();
+    if (!url) return;
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = ((state.current && state.current.name) || 'report') + '-chart.png';
+    a.click();
+  });
+
   if (EXPORT_ALLOWED) {
     el('rsExport').addEventListener('click', async function () {
       if (!state.current) return;  // error view without a loaded report
       var body = Object.assign({}, state.current.def, { format: 'xlsx' });
+      var png = chartPngDataUrl();
+      if (png) body.chartImage = png;
       var res;
       try {
         res = await fetch('/api/reporting/export', {

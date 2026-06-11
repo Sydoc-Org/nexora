@@ -201,9 +201,9 @@
     draw();
   }
 
-  // Download the current chart canvas as a PNG (flattened onto white).
-  function exportChartPng(filename) {
-    if (!lastChartCanvas) return false;
+  // Return the current chart as a white-background PNG data-URL, or null.
+  function chartPngDataUrl() {
+    if (!lastChartCanvas) return null;
     var src = lastChartCanvas;
     var out = document.createElement('canvas');
     out.width = src.width; out.height = src.height;
@@ -211,8 +211,15 @@
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, out.width, out.height);
     ctx.drawImage(src, 0, 0);
+    return out.toDataURL('image/png');
+  }
+
+  // Download the current chart canvas as a PNG (flattened onto white).
+  function exportChartPng(filename) {
+    var url = chartPngDataUrl();
+    if (!url) return false;
     var a = document.createElement('a');
-    a.href = out.toDataURL('image/png');
+    a.href = url;
     a.download = filename || 'chart.png';
     document.body.appendChild(a);
     a.click();
@@ -592,6 +599,7 @@
     mountPivot: mountPivot,
     destroyChart: destroyChart,
     exportChartPng: exportChartPng,
+    chartPngDataUrl: chartPngDataUrl,
     getPivotExport: getPivotExport,
     applyChartHint: applyChartHint
   };
