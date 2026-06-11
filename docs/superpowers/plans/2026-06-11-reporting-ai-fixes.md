@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix the five AI bugs found in the 2026-06-10 stakeholder browser tour: missing quarter tokens, AI never emitting date grain, the distinct-count-per-group trap, the agent's unknown-SQL-target dead end, and metric-less-source misdrafts with confusing error messages.
+**Goal:** Fix the five AI bugs found in the 2026-06-10 stakeholder browser tour — missing quarter tokens, AI never emitting date grain, the distinct-count-per-group trap, the agent's unknown-SQL-target dead end, metric-less-source misdrafts with confusing error messages — and consolidate the redundant `workitem_count` metric (owner-verified 2026-06-11: all count variants identical on PROD).
 
 **Architecture:** All fixes are prompt-engineering + small deterministic guards along the existing Surface A/C pipeline: token vocabulary lives in `nx_lib/reporting/tokens.py`, both system prompts live in `nx_lib/reporting/ai.py` (`_SYSTEM_DEF`, `_AGENT_SYSTEM`), the gate is `_validate_definition_for_user` in `nx_lib/views/reporting.py`, grounding text comes from `nx_lib/reporting/ai_schema.py`, and the Simple-tab UI strings live in `templates/js/_reporting_simple_js.html`. No new tables, no migrations.
 
@@ -15,8 +15,11 @@
 3. **Distinct-per-group trap.** "How many distinct workitems per process" → model emitted `columns: [processname, workitem_id]` + `metrics: [workitem_count]` (a `count_distinct` of `workitem_id`). Grouping by the counted field forces every count to 1; the gate said *valid*. The current DISTINCT prompt rule actively teaches this mistake for "count distinct X per Y" questions.
 4. **Agent dies on `run_sql`.** Live trace: 3× `build_definition` invalid → SQL fallback → `run_sql` failed `"unknown SQL target"` → turn cap → "(no answer)". The grounding never names the valid `target` values and the error message doesn't list them, so the model can't self-repair. Audit history: nearly every agent run ends `max_turns` with an empty answer.
 5. **Metric-less source misdrafts + confusing error.** The first "distinct workitems" ask picked the `workitems` source (which has **no** registered metrics), invented `workitem_count` there, and hard-failed. The Simple tab then showed *"The AI could not draft that report — try rephrasing. (…model explanation…)"* — the JS prefers `explanation` over the actual gate `error`.
+6. **Wrong date field for time questions** (owner-reported 2026-06-11). Asked about *"April 2026"*, the model filtered on **Document Date** (the date printed on the document) instead of the processing dates. Time-period questions must default to `export_date` (or `import_date` when the question says imported/received); content-date fields are only correct when the user names them explicitly.
 
-**Out of scope (deliberately):** the Posteingang NULL-`WorkItemID` undercount in `workitem_count` (data/metric issue, owner verifying the data 2026-06-11); registering metrics for `gen_pdqm`/`workitems` (zero-code admin action at `/reporting/metrics`); Advanced-builder save-as UX; raw-code column headers.
+**Measurement finding (2026-06-11, owner-verified on PROD):** `COUNT(*)`, `COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)` and `COUNT(Barcode)` all return the same number on the PROD Statistics tables — one row per workitem, no NULL ids, no duplicates. The earlier staging gap (Posteingang +799 rows in May) does not reproduce on PROD, so `workitem_count` (count_distinct) always equals `doc_count` there. Consequence: **Task 12** disables `workitem_count` so the picker offers one count metric; the `count_distinct` machinery (and Task 5/6's guard) stays — it is metric-registry-generic and unit-covered.
+
+**Out of scope (deliberately):** registering metrics for `gen_pdqm`/`workitems` (zero-code admin action at `/reporting/metrics`); Advanced-builder save-as UX; raw-code column headers.
 
 **Anchors note:** all line numbers below are the pre-plan state of `feature/2.5.63` (HEAD `554cfc3`). Earlier tasks shift later anchors by a few lines — match on the quoted code, not the absolute number.
 
@@ -42,7 +45,8 @@
 | `tests/unit/test_reporting_ai_schema.py` | Grounding marker test (Task 8) |
 | `tests/integration/test_reporting_ai_routes.py` | Agent grounding + guard integration tests (Tasks 6, 7) |
 | `translations/{de,fr,it}/LC_MESSAGES/messages.po` | "This quarter" / "Last quarter" (Task 10) |
-| `CHANGELOG.md`, `docs/howto/reporting.md`, `docs/design/reporting-ai-assistant.md` | Token vocabulary + behavior docs (Task 11) |
+| `CHANGELOG.md`, `docs/howto/reporting.md`, `docs/design/reporting-ai-assistant.md` | Token vocabulary + behavior docs (Tasks 11, 12) |
+| `sql/_migrations/NexoraDB/0021_disable_workitem_count_metric.sql` | Create — consolidate to one count metric (Task 12) |
 
 ---
 
@@ -294,7 +298,7 @@ After the `['last_month', …]` entry (line 26), add:
 - [ ] **Step 5: Sanity-run the template**
 
 Run: `.venv\Scripts\python.exe -m pytest tests\e2e\test_reporting_simple.py -k wizard --collect-only -q`
-Expected: collection succeeds (no Jinja syntax error). Full e2e runs in Task 12.
+Expected: collection succeeds (no Jinja syntax error). Full e2e runs in the final verification task (Task 14).
 
 - [ ] **Step 6: Commit**
 
@@ -1047,7 +1051,155 @@ git commit -m "docs(reporting): quarter tokens, grain rule, distinct guard, agen
 
 ---
 
-### Task 12: Full verification — suites + live browser pass
+### Task 12: Consolidate the count metrics (disable `workitem_count`)
+
+Owner verified on PROD (2026-06-11): `COUNT(*)`, `COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)`, `COUNT(Barcode)` are identical on the docprocessing Statistics tables. Two metrics that can never differ just clutter the wizard and give the AI a second code to misuse — keep `doc_count` as the single count metric. **Disable, don't delete**: reversible, and the `workitem_id` dimension field (column/filter) stays available.
+
+No app code changes: the wizard (`/api/reporting/metrics`), the AI grounding (`_accessible_metrics`), and the gate (`_metrics_for_source`) are all driven by `WHERE Enabled = 1` in `_load_db_metrics` (`nx_lib/views/reporting.py:177-211`). The `count_distinct` machinery and Task 5/6's guard stay — they are registry-generic and covered by fixture-based unit tests (`tests/unit/test_reporting_query.py:457-466`, `tests/unit/test_reporting_runner.py:49-141`), which do not depend on the DB flag.
+
+**Files:**
+- Create: `sql/_migrations/NexoraDB/0021_disable_workitem_count_metric.sql`
+- Modify: `CHANGELOG.md`, `docs/howto/reporting.md`
+
+- [ ] **Step 1: Create the migration**
+
+`sql/_migrations/NexoraDB/0021_disable_workitem_count_metric.sql`:
+
+```sql
+-- 0021: consolidate count metrics - disable workitem_count.
+-- Owner verified 2026-06-11 on PROD: COUNT(*), COUNT(WorkitemID),
+-- COUNT(DISTINCT WorkItemID) and COUNT(Barcode) all return the same number
+-- on the docprocessing Statistics tables (one row per workitem, no NULL ids),
+-- so this metric always equals doc_count. Disabled rather than deleted:
+-- reversible, and the workitem_id dimension field stays available.
+UPDATE dbo.ReportingMetrics SET Enabled = 0 WHERE Code = 'workitem_count';
+GO
+```
+
+(Idempotent — re-running is a no-op, so the pre-commit auto-apply can safely re-run it.)
+
+- [ ] **Step 2: Docs + changelog**
+
+In `CHANGELOG.md` under `[Unreleased]`:
+
+```markdown
+### Changed
+- Reporting: `workitem_count` metric disabled (migration `0021`) — verified on PROD that the Statistics tables hold one row per workitem, so it always equaled `doc_count`. `workitem_id` remains available as a column/filter; re-enable the metric row if a multi-row-per-workitem source ever appears.
+```
+
+In `docs/howto/reporting.md`, find the metric examples (grep `workitem_count`) and update them to reflect the single `doc_count` metric (mention the disabled row + the rationale in one sentence).
+
+- [ ] **Step 3: Commit — let the hook apply the migration to INT**
+
+Commit **without** `SQL_SYNC_SKIP` so the `sql-migrate-int` hook auto-applies `0021` to INT:
+
+```powershell
+git add sql/_migrations/NexoraDB/0021_disable_workitem_count_metric.sql CHANGELOG.md docs/howto/reporting.md
+git commit -m "feat(reporting): consolidate count metrics - disable workitem_count (0021)"
+```
+
+If the hook fails on the historical CRLF-checksum drift (memory `project_int_migration_crlf_drift`), apply manually then commit with the skip:
+
+```powershell
+python scripts\db-migrate.py --env INT
+$env:SQL_SYNC_SKIP='1'; git commit -m "feat(reporting): consolidate count metrics - disable workitem_count (0021)"
+```
+
+- [ ] **Step 4: Verify on INT**
+
+```powershell
+# Flag really flipped:
+# (any SQL client / python one-liner against NexoraDB)
+# SELECT Code, Enabled FROM dbo.ReportingMetrics ORDER BY Code;
+# Expected: doc_count = 1, workitem_count = 0
+```
+
+Then restart the dev server (`& bin\nx.ps1 -d; & bin\nx.ps1 -u`) and confirm in the browser: the Simple wizard's "What do you want to measure?" step shows **only** "Document count"; the Advanced builder's metric dropdown likewise.
+
+- [ ] **Step 5: Run the metric-adjacent suites (nothing may depend on the flag)**
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests\unit\test_reporting_query.py tests\unit\test_reporting_runner.py tests\unit\test_reporting_semantic.py tests\integration\test_reporting_ai_routes.py -q
+```
+
+Expected: all green (these test the count_distinct *mechanism* via fixture registries, not the DB row).
+
+**PROD note:** the deploy workflow auto-applies `0021` before the app pool restart — no manual PROD step.
+
+---
+
+### Task 13: Time questions default to the processing dates, never Document Date
+
+Owner-reported: asking about *"April 2026"* produced a filter on **Document Date** (`DokDatum` — the date printed on the document) instead of a processing date. The prompts already teach grain and tokens but never say WHICH date field a time-period question should filter on. The catalog grounding already flags exactly the right fields: only the synthetic `export_date`/`import_date` carry the `(grainable)` flag (`_DATE_FIELD_COL`, `nx_lib/reporting/query.py:33`), so the rule can anchor on it.
+
+**Files:**
+- Modify: `nx_lib/reporting/ai.py` — `_SYSTEM_DEF` (append after the token paragraph that Task 2 edited), `_AGENT_SYSTEM` (append after the grain sentence that Task 4 added)
+- Test: `tests/unit/test_reporting_ai_definition.py`, `tests/unit/test_reporting_ai_agentic.py`
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `tests/unit/test_reporting_ai_definition.py`:
+
+```python
+def test_system_def_defaults_time_filters_to_processing_dates():
+    s = ai._SYSTEM_DEF
+    assert "export_date" in s and "import_date" in s
+    assert "printed on the document" in s  # the Document Date counter-example
+    assert "processing-date" in s
+```
+
+Append to `tests/unit/test_reporting_ai_agentic.py`:
+
+```python
+def test_agent_system_prompt_defaults_time_filters_to_processing_dates():
+    assert "processing-date" in _AGENT_SYSTEM
+    assert "Document Date" in _AGENT_SYSTEM
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `.venv\Scripts\python.exe -m pytest tests\unit\test_reporting_ai_definition.py::test_system_def_defaults_time_filters_to_processing_dates tests\unit\test_reporting_ai_agentic.py::test_agent_system_prompt_defaults_time_filters_to_processing_dates -v`
+Expected: both FAIL (`processing-date` not found).
+
+- [ ] **Step 3: Extend `_SYSTEM_DEF`**
+
+In `nx_lib/reporting/ai.py`, directly after the relative-token paragraph's closing sentence (`…keep literal ISO dates.` — Task 2's edited text), append:
+
+```python
+    " When a question constrains a TIME PERIOD without naming a specific date"
+    " field, put the filter on a (grainable) processing-date field — default"
+    " to the export date (export_date); use the import date (import_date)"
+    " when the question says imported/received/arrived. Content dates such as"
+    ' "Document Date" (the date printed on the document) are correct ONLY'
+    " when the user names that field explicitly."
+```
+
+- [ ] **Step 4: Extend `_AGENT_SYSTEM`**
+
+In `nx_lib/reporting/ai.py`, directly after the grain sentence Task 4 added to `_AGENT_SYSTEM`, append:
+
+```python
+    " Time-period filters go on a (grainable) processing-date field — export"
+    " date by default, import date when the question says imported/received —"
+    " never on content dates like Document Date unless the user names that"
+    " field."
+```
+
+- [ ] **Step 5: Run the suites**
+
+Run: `.venv\Scripts\python.exe -m pytest tests\unit\test_reporting_ai_definition.py tests\unit\test_reporting_ai_agentic.py -v`
+Expected: all PASS.
+
+- [ ] **Step 6: Commit**
+
+```powershell
+$env:SQL_SYNC_SKIP='1'; git add nx_lib/reporting/ai.py tests/unit/test_reporting_ai_definition.py tests/unit/test_reporting_ai_agentic.py
+git commit -m "fix(reporting): AI time filters default to export/import date, not Document Date"
+```
+
+---
+
+### Task 14: Full verification — suites + live browser pass
 
 **Files:** none (verification only)
 
@@ -1079,10 +1231,12 @@ Restart the server first (Jinja templates cache for the process lifetime), then 
 
 Re-ask, screenshot each to `var/screenshots/` (send to the user):
 1. *"How many documents did we process per month this year?"* → table buckets must be month starts (`2026-02-01`), not raw days; chip `import/export_date between This year`.
-2. *"In document processing, how many distinct workitems did each process handle last quarter?"* → chip must read **Last quarter** (resolved `2026-01-01 → 2026-03-31`); table = one row per process, **no** `Workitem ID` column.
-3. Advanced → Ask AI → Agent: *"Which process handled the most documents this year, and how many was it?"* → expect a concrete answer (audit `GateVerdict = 'final'`), or at minimum a `run_sql` step that no longer fails on `unknown SQL target`. Check with:
+2. *"How many documents did each process handle last quarter?"* → chip must read **Last quarter** (resolved `2026-01-01 → 2026-03-31`, NOT the `last_3_months` window); table = one row per process with `doc_count`.
+3. *"How many distinct workitems did each process handle last quarter?"* → with `workitem_count` disabled (Task 12) there is no valid distinct metric on docprocessing anymore: expect either a doc_count draft (acceptable — counts are 1:1 on PROD) or a clean failure whose red line shows the **gate reason** (Task 9). What must NOT happen: an invented metric code or an all-1s table.
+4. Advanced → Ask AI → Agent: *"Which process handled the most documents this year, and how many was it?"* → expect a concrete answer (audit `GateVerdict = 'final'`), or at minimum a `run_sql` step that no longer fails on `unknown SQL target`. Check with:
    `SELECT TOP 3 Surface, Status, GateVerdict, CreatedAt FROM dbo.ReportingAiAudit ORDER BY CreatedAt DESC`
-4. Force an invalid draft (ask for a metric on the metric-less `workitems` source, e.g. *"average number of workitems per day in the workitems source"*) → the red line must show the **gate reason**, not the model explanation.
+5. Force an invalid draft (ask for a metric on the metric-less `workitems` source, e.g. *"average number of workitems per day in the workitems source"*) → the red line must show the **gate reason**, not the model explanation.
+6. *"How many documents did we process in April 2026?"* → the filter chip must be on **export_date** (literal `2026-04-01 → 2026-04-30`), NOT on Document Date; rephrase with *"imported in April 2026"* → **import_date**.
 
 - [ ] **Step 4: Update the usability-gaps memory + handoff**
 
@@ -1092,7 +1246,7 @@ Record the outcome (esp. whether the agent now reaches `final`) in memory `proje
 
 ## Self-review notes
 
-- **Spec coverage:** bug 1 → Tasks 1–3, 10, 11; bug 2 → Task 4; bug 3 → Tasks 5–6; bug 4 → Task 7; bug 5 → Tasks 8–9. Verification → Task 12.
+- **Spec coverage:** bug 1 → Tasks 1–3, 10, 11; bug 2 → Task 4; bug 3 → Tasks 5–6; bug 4 → Task 7; bug 5 → Tasks 8–9; metric consolidation (PROD parity finding) → Task 12; bug 6 (Document Date mispick) → Task 13. Verification → Task 14.
 - **Signatures verified against the live tree (2026-06-11):** `_def_result(source="gen_pdqm")` at `tests/integration/test_reporting_ai_routes.py:166` (Task 6 extends it backward-compatibly); `serialize_sources_catalog(sources, *, char_budget=…) -> (text, truncated)` at `nx_lib/reporting/ai_schema.py:88`; `_run_sql(target, sql, *, userid, username)` at `nx_lib/views/reporting.py:543` (the unknown-target branch raises before any engine/app-context use, so it is directly callable in tests); the agent route is `/api/reporting/ai/agent` and calls `ask_agentic(initial, registry=…, agent_step=…)` at line 1473; the agentic result exposes `answer, stopped_reason, tool_trace, turns, tokens_in, tokens_out` (see `tests/unit/test_reporting_ai_agentic.py` usage).
 - **Type consistency:** `drop_columns_shadowing_distinct_metrics(rd, metric_registry)` consumes the exact `{code: {aggregation, base_field}}` shape `_metrics_for_source` returns (`nx_lib/views/reporting.py:214-220`); Tasks 6 unit + integration both use that shape.
 - **Existing-test compatibility:** Task 5's replacement text deliberately keeps the literal phrases `GROUP BY` and `duplicate rows` asserted by the pre-existing prompt tests.
