@@ -214,7 +214,11 @@ _SYSTEM_DEF = (
     'aggregate, include "metrics": [{"metric": "<code>"}] in the definition - '
     "the selected columns then become the GROUP BY dims. For a single grand "
     'total, use "metrics" with "columns": []. Only metric codes from the '
-    "source's metrics line are valid. Fields flagged (grainable) are date "
+    "source's metrics line are valid."
+    ' A source marked "metrics: none" cannot aggregate at all — for any'
+    " counting/summing/averaging question prefer a source that lists metrics"
+    " instead of inventing a code."
+    " Fields flagged (grainable) are date "
     'fields: a column for one may carry "grain": '
     '"day"|"week"|"month"|"quarter"|"year" to bucket it; filters always use '
     "the raw date."

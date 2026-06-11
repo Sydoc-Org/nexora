@@ -253,3 +253,8 @@ def test_system_def_forbids_grouping_by_the_counted_field():
     s = ai._SYSTEM_DEF
     assert "NEVER also add" in s
     assert "forces every count to 1" in s
+
+
+def test_system_def_requires_metrics_source_for_counting():
+    s = ai._SYSTEM_DEF
+    assert "metrics: none" in s

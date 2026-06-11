@@ -286,3 +286,57 @@ def test_serialize_sources_catalog_lists_source_metrics():
     ]
     text, _tr = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
     assert 'metrics: doc_count "Documents" = count(*)' in text
+
+
+def test_metricless_source_is_marked_no_aggregation():
+    sources = [
+        {
+            "id": "workitems",
+            "label": "Workitems (Octo)",
+            "fields": [
+                {
+                    "field": "wid",
+                    "label": "Workitem ID",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "processes": [],
+            "metrics": [],
+        }
+    ]
+    text, truncated = ai_schema.serialize_sources_catalog(sources)
+    assert truncated is False
+    assert "metrics: none" in text
+    assert "cannot aggregate" in text
+
+
+def test_source_with_metrics_keeps_its_metrics_line():
+    sources = [
+        {
+            "id": "docprocessing",
+            "label": "Document Processing",
+            "fields": [
+                {
+                    "field": "workitem_id",
+                    "label": "Workitem ID",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "processes": [],
+            "metrics": [
+                {
+                    "code": "workitem_count",
+                    "label": "Workitem count (distinct)",
+                    "aggregation": "count_distinct",
+                    "base_field": "workitem_id",
+                }
+            ],
+        }
+    ]
+    text, _ = ai_schema.serialize_sources_catalog(sources)
+    assert "workitem_count" in text
+    assert "metrics: none" not in text

@@ -93,7 +93,9 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     Each field renders as `key "Human Label":type (flags)` (the label is dropped
     when it equals the key); grainable fields are date fields whose column may
     carry a grain (day/week/month/quarter/year). A source's canonical metrics
-    render as one `  metrics: code "Label" = agg(col)` line. Returns
+    render as one `  metrics: code "Label" = agg(col)` line. Sources with no
+    registered metrics render `  metrics: none — this source cannot aggregate`
+    so the model never invents metric codes for them. Returns
     (text, truncated_bool); on overflow the text is cut to the budget with a
     visible marker and the truncation is logged.
     """
@@ -132,6 +134,11 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
                 label = f' "{m.get("label")}"' if m.get("label") else ""
                 parts.append(f"{m.get('code')}{label} = {m.get('aggregation')}({col})")
             lines.append(f"  metrics: {'; '.join(parts)}")
+        else:
+            lines.append(
+                "  metrics: none — this source cannot aggregate; for"
+                " counting/summing questions pick a source that lists metrics"
+            )
     text = "\n".join(lines)
     if len(text) > char_budget:
         logger.info(
