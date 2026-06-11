@@ -1,3 +1,5 @@
+> **Newer handoff exists for this date:** `docs/superpowers/handoffs/2026-06-11-drill-through-plan.md` (feature ideation + drill-through spec & plan) — resume from that one.
+
 # Handoff — Simple Guide wizard improvements: all 11 tasks executed and verified
 
 - **Date:** 2026-06-11
