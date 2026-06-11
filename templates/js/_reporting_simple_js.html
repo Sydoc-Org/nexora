@@ -76,6 +76,7 @@
     view: 'library',        // library | wizard | result
     current: null,          // { def, name, reportId, owned, canEdit, fromWizard }
     chart: null,            // private Chart.js instance
+    chartData: null,        // prepared labels+datasets for renderChart
     wiz: null               // wizard state
   };
 
@@ -195,6 +196,7 @@
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
     el('rsChartNote').hidden = true;
+    el('rsChartTools').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
   }
@@ -237,14 +239,51 @@
   // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
   function chartCardNote(msg) {
     el('rsChartCanvas').hidden = true;
+    el('rsChartTools').hidden = true;
     el('rsChartNote').textContent = msg;
     el('rsChartNote').hidden = false;
     el('rsChartCard').hidden = false;
   }
 
+  // Mirrors ReportingViz's palette so Simple pies match Advanced ones.
+  var SIMPLE_PALETTE = [
+    '#4338ca', '#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04',
+    '#dc2626', '#db2777', '#7c3aed', '#0d9488', '#ea580c', '#4f46e5'
+  ];
+
+  function renderChart(type) {
+    var d = state.chartData;
+    if (!d) return;
+    destroyChart();
+    var circular = type === 'pie' || type === 'doughnut';
+    var datasets = d.datasets.map(function (ds) {
+      var out = Object.assign({}, ds);
+      if (circular) {
+        out.backgroundColor = d.labels.map(function (_, i) {
+          return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
+        });
+        out.borderColor = '#fff';
+      }
+      return out;
+    });
+    state.chart = new Chart(el('rsChartCanvas'), {
+      type: type,
+      data: { labels: d.labels, datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: false,
+                 plugins: { legend: { display: circular || d.datasets.length > 1 } } }
+    });
+    Array.prototype.forEach.call(
+      el('rsChartTools').querySelectorAll('button'), function (b) {
+        b.classList.toggle('is-selected', b.dataset.type === type);
+        b.setAttribute('aria-pressed', b.dataset.type === type ? 'true' : 'false');
+      });
+  }
+
   function mountChart(def, columns, rows) {
     destroyChart();
+    state.chartData = null;
     el('rsChartNote').hidden = true;
+    el('rsChartTools').hidden = true;
     el('rsChartCanvas').hidden = false;
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
@@ -272,13 +311,10 @@
         borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
       };
     });
+    state.chartData = { labels: labels, datasets: datasets };
     el('rsChartCard').hidden = false;
-    state.chart = new Chart(el('rsChartCanvas'), {
-      type: isDate ? 'line' : 'bar',
-      data: { labels: labels, datasets: datasets },
-      options: { responsive: true, maintainAspectRatio: false,
-                 plugins: { legend: { display: datasets.length > 1 } } }
-    });
+    el('rsChartTools').hidden = false;
+    renderChart(def.chartType || (isDate ? 'line' : 'bar'));
   }
 
   // One-line transparency note under the title of AI-built reports: the
@@ -591,6 +627,13 @@
     var w = el('rsTableWrap');
     w.hidden = !w.hidden;
     el('rsTableToggle').textContent = w.hidden ? I18N.showTable : I18N.hideTable;
+  });
+
+  el('rsChartTools').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-type]');
+    if (!btn || !state.chartData) return;
+    if (state.current && state.current.def) state.current.def.chartType = btn.dataset.type;
+    renderChart(btn.dataset.type);
   });
 
   // Save: always a NEW row (inline name input, no window.prompt).

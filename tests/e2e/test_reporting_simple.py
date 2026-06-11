@@ -537,3 +537,52 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_chart_type_switcher(nexora_server, page):
+    """The result chart card offers bar/line/pie/doughnut switching."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_chart_switch', kind: 'curated', label: 'Wizard Chart Switch',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 15});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_chart_switch_count', sourceId: 'wiz_chart_switch', label: 'Chart switch count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Chart switch count").click()
+        # pick the first category breakdown (not 'just the total')
+        page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-chart-card")).to_be_visible()
+        expect(page.get_by_test_id("rs-chart-tools")).to_be_visible()
+        page.get_by_test_id("rs-chart-pie").click()
+        expect(page.get_by_test_id("rs-chart-pie")).to_have_attribute("aria-pressed", "true")
+        expect(page.locator("#rsChartCanvas")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
