@@ -67,6 +67,8 @@ markupsafe==3.0.3
     #   jinja2
     #   werkzeug
     #   wtforms
+matplotlib==3.10.5
+    # via nexora
 mdurl==0.1.2
     # via markdown-it-py
 msgspec==0.21.1
