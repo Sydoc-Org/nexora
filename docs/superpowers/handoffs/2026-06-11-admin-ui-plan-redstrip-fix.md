@@ -1,3 +1,7 @@
+> ⏩ **Superseded** — a newer handoff exists for the same date:
+> `docs/superpowers/handoffs/2026-06-11-simple-guide-wizard-plan.md`
+> Use `/reset-session docs/superpowers/handoffs/2026-06-11-simple-guide-wizard-plan.md` to resume.
+
 # Handoff — Admin nexora-ui migration plan + Generali red-strip fix
 
 - **Date:** 2026-06-11

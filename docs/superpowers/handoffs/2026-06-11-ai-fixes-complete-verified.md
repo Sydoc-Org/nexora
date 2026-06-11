@@ -1,3 +1,7 @@
+> ⏩ **Superseded** — a newer handoff exists for the same date:
+> `docs/superpowers/handoffs/2026-06-11-simple-guide-wizard-plan.md`
+> Use `/reset-session docs/superpowers/handoffs/2026-06-11-simple-guide-wizard-plan.md` to resume.
+
 # Handoff — 16-task AI-fixes plan executed + live browser verification complete
 
 - **Date:** 2026-06-11
