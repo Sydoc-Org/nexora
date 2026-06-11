@@ -2,6 +2,7 @@
 
 import csv
 import io
+import zipfile
 
 from openpyxl import load_workbook
 
@@ -17,17 +18,19 @@ def test_rows_to_xlsx_uses_custom_headers_and_title():
     data = rows_to_xlsx(columns, rows, title="Q1 report")
     wb = load_workbook(io.BytesIO(data))
     ws = wb.active
-    assert ws["A1"].value == "Document type"
-    assert ws["B1"].value == "Pages"
-    assert ws["A2"].value == "Invoice"
-    assert ws["B3"].value == 1
+    assert ws["A1"].value == "Q1 report"  # title now in A1
+    assert ws["A4"].value == "Document type"  # header row at row 4
+    assert ws["A4"].font.bold
+    assert ws["B4"].value == "Pages"
+    assert ws["A5"].value == "Invoice"
+    assert ws["B6"].value == 1
 
 
 def test_rows_to_xlsx_falls_back_to_field_when_no_header():
     columns = [{"field": "doctype", "header": None}]
     data = rows_to_xlsx(columns, [["x"]], title="t")
     ws = load_workbook(io.BytesIO(data)).active
-    assert ws["A1"].value == "doctype"
+    assert ws["A4"].value == "doctype"
 
 
 def test_rows_to_xlsx_returns_bytes():
@@ -39,6 +42,7 @@ def test_rows_to_xlsx_sanitizes_illegal_title_characters():
     data = rows_to_xlsx([{"field": "a", "header": "A"}], [], title="Q1/Q2: results")
     ws = load_workbook(io.BytesIO(data)).active
     assert not any(ch in ws.title for ch in r"\/?*[]:")
+    assert ws["A1"].value == "Q1/Q2: results"  # full title in A1
 
 
 def test_rows_to_xlsx_neutralizes_formula_injection():
@@ -46,10 +50,10 @@ def test_rows_to_xlsx_neutralizes_formula_injection():
     rows = [["=1+1"]]
     data = rows_to_xlsx(columns, rows, title="t")
     ws = load_workbook(io.BytesIO(data)).active
-    assert ws["A1"].value == "'=danger"
-    assert ws["A1"].data_type == "s"
-    assert ws["A2"].value == "'=1+1"
-    assert ws["A2"].data_type == "s"
+    assert ws["A4"].value == "'=danger"  # header row at row 4
+    assert ws["A4"].data_type == "s"
+    assert ws["A5"].value == "'=1+1"  # data starts at row 5
+    assert ws["A5"].data_type == "s"
 
 
 def _parse_csv(data):
@@ -98,3 +102,47 @@ def test_rows_to_csv_neutralizes_formula_injection():
     assert parsed[3] == ["'+3"]
     assert parsed[4] == ["'@cmd"]
     assert parsed[5] == ["safe"]
+
+
+# ---------------------------------------------------------------------------
+# New tests: title block, styled header, optional chart embedding
+# ---------------------------------------------------------------------------
+
+
+def _make_tiny_png():
+    """Generate a minimal valid PNG via PIL (avoids hard-coded byte fragility)."""
+    from PIL import Image as PilImage
+
+    buf = io.BytesIO()
+    PilImage.new("RGBA", (1, 1)).save(buf, "PNG")
+    return buf.getvalue()
+
+
+def test_xlsx_has_title_block_and_styled_header():
+    data = rows_to_xlsx([{"field": "a", "header": "A"}], [[1]], title="My Report")
+    wb = load_workbook(io.BytesIO(data))
+    ws = wb.active
+    assert ws["A1"].value == "My Report"
+    assert ws["A1"].font.bold
+    # header row is NOT at row 1 anymore
+    header_cell = next(
+        c for row in ws.iter_rows() for c in row if c.value == "A" and c.font and c.font.bold
+    )
+    assert header_cell is not None
+    assert ws.freeze_panes is not None
+
+
+def test_xlsx_embeds_chart_png():
+    tiny_png = _make_tiny_png()
+    data = rows_to_xlsx(
+        [{"field": "a", "header": "A"}], [[1]], title="With Chart", chart_png=tiny_png
+    )
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        media = [n for n in z.namelist() if n.startswith("xl/media/")]
+    assert media, "chart image not embedded in workbook"
+
+
+def test_xlsx_without_chart_has_no_media():
+    data = rows_to_xlsx([{"field": "a", "header": "A"}], [[1]], title="Plain")
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        assert not [n for n in z.namelist() if n.startswith("xl/media/")]
