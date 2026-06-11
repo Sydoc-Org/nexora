@@ -57,6 +57,13 @@
     allProcesses: {{ _("All processes")|tojson }}
   };
 
+  // Wizard category-dimension curation (docprocessing only). Preferred
+  // business dimensions first, noise hidden; table sources are untouched.
+  var DOCPROC_DIM_ORDER = ['docsource', 'doctype', 'forwarding', 'ownernr',
+                           'propertynr', 'registered', 'tenancynr'];
+  var DOCPROC_DIM_HIDE = { processname: 1, bankpk: 1, crdno: 1, docbarcode: 1,
+                           docdate: 1, workitem_id: 1 };
+
   var state = {
     reports: [],            // /api/reporting/reports rows (kind!=='sql')
     sources: null,          // /api/reporting/sources cache
@@ -707,6 +714,16 @@
       return f.type === 'string' && f.filterable && f.field !== 'processname';
     });
 
+    if (state.wiz.source.id === 'docprocessing') {
+      catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
+      catFields.sort(function (a, b) {
+        var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
+        if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
+        if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
+        return (ia - ib) || a.label.localeCompare(b.label);
+      });
+    }
+
     dateFields.forEach(function (f) {
       list.appendChild(choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
         state.wiz.breakdown = { kind: 'date', field: f };
@@ -714,9 +731,6 @@
         renderTimeStep();
       }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'date' && state.wiz.breakdown.field.field === f.field)));
     });
-    // processname first (the natural docprocessing category), then the rest.
-    var procField = fields.find(function (f) { return f.field === 'processname'; });
-    if (procField) catFields.unshift(procField);
     catFields.slice(0, 12).forEach(function (f) {
       list.appendChild(choiceBtn(f.label, function () {
         state.wiz.breakdown = { kind: 'category', field: f };
