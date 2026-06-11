@@ -1,3 +1,6 @@
+> **Newer same-date handoff exists:** `2026-06-11-admin-ui-plan-redstrip-fix.md`
+> (Generali red-strip fix + admin nexora-ui migration plan, on branch `feat/admin-ui-integration`).
+
 # Handoff — Stakeholder tour findings → 16-task AI-fixes plan + STAGING unblocked
 
 - **Date:** 2026-06-11
