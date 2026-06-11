@@ -170,6 +170,8 @@
     if (!res.ok || !res.data || !res.data.definition) {
       showResultError(I18N.couldNotLoad); return;
     }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
     state.current = {
       def: res.data.definition, name: res.data.name, reportId: r.id,
       owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false
@@ -554,7 +556,9 @@
       el('rsRefineInput').value = cur.aiQuestion || '';
     }
     var adjustBtn = el('rsAdjustWizard');
-    if (adjustBtn) adjustBtn.hidden = cur.builtBy !== 'wizard';
+    if (adjustBtn) {
+      adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
+    }
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
@@ -665,7 +669,7 @@
   // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
-  el('rsAdjustWizard').addEventListener('click', reopenWizard);
+  el('rsAdjustWizard').addEventListener('click', adjustInWizard);
 
   el('rsOpenAdvanced').addEventListener('click', function () {
     var cur = state.current;
@@ -955,6 +959,75 @@
       metrics: [{ metric: w.measure.code }],
       filters: filters, sort: sort, scope: scope, rowLimit: 5000
     };
+  }
+
+  // Wizard presets that renderTimeStep offers; other tokens (e.g. last_n_days,
+  // this_week) can't be represented in the wizard UI, so such defs don't map.
+  var WIZ_TOKENS = ['this_month', 'last_month', 'last_quarter',
+                    'last_3_months', 'this_year', 'last_year'];
+
+  // Inverse of wizardDefinition(): returns {wiz, grain} for wizard-shaped
+  // definitions, or null when the def can't be represented in the wizard
+  // (multiple columns/filters/metrics, exotic ops, client scope).
+  function wizardStateFromDefinition(def) {
+    if (!def || !Array.isArray(def.metrics) || def.metrics.length !== 1) return null;
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var mlist = (state.metricsBySource || {})[def.source] || [];
+    var m = mlist.find(function (x) { return x.code === def.metrics[0].metric; });
+    if (!src || !m) return null;
+    var cols = def.columns || [];
+    if (cols.length > 1) return null;
+    var breakdown = { kind: 'none' }, grain = null;
+    if (cols.length === 1) {
+      var f = (src.fields || []).find(function (x) { return x.field === cols[0].field; });
+      if (!f) return null;
+      if (cols[0].grain) {
+        if (!f.grainable) return null;
+        breakdown = { kind: 'date', field: f };
+        grain = cols[0].grain;
+      } else {
+        breakdown = { kind: 'category', field: f };
+      }
+    }
+    var filters = def.filters || [];
+    if (filters.length > 1) return null;
+    var range = null, dateField = null;
+    if (filters.length === 1) {
+      var ft = filters[0];
+      if (ft.op !== 'between') return null;
+      var df = (src.fields || []).find(function (x) {
+        return x.field === ft.field && x.grainable;
+      });
+      if (!df) return null;
+      dateField = ft.field;
+      if (ft.value && ft.value.token) {
+        if (WIZ_TOKENS.indexOf(ft.value.token) === -1) return null;
+        range = { token: ft.value.token };
+      } else if (Array.isArray(ft.value) && ft.value.length === 2) {
+        range = ft.value.slice();
+      } else { return null; }
+    }
+    var scope = def.scope || {};
+    if ((scope.clients || []).length) return null;
+    return { wiz: { measure: m, source: src, breakdown: breakdown,
+                    scopeProcs: (scope.processes || []).slice(),
+                    range: range, dateField: dateField, _fp: null },
+             grain: grain };
+  }
+
+  async function adjustInWizard() {
+    var cur = state.current;
+    if (!cur) return;
+    if (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure) {
+      reopenWizard(); return;
+    }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    var mapped = wizardStateFromDefinition(cur.def);
+    if (!mapped) return;
+    state.wiz = mapped.wiz;
+    if (mapped.grain) el('rsGrain').value = mapped.grain;
+    reopenWizard();
   }
 
   async function reopenWizard() {

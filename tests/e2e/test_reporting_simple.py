@@ -586,3 +586,79 @@ def test_chart_type_switcher(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_saved_report_adjust_in_wizard(nexora_server, page):
+    """A wizard-shaped SAVED report re-enters the wizard with choices restored,
+    even in a fresh session (no in-memory wizard state)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_saved_adj', kind: 'curated', label: 'Wizard Saved Adjust',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 16});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_saved_adj_count', sourceId: 'wiz_saved_adj', label: 'Saved adjust count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # Build + save via wizard
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Saved adjust count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        # Save the report: first click reveals the name input, second click saves
+        page.get_by_test_id("rs-save").click()
+        save_name_input = page.get_by_test_id("rs-save-name")
+        expect(save_name_input).to_be_visible()
+        save_name_input.fill("adjust-saved-e2e")
+        page.get_by_test_id("rs-save").click()
+        # Wait for the save confirmation message before navigating away
+        expect(page.get_by_test_id("rs-msg")).to_be_visible()
+        # Fresh page load wipes state.wiz
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        # Wait for library to load and report to appear
+        expect(page.get_by_test_id("rs-group-mine").get_by_text("adjust-saved-e2e")).to_be_visible()
+        page.get_by_test_id("rs-group-mine").get_by_text("adjust-saved-e2e").click()
+        adjust = page.get_by_test_id("rs-adjust-wizard")
+        expect(adjust).to_be_visible()
+        adjust.click()
+        expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+        # The previously chosen measure renders pre-selected
+        expect(page.locator(".reporting-simple-choice.is-selected").first).to_be_visible()
+    finally:
+        # Clean up metric + source
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+        # Delete the saved report by name
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.evaluate(
+            """async () => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const res = await fetch('/api/reporting/reports').then(r => r.json());
+              const r = (res || []).find(x => x.name === 'adjust-saved-e2e');
+              if (r) await fetch('/api/reporting/reports/' + r.id, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+            }"""
+        )
