@@ -69,3 +69,45 @@ def test_save_overwrites_loaded_report_in_place(nexora_server, page):
     got = page.request.get(f"{nexora_server}/api/reporting/reports/{rid}").json()
     assert got["name"] == "InPlace Updated"
     page.screenshot(path="var/screenshots/reporting_save_in_place.png")
+
+
+@pytest.mark.flaky_e2e
+def test_save_as_uses_name_modal(nexora_server, page):
+    """Save as opens the custom name modal (not a browser prompt) and creates
+    a new report under that name."""
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+
+    # Ack the SQL modal so it doesn't block
+    page.request.post(f"{nexora_server}/api/reporting/sql/ack", headers=headers, data={})
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.wait_for_load_state("domcontentloaded")
+
+    # Switch to SQL mode and type a minimal query so there's something to save
+    page.locator('[data-testid="reporting-mode-sql"]').click()
+    page.locator('[data-testid="reporting-sql-editor"]').fill("SELECT 1 AS x")
+
+    # The "Saved" alert fires after the POST completes; accept it automatically.
+    page.on("dialog", lambda d: d.accept())
+
+    # Click Save as (no loaded report → same as save-as)
+    page.locator('[data-testid="reporting-save-as"]').click()
+    modal = page.get_by_test_id("reporting-name-modal")
+    expect(modal).to_be_visible()
+    page.get_by_test_id("reporting-name-input").fill("modal-save-e2e")
+    page.get_by_test_id("reporting-name-ok").click()
+    expect(modal).to_be_hidden()
+
+    # The new report should appear in the saved reports dropdown
+    page.locator('[data-testid="reporting-saved-reports"]').wait_for(state="visible")
+    opts = page.locator('[data-testid="reporting-saved-reports"] option')
+    names = [opts.nth(i).text_content() for i in range(opts.count())]
+    assert any("modal-save-e2e" in n for n in names), f"Report not found in: {names}"
+
+    # Clean up
+    reports = page.request.get(f"{nexora_server}/api/reporting/reports").json()
+    r = next((x for x in reports if x["name"] == "modal-save-e2e"), None)
+    if r:
+        page.request.delete(f"{nexora_server}/api/reporting/reports/{r['id']}", headers=headers)
+    page.screenshot(path="var/screenshots/reporting_save_as_modal.png")

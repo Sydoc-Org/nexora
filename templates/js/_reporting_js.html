@@ -446,6 +446,33 @@
     wrap.appendChild(p);
   }
 
+  // Modal replacement for window.prompt: resolves the trimmed name, or null
+  // on cancel/empty.
+  function promptName(title, initial) {
+    return new Promise(function (resolve) {
+      var modal = document.getElementById('rpNameModal');
+      var input = document.getElementById('rpNameModalInput');
+      var ok = document.getElementById('rpNameModalOk');
+      var cancel = document.getElementById('rpNameModalCancel');
+      document.getElementById('rpNameModalTitle').textContent = title;
+      input.value = initial || '';
+      modal.hidden = false;
+      input.focus();
+      input.select();
+      function done(v) {
+        modal.hidden = true;
+        ok.onclick = cancel.onclick = input.onkeydown = null;
+        resolve(v);
+      }
+      ok.onclick = function () { done(input.value.trim() || null); };
+      cancel.onclick = function () { done(null); };
+      input.onkeydown = function (e) {
+        if (e.key === 'Enter') ok.click();
+        if (e.key === 'Escape') cancel.click();
+      };
+    });
+  }
+
   function ackThen(cb) {
     if (state.sqlSource && state.sqlSource.acknowledged) { cb(); return; }
     var modal = document.getElementById('rpSqlAck');
@@ -493,20 +520,21 @@
     var canOverwrite = state.currentReportId
       && (state.currentReportOwned || state.currentReportCanEdit);
     if (asNew || !canOverwrite) {
-      var name = window.prompt('{{ _("Report name") }}', reportTitle());
-      if (!name) return;
-      api('/api/reporting/reports', {
-        method: 'POST',
-        body: JSON.stringify({ name: name, definition: def }),
-      }).then(function (res) { return res.json(); })
-        .then(function (data) {
-          state.currentReportId = data.id || null;
-          state.currentReportName = name;
-          state.currentReportOwned = true;
-          state.currentReportCanEdit = true;
-          loadReports();
-          window.alert('{{ _("Saved") }}');
-        }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+      promptName('{{ _("Report name") }}', reportTitle()).then(function (name) {
+        if (!name) return;
+        api('/api/reporting/reports', {
+          method: 'POST',
+          body: JSON.stringify({ name: name, definition: def }),
+        }).then(function (res) { return res.json(); })
+          .then(function (data) {
+            state.currentReportId = data.id || null;
+            state.currentReportName = name;
+            state.currentReportOwned = true;
+            state.currentReportCanEdit = true;
+            loadReports();
+            window.alert('{{ _("Saved") }}');
+          }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+      });
       return;
     }
     var newName = document.getElementById('rpTitle').value || state.currentReportName || 'Report';
@@ -1016,17 +1044,18 @@
     var id = sel.value;
     if (!id) return;
     var current = sel.options[sel.selectedIndex].textContent.replace(/ \(SQL\)$/, '');
-    var name = window.prompt('{{ _("New name") }}', current);
-    if (!name) return;
-    // Name-only change; PUT requires the definition too, so fetch it first.
-    api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
-      .then(function (data) {
-        return api('/api/reporting/reports/' + id, {
-          method: 'PUT',
-          body: JSON.stringify({ name: name, definition: data.definition }),
-        });
-      }).then(function () { loadReports(); })
-      .catch(function (e) { window.alert('{{ _("Rename failed") }}: ' + e.message); });
+    promptName('{{ _("New name") }}', current).then(function (name) {
+      if (!name || name === current) return;
+      // Name-only change; PUT requires the definition too, so fetch it first.
+      api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
+        .then(function (data) {
+          return api('/api/reporting/reports/' + id, {
+            method: 'PUT',
+            body: JSON.stringify({ name: name, definition: data.definition }),
+          });
+        }).then(function () { loadReports(); })
+        .catch(function (e) { window.alert('{{ _("Rename failed") }}: ' + e.message); });
+    });
   }
 
   function deleteSelectedReport() {

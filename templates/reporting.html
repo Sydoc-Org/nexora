@@ -283,6 +283,17 @@
     </div>
   </div>
 
+  <div id="rpNameModal" class="reporting-modal" hidden data-testid="reporting-name-modal">
+    <div class="reporting-modal-box">
+      <h3 id="rpNameModalTitle"></h3>
+      <input id="rpNameModalInput" class="reporting-input" data-testid="reporting-name-input">
+      <div class="reporting-modal-actions">
+        <button id="rpNameModalCancel" class="reporting-btn" data-testid="reporting-name-cancel">{{ _("Cancel") }}</button>
+        <button id="rpNameModalOk" class="reporting-btn reporting-btn-primary" data-testid="reporting-name-ok">{{ _("Save") }}</button>
+      </div>
+    </div>
+  </div>
+
   {% include 'js/_reporting_viz_js.html' %}
   {% include 'js/_reporting_js.html' %}
   <!-- Motion (motion.dev) — vanilla-JS animation library, pinned + SRI. -->
