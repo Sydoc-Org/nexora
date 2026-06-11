@@ -58,6 +58,8 @@
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
     noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
+    noChartThreeDims: {{ _("Charts support up to two breakdowns — the table shows all of them.")|tojson }},
+    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
@@ -263,10 +265,14 @@
     var d = state.chartData;
     if (!d) return;
     destroyChart();
-    var circular = type === 'pie' || type === 'doughnut';
+    var multi = !!(d && d.multiSeries);
+    if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
+    var stacked = type === 'stacked';
+    var chartJsType = stacked ? 'bar' : type;
+    var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
     var datasets = d.datasets.map(function (ds) {
       var out = Object.assign({}, ds);
-      if (circular) {
+      if (!multi && circular) {
         out.backgroundColor = d.labels.map(function (_, i) {
           return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
         });
@@ -275,11 +281,17 @@
       return out;
     });
     state.chart = new Chart(el('rsChartCanvas'), {
-      type: type,
+      type: chartJsType,
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
-                 plugins: { legend: { display: circular || d.datasets.length > 1 } } }
+                 scales: (circular) ? {}
+                   : { x: { stacked: stacked }, y: { stacked: stacked } },
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } } }
     });
+    el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
+    el('rsChartCanvas').dataset.series = String(d.datasets.length);
     Array.prototype.forEach.call(
       el('rsChartTools').querySelectorAll('button'), function (b) {
         b.classList.toggle('is-selected', b.dataset.type === type);
@@ -304,6 +316,46 @@
       el('rsChartNote').hidden = false;
       rows = rows.slice(0, 50);
     }
+    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
+    if (dims === 2) {
+      var metricIdx2 = columns.length - (def.metrics || []).length;
+      var xOrder = [], cell = {}, seriesTot = {};
+      rows.forEach(function (r) {
+        var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
+        var s = String(r[1] == null ? '' : r[1]);
+        var v = Number(r[metricIdx2]) || 0;
+        if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
+        cell[x][s] = (cell[x][s] || 0) + v;
+        seriesTot[s] = (seriesTot[s] || 0) + v;
+      });
+      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      var series = Object.keys(seriesTot).sort(function (a, b) {
+        return seriesTot[b] - seriesTot[a];
+      });
+      if (series.length > 12) {
+        el('rsChartNote').textContent =
+          I18N.chartSeriesCapped.replace('{shown}', '12').replace('{n}', String(series.length));
+        el('rsChartNote').hidden = false;
+        series = series.slice(0, 12);
+      }
+      state.chartData = {
+        labels: xOrder,
+        datasets: series.map(function (s, i) {
+          return {
+            label: s,
+            data: xOrder.map(function (x) { return cell[x][s] || 0; }),
+            borderColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            backgroundColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            tension: .25
+          };
+        }),
+        multiSeries: true
+      };
+      el('rsChartCard').hidden = false;
+      el('rsChartTools').hidden = false;
+      renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+      return;
+    }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
       var v = String(r[0] == null ? '' : r[0]);
@@ -319,7 +371,7 @@
         borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
       };
     });
-    state.chartData = { labels: labels, datasets: datasets };
+    state.chartData = { labels: labels, datasets: datasets, multiSeries: false };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
     renderChart(def.chartType || (isDate ? 'line' : 'bar'));

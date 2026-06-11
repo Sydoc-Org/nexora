@@ -832,3 +832,61 @@ def test_wizard_two_breakdowns(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_two_breakdown_chart_has_series(page, nexora_server):
+    """A two-breakdown result charts with one dataset per second-dim value."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'chart_two_bd', kind: 'curated', label: 'Chart Two Breakdown',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [
+              {field: 'username', label: 'Username', type: 'string',
+               filterable: true, sortable: true},
+              {field: 'locale', label: 'Locale', type: 'string',
+               filterable: true, sortable: true}
+            ],
+            enabled: true, sortOrder: 20});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'chart_two_bd_count', sourceId: 'chart_two_bd', label: 'Chart 2-bd count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Chart 2-bd count").click()
+        bklist = page.get_by_test_id("rs-breakdown-list")
+        # Locale first (X axis, 1 distinct value in TEST), Username second
+        # (series dimension, 3 distinct values in TEST) — guarantees >= 2 series.
+        bklist.get_by_text("Locale", exact=True).click()
+        bklist.get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        canvas = page.locator("#rsChartCanvas")
+        expect(canvas).to_be_visible()
+        series = int(canvas.get_attribute("data-series"))
+        assert series >= 2
+        expect(page.get_by_test_id("rs-chart-stacked")).to_be_visible()
+        expect(page.get_by_test_id("rs-chart-pie")).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
