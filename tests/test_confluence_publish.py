@@ -223,3 +223,58 @@ class TestClientRetry:
             pytest.raises(RuntimeError, match="attempts"),
         ):
             c.request("GET", "/x", max_attempts=3)
+
+
+class TestReconcileArithmetic:
+    HOMEPAGE = "323944774"
+
+    def test_orphans_strays_and_homepage_exclusion(self):
+        current = [
+            {"id": "323944774", "title": "nexora"},  # homepage - never touched
+            {"id": "1", "title": "Reporting"},  # published this run
+            {"id": "2", "title": "Old synced doc"},  # owned, no longer published -> orphan
+            {"id": "3", "title": "Random human page"},  # not owned -> stray
+        ]
+        owned = {"1", "2"}
+        published_titles = {"Reporting"}
+        orphans, strays = cp.compute_reconcile(current, owned, published_titles, self.HOMEPAGE)
+        assert [p["id"] for p in orphans] == ["2"]
+        assert [p["id"] for p in strays] == ["3"]
+
+    def test_nothing_to_do(self):
+        current = [{"id": "1", "title": "Reporting"}]
+        orphans, strays = cp.compute_reconcile(current, {"1"}, {"Reporting"}, self.HOMEPAGE)
+        assert orphans == [] and strays == []
+
+
+class TestArchiveBatching:
+    def test_batches_of_100_and_longtask_poll(self):
+        c = _client()
+        post = _resp(202, {"id": "task-1"})
+        done = _resp(200, {"finished": True})
+        with mock.patch.object(
+            c, "request", side_effect=[post, done, post, done, post, done]
+        ) as req:
+            c.archive_pages([str(i) for i in range(250)])
+        posts = [k for k in req.call_args_list if k.args[0] == "POST"]
+        assert len(posts) == 3
+        sizes = [len(k.kwargs["json"]["pages"]) for k in posts]
+        assert sizes == [100, 100, 50]
+
+
+class TestSpaceLookup:
+    def test_returns_space_and_homepage_id(self):
+        c = _client()
+        payload = {"results": [{"id": "111", "homepageId": "323944774", "key": "nexora"}]}
+        with mock.patch.object(c, "request", return_value=_resp(200, payload)):
+            space_id, homepage_id = c.get_space("nexora")
+        assert (space_id, homepage_id) == ("111", "323944774")
+
+    def test_missing_space_exits_2(self):
+        c = _client()
+        with (
+            mock.patch.object(c, "request", return_value=_resp(200, {"results": []})),
+            pytest.raises(SystemExit) as e,
+        ):
+            c.get_space("nexora")
+        assert e.value.code == 2
