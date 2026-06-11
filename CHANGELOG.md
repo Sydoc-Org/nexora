@@ -315,6 +315,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - **Reporting Simple tab: editable filter/process chips** — AI-built results display every filter the AI chose and which processes are in scope as interactive chips below the explanation. Click a chip to edit the value inline; click × to remove a filter; click the process chip to open a checklist and narrow scope. Each change re-runs the report immediately without an AI call.
 
 ### Changed
+- **Admin pages migrated to nexora-ui design system.** All 7 admin pages
+  (Overview, Organizations, Sessions, System Logs, Maintenance Banners, User
+  Detail, Access Control) and their JS partials now use the app-wide `--nx-*`
+  tokens and `.nx-*` component classes (same system as Workitems, Dashboard,
+  Invoices, Chat, Generali). `admin-tokens.css` replaced by `admin.css` (admin-
+  specific components only — `sev-pill`, `ml-toggle`, `health-card`,
+  `permission-row` hover — all on `--nx-*` tokens). Dark-mode fixes applied to
+  the permission drawer, user-detail confirm-delete modal, and access-control
+  modals (`bg-white` → `var(--nx-card)`). Tab chrome (`perm-tabs`,
+  `acl-tabs`) replaced by `nx-tabs`/`nx-tab` from `nexora-ui.css`.
 - **Generali import scripts: `.env` instead of `env.json`, split into `remote/` +
   `local/`.** `scripts/generali-import/` now loads secrets from a `.env` file via a
   `load_from_dot_env` helper (process env vars, `$env:*`) instead of
