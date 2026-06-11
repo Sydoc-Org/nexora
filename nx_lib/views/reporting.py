@@ -992,6 +992,8 @@ def api_run():
         "rows": _rows_json_safe(rows),
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
+        "sql": sql,
+        "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
