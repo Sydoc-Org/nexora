@@ -36,6 +36,8 @@
     last3Months: {{ _("Last 3 months")|tojson }},
     thisYear: {{ _("This year")|tojson }},
     lastYear: {{ _("Last year")|tojson }},
+    thisQuarter: {{ _("This quarter")|tojson }},
+    lastQuarter: {{ _("Last quarter")|tojson }},
     allTime: {{ _("All time")|tojson }},
     custom: {{ _("Custom")|tojson }},
     aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
@@ -263,6 +265,7 @@
     today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
     this_week: I18N.thisWeek, last_week: I18N.lastWeek,
     this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
     last_3_months: I18N.last3Months, this_year: I18N.thisYear,
     last_year: I18N.lastYear, last_n_days: I18N.lastNDays
   };
@@ -782,9 +785,9 @@
 
     list.innerHTML = '';
     [['this_month', I18N.thisMonth], ['last_month', I18N.lastMonth],
-     ['last_3_months', I18N.last3Months], ['this_year', I18N.thisYear],
-     ['last_year', I18N.lastYear], ['all_time', I18N.allTime],
-     ['custom', I18N.custom]].forEach(function (p) {
+     ['last_quarter', I18N.lastQuarter], ['last_3_months', I18N.last3Months],
+     ['this_year', I18N.thisYear], ['last_year', I18N.lastYear],
+     ['all_time', I18N.allTime], ['custom', I18N.custom]].forEach(function (p) {
       list.appendChild(choiceBtn(p[1], function () {
         el('rsTimeCustom').hidden = p[0] !== 'custom';
         if (p[0] === 'custom') {
