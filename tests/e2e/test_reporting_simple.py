@@ -421,3 +421,68 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_adjust_wizard_button_round_trip(nexora_server, page):
+    """Wizard-built result shows 'Adjust in wizard'; clicking it re-opens the
+    walkthrough with the previous measure choice pre-selected; running again
+    re-renders the result."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_adjust', kind: 'curated', label: 'Wizard Adjust',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 12});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_adjust_count', sourceId: 'wiz_adjust', label: 'Wizard adjust count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # Run the wizard once to get a wizard-built result.
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Wizard adjust count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        # The "Adjust in wizard" button must be visible for wizard-built results.
+        adjust_btn = page.get_by_test_id("rs-adjust-wizard")
+        expect(adjust_btn).to_be_visible()
+
+        # Click it — the wizard view opens again.
+        adjust_btn.click()
+        expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+
+        # The previous measure choice is still selected (is-selected class).
+        expect(page.locator(".reporting-simple-choice.is-selected").first).to_be_visible()
+
+        # Run again — the result re-renders successfully.
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        # The "Adjust in wizard" button is still present on the new result.
+        expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

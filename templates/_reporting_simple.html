@@ -73,6 +73,8 @@
       <span class="reporting-simple-ractions">
         <input id="rsSaveName" class="reporting-input" hidden data-testid="rs-save-name"
                aria-label="{{ _('Report name') }}">
+        <button id="rsAdjustWizard" class="reporting-btn" hidden
+                data-testid="rs-adjust-wizard">{{ _("Adjust in wizard") }}</button>
         <button id="rsSave" class="reporting-btn" data-testid="rs-save">{{ _("Save") }}</button>
         <button id="rsOpenAdvanced" class="reporting-btn" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
         {% if has_permission('reporting.export') %}

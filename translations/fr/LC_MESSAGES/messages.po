@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 10:16+0200\n"
+"POT-Creation-Date: 2026-06-11 11:01+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1012,7 +1012,11 @@ msgstr "Afficher le résultat"
 msgid "Report name"
 msgstr "Nom du rapport"
 
-#: templates/_reporting_simple.html:76 templates/admin/access_control.html:296
+#: templates/_reporting_simple.html:77
+msgid "Adjust in wizard"
+msgstr "Ajuster dans l'assistant"
+
+#: templates/_reporting_simple.html:78 templates/admin/access_control.html:296
 #: templates/admin/maintenance.html:142
 #: templates/generali_additionalservices.html:326
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
@@ -1023,23 +1027,23 @@ msgstr "Nom du rapport"
 msgid "Save"
 msgstr "Enregistrer"
 
-#: templates/_reporting_simple.html:77
+#: templates/_reporting_simple.html:79
 msgid "Open in Advanced"
 msgstr "Ouvrir dans Avancé"
 
-#: templates/_reporting_simple.html:79 templates/reporting.html:130
+#: templates/_reporting_simple.html:81 templates/reporting.html:130
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/_reporting_simple.html:90 templates/_reporting_simple.html:91
+#: templates/_reporting_simple.html:92 templates/_reporting_simple.html:93
 msgid "Refine your question…"
 msgstr "Affinez votre question…"
 
-#: templates/_reporting_simple.html:93
+#: templates/_reporting_simple.html:95
 msgid "Refine"
 msgstr "Affiner"
 
-#: templates/_reporting_simple.html:111
+#: templates/_reporting_simple.html:113
 #: templates/js/_reporting_simple_js.html:26
 msgid "Show table"
 msgstr "Afficher le tableau"

@@ -36,6 +36,12 @@ custom-header, save/load, and Excel-export support.
     **transparency line** below the report title shows the AI's explanation
     and the filters/processes it applied, so a wrong guess (bad date range,
     wrong process) is immediately visible.
+    Every result (wizard-built, library-opened, or AI-built) shows **editable
+    filter/process chips** and a **Refine** bar — use them to tweak any result
+    without returning to the wizard or asking the AI again. Wizard-built results
+    also show an **"Adjust in wizard"** button that re-opens the walkthrough
+    with the previous measure, breakdown, and time choices pre-selected, so you
+    can change one step without starting from scratch.
 - **Advanced** — the full three-panel builder described below, unchanged.
 
 Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`

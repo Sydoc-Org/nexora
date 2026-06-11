@@ -491,6 +491,8 @@
       refineBar.hidden = false;
       el('rsRefineInput').value = cur.aiQuestion || '';
     }
+    var adjustBtn = el('rsAdjustWizard');
+    if (adjustBtn) adjustBtn.hidden = cur.builtBy !== 'wizard';
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
@@ -590,6 +592,8 @@
   // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
+  el('rsAdjustWizard').addEventListener('click', reopenWizard);
+
   el('rsOpenAdvanced').addEventListener('click', function () {
     var cur = state.current;
     if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
@@ -625,11 +629,12 @@
   }
 
   // ---------- Wizard ----------
-  function choiceBtn(label, onpick) {
+  function choiceBtn(label, onpick, selected) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'reporting-simple-choice';
-    b.setAttribute('aria-pressed', 'false');
+    if (selected) b.classList.add('is-selected');
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
     b.textContent = label;
     b.addEventListener('click', function () {
       Array.prototype.forEach.call(b.parentNode.children, function (s) {
@@ -680,7 +685,8 @@
           state.wiz.measure = m;
           state.wiz.source = src;   // picking a measure pins the source
           renderBreakdownStep();
-        }));
+        }, !!(state.wiz.measure && state.wiz.measure.code === m.code
+              && state.wiz.source && state.wiz.source.id === src.id)));
       });
     });
     if (!list.children.length) {
@@ -694,7 +700,7 @@
     el('rsWizardRun').hidden = true;
     var list = el('rsBreakdownList');
     list.innerHTML = '';
-    el('rsGrainWrap').hidden = true;
+    el('rsGrainWrap').hidden = !(state.wiz.breakdown && state.wiz.breakdown.kind === 'date');
     var fields = state.wiz.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var catFields = fields.filter(function (f) {
@@ -706,7 +712,7 @@
         state.wiz.breakdown = { kind: 'date', field: f };
         el('rsGrainWrap').hidden = false;
         renderTimeStep();
-      }));
+      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'date' && state.wiz.breakdown.field.field === f.field)));
     });
     // processname first (the natural docprocessing category), then the rest.
     var procField = fields.find(function (f) { return f.field === 'processname'; });
@@ -716,13 +722,13 @@
         state.wiz.breakdown = { kind: 'category', field: f };
         el('rsGrainWrap').hidden = true;
         renderTimeStep();
-      }));
+      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'category' && state.wiz.breakdown.field.field === f.field)));
     });
     list.appendChild(choiceBtn(I18N.justTotal, function () {
       state.wiz.breakdown = { kind: 'none' };
       el('rsGrainWrap').hidden = true;
       renderTimeStep();
-    }));
+    }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'none')));
 
     // Optional collapsed process picker (docprocessing only). Emits the same
     // scope serialisation as the Advanced picker; empty/full = all allowed
@@ -733,10 +739,12 @@
     if (procs.length) {
       var box = el('rsScopeList');
       box.innerHTML = '';
+      var prior = state.wiz.scopeProcs || [];
       procs.forEach(function (p) {
         var lbl = document.createElement('label');
         var cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.value = p; cb.checked = true;
+        cb.type = 'checkbox'; cb.value = p;
+        cb.checked = !prior.length || prior.indexOf(p) !== -1;
         cb.addEventListener('change', function () {
           state.wiz.scopeProcs = Array.prototype.map.call(
             box.querySelectorAll('input:checked'), function (c) { return c.value; });
@@ -745,7 +753,7 @@
         lbl.appendChild(document.createTextNode(' ' + p));
         box.appendChild(lbl);
       });
-      state.wiz.scopeProcs = procs.slice();
+      if (!prior.length) state.wiz.scopeProcs = procs.slice();
     }
   }
 
@@ -758,7 +766,7 @@
   function renderTimeStep() {
     el('rsStepTime').hidden = false;
     el('rsWizardRun').hidden = false;
-    el('rsTimeCustom').hidden = true;
+    el('rsTimeCustom').hidden = !Array.isArray(state.wiz.range);
     var fields = state.wiz.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var list = el('rsTimeList');
@@ -777,7 +785,10 @@
       o.value = f.field; o.textContent = f.label;
       sel.appendChild(o);
     });
-    if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
+    if (state.wiz.dateField
+        && dateFields.some(function (f) { return f.field === state.wiz.dateField; })) {
+      sel.value = state.wiz.dateField;
+    } else if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
       sel.value = 'import_date';
     }
     el('rsTimeFieldWrap').hidden = dateFields.length < 2;
@@ -813,9 +824,12 @@
           // all_time = no filter.
           state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
-      }));
+      }, state.wiz.range === p[0] ||
+         (state.wiz.range && state.wiz.range.token === p[0]) ||
+         (p[0] === 'custom' && Array.isArray(state.wiz.range))));
     });
-    state.wiz.range = null;  // default: all time
+    // Only default to all-time if no prior choice is being restored.
+    if (!state.wiz.range) state.wiz.range = null;
   }
 
   // Wizard invariants (validator-enforced server-side): sort fields are among
@@ -855,13 +869,24 @@
     };
   }
 
+  async function reopenWizard() {
+    if (!state.wiz || !state.wiz.measure) { startWizard(); return; }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    setView('wizard');
+    renderMeasureStep();
+    renderBreakdownStep();
+    renderTimeStep();
+  }
+
   el('rsNewReport').addEventListener('click', startWizard);
   el('rsWizardBack').addEventListener('click', function () { setView('library'); });
   el('rsWizardRun').addEventListener('click', function () {
     if (!state.wiz || !state.wiz.measure || !state.wiz.breakdown) return;
     var def = wizardDefinition();
     state.current = { def: def, name: def.title, reportId: null,
-                      owned: true, canEdit: true, fromWizard: true };
+                      owned: true, canEdit: true, fromWizard: true,
+                      builtBy: 'wizard' };
     runCurrent();
   });
 
