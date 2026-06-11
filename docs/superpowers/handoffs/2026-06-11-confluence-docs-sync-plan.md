@@ -1,3 +1,5 @@
+> **Superseded** — see `docs/superpowers/handoffs/2026-06-11-confluence-docs-sync-tasks1-10.md` for the implementation handoff (Tasks 1–10 complete, live bootstrap done).
+
 # Handoff — Git → Confluence docs sync: spec + 10-task plan (PLAN ONLY)
 
 - **Date:** 2026-06-11
