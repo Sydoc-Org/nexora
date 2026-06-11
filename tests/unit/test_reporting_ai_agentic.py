@@ -224,6 +224,13 @@ def test_agent_system_prompt_teaches_distinct_and_processes():
     assert "GROUP BY" in s
 
 
+def test_agent_system_prompt_teaches_quarter_tokens():
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    s = _AGENT_SYSTEM
+    assert "this_quarter" in s and "last_quarter" in s
+
+
 def test_agent_system_prompt_grounds_relative_dates():
     from nx_lib.reporting.ai import _AGENT_SYSTEM
 

@@ -235,8 +235,11 @@ _SYSTEM_DEF = (
     " set the date filter value to a relative-date token object instead of"
     ' literal dates: {"field": "<date key>", "op": "between", "value":'
     ' {"token": "last_month"}}. Valid tokens: today, yesterday, this_week,'
-    " last_week, this_month, last_month, this_year, last_year, last_3_months,"
-    ' and {"token": "last_n_days", "n": <1-366>}. Token values are resolved'
+    " last_week, this_month, last_month, this_quarter, last_quarter,"
+    " this_year, last_year, last_3_months,"
+    ' and {"token": "last_n_days", "n": <1-366>}. "Last quarter" means the'
+    " previous CALENDAR quarter — use last_quarter, never last_3_months (a"
+    " rolling window that includes the current month). Token values are resolved"
     " against the CURRENT date on every run, so a saved report stays fresh."
     " Only grainable/date-typed fields accept tokens. For EXPLICIT dates"
     ' ("May 2026", "2026-01-01 to 2026-03-31") keep literal ISO dates.'
@@ -453,8 +456,10 @@ _AGENT_SYSTEM = (
     " humanized labels; include all matches, or none rather than a guess."
     " For relative time ranges set the date filter value to a token object,"
     ' e.g. {"field": "<date field>", "op": "between", "value": {"token": "last_month"}} (tokens: today,'
-    " yesterday, this_week, last_week, this_month, last_month, this_year,"
-    ' last_year, last_3_months, last_n_days with "n") — these resolve at run'
+    " yesterday, this_week, last_week, this_month, last_month, this_quarter,"
+    ' last_quarter, this_year, last_year, last_3_months, last_n_days with "n";'
+    ' "last quarter" = the previous calendar quarter, i.e. last_quarter, not'
+    " last_3_months) — these resolve at run"
     " time; keep literal ISO dates for explicit dates."
 )
 

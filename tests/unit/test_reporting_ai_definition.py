@@ -126,6 +126,13 @@ def test_system_def_teaches_process_matching():
     assert "include ALL of them" in s
 
 
+def test_system_def_teaches_quarter_tokens():
+    s = ai._SYSTEM_DEF
+    assert "this_quarter" in s and "last_quarter" in s
+    # The disambiguation that prevents the last_3_months mispick:
+    assert "calendar quarter" in s.lower()
+
+
 def test_ask_definition_includes_today_in_prompt():
     captured = {}
 
