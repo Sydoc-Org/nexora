@@ -1,3 +1,7 @@
+> **Newer handoff exists for this date:** see
+> `docs/superpowers/handoffs/2026-06-11-simple-guide-wizard-complete.md` (Simple Guide wizard
+> improvements — all 11 tasks executed and verified, later the same day).
+
 # Handoff — Show-query / multi-breakdowns / rich-export: spec + 13-task plan written (not executed)
 
 - **Date:** 2026-06-11 (afternoon session)
