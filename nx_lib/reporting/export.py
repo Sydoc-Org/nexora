@@ -37,8 +37,8 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None):
     safe_title = re.sub(r"[\\/?*\[\]:]", " ", (title or "Report")).strip() or "Report"
     ws.title = safe_title[:31]
 
-    # Row 1: bold title
-    ws["A1"] = title or "Report"
+    # Row 1: bold title — _safe_cell guards formula-injection (e.g. =HYPERLINK titles)
+    ws["A1"] = _safe_cell(title or "Report")
     ws["A1"].font = Font(bold=True, size=14)
 
     # Row 2: meta line (grey)
