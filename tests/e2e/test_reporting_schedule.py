@@ -96,6 +96,7 @@ def test_schedule_alert_condition_and_toggle(nexora_server, page):
 
         page.locator('[data-testid="reporting-schedule-alert-op"]').select_option("gt")
         expect(page.locator("#rpSchedAlertValWrap")).to_be_visible()
+        expect(page.locator("#rpSchedAlertHint")).to_be_visible()
         page.fill('[data-testid="reporting-schedule-alert-value"]', "100")
         page.fill('[data-testid="reporting-schedule-recipients"]', "ops@example.com")
         with page.expect_response(

@@ -1205,6 +1205,8 @@
     if (!opt || opt.dataset.owned !== '1') return;
     scheduleReportId = sel.value;
     schedFreqChanged();
+    document.getElementById('rpSchedAlertOp').value = '';
+    document.getElementById('rpSchedAlertVal').value = '0';
     schedAlertChanged();
     loadSchedules();
     document.getElementById('rpScheduleModal').hidden = false;
