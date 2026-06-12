@@ -253,8 +253,10 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
         filt_resolved = {**colmap, **_date_exprs_for(cfg, {}), **wi_exprs}
 
         # A filter referencing a field this process doesn't expose can never
-        # match here — drop the whole subquery for correctness.
-        if any(f["field"] not in filt_resolved for f in col_filters):
+        # match here — drop the whole subquery. Exception: is_null is trivially
+        # TRUE for such a process (the projection emits NULL for that field),
+        # so it keeps the subquery and simply emits no clause.
+        if any(f["field"] not in filt_resolved and f["op"] != "is_null" for f in col_filters):
             continue
 
         select_exprs = []

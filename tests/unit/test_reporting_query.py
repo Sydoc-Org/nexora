@@ -504,3 +504,29 @@ def test_count_distinct_workitem_metric_groups_by_dims():
     assert "CAST(WID AS nvarchar(100)) AS [workitem_id]" in sql
     # ...and projects NULL where unmapped (COUNT(DISTINCT ...) ignores NULLs)
     assert sql.count("NULL AS [workitem_id]") == 1
+
+
+def test_is_null_filter_keeps_process_lacking_the_field():
+    """is_null on a field a process doesn't expose is trivially true there:
+    the subquery is kept (projection emits NULL for it) and carries no clause."""
+    rd = _rd(filters=[{"field": "pages", "op": "is_null"}])
+    sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "[dbo].[StatA]" in sql  # process with the column — included
+    assert "[dbo].[StatB]" in sql  # process lacking it — kept (trivially true)
+    assert sql.count("IS NULL") == 1  # clause only where pages is mapped
+
+
+def test_is_not_null_filter_still_drops_process_lacking_the_field():
+    """is_not_null can never match rows that project the field as NULL."""
+    rd = _rd(filters=[{"field": "pages", "op": "is_not_null"}])
+    sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "[dbo].[StatA]" in sql
+    assert "StatB" not in sql
+
+
+def test_eq_filter_still_drops_process_lacking_the_field():
+    """Existing drop behavior for value-ops is unchanged by the is_null fix."""
+    rd = _rd(filters=[{"field": "pages", "op": "eq", "value": 3}])
+    sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "[dbo].[StatA]" in sql
+    assert "StatB" not in sql
