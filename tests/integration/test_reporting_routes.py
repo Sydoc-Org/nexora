@@ -454,6 +454,95 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
 
 
+def test_runner_alert_skips_mail_and_advances(admin_client):
+    # Non-metric definition -> the alert value is the row count (>=1 seeded user).
+    # 'gt 1e9' never trips: no mail, NextRunAt advances. 'gte 1' trips: mail sent.
+    from ops import run_scheduled_reports
+
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "alert_users",
+            "kind": "curated",
+            "label": "Alert Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 16,
+        },
+    )
+    src_id = src.get_json()["id"]
+    rep = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Alert Users Report",
+            "definition": {
+                "schemaVersion": 1,
+                "source": "alert_users",
+                "visualization": "table",
+                "title": "Alert Users Report",
+                "columns": [{"field": "username"}],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+            },
+        },
+    )
+    rid = rep.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'admin@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.ReportSchedules (ReportID, OwnerUserID, Recipients, Format, "
+            "Frequency, Hour, Minute, Enabled, NextRunAt, AlertOp, AlertThreshold) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (rid, owner, "a@x.com", "csv", "daily", 6, 0, 1, datetime(2000, 1, 1), "gt", 1e9),
+        )
+        conn.commit()
+
+        with patch("ops.run_scheduled_reports.send_mail") as sm:
+            assert run_scheduled_reports.run_once(dry_run=False) == 0
+        sm.assert_not_called()
+        cur.execute(
+            "SELECT NextRunAt, LastRunAt FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,)
+        )
+        nxt, last = cur.fetchone()
+        if isinstance(nxt, str):
+            nxt = datetime.fromisoformat(nxt)
+        assert nxt > datetime(2020, 1, 1) and last is not None  # advanced, not re-fired
+
+        cur.execute(
+            "UPDATE dbo.ReportSchedules SET AlertOp='gte', AlertThreshold=1, NextRunAt=? "
+            "WHERE ReportID = ?",
+            (datetime(2000, 1, 1), rid),
+        )
+        conn.commit()
+        with patch("ops.run_scheduled_reports.send_mail") as sm2:
+            assert run_scheduled_reports.run_once(dry_run=False) == 0
+        sm2.assert_called_once()
+    finally:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,))
+        conn.commit()
+        conn.close()
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
 # --- Seeded curated 'table' sources (A5 Generali, A6 Workitems) ---
 
 

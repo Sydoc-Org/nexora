@@ -30,7 +30,13 @@ from nx_lib.mail import send_mail
 from nx_lib.reporting.chart_render import render_chart_png
 from nx_lib.reporting.export import rows_to_csv, rows_to_xlsx
 from nx_lib.reporting.runner import execute_definition
-from nx_lib.reporting.schedule import compute_next_run, parse_recipients, utcnow
+from nx_lib.reporting.schedule import (
+    alert_trips,
+    compute_next_run,
+    parse_recipients,
+    total_definition,
+    utcnow,
+)
 from nx_lib.security import load_permissions_for_user
 from nx_main import app
 
@@ -46,6 +52,7 @@ def _due_schedules(conn, now):
     cur.execute(
         "SELECT s.ScheduleID, s.ReportID, s.OwnerUserID, s.Recipients, s.Format, "
         "       s.Frequency, s.Hour, s.Minute, s.Weekday, s.DayOfMonth, "
+        "       s.AlertOp, s.AlertThreshold, "
         "       r.Name, r.DefinitionJSON, u.username, u.locale "
         "FROM dbo.ReportSchedules s "
         "JOIN dbo.Reports r ON r.ReportID = s.ReportID "
@@ -56,12 +63,48 @@ def _due_schedules(conn, now):
     return cur.fetchall()
 
 
+def _advance(conn, row, now):
+    """Record the run and move NextRunAt forward (shared by send and no-trip paths)."""
+    nxt = compute_next_run(row.Frequency, row.Hour, row.Minute, row.Weekday, row.DayOfMonth, now)
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE dbo.ReportSchedules SET LastRunAt = ?, NextRunAt = ?, "
+        "UpdatedAt = SYSUTCDATETIME() WHERE ScheduleID = ?",
+        (now, nxt, row.ScheduleID),
+    )
+
+
+def _alert_value(row, perms, definition, rows):
+    """The number the alert condition checks: the grand total of the first metric
+    (zero-column clone run as the owner — the Simple stat-card trick, correct
+    for avg/count_distinct), or the row count for definitions without metrics."""
+    td = total_definition(definition)
+    if td is None:
+        return len(rows)
+    _cols, t_rows = execute_definition(td, perms, row.OwnerUserID, row.username, row.locale or "en")
+    return t_rows[0][0] if t_rows and t_rows[0] else None
+
+
 def _process(conn, row, now, dry_run):
     perms = load_permissions_for_user(row.OwnerUserID)
     definition = json.loads(row.DefinitionJSON)
     columns, rows = execute_definition(
         definition, perms, row.OwnerUserID, row.username, row.locale or "en"
     )
+    if row.AlertOp:
+        value = _alert_value(row, perms, definition, rows)
+        if not alert_trips(row.AlertOp, row.AlertThreshold, value):
+            if dry_run:
+                print(
+                    f"[dry-run] schedule {row.ScheduleID} '{row.Name}': alert "
+                    f"{row.AlertOp} {row.AlertThreshold} not tripped (value={value}); no mail"
+                )
+                return
+            app.logger.info(
+                f"schedule {row.ScheduleID}: alert not tripped (value={value}), mail skipped"
+            )
+            _advance(conn, row, now)
+            return
     png = None
     try:
         png = render_chart_png(definition, columns, rows)
@@ -96,13 +139,7 @@ def _process(conn, row, now, dry_run):
     send_mail(
         recipients, subject, body, [(_safe_name(row.Name) + ext, data, mime)], inline_images=inline
     )
-    nxt = compute_next_run(row.Frequency, row.Hour, row.Minute, row.Weekday, row.DayOfMonth, now)
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE dbo.ReportSchedules SET LastRunAt = ?, NextRunAt = ?, "
-        "UpdatedAt = SYSUTCDATETIME() WHERE ScheduleID = ?",
-        (now, nxt, row.ScheduleID),
-    )
+    _advance(conn, row, now)
 
 
 def run_once(dry_run=False):
