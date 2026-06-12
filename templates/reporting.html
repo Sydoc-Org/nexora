@@ -67,6 +67,7 @@
   </div>
 
   <div id="rpPaneSimple" role="tabpanel" aria-labelledby="rpTabSimple" hidden>
+    {% include 'js/_reporting_sqlformat_js.html' %}
     {% include '_reporting_simple.html' %}
   </div>
 
@@ -159,6 +160,10 @@
         <p id="rpAiHintBuild" class="reporting-ai-hint">{{ _("The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.") }}</p>
         <p id="rpAiHintSql" class="reporting-ai-hint" hidden>{{ _("The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.") }}</p>
         <p id="rpAiHintAgent" class="reporting-ai-hint" hidden>{% if ai_explain_enabled %}{{ _("The agent works step by step, showing each tool it uses. It can run read-only queries and report the actual numbers from the data it fetched.") }}{% else %}{{ _("The agent works step by step, showing each tool it uses to validate and draft — grounded only in the schema you can access. It never sees result data.") }}{% endif %}</p>
+        <div id="rpAiLoading" class="reporting-ai-loading" hidden data-testid="reporting-ai-loading">
+          <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span id="rpAiLoadingText" role="status"></span>
+        </div>
         <div id="rpAiResult" class="reporting-ai-result" hidden data-testid="reporting-ai-result">
           <pre id="rpAiSql" class="reporting-ai-sql" data-testid="reporting-ai-sql"></pre>
           <p id="rpAiExplain" class="reporting-ai-explain"></p>

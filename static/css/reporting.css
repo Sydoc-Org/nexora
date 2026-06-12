@@ -1048,3 +1048,11 @@ body.nx-app {
 .reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
 .reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; max-height: 240px; overflow: auto; margin: 0; }
 .reporting-sqlview-params { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+
+/* SQL token highlighting (Show-query panels + AI SQL draft) */
+.reporting-sqlview pre .sql-kw, .reporting-ai-sql .sql-kw { color: #cf222e; font-weight: 600; }
+.reporting-sqlview pre .sql-string, .reporting-ai-sql .sql-string { color: #0a3069; }
+.reporting-sqlview pre .sql-number, .reporting-ai-sql .sql-number { color: #0550ae; }
+.reporting-sqlview pre .sql-ident, .reporting-ai-sql .sql-ident { color: #953800; }
+.reporting-sqlview pre .sql-param, .reporting-ai-sql .sql-param { color: #8250df; font-weight: 600; }
+.reporting-sqlview pre .sql-comment, .reporting-ai-sql .sql-comment { color: #6e7781; font-style: italic; }

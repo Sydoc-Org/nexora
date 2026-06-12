@@ -383,6 +383,7 @@
     }
   }
 
+  var I18N_RUNNING = {{ _("Running your report…")|tojson }};
   var I18N_SHOW_QUERY = {{ _("Show query")|tojson }};
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
@@ -395,6 +396,7 @@
     var sqlBtn = document.getElementById('rpShowSql');
     var sqlView = document.getElementById('rpSqlView');
     state._lastSql = data.sql || null;
+    state._lastSqlPretty = data.sqlPretty || null;
     state._lastParams = data.params || [];
     if (sqlBtn) {
       sqlBtn.hidden = !state._lastSql;
@@ -461,6 +463,37 @@
     p.textContent = msg;
     wrap.appendChild(p);
   }
+  // In-flight indicator for report runs. Lives inside #rpResults so the
+  // renderResults/showError innerHTML swap self-cleans it. The view is forced
+  // to grid because #rpResults is hidden whenever state.view !== 'grid' —
+  // without this, a re-run from Chart/Pivot would show nothing. Run is
+  // disabled so a double-click can't fire two parallel requests (rpRun is the
+  // only run trigger on this tab). DOM-built so the translated label needs no
+  // escaping. The Motion observer ignores non-TABLE/.reporting-empty/
+  // .reporting-error nodes, so this block is animation-inert.
+  function showRunLoading() {
+    document.getElementById('rpRun').disabled = true;
+    document.getElementById('rpViewToggle').hidden = true;
+    setView('grid');
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'reporting-ai-loading';
+    box.setAttribute('data-testid', 'reporting-run-loading');
+    var dots = document.createElement('span');
+    dots.className = 'reporting-ai-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    dots.innerHTML = '<i></i><i></i><i></i>';
+    var label = document.createElement('span');
+    label.setAttribute('role', 'status');
+    label.textContent = I18N_RUNNING;
+    box.appendChild(dots);
+    box.appendChild(label);
+    wrap.appendChild(box);
+  }
+  function endRunLoading() {
+    document.getElementById('rpRun').disabled = false;
+  }
 
   // Modal replacement for window.prompt: resolves the trimmed name, or null
   // on cancel/empty.
@@ -514,10 +547,11 @@
 
   function runSql() {
     ackThen(function () {
+      showRunLoading();
       api('/api/reporting/sql/run', { method: 'POST', body: JSON.stringify(sqlBody()) })
         .then(function (res) { return res.json(); })
-        .then(function (data) { renderResults(data); })
-        .catch(function (e) { showError(e.message); });
+        .then(function (data) { endRunLoading(); renderResults(data); })
+        .catch(function (e) { endRunLoading(); showError(e.message); });
     });
   }
 
@@ -671,17 +705,11 @@
   }
 
   function run() {
+    showRunLoading();
     return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
       .then(function (res) { return res.json(); })
-      .then(function (data) { renderResults(data); })
-      .catch(function (e) {
-        var wrap = document.getElementById('rpResults');
-        wrap.innerHTML = '';
-        var p = document.createElement('p');
-        p.className = 'reporting-error';
-        p.textContent = e.message;
-        wrap.appendChild(p);
-      });
+      .then(function (data) { endRunLoading(); renderResults(data); })
+      .catch(function (e) { endRunLoading(); showError(e.message); });
   }
 
   function addFilter() {
@@ -1314,7 +1342,8 @@
       view.hidden = !view.hidden;
       this.textContent = view.hidden ? I18N_SHOW_QUERY : I18N_HIDE_QUERY;
       if (!view.hidden) {
-        document.getElementById('rpSqlText').textContent = state._lastSql;
+        ReportingSqlFormat.render(document.getElementById('rpSqlText'),
+          state._lastSqlPretty || state._lastSql);
         document.getElementById('rpSqlParams').textContent = (state._lastParams || []).length
           ? I18N_SQL_PARAMS + ': ' + state._lastParams.map(function (p, i) {
               return (i + 1) + " = '" + String(p) + "'";

@@ -581,6 +581,39 @@ def test_run_response_includes_sql_and_params(admin_client):
     assert body["params"] == [42, "hello"]
 
 
+def test_run_response_includes_pretty_sql(admin_client):
+    """/run also echoes a display-formatted copy (sqlPretty) of the SQL.
+
+    The raw `sql` stays byte-exact (Copy and exports read it); sqlPretty is
+    cosmetic and must be multi-line with placeholders preserved.
+    """
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = (
+        "SELECT TOP (100) [a] AS [a], COUNT(*) AS [n] FROM "
+        "(SELECT [A] AS [a] FROM [dbo].[T] WHERE [D] >= ? AND [D] < ?) t "
+        "GROUP BY [a] ORDER BY [n] DESC"
+    )
+    fake_params = ["2026-01-01", "2026-02-01"]
+    fake_rows = [["x", 1]]
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, fake_params, None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json={"source": "x"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["sql"] == fake_sql  # raw untouched
+    assert "sqlPretty" in body
+    assert "\n" in body["sqlPretty"]  # actually formatted
+    assert body["sqlPretty"].count("?") == 2  # placeholders preserved
+
+
 _TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="

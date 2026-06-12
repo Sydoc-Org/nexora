@@ -82,6 +82,7 @@ from ..reporting.sources import (
     code_sources,
     merge_sources,
 )
+from ..reporting.sqlformat import format_sql
 from ..reporting.table_query import (
     TableQueryError,
     build_generic_query,
@@ -1011,6 +1012,7 @@ def api_run():
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
         "sql": sql,
+        "sqlPretty": format_sql(sql),
         "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves

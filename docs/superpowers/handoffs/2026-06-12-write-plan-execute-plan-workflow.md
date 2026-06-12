@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** resume from
+> [`2026-06-12-reporting-loading-states-sql-display-plan.md`](2026-06-12-reporting-loading-states-sql-display-plan.md)
+> — the loading-states/SQL-display plan executes **before** drill-through.
+
 # Handoff — rich-export T13 complete + write-plan/execute-plan workflow
 
 - **Date:** 2026-06-12

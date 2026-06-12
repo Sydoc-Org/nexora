@@ -109,6 +109,10 @@
         <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Refine") }}</button>
     </div>
     {% endif %}
+    <div id="rsRunLoading" class="reporting-ai-loading" hidden data-testid="rs-run-loading">
+      <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span role="status">{{ _("Running your report…") }}</span>
+    </div>
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <div id="rsChips" class="reporting-simple-chips" hidden data-testid="rs-chips"></div>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>

@@ -704,9 +704,18 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         show = page.get_by_test_id("rs-show-sql")
         expect(show).to_be_visible()
+        # Collapsed by default: the panel is hidden until the user expands it.
+        sql_view = page.get_by_test_id("rs-sql-view")
+        expect(sql_view).to_be_hidden()
         show.click()
-        expect(page.get_by_test_id("rs-sql-view")).to_be_visible()
+        expect(sql_view).to_be_visible()
         expect(page.locator("#rsSqlText")).to_contain_text("SELECT")
+        # Pretty-printed (multi-line) and token-highlighted.
+        assert "\n" in page.locator("#rsSqlText").inner_text()
+        assert page.locator("#rsSqlText span.sql-kw").count() > 0
+        # Second click re-collapses.
+        show.click()
+        expect(sql_view).to_be_hidden()
     finally:
         page.evaluate(
             """async (ids) => {
@@ -940,3 +949,127 @@ def test_chart_png_download(page, nexora_server):
             }""",
             ids,
         )
+
+
+def test_sqlformat_escapes_and_highlights(nexora_server, page):
+    """ReportingSqlFormat.toHtml escapes every emitted piece (no raw HTML can
+    reach innerHTML) and wraps tokens in classed spans."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    html = page.evaluate(
+        "() => ReportingSqlFormat.toHtml(\"SELECT [a] FROM t WHERE x = '<script>' -- note\")"
+    )
+    assert "<script>" not in html  # escaped, not injected
+    assert "&lt;script&gt;" in html
+    assert '<span class="sql-kw">SELECT</span>' in html
+    assert '<span class="sql-ident">[a]</span>' in html
+    assert '<span class="sql-comment">-- note</span>' in html
+    assert '<span class="sql-string">' in html
+
+
+def test_sqlformat_marks_placeholders_and_numbers(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    html = page.evaluate(
+        "() => ReportingSqlFormat.toHtml('SELECT TOP 100 * FROM t WHERE a >= ? AND b < ?')"
+    )
+    assert html.count('<span class="sql-param">?</span>') == 2
+    assert '<span class="sql-number">100</span>' in html
+
+
+def test_run_shows_loading_then_result(nexora_server, page):
+    """The pulsing run indicator appears while /api/reporting/run is in flight
+    and is hidden once the result cards render. Localhost runs are fast, so
+    visibility is latched with a MutationObserver (same idiom as the AI test)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_runload', kind: 'curated', label: 'Run Load Test',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 19});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_runload_count', sourceId: 'wiz_runload', label: 'Run load count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.evaluate("""() => {
+            window.__runLoadingWasSeen = false;
+            const el = document.getElementById('rsRunLoading');
+            if (!el) return;
+            if (!el.hidden) { window.__runLoadingWasSeen = true; return; }
+            const obs = new MutationObserver(() => {
+                if (!el.hidden) {
+                    window.__runLoadingWasSeen = true;
+                    obs.disconnect();
+                }
+            });
+            obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+        }""")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Run load count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        # rs-show-sql appears only after the MAIN run response is processed,
+        # which is strictly after the indicator is hidden.
+        expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
+        expect(page.get_by_test_id("rs-run-loading")).to_be_hidden()
+        expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
+        assert page.evaluate(
+            "() => window.__runLoadingWasSeen"
+        ), "rsRunLoading never became visible during the report run"
+        page.screenshot(path="var/screenshots/reporting_simple_run_loading.png")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_advanced_ai_ask_shows_loading(nexora_server, page):
+    """The Advanced AI panel shows the pulsing indicator while a request is in
+    flight and hides it when the draft arrives (today it only disables Ask)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.get_by_test_id("reporting-mode-ai").click()
+    page.evaluate("""() => {
+        window.__aiPanelLoadingWasSeen = false;
+        const el = document.getElementById('rpAiLoading');
+        if (!el) return;
+        if (!el.hidden) { window.__aiPanelLoadingWasSeen = true; return; }
+        const obs = new MutationObserver(() => {
+            if (!el.hidden) {
+                window.__aiPanelLoadingWasSeen = true;
+                obs.disconnect();
+            }
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    }""")
+    _stub_ai_build(page, delay_s=0.8)
+    page.get_by_test_id("reporting-ai-prompt").fill("docs by process")
+    page.get_by_test_id("reporting-ai-ask").click()
+    expect(page.get_by_test_id("reporting-ai-def-result")).to_be_visible()
+    expect(page.get_by_test_id("reporting-ai-loading")).to_be_hidden()
+    assert page.evaluate(
+        "() => window.__aiPanelLoadingWasSeen"
+    ), "rpAiLoading never became visible during the AI request"
+    page.screenshot(path="var/screenshots/reporting_advanced_ai_loading.png")
