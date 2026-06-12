@@ -395,6 +395,7 @@
     var sqlBtn = document.getElementById('rpShowSql');
     var sqlView = document.getElementById('rpSqlView');
     state._lastSql = data.sql || null;
+    state._lastSqlPretty = data.sqlPretty || null;
     state._lastParams = data.params || [];
     if (sqlBtn) {
       sqlBtn.hidden = !state._lastSql;
@@ -1314,7 +1315,8 @@
       view.hidden = !view.hidden;
       this.textContent = view.hidden ? I18N_SHOW_QUERY : I18N_HIDE_QUERY;
       if (!view.hidden) {
-        document.getElementById('rpSqlText').textContent = state._lastSql;
+        ReportingSqlFormat.render(document.getElementById('rpSqlText'),
+          state._lastSqlPretty || state._lastSql);
         document.getElementById('rpSqlParams').textContent = (state._lastParams || []).length
           ? I18N_SQL_PARAMS + ': ' + state._lastParams.map(function (p, i) {
               return (i + 1) + " = '" + String(p) + "'";

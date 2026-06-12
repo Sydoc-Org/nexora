@@ -704,9 +704,18 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         show = page.get_by_test_id("rs-show-sql")
         expect(show).to_be_visible()
+        # Collapsed by default: the panel is hidden until the user expands it.
+        sql_view = page.get_by_test_id("rs-sql-view")
+        expect(sql_view).to_be_hidden()
         show.click()
-        expect(page.get_by_test_id("rs-sql-view")).to_be_visible()
+        expect(sql_view).to_be_visible()
         expect(page.locator("#rsSqlText")).to_contain_text("SELECT")
+        # Pretty-printed (multi-line) and token-highlighted.
+        assert "\n" in page.locator("#rsSqlText").inner_text()
+        assert page.locator("#rsSqlText span.sql-kw").count() > 0
+        # Second click re-collapses.
+        show.click()
+        expect(sql_view).to_be_hidden()
     finally:
         page.evaluate(
             """async (ids) => {

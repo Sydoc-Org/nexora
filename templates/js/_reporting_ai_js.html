@@ -134,7 +134,7 @@
         return;
       }
       lastSql = res.data.sql || "";
-      sqlEl.textContent = lastSql;
+      ReportingSqlFormat.render(sqlEl, lastSql);
       explainEl.textContent = res.data.explanation || "";
       invalidEl.hidden = res.data.valid !== false;
       resultEl.hidden = false;

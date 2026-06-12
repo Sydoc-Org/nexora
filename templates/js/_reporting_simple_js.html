@@ -649,6 +649,7 @@
     if (seq !== runSeq) return;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     state.current.sql = res.data.sql || null;
+    state.current.sqlPretty = res.data.sqlPretty || null;
     state.current.params = res.data.params || [];
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = !state.current.sql;
@@ -715,7 +716,7 @@
     view.hidden = !view.hidden;
     this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
     if (!view.hidden) {
-      el('rsSqlText').textContent = cur.sql;
+      ReportingSqlFormat.render(el('rsSqlText'), cur.sqlPretty || cur.sql);
       el('rsSqlParams').textContent = (cur.params || []).length
         ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
             return (i + 1) + " = '" + String(p) + "'";
