@@ -62,8 +62,10 @@ def validate_schedule(p):
     if alert_op:  # absent/empty = always send
         if alert_op not in ALERT_OPS:
             return "alertOp must be gt, gte, lt or lte"
+        if p.get("alertThreshold") is None:
+            return "alertThreshold is required when alertOp is set"
         try:
-            float(p.get("alertThreshold"))
+            float(p["alertThreshold"])
         except (TypeError, ValueError):
             return "alertThreshold must be a number"
     return None
@@ -136,4 +138,5 @@ def total_definition(definition):
     clone = copy.deepcopy(definition)
     clone["columns"] = []
     clone["sort"] = []
+    clone["rowLimit"] = 1
     return clone

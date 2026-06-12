@@ -134,6 +134,7 @@ def test_total_definition_zero_column_clone():
     }
     td = total_definition(rd)
     assert td["columns"] == [] and td["sort"] == []
+    assert td["rowLimit"] == 1
     assert td["metrics"] == rd["metrics"] and td["filters"] == rd["filters"]
     assert rd["columns"] == [{"field": "doctype"}]  # original untouched (deep copy)
     assert total_definition({"columns": [{"field": "a"}]}) is None  # no metrics
