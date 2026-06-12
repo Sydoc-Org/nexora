@@ -24,7 +24,13 @@ custom-header, save/load, and Excel-export support.
     `/reporting/metrics`, zero code change) → break down by *over time* (with a
     grain select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
-    **raw** date field, defaulting to `import_date`).
+    **raw** date field, defaulting to `import_date`). Time presets include **This
+    week** and **This quarter** (both stored as tokens in `WIZ_TOKENS`, so saved
+    and scheduled reports stay relative). Any wizard-shaped result shows an
+    **"Adjust in wizard"** button that reopens the walkthrough with all prior
+    picks pre-selected. **Back** steps back through wizard steps preserving picks;
+    **✕** (on both the wizard header and the result bar) exits straight to the
+    library without discarding anything already saved.
     The category list is curated for the Document Processing source — preferred
     business dimensions (Document Source, Document Type, Forwarding, Owner no.,
     Property No., Registered, Tenancy no.) come first and technical noise (process
@@ -55,13 +61,9 @@ custom-header, save/load, and Excel-export support.
     wrong process) is immediately visible.
     Every result (wizard-built, library-opened, or AI-built) shows **editable
     filter/process chips** and a **Refine** bar — use them to tweak any result
-    without returning to the wizard or asking the AI again.
-    Any result whose definition is wizard-shaped — including saved library reports
-    and simple AI-built ones — shows an **"Adjust in wizard"** button that
-    re-opens the walkthrough with the previous measure, breakdown, time and process
-    choices pre-selected. **Back** on such a result returns to the wizard
-    adjustment; the **✕** button (on both the result bar and the wizard header)
-    exits to the library.
+    without returning to the wizard or asking the AI again. When the server row
+    limit is hit, both tabs show "Showing the first N rows — narrow the filters
+    or time range to see the rest."
 - **Advanced** — the full three-panel builder described below, unchanged.
 
 Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`
@@ -227,8 +229,10 @@ showing.
 
 ### Export (Excel / CSV, and what you see)
 
-Pick the format (**Excel** or **CSV**) next to the **Export** button, then export
-is **view-aware**:
+Pick the format (**Excel** or **CSV**) next to the **Export** button. The Simple
+result bar carries the same format select as Advanced — CSV downloads data rows
+only; chart embedding (in both the browser-triggered XLSX and the server-rendered
+scheduled-mail XLSX) applies to Excel exports only. Then export is **view-aware**:
 
 - **Grid** → the raw result rows. POST the report-definition JSON to
   `/api/reporting/export`; add `"format": "csv"` for CSV (default `xlsx`).
@@ -488,6 +492,25 @@ A saved report you own can be delivered on a schedule (permission
 and **recipients**. Schedules live in `dbo.ReportSchedules` (migration `0012`,
 FK to `Reports` `ON DELETE CASCADE`); endpoints are under
 `/api/reporting/reports/<id>/schedules` (owner-only).
+
+### Alert-only schedules
+
+A schedule can carry an **alert condition** so it only mails when a threshold is
+tripped. The **Send** select in the Schedule dialog offers:
+
+- **Always** (default) — every run mails the report regardless of the result.
+- **Only when the total is above / at least / below / at most \<N\>** — the runner
+  does a zero-column re-run first (the same grand-total the Simple stat card
+  shows — correct for `avg`/`count_distinct`), then compares it against the
+  threshold. For plain-table and SQL reports that have no metrics, the threshold
+  compares against the **row count** instead. If the condition is not met, the run
+  sends nothing but still advances `LastRunAt`/`NextRunAt` so the schedule does
+  not re-fire on the next tick. The alert condition is stored in the new
+  `AlertOp` and `AlertThreshold` columns (migration `0022`).
+
+Schedules can also be **enabled or disabled** directly from the schedule list in
+the modal (the toggle next to each row). Any PUT to a schedule (including the
+enable/disable toggle) recomputes `NextRunAt` from the current time.
 
 Delivery is **not** in-process. `ops/run_scheduled_reports.py` (which ships to
 the server because `ops/` is deployed) finds due rows

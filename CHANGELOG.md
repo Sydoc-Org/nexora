@@ -9,6 +9,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- Reporting: alert-only schedules — a schedule can carry a threshold condition
+  (total >, ≥, <, ≤) and only mails when it trips; schedules can now be
+  enabled/disabled from the modal (migration 0022).
+- Reporting: truncated results now say so — both tabs show "Showing the first
+  N rows" whenever the server row limit was hit.
+- Reporting Simple: CSV export option beside Export (chart embedding stays
+  Excel-only).
+- Reporting Simple wizard: "This week" and "This quarter" time presets; the
+  Back button steps back through the wizard instead of exiting and discarding
+  picks.
 - Reporting: "Show query" on Simple and Advanced results — reveals the executed SQL and bind parameters, with copy.
 - Reporting Simple wizard: up to three breakdowns (at most one date); two-breakdown results chart as multi-series with a stacked-bar option.
 - Reporting: XLSX exports gain a title block and embed the on-screen chart; Simple gets a chart-PNG download button.
