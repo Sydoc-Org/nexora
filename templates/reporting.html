@@ -283,7 +283,15 @@
         <label id="rpSchedDomWrap" hidden>{{ _("Day of month") }}<input id="rpSchedDom" class="reporting-input" type="number" min="1" max="28" value="1"></label>
         <label>{{ _("Format") }}<select id="rpSchedFormat" class="reporting-input">
           <option value="xlsx">{{ _("Excel") }}</option><option value="csv">CSV</option></select></label>
+        <label>{{ _("Send") }}<select id="rpSchedAlertOp" class="reporting-input" data-testid="reporting-schedule-alert-op">
+          <option value="">{{ _("Always") }}</option>
+          <option value="gt">{{ _("Only when the total is above…") }}</option>
+          <option value="gte">{{ _("Only when the total is at least…") }}</option>
+          <option value="lt">{{ _("Only when the total is below…") }}</option>
+          <option value="lte">{{ _("Only when the total is at most…") }}</option></select></label>
+        <label id="rpSchedAlertValWrap" hidden>{{ _("Threshold") }}<input id="rpSchedAlertVal" class="reporting-input" type="number" step="any" value="0" data-testid="reporting-schedule-alert-value"></label>
       </div>
+      <p id="rpSchedAlertHint" class="reporting-sched-alert-hint" hidden>{{ _("The threshold is checked against the report's grand total (or its row count when the report has no measure).") }}</p>
       <label class="reporting-admin-cols">{{ _("Recipients (comma-separated)") }}
         <input id="rpSchedRecipients" class="reporting-input" placeholder="a@example.com, b@example.com" data-testid="reporting-schedule-recipients"></label>
       <div class="reporting-modal-actions">

@@ -62,3 +62,60 @@ def test_schedule_modal_adds_schedule(nexora_server, page):
     assert schedules[0]["nextRunAt"]
 
     page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)
+
+
+@pytest.mark.flaky_e2e
+def test_schedule_alert_condition_and_toggle(nexora_server, page):
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    created = page.request.post(
+        f"{nexora_server}/api/reporting/reports",
+        headers=headers,
+        data={
+            "name": "Alert E2E",
+            "definition": {
+                "kind": "sql",
+                "target": "statistics",
+                "sql": "SELECT 1 AS one",
+                "title": "Alert E2E",
+            },
+        },
+    )
+    assert created.ok, created.text()
+    rid = created.json()["id"]
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=advanced")
+        page.wait_for_load_state("domcontentloaded")
+        page.locator(f'[data-testid="reporting-saved-reports"] option[value="{rid}"]').wait_for(
+            state="attached"
+        )
+        page.locator('[data-testid="reporting-saved-reports"]').select_option(str(rid))
+        page.locator('[data-testid="reporting-schedule"]').click()
+        expect(page.locator('[data-testid="reporting-schedule-modal"]')).to_be_visible()
+
+        page.locator('[data-testid="reporting-schedule-alert-op"]').select_option("gt")
+        expect(page.locator("#rpSchedAlertValWrap")).to_be_visible()
+        page.fill('[data-testid="reporting-schedule-alert-value"]', "100")
+        page.fill('[data-testid="reporting-schedule-recipients"]', "ops@example.com")
+        with page.expect_response(
+            lambda r: r.request.method == "POST" and f"/reports/{rid}/schedules" in r.url
+        ):
+            page.locator('[data-testid="reporting-schedule-add"]').click()
+        schedules = page.request.get(
+            f"{nexora_server}/api/reporting/reports/{rid}/schedules"
+        ).json()
+        assert schedules[0]["alertOp"] == "gt" and schedules[0]["alertThreshold"] == 100.0
+
+        with page.expect_response(
+            lambda r: r.request.method == "PUT" and f"/reports/{rid}/schedules" in r.url
+        ):
+            page.locator('[data-testid="reporting-schedule-toggle"]').click()
+        expect(page.locator('[data-testid="reporting-schedule-list"]')).to_contain_text("disabled")
+        schedules = page.request.get(
+            f"{nexora_server}/api/reporting/reports/{rid}/schedules"
+        ).json()
+        assert schedules[0]["enabled"] is False
+        page.screenshot(path="var/screenshots/reporting_schedule_alert_toggle.png")
+    finally:
+        page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)
