@@ -104,7 +104,7 @@ def _process(conn, row, now, dry_run):
                 f"schedule {row.ScheduleID}: alert not tripped (value={value}), mail skipped"
             )
             _advance(conn, row, now)
-            return
+            return False
     png = None
     try:
         png = render_chart_png(definition, columns, rows)
@@ -140,6 +140,7 @@ def _process(conn, row, now, dry_run):
         recipients, subject, body, [(_safe_name(row.Name) + ext, data, mime)], inline_images=inline
     )
     _advance(conn, row, now)
+    return True
 
 
 def run_once(dry_run=False):
@@ -151,9 +152,10 @@ def run_once(dry_run=False):
             due = _due_schedules(conn, now)
             for row in due:
                 try:
-                    _process(conn, row, now, dry_run)
+                    result = _process(conn, row, now, dry_run)
                     conn.commit()
-                    sent += 1
+                    if result:
+                        sent += 1
                 except Exception as e:  # one bad schedule must not block the rest
                     conn.rollback()
                     failed += 1
