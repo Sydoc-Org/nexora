@@ -1,3 +1,7 @@
+> **Superseded** — execution is complete. See the current handoff:
+> `docs/superpowers/handoffs/2026-06-12-reporting-page-improvement-options-execution-complete.md`
+> Use `/reset-session <that path>` in a fresh session.
+
 # Handoff — reporting-page-improvement-options plan ready for execution
 
 - **Date:** 2026-06-12
