@@ -62,6 +62,7 @@
     chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
+    truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
     sqlParamsLabel: {{ _("Parameters")|tojson }},
     copied: {{ _("Copied")|tojson }}
@@ -671,6 +672,13 @@
         ? resolvedTxt : msg.textContent + ' — ' + resolvedTxt;
       msg.hidden = false;
     }
+    if (res.data.truncated && res.data.rowCount) {
+      var tNote = el('rsMsg');
+      var tTxt = I18N.truncatedNote.replace('{n}', String(res.data.rowCount));
+      tNote.textContent = (!tNote.hidden && tNote.textContent)
+        ? tNote.textContent + ' — ' + tTxt : tTxt;
+      tNote.hidden = false;
+    }
     if (hasMetrics && !dims && rows.length) {
       el('rsStatLabel').textContent = metricLabelFor(def);
       el('rsStatValue').textContent = fmtNumber(rows[0][0]);
@@ -805,8 +813,10 @@
   if (EXPORT_ALLOWED) {
     el('rsExport').addEventListener('click', async function () {
       if (!state.current) return;  // error view without a loaded report
-      var body = Object.assign({}, state.current.def, { format: 'xlsx' });
-      var png = chartPngDataUrl();
+      var fmtSel = el('rsExportFormat');
+      var fmt = (fmtSel && fmtSel.value === 'csv') ? 'csv' : 'xlsx';
+      var body = Object.assign({}, state.current.def, { format: fmt });
+      var png = fmt === 'xlsx' ? chartPngDataUrl() : null;
       if (png) body.chartImage = png;
       var res;
       try {
@@ -824,7 +834,7 @@
       var blob = await res.blob();
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = (state.current.name || 'report') + '.xlsx';
+      a.download = (state.current.name || 'report') + '.' + fmt;
       a.click();
       URL.revokeObjectURL(a.href);
     });
@@ -1074,7 +1084,8 @@
     sel.onchange = function () { state.wiz.dateField = sel.value; };
 
     list.innerHTML = '';
-    [['this_month', I18N.thisMonth], ['last_month', I18N.lastMonth],
+    [['this_week', I18N.thisWeek], ['this_month', I18N.thisMonth],
+     ['last_month', I18N.lastMonth], ['this_quarter', I18N.thisQuarter],
      ['last_quarter', I18N.lastQuarter], ['last_3_months', I18N.last3Months],
      ['this_year', I18N.thisYear], ['last_year', I18N.lastYear],
      ['all_time', I18N.allTime], ['custom', I18N.custom]].forEach(function (p) {
@@ -1166,9 +1177,9 @@
   }
 
   // Wizard presets that renderTimeStep offers; other tokens (e.g. last_n_days,
-  // this_week) can't be represented in the wizard UI, so such defs don't map.
-  var WIZ_TOKENS = ['this_month', 'last_month', 'last_quarter',
-                    'last_3_months', 'this_year', 'last_year'];
+  // last_week) can't be represented in the wizard UI, so such defs don't map.
+  var WIZ_TOKENS = ['this_week', 'this_month', 'last_month', 'this_quarter',
+                    'last_quarter', 'last_3_months', 'this_year', 'last_year'];
 
   // Inverse of wizardDefinition(): returns {wiz, grain} for wizard-shaped
   // definitions, or null when the def can't be represented in the wizard
@@ -1247,7 +1258,20 @@
   }
 
   el('rsNewReport').addEventListener('click', startWizard);
-  el('rsWizardBack').addEventListener('click', function () { setView('library'); });
+  // Back steps one wizard step backwards (picks are preserved in state.wiz);
+  // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
+  el('rsWizardBack').addEventListener('click', function () {
+    if (!el('rsStepTime').hidden) {           // time -> breakdown
+      el('rsStepTime').hidden = true;
+      el('rsWizardRun').hidden = true;
+      return;
+    }
+    if (!el('rsStepBreakdown').hidden) {      // breakdown -> measure
+      el('rsStepBreakdown').hidden = true;
+      return;
+    }
+    setView('library');                       // measure -> out
+  });
   el('rsWizardRun').addEventListener('click', function () {
     if (!state.wiz || !state.wiz.measure) return;
     var def = wizardDefinition();

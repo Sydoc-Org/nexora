@@ -1056,3 +1056,8 @@ body.nx-app {
 .reporting-sqlview pre .sql-ident, .reporting-ai-sql .sql-ident { color: #953800; }
 .reporting-sqlview pre .sql-param, .reporting-ai-sql .sql-param { color: #8250df; font-weight: 600; }
 .reporting-sqlview pre .sql-comment, .reporting-ai-sql .sql-comment { color: #6e7781; font-style: italic; }
+
+.reporting-sched-alert-hint { margin: 4px 0 8px; font-size: 12px; color: #6b7280; }
+
+/* --- Truncation note (T6) --- */
+.reporting-truncated-note { margin: 0 0 8px; font-size: 12px; color: #b45309; }

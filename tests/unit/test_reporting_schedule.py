@@ -5,8 +5,11 @@ from datetime import datetime
 import pytest
 
 from nx_lib.reporting.schedule import (
+    ALERT_OPS,
+    alert_trips,
     compute_next_run,
     parse_recipients,
+    total_definition,
     valid_recipients,
     validate_schedule,
 )
@@ -93,3 +96,46 @@ def test_validate_schedule_errors():
         )
         is None
     )
+
+
+def test_validate_schedule_alert_pair():
+    base = {"frequency": "daily", "hour": 6, "recipients": "a@x.com"}
+    assert validate_schedule(base) is None  # no alert fields: always send
+    assert validate_schedule({**base, "alertOp": "gt", "alertThreshold": 100}) is None
+    assert validate_schedule({**base, "alertOp": "lte", "alertThreshold": "-2.5"}) is None
+    assert validate_schedule({**base, "alertOp": ""}) is None  # the UI's "Always" option
+    assert validate_schedule({**base, "alertOp": "eq", "alertThreshold": 1})  # eq not offered
+    assert validate_schedule({**base, "alertOp": "gt"})  # threshold missing
+    assert validate_schedule({**base, "alertOp": "gt", "alertThreshold": "soon"})
+
+
+def test_alert_trips_ops():
+    assert alert_trips("gt", 10, 11) is True
+    assert alert_trips("gt", 10, 10) is False
+    assert alert_trips("gte", 10, 10) is True
+    assert alert_trips("lt", 10, 9.5) is True
+    assert alert_trips("lte", 10, 10) is True
+    assert alert_trips("lte", 10, 11) is False
+    assert alert_trips("gt", 0, None) is False  # NULL total never trips
+    assert alert_trips("bogus", 0, 1) is False  # unknown op never trips
+    assert set(ALERT_OPS) == {"gt", "gte", "lt", "lte"}
+
+
+def test_total_definition_zero_column_clone():
+    rd = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "title": "t",
+        "columns": [{"field": "doctype"}],
+        "metrics": [{"metric": "doc_count"}],
+        "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+        "sort": [{"field": "doc_count", "dir": "desc"}],
+        "rowLimit": 5000,
+    }
+    td = total_definition(rd)
+    assert td["columns"] == [] and td["sort"] == []
+    assert td["rowLimit"] == 1
+    assert td["metrics"] == rd["metrics"] and td["filters"] == rd["filters"]
+    assert rd["columns"] == [{"field": "doctype"}]  # original untouched (deep copy)
+    assert total_definition({"columns": [{"field": "a"}]}) is None  # no metrics
+    assert total_definition({"kind": "sql", "sql": "SELECT 1"}) is None

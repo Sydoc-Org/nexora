@@ -4,6 +4,10 @@
 
 # Handoff — rich-export T13 complete + write-plan/execute-plan workflow
 
+> **Newer handoff exists for this date:**
+> `docs/superpowers/handoffs/2026-06-12-reporting-page-improvement-options-plan.md` (plan ready,
+> `/execute-plan` resumes there). Use explicit paths with `/reset-session` — three handoffs share 2026-06-12.
+
 - **Date:** 2026-06-12
 - **Branch:** `feature/2.5.63`. **94 commits ahead of `origin/feature/2.5.63`** — commit-only
   (remote); owner pushes + opens the PR.

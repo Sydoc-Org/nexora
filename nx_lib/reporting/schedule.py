@@ -5,11 +5,13 @@ uses compute_next_run to advance a schedule after each send. Times are treated a
 naive UTC to match SYSUTCDATETIME() columns.
 """
 
+import copy
 import re
 from datetime import UTC, datetime, timedelta
 
 FREQUENCIES = ("daily", "weekly", "monthly")
 FORMATS = ("xlsx", "csv")
+ALERT_OPS = ("gt", "gte", "lt", "lte")
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -56,6 +58,16 @@ def validate_schedule(p):
         dom = p.get("dayOfMonth")
         if dom is None or not 1 <= int(dom) <= 28:
             return "dayOfMonth must be 1-28 for a monthly schedule"
+    alert_op = p.get("alertOp")
+    if alert_op:  # absent/empty = always send
+        if alert_op not in ALERT_OPS:
+            return "alertOp must be gt, gte, lt or lte"
+        if p.get("alertThreshold") is None:
+            return "alertThreshold is required when alertOp is set"
+        try:
+            float(p["alertThreshold"])
+        except (TypeError, ValueError):
+            return "alertThreshold must be a number"
     return None
 
 
@@ -93,3 +105,38 @@ def compute_next_run(frequency, hour, minute, weekday, day_of_month, now):
         return cand
 
     raise ValueError(f"unknown frequency: {frequency!r}")
+
+
+def alert_trips(op, threshold, value):
+    """True when `value` satisfies `<op> threshold` — the alert condition holds
+    and the scheduled mail should go out. None / non-numeric values and unknown
+    ops never trip (the runner then skips the mail instead of spamming)."""
+    try:
+        v = float(value)
+        t = float(threshold)
+    except (TypeError, ValueError):
+        return False
+    if op == "gt":
+        return v > t
+    if op == "gte":
+        return v >= t
+    if op == "lt":
+        return v < t
+    if op == "lte":
+        return v <= t
+    return False
+
+
+def total_definition(definition):
+    """Zero-column deep clone whose single result cell is the grand total of the
+    definition's first metric — the Simple pane's stat-card trick, reused so the
+    alert checks the same number the user sees (correct for avg/count_distinct).
+    Returns None for definitions without metrics (incl. sql-kind); callers fall
+    back to the row count."""
+    if not isinstance(definition, dict) or not definition.get("metrics"):
+        return None
+    clone = copy.deepcopy(definition)
+    clone["columns"] = []
+    clone["sort"] = []
+    clone["rowLimit"] = 1
+    return clone

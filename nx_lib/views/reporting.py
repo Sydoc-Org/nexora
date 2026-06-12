@@ -1989,13 +1989,16 @@ def _serialize_schedule(r):
         "weekday": r.Weekday,
         "dayOfMonth": r.DayOfMonth,
         "enabled": bool(r.Enabled),
+        "alertOp": r.AlertOp,
+        "alertThreshold": r.AlertThreshold,
         "lastRunAt": str(r.LastRunAt) if r.LastRunAt else None,
         "nextRunAt": str(r.NextRunAt) if r.NextRunAt else None,
     }
 
 
 def _schedule_fields(p):
-    """Normalized (recipients, format, frequency, hour, minute, weekday, dom, enabled, next)."""
+    """Normalized (recipients, format, frequency, hour, minute, weekday, dom,
+    enabled, next, alert_op, alert_threshold)."""
     freq = p.get("frequency")
     hour = int(p.get("hour"))
     minute = int(p.get("minute", 0))
@@ -2003,6 +2006,8 @@ def _schedule_fields(p):
     dom = int(p["dayOfMonth"]) if freq == "monthly" else None
     enabled = 1 if p.get("enabled", True) else 0
     nxt = compute_next_run(freq, hour, minute, weekday, dom, utcnow())
+    alert_op = p.get("alertOp") or None
+    alert_threshold = float(p["alertThreshold"]) if alert_op else None
     return (
         p.get("recipients").strip(),
         (p.get("format") or "xlsx").lower(),
@@ -2013,6 +2018,8 @@ def _schedule_fields(p):
         dom,
         enabled,
         nxt,
+        alert_op,
+        alert_threshold,
     )
 
 
@@ -2026,7 +2033,8 @@ def api_reports_schedules_get(report_id):
         cur = conn.cursor()
         cur.execute(
             "SELECT ScheduleID, Recipients, Format, Frequency, Hour, Minute, Weekday, "
-            "DayOfMonth, Enabled, LastRunAt, NextRunAt FROM dbo.ReportSchedules "
+            "DayOfMonth, Enabled, LastRunAt, NextRunAt, AlertOp, AlertThreshold "
+            "FROM dbo.ReportSchedules "
             "WHERE ReportID = ? ORDER BY ScheduleID",
             (report_id,),
         )
@@ -2048,16 +2056,32 @@ def api_reports_schedules_create(report_id):
     err = validate_schedule(p)
     if err:
         return jsonify({"error": err}), 400
-    recipients, fmt, freq, hour, minute, weekday, dom, enabled, nxt = _schedule_fields(p)
+    (recipients, fmt, freq, hour, minute, weekday, dom, enabled, nxt, alert_op, alert_thr) = (
+        _schedule_fields(p)
+    )
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO dbo.ReportSchedules "
             "(ReportID, OwnerUserID, Recipients, Format, Frequency, Hour, Minute, "
-            " Weekday, DayOfMonth, Enabled, NextRunAt) "
-            "OUTPUT INSERTED.ScheduleID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (report_id, userid, recipients, fmt, freq, hour, minute, weekday, dom, enabled, nxt),
+            " Weekday, DayOfMonth, Enabled, NextRunAt, AlertOp, AlertThreshold) "
+            "OUTPUT INSERTED.ScheduleID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                report_id,
+                userid,
+                recipients,
+                fmt,
+                freq,
+                hour,
+                minute,
+                weekday,
+                dom,
+                enabled,
+                nxt,
+                alert_op,
+                alert_thr,
+            ),
         )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -2079,13 +2103,16 @@ def api_reports_schedules_update(report_id, schedule_id):
     err = validate_schedule(p)
     if err:
         return jsonify({"error": err}), 400
-    recipients, fmt, freq, hour, minute, weekday, dom, enabled, nxt = _schedule_fields(p)
+    (recipients, fmt, freq, hour, minute, weekday, dom, enabled, nxt, alert_op, alert_thr) = (
+        _schedule_fields(p)
+    )
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             "UPDATE dbo.ReportSchedules SET Recipients=?, Format=?, Frequency=?, Hour=?, "
-            "Minute=?, Weekday=?, DayOfMonth=?, Enabled=?, NextRunAt=?, UpdatedAt=SYSUTCDATETIME() "
+            "Minute=?, Weekday=?, DayOfMonth=?, Enabled=?, NextRunAt=?, AlertOp=?, "
+            "AlertThreshold=?, UpdatedAt=SYSUTCDATETIME() "
             "WHERE ScheduleID=? AND ReportID=?",
             (
                 recipients,
@@ -2097,6 +2124,8 @@ def api_reports_schedules_update(report_id, schedule_id):
                 dom,
                 enabled,
                 nxt,
+                alert_op,
+                alert_thr,
                 schedule_id,
                 report_id,
             ),

@@ -388,6 +388,7 @@
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
+  var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
 
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
@@ -413,6 +414,13 @@
       wrap.appendChild(empty);
       return;
     }
+    if (data.truncated && data.rowCount) {
+      var note = document.createElement('p');
+      note.className = 'reporting-truncated-note';
+      note.textContent = I18N_TRUNCATED.replace('{n}', String(data.rowCount));
+      wrap.appendChild(note);
+    }
+
     var table = document.createElement('table');
     table.className = 'reporting-table';
 
@@ -1213,6 +1221,13 @@
   // ---- Scheduling ----
   var scheduleReportId = null;
   var FREQ_LABELS = { daily: '{{ _("Daily") }}', weekly: '{{ _("Weekly") }}', monthly: '{{ _("Monthly") }}' };
+  var ALERT_LABELS = { gt: '>', gte: '≥', lt: '<', lte: '≤' };
+
+  function schedAlertChanged() {
+    var alertOn = !!document.getElementById('rpSchedAlertOp').value;
+    document.getElementById('rpSchedAlertValWrap').hidden = !alertOn;
+    document.getElementById('rpSchedAlertHint').hidden = !alertOn;
+  }
 
   function schedFreqChanged() {
     var freq = document.getElementById('rpSchedFreq').value;
@@ -1226,6 +1241,9 @@
     if (!opt || opt.dataset.owned !== '1') return;
     scheduleReportId = sel.value;
     schedFreqChanged();
+    document.getElementById('rpSchedAlertOp').value = '';
+    document.getElementById('rpSchedAlertVal').value = '0';
+    schedAlertChanged();
     loadSchedules();
     document.getElementById('rpScheduleModal').hidden = false;
   }
@@ -1250,11 +1268,21 @@
       var li = document.createElement('li');
       var t = (s.hour < 10 ? '0' : '') + s.hour + ':' + (s.minute < 10 ? '0' : '') + s.minute;
       var desc = (FREQ_LABELS[s.frequency] || s.frequency) + ' ' + t + ' UTC · ' +
-        s.format.toUpperCase() + ' · ' + s.recipients + (s.enabled ? '' : ' (' + '{{ _("disabled") }}' + ')');
+        s.format.toUpperCase() + ' · ' + s.recipients +
+        (s.alertOp ? ' · ' + '{{ _("only when total") }}' + ' ' +
+          (ALERT_LABELS[s.alertOp] || s.alertOp) + ' ' + s.alertThreshold : '') +
+        (s.enabled ? '' : ' (' + '{{ _("disabled") }}' + ')');
       var span = document.createElement('span');
       span.className = 'reporting-share-name';
       span.textContent = desc;
       li.appendChild(span);
+      var tg = document.createElement('button');
+      tg.type = 'button';
+      tg.className = 'reporting-link';
+      tg.dataset.testid = 'reporting-schedule-toggle';
+      tg.textContent = s.enabled ? '{{ _("Disable") }}' : '{{ _("Enable") }}';
+      tg.onclick = function () { setScheduleEnabled(s, !s.enabled); };
+      li.appendChild(tg);
       var rm = document.createElement('button');
       rm.type = 'button';
       rm.className = 'reporting-link';
@@ -1278,6 +1306,11 @@
     };
     if (freq === 'weekly') body.weekday = parseInt(document.getElementById('rpSchedWeekday').value, 10);
     if (freq === 'monthly') body.dayOfMonth = parseInt(document.getElementById('rpSchedDom').value, 10);
+    var alertOp = document.getElementById('rpSchedAlertOp').value;
+    if (alertOp) {
+      body.alertOp = alertOp;
+      body.alertThreshold = parseFloat(document.getElementById('rpSchedAlertVal').value) || 0;
+    }
     api('/api/reporting/reports/' + scheduleReportId + '/schedules', {
       method: 'POST', body: JSON.stringify(body),
     }).then(function () {
@@ -1291,10 +1324,28 @@
       .then(loadSchedules).catch(function (e) { window.alert(e.message); });
   }
 
+  // Flip Enabled via the (previously UI-less) PUT update endpoint. PUT is
+  // full-replace and recomputes NextRunAt, so re-enabling re-anchors the next
+  // run. The window.alert matches the file's current idiom (menu row 8 sweeps
+  // them all later).
+  function setScheduleEnabled(s, enabled) {
+    var body = {
+      frequency: s.frequency, hour: s.hour, minute: s.minute,
+      format: s.format, recipients: s.recipients, enabled: enabled,
+    };
+    if (s.frequency === 'weekly') body.weekday = s.weekday;
+    if (s.frequency === 'monthly') body.dayOfMonth = s.dayOfMonth;
+    if (s.alertOp) { body.alertOp = s.alertOp; body.alertThreshold = s.alertThreshold; }
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + s.id, {
+      method: 'PUT', body: JSON.stringify(body),
+    }).then(loadSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
   var rpSchedule = document.getElementById('rpSchedule');
   if (rpSchedule) {
     rpSchedule.addEventListener('click', openSchedule);
     document.getElementById('rpSchedFreq').addEventListener('change', schedFreqChanged);
+    document.getElementById('rpSchedAlertOp').addEventListener('change', schedAlertChanged);
     document.getElementById('rpSchedAdd').addEventListener('click', addSchedule);
     document.getElementById('rpScheduleClose').addEventListener('click', function () {
       document.getElementById('rpScheduleModal').hidden = true;
