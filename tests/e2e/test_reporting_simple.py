@@ -1176,3 +1176,61 @@ def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
     page.get_by_test_id("rs-ai-ask").click()
     expect(page.get_by_test_id("rs-result")).to_be_visible()
     expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
+
+
+def test_wizard_back_steps_back_not_exit(nexora_server, page):
+    """Back walks time -> breakdown -> measure -> library, preserving picks."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'back_users', kind: 'curated', label: 'Back Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 31});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'back_user_count', sourceId: 'back_users', label: 'Back user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Back user count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        expect(page.get_by_test_id("rs-wizard-run")).to_be_visible()
+
+        back = page.get_by_test_id("rs-wizard-back")
+        back.click()  # time step -> breakdown step
+        expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+        expect(page.get_by_test_id("rs-wizard-run")).to_be_hidden()
+        expect(page.locator("#rsStepBreakdown")).to_be_visible()
+
+        back.click()  # breakdown step -> measure step
+        expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+        expect(page.locator("#rsStepBreakdown")).to_be_hidden()
+
+        back.click()  # measure step -> library
+        expect(page.get_by_test_id("rs-wizard")).to_be_hidden()
+        expect(page.get_by_test_id("rs-new-report")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

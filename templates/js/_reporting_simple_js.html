@@ -1249,7 +1249,20 @@
   }
 
   el('rsNewReport').addEventListener('click', startWizard);
-  el('rsWizardBack').addEventListener('click', function () { setView('library'); });
+  // Back steps one wizard step backwards (picks are preserved in state.wiz);
+  // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
+  el('rsWizardBack').addEventListener('click', function () {
+    if (!el('rsStepTime').hidden) {           // time -> breakdown
+      el('rsStepTime').hidden = true;
+      el('rsWizardRun').hidden = true;
+      return;
+    }
+    if (!el('rsStepBreakdown').hidden) {      // breakdown -> measure
+      el('rsStepBreakdown').hidden = true;
+      return;
+    }
+    setView('library');                       // measure -> out
+  });
   el('rsWizardRun').addEventListener('click', function () {
     if (!state.wiz || !state.wiz.measure) return;
     var def = wizardDefinition();
