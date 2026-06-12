@@ -13,6 +13,37 @@ Write a comprehensive nexora implementation plan for: `$ARGUMENTS`. Run **fully 
 - Locate and **read** the `superpowers:writing-plans` skill's `SKILL.md` (Glob for it under the plugin/skills directories). Do **not** invoke it via the Skill tool — you need its content as input for the draft agents, not its interactive process.
 - Search `docs/superpowers/specs/` for a spec matching the slug. If one exists, the plan must link it and honor its decisions; this command never authors a spec.
 
+## 1.5. Busy-branch worktree isolation
+
+Before starting the planning Workflow, check whether the current branch is being actively worked on:
+
+```powershell
+# Condition A — uncommitted changes present
+git status --porcelain        # any output → busy
+
+# Condition B — already inside a linked worktree
+$gitDir    = git rev-parse --git-dir
+$gitCommon = git rev-parse --git-common-dir
+# $gitDir -ne $gitCommon → already in a worktree
+```
+
+**If either condition is true**, create an isolated worktree for the planning work:
+
+```powershell
+$worktreePath = ".claude/worktrees/plan-$slug"
+$worktreeBranch = "plan/$slug"
+git worktree add $worktreePath -b $worktreeBranch
+```
+
+Then use the **`EnterWorktree`** tool (if available) to switch the session into that path, or prefix
+all subsequent git/file commands with the worktree path. **All steps from here on — plan file write,
+anchor verification, commit, and handoff — run inside the worktree.**
+
+Record the worktree path and branch in a variable (`$worktreePath`, `$worktreeBranch`) — the handoff
+doc (step 6) must include them so `/execute-plan` knows where to resume.
+
+**If neither condition is true**, proceed in the current directory — no worktree needed.
+
 ## 2. Run the planning Workflow (Fable, multi-agent)
 
 Use the **Workflow tool**: author the orchestration script now, then run it. Contract — non-negotiable:
@@ -108,6 +139,18 @@ For **every** file path named in the final plan: confirm it exists (or is explic
 
 ## 6. Hand off
 
-After the commit lands, invoke the **Skill tool** with `skill: handoff-session-state` and `args: "<slug> plan — resume at docs/superpowers/plans/YYYY-MM-DD-<slug>.md"`. Do not skip this and do not merely mention it — call the tool. The handoff doc must point the next session at the new plan file as the resume point. That command ends your response with its "Type `/clear` now" line — put **nothing** after it.
+After the commit lands, invoke the **Skill tool** with `skill: handoff-session-state` and
+`args: "<slug> plan — resume at docs/superpowers/plans/YYYY-MM-DD-<slug>.md"`.
+
+**Do NOT pass `--merge-worktree`.** The worktree (if created in step 1.5) must stay open — it is
+the execution vessel for `/execute-plan`. The handoff doc must record:
+
+- The plan file path
+- The worktree path and branch (if a worktree was created), e.g.:
+  `Worktree: .claude/worktrees/plan-<slug>  Branch: plan/<slug>`
+
+`/execute-plan` reads this to know where to resume. Do not skip this step and do not merely mention
+it — call the Skill tool. That command ends your response with its "Type `/clear` now" line —
+put **nothing** after it.
 
 Working directory: C:\dev\nexora (check with git status first to confirm branch and cleanliness).

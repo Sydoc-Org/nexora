@@ -57,9 +57,14 @@ per-turn permission). Stop, say so, tell the user to switch to a feature branch,
   even if `$ARGUMENTS` asks to push (only commit; tell them to push).
 - After committing, show `git log -1 --stat` and capture the short hash.
 
-## 5. Worktree cleanup (if in a linked worktree)
+## 5. Worktree cleanup (only when `$ARGUMENTS` contains `--merge-worktree`)
 
-Detect whether the current working directory is a **linked worktree** (not the main checkout):
+**Skip this step entirely** unless `$ARGUMENTS` contains the literal string `--merge-worktree`.
+
+- Called by `/write-plan` → **no flag** — worktree stays open for `/execute-plan` to use next.
+- Called by `/execute-plan` → **`--merge-worktree` flag** — merge + delete now.
+
+When the flag IS present, detect whether the current working directory is a linked worktree:
 
 ```powershell
 $gitDir    = git rev-parse --git-dir
@@ -67,7 +72,7 @@ $gitCommon = git rev-parse --git-common-dir
 # If $gitDir -ne $gitCommon → linked worktree
 ```
 
-**If not in a linked worktree:** skip this step entirely.
+**If not in a linked worktree:** nothing to clean up — skip the sub-steps below.
 
 **If in a linked worktree**, do all of the following in order:
 
@@ -102,14 +107,14 @@ $gitCommon = git rev-parse --git-common-dir
 Note the outcome in the handoff ("worktree removed and branch deleted") so the next session doesn't
 look for it.
 
-## 7. Drop the resume flag
+## 6. Drop the resume flag
 
 Write the handoff's repo-relative path (e.g. `docs/superpowers/handoffs/2026-06-09-foo.md`) as the
 single line of `var/handoff-pending` (gitignored — never commit it). The SessionStart hook
 (`.claude/helpers/check-handoff-pending.ps1`) reads this flag in the next fresh session and points
 it at `/reset-session`, which consumes the flag.
 
-## 8. Prompt to clear
+## 7. Prompt to clear
 
 Only the user can run `/clear`. **End your entire response** with one prominent line and nothing
 after it:
