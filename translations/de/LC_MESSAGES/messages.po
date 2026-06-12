@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-12 17:53+0200\n"
+"POT-Creation-Date: 2026-06-12 17:59+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -2894,7 +2894,8 @@ msgid ""
 "The threshold is checked against the report's grand total (or its row "
 "count when the report has no measure)."
 msgstr ""
-"Der Schwellenwert wird mit dem Gesamtergebnis des Berichts verglichen (oder mit der Zeilenanzahl, wenn der Bericht keine Kennzahl enthält)."
+"Der Schwellenwert wird mit dem Gesamtergebnis des Berichts verglichen "
+"(oder mit der Zeilenanzahl, wenn der Bericht keine Kennzahl enthält)."
 
 #: templates/reporting.html:295
 msgid "Recipients (comma-separated)"
@@ -4410,7 +4411,9 @@ msgstr "Kopiert"
 #: templates/js/_reporting_js.html:390
 #: templates/js/_reporting_simple_js.html:65
 #, python-brace-format
-msgid "Showing first {n} rows — results were truncated."
+msgid ""
+"Showing the first {n} rows — narrow the filters or time range to see the "
+"rest."
 msgstr "Es werden die ersten {n} Zeilen angezeigt – schränken Sie die Filter oder den Zeitraum ein, um weitere zu sehen."
 
 #: templates/js/_reporting_js.html:411
@@ -5711,4 +5714,11 @@ msgstr ""
 #~ "Sie können jedoch den Echtzeitstatus "
 #~ "jedes Dokuments direkt von Ihrem "
 #~ "Dashboard aus überwachen."
+
+#~ msgid "Showing first {n} rows — results were truncated."
+#~ msgstr ""
+#~ "Es werden die ersten {n} Zeilen "
+#~ "angezeigt – schränken Sie die Filter "
+#~ "oder den Zeitraum ein, um weitere "
+#~ "zu sehen."
 

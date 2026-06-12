@@ -387,7 +387,7 @@
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
-  var I18N_TRUNCATED = {{ _("Showing first {n} rows — results were truncated.")|tojson }};
+  var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
 
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
