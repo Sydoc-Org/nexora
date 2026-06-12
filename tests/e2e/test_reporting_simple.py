@@ -940,3 +940,29 @@ def test_chart_png_download(page, nexora_server):
             }""",
             ids,
         )
+
+
+def test_sqlformat_escapes_and_highlights(nexora_server, page):
+    """ReportingSqlFormat.toHtml escapes every emitted piece (no raw HTML can
+    reach innerHTML) and wraps tokens in classed spans."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    html = page.evaluate(
+        "() => ReportingSqlFormat.toHtml(\"SELECT [a] FROM t WHERE x = '<script>' -- note\")"
+    )
+    assert "<script>" not in html  # escaped, not injected
+    assert "&lt;script&gt;" in html
+    assert '<span class="sql-kw">SELECT</span>' in html
+    assert '<span class="sql-ident">[a]</span>' in html
+    assert '<span class="sql-comment">-- note</span>' in html
+    assert '<span class="sql-string">' in html
+
+
+def test_sqlformat_marks_placeholders_and_numbers(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    html = page.evaluate(
+        "() => ReportingSqlFormat.toHtml('SELECT TOP 100 * FROM t WHERE a >= ? AND b < ?')"
+    )
+    assert html.count('<span class="sql-param">?</span>') == 2
+    assert '<span class="sql-number">100</span>' in html
