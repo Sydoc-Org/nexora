@@ -1043,3 +1043,33 @@ def test_run_shows_loading_then_result(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_advanced_ai_ask_shows_loading(nexora_server, page):
+    """The Advanced AI panel shows the pulsing indicator while a request is in
+    flight and hides it when the draft arrives (today it only disables Ask)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.get_by_test_id("reporting-mode-ai").click()
+    page.evaluate("""() => {
+        window.__aiPanelLoadingWasSeen = false;
+        const el = document.getElementById('rpAiLoading');
+        if (!el) return;
+        if (!el.hidden) { window.__aiPanelLoadingWasSeen = true; return; }
+        const obs = new MutationObserver(() => {
+            if (!el.hidden) {
+                window.__aiPanelLoadingWasSeen = true;
+                obs.disconnect();
+            }
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    }""")
+    _stub_ai_build(page, delay_s=0.8)
+    page.get_by_test_id("reporting-ai-prompt").fill("docs by process")
+    page.get_by_test_id("reporting-ai-ask").click()
+    expect(page.get_by_test_id("reporting-ai-def-result")).to_be_visible()
+    expect(page.get_by_test_id("reporting-ai-loading")).to_be_hidden()
+    assert page.evaluate(
+        "() => window.__aiPanelLoadingWasSeen"
+    ), "rpAiLoading never became visible during the AI request"
+    page.screenshot(path="var/screenshots/reporting_advanced_ai_loading.png")
