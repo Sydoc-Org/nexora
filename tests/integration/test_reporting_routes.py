@@ -557,6 +557,84 @@ def test_table_source_end_to_end(admin_client):
         admin_client.delete(f"/api/reporting/admin/sources/{sid}")
 
 
+def test_run_response_includes_sql_and_params(admin_client):
+    """The run endpoint echoes the executed SQL and its bind parameters."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT TOP (100) COUNT(*) AS [n] FROM [dbo].[MyView]"
+    fake_params = [42, "hello"]
+    fake_rows = [[99]]
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, fake_params, None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json={"source": "x"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert "sql" in body and body["sql"].lstrip().upper().startswith("SELECT")
+    assert "params" in body and isinstance(body["params"], list)
+    assert body["params"] == [42, "hello"]
+
+
+_TINY_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
+    "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+)
+
+
+def test_export_xlsx_embeds_chart_image(admin_client):
+    """When chartImage is sent with the export request, the XLSX contains xl/media/."""
+    import io
+    import zipfile
+
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    fake_rows = [[99]]
+    body = {
+        "source": "x",
+        "format": "xlsx",
+        "chartImage": "data:image/png;base64," + _TINY_PNG_B64,
+    }
+    with (
+        patch("nx_lib.views.reporting._prepare_run", return_value=(fake_cols, fake_sql, [], None)),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    assert resp.data[:2] == b"PK"
+    with zipfile.ZipFile(io.BytesIO(resp.data)) as z:
+        assert [n for n in z.namelist() if n.startswith("xl/media/")]
+
+
+def test_export_ignores_garbage_chart_image(admin_client):
+    """Garbage chartImage must not break the export — it degrades to chartless."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_rows = [[99]]
+    body = {
+        "source": "x",
+        "format": "xlsx",
+        "chartImage": "data:image/png;base64,@@@not-b64@@@",
+    }
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run", return_value=(fake_cols, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    assert resp.data[:2] == b"PK"
+
+
 def test_shared_report_visible_to_non_owner(admin_client):
     # A report owned by user@test.local (a different user), marked 'shared', must
     # appear in admin's list (owned=false) and be loadable, but not manageable.

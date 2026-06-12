@@ -60,6 +60,8 @@
         </summary>
         <div id="rsScopeList" data-testid="rs-scope-list"></div>
       </details>
+      <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
+      <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
     </div>
     <div class="reporting-simple-step" id="rsStepTime" hidden>
       <h3 class="reporting-simple-h">3. {{ _("Time range") }}</h3>
@@ -88,6 +90,8 @@
         {% if has_permission('reporting.export') %}
         <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
         {% endif %}
+        <button type="button" id="rsShowSql" class="reporting-link" hidden
+                data-testid="rs-show-sql">{{ _("Show query") }}</button>
         <button id="rsExit" class="reporting-link reporting-simple-close" data-testid="rs-exit"
                 title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
       </span>
@@ -120,6 +124,8 @@
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
           <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
           <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+          <button type="button" class="reporting-chartbtn" data-type="stacked" hidden title="{{ _('Stacked bar chart') }}" aria-label="{{ _('Stacked bar chart') }}" data-testid="rs-chart-stacked"><i class="fas fa-layer-group" aria-hidden="true"></i></button>
+          <button type="button" class="reporting-chartbtn" id="rsChartPng" title="{{ _('Download chart as image') }}" aria-label="{{ _('Download chart as image') }}" data-testid="rs-chart-png"><i class="fas fa-download" aria-hidden="true"></i></button>
           <button type="button" class="reporting-chartbtn" data-type="pie" title="{{ _('Pie chart') }}" aria-label="{{ _('Pie chart') }}" data-testid="rs-chart-pie"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
           <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
         </div>
@@ -129,6 +135,14 @@
     </div>
     <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
     <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+      <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
+        <div class="reporting-sqlview-bar">
+          <span>{{ _("Query sent to the database") }}</span>
+          <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
+        </div>
+        <pre id="rsSqlText"></pre>
+        <p id="rsSqlParams" class="reporting-sqlview-params"></p>
+      </div>
   </div>
 </section>
 {% include 'js/_reporting_simple_js.html' %}

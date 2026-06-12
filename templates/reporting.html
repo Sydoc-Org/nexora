@@ -121,6 +121,8 @@
             <i class="fas fa-play" aria-hidden="true"></i>{{ _("Run") }}</button>
           <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
           <button id="rpSaveAs" class="reporting-btn" data-testid="reporting-save-as">{{ _("Save as") }}</button>
+          <button type="button" id="rpShowSql" class="reporting-link" hidden
+                  data-testid="reporting-show-sql">{{ _("Show query") }}</button>
           <span class="reporting-actions-sep" aria-hidden="true"></span>
           <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
             <option value="xlsx">{{ _("Excel") }}</option>
@@ -203,6 +205,14 @@
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
       <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
+      <div class="nx-card nx-card--pad reporting-sqlview" id="rpSqlView" hidden data-testid="reporting-sql-view">
+        <div class="reporting-sqlview-bar">
+          <span>{{ _("Query sent to the database") }}</span>
+          <button type="button" id="rpSqlViewCopy" class="reporting-link" data-testid="reporting-sql-view-copy">{{ _("Copy") }}</button>
+        </div>
+        <pre id="rpSqlText"></pre>
+        <p id="rpSqlParams" class="reporting-sqlview-params"></p>
+      </div>
     </section>
 
     <aside class="reporting-wells" data-testid="reporting-wells">

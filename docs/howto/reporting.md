@@ -36,13 +36,20 @@ custom-header, save/load, and Excel-export support.
     result view. Hidden if AI is unconfigured.
   - **Result view** — a grand-total **number card** (computed by a zero-column
     clone run, so it is correct for every aggregation — avg/count_distinct
-    included), a **chart card** (line for date breakdowns, bar for categories by default, with a
-    bar/line/pie/doughnut switcher; the chosen type is saved with the report).
-    Category breakdowns beyond 50 rows chart the top 50 with a note; when no chart
-    is possible the result explains why (single total, too many date points, chart
-    library unavailable). A **Show table** toggle, *Save* (always creates a new
+    included), a **chart card** (line for date breakdowns, bar for categories by default,
+    with a bar/line/pie/doughnut switcher; the chosen type is saved with the report).
+    The wizard supports **up to three breakdowns** (at most one date); the first breakdown is
+    the chart axis, the second becomes the colored series (grouped bars or one line per
+    series, with a stacked-bar option); a third breakdown shows in the table only. Charts cap
+    at 50 axis values and 12 series; categories beyond 50 chart the top 50 with a note.
+    When no chart is possible the result explains why (single total, too many date points,
+    chart library unavailable). A **chart-PNG download** button in the chart toolbar saves
+    the current chart as an image. A **Show query** toggle reveals the executed SQL and bind
+    parameters (visible to anyone who can run reports, with a Copy button).
+    A **Show table** toggle, *Save* (always creates a new
     row under My reports), *Open in Advanced* (pre-fills the builder), and *Export*
-    (downloads Excel; needs `reporting.export`). For AI-built results, a
+    (downloads Excel with a title block and — when a chart is on screen — the chart image
+    embedded above the data; needs `reporting.export`). For AI-built results, a
     **transparency line** below the report title shows the AI's explanation
     and the filters/processes it applied, so a wrong guess (bad date range,
     wrong process) is immediately visible.
@@ -226,13 +233,19 @@ is **view-aware**:
 - **Grid** → the raw result rows. POST the report-definition JSON to
   `/api/reporting/export`; add `"format": "csv"` for CSV (default `xlsx`).
   Returns `.xlsx` via `openpyxl` or UTF-8 `.csv` (BOM-prefixed so Excel detects
-  the encoding). Custom column headers are used in the header row.
+  the encoding). Custom column headers are used in the header row. The XLSX
+  includes a **title block** (report title, source, generation timestamp) above
+  the frozen header row; when a chart is visible in the browser, the chart image
+  is **embedded above the data table** in the XLSX. CSV is unchanged (data rows
+  only).
 - **Pivot** → the computed pivot matrix. The client posts the displayed
   `{columns, rows}` to `/api/reporting/export/grid` (`reporting.export`; no DB
   access — pure serialization with the same formula-injection guard) in the
   chosen format.
 - **Chart** → a **PNG** image of the current chart, rendered client-side from the
   Chart.js canvas (flattened onto white). The format selector does not apply.
+  A dedicated **chart PNG download** button also appears in the Simple tab's chart
+  toolbar for one-click image saves without exporting the full dataset.
 
 Both serialization paths neutralize spreadsheet formula injection (leading
 `= + - @` are prefixed with `'`).
@@ -483,6 +496,12 @@ the server because `ops/` is deployed) finds due rows
 (`spGetUserPermissions`) and process scope, then reuses the same builders as the
 web path — renders the file, emails it via Microsoft Graph (`nx_lib/mail.py`,
 ROPC + `/me/sendMail`), and advances `NextRunAt` (`compute_next_run`).
+
+For reports with **1–2 breakdowns**, the runner server-renders a chart using
+**matplotlib** (Agg backend, no display required) and embeds it in two places:
+inline in the HTML mail body (as a `cid:` image) and above the data table in
+the attached XLSX. Chart rendering failures degrade gracefully — the mail is
+still sent and the XLSX still contains the full data, just without the chart image.
 
 Wire it with Windows Task Scheduler (e.g. every 15 minutes):
 

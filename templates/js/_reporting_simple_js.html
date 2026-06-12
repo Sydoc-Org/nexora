@@ -58,7 +58,13 @@
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
     noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
-    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }}
+    noChartThreeDims: {{ _("Charts support up to two breakdowns — the table shows all of them.")|tojson }},
+    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
+    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
+    showQuery: {{ _("Show query")|tojson }},
+    hideQuery: {{ _("Hide query")|tojson }},
+    sqlParamsLabel: {{ _("Parameters")|tojson }},
+    copied: {{ _("Copied")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Preferred
@@ -201,6 +207,8 @@
     el('rsChartTools').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = true;
   }
 
   function friendlyRunError(status, data) {
@@ -257,10 +265,14 @@
     var d = state.chartData;
     if (!d) return;
     destroyChart();
-    var circular = type === 'pie' || type === 'doughnut';
+    var multi = !!(d && d.multiSeries);
+    if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
+    var stacked = type === 'stacked';
+    var chartJsType = stacked ? 'bar' : type;
+    var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
     var datasets = d.datasets.map(function (ds) {
       var out = Object.assign({}, ds);
-      if (circular) {
+      if (!multi && circular) {
         out.backgroundColor = d.labels.map(function (_, i) {
           return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
         });
@@ -269,11 +281,17 @@
       return out;
     });
     state.chart = new Chart(el('rsChartCanvas'), {
-      type: type,
+      type: chartJsType,
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
-                 plugins: { legend: { display: circular || d.datasets.length > 1 } } }
+                 scales: (circular) ? {}
+                   : { x: { stacked: stacked }, y: { stacked: stacked } },
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } } }
     });
+    el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
+    el('rsChartCanvas').dataset.series = String(d.datasets.length);
     Array.prototype.forEach.call(
       el('rsChartTools').querySelectorAll('button'), function (b) {
         b.classList.toggle('is-selected', b.dataset.type === type);
@@ -290,6 +308,7 @@
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
     if (!window.Chart) { chartCardNote(I18N.noChartLib); return; }
+    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     if (rows.length > 50) {
@@ -297,6 +316,46 @@
       el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
       el('rsChartNote').hidden = false;
       rows = rows.slice(0, 50);
+    }
+    if (dims === 2) {
+      // Only the first metric is pivoted into series — wizard always emits one metric.
+      var metricIdx2 = columns.length - (def.metrics || []).length;
+      var xOrder = [], cell = {}, seriesTot = {};
+      rows.forEach(function (r) {
+        var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
+        var s = String(r[1] == null ? '' : r[1]);
+        var v = Number(r[metricIdx2]) || 0;
+        if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
+        cell[x][s] = (cell[x][s] || 0) + v;
+        seriesTot[s] = (seriesTot[s] || 0) + v;
+      });
+      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      var series = Object.keys(seriesTot).sort(function (a, b) {
+        return seriesTot[b] - seriesTot[a];
+      });
+      if (series.length > 12) {
+        el('rsChartNote').textContent =
+          I18N.chartSeriesCapped.replace('{shown}', '12').replace('{n}', String(series.length));
+        el('rsChartNote').hidden = false;
+        series = series.slice(0, 12);
+      }
+      state.chartData = {
+        labels: xOrder,
+        datasets: series.map(function (s, i) {
+          return {
+            label: s,
+            data: xOrder.map(function (x) { return cell[x][s] || 0; }),
+            borderColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            backgroundColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            tension: .25
+          };
+        }),
+        multiSeries: true
+      };
+      el('rsChartCard').hidden = false;
+      el('rsChartTools').hidden = false;
+      renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+      return;
     }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
@@ -313,7 +372,7 @@
         borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
       };
     });
-    state.chartData = { labels: labels, datasets: datasets };
+    state.chartData = { labels: labels, datasets: datasets, multiSeries: false };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
     renderChart(def.chartType || (isDate ? 'line' : 'bar'));
@@ -589,6 +648,11 @@
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
     if (seq !== runSeq) return;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    state.current.sql = res.data.sql || null;
+    state.current.params = res.data.params || [];
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = !state.current.sql;
+    el('rsShowSql').textContent = I18N.showQuery;
     var columns = res.data.columns || [], rows = res.data.rows || [];
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {
@@ -636,8 +700,39 @@
   el('rsChartTools').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-type]');
     if (!btn || !state.chartData) return;
-    if (state.current && state.current.def) state.current.def.chartType = btn.dataset.type;
+    // 'stacked' is a UI-only virtual type; don't persist it as a chartType since
+    // it maps to 'bar' with stacked scales and is not a valid Chart.js type.
+    if (state.current && state.current.def && btn.dataset.type !== 'stacked') {
+      state.current.def.chartType = btn.dataset.type;
+    }
     renderChart(btn.dataset.type);
+  });
+
+  el('rsShowSql').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var view = el('rsSqlView');
+    view.hidden = !view.hidden;
+    this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
+    if (!view.hidden) {
+      el('rsSqlText').textContent = cur.sql;
+      el('rsSqlParams').textContent = (cur.params || []).length
+        ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
+            return (i + 1) + " = '" + String(p) + "'";
+          }).join(', ')
+        : '';
+    }
+  });
+  el('rsSqlCopy').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var text = cur.sql + '\n-- params: ' + JSON.stringify(cur.params || []);
+    var btn = this;
+    navigator.clipboard.writeText(text).then(function () {
+      var prev = btn.textContent;
+      btn.textContent = I18N.copied;
+      setTimeout(function () { btn.textContent = prev; }, 1200);
+    }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
   // Save: always a NEW row (inline name input, no window.prompt).
@@ -679,10 +774,33 @@
     window.ReportingTabs.show('advanced');
   });
 
+  function chartPngDataUrl() {
+    if (!state.chart) return null;
+    var src = el('rsChartCanvas');
+    var c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(src, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  el('rsChartPng').addEventListener('click', function () {
+    var url = chartPngDataUrl();
+    if (!url) return;
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = ((state.current && state.current.name) || 'report') + '-chart.png';
+    a.click();
+  });
+
   if (EXPORT_ALLOWED) {
     el('rsExport').addEventListener('click', async function () {
       if (!state.current) return;  // error view without a loaded report
       var body = Object.assign({}, state.current.def, { format: 'xlsx' });
+      var png = chartPngDataUrl();
+      if (png) body.chartImage = png;
       var res;
       try {
         res = await fetch('/api/reporting/export', {
@@ -735,7 +853,7 @@
   async function startWizard() {
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
-    state.wiz = { measure: null, source: null, breakdown: null,
+    state.wiz = { measure: null, source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null };
     setView('wizard');
     el('rsStepBreakdown').hidden = true;
@@ -777,14 +895,16 @@
     el('rsWizardRun').hidden = true;
     var list = el('rsBreakdownList');
     list.innerHTML = '';
-    el('rsGrainWrap').hidden = !(state.wiz.breakdown && state.wiz.breakdown.kind === 'date');
-    var fields = state.wiz.source.fields || [];
+    var w = state.wiz;
+    if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
+
+    var fields = w.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var catFields = fields.filter(function (f) {
       return f.type === 'string' && f.filterable && f.field !== 'processname';
     });
 
-    if (state.wiz.source.id === 'docprocessing') {
+    if (w.source.id === 'docprocessing') {
       catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
       catFields.sort(function (a, b) {
         var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
@@ -794,25 +914,85 @@
       });
     }
 
+    function isSelected(bd) {
+      if (bd.kind === 'none') return w.breakdowns.length === 0;
+      var i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) return true;
+      }
+      return false;
+    }
+
+    function refreshChips() {
+      var chips = list.querySelectorAll('button[data-bd-kind]');
+      var ci;
+      for (ci = 0; ci < chips.length; ci++) {
+        var btn = chips[ci];
+        var bd = { kind: btn.dataset.bdKind,
+                   field: btn.dataset.bdField ? { field: btn.dataset.bdField } : null };
+        var sel = isSelected(bd);
+        btn.classList.toggle('is-selected', sel);
+        btn.setAttribute('aria-pressed', String(sel));
+      }
+      var hasDate = false;
+      for (ci = 0; ci < w.breakdowns.length; ci++) {
+        if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
+      }
+      el('rsGrainWrap').hidden = !hasDate;
+    }
+
+    function toggleBreakdown(bd) {
+      if (bd.kind === 'none') {
+        w.breakdowns = [];
+        refreshChips();
+        return;
+      }
+      var idx = -1, i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) {
+          idx = i; break;
+        }
+      }
+      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); return; }
+      if (bd.kind === 'date') {
+        w.breakdowns = w.breakdowns.filter(function (b) { return b.kind !== 'date'; });
+      }
+      if (w.breakdowns.length >= 3) { refreshChips(); return; }
+      w.breakdowns.push(bd);
+      refreshChips();
+    }
+
     dateFields.forEach(function (f) {
-      list.appendChild(choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
-        state.wiz.breakdown = { kind: 'date', field: f };
-        el('rsGrainWrap').hidden = false;
-        renderTimeStep();
-      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'date' && state.wiz.breakdown.field.field === f.field)));
+      var bd = { kind: 'date', field: f };
+      var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'date';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
     });
     catFields.slice(0, 12).forEach(function (f) {
-      list.appendChild(choiceBtn(f.label, function () {
-        state.wiz.breakdown = { kind: 'category', field: f };
-        el('rsGrainWrap').hidden = true;
-        renderTimeStep();
-      }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'category' && state.wiz.breakdown.field.field === f.field)));
+      var bd = { kind: 'category', field: f };
+      var btn = choiceBtn(f.label, function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'category';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
     });
-    list.appendChild(choiceBtn(I18N.justTotal, function () {
-      state.wiz.breakdown = { kind: 'none' };
-      el('rsGrainWrap').hidden = true;
-      renderTimeStep();
-    }, !!(state.wiz.breakdown && state.wiz.breakdown.kind === 'none')));
+    var noneBtn = choiceBtn(I18N.justTotal, function () {
+      toggleBreakdown({ kind: 'none' });
+    }, w.breakdowns.length === 0);
+    noneBtn.dataset.bdKind = 'none';
+    list.appendChild(noneBtn);
+
+    // Wire Continue button
+    var nextBtn = el('rsBreakdownNext');
+    if (nextBtn) {
+      nextBtn.onclick = function () { renderTimeStep(); };
+    }
 
     // Optional collapsed process picker (docprocessing only). Emits the same
     // scope serialisation as the Advanced picker; empty/full = all allowed
@@ -932,17 +1112,34 @@
     var w = state.wiz;
     var columns = [], sort = [], filters = [];
     var title = w.measure.label;
-    if (w.breakdown.kind === 'date') {
-      var grain = el('rsGrain').value;
-      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label,
-                     grain: grain });
-      sort.push({ field: w.breakdown.field.field, dir: 'asc' });
-      title += ' ' + I18N.per + ' ' +
-        el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase();
-    } else if (w.breakdown.kind === 'category') {
-      columns.push({ field: w.breakdown.field.field, header: w.breakdown.field.label });
+    var bds = (w.breakdowns || []).slice();
+    // date first: it becomes the chart axis (X)
+    bds.sort(function (a, b) {
+      return (a.kind === 'date' ? 0 : 1) - (b.kind === 'date' ? 0 : 1);
+    });
+    var grain = el('rsGrain').value || 'month';
+    var titleParts = [];
+    var hasDate = false;
+    bds.slice(0, 3).forEach(function (b) {
+      if (b.kind === 'date') {
+        hasDate = true;
+        columns.push({ field: b.field.field, header: b.field.label, grain: grain });
+        sort.push({ field: b.field.field, dir: 'asc' });
+        titleParts.push(I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase());
+      } else if (b.kind === 'category') {
+        columns.push({ field: b.field.field, header: b.field.label });
+        titleParts.push(b.field.label);
+      }
+    });
+    if (!sort.length && columns.length) {
       sort.push({ field: w.measure.code, dir: 'desc' });
-      title += ' ' + I18N.by + ' ' + w.breakdown.field.label;
+    }
+    if (titleParts.length) {
+      if (hasDate && bds.length === 1) {
+        title += ' ' + titleParts.join(' / ');
+      } else {
+        title += ' ' + I18N.by + ' ' + titleParts.join(' / ');
+      }
     }
     if (w.range && w.dateField) {
       filters.push({ field: w.dateField, op: 'between', value: w.range });
@@ -976,17 +1173,19 @@
     var m = mlist.find(function (x) { return x.code === def.metrics[0].metric; });
     if (!src || !m) return null;
     var cols = def.columns || [];
-    if (cols.length > 1) return null;
-    var breakdown = { kind: 'none' }, grain = null;
-    if (cols.length === 1) {
-      var f = (src.fields || []).find(function (x) { return x.field === cols[0].field; });
+    if (cols.length > 3) return null;
+    var breakdowns = [], grain = null, dateSeen = false;
+    var ci;
+    for (ci = 0; ci < cols.length; ci++) {
+      var f = (src.fields || []).find(function (x) { return x.field === cols[ci].field; });
       if (!f) return null;
-      if (cols[0].grain) {
-        if (!f.grainable) return null;
-        breakdown = { kind: 'date', field: f };
-        grain = cols[0].grain;
+      if (cols[ci].grain) {
+        if (!f.grainable || dateSeen) return null;
+        dateSeen = true;
+        breakdowns.push({ kind: 'date', field: f });
+        grain = cols[ci].grain;
       } else {
-        breakdown = { kind: 'category', field: f };
+        breakdowns.push({ kind: 'category', field: f });
       }
     }
     var filters = def.filters || [];
@@ -1009,7 +1208,7 @@
     }
     var scope = def.scope || {};
     if ((scope.clients || []).length) return null;
-    return { wiz: { measure: m, source: src, breakdown: breakdown,
+    return { wiz: { measure: m, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
                     range: range, dateField: dateField, _fp: null },
              grain: grain };
@@ -1043,7 +1242,7 @@
   el('rsNewReport').addEventListener('click', startWizard);
   el('rsWizardBack').addEventListener('click', function () { setView('library'); });
   el('rsWizardRun').addEventListener('click', function () {
-    if (!state.wiz || !state.wiz.measure || !state.wiz.breakdown) return;
+    if (!state.wiz || !state.wiz.measure) return;
     var def = wizardDefinition();
     state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,

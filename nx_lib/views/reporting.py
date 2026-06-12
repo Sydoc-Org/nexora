@@ -21,6 +21,7 @@ Routes:
   GET/POST/PUT/DELETE /api/reporting/reports/<id>/schedules[/<sid>]  owner: schedules
 """
 
+import base64
 import datetime
 import decimal
 import json
@@ -907,7 +908,24 @@ def _resolve_export_format(value):
     return fmt if fmt in _EXPORT_FORMATS else "xlsx"
 
 
-def _serialize_export(columns, rows, title, fmt):
+_CHART_IMAGE_PREFIX = "data:image/png;base64,"
+_CHART_IMAGE_MAX = 2_000_000  # decoded bytes
+
+
+def _parse_chart_image(value):
+    """Decode a client-supplied chart data-URL; returns PNG bytes or None on anything dubious."""
+    if not isinstance(value, str) or not value.startswith(_CHART_IMAGE_PREFIX):
+        return None
+    try:
+        raw = base64.b64decode(value[len(_CHART_IMAGE_PREFIX) :], validate=True)
+    except Exception:
+        return None
+    if len(raw) > _CHART_IMAGE_MAX or raw[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    return raw
+
+
+def _serialize_export(columns, rows, title, fmt, chart_png=None):
     """Build a Flask download Response for `rows` in the requested format."""
     name = _safe_report_name(title)
     if fmt == "csv":
@@ -917,7 +935,7 @@ def _serialize_export(columns, rows, title, fmt):
             headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
         )
     return Response(
-        rows_to_xlsx(columns, rows, title=title or "Report"),
+        rows_to_xlsx(columns, rows, title=title or "Report", chart_png=chart_png),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
     )
@@ -992,6 +1010,8 @@ def api_run():
         "rows": _rows_json_safe(rows),
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
+        "sql": sql,
+        "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
@@ -1562,6 +1582,7 @@ def api_export():
     rd = request.get_json(silent=True)
     if not isinstance(rd, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
+    chart_png = _parse_chart_image(rd.pop("chartImage", None))
     fmt = _resolve_export_format(rd.get("format"))
     if rd.get("kind") == "sql":
         if not has_permission("reporting.sql.run"):
@@ -1586,7 +1607,9 @@ def api_export():
         except Exception as e:
             current_app.logger.error(f"/api/reporting/export sql error: {e}")
             return jsonify({"error": _("Could not export query")}), 500
-        return _serialize_export(columns, rows, rd.get("title") or "Report", fmt)
+        return _serialize_export(
+            columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png
+        )
     try:
         columns, sql, params, engine = _prepare_run(rd)
         rows = _execute(engine, sql, params)
@@ -1597,7 +1620,7 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
-    return _serialize_export(columns, rows, rd.get("title") or "Report", fmt)
+    return _serialize_export(columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png)
 
 
 @require_permission("reporting.export")
@@ -1612,6 +1635,7 @@ def api_export_grid():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
+    chart_png = _parse_chart_image(payload.pop("chartImage", None))
     raw_cols = payload.get("columns")
     rows = payload.get("rows")
     if not isinstance(raw_cols, list) or not raw_cols or not isinstance(rows, list):
@@ -1625,7 +1649,9 @@ def api_export_grid():
             columns.append({"field": str(c), "header": str(c)})
     rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:MAX_ROW_LIMIT]]
     fmt = _resolve_export_format(payload.get("format"))
-    return _serialize_export(columns, rows, payload.get("title") or "Report", fmt)
+    return _serialize_export(
+        columns, rows, payload.get("title") or "Report", fmt, chart_png=chart_png
+    )
 
 
 @require_permission("reporting.view")

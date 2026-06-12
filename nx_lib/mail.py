@@ -47,30 +47,56 @@ def _acquire_token():
         raise MailError(f"Graph token error: {resp.status_code} {resp.text[:200]}") from e
 
 
-def send_mail(to, subject, html_body, attachments=None):
-    """Send an HTML mail with optional attachments.
+def _build_message(to, subject, html_body, attachments=None, inline_images=None):
+    """Build the Graph sendMail message dict.
 
-    to: an address or list of addresses. attachments: list of
-    (filename, bytes, content_type). Raises MailError on failure.
+    attachments: [(filename, bytes, content_type)] — regular file attachments.
+    inline_images: [(content_id, bytes, content_type)] — referenced from the
+        HTML body as <img src="cid:content_id">.
     """
     if isinstance(to, str):
         to = [to]
-    token = _acquire_token()
     message = {
         "subject": subject,
         "body": {"contentType": "HTML", "content": html_body},
         "toRecipients": [{"emailAddress": {"address": a}} for a in to],
     }
-    if attachments:
-        message["attachments"] = [
+    entries = []
+    for name, data, content_type in attachments or []:
+        entries.append(
             {
                 "@odata.type": "#microsoft.graph.fileAttachment",
                 "name": name,
                 "contentType": content_type,
                 "contentBytes": base64.b64encode(data).decode("ascii"),
             }
-            for (name, data, content_type) in attachments
-        ]
+        )
+    for cid, data, content_type in inline_images or []:
+        entries.append(
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": cid,
+                "contentType": content_type,
+                "contentBytes": base64.b64encode(data).decode("ascii"),
+                "isInline": True,
+                "contentId": cid,
+            }
+        )
+    if entries:
+        message["attachments"] = entries
+    return message
+
+
+def send_mail(to, subject, html_body, attachments=None, inline_images=None):
+    """Send an HTML mail with optional attachments and inline images.
+
+    to: an address or list of addresses. attachments: list of
+    (filename, bytes, content_type). inline_images: list of
+    (content_id, bytes, content_type), shown via <img src="cid:...">.
+    Raises MailError on failure.
+    """
+    token = _acquire_token()
+    message = _build_message(to, subject, html_body, attachments, inline_images)
     resp = requests.post(
         _SENDMAIL_URL,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},

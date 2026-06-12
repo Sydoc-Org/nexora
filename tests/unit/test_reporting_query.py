@@ -450,6 +450,40 @@ def test_workitem_id_filter_uses_cast_and_drops_unexposed_process():
     assert "[StatC]" not in sql
 
 
+def test_aggregate_groups_by_two_category_dims():
+    """Two categorical dimensions emit GROUP BY on both aliases."""
+    rd = _rd(
+        columns=[{"field": "doctype"}, {"field": "status"}],
+        filters=[],
+        sort=[{"field": "doc_count", "dir": "desc"}],
+    )
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "GROUP BY [doctype], [status]" in sql
+    assert sql.count("[doctype]") >= 2  # projected and grouped
+
+
+def test_aggregate_groups_by_month_grain_plus_category():
+    """The wizard's 'per month by export date, by docsource' shape:
+    date-grain dim first, category second."""
+    rd = _rd(
+        columns=[
+            {"field": "export_date", "grain": "month"},
+            {"field": "doctype"},
+        ],
+        filters=[],
+        sort=[],
+    )
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "GROUP BY [export_date], [doctype]" in sql
+    assert "DATEFROMPARTS" in sql  # month truncation applied to the date dim
+
+
 def test_count_distinct_workitem_metric_groups_by_dims():
     rd = _rd(
         columns=[{"field": "doctype", "header": "T", "agg": None}],

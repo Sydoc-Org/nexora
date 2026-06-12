@@ -383,8 +383,24 @@
     }
   }
 
+  var I18N_SHOW_QUERY = {{ _("Show query")|tojson }};
+  var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
+  var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
+  var I18N_COPIED = {{ _("Copied")|tojson }};
+
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    // Stash the echoed SQL for the Show query panel. Only /run echoes sql;
+    // SQL-sandbox runs (/api/reporting/sql/run) never set a sql key — button stays hidden.
+    var sqlBtn = document.getElementById('rpShowSql');
+    var sqlView = document.getElementById('rpSqlView');
+    state._lastSql = data.sql || null;
+    state._lastParams = data.params || [];
+    if (sqlBtn) {
+      sqlBtn.hidden = !state._lastSql;
+      sqlBtn.textContent = I18N_SHOW_QUERY;
+    }
+    if (sqlView) sqlView.hidden = true;
     resetViews(!!(data.rows && data.rows.length));
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
@@ -559,6 +575,10 @@
     var ext = fmt === 'csv' ? '.csv' : '.xlsx';
     var body = currentDefinition();
     body.format = fmt;
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) body.chartImage = png;
+    }
     var run = function () {
       api('/api/reporting/export', { method: 'POST', body: JSON.stringify(body) })
         .then(function (res) { return res.blob(); })
@@ -576,9 +596,14 @@
     var fmt = exportFormat();
     var ext = fmt === 'csv' ? '.csv' : '.xlsx';
     var title = document.getElementById('rpTitle').value || 'pivot';
+    var gridBody = { columns: ex.columns, rows: ex.rows, title: title, format: fmt };
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) gridBody.chartImage = png;
+    }
     api('/api/reporting/export/grid', {
       method: 'POST',
-      body: JSON.stringify({ columns: ex.columns, rows: ex.rows, title: title, format: fmt }),
+      body: JSON.stringify(gridBody),
     }).then(function (res) { return res.blob(); })
       .then(function (blob) { downloadBlob(blob, title + ext); })
       .catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
@@ -1278,6 +1303,37 @@
     // Escape (from the button or any checkbox in the menu) closes + returns focus.
     document.getElementById('rpScopeWrap').addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { toggleScopeMenu(false); rpScopeBtn.focus(); }
+    });
+  }
+
+  var rpShowSqlBtn = document.getElementById('rpShowSql');
+  if (rpShowSqlBtn) {
+    rpShowSqlBtn.addEventListener('click', function () {
+      if (!state._lastSql) return;
+      var view = document.getElementById('rpSqlView');
+      view.hidden = !view.hidden;
+      this.textContent = view.hidden ? I18N_SHOW_QUERY : I18N_HIDE_QUERY;
+      if (!view.hidden) {
+        document.getElementById('rpSqlText').textContent = state._lastSql;
+        document.getElementById('rpSqlParams').textContent = (state._lastParams || []).length
+          ? I18N_SQL_PARAMS + ': ' + state._lastParams.map(function (p, i) {
+              return (i + 1) + " = '" + String(p) + "'";
+            }).join(', ')
+          : '';
+      }
+    });
+  }
+  var rpSqlViewCopyBtn = document.getElementById('rpSqlViewCopy');
+  if (rpSqlViewCopyBtn) {
+    rpSqlViewCopyBtn.addEventListener('click', function () {
+      if (!state._lastSql) return;
+      var text = state._lastSql + '\n-- params: ' + JSON.stringify(state._lastParams || []);
+      var btn = this;
+      navigator.clipboard.writeText(text).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = I18N_COPIED;
+        setTimeout(function () { btn.textContent = prev; }, 1200);
+      }).catch(function () { /* clipboard unavailable */ });
     });
   }
 
