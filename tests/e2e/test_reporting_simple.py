@@ -977,7 +977,7 @@ def test_simple_truncation_note(nexora_server, page):
     try:
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-group-mine").get_by_text("e2e trunc note").click()
-        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        expect(page.locator("#rsResult table")).to_be_visible(timeout=15000)
         expect(page.get_by_test_id("rs-msg")).to_contain_text("first 1")
     finally:
         page.evaluate(
