@@ -1,3 +1,7 @@
+> **SUPERSEDED** — execution is complete. A newer handoff exists:
+> `docs/superpowers/handoffs/2026-06-12-reporting-loading-states-sql-display-execution.md`
+> Use `/reset-session docs/superpowers/handoffs/2026-06-12-reporting-loading-states-sql-display-execution.md`
+
 # Handoff — reporting loading-states + formatted SQL display: plan written
 
 - **Date:** 2026-06-12
