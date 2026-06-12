@@ -32,6 +32,25 @@ use **`EnterWorktree`** (if available) to switch into it, or prefix all git/file
 
 If no worktree was recorded (branch was clean during `/write-plan`), proceed in the current directory.
 
+## 1.5. Set session title
+
+Once you know the branch and whether a worktree is involved, set the terminal window title:
+
+```powershell
+$branch      = git branch --show-current          # e.g. feature/2.5.63
+$shortBranch = $branch -replace '^feature/', ''   # e.g. 2.5.63
+
+if ($worktreePath) {
+    # Running in or targeting a worktree created by /write-plan
+    $Host.UI.RawUI.WindowTitle = "[$shortBranch | worktree] exec: $slug"
+} else {
+    $Host.UI.RawUI.WindowTitle = "[$shortBranch] exec: $slug"
+}
+```
+
+Update the title again after entering the worktree (if applicable) so the label reflects the active
+context throughout execution.
+
 ## 2. `main` guard
 
 If the effective working branch is `main`: stop, say so, tell the user to switch branches, do nothing.

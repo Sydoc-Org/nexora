@@ -13,7 +13,27 @@ Write a comprehensive nexora implementation plan for: `$ARGUMENTS`. Run **fully 
 - Locate and **read** the `superpowers:writing-plans` skill's `SKILL.md` (Glob for it under the plugin/skills directories). Do **not** invoke it via the Skill tool — you need its content as input for the draft agents, not its interactive process.
 - Search `docs/superpowers/specs/` for a spec matching the slug. If one exists, the plan must link it and honor its decisions; this command never authors a spec.
 
-## 1.5. Busy-branch worktree isolation
+## 1.5. Set session title
+
+Once you know the branch and slug, set the terminal window title immediately so the session is
+identifiable while it runs (especially useful for remote / multiple-tab workflows):
+
+```powershell
+$branch = git branch --show-current          # e.g. feature/2.5.63
+$shortBranch = $branch -replace '^feature/', ''   # e.g. 2.5.63
+
+# Before worktree check — use the feature branch name
+$Host.UI.RawUI.WindowTitle = "[$shortBranch] plan: $slug"
+```
+
+After the worktree check (step 1.6), if a worktree was created, **update the title** to reflect that:
+
+```powershell
+# After creating the worktree
+$Host.UI.RawUI.WindowTitle = "[$shortBranch | worktree] plan: $slug"
+```
+
+## 1.6. Busy-branch worktree isolation
 
 Before starting the planning Workflow, check whether the current branch is being actively worked on:
 
