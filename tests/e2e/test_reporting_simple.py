@@ -940,3 +940,125 @@ def test_chart_png_download(page, nexora_server):
             }""",
             ids,
         )
+
+
+def test_simple_truncation_note(nexora_server, page):
+    """A library report with rowLimit:1 over dbo.Users triggers truncation; the
+    rs-msg element must contain 'first 1'."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'trunc_users', kind: 'curated', label: 'Truncation Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 30});
+          const rpt = await post('/api/reporting/reports', {
+            name: 'e2e trunc note',
+            definition: {
+              schemaVersion: 1, source: 'trunc_users', visualization: 'table',
+              title: 'e2e trunc note',
+              columns: [{field: 'username'}],
+              filters: [], sort: [],
+              scope: {clients: [], processes: []},
+              rowLimit: 1}});
+          return {src: src.id, rpt: rpt.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-group-mine").get_by_text("e2e trunc note").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        expect(page.get_by_test_id("rs-msg")).to_contain_text("first 1")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              if (ids.rpt) await del('/api/reporting/reports/' + ids.rpt);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_advanced_truncation_note_renders(nexora_server, page):
+    """Advanced result view: when /api/reporting/run returns truncated=true and
+    rowCount=5000, a .reporting-truncated-note element containing '5000' renders
+    above the table."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'trunc_adv', kind: 'curated', label: 'Truncation Advanced',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 31});
+          return {src: src.id};
+        }"""
+    )
+    try:
+        # Stub /run to return a truncated response with synthetic data.
+        stub_body = json.dumps(
+            {
+                "columns": [{"field": "username", "header": "Username"}],
+                "rows": [["alice"]],
+                "truncated": True,
+                "rowCount": 5000,
+                "sql": None,
+                "params": [],
+                "resolvedDates": [],
+            }
+        )
+
+        def _stub_run(route):
+            route.fulfill(status=200, content_type="application/json", body=stub_body)
+
+        page.route("**/api/reporting/run", _stub_run)
+
+        # Use applyDefinition to pre-populate the builder, then click Run.
+        page.wait_for_selector("[data-testid='reporting-field-panel']", state="visible")
+        page.evaluate(
+            """() => {
+              if (window.Reporting && window.Reporting.applyDefinition) {
+                window.Reporting.applyDefinition({
+                  schemaVersion: 1, source: 'trunc_adv', visualization: 'table',
+                  title: 'trunc adv test',
+                  columns: [{field: 'username'}],
+                  filters: [], sort: [],
+                  scope: {clients: [], processes: []}, rowLimit: 5000
+                }, 'trunc adv test', null);
+              }
+            }"""
+        )
+        page.get_by_test_id("reporting-run").click()
+        note = page.locator(".reporting-truncated-note")
+        expect(note).to_be_visible()
+        expect(note).to_contain_text("5000")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

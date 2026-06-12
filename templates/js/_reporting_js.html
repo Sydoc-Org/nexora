@@ -387,6 +387,7 @@
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
+  var I18N_TRUNCATED = {{ _("Showing first {n} rows — results were truncated.")|tojson }};
 
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
@@ -411,6 +412,13 @@
       wrap.appendChild(empty);
       return;
     }
+    if (data.truncated && data.rowCount) {
+      var note = document.createElement('p');
+      note.className = 'reporting-truncated-note';
+      note.textContent = I18N_TRUNCATED.replace('{n}', String(data.rowCount));
+      wrap.appendChild(note);
+    }
+
     var table = document.createElement('table');
     table.className = 'reporting-table';
 
