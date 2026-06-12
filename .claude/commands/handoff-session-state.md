@@ -57,14 +57,59 @@ per-turn permission). Stop, say so, tell the user to switch to a feature branch,
   even if `$ARGUMENTS` asks to push (only commit; tell them to push).
 - After committing, show `git log -1 --stat` and capture the short hash.
 
-## 5. Drop the resume flag
+## 5. Worktree cleanup (if in a linked worktree)
+
+Detect whether the current working directory is a **linked worktree** (not the main checkout):
+
+```powershell
+$gitDir    = git rev-parse --git-dir
+$gitCommon = git rev-parse --git-common-dir
+# If $gitDir -ne $gitCommon → linked worktree
+```
+
+**If not in a linked worktree:** skip this step entirely.
+
+**If in a linked worktree**, do all of the following in order:
+
+1. **Capture names** — record the current worktree path (`git rev-parse --show-toplevel`) and
+   branch name (`git branch --show-current`).
+
+2. **Merge into the parent branch** — from the **base repo root** (`git rev-parse --git-common-dir`
+   minus `/.git`), run:
+   ```powershell
+   $base   = (git -C $baseRoot branch --show-current)   # e.g. feature/2.5.63
+   $SQL_SYNC_SKIP = "1"
+   git -C $baseRoot merge --no-ff $worktreeBranch -m "feat(...): merge <worktree-branch> into $base"
+   ```
+   If `git merge` reports **Already up to date**, the commits were already in the parent — nothing
+   to do, continue to removal.  If there are **conflicts**, stop, surface them to the user, and
+   skip removal.
+
+3. **Remove the worktree** — from the base repo root:
+   ```powershell
+   git -C $baseRoot worktree remove --force $worktreePath
+   ```
+
+4. **Delete the worktree branch**:
+   ```powershell
+   git -C $baseRoot branch -d $worktreeBranch
+   ```
+   Use `-d` (safe delete, not `-D`) — it will refuse if somehow the branch is not fully merged, which
+   is the right guard.
+
+5. **Verify** — run `git -C $baseRoot worktree list` and confirm the removed worktree is gone.
+
+Note the outcome in the handoff ("worktree removed and branch deleted") so the next session doesn't
+look for it.
+
+## 7. Drop the resume flag
 
 Write the handoff's repo-relative path (e.g. `docs/superpowers/handoffs/2026-06-09-foo.md`) as the
 single line of `var/handoff-pending` (gitignored — never commit it). The SessionStart hook
 (`.claude/helpers/check-handoff-pending.ps1`) reads this flag in the next fresh session and points
 it at `/reset-session`, which consumes the flag.
 
-## 6. Prompt to clear
+## 8. Prompt to clear
 
 Only the user can run `/clear`. **End your entire response** with one prominent line and nothing
 after it:
