@@ -88,6 +88,10 @@
         <button id="rsSave" class="reporting-btn" data-testid="rs-save">{{ _("Save") }}</button>
         <button id="rsOpenAdvanced" class="reporting-btn" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
         {% if has_permission('reporting.export') %}
+        <select id="rsExportFormat" class="reporting-export-format" data-testid="rs-export-format" title="{{ _('Export format') }}">
+          <option value="xlsx">{{ _("Excel") }}</option>
+          <option value="csv">CSV</option>
+        </select>
         <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
         {% endif %}
         <button type="button" id="rsShowSql" class="reporting-link" hidden

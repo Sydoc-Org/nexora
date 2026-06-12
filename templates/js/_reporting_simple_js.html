@@ -806,8 +806,10 @@
   if (EXPORT_ALLOWED) {
     el('rsExport').addEventListener('click', async function () {
       if (!state.current) return;  // error view without a loaded report
-      var body = Object.assign({}, state.current.def, { format: 'xlsx' });
-      var png = chartPngDataUrl();
+      var fmtSel = el('rsExportFormat');
+      var fmt = (fmtSel && fmtSel.value === 'csv') ? 'csv' : 'xlsx';
+      var body = Object.assign({}, state.current.def, { format: fmt });
+      var png = fmt === 'xlsx' ? chartPngDataUrl() : null;
       if (png) body.chartImage = png;
       var res;
       try {
@@ -825,7 +827,7 @@
       var blob = await res.blob();
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = (state.current.name || 'report') + '.xlsx';
+      a.download = (state.current.name || 'report') + '.' + fmt;
       a.click();
       URL.revokeObjectURL(a.href);
     });
