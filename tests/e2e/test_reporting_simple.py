@@ -975,3 +975,71 @@ def test_sqlformat_marks_placeholders_and_numbers(nexora_server, page):
     )
     assert html.count('<span class="sql-param">?</span>') == 2
     assert '<span class="sql-number">100</span>' in html
+
+
+def test_run_shows_loading_then_result(nexora_server, page):
+    """The pulsing run indicator appears while /api/reporting/run is in flight
+    and is hidden once the result cards render. Localhost runs are fast, so
+    visibility is latched with a MutationObserver (same idiom as the AI test)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_runload', kind: 'curated', label: 'Run Load Test',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 19});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_runload_count', sourceId: 'wiz_runload', label: 'Run load count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.evaluate("""() => {
+            window.__runLoadingWasSeen = false;
+            const el = document.getElementById('rsRunLoading');
+            if (!el) return;
+            if (!el.hidden) { window.__runLoadingWasSeen = true; return; }
+            const obs = new MutationObserver(() => {
+                if (!el.hidden) {
+                    window.__runLoadingWasSeen = true;
+                    obs.disconnect();
+                }
+            });
+            obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+        }""")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Run load count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        # rs-show-sql appears only after the MAIN run response is processed,
+        # which is strictly after the indicator is hidden.
+        expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
+        expect(page.get_by_test_id("rs-run-loading")).to_be_hidden()
+        expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
+        assert page.evaluate(
+            "() => window.__runLoadingWasSeen"
+        ), "rsRunLoading never became visible during the report run"
+        page.screenshot(path="var/screenshots/reporting_simple_run_loading.png")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )

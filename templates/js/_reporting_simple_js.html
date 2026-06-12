@@ -193,6 +193,7 @@
   // ---------- Result view ----------
   function showResultError(msg) {
     hideAiLoading();
+    el('rsRunLoading').hidden = true;
     if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
@@ -582,6 +583,7 @@
     el('rsChartCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
+    el('rsRunLoading').hidden = true;
     var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
     var i = 0;
     el('rsAiLoadingText').textContent = lines[0];
@@ -623,6 +625,7 @@
     el('rsChartCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
+    el('rsRunLoading').hidden = false;
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
@@ -647,6 +650,9 @@
     // Breakdown run (or the plain grid run for non-metric definitions).
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
     if (seq !== runSeq) return;
+    // Hide only after the staleness guard: a slow stale response must never
+    // hide the indicator a newer run just showed.
+    el('rsRunLoading').hidden = true;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
