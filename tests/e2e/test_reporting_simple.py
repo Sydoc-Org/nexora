@@ -1062,3 +1062,117 @@ def test_advanced_truncation_note_renders(nexora_server, page):
             }""",
             ids,
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 7: This week / This quarter wizard presets + WIZ_TOKENS round-trip
+# ---------------------------------------------------------------------------
+
+WIZ_STUB_SOURCES = [
+    {
+        "id": "stub_src",
+        "label": "Stub source",
+        "kind": "curated",
+        "processes": [],
+        "fields": [
+            {
+                "field": "import_date",
+                "label": "Import date",
+                "type": "date",
+                "grainable": True,
+                "filterable": True,
+            },
+            {
+                "field": "doctype",
+                "label": "Doc type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+WIZ_STUB_METRICS = {
+    "stub_src": [
+        {"code": "stub_count", "label": "Stub count", "aggregation": "count"},
+    ]
+}
+
+
+def _stub_catalogs(page):
+    # MUST be registered before page.goto: the Simple pane fetches the metrics
+    # catalog in initOnce() at rp:tabshown (page load), not at first wizard open.
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_SOURCES)
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_METRICS)
+        ),
+    )
+
+
+def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    tl = page.get_by_test_id("rs-time-list")
+    expect(tl.get_by_text("This week", exact=True)).to_be_visible()
+    expect(tl.get_by_text("This quarter", exact=True)).to_be_visible()
+
+
+def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
+    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust in wizard'."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    # Warm the sources cache (fetched lazily at first wizard open; the adjust
+    # check reads state.sources/state.metricsBySource).
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-wizard-close").click()
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "stub_count", "header": "Stub count"}],
+                    "rows": [[7]],
+                    "rowCount": 1,
+                    "truncated": False,
+                    "sql": "SELECT 7",
+                    "params": [],
+                }
+            ),
+        ),
+    )
+    _stub_ai_build(
+        page,
+        definition={
+            "schemaVersion": 1,
+            "source": "stub_src",
+            "visualization": "table",
+            "title": "quarter stub",
+            "subtitle": None,
+            "columns": [],
+            "metrics": [{"metric": "stub_count"}],
+            "filters": [
+                {"field": "import_date", "op": "between", "value": {"token": "this_quarter"}}
+            ],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 5000,
+        },
+    )
+    page.get_by_test_id("rs-ai-prompt").fill("total this quarter")
+    page.get_by_test_id("rs-ai-ask").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
