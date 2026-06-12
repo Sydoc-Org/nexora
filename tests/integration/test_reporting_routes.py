@@ -328,6 +328,61 @@ def test_schedule_validation_400(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+def test_schedule_alert_fields_roundtrip(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        cr = admin_client.post(
+            f"/api/reporting/reports/{rid}/schedules",
+            json={
+                "frequency": "daily",
+                "hour": 6,
+                "minute": 0,
+                "format": "csv",
+                "recipients": "a@x.com",
+                "alertOp": "gt",
+                "alertThreshold": 250,
+            },
+        )
+        assert cr.status_code == 200, cr.data
+        lst = admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json()
+        assert lst[0]["alertOp"] == "gt" and lst[0]["alertThreshold"] == 250.0
+
+        sid = lst[0]["id"]  # PUT without alert fields clears the condition (full-replace)
+        up = admin_client.put(
+            f"/api/reporting/reports/{rid}/schedules/{sid}",
+            json={
+                "frequency": "daily",
+                "hour": 6,
+                "minute": 0,
+                "format": "csv",
+                "recipients": "a@x.com",
+                "enabled": True,
+            },
+        )
+        assert up.status_code == 200
+        lst = admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json()
+        assert lst[0]["alertOp"] is None and lst[0]["alertThreshold"] is None
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_schedule_alert_validation_400(admin_client):
+    rid = _create_report(admin_client)
+    try:
+        for bad in (
+            {"alertOp": "eq", "alertThreshold": 1},
+            {"alertOp": "gt"},
+            {"alertOp": "gt", "alertThreshold": "soon"},
+        ):
+            r = admin_client.post(
+                f"/api/reporting/reports/{rid}/schedules",
+                json={"frequency": "daily", "hour": 6, "recipients": "a@x.com", **bad},
+            )
+            assert r.status_code == 400, r.data
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
 def test_runner_dry_run_processes_due_table_report(admin_client):
     # End-to-end: register a 'table' source over Users, save a report on it, queue
     # a past-due schedule, then run the runner in dry-run (builds the report via
