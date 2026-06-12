@@ -223,10 +223,10 @@ BEGIN
         Enabled      BIT NOT NULL CONSTRAINT DF_ReportSchedules_Enabled DEFAULT 1,
         LastRunAt    DATETIME2 NULL,
         NextRunAt    DATETIME2 NULL,
-        AlertOp      NVARCHAR(8) NULL,
-        AlertThreshold FLOAT NULL,
         CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        AlertOp      NVARCHAR(8) NULL,
+        AlertThreshold FLOAT NULL,
         CONSTRAINT FK_ReportSchedules_Reports FOREIGN KEY (ReportID)
             REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
         CONSTRAINT FK_ReportSchedules_Users FOREIGN KEY (OwnerUserID)
