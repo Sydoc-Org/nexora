@@ -9,7 +9,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
-- Reporting: "Show query" on Simple and Advanced results — reveals the executed SQL and bind parameters, with copy.
+- Reporting: "Show query" on Simple and Advanced results — reveals the executed SQL (pretty-printed server-side via sqlglot, syntax-highlighted, collapsed by default) and bind parameters; Copy copies the raw executed statement.
+- Reporting: in-flight loading indicators — Simple and Advanced report runs show a pulsing status (the Advanced Run button locks while running), and all three Advanced Ask-AI surfaces show a thinking indicator with rotating status lines.
 - Reporting Simple wizard: up to three breakdowns (at most one date); two-breakdown results chart as multi-series with a stacked-bar option.
 - Reporting: XLSX exports gain a title block and embed the on-screen chart; Simple gets a chart-PNG download button.
 - Reporting: scheduled report mails embed a server-rendered chart (matplotlib) inline and in the attached XLSX.

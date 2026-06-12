@@ -44,8 +44,13 @@ custom-header, save/load, and Excel-export support.
     at 50 axis values and 12 series; categories beyond 50 chart the top 50 with a note.
     When no chart is possible the result explains why (single total, too many date points,
     chart library unavailable). A **chart-PNG download** button in the chart toolbar saves
-    the current chart as an image. A **Show query** toggle reveals the executed SQL and bind
-    parameters (visible to anyone who can run reports, with a Copy button).
+    the current chart as an image. A **Show query** toggle (collapsed by default,
+    re-collapsed on every run) reveals the executed SQL — pretty-printed server-side
+    (sqlglot) and syntax-highlighted — plus its bind parameters (visible to anyone who
+    can run reports; the Copy button copies the raw executed statement). While a report
+    runs, both tabs show a pulsing in-flight indicator (the Advanced **Run** button locks
+    until the response lands), and the Advanced Ask-AI surfaces show the same indicator
+    with rotating status lines.
     A **Show table** toggle, *Save* (always creates a new
     row under My reports), *Open in Advanced* (pre-fills the builder), and *Export*
     (downloads Excel with a title block and — when a chart is on screen — the chart image
