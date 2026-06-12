@@ -1,3 +1,7 @@
+> **SUPERSEDED** — a newer handoff for the same date exists:
+> `docs/superpowers/handoffs/2026-06-12-write-plan-execute-plan-workflow.md`
+> Use `/reset-session docs/superpowers/handoffs/2026-06-12-write-plan-execute-plan-workflow.md`
+
 # Handoff — rich-export merge complete + drill-through Task 1
 
 - **Date:** 2026-06-12
