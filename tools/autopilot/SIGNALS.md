@@ -39,7 +39,7 @@ multi-agent skill spawns under `-p`. The existential feasibility risk is cleared
 | `/execute-plan` headless merges its worktree back | yes (skill ends with `--merge-worktree`) | ⬜ pending |
 | BLOCKED handoff literal | matched by regex `\bBLOCKED\b` or `max_turns` | ⬜ pending — paste the real wording here |
 | plan commit message prefix | not relied on (we check commit-landed + fresh plan md) | n/a |
-| `--effort high` accepted alongside `--model fable` | yes | ⬜ pending |
+| `--effort high` accepted alongside `--model opus` | yes | ⬜ pending |
 
 When you run the first happy-path issue (README → "First run"), capture the real
 `/execute-plan` JSON + the handoff wording here, and tighten `probe-state.ps1`'s

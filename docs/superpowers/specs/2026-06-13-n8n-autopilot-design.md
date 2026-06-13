@@ -7,7 +7,7 @@
 
 ## Goal
 
-Automate the existing manual Claude Code development loop (`/write-plan` on Fable
+Automate the existing manual Claude Code development loop (`/write-plan` on Opus
 → `/clear` → `/execute-plan` on Sonnet → `/clear` → repeat) into an **unattended
 feature factory** driven by n8n. A GitHub issue labelled `autopilot` is the unit
 of work; n8n plans it, executes it, and commits — stopping exactly where the human
@@ -76,7 +76,7 @@ GitHub issue gets `autopilot` label
         ▼
 [Loop Over Items]  batch size 1, issues oldest-first (by number asc)
   ├─ pre-flight:  git status --porcelain on feature/2.5.63  →  dirty? HALT
-  ├─ PLAN:        claude -p --model fable --dangerously-skip-permissions
+  ├─ PLAN:        claude -p --model opus --dangerously-skip-permissions
   │                      --output-format json --effort high  "/write-plan <title+body>"
   ├─ verify plan: json subtype ≠ error_max_turns  AND  var/handoff-pending points to a
   │                fresh docs/superpowers/plans/<date>-*.md  AND  a plan commit landed

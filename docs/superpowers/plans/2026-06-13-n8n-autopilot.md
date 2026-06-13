@@ -4,7 +4,7 @@
 
 **Goal:** Drive the existing `/write-plan` → `/execute-plan` loop unattended via a local n8n workflow, fed by GitHub issues labelled `autopilot`, stopping at `git commit` and reporting to Telegram.
 
-**Architecture:** Local native n8n polls GitHub for `autopilot`-labelled issues, takes a single-run lockfile, and runs an n8n-native loop. Each issue is planned (`claude -p` on Fable) and executed (`claude -p` on Sonnet) in headless print mode; success/blocked is decided by inspecting git + handoff state (not exit codes) via a small stateless `probe-state.ps1`; branching, looping, and notifications live on the n8n canvas. First failure halts the run.
+**Architecture:** Local native n8n polls GitHub for `autopilot`-labelled issues, takes a single-run lockfile, and runs an n8n-native loop. Each issue is planned (`claude -p` on Opus) and executed (`claude -p` on Sonnet) in headless print mode; success/blocked is decided by inspecting git + handoff state (not exit codes) via a small stateless `probe-state.ps1`; branching, looping, and notifications live on the n8n canvas. First failure halts the run.
 
 **Tech Stack:** n8n (native npm, Node 22), Claude Code CLI headless (`claude -p --output-format json`), `gh` CLI, PowerShell 7 (pwsh), Telegram Bot API, git worktrees.
 
@@ -45,7 +45,7 @@ Expected: a 40-char sha. Save it.
 $env:SQL_SYNC_SKIP='1'
 $prompt = "/write-plan add a code comment banner to nx_lib/reporting/export.py"
 New-Item -ItemType Directory -Force C:\dev\nexora\var\autopilot\smoke | Out-Null
-$prompt | claude -p --model fable --dangerously-skip-permissions --output-format json --effort high `
+$prompt | claude -p --model opus --dangerously-skip-permissions --output-format json --effort high `
   *> C:\dev\nexora\var\autopilot\smoke\plan-result.json
 Get-Content C:\dev\nexora\var\autopilot\smoke\plan-result.json
 ```
@@ -320,7 +320,7 @@ $env:SQL_SYNC_SKIP='1'; $b=@'
 {{$json.title}}
 
 {{$json.body}}
-'@; ("/write-plan " + $b) | claude -p --model fable --dangerously-skip-permissions --output-format json --effort high
+'@; ("/write-plan " + $b) | claude -p --model opus --dangerously-skip-permissions --output-format json --effort high
 ```
 Wire → **Execute Command** "verify-plan":
 ```

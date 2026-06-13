@@ -46,7 +46,7 @@ $env:SQL_SYNC_SKIP = '1'   # scoped to this child process; never leaks to the us
 # Defence in depth: don't hand cached API tokens to the permission-skipped agent.
 Remove-Item Env:GH_TOKEN, Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
 
-if (-not $Model) { $Model = if ($Phase -eq 'plan') { 'fable' } else { 'sonnet' } }
+if (-not $Model) { $Model = if ($Phase -eq 'plan') { 'opus' } else { 'sonnet' } }
 
 $claudeArgs = @('-p', '--model', $Model, '--dangerously-skip-permissions', '--output-format', 'json')
 

@@ -1,6 +1,6 @@
 # Autopilot — unattended Claude Code loop driven by n8n
 
-Label a GitHub issue `autopilot`; a local n8n workflow plans it (`/write-plan` on Fable),
+Label a GitHub issue `autopilot`; a local n8n workflow plans it (`/write-plan` on Opus),
 executes it (`/execute-plan` on Sonnet), and commits — **stopping at `git commit`, never
 pushing**. First failure halts the run and pings Telegram. Everything runs locally; nothing
 is exposed to the internet.
