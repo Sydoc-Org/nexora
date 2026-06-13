@@ -108,7 +108,7 @@ deliberate future option, not the default.
    - set the credential to `autopilot-telegram`;
    - replace `REPLACE_WITH_CHAT_ID` in **Chat ID** with your numeric chat id;
    - confirm the operation is **Send Text Message**.
-4. **Workflow settings** → set **Timeout** to `7200`s (a single `/execute-plan` can run 20–40 min).
+4. **Workflow execution timeout** → leave it **unset**. n8n defaults to *no* timeout, which is what you want (a single `/execute-plan` can run 20–40 min and must not be killed). Only raise it if your instance sets a global `EXECUTIONS_TIMEOUT`.
 5. **Error workflow (crash-proof lock release)** — create a second tiny workflow:
    `Error Trigger ─► Execute Command (pwsh -NoProfile -File C:\dev\nexora\tools\autopilot\lock.ps1 -Action release) ─► Telegram (⛔ autopilot crashed — lock released)`.
    Then in the autopilot workflow's settings, set **Error Workflow** to it. This guarantees a
