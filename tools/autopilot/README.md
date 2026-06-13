@@ -25,6 +25,7 @@ fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? 
 | File | Role |
 |------|------|
 | `n8n-autopilot.workflow.json` | The importable workflow (the loop brain lives on this canvas). |
+| `start-n8n.ps1` | Launch n8n with the REQUIRED env (secure-cookie off + Execute Command re-enabled). Use instead of a bare `n8n start`. |
 | `setup-labels.ps1` | One-time: create the `autopilot` / `autopilot-built` / `autopilot-blocked` labels. |
 | `fetch-queue.ps1` | Emit the work queue: open `autopilot` issues minus built/blocked, **from allowlisted authors only**, oldest first. |
 | `lock.ps1` | Single-run lock (`acquire`/`release`/`check`); reclaims a lock older than 3h. |
