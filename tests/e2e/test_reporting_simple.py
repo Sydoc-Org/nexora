@@ -887,6 +887,15 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
         expect(canvas).to_be_visible()
         series = int(canvas.get_attribute("data-series"))
         assert series >= 2
+        # Smoke text-pin (NOT red-first, NOT independent coverage): the canvas
+        # being visible already proves mountChart did not bail with the
+        # too-many-points note (chartCardNote hides the canvas). TEST cardinality
+        # can't exceed 50 pivoted x-points, so this just pins the exact note text.
+        too_many = page.locator(
+            "#rsChartNote",
+            has_text="Too many data points to chart",
+        )
+        expect(too_many).to_have_count(0)
         expect(page.get_by_test_id("rs-chart-stacked")).to_be_visible()
         expect(page.get_by_test_id("rs-chart-pie")).to_be_hidden()
     finally:
