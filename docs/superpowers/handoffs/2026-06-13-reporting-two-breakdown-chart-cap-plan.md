@@ -1,3 +1,5 @@
+> **Superseded** → see [`2026-06-13-reporting-two-breakdown-chart-cap-execution.md`](2026-06-13-reporting-two-breakdown-chart-cap-execution.md) (execution complete).
+
 # Handoff — two-breakdown chart cap fix: plan written (ready for /execute-plan)
 
 - **Date:** 2026-06-13
