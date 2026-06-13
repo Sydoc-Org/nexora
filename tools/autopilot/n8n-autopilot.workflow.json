@@ -301,7 +301,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=⛔ loop HALTED at #{{ $('Loop Over Items').item.json.number }} — {{ JSON.parse($('mark-blocked').item.json.stdout).reason || 'a check failed (see n8n execution)' }}",
+        "text": "=⛔ loop HALTED at #{{ $('Loop Over Items').item.json.number }} — {{ (() => { try { return JSON.parse($('mark-blocked').item.json.stdout).reason || 'a check failed (see n8n execution)'; } catch (e) { return 'a check failed (see n8n execution)'; } })() }}",
         "additionalFields": {}
       },
       "id": "tg-halt",
@@ -328,6 +328,51 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [3520, 760]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\solve-blocked.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "cmd-solveblocked",
+      "name": "solve-blocked",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2860, 1000]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-fixok",
+              "leftValue": "={{ JSON.parse($json.stdout).ok }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-fixok",
+      "name": "fix-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3300, 1000]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} recovered by the autopilot fixer.{{ (() => { try { const v = JSON.parse($('solve-blocked').item.json.stdout); return ' Commit ' + v.sha + (v.stashed ? '. ⚠ pre-existing WIP was stashed before fixing — run: git stash list / git stash pop to recover.' : '.'); } catch (e) { return ''; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-fixed",
+      "name": "notify-fixed",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3520, 1000],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
     }
   ],
   "connections": {
@@ -349,7 +394,7 @@
     "clean?": {
       "main": [
         [ { "node": "baseline", "type": "main", "index": 0 } ],
-        [ { "node": "mark-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
       ]
     },
     "baseline": { "main": [ [ { "node": "run-plan", "type": "main", "index": 0 } ] ] },
@@ -358,7 +403,7 @@
     "plan-ok?": {
       "main": [
         [ { "node": "run-exec", "type": "main", "index": 0 } ],
-        [ { "node": "mark-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
       ]
     },
     "run-exec": { "main": [ [ { "node": "verify-exec", "type": "main", "index": 0 } ] ] },
@@ -366,13 +411,21 @@
     "exec-ok?": {
       "main": [
         [ { "node": "comment-built", "type": "main", "index": 0 } ],
-        [ { "node": "mark-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
       ]
     },
     "comment-built": { "main": [ [ { "node": "notify-built", "type": "main", "index": 0 } ] ] },
     "notify-built": { "main": [ [ { "node": "Loop Over Items", "type": "main", "index": 0 } ] ] },
     "mark-blocked": { "main": [ [ { "node": "notify-halt", "type": "main", "index": 0 } ] ] },
     "notify-halt": { "main": [ [ { "node": "release-lock-halt", "type": "main", "index": 0 } ] ] },
-    "release-lock-halt": { "main": [ [ { "node": "STOP", "type": "main", "index": 0 } ] ] }
+    "release-lock-halt": { "main": [ [ { "node": "STOP", "type": "main", "index": 0 } ] ] },
+    "solve-blocked": { "main": [ [ { "node": "fix-ok?", "type": "main", "index": 0 } ] ] },
+    "fix-ok?": {
+      "main": [
+        [ { "node": "notify-fixed", "type": "main", "index": 0 } ],
+        [ { "node": "mark-blocked", "type": "main", "index": 0 } ]
+      ]
+    },
+    "notify-fixed": { "main": [ [ { "node": "comment-built", "type": "main", "index": 0 } ] ] }
   }
 }

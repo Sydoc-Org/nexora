@@ -13,7 +13,12 @@
 param(
   [Parameter(Mandatory)][ValidateSet('acquire','release','check')] [string]$Action,
   [string]$LockPath = 'C:\dev\nexora\var\autopilot.lock',
-  [double]$MaxAgeHours = 1.5
+  # Hard staleness cap. A single queue item is now plan + execute + (on a halt) the opus FIXER -
+  # up to ~3 heavy phases - so this must exceed the worst-case single-item wall time, otherwise a
+  # legitimately long run gets its lock reclaimed mid-flight and the 2-min poll starts a SECOND,
+  # concurrent build. Real crashes are still caught fast by the no-live-claude 3-min grace below;
+  # this cap only governs the rare "claude looks alive but is wedged" case.
+  [double]$MaxAgeHours = 3.0
 )
 $ErrorActionPreference = 'Stop'
 
