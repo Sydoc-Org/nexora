@@ -21,6 +21,8 @@
 
 This is a hard gate. `/write-plan` spawns a 7-agent Workflow and `/execute-plan` runs subagent-driven-development. If those cannot spawn under `-p`, the whole design changes. **Do not proceed to Task 2 until this passes.** This task is also where we capture the EXACT success/blocked signals the verifier in Task 4 keys off.
 
+> **UPDATE 2026-06-13:** Owner confirmed `claude -p "/write-plan"` runs headless — the multi-agent skill DOES spawn under `-p`. The existential risk is cleared. What remains to confirm in this task: (a) `/execute-plan` headless + worktree merge-back, (b) the exact result-JSON `subtype` strings, and (c) the literal BLOCKED markers the handoff doc writes. Steps 3–5 below still apply for capturing those.
+
 **Files:**
 - Create: `var/autopilot/smoke/` (scratch dir for captured JSON — gitignored, see Step 6)
 
@@ -48,6 +50,14 @@ $prompt | claude -p --model fable --dangerously-skip-permissions --output-format
 Get-Content C:\dev\nexora\var\autopilot\smoke\plan-result.json
 ```
 Expected: a JSON object ending with `"type":"result"`. **Record these fields** — they drive Task 4: `subtype` (e.g. `success` vs `error_max_turns`), `is_error`, `session_id`, `num_turns`. If the run errors immediately with a tool/agent-spawn restriction → **STOP, gate failed** (see Step 7).
+
+> **Confirmed envelope (2026-06-13, `--output-format json`):** a single JSON object with
+> `type:"result"`, `subtype:"success"` (failure modes use other subtypes, e.g. `error_max_turns`),
+> `is_error:false`, `result:"<final text>"`, `stop_reason:"end_turn"`, `terminal_reason:"completed"`,
+> `permission_denials:[]`, plus `session_id`, `num_turns`, `total_cost_usd`. So a plan/exec phase's
+> own error is detectable via `is_error===true || subtype!=="success" || terminal_reason!=="completed"`.
+> NOTE: a `/execute-plan` that *stops on 2× BLOCKED* still reports `subtype:"success"` — which is
+> exactly why deep success/blocked detection stays in `probe-state.ps1` (git + handoff state), not this envelope.
 
 - [ ] **Step 4: Confirm the plan side-effects landed**
 
