@@ -69,9 +69,25 @@ deliberate future option, not the default.
    Docker n8n cannot):
    ```powershell
    npm i -g n8n
+   # REQUIRED env for autopilot (see notes below), then start:
+   $env:N8N_SECURE_COOKIE = 'false'                          # allow login over http://localhost
+   $env:NODES_EXCLUDE     = '["n8n-nodes-base.localFileTrigger"]'  # re-enable Execute Command node
    n8n start          # editor at http://localhost:5678/ — finish owner-account setup
    ```
    Leave it running in its own terminal; the loop only runs while n8n is up.
+
+   **Two env vars are MANDATORY or the workflow won't work:**
+   - `N8N_SECURE_COOKIE=false` — without it, login over plain `http://localhost` can fail to
+     hold a session, and the editor shows every node as "Install this node to use it" (it can't
+     load `/types/nodes.json`).
+   - `NODES_EXCLUDE='["n8n-nodes-base.localFileTrigger"]'` — n8n 2.x **excludes the Execute
+     Command node by default** (`@n8n/config` default is `["n8n-nodes-base.executeCommand",
+     "n8n-nodes-base.localFileTrigger"]`). Autopilot is built almost entirely from Execute
+     Command nodes, so it MUST be re-enabled. This override drops `executeCommand` from the
+     exclude list (keeping `localFileTrigger` excluded). To make it permanent, set these in a
+     `.env` / your service definition rather than the shell. Re-enabling `executeCommand` lets
+     n8n run arbitrary shell — that's intended here, and bounded by the trusted-author gate
+     (see Security model).
 2. **`gh` authed** to `Sydoc-Code/nexora` (already done on this box: `gh auth status`).
 3. **Labels created** — run once:
    ```powershell
