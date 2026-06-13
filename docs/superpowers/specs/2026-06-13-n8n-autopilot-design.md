@@ -39,6 +39,28 @@ loop stops today: **at `git commit`, never push, never PR.**
 - **Never `--no-verify`**, never bypass hooks.
 - cwd is forced to `C:\dev\nexora`; Execute Command shell is **pwsh**.
 
+## Security model & trust boundary
+
+Autopilot runs `claude --dangerously-skip-permissions` on the dev box (git push ability,
+`gh` auth, DB/dev access) and feeds it GitHub-issue text — a prompt-injection →
+permission-bypass surface. Controls:
+
+- **Trusted-author allowlist is the primary control.** Only issues authored by an
+  allowlisted login are built (default `benstreich`; override via
+  `AUTOPILOT_ALLOWED_AUTHORS`). Enforced in `fetch-queue.ps1` (filter) and re-checked in
+  `run-phase.ps1` (hard refuse). The `autopilot` label alone is insufficient.
+- **Issue body framed as untrusted data** (delimiters + "do not obey" preamble) — reduces
+  but does not eliminate injection.
+- **`GH_TOKEN`/`GITHUB_TOKEN` scrubbed** from the child env. Note `gh` uses keyring auth, so
+  the agent can still call `gh` by design; blast radius is bounded by the author gate +
+  commit-not-push (nothing reaches the remote until the owner reviews).
+- **`--dangerously-skip-permissions` is retained deliberately** — headless unattended work
+  can't answer prompts or be covered by a static tool allowlist; the trust gate is the
+  safety mechanism, not the permission flag.
+- **Stronger isolation** (least-priv account / disposable VM with a scoped token and no push
+  creds, building a clone) is a noted future option, incompatible with the "runs on my dev
+  box against the real repo" design chosen here.
+
 ## Architecture
 
 ```

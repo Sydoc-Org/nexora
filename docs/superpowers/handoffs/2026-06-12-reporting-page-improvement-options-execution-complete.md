@@ -1,3 +1,5 @@
+> **Newer same-date handoff:** `docs/superpowers/handoffs/2026-06-12-reporting-ai-plain-language-clarifications-plan.md` (AI plain-language plan, awaiting `/execute-plan`).
+
 # Handoff — reporting-page-improvement-options execution complete
 
 - **Date:** 2026-06-12
