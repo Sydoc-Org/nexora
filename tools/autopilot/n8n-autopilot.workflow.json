@@ -301,7 +301,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=⛔ loop HALTED at #{{ $('Loop Over Items').item.json.number }} — plan/exec verification failed. Repo left clean; any worktree preserved for inspection.",
+        "text": "=⛔ loop HALTED at #{{ $('Loop Over Items').item.json.number }} — {{ JSON.parse($('mark-blocked').item.json.stdout).reason || 'a check failed (see n8n execution)' }}",
         "additionalFields": {}
       },
       "id": "tg-halt",
