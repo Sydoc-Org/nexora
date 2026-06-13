@@ -1,3 +1,5 @@
+> **Newer same-date handoff** → see [`2026-06-13-reporting-ui-redesign-plan.md`](2026-06-13-reporting-ui-redesign-plan.md) (latest; resume there).
+
 # Handoff — two-breakdown chart cap fix: execution complete
 
 - **Date:** 2026-06-13
