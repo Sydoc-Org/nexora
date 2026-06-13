@@ -60,6 +60,7 @@ function Show-Help {
     Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
     Write-Host "    --invoke-workflow     Start the n8n workflow editor in the background"
     Write-Host "    --kill-workflow       Stop the background n8n workflow editor"
+    Write-Host "    --workflow-logs       Tail the live autopilot run (what the agent is doing)"
     Write-Host "    --queue:<title>       Queue an autopilot feature " -NoNewline
     Write-Host "(creates a labelled GitHub issue)" -ForegroundColor Gray
     Write-Host ""
@@ -94,6 +95,7 @@ function Show-Help {
     Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
     Write-Host "    nx --invoke-workflow                 start n8n in the background (then exits)"
     Write-Host "    nx --kill-workflow                   stop the background n8n"
+    Write-Host "    nx --workflow-logs                   watch the live autopilot run"
     Write-Host "    nx --queue:'add a dark-mode toggle'  queue a feature for autopilot"
     Write-Host "    nx --queue:'csv export' --body:'add CSV download to the report page'"
     Write-Host "    nx --env                             show current env from .env"
@@ -189,6 +191,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--maindir' { $action = 'maindir' }
         '--invoke-workflow' { $action = 'invoke-workflow' }
         '--kill-workflow'   { $action = 'kill-workflow'   }
+        '--workflow-logs'   { $action = 'workflow-logs'  }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
         '-?'        { Show-Help; exit 0     }
@@ -432,6 +435,43 @@ function Watch-Logs {
     }
 }
 
+function Watch-WorkflowLogs {
+    # Live, human-readable tail of the autopilot run stream (run-phase.ps1 writes stream-json
+    # events here). Formatting happens on read, so this never affects the running workflow.
+    $wfLog = Join-Path $AppDir 'var\autopilot\logs\run.log'
+    if (-not (Test-Path $wfLog)) { Write-Warn "No autopilot run yet — log will appear at $wfLog"; return }
+    Write-Dim "Tailing autopilot run — Ctrl+C to stop watching (the run keeps going)"
+    Write-Host ""
+    Get-Content -Path $wfLog -Wait -Tail 40 | ForEach-Object {
+        $line = $_
+        if ([string]::IsNullOrWhiteSpace($line)) { return }
+        if ($line.StartsWith('===')) { Write-Host $line -ForegroundColor Blue; return }
+        try {
+            $e = $line | ConvertFrom-Json -ErrorAction Stop
+            switch ($e.type) {
+                'assistant' {
+                    foreach ($b in @($e.message.content)) {
+                        if ($b.type -eq 'text') {
+                            $tx = ($b.text -replace '\s+', ' ').Trim()
+                            if ($tx) { if ($tx.Length -gt 160) { $tx = $tx.Substring(0, 160) + '…' }; Write-Host "  $tx" }
+                        } elseif ($b.type -eq 'tool_use') {
+                            Write-Host "  → $($b.name)" -ForegroundColor DarkCyan
+                        }
+                    }
+                }
+                'result' {
+                    $cost = try { [math]::Round([double]$e.total_cost_usd, 2) } catch { '?' }
+                    Write-Host "  ■ done: $($e.subtype)  turns=$($e.num_turns)  `$$cost" -ForegroundColor DarkGreen
+                }
+                default { }  # skip system/hook/user-tool-result noise
+            }
+        } catch {
+            # non-JSON line (e.g. stderr) — show dim
+            Write-Host "  $line" -ForegroundColor DarkGray
+        }
+    }
+}
+
 # ── actions ───────────────────────────────────────────────────────────────────
 switch ($action) {
     'start' {
@@ -547,6 +587,7 @@ switch ($action) {
             Write-Warn "n8n is not running on :5678"
         }
     }
+    'workflow-logs' { Watch-WorkflowLogs }
     'queue' {
         if (-not $queueTitle) {
             Write-Fail "--queue needs a title, e.g.  nx --queue:'add a dark-mode toggle'"

@@ -48,7 +48,7 @@ Remove-Item Env:GH_TOKEN, Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
 
 if (-not $Model) { $Model = if ($Phase -eq 'plan') { 'opus' } else { 'sonnet' } }
 
-$claudeArgs = @('-p', '--model', $Model, '--dangerously-skip-permissions', '--output-format', 'json')
+$claudeArgs = @('-p', '--model', $Model, '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
 
 if ($Phase -eq 'plan') {
   if ($IssueNumber -le 0) { throw 'run-phase.ps1 -Phase plan requires -IssueNumber' }
@@ -76,5 +76,11 @@ else {
   $prompt = '/execute-plan'
 }
 
-# Prompt via stdin so multi-line issue bodies never break argument quoting.
-$prompt | claude @claudeArgs
+# Stream the run to a live log so `nx --workflow-logs` can tail what the agent is doing,
+# and pass the final result line through to n8n. Prompt via stdin so multi-line issue
+# bodies never break argument quoting.
+$logDir = Join-Path $RepoPath 'var\autopilot\logs'
+New-Item -ItemType Directory -Force $logDir | Out-Null
+$log = Join-Path $logDir 'run.log'
+"=== $Phase  issue #$IssueNumber  $(Get-Date -Format o) ===" | Add-Content -Path $log -Encoding utf8
+$prompt | claude @claudeArgs | Tee-Object -FilePath $log -Append | Select-Object -Last 1
