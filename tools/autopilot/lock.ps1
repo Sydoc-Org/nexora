@@ -13,7 +13,7 @@
 param(
   [Parameter(Mandatory)][ValidateSet('acquire','release','check')] [string]$Action,
   [string]$LockPath = 'C:\dev\nexora\var\autopilot.lock',
-  [int]$MaxAgeHours = 3
+  [double]$MaxAgeHours = 1.5
 )
 $ErrorActionPreference = 'Stop'
 
@@ -21,8 +21,18 @@ switch ($Action) {
   'acquire' {
     if (Test-Path $LockPath) {
       $age = (Get-Date) - (Get-Item $LockPath).LastWriteTime
-      if ($age.TotalHours -lt $MaxAgeHours) {
-        @{ status = 'LOCKED'; heldForHours = [math]::Round($age.TotalHours, 2) } | ConvertTo-Json -Compress
+      # Is an autopilot run actually alive? Its claude runs with -p (plan/exec) or spawns
+      # stream-json sub-agents. The interactive Claude Code session (--remote-control) is excluded.
+      $running = $false
+      try {
+        $running = [bool](Get-CimInstance Win32_Process -Filter "Name='claude.exe'" -ErrorAction SilentlyContinue |
+          Where-Object { ($_.CommandLine -like '* -p *' -or $_.CommandLine -like '*stream-json*') -and $_.CommandLine -notlike '*--remote-control*' })
+      } catch {}
+      # Self-heal: a crashed run leaks the lock. Treat it as stale if no autopilot claude is
+      # alive (after a 3-min grace for brief inter-phase gaps), or past the hard age cap.
+      $stale = ($age.TotalHours -ge $MaxAgeHours) -or ($age.TotalMinutes -ge 3 -and -not $running)
+      if (-not $stale) {
+        @{ status = 'LOCKED'; heldForMin = [math]::Round($age.TotalMinutes, 1); running = $running } | ConvertTo-Json -Compress
         return
       }
     }
