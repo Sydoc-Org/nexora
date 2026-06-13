@@ -58,8 +58,8 @@ function Show-Help {
     Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
     Write-Host "    --doctor              Run preflight health checks " -NoNewline
     Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
-    Write-Host "    -iw, --invoke-workflow  Start the n8n workflow editor in the background"
-    Write-Host "    -kw, --kill-workflow    Stop the background n8n workflow editor"
+    Write-Host "    --invoke-workflow     Start the n8n workflow editor in the background"
+    Write-Host "    --kill-workflow       Stop the background n8n workflow editor"
     Write-Host "    --queue:<title>       Queue an autopilot feature " -NoNewline
     Write-Host "(creates a labelled GitHub issue)" -ForegroundColor Gray
     Write-Host ""
@@ -93,7 +93,6 @@ function Show-Help {
     Write-Host "    nx --doctor --fast                   skip external service calls"
     Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
     Write-Host "    nx --invoke-workflow                 start n8n in the background (then exits)"
-    Write-Host "    nx -iw                               alias for --invoke-workflow"
     Write-Host "    nx --kill-workflow                   stop the background n8n"
     Write-Host "    nx --queue:'add a dark-mode toggle'  queue a feature for autopilot"
     Write-Host "    nx --queue:'csv export' --body:'add CSV download to the report page'"
@@ -188,9 +187,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--status'  { $action = 'status'  }
         '-md'       { $action = 'maindir' }
         '--maindir' { $action = 'maindir' }
-        '-iw'               { $action = 'invoke-workflow' }
         '--invoke-workflow' { $action = 'invoke-workflow' }
-        '-kw'               { $action = 'kill-workflow'   }
         '--kill-workflow'   { $action = 'kill-workflow'   }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
