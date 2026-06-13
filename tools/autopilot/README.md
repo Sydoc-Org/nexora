@@ -103,6 +103,13 @@ deliberate future option, not the default.
 
 ## Import & wire the workflow
 
+> ⚠ **Start n8n with the Execute Command node ENABLED *before* importing** (i.e. via
+> `start-n8n.ps1` / the `NODES_EXCLUDE` override). n8n **silently drops every connection
+> to or from a node type it can't resolve at import time** — so importing while
+> `executeCommand` is excluded yields a workflow whose nodes are all there but **not wired
+> together**. If that already happened, re-import after enabling the node (or re-add the
+> connections); the source JSON's wiring is correct.
+
 1. n8n editor → **Import from File** → `tools/autopilot/n8n-autopilot.workflow.json`.
 2. **Credentials** → New → **Telegram API** → paste the bot token → save as `autopilot-telegram`.
 3. On each of the three Telegram nodes (`notify-built`, `notify-halt`, `notify-summary`):
