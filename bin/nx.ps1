@@ -58,7 +58,8 @@ function Show-Help {
     Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
     Write-Host "    --doctor              Run preflight health checks " -NoNewline
     Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
-    Write-Host "    -ap, --autopilot      Start the n8n autopilot editor (start-n8n.ps1)"
+    Write-Host "    -iw, --invoke-workflow  Start the n8n workflow editor in the background"
+    Write-Host "    -kw, --kill-workflow    Stop the background n8n workflow editor"
     Write-Host "    --queue:<title>       Queue an autopilot feature " -NoNewline
     Write-Host "(creates a labelled GitHub issue)" -ForegroundColor Gray
     Write-Host ""
@@ -91,7 +92,9 @@ function Show-Help {
     Write-Host "    nx --doctor                          full preflight (env, DBs, migrations, services)"
     Write-Host "    nx --doctor --fast                   skip external service calls"
     Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
-    Write-Host "    nx --autopilot                       start the n8n autopilot editor"
+    Write-Host "    nx --invoke-workflow                 start n8n in the background (then exits)"
+    Write-Host "    nx -iw                               alias for --invoke-workflow"
+    Write-Host "    nx --kill-workflow                   stop the background n8n"
     Write-Host "    nx --queue:'add a dark-mode toggle'  queue a feature for autopilot"
     Write-Host "    nx --queue:'csv export' --body:'add CSV download to the report page'"
     Write-Host "    nx --env                             show current env from .env"
@@ -185,8 +188,10 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--status'  { $action = 'status'  }
         '-md'       { $action = 'maindir' }
         '--maindir' { $action = 'maindir' }
-        '-ap'         { $action = 'autopilot' }
-        '--autopilot' { $action = 'autopilot' }
+        '-iw'               { $action = 'invoke-workflow' }
+        '--invoke-workflow' { $action = 'invoke-workflow' }
+        '-kw'               { $action = 'kill-workflow'   }
+        '--kill-workflow'   { $action = 'kill-workflow'   }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
         '-?'        { Show-Help; exit 0     }
@@ -500,17 +505,50 @@ switch ($action) {
         # and survives the function return (script-scope automatic variable).
         exit $LASTEXITCODE
     }
-    'autopilot' {
-        $apScript = Join-Path $AppDir 'tools\autopilot\start-n8n.ps1'
-        if (-not (Test-Path $apScript)) {
-            Write-Fail "autopilot launcher not found at $apScript"
+    'invoke-workflow' {
+        $conn = Get-NetTCPConnection -LocalPort 5678 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($conn) {
+            Write-Warn "n8n already running on :5678 (PID $($conn.OwningProcess)) — http://localhost:5678/"
+            break
+        }
+        $iwScript = Join-Path $AppDir 'tools\autopilot\start-n8n.ps1'
+        if (-not (Test-Path $iwScript)) {
+            Write-Fail "workflow launcher not found at $iwScript"
             exit 1
         }
-        Write-Info "Launching n8n autopilot editor — http://localhost:5678/  (Ctrl+C to stop)"
-        # Run in a child pwsh so start-n8n's env (N8N_SECURE_COOKIE / NODES_EXCLUDE)
-        # lives only in that process and never leaks into this shell.
-        & pwsh -NoProfile -File $apScript
-        exit $LASTEXITCODE
+        $n8nOut = Join-Path $LogDir 'n8n.out.log'
+        $n8nErr = Join-Path $LogDir 'n8n.err.log'
+        Write-Info "Starting n8n in background..."
+        # Detached child pwsh runs start-n8n.ps1 (env scoped there). nx returns; n8n keeps running.
+        $p = Start-Process -FilePath 'pwsh' `
+                 -ArgumentList '-NoProfile', '-File', $iwScript `
+                 -WindowStyle Hidden `
+                 -RedirectStandardOutput $n8nOut `
+                 -RedirectStandardError  $n8nErr `
+                 -PassThru
+        $deadline = (Get-Date).AddSeconds(30)
+        $ready = $false
+        while ((Get-Date) -lt $deadline) {
+            if ($p.HasExited) { break }
+            try { $t = [System.Net.Sockets.TcpClient]::new(); $t.Connect('127.0.0.1', 5678); $t.Close(); $ready = $true; break } catch { }
+            Start-Sleep -Milliseconds 500
+        }
+        if     ($ready)        { Write-Ok   "n8n is up — http://localhost:5678/" }
+        elseif ($p.HasExited)  { Write-Fail "n8n exited on startup — check $n8nErr"; exit 1 }
+        else                    { Write-Warn "n8n still starting (give it a moment) — http://localhost:5678/" }
+        Write-Dim "stays running after this command. stop with: nx --kill-workflow"
+    }
+    'kill-workflow' {
+        $conn = Get-NetTCPConnection -LocalPort 5678 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($conn) {
+            $wfPid = $conn.OwningProcess
+            try {
+                Get-Process -Id $wfPid -ErrorAction Stop | Stop-Process -Force
+                Write-Ok "Stopped n8n (PID $wfPid)"
+            } catch { Write-Fail "Could not stop PID $wfPid : $($_.Exception.Message)" }
+        } else {
+            Write-Warn "n8n is not running on :5678"
+        }
     }
     'queue' {
         if (-not $queueTitle) {
