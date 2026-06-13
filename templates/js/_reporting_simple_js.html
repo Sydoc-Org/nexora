@@ -313,7 +313,12 @@
     if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
-    if (rows.length > 50) {
+    // Single-dim only: here rows.length IS the x-point count, so the raw-row
+    // cap is correct. For dims===2 the rows are the (dim1 x dim2) cross-product
+    // (e.g. 12 months x 8 sources = 96 rows) that the pivot below collapses to
+    // far fewer x-points, so two-dim is judged AFTER pivoting by the xOrder>50
+    // guard + 12-series cap (mirrors render_chart_png MAX_X / MAX_SERIES).
+    if (dims === 1 && rows.length > 50) {
       if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return; }
       el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
       el('rsChartNote').hidden = false;
