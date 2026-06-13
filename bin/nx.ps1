@@ -58,6 +58,9 @@ function Show-Help {
     Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
     Write-Host "    --doctor              Run preflight health checks " -NoNewline
     Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
+    Write-Host "    -ap, --autopilot      Start the n8n autopilot editor (start-n8n.ps1)"
+    Write-Host "    --queue:<title>       Queue an autopilot feature " -NoNewline
+    Write-Host "(creates a labelled GitHub issue)" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Options:" -ForegroundColor Gray
     Write-Host "    -?, --help                 Show this help"
@@ -66,6 +69,8 @@ function Show-Help {
     Write-Host "(standalone or with -u / -r; optional route path)" -ForegroundColor Gray
     Write-Host "    --loginas:<username>       Switch to user in browser  " -NoNewline
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
+    Write-Host "    --body:<text>              Issue body for --queue  " -NoNewline
+    Write-Host "(defaults to the title)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
@@ -86,6 +91,9 @@ function Show-Help {
     Write-Host "    nx --doctor                          full preflight (env, DBs, migrations, services)"
     Write-Host "    nx --doctor --fast                   skip external service calls"
     Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
+    Write-Host "    nx --autopilot                       start the n8n autopilot editor"
+    Write-Host "    nx --queue:'add a dark-mode toggle'  queue a feature for autopilot"
+    Write-Host "    nx --queue:'csv export' --body:'add CSV download to the report page'"
     Write-Host "    nx --env                             show current env from .env"
     Write-Host "    nx -u --env:staging                  start with STAGING env"
     Write-Host "    nx --loginas:username                switch browser session to username"
@@ -105,6 +113,8 @@ $loginAs       = $null
 $envOverride   = $null
 $doctorFast    = $false
 $doctorFix     = $false
+$queueTitle    = $null
+$queueBody     = $null
 $unknown       = @()
 
 for ($i = 0; $i -lt $args.Count; $i++) {
@@ -151,6 +161,17 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $doctorFix = $true
         continue
     }
+    # --queue[:<title>]  queue an autopilot feature (creates a labelled GitHub issue)
+    if ($arg -match '^--queue(?::(.*))?$') {
+        $action = 'queue'
+        if ($Matches[1]) { $queueTitle = $Matches[1] }
+        continue
+    }
+    # --body:<text>  issue body for --queue
+    if ($arg -match '^--body:(.*)$') {
+        $queueBody = $Matches[1]
+        continue
+    }
     switch -Exact ($arg.ToLower()) {
         '-u'        { $action = 'start'   }
         '--up'      { $action = 'start'   }
@@ -164,6 +185,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--status'  { $action = 'status'  }
         '-md'       { $action = 'maindir' }
         '--maindir' { $action = 'maindir' }
+        '-ap'         { $action = 'autopilot' }
+        '--autopilot' { $action = 'autopilot' }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
         '-?'        { Show-Help; exit 0     }
@@ -189,6 +212,11 @@ if ($verbose -and $action -notin @('start', 'restart')) {
 
 if (($doctorFast -or $doctorFix) -and $action -ne 'doctor') {
     Write-Fail "--fast / --fix can only be used with --doctor"
+    exit 1
+}
+
+if ($queueBody -and $action -ne 'queue') {
+    Write-Fail "--body can only be used with --queue"
     exit 1
 }
 
@@ -471,5 +499,33 @@ switch ($action) {
         # $LASTEXITCODE was set by the python subprocess inside Run-Doctor
         # and survives the function return (script-scope automatic variable).
         exit $LASTEXITCODE
+    }
+    'autopilot' {
+        $apScript = Join-Path $AppDir 'tools\autopilot\start-n8n.ps1'
+        if (-not (Test-Path $apScript)) {
+            Write-Fail "autopilot launcher not found at $apScript"
+            exit 1
+        }
+        Write-Info "Launching n8n autopilot editor — http://localhost:5678/  (Ctrl+C to stop)"
+        # Run in a child pwsh so start-n8n's env (N8N_SECURE_COOKIE / NODES_EXCLUDE)
+        # lives only in that process and never leaks into this shell.
+        & pwsh -NoProfile -File $apScript
+        exit $LASTEXITCODE
+    }
+    'queue' {
+        if (-not $queueTitle) {
+            Write-Fail "--queue needs a title, e.g.  nx --queue:'add a dark-mode toggle'"
+            exit 1
+        }
+        $body = if ($queueBody) { $queueBody } else { $queueTitle }
+        Write-Info "Queuing autopilot feature on Sydoc-Code/nexora..."
+        $url = & gh issue create --repo Sydoc-Code/nexora --title $queueTitle --body $body --label autopilot
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "Queued: $url"
+            Write-Dim "Autopilot picks it up on the next poll (or run the workflow manually)."
+        } else {
+            Write-Fail "gh issue create failed (exit $LASTEXITCODE) — is gh authed? (gh auth status)"
+            exit $LASTEXITCODE
+        }
     }
 }
