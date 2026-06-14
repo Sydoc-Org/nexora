@@ -30,6 +30,7 @@ $queue = @(
     $names = @($_.labels.name)
     ($names -notcontains 'autopilot-built') -and
     ($names -notcontains 'autopilot-blocked') -and
+    ($names -notcontains 'autopilot-needs-input') -and
     ($AllowedAuthors -contains $_.author.login)
   } | Sort-Object number | ForEach-Object {
     [pscustomobject]@{ number = $_.number; title = $_.title }
