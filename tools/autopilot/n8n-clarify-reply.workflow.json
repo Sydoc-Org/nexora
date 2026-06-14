@@ -1,0 +1,144 @@
+{
+  "name": "autopilot-clarify-reply",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "meta": {},
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "trg-telegram",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 480],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-owner-chat",
+              "leftValue": "={{ $json.message.chat.id }}",
+              "rightValue": "REPLACE_WITH_CHAT_ID",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-owner-chat",
+      "name": "owner-chat?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json.message;\nconst replyToId = msg.reply_to_message && msg.reply_to_message.message_id;\nif (!replyToId) { throw new Error('NOT_A_REPLY'); }\nconst fs = require('fs');\nconst mapPath = 'C:\\\\dev\\\\nexora\\\\var\\\\autopilot\\\\clarify-map.json';\nlet map = {};\ntry { map = JSON.parse(fs.readFileSync(mapPath, 'utf8')); } catch (e) { throw new Error('MAP_MISSING'); }\nconst issueNumber = map[String(replyToId)];\nif (!issueNumber) { throw new Error('NO_MAPPING'); }\nreturn [{ json: { issueNumber, replyText: msg.text, messageId: replyToId } }];"
+      },
+      "id": "code-correlate",
+      "name": "correlate-issue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.replyText || '';\nconst nums = text.match(/\\d+/g) || [];\nif (nums.length > 1) { throw new Error('TOO_MANY_NUMBERS'); }\nreturn [$input.first()];"
+      },
+      "id": "code-guard-numbers",
+      "name": "guard-number-count",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 480]
+    },
+    {
+      "parameters": {
+        "command": "=gh issue view {{ $json.issueNumber }} --repo Sydoc-Code/nexora --json labels"
+      },
+      "id": "cmd-check-label",
+      "name": "check-needs-input-label",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [880, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-has-label",
+              "leftValue": "={{ (() => { try { const d = JSON.parse($json.stdout); return d.labels.some(l => l.name === 'autopilot-needs-input'); } catch(e) { return false; } })() }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has-label",
+      "name": "has-needs-input?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 480]
+    },
+    {
+      "parameters": {
+        "command": "=gh issue comment {{ $('correlate-issue').item.json.issueNumber }} --repo Sydoc-Code/nexora --body \"owner-clarification: {{ $('correlate-issue').item.json.replyText }}\""
+      },
+      "id": "cmd-post-clarification",
+      "name": "post-clarification",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "command": "=gh issue edit {{ $('correlate-issue').item.json.issueNumber }} --repo Sydoc-Code/nexora --remove-label autopilot-needs-input"
+      },
+      "id": "cmd-remove-label",
+      "name": "remove-needs-input-label",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=✅ Reply recorded on #{{ $('correlate-issue').item.json.issueNumber }} — autopilot re-queued.",
+        "additionalFields": {}
+      },
+      "id": "tg-confirm",
+      "name": "notify-confirm",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1760, 480],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": { "main": [ [ { "node": "owner-chat?", "type": "main", "index": 0 } ] ] },
+    "owner-chat?": { "main": [ [ { "node": "correlate-issue", "type": "main", "index": 0 } ], [] ] },
+    "correlate-issue": { "main": [ [ { "node": "guard-number-count", "type": "main", "index": 0 } ] ] },
+    "guard-number-count": { "main": [ [ { "node": "check-needs-input-label", "type": "main", "index": 0 } ] ] },
+    "check-needs-input-label": { "main": [ [ { "node": "has-needs-input?", "type": "main", "index": 0 } ] ] },
+    "has-needs-input?": { "main": [ [ { "node": "post-clarification", "type": "main", "index": 0 } ], [] ] },
+    "post-clarification": { "main": [ [ { "node": "remove-needs-input-label", "type": "main", "index": 0 } ] ] },
+    "remove-needs-input-label": { "main": [ [ { "node": "notify-confirm", "type": "main", "index": 0 } ] ] }
+  }
+}
