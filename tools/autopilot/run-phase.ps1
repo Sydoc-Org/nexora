@@ -82,5 +82,5 @@ else {
 $logDir = Join-Path $RepoPath 'var\autopilot\logs'
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir 'run.log'
-"=== $Phase  issue #$IssueNumber  $(Get-Date -Format o) ===" | Add-Content -Path $log -Encoding utf8
+"=== $Phase #$IssueNumber === $(Get-Date -Format o)" | Add-Content -Path $log -Encoding utf8
 $prompt | claude @claudeArgs | Tee-Object -FilePath $log -Append | Select-Object -Last 1
