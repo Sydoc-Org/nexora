@@ -105,31 +105,31 @@
           <select id="rpSavedReports" data-testid="reporting-saved-reports">
             <option value="">{{ _("Saved reports…") }}</option>
           </select>
-          <button id="rpLoad" class="reporting-btn" data-testid="reporting-load">{{ _("Load") }}</button>
+          <button id="rpLoad" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-load">{{ _("Load") }}</button>
           <span class="reporting-saved-links">
-            <button id="rpRename" class="reporting-link" data-testid="reporting-rename">{{ _("Rename") }}</button>
-            <button id="rpDelete" class="reporting-link" data-testid="reporting-delete">{{ _("Delete") }}</button>
-            <button id="rpShare" class="reporting-link" data-testid="reporting-share" disabled
+            <button id="rpRename" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-rename">{{ _("Rename") }}</button>
+            <button id="rpDelete" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-delete">{{ _("Delete") }}</button>
+            <button id="rpShare" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-share" disabled
                     title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
             {% if has_permission('reporting.schedule') %}
-            <button id="rpSchedule" class="reporting-link" data-testid="reporting-schedule" disabled
+            <button id="rpSchedule" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-schedule" disabled
                     title="{{ _('Schedule the selected report you own') }}">{{ _("Schedule") }}</button>
             {% endif %}
           </span>
         </div>
         <div class="reporting-actions">
-          <button id="rpRun" class="reporting-btn reporting-btn-primary" data-testid="reporting-run">
+          <button id="rpRun" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-run">
             <i class="fas fa-play" aria-hidden="true"></i>{{ _("Run") }}</button>
-          <button id="rpSave" class="reporting-btn" data-testid="reporting-save">{{ _("Save") }}</button>
-          <button id="rpSaveAs" class="reporting-btn" data-testid="reporting-save-as">{{ _("Save as") }}</button>
-          <button type="button" id="rpShowSql" class="reporting-link" hidden
+          <button id="rpSave" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-save">{{ _("Save") }}</button>
+          <button id="rpSaveAs" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-save-as">{{ _("Save as") }}</button>
+          <button type="button" id="rpShowSql" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" hidden
                   data-testid="reporting-show-sql">{{ _("Show query") }}</button>
           <span class="reporting-actions-sep" aria-hidden="true"></span>
           <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
             <option value="xlsx">{{ _("Excel") }}</option>
             <option value="csv">CSV</option>
           </select>
-          <button id="rpExport" class="reporting-btn" data-testid="reporting-export">
+          <button id="rpExport" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-export">
             <i class="fas fa-file-export" aria-hidden="true"></i>{{ _("Export") }}</button>
         </div>
       </div>
