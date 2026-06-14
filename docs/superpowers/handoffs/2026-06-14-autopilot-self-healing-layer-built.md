@@ -1,3 +1,7 @@
+> **➡ A later 2026-06-14 session wrote a plan after this.** If you're resuming the newest work, see
+> `docs/superpowers/handoffs/2026-06-14-watchdog-run-modes-comment-plan.md` (watchdog.ps1 `.EXAMPLE`
+> usage-comment plan, ready to execute). This handoff's autopilot roadmap is still valid and separate.
+
 # Handoff — Autopilot self-healing layer built (fixer + auto-push + cost cap + watchdog)
 
 **Date:** 2026-06-14 (later session) · **Branch:** `feature/2.5.63` · **commit + push (this turn)**
