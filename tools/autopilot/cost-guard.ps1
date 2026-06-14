@@ -13,15 +13,12 @@
   Actions:
     check  -> { underBudget, spentToday, cap, date }. The n8n `cost-ok?` IF branches on
               underBudget; over budget => notify + halt the run (the queue resumes tomorrow).
-    add    -> read the LAST `"type":"result"` line from var/autopilot/logs/run.log (the phase
-              that just finished), add its total_cost_usd to today's ledger, emit the new total.
-              Wire one `add` after run-plan and one after run-exec. No change to run-phase.ps1
-              needed: run-phase tees every phase's full stream to run.log, so the last result
-              line is always the most-recently-finished phase.
+    add    -> book a spend into today's ledger and emit the new total. -Cost <usd> books an explicit number (recover.ps1 passes each attempt's / the diagnostician's costUsd); without -Cost it falls back to the last "type":"result" line in run.log (the just-finished phase).
 #>
 [CmdletBinding()]
 param(
   [Parameter(Mandatory)][ValidateSet('check', 'add')] [string]$Action,
+  [double]$Cost = -1,
   [double]$DailyCapUsd = 0,
   [string]$RepoPath = 'C:\dev\nexora',
   [string]$LedgerFile = 'C:\dev\nexora\var\autopilot\cost-ledger.json',
@@ -56,11 +53,18 @@ try {
     exit 0
   }
 
-  # add: pull the just-finished phase's cost from the last result line in run.log.
-  $cost = 0.0
-  if (Test-Path $RunLog) {
-    $last = Get-Content $RunLog | Where-Object { $_ -match '"type":\s*"result"' } | Select-Object -Last 1
-    if ($last) { try { $cost = [double]((($last | ConvertFrom-Json).total_cost_usd)) } catch { $cost = 0.0 } }
+  # add: book an EXPLICIT -Cost (recover.ps1 passes each attempt's / the diagnostician's own
+  # costUsd) when given; the read-last-line mode is unsafe inside the ladder (multiple result
+  # lines per add, and the diagnostician's spend would otherwise never be booked). Fall back to
+  # the legacy run.log read only when -Cost was not supplied (>= 0).
+  if ($Cost -ge 0) {
+    $cost = [double]$Cost
+  } else {
+    $cost = 0.0
+    if (Test-Path $RunLog) {
+      $last = Get-Content $RunLog | Where-Object { $_ -match '"type":\s*"result"' } | Select-Object -Last 1
+      if ($last) { try { $cost = [double]((($last | ConvertFrom-Json).total_cost_usd)) } catch { $cost = 0.0 } }
+    }
   }
   $newTotal = [math]::Round(($spent + $cost), 6)
 
