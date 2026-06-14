@@ -383,6 +383,71 @@
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [1320, 220]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action check"
+      },
+      "id": "cmd-costcheck",
+      "name": "cost-check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2090, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-costok",
+              "leftValue": "={{ JSON.parse($json.stdout).underBudget }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-costok",
+      "name": "cost-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2090, 180]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=💸 autopilot paused — daily cost cap reached.{{ (() => { try { const c = JSON.parse($('cost-check').item.json.stdout); return ' Spent $' + c.spentToday + ' of $' + c.cap + ' today; the queue resumes after midnight.'; } catch (e) { return ''; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-costcap",
+      "name": "notify-costcap",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2090, 60],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action add"
+      },
+      "id": "cmd-costaddplan",
+      "name": "cost-add-plan",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2530, 300]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action add"
+      },
+      "id": "cmd-costaddexec",
+      "name": "cost-add-exec",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3190, 300]
     }
   ],
   "connections": {
@@ -404,12 +469,21 @@
     "preflight": { "main": [ [ { "node": "clean?", "type": "main", "index": 0 } ] ] },
     "clean?": {
       "main": [
-        [ { "node": "baseline", "type": "main", "index": 0 } ],
+        [ { "node": "cost-check", "type": "main", "index": 0 } ],
         [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
       ]
     },
+    "cost-check": { "main": [ [ { "node": "cost-ok?", "type": "main", "index": 0 } ] ] },
+    "cost-ok?": {
+      "main": [
+        [ { "node": "baseline", "type": "main", "index": 0 } ],
+        [ { "node": "notify-costcap", "type": "main", "index": 0 } ]
+      ]
+    },
+    "notify-costcap": { "main": [ [ { "node": "release-lock-halt", "type": "main", "index": 0 } ] ] },
     "baseline": { "main": [ [ { "node": "run-plan", "type": "main", "index": 0 } ] ] },
-    "run-plan": { "main": [ [ { "node": "verify-plan", "type": "main", "index": 0 } ] ] },
+    "run-plan": { "main": [ [ { "node": "cost-add-plan", "type": "main", "index": 0 } ] ] },
+    "cost-add-plan": { "main": [ [ { "node": "verify-plan", "type": "main", "index": 0 } ] ] },
     "verify-plan": { "main": [ [ { "node": "plan-ok?", "type": "main", "index": 0 } ] ] },
     "plan-ok?": {
       "main": [
@@ -417,7 +491,8 @@
         [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
       ]
     },
-    "run-exec": { "main": [ [ { "node": "verify-exec", "type": "main", "index": 0 } ] ] },
+    "run-exec": { "main": [ [ { "node": "cost-add-exec", "type": "main", "index": 0 } ] ] },
+    "cost-add-exec": { "main": [ [ { "node": "verify-exec", "type": "main", "index": 0 } ] ] },
     "verify-exec": { "main": [ [ { "node": "exec-ok?", "type": "main", "index": 0 } ] ] },
     "exec-ok?": {
       "main": [
