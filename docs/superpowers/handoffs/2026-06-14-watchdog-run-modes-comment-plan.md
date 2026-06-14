@@ -1,3 +1,8 @@
+> **➡ SUPERSEDED — a later 2026-06-14 session continued past this.** Resume from
+> `docs/superpowers/handoffs/2026-06-14-autopilot-live-and-reporting-reskin.md` (autopilot published +
+> smoke-tested live; pre-push gate fixes; reporting reskin Phases 1–2.4). This plan was the #91 build
+> the autopilot itself executed — already shipped (`48a25a8`).
+
 # Handoff — watchdog.ps1 run-modes usage-comment plan written
 
 **Date:** 2026-06-14 (plan-only session) · **Branch:** `feature/2.5.63` · **169 commits unpushed** · **commit-only (remote)**
