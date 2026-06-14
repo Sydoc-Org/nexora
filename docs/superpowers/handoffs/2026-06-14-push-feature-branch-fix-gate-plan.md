@@ -1,3 +1,5 @@
+> ⏭️ **Superseded by a newer same-date handoff:** `docs/superpowers/handoffs/2026-06-14-autopilot-recovery-layer-plan.md` is the latest. Resume there unless you specifically want this push-gate plan.
+
 # Handoff — Plan written: push feature/2.5.63 through the pre-push gate
 
 **Date:** 2026-06-14 (evening) · **Branch:** `feature/2.5.63` · **175 commits unpushed** · **commit-only (remote)**
