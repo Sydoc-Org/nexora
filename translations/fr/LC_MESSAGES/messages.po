@@ -167,6 +167,8 @@ msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
+"Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
+"substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
 #: nx_lib/views/admin.py:1761
 msgid "Permission deleted successfully"
@@ -185,12 +187,17 @@ msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
 msgstr ""
+"Nous avons reçu une demande de réinitialisation du mot de passe de votre "
+"compte. Vous pouvez réinitialiser votre mot de passe en cliquant sur le "
+"bouton ci-dessous."
 
 #: nx_lib/views/auth.py:166
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
 msgstr ""
+"Si vous n'avez pas demandé de réinitialisation de mot de passe, veuillez "
+"ignorer cet e-mail. Ce lien est valable 15 minutes."
 
 #: nx_lib/views/auth.py:169
 msgid "Thanks,<br>The Sydoc Team"
@@ -463,6 +470,8 @@ msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
 " tomorrow."
 msgstr ""
+"Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
+"Veuillez réessayer demain."
 
 #: nx_lib/views/reporting.py:1185 nx_lib/views/reporting.py:1331
 #: nx_lib/views/reporting.py:1544
@@ -988,6 +997,8 @@ msgid ""
 "Pick up to three — the first is the chart axis, the second becomes the "
 "colored series."
 msgstr ""
+"Choisissez jusqu'à trois — le premier est l'axe du graphique, le deuxième"
+" devient la série colorée."
 
 #: templates/_reporting_simple.html:64 templates/init_reset.html:74
 msgid "Continue"
@@ -1243,6 +1254,8 @@ msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
 msgstr ""
+"Pas de problème. Saisissez l'adresse e-mail associée à votre compte et "
+"nous vous enverrons un lien pour réinitialiser votre mot de passe."
 
 #: templates/forgot_password.html:47 templates/profile.html:143
 msgid "Email address"
@@ -2079,6 +2092,9 @@ msgid ""
 "to validation and final delivery in real-time. Access a complete, "
 "auditable history 24/7."
 msgstr ""
+"Bienvenue sur nexora. Suivez en temps réel le parcours de votre document "
+"de l'import à la validation et à la livraison finale. Accédez à un "
+"historique complet et traçable 24h/24 et 7j/7."
 
 #: templates/hero.html:53
 msgid "Access Your Portal"
@@ -2121,6 +2137,8 @@ msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
 msgstr ""
+"Notre système automatisé gère chaque étape avec précision et sécurité. "
+"Suivez en temps réel le traitement d'un document."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:1135
 #: templates/workitems_overview.html:318
@@ -2152,18 +2170,24 @@ msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
 msgstr ""
+"Suivez le parcours de votre document de l'import à la validation et à la "
+"livraison finale, étape par étape."
 
 #: templates/hero.html:187
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
 msgstr ""
+"Accédez 24h/24 à un historique complet et traçable de tous vos documents "
+"traités."
 
 #: templates/hero.html:194
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
 msgstr ""
+"Vos données sont protégées par des protocoles de sécurité de pointe "
+"garantissant une confidentialité totale."
 
 #: templates/hero.html:203
 msgid "Ready to See Your Documents in Action?"
@@ -2174,6 +2198,9 @@ msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
 msgstr ""
+"Connectez-vous à votre portail pour accéder au suivi en temps réel, "
+"consulter votre historique et gérer votre flux de travail en toute "
+"confiance."
 
 #: templates/hero.html:209
 msgid "Access Your Portal Now"
@@ -2222,13 +2249,12 @@ msgid "Secure Your Account"
 msgstr "Sécurisez votre compte"
 
 #: templates/init_2FA.html:34
-#, fuzzy
 msgid ""
 "Scan the QR code below with your Authenticator App (Microsoft or Google "
 "Authenticator)."
 msgstr ""
-"Veuillez saisir le code de votre application d'authentification pour "
-"continuer."
+"Scannez le code QR ci-dessous avec votre application Authenticator "
+"(Microsoft ou Google Authenticator)."
 
 #: templates/init_2FA.html:54
 msgid "Error generating QR code. Please refresh."
@@ -2587,18 +2613,27 @@ msgid ""
 "— it never sees result data. Review it, then open it in the builder and "
 "run it yourself."
 msgstr ""
+"L'assistant rédige une définition de rapport à partir des sources "
+"auxquelles vous avez accès — il ne voit jamais les données de résultats. "
+"Examinez-la, ouvrez-la dans le générateur et exécutez-la vous-même."
 
 #: templates/reporting.html:161
 msgid ""
 "The assistant drafts read-only SQL from the database schema. It never "
 "sees result data. Review the SQL, then run it yourself."
 msgstr ""
+"L'assistant rédige du SQL en lecture seule à partir du schéma de base de "
+"données. Il ne voit jamais les données de résultats. Examinez le SQL, "
+"puis exécutez-le vous-même."
 
 #: templates/reporting.html:162
 msgid ""
 "The agent works step by step, showing each tool it uses. It can run read-"
 "only queries and report the actual numbers from the data it fetched."
 msgstr ""
+"L'agent travaille étape par étape, montrant chaque outil qu'il utilise. "
+"Il peut exécuter des requêtes en lecture seule et rapporter les chiffres "
+"réels des données qu'il a récupérées."
 
 #: templates/reporting.html:162
 msgid ""
@@ -2606,12 +2641,17 @@ msgid ""
 "draft — grounded only in the schema you can access. It never sees result "
 "data."
 msgstr ""
+"L'agent travaille étape par étape, montrant chaque outil qu'il utilise "
+"pour valider et rédiger — ancré uniquement dans le schéma auquel vous "
+"avez accès. Il ne voit jamais les données de résultats."
 
 #: templates/reporting.html:170
 msgid ""
 "⚠ The drafted SQL did not pass the read-only check — review it before "
 "running."
 msgstr ""
+"⚠ Le SQL rédigé n'a pas passé la vérification en lecture seule — "
+"vérifiez-le avant de l'exécuter."
 
 #: templates/reporting.html:172 templates/reporting.html:193
 msgid "Insert into SQL editor"
@@ -2660,6 +2700,9 @@ msgid ""
 "Choose a source on the left, add columns and filters, then press Run — or"
 " switch to Ask AI to draft one in plain language."
 msgstr ""
+"Choisissez une source à gauche, ajoutez des colonnes et des filtres, puis"
+" appuyez sur Exécuter — ou passez à Demander à l'IA pour en rédiger un en"
+" langage courant."
 
 #: templates/reporting.html:224
 msgid "Metrics"
@@ -2715,6 +2758,10 @@ msgid ""
 "Queries cannot modify data, and every run is logged. Double-check your "
 "query before running."
 msgstr ""
+"Vous êtes sur le point d'exécuter du SQL en lecture seule sur une base de"
+" données de reporting en production. Les requêtes ne peuvent pas modifier"
+" les données, et chaque exécution est journalisée. Vérifiez votre requête"
+" avant de l'exécuter."
 
 #: templates/reporting.html:246
 msgid "I understand"
@@ -2842,6 +2889,8 @@ msgid ""
 "The threshold is checked against the report's grand total (or its row "
 "count when the report has no measure)."
 msgstr ""
+"Le seuil est vérifié par rapport au total général du rapport (ou au "
+"nombre de lignes lorsque le rapport n'a pas de mesure)."
 
 #: templates/reporting.html:300
 msgid "Recipients (comma-separated)"
@@ -2869,6 +2918,9 @@ msgid ""
 " report's selected columns become the grouping; each metric adds an "
 "aggregated column."
 msgstr ""
+"Les métriques canoniques sont des agrégations nommées côté serveur liées "
+"à une source. Les colonnes sélectionnées d'un rapport deviennent le "
+"regroupement ; chaque métrique ajoute une colonne agrégée."
 
 #: templates/reporting_metrics.html:36
 msgid "Registered metrics"
@@ -2927,6 +2979,11 @@ msgid ""
 "sources bind to a provider: 'docprocessing' (built-in) or 'table' "
 "(generic single-object, configured with a base object + columns)."
 msgstr ""
+"Les lignes de registre complètent ou remplacent les sources intégrées — "
+"renommer, activer/désactiver, réordonner, modifier les autorisations ou "
+"en enregistrer de nouvelles. Les sources organisées se lient à un "
+"fournisseur : 'docprocessing' (intégré) ou 'table' (objet unique "
+"générique, configuré avec un objet de base + colonnes)."
 
 #: templates/reporting_sources.html:36
 msgid "Built-in defaults"
@@ -3055,11 +3112,12 @@ msgid "Unassigned"
 msgstr "Non assigné"
 
 #: templates/workitems_overview.html:204
-#, fuzzy
 msgid ""
 "Document\n"
 "                  fields"
-msgstr "Champs du document"
+msgstr ""
+"Champs du\n"
+"document"
 
 #: templates/workitems_overview.html:216 templates/workitems_overview.html:248
 msgid "Search field…"
@@ -3125,7 +3183,9 @@ msgstr "Extras optionnels"
 
 #: templates/workitems_overview.html:488
 msgid "Document fields"
-msgstr "Champs du document"
+msgstr ""
+"Champs du\n"
+"document"
 
 #: templates/workitems_overview.html:489
 msgid "Index fields — only available for selections of up to 10 workitems"
@@ -3138,43 +3198,44 @@ msgid "Audit history"
 msgstr "Historique d'audit"
 
 #: templates/workitems_overview.html:496
-#, fuzzy
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
 msgstr ""
-"Champs d'index — disponibles uniquement pour des sélections de 10 "
-"Workitems maximum"
+"Chronologie complète de toutes les étapes — disponible uniquement pour "
+"des sélections de 10 éléments de travail au maximum"
 
 #: templates/workitems_overview.html:502
 msgid "Images as base64"
 msgstr "Images en base64"
 
 #: templates/workitems_overview.html:503
-#, fuzzy
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
 msgstr ""
-"Champs d'index — disponibles uniquement pour des sélections de 10 "
-"Workitems maximum"
+"Jusqu'à 5 images par élément de travail — disponible uniquement pour des "
+"sélections de 10 éléments au maximum"
 
 #: templates/workitems_overview.html:507
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
 msgstr ""
+"Utilisez ce script PowerShell pour extraire des images du CSV exporté. "
+"Nécessite une stratégie d'exécution."
 
 #: templates/workitems_overview.html:507
 msgid "or higher."
 msgstr "ou supérieure."
 
 #: templates/workitems_overview.html:536
-#, fuzzy
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
-msgstr "Tous les Workitems correspondant aux filtres actuels seront exportés"
+msgstr ""
+"Tous les éléments de travail correspondant aux filtres actuels seront "
+"exportés (pas seulement la page actuelle)."
 
 #: templates/workitems_overview.html:562
 msgid "Show where extracted values were found on the document"
@@ -3632,6 +3693,10 @@ msgid ""
 "admin.maintenance.bypass are logged out and shown a maintenance page. "
 "Make sure you have the bypass permission before turning this on."
 msgstr ""
+"Lorsqu'activée et que la fenêtre est active, les utilisateurs sans "
+"admin.maintenance.bypass sont déconnectés et redirigés vers une page de "
+"maintenance. Assurez-vous d'avoir l'autorisation de contournement avant "
+"d'activer cela."
 
 #: templates/admin/maintenance.html:127
 msgid "Delete banner"
@@ -3698,12 +3763,16 @@ msgid ""
 "The actual permission set this user has — profile combined with any per-"
 "user overrides."
 msgstr ""
+"L'ensemble réel d'autorisations de cet utilisateur — profil combiné avec "
+"les remplacements par utilisateur éventuels."
 
 #: templates/admin/user_detail.html:129
 msgid ""
 "Override the access profile on a per-permission basis. Leave as None to "
 "inherit from the profile."
 msgstr ""
+"Remplacez le profil d'accès autorisation par autorisation. Laissez sur "
+"Aucun pour hériter du profil."
 
 #: templates/admin/user_detail.html:191
 msgid "Save overrides"
@@ -3821,6 +3890,8 @@ msgid ""
 "The page slipped beyond the event horizon. We searched the void but could"
 " not find what you are looking for."
 msgstr ""
+"La page a glissé au-delà de l'horizon des événements. Nous avons fouillé "
+"le vide mais n'avons pas pu trouver ce que vous cherchez."
 
 #: templates/handlers/404.html:6
 msgid "What does an 404 Error mean?"
@@ -3843,6 +3914,8 @@ msgid ""
 "A spacetime fracture occurred while processing your request. Our team has"
 " been notified."
 msgstr ""
+"Une fracture spatio-temporelle s'est produite lors du traitement de votre"
+" demande. Notre équipe a été notifiée."
 
 #: templates/handlers/500.html:6
 msgid "What does an 500 Error mean?"
@@ -4572,6 +4645,8 @@ msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
 msgstr ""
+"Pas de graphique — ce rapport est un total unique. Ajustez-le dans "
+"l'assistant et choisissez une décomposition pour en obtenir un."
 
 #: templates/js/_reporting_simple_js.html:59
 #, python-brace-format
@@ -4583,6 +4658,8 @@ msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
 msgstr ""
+"Trop de points de données pour un graphique — choisissez une granularité "
+"plus grossière ou une plage de temps plus courte."
 
 #: templates/js/_reporting_simple_js.html:61
 msgid "Charts support up to two breakdowns — the table shows all of them."
@@ -5110,13 +5187,12 @@ msgid "You do not have permission to delete this Organization."
 msgstr "Vous n'avez pas la permission de supprimer cette organisation."
 
 #: templates/js/admin/_organizations_js.html:202
-#, fuzzy
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
 msgstr ""
-"Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action ne peut"
-" pas être annulée."
+"Êtes-vous sûr de vouloir supprimer cette organisation ? Cette action est "
+"irréversible."
 
 #: templates/js/admin/_sessions_js.html:51
 msgid "No active sessions found."
@@ -5292,6 +5368,9 @@ msgid ""
 "Use this dropdown to filter all the data on this page by a specific "
 "document process, like 'Inbox' or 'Invoice'."
 msgstr ""
+"Utilisez cette liste déroulante pour filtrer toutes les données de cette "
+"page par un processus de document spécifique, comme 'Boîte de réception' "
+"ou 'Facture'."
 
 #: templates/js/archive/_tour_js.html:42
 msgid "Key Metrics"
@@ -5302,6 +5381,8 @@ msgid ""
 "These cards show a live summary of your documents: Processed Today, "
 "Processed This Week, and the Current Backlog."
 msgstr ""
+"Ces cartes affichent un résumé en direct de vos documents : Traités "
+"aujourd'hui, Traités cette semaine et le Backlog actuel."
 
 #: templates/js/archive/_tour_js.html:48
 msgid "Analytics"
@@ -5312,6 +5393,8 @@ msgid ""
 "Visualize your throughput and status distribution with these interactive "
 "charts."
 msgstr ""
+"Visualisez votre débit et votre distribution de statuts avec ces "
+"graphiques interactifs."
 
 #: templates/js/archive/_tour_js.html:54
 msgid "Active Document Timeline"
@@ -5322,6 +5405,8 @@ msgid ""
 "This section provides a real-time view of the specific steps documents "
 "are actively going through right now."
 msgstr ""
+"Cette section offre une vue en temps réel des étapes spécifiques que les "
+"documents traversent activement en ce moment."
 
 #: templates/js/archive/_tour_js.html:60
 msgid "Recent Activity"
@@ -5358,6 +5443,8 @@ msgid ""
 "Use this powerful form to find specific workitems by process, search "
 "terms, or tags."
 msgstr ""
+"Utilisez ce formulaire puissant pour trouver des éléments de travail "
+"spécifiques par processus, termes de recherche ou balises."
 
 #: templates/js/archive/_tour_js.html:90
 msgid "Advanced Filters"
@@ -5368,6 +5455,9 @@ msgid ""
 "Need more specific results? Click here to filter by date range, priority,"
 " assigned user, or specific document field values."
 msgstr ""
+"Besoin de résultats plus spécifiques ? Cliquez ici pour filtrer par plage"
+" de dates, priorité, utilisateur assigné ou valeurs de champ de document "
+"spécifiques."
 
 #: templates/js/archive/_tour_js.html:96
 msgid "Workitems Table"
@@ -5378,6 +5468,8 @@ msgid ""
 "Your filtered results appear here. You can sort columns by clicking on "
 "their headers."
 msgstr ""
+"Vos résultats filtrés apparaissent ici. Vous pouvez trier les colonnes en"
+" cliquant sur leurs en-têtes."
 
 #: templates/js/archive/_tour_js.html:102
 msgid "View Details"
@@ -5388,6 +5480,8 @@ msgid ""
 "Click this arrow button to expand a workitem. The tour will do this "
 "automatically for the next step."
 msgstr ""
+"Cliquez sur ce bouton flèche pour développer un élément de travail. La "
+"visite guidée le fera automatiquement pour l'étape suivante."
 
 #: templates/js/archive/_tour_js.html:119
 msgid "Process Timeline"
@@ -5398,6 +5492,8 @@ msgid ""
 "Track the exact stage of your document (Import, Extraction, Validation, "
 "Delivery) with this visual progress bar."
 msgstr ""
+"Suivez l'étape exacte de votre document (Importation, Extraction, "
+"Validation, Livraison) avec cette barre de progression visuelle."
 
 #: templates/js/archive/_tour_js.html:138
 msgid "Media Viewer"
@@ -5408,6 +5504,8 @@ msgid ""
 "View the document image here. If permitted, you can interact with the "
 "file."
 msgstr ""
+"Affichez l'image du document ici. Si autorisé, vous pouvez interagir avec"
+" le fichier."
 
 #: templates/js/archive/_tour_js.html:145
 msgid "History & Audit"
@@ -5434,6 +5532,9 @@ msgid ""
 "Here you can set a priority level, assign the workitem to a colleague, "
 "add tags, and leave comments for your team."
 msgstr ""
+"Ici, vous pouvez définir un niveau de priorité, attribuer l'élément de "
+"travail à un collègue, ajouter des balises et laisser des commentaires "
+"pour votre équipe."
 
 #: templates/js/archive/_tour_js.html:185
 msgid "Welcome to the Team Board!"
@@ -5444,6 +5545,8 @@ msgid ""
 "This Kanban-style board helps you visualize the workload and task "
 "distribution across your entire team."
 msgstr ""
+"Ce tableau de style Kanban vous aide à visualiser la charge de travail et"
+" la distribution des tâches dans toute votre équipe."
 
 #: templates/js/archive/_tour_js.html:191
 msgid "Filter Tasks"
@@ -5454,6 +5557,8 @@ msgid ""
 "Quickly find what you're looking for by filtering tasks by process or "
 "priority level."
 msgstr ""
+"Trouvez rapidement ce que vous cherchez en filtrant les tâches par "
+"processus ou niveau de priorité."
 
 #: templates/js/archive/_tour_js.html:197
 msgid "User Columns"
@@ -5464,6 +5569,8 @@ msgid ""
 "Each column represents a team member. All tasks assigned to them will "
 "appear here."
 msgstr ""
+"Chaque colonne représente un membre de l'équipe. Toutes les tâches qui "
+"leur sont assignées apparaîtront ici."
 
 #: templates/js/archive/_tour_js.html:203
 msgid "Workload at a Glance"
@@ -5474,6 +5581,8 @@ msgid ""
 "The header shows the team member's name and the total number of tasks "
 "currently assigned to them."
 msgstr ""
+"L'en-tête affiche le nom du membre de l'équipe et le nombre total de "
+"tâches qui lui sont actuellement assignées."
 
 #: templates/js/archive/_tour_js.html:209
 msgid "Task Cards"
@@ -5485,6 +5594,9 @@ msgid ""
 "modification time, and priority. Click a card to jump to its detailed "
 "view."
 msgstr ""
+"Chaque carte est un élément de travail. Elle affiche des détails clés "
+"comme le code-barres, la dernière modification et la priorité. Cliquez "
+"sur une carte pour accéder à sa vue détaillée."
 
 #: templates/js/archive/_tour_js.html:226
 msgid "View your billing history and manage your past invoices."
@@ -5495,6 +5607,9 @@ msgid ""
 "Locate specific invoices by searching for the invoice number, selecting a"
 " date range, or filtering by payment status."
 msgstr ""
+"Localisez des factures spécifiques en recherchant le numéro de facture, "
+"en sélectionnant une plage de dates ou en filtrant par statut de "
+"paiement."
 
 #: templates/js/archive/_tour_js.html:237
 msgid "Invoices List"
@@ -5505,4 +5620,7 @@ msgid ""
 "Your filtered invoices appear here. You can view details, amounts, and "
 "download PDF copies from the Actions column."
 msgstr ""
+"Vos factures filtrées apparaissent ici. Vous pouvez consulter les "
+"détails, les montants et télécharger des copies PDF depuis la colonne "
+"Actions."
 

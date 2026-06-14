@@ -223,7 +223,7 @@ jobs:
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
             /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs tools `
-            /XF *.env *.env.example ngrok.yaml .gitignore .claudeignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt README.md pyproject.toml .editorconfig .gitattributes .gitlint .pre-commit-config.yaml .python-version bootstrap.ps1 CHANGELOG.md CONTRIBUTING.md LICENSE uv.lock
+            /XF *.env *.env.example ngrok.yaml .gitignore .claudeignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt requirements-confluence.txt README.md pyproject.toml .editorconfig .gitattributes .gitlint .pre-commit-config.yaml .python-version bootstrap.ps1 CHANGELOG.md CONTRIBUTING.md LICENSE uv.lock
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           # /XF excludes *.env.example from being copied AND from being purged,
           # so any *.env.example already on SYAPP01 from earlier deploys would
