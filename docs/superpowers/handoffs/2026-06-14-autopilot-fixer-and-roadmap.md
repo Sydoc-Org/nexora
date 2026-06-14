@@ -1,3 +1,7 @@
+> **➡ SUPERSEDED — a later 2026-06-14 session executed this.** Continue from
+> `docs/superpowers/handoffs/2026-06-14-autopilot-self-healing-layer-built.md` (fixer fixed+wired,
+> auto-push + cost cap + watchdog built, clarify-loop + parallel-on-clones specced).
+
 # Handoff — Autopilot tooling: fixer + unbuilt-design roadmap
 
 **Date:** 2026-06-14 · **Branch:** `feature/2.5.63` · **159 commits unpushed** · **commit-only (remote)**
