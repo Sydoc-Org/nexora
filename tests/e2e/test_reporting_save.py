@@ -99,11 +99,13 @@ def test_save_as_uses_name_modal(nexora_server, page):
     page.get_by_test_id("reporting-name-ok").click()
     expect(modal).to_be_hidden()
 
-    # The new report should appear in the saved reports dropdown
-    page.locator('[data-testid="reporting-saved-reports"]').wait_for(state="visible")
-    opts = page.locator('[data-testid="reporting-saved-reports"] option')
-    names = [opts.nth(i).text_content() for i in range(opts.count())]
-    assert any("modal-save-e2e" in n for n in names), f"Report not found in: {names}"
+    # The new report should appear in the saved reports dropdown. loadReports()
+    # repopulates it asynchronously after the create POST resolves, so wait for the
+    # option to show up rather than snapshotting the <select> immediately (which races
+    # the refresh and intermittently sees only the placeholder).
+    expect(page.locator('[data-testid="reporting-saved-reports"]')).to_contain_text(
+        "modal-save-e2e"
+    )
 
     # Clean up
     reports = page.request.get(f"{nexora_server}/api/reporting/reports").json()
