@@ -13,15 +13,32 @@ is exposed to the internet.
 issue gets `autopilot` label
    │  (n8n Schedule Trigger every 2 min — polling, no inbound webhook)
 fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? ─► Loop Over Items
-   per issue: preflight(clean?) ─► cost-ok? ─► baseline ─► run-plan ─► verify-plan(plan-ok?)
-              ─► run-exec ─► verify-exec(exec-ok?)
-              ├─ ok   ─► comment-built (+label autopilot-built, issue stays OPEN) ─► ✅ ─► next
-              └─ halt ─► solve-blocked (ONE fixer attempt) ─► fix-ok?
-                          ├─ fixed ─► 🛠️ notify-fixed ─► comment-built ─► ✅ ─► next
-                          └─ still ─► mark-blocked (+label autopilot-blocked) ─► ⛔ ─► release-lock ─► STOP
-   queue drained ─► [push-branch if AUTOPILOT_AUTOPUSH=1] ─► release-lock ─► 🏁
-   (cost-ok? over the daily cap ─► 💸 notify-costcap ─► release-lock ─► STOP; resumes next day)
+   per issue: preflight(clean?) ─► cost-ok? ─► triage ─► triage-ok?
+              ├─ needs-input ─► label-needs-input (autopilot-needs-input) ─► 🙋 notify-questions ─► continue-collector ─► next
+              └─ buildable   ─► baseline ─► run-plan ─► verify-plan(plan-ok?)
+                                ─► run-exec ─► verify-exec(exec-ok?)
+                                ├─ ok   ─► comment-built (+label autopilot-built, stays OPEN) ─► ✅ notify-built ─► continue-collector ─► next
+                                └─ halt ─► recover (diagnose → up to MaxAttempts=2 fix attempts → deterministic poison)
+                                            route-recovery Switch:
+                                            ├─ built    ─► comment-built-recovered ─► ✅ notify-recovered ─► continue-collector ─► next
+                                            ├─ skip     ─► mark-blocked (skip-and-continue) ─► ⏭️ notify-skip ─► continue-collector ─► next
+                                            ├─ pause-run ─► mark-blocked ─► ⛔ notify-pause ─► release-lock-halt ─► STOP
+                                            └─ Fallback ─► release-lock-halt ─► STOP
+   queue drained ─► [push-branch if AUTOPILOT_AUTOPUSH=1] ─► release-lock-done ─► 🏁 notify-summary
+   (cost-ok? over daily cap ─► 💸 notify-costcap ─► release-lock ─► STOP; resumes next day)
+   (livelock guard: LivelockMax=3 consecutive skips on same issue ─► escalate to pause-run)
 ```
+
+**Environment variable notes for the recovery layer:**
+
+| Var | Default | Effect |
+|-----|---------|--------|
+| `AUTOPILOT_MAX_ATTEMPTS` | `2` | Max fix attempts per halt (`MaxAttempts` in `recover.ps1`). |
+| `AUTOPILOT_LIVELOCK_MAX` | `3` | Consecutive skips of the same issue before forcing pause-run (`LivelockMax`). |
+
+The attempts ledger is persisted at `var/autopilot/attempts.json` (keyed by issue number) so the livelock guard survives n8n restarts.
+
+**Second workflow (`n8n-clarify-reply.workflow.json`):** a companion workflow that listens for the `autopilot-needs-input` label event (via a second Schedule Trigger polling for that label) and posts the `triage.ps1 questions` field as a GitHub comment, then sends a Telegram link. When you reply on Telegram (or update the issue), remove the label and re-add `autopilot` to re-queue.
 
 ## The pieces
 
@@ -36,7 +53,13 @@ fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? 
 | `run-phase.ps1` | Run ONE headless phase (`plan`/`execute`). Sets `SQL_SYNC_SKIP=1` (process-scoped). |
 | `probe-state.ps1` | Decide success vs blocked from git + handoff state (NOT the exit code). |
 | `comment-result.ps1` | Comment the commit sha + label the issue (`built` or `blocked`). |
-| `solve-blocked.ps1` | **Self-healing fixer.** On a halt, ONE recovery attempt: stash a dirty tree, run an opus agent to finish/resolve/confirm-already-done, self-verify, emit a verdict. Never throws. |
+| `recover.ps1` | **Recovery orchestrator** (the canvas node). Captures `diagnose-halt`, runs a 2-attempt ladder via `fix-attempt`, computes deterministic poison, emits `action` = built/skip/pause-run. Never throws. |
+| `diagnose-halt.ps1` | **Diagnostician.** Deterministic infra/mechanical guards then a read-only classifier; emits a closed-enum `class` + summary + suggestedFix. |
+| `fix-attempt.ps1` | **One parameterized fix attempt** (refactor of the solve-blocked body): cleanup -> fixer agent -> self-verify vs `-SinceSha` -> verdict. |
+| `triage.ps1` | **Pre-plan triage.** Read-only sonnet gate: BUILDABLE or QUESTIONS-FOR-OWNER, before the plan phase. |
+| `probe-infra.ps1` | **Deterministic infra probe** (no LLM): `{ dbOk, n8nOk, ghOk, netOk }`. |
+| `RECOVERY-PLAYBOOK.md` | nexora-specific fixer cookbook (i18n / CRLF / flaky e2e / worktree). |
+| `solve-blocked.ps1` | **Deprecated** (superseded by `recover.ps1`); kept on disk for reference until a cleanup commit removes it once no live workflow references it. |
 | `push-branch.ps1` | **Opt-in auto-push** (`AUTOPILOT_AUTOPUSH=1`, OFF by default). At queue-drain: reset the test DB, then `git push` the feature branch through the pre-push e2e gate. Never main, never PR, never `--no-verify`. |
 | `cost-guard.ps1` | **Daily USD cap.** `check` gates each issue before planning; `add` books each phase's `total_cost_usd`. Over `AUTOPILOT_DAILY_USD_CAP` (default $25) the run pauses until tomorrow. Fails open. |
 | `watchdog.ps1` | **Keep n8n alive.** If `:5678` is down the poll stalls; the watchdog restarts n8n via `start-n8n.ps1` (single-shot for Task Scheduler, or a foreground loop). |
@@ -119,7 +142,7 @@ deliberate future option, not the default.
 
 1. n8n editor → **Import from File** → `tools/autopilot/n8n-autopilot.workflow.json`.
 2. **Credentials** → New → **Telegram API** → paste the bot token → save as `autopilot-telegram`.
-3. On each of the three Telegram nodes (`notify-built`, `notify-halt`, `notify-summary`):
+3. On each of the seven Telegram nodes (`notify-built`, `notify-summary`, `notify-costcap`, `notify-recovered`, `notify-skip`, `notify-questions`, `notify-pause`):
    - set the credential to `autopilot-telegram`;
    - replace `REPLACE_WITH_CHAT_ID` in **Chat ID** with your numeric chat id;
    - confirm the operation is **Send Text Message**.
@@ -131,7 +154,7 @@ deliberate future option, not the default.
 6. **Activate** the workflow when you're ready for the 2-minute polling to run on its own.
 
 > **Import caveats (no live n8n was available when this JSON was authored):** node
-> `typeVersion`s (IF = 2, Loop Over Items = 3, Telegram = 1.2) target a recent n8n; if your
+> `typeVersion`s (IF = 2, Switch = 3, Loop Over Items = 3, Telegram = 1.2) target a recent n8n. The route-recovery Switch must have its **Fallback Output enabled** (wired to pause-run). If your
 > version warns, accept its upgrade or rebuild the node from the table below. After import,
 > eyeball that **Loop Over Items** output **0 = done**, **1 = loop** (n8n labels them).
 
@@ -150,11 +173,31 @@ deliberate future option, not the default.
 
 ## Recovering from a halt
 
-1. Read the Telegram ⛔ + the issue's `autopilot-blocked` comment.
+The recovery layer runs automatically before a true halt — see the flow above. What reaches
+you are three outcomes:
+
+**pause-run (genuine blocker — needs your attention):**
+1. Read the Telegram ⛔ notify-pause + the issue's `autopilot-blocked` comment (the `recover.ps1`
+   JSON in the comment shows `class`, `summary`, and `suggestedFix`).
 2. The run's worktree (if any) was left intact — inspect it: `git -C C:\dev\nexora worktree list`.
-3. Fix the problem (or finish the work by hand).
-4. Remove the `autopilot-blocked` label to re-queue it, or close the issue if done.
-5. The lock auto-released on halt; if a crash left one, `lock.ps1 -Action release`.
+3. Fix the problem (or finish the work by hand), then remove `autopilot-blocked` to re-queue,
+   or close the issue if done.
+4. Lock auto-released on pause-run; if a crash left one, run `lock.ps1 -Action release`.
+
+**skip-and-continue (livelock/mechanical — autopilot moved on):**
+1. Read the Telegram ⏭️ notify-skip. The issue is labelled `autopilot-blocked` but the queue
+   continued to the next issue (no STOP).
+2. Inspect the `recover.ps1` comment for the skip reason; fix manually when convenient.
+3. To re-try, remove `autopilot-blocked` and re-label `autopilot`.
+
+**needs-input (pre-plan triage flagged — answer the questions):**
+1. Read the Telegram 🙋 notify-questions. The `triage.ps1` found the issue under-specified.
+2. The issue is labelled `autopilot-needs-input` (not blocked). Answer the questions in the
+   issue body or a comment.
+3. Remove `autopilot-needs-input` and re-add `autopilot` to re-queue.
+
+**Livelock guard:** if the same issue is skipped `LivelockMax` (default 3) consecutive times,
+`recover.ps1` escalates to pause-run. Check `var/autopilot/attempts.json` for the ledger.
 
 ## Policy (non-negotiable)
 
@@ -180,11 +223,15 @@ two MANDATORY n8n vars above:
 
 ## Self-healing, auto-push, and away-mode (this layer)
 
-On a halt the loop no longer stops immediately: `solve-blocked.ps1` gets **one** opus recovery
-attempt (stash-if-dirty → finish/resolve/confirm-already-done → self-verify). A fixed issue resumes
-the queue (with a 🛠️ Telegram that surfaces any stashed WIP); a still-blocked one halts as before.
-`cost-guard.ps1` caps daily spend; `watchdog.ps1` restarts a dead n8n; `push-branch.ps1` optionally
-pushes a clean run. Run n8n + the watchdog as services for true always-on — see the roadmap doc.
+On a halt the loop no longer stops immediately. `recover.ps1` first calls `diagnose-halt.ps1`
+(deterministic infra/mechanical guards + a read-only LLM classifier) to classify the failure,
+then runs up to `MaxAttempts` (default 2) fix attempts via `fix-attempt.ps1`. The outcome is one
+of `built` (fixed + committed), `skip` (skip-and-continue — queue moves on), or `pause-run`
+(genuine blocker — STOP + your attention needed). `triage.ps1` runs a read-only pre-plan gate
+before each issue to catch under-specified tasks before burning plan/exec time.
+`cost-guard.ps1` caps daily spend; `watchdog.ps1` restarts a dead n8n; `push-branch.ps1`
+optionally pushes a clean run. Run n8n + the watchdog as services for true always-on — see the
+roadmap doc.
 
 ## Roadmap (designed, not built)
 
@@ -217,10 +264,20 @@ split-to-items → Loop Over Items.
 | run-exec | Execute Command | `...\run-phase.ps1 -Phase execute` |
 | verify-exec | Execute Command | `=...\probe-state.ps1 -Phase execute -BeforeSha {{ JSON.parse($('verify-plan').item.json.stdout).headSha }}` |
 | exec-ok? | IF | boolean `{{JSON.parse($json.stdout).ok}}` is true |
+| triage | Execute Command | `=...\triage.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }}` |
+| triage-ok? | IF | string `{{JSON.parse($json.stdout).buildable}}` == `true` |
+| label-needs-input | Execute Command | `=...\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status needs-input` |
+| notify-questions | Telegram | `🙋 #{{...number}} needs-input` |
 | comment-built | Execute Command | `=...\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status built` |
 | notify-built | Telegram | `✅ #{{...number}} built` |
+| recover | Execute Command | `=...\recover.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -SinceSha {{ JSON.parse($('baseline').item.json.stdout).sha }}` |
+| route-recovery | Switch | 4 outputs keyed on `{{JSON.parse($json.stdout).action}}`: `built` / `skip` / `pause-run` / Fallback |
+| comment-built-recovered | Execute Command | `=...\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status built-recovered` |
+| notify-recovered | Telegram | `🛠️ #{{...number}} recovered + built` |
 | mark-blocked | Execute Command | `=...\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked` |
-| notify-halt | Telegram | `⛔ HALTED at #{{...number}}` |
+| notify-skip | Telegram | `⏭️ #{{...number}} skipped (skip-and-continue)` |
+| notify-pause | Telegram | `⛔ HALTED at #{{...number}} — needs-input` |
+| continue-collector | No Op | Collects built / skip / needs-input paths; single output wires back to `Loop Over Items` |
 | release-lock-halt | Execute Command | `...\lock.ps1 -Action release` |
 | STOP | No Op | (terminal — does NOT loop back) |
 | release-lock-done | Execute Command | `...\lock.ps1 -Action release` (from Loop "done" output) |
@@ -228,4 +285,6 @@ split-to-items → Loop Over Items.
 
 **Branch wiring:** IF true = output 0, false = output 1. `Loop Over Items` done = output 0,
 loop = output 1. The three failure edges (`clean?` false, `plan-ok?` false, `exec-ok?` false)
-all converge on `mark-blocked`. `notify-built` connects **back to** `Loop Over Items` to advance.
+converge on `recover`; the `route-recovery` Switch's built/skip outcomes plus triage's
+needs-input reconverge on `continue-collector`, whose single output advances `Loop Over Items`;
+pause-run + the Switch Fallback reach `release-lock-halt -> STOP`.
