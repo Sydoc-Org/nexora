@@ -290,26 +290,13 @@
     },
     {
       "parameters": {
-        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked"
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked -Class {{ (() => { try { return JSON.parse($('recover').item.json.stdout).class; } catch (e) { return ''; } })() }} -Detail {{ JSON.stringify((() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return ''; } })()) }}"
       },
       "id": "cmd-markblocked",
       "name": "mark-blocked",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [2860, 760]
-    },
-    {
-      "parameters": {
-        "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=⛔ loop HALTED at #{{ $('Loop Over Items').item.json.number }} — {{ (() => { try { return JSON.parse($('mark-blocked').item.json.stdout).reason || 'a check failed (see n8n execution)'; } catch (e) { return 'a check failed (see n8n execution)'; } })() }}",
-        "additionalFields": {}
-      },
-      "id": "tg-halt",
-      "name": "notify-halt",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [3080, 760],
-      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
     },
     {
       "parameters": {
@@ -331,44 +318,39 @@
     },
     {
       "parameters": {
-        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\solve-blocked.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }}"
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\recover.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -PlanHeadSha {{ (() => { try { return JSON.parse($('verify-plan').item.json.stdout).headSha; } catch (e) { return ''; } })() }}"
       },
-      "id": "cmd-solveblocked",
-      "name": "solve-blocked",
+      "id": "cmd-recover",
+      "name": "recover",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [2860, 1000]
     },
     {
       "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
-          "conditions": [
-            {
-              "id": "cond-fixok",
-              "leftValue": "={{ JSON.parse($json.stdout).ok }}",
-              "rightValue": "",
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
-            }
-          ],
-          "combinator": "and"
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 }, "conditions": [ { "leftValue": "={{ JSON.parse($json.stdout).action }}", "rightValue": "built", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "outputKey": "built" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 }, "conditions": [ { "leftValue": "={{ JSON.parse($json.stdout).action }}", "rightValue": "skip", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "outputKey": "skip" },
+            { "conditions": { "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 }, "conditions": [ { "leftValue": "={{ JSON.parse($json.stdout).action }}", "rightValue": "pause-run", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "outputKey": "pause-run" }
+          ]
         },
-        "options": {}
+        "options": { "fallbackOutput": "extra" }
       },
-      "id": "if-fixok",
-      "name": "fix-ok?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "id": "sw-route",
+      "name": "route-recovery",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
       "position": [3300, 1000]
     },
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} recovered by the autopilot fixer.{{ (() => { try { const v = JSON.parse($('solve-blocked').item.json.stdout); return ' Commit ' + v.sha + (v.stashed ? '. ⚠ pre-existing WIP was stashed before fixing — run: git stash list / git stash pop to recover.' : '.'); } catch (e) { return ''; } })() }}",
+        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} recovered by autopilot — {{ (() => { try { const v = JSON.parse($('recover').item.json.stdout); return v.summary + (v.stashed ? ' ⚠ pre-existing WIP was stashed (git stash list / pop).' : ''); } catch (e) { return 'commit pending push'; } })() }}",
         "additionalFields": {}
       },
-      "id": "tg-fixed",
-      "name": "notify-fixed",
+      "id": "tg-recovered",
+      "name": "notify-recovered",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [3520, 1000],
@@ -448,6 +430,105 @@
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [3190, 300]
+    },
+    {
+      "parameters": {},
+      "id": "noop-continue",
+      "name": "continue-collector",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [4180, 480]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status built"
+      },
+      "id": "cmd-built-recovered",
+      "name": "comment-built-recovered",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [3740, 1000]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=⏭️ #{{ $('Loop Over Items').item.json.number }} skipped — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'blocked after recovery'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-skip",
+      "name": "notify-skip",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3520, 760],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=❓ #{{ $('Loop Over Items').item.json.number }} needs input — {{ (() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return 'see the issue comment'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-questions",
+      "name": "notify-questions",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2750, 760],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=⏸️ autopilot run paused — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'infra/cost — poll will retry'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-pause",
+      "name": "notify-pause",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3740, 1240],
+      "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\triage.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "cmd-triage",
+      "name": "triage",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2310, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond-triageok",
+              "leftValue": "={{ JSON.parse($json.stdout).buildable }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-triageok",
+      "name": "triage-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2530, 480]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status needs-input -Detail {{ JSON.stringify((() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return ''; } })()) }}"
+      },
+      "id": "cmd-needsinput",
+      "name": "label-needs-input",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2530, 760]
     }
   ],
   "connections": {
@@ -466,29 +547,38 @@
     },
     "push-branch": { "main": [ [ { "node": "release-lock-done", "type": "main", "index": 0 } ] ] },
     "release-lock-done": { "main": [ [ { "node": "notify-summary", "type": "main", "index": 0 } ] ] },
-    "preflight": { "main": [ [ { "node": "clean?", "type": "main", "index": 0 } ] ] },
+    "preflight": { "main": [ [ { "node": "baseline", "type": "main", "index": 0 } ] ] },
+    "baseline": { "main": [ [ { "node": "clean?", "type": "main", "index": 0 } ] ] },
     "clean?": {
       "main": [
         [ { "node": "cost-check", "type": "main", "index": 0 } ],
-        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "recover", "type": "main", "index": 0 } ]
       ]
     },
     "cost-check": { "main": [ [ { "node": "cost-ok?", "type": "main", "index": 0 } ] ] },
     "cost-ok?": {
       "main": [
-        [ { "node": "baseline", "type": "main", "index": 0 } ],
+        [ { "node": "triage", "type": "main", "index": 0 } ],
         [ { "node": "notify-costcap", "type": "main", "index": 0 } ]
       ]
     },
     "notify-costcap": { "main": [ [ { "node": "release-lock-halt", "type": "main", "index": 0 } ] ] },
-    "baseline": { "main": [ [ { "node": "run-plan", "type": "main", "index": 0 } ] ] },
+    "triage": { "main": [ [ { "node": "triage-ok?", "type": "main", "index": 0 } ] ] },
+    "triage-ok?": {
+      "main": [
+        [ { "node": "run-plan", "type": "main", "index": 0 } ],
+        [ { "node": "notify-questions", "type": "main", "index": 0 } ]
+      ]
+    },
+    "notify-questions": { "main": [ [ { "node": "label-needs-input", "type": "main", "index": 0 } ] ] },
+    "label-needs-input": { "main": [ [ { "node": "continue-collector", "type": "main", "index": 0 } ] ] },
     "run-plan": { "main": [ [ { "node": "cost-add-plan", "type": "main", "index": 0 } ] ] },
     "cost-add-plan": { "main": [ [ { "node": "verify-plan", "type": "main", "index": 0 } ] ] },
     "verify-plan": { "main": [ [ { "node": "plan-ok?", "type": "main", "index": 0 } ] ] },
     "plan-ok?": {
       "main": [
         [ { "node": "run-exec", "type": "main", "index": 0 } ],
-        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "recover", "type": "main", "index": 0 } ]
       ]
     },
     "run-exec": { "main": [ [ { "node": "cost-add-exec", "type": "main", "index": 0 } ] ] },
@@ -497,21 +587,26 @@
     "exec-ok?": {
       "main": [
         [ { "node": "comment-built", "type": "main", "index": 0 } ],
-        [ { "node": "solve-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "recover", "type": "main", "index": 0 } ]
       ]
     },
     "comment-built": { "main": [ [ { "node": "notify-built", "type": "main", "index": 0 } ] ] },
-    "notify-built": { "main": [ [ { "node": "Loop Over Items", "type": "main", "index": 0 } ] ] },
-    "mark-blocked": { "main": [ [ { "node": "notify-halt", "type": "main", "index": 0 } ] ] },
-    "notify-halt": { "main": [ [ { "node": "release-lock-halt", "type": "main", "index": 0 } ] ] },
-    "release-lock-halt": { "main": [ [ { "node": "STOP", "type": "main", "index": 0 } ] ] },
-    "solve-blocked": { "main": [ [ { "node": "fix-ok?", "type": "main", "index": 0 } ] ] },
-    "fix-ok?": {
+    "notify-built": { "main": [ [ { "node": "continue-collector", "type": "main", "index": 0 } ] ] },
+    "recover": { "main": [ [ { "node": "route-recovery", "type": "main", "index": 0 } ] ] },
+    "route-recovery": {
       "main": [
-        [ { "node": "notify-fixed", "type": "main", "index": 0 } ],
-        [ { "node": "mark-blocked", "type": "main", "index": 0 } ]
+        [ { "node": "comment-built-recovered", "type": "main", "index": 0 } ],
+        [ { "node": "mark-blocked", "type": "main", "index": 0 } ],
+        [ { "node": "notify-pause", "type": "main", "index": 0 } ],
+        [ { "node": "notify-pause", "type": "main", "index": 0 } ]
       ]
     },
-    "notify-fixed": { "main": [ [ { "node": "comment-built", "type": "main", "index": 0 } ] ] }
+    "comment-built-recovered": { "main": [ [ { "node": "notify-recovered", "type": "main", "index": 0 } ] ] },
+    "notify-recovered": { "main": [ [ { "node": "continue-collector", "type": "main", "index": 0 } ] ] },
+    "mark-blocked": { "main": [ [ { "node": "notify-skip", "type": "main", "index": 0 } ] ] },
+    "notify-skip": { "main": [ [ { "node": "continue-collector", "type": "main", "index": 0 } ] ] },
+    "continue-collector": { "main": [ [ { "node": "Loop Over Items", "type": "main", "index": 0 } ] ] },
+    "notify-pause": { "main": [ [ { "node": "release-lock-halt", "type": "main", "index": 0 } ] ] },
+    "release-lock-halt": { "main": [ [ { "node": "STOP", "type": "main", "index": 0 } ] ] }
   }
 }
