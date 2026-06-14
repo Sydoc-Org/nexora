@@ -129,7 +129,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=🏁 autopilot run complete — queue drained.",
+        "text": "=🏁 autopilot run complete — queue drained.{{ (() => { try { const p = JSON.parse($('push-branch').item.json.stdout); if (!p || p.status === 'disabled') return ''; if (p.pushed) return ' Pushed ' + p.branch + ' to origin (e2e gate passed).'; return ' ⚠ NOT pushed — ' + p.reason; } catch (e) { return ''; } })() }}",
         "additionalFields": {}
       },
       "id": "tg-summary",
@@ -373,6 +373,16 @@
       "typeVersion": 1.2,
       "position": [3520, 1000],
       "credentials": { "telegramApi": { "id": "REPLACE_TELEGRAM_CRED_ID", "name": "autopilot-telegram" } }
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\push-branch.ps1"
+      },
+      "id": "cmd-pushbranch",
+      "name": "push-branch",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1320, 220]
     }
   ],
   "connections": {
@@ -385,10 +395,11 @@
     "split-to-items": { "main": [ [ { "node": "Loop Over Items", "type": "main", "index": 0 } ] ] },
     "Loop Over Items": {
       "main": [
-        [ { "node": "release-lock-done", "type": "main", "index": 0 } ],
+        [ { "node": "push-branch", "type": "main", "index": 0 } ],
         [ { "node": "preflight", "type": "main", "index": 0 } ]
       ]
     },
+    "push-branch": { "main": [ [ { "node": "release-lock-done", "type": "main", "index": 0 } ] ] },
     "release-lock-done": { "main": [ [ { "node": "notify-summary", "type": "main", "index": 0 } ] ] },
     "preflight": { "main": [ [ { "node": "clean?", "type": "main", "index": 0 } ] ] },
     "clean?": {
