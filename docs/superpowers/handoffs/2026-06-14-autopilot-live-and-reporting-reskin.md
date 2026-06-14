@@ -1,3 +1,7 @@
+> ⏩ **NEWER same-date handoff:** `docs/superpowers/handoffs/2026-06-14-push-feature-branch-fix-gate-plan.md`
+> (a plan to push feature/2.5.63 through the gate). If `/reset-session` lands here, target that file:
+> `/reset-session docs/superpowers/handoffs/2026-06-14-push-feature-branch-fix-gate-plan.md`.
+
 # Handoff — Autopilot published + smoke-tested LIVE; reporting reskin Phases 1–2.4
 
 **Date:** 2026-06-14 (evening) · **Branch:** `feature/2.5.63` · **172 commits unpushed** · **commit-only (remote)**
