@@ -15,6 +15,10 @@
   Notifications are best-effort and OPTIONAL: if AUTOPILOT_TG_TOKEN + AUTOPILOT_TG_CHAT are set,
   a restart pings Telegram; otherwise it only logs (the n8n Telegram credential lives inside n8n
   and is not reachable from here).
+.EXAMPLE
+  .\watchdog.ps1
+  .\watchdog.ps1 -IntervalSeconds 120
+
 .NOTES
   A restart does NOT resume a crashed execution; lock.ps1's self-heal + start-n8n.ps1's
   boot-time lock clear handle the orphaned-run case. The watchdog only guarantees n8n is back
