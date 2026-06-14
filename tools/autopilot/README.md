@@ -13,11 +13,14 @@ is exposed to the internet.
 issue gets `autopilot` label
    │  (n8n Schedule Trigger every 2 min — polling, no inbound webhook)
 fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? ─► Loop Over Items
-   per issue: preflight(clean?) ─► baseline ─► run-plan ─► verify-plan(plan-ok?)
+   per issue: preflight(clean?) ─► cost-ok? ─► baseline ─► run-plan ─► verify-plan(plan-ok?)
               ─► run-exec ─► verify-exec(exec-ok?)
               ├─ ok   ─► comment-built (+label autopilot-built, issue stays OPEN) ─► ✅ ─► next
-              └─ fail ─► mark-blocked (+label autopilot-blocked) ─► ⛔ ─► release-lock ─► STOP
-   queue drained ─► release-lock ─► 🏁
+              └─ halt ─► solve-blocked (ONE fixer attempt) ─► fix-ok?
+                          ├─ fixed ─► 🛠️ notify-fixed ─► comment-built ─► ✅ ─► next
+                          └─ still ─► mark-blocked (+label autopilot-blocked) ─► ⛔ ─► release-lock ─► STOP
+   queue drained ─► [push-branch if AUTOPILOT_AUTOPUSH=1] ─► release-lock ─► 🏁
+   (cost-ok? over the daily cap ─► 💸 notify-costcap ─► release-lock ─► STOP; resumes next day)
 ```
 
 ## The pieces
@@ -33,6 +36,10 @@ fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? 
 | `run-phase.ps1` | Run ONE headless phase (`plan`/`execute`). Sets `SQL_SYNC_SKIP=1` (process-scoped). |
 | `probe-state.ps1` | Decide success vs blocked from git + handoff state (NOT the exit code). |
 | `comment-result.ps1` | Comment the commit sha + label the issue (`built` or `blocked`). |
+| `solve-blocked.ps1` | **Self-healing fixer.** On a halt, ONE recovery attempt: stash a dirty tree, run an opus agent to finish/resolve/confirm-already-done, self-verify, emit a verdict. Never throws. |
+| `push-branch.ps1` | **Opt-in auto-push** (`AUTOPILOT_AUTOPUSH=1`, OFF by default). At queue-drain: reset the test DB, then `git push` the feature branch through the pre-push e2e gate. Never main, never PR, never `--no-verify`. |
+| `cost-guard.ps1` | **Daily USD cap.** `check` gates each issue before planning; `add` books each phase's `total_cost_usd`. Over `AUTOPILOT_DAILY_USD_CAP` (default $25) the run pauses until tomorrow. Fails open. |
+| `watchdog.ps1` | **Keep n8n alive.** If `:5678` is down the poll stalls; the watchdog restarts n8n via `start-n8n.ps1` (single-shot for Task Scheduler, or a foreground loop). |
 
 These scripts are the "hands"; n8n's canvas is the "brain" (looping, branching, halting).
 
@@ -151,11 +158,40 @@ deliberate future option, not the default.
 
 ## Policy (non-negotiable)
 
-- **Commit, never push, never PR.** Built issues are commented + labelled, not closed — you push
-  and close after review.
+- **Commit, never PR, never main, never deploy.** Built issues are commented + labelled, not
+  closed. Push is **off by default**; the only way anything reaches the remote is the opt-in
+  `push-branch.ps1` (`AUTOPILOT_AUTOPUSH=1`), which hard-refuses main/master and always runs the
+  full pre-push e2e gate. deploy.yml triggers only on main, so never-main == never-deploy.
 - `SQL_SYNC_SKIP=1` is set inside `run-phase.ps1` (process-scoped) so internal commits survive the
   INT CRLF drift hook. Never `--no-verify`.
 - `--effort high` (NOT "ultracode" — not a valid `--effort` value).
+
+## Environment variables (away-mode)
+
+Set these in the n8n **service definition / a persisted `.env`** (not just a shell), alongside the
+two MANDATORY n8n vars above:
+
+| Var | Default | Effect |
+|-----|---------|--------|
+| `AUTOPILOT_ALLOWED_AUTHORS` | `benstreich` | Comma/space list of GitHub logins whose issues may be built (the primary security control). |
+| `AUTOPILOT_AUTOPUSH` | unset (off) | `1` enables `push-branch.ps1` to push the feature branch at queue-drain. |
+| `AUTOPILOT_DAILY_USD_CAP` | `25` | `cost-guard.ps1` pauses the run once today's spend reaches this. |
+| `AUTOPILOT_TG_TOKEN` / `AUTOPILOT_TG_CHAT` | unset | Optional: let `watchdog.ps1` ping Telegram on an n8n restart. |
+
+## Self-healing, auto-push, and away-mode (this layer)
+
+On a halt the loop no longer stops immediately: `solve-blocked.ps1` gets **one** opus recovery
+attempt (stash-if-dirty → finish/resolve/confirm-already-done → self-verify). A fixed issue resumes
+the queue (with a 🛠️ Telegram that surfaces any stashed WIP); a still-blocked one halts as before.
+`cost-guard.ps1` caps daily spend; `watchdog.ps1` restarts a dead n8n; `push-branch.ps1` optionally
+pushes a clean run. Run n8n + the watchdog as services for true always-on — see the roadmap doc.
+
+## Roadmap (designed, not built)
+
+`docs/superpowers/specs/2026-06-14-autopilot-clarify-and-parallel-design.md` specifies the next
+three: the **Telegram two-way clarify loop** (ask instead of guess, via a controllable pre-plan
+triage), **parallel-on-clones** (concurrency without breaking branch isolation), and **n8n-as-a-
+service** wiring. Each ends in a single interactive smoke gate.
 
 ## Node / connection reference (fallback if the import misbehaves)
 
