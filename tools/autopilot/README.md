@@ -88,6 +88,16 @@ surface. The controls:
 4. **`--dangerously-skip-permissions` is kept on purpose** — unattended headless feature work can't
    answer permission prompts and can't be covered by a static tool allowlist. The trust gate, not
    the permission flag, is how this is made safe.
+5. **Commenting identity should be a non-allowlisted bot.** Every trust check (the issue author and
+   `owner-clarification:` replies) keys on `author.login` vs the allowlist — never on which account
+   `gh` is. So authenticate this box's `gh` as a **dedicated bot account** (e.g. `nexora-autopilot-bot`,
+   added as a **Write** collaborator) that is **NOT** in `AUTOPILOT_ALLOWED_AUTHORS`. Then the autopilot
+   comments as the bot (you stop replying to your own comments) and — crucially — a hijacked agent using
+   the box's keyring `gh` (item 3) can only post **as the bot**, so a forged `owner-clarification:` is
+   **not** trusted. If the box's `gh` is itself an allowlisted user (the default today), the gate is
+   **hollow**: the autopilot posts as a trusted user and a forged clarification would be believed.
+   `start-n8n.ps1` warns at startup when it detects this. Keep authoring issues + replies from your
+   personal (allowlisted) account — only those count as trusted clarifications.
 
 **Want stronger isolation?** Run autopilot under a dedicated least-privilege Windows account / a
 disposable VM with its own narrowly-scoped `gh` token and **no** push credentials, building against
@@ -119,7 +129,11 @@ deliberate future option, not the default.
      `.env` / your service definition rather than the shell. Re-enabling `executeCommand` lets
      n8n run arbitrary shell — that's intended here, and bounded by the trusted-author gate
      (see Security model).
-2. **`gh` authed** to `Sydoc-Code/nexora` (already done on this box: `gh auth status`).
+2. **`gh` authed** to `Sydoc-Code/nexora` — **as a dedicated bot account**, NOT your personal login.
+   Create e.g. `nexora-autopilot-bot`, add it as a **Write** collaborator (it must comment + add/remove
+   labels), then `gh auth login` on this box as the bot (or a bot PAT with `repo` scope). Keep
+   `AUTOPILOT_ALLOWED_AUTHORS` = your personal login only — see Security model item 5 for why. The
+   autopilot then comments as the bot; you author issues + reply from your personal account.
 3. **Labels created** — run once:
    ```powershell
    pwsh -NoProfile -File C:\dev\nexora\tools\autopilot\setup-labels.ps1
