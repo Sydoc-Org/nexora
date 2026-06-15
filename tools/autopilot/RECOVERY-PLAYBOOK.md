@@ -22,5 +22,20 @@ The fixer (`fix-attempt.ps1`) reads the section matching the diagnosed `class`. 
   confirms it holds no unmerged commits. An unmerged worktree is data loss => classify
   `genuine-blocker`.
 
+## Lane merge conflict (`merge-resolve` returned UNRESOLVED)
+- `merge-resolve.ps1` already aborted the merge clean. Worktree is intact at
+  `C:\dev\nexora-lanes\lane-K` on branch `auto/issue-NN`.
+- Inspect: `git -C C:\dev\nexora-lanes\lane-K diff HEAD feature/2.5.63` to see what conflicted.
+- Options:
+  - **Resolve by hand:** checkout the branch, resolve, commit, then `merge-back.ps1 -Force` (or merge manually into `feature/2.5.63`).
+  - **Re-queue:** fix the conflicting code in `feature/2.5.63` first, then remove `autopilot-blocked` to re-queue.
+- After resolving: `git -C C:\dev\nexora worktree remove --force C:\dev\nexora-lanes\lane-K` then `git -C C:\dev\nexora branch -D auto/issue-NN`.
+
+## All slots wedged (semaphore full, no progress)
+- Usually means 3 lanes crashed without releasing slots.
+- Emergency: remove `C:\dev\nexora\var\autopilot\slots\` (all `.lock` files) and inspect the
+  lane worktrees (`git worktree list`) before pruning — do NOT remove unmerged worktrees.
+- `start-n8n.ps1` does this automatically (ancestor-checked) on next n8n startup.
+
 ## Always
 - Commit on the current branch; stop at commit; never push; never `--no-verify`.

@@ -12,22 +12,35 @@ is exposed to the internet.
 ```
 issue gets `autopilot` label
    │  (n8n Schedule Trigger every 2 min — polling, no inbound webhook)
-fetch-queue ─► parse ─► have-work? ─► acquire-lock ─► got-lock? ─► Loop Over Items
-   per issue: preflight(clean?) ─► cost-ok? ─► triage ─► triage-ok?
-              ├─ needs-input ─► label-needs-input (autopilot-needs-input) ─► 🙋 notify-questions ─► continue-collector ─► next
-              └─ buildable   ─► baseline ─► run-plan ─► verify-plan(plan-ok?)
-                                ─► run-exec ─► verify-exec(exec-ok?)
-                                ├─ ok   ─► comment-built (+label autopilot-built, stays OPEN) ─► ✅ notify-built ─► continue-collector ─► next
-                                └─ halt ─► recover (diagnose → up to MaxAttempts=2 fix attempts → deterministic poison)
-                                            route-recovery Switch:
-                                            ├─ built    ─► comment-built-recovered ─► ✅ notify-recovered ─► continue-collector ─► next
-                                            ├─ skip     ─► mark-blocked (skip-and-continue) ─► ⏭️ notify-skip ─► continue-collector ─► next
-                                            ├─ pause-run ─► mark-blocked ─► ⛔ notify-pause ─► release-lock-halt ─► STOP
-                                            └─ Fallback ─► release-lock-halt ─► STOP
-   queue drained ─► [push-branch if AUTOPILOT_AUTOPUSH=1] ─► release-lock-done ─► 🏁 notify-summary
+fetch-queue ─► parse ─► have-work? ─► split-to-items ─► Loop Over Items (up to 3 concurrent)
+   per issue: dispatch-acquire ─► got-slot?
+              ├─ FULL     ─► continue-collector ─► next item (slots all held)
+              └─ ACQUIRED ─► preflight(clean?) ─► cost-ok? ─► triage ─► triage-ok?
+                              ├─ needs-input ─► label-needs-input ─► 🙋 notify-questions ─► continue-collector ─► next
+                              └─ buildable   ─► baseline ─► run-plan ─► plan-ok?
+                                             ─► [db-acquire] ─► run-exec ─► [db-release] ─► verify-exec ─► exec-ok?
+                                             ├─ ok   ─► merge-back ─► merge-route
+                                             │         ├─ MERGED   ─► comment-built (+autopilot-built) ─► ✅ notify-built ─► continue-collector ─► next
+                                             │         ├─ CONFLICT ─► merge-resolve ─► continue-collector ─► next
+                                             │         ├─ BUSY     ─► continue-collector ─► next (retry later)
+                                             │         └─ Fallback ─► ⛔ notify-pause ─► pause-lane ─► continue-collector ─► next
+                                             └─ halt ─► recover (diagnose → up to MaxAttempts=2 → deterministic poison)
+                                                         route-recovery Switch:
+                                                         ├─ built    ─► comment-built-recovered ─► ✅ notify-recovered ─► continue-collector ─► next
+                                                         ├─ skip     ─► mark-blocked ─► ⏭️ notify-skip ─► continue-collector ─► next
+                                                         ├─ pause-run ─► mark-blocked ─► ⛔ notify-pause ─► pause-lane ─► continue-collector ─► next
+                                                         └─ Fallback ─► ⛔ notify-pause ─► pause-lane ─► continue-collector ─► next
+   queue drained ─► [push-branch if AUTOPILOT_AUTOPUSH=1] ─► 🏁 notify-summary
    (cost-ok? over daily cap ─► 💸 notify-costcap ─► release-lock ─► STOP; resumes next day)
    (livelock guard: LivelockMax=3 consecutive skips on same issue ─► escalate to pause-run)
 ```
+
+**Key concurrent-lanes change:** the global `acquire-lock/got-lock?` gate is gone. Up to 3 issues
+now build simultaneously in isolated git worktrees (`<repo>-lanes\lane-K`). Each issue claims one
+of three semaphore slots on entry; a failed issue frees its own slot (`pause-lane`) and the other
+two keep running. `db-acquire/db-release` serialize only the DB-touching build step across lanes;
+everything else (plan, verify, merge-back) overlaps freely. Merge-back acquires a short-lived
+`merge.lock` to write `feature/2.5.63` one lane at a time.
 
 **Environment variable notes for the recovery layer:**
 
@@ -48,9 +61,15 @@ The attempts ledger is persisted at `var/autopilot/attempts.json` (keyed by issu
 | `start-n8n.ps1` | Launch n8n with the REQUIRED env (secure-cookie off + Execute Command re-enabled). Use instead of a bare `n8n start`. |
 | `setup-labels.ps1` | One-time: create the `autopilot` / `autopilot-built` / `autopilot-blocked` labels. |
 | `fetch-queue.ps1` | Emit the work queue: open `autopilot` issues minus built/blocked, **from allowlisted authors only**, oldest first. |
-| `lock.ps1` | Single-run lock (`acquire`/`release`/`check`); reclaims a lock older than 3h. |
+| `semaphore.ps1` | **3-slot atomic semaphore** (`acquire`/`release`/`check`). One slot per concurrent lane; uses `[IO.File]::Open(CreateNew)` to prevent TOCTOU. |
+| `lane-paths.ps1` | **Path layout helper** (dot-source). `Get-LanePaths -Lane K -BaseRepo -IssueNumber` returns worktree, log, run-state, baseline paths for lane K. |
+| `lane.ps1` | **Worktree lifecycle** (`acquire`/`release`). Acquire: claim slot + `git worktree add auto/issue-NN`. Release: ancestor-check; UNMERGED keeps worktree but frees slot. |
+| `merge-back.ps1` | **Serialized merge-back**. Acquires `merge.lock` (bounded 1800s poll), merges `auto/issue-NN --no-ff`. On CONFLICT: aborts clean, returns status for resolver. |
+| `merge-resolve.ps1` | **Conflict resolver agent**. Runs ONLY on CONFLICT. Spawns `claude -p opus` to resolve; commits on success (MERGED) or aborts clean (UNRESOLVED). |
+| `db-lock.ps1` | **Shared DB lock** (`acquire`/`release`). Wraps `run-exec` across lanes to prevent concurrent `NEXORA_TEST` state stomping. `verify-exec` runs unserialized. |
+| `lock.ps1` | Single-run lock (`acquire`/`release`/`check`); reclaims a lock older than 3h. (Kept for legacy/fallback; main flow now uses semaphore.) |
 | `baseline.ps1` | Snapshot HEAD + worktrees + timestamp before an issue, so the verifier judges only this run's delta. |
-| `run-phase.ps1` | Run ONE headless phase (`plan`/`execute`). Sets `SQL_SYNC_SKIP=1` (process-scoped). |
+| `run-phase.ps1` | Run ONE headless phase (`plan`/`execute`). Sets `SQL_SYNC_SKIP=1` (process-scoped). Accepts `-LogPath`, `-StatePath`, `-Lane` for lane-aware operation. |
 | `probe-state.ps1` | Decide success vs blocked from git + handoff state (NOT the exit code). |
 | `comment-result.ps1` | Comment the commit sha + label the issue (`built` or `blocked`). |
 | `recover.ps1` | **Recovery orchestrator** (the canvas node). Captures `diagnose-halt`, runs a 2-attempt ladder via `fix-attempt`, computes deterministic poison, emits `action` = built/skip/pause-run. Never throws. |
@@ -63,7 +82,7 @@ The attempts ledger is persisted at `var/autopilot/attempts.json` (keyed by issu
 | `push-branch.ps1` | **Opt-in auto-push** (`AUTOPILOT_AUTOPUSH=1`, OFF by default). At queue-drain: reset the test DB, then `git push` the feature branch through the pre-push e2e gate. Never main, never PR, never `--no-verify`. |
 | `cost-guard.ps1` | **Daily USD cap.** `check` gates each issue before planning; `add` books each phase's `total_cost_usd`. Over `AUTOPILOT_DAILY_USD_CAP` (default $25) the run pauses until tomorrow. Fails open. |
 | `watchdog.ps1` | **Keep n8n alive.** If `:5678` is down the poll stalls; the watchdog restarts n8n via `start-n8n.ps1` (single-shot for Task Scheduler, or a foreground loop). |
-| `run-state.json` (var/autopilot/) | **State file.** Per-issue record `{number, title, phase, ts, procId}` written by `run-phase.ps1` at phase start, cleared on n8n startup. `nx status` reads it to show what is building and for how long. |
+| `run-state.json` (var/autopilot/lanes/lane-K/) | **Per-lane state file.** `{number, title, phase, ts, procId}` written by `run-phase.ps1` at phase start. `nx status` reads all lane states + checks the semaphore for liveness. |
 
 These scripts are the "hands"; n8n's canvas is the "brain" (looping, branching, halting).
 
@@ -191,8 +210,9 @@ deliberate future option, not the default.
 2. **Halt path:** label an impossible issue (e.g. "integrate the nonexistent FooBar SDK"). Expect
    it to halt on that issue (`autopilot-blocked` + comment), Telegram ⛔, **no later issue
    attempted**, repo clean, lock released.
-3. **Lock:** while a run is in progress, click *Execute Workflow* again — the second run should
-   hit `got-lock?` false and stop quietly.
+3. **Concurrent lanes:** queue 3 issues simultaneously. Each should claim its own slot
+   (`dispatch-acquire` → `got-slot?` ACQUIRED) and build in a separate worktree. A 4th
+   queued issue should hit `got-slot?` FULL and be deferred until a slot frees.
 
 ## Recovering from a halt
 
@@ -202,10 +222,14 @@ you are three outcomes:
 **pause-run (genuine blocker — needs your attention):**
 1. Read the Telegram ⛔ notify-pause + the issue's `autopilot-blocked` comment (the `recover.ps1`
    JSON in the comment shows `class`, `summary`, and `suggestedFix`).
-2. The run's worktree (if any) was left intact — inspect it: `git -C C:\dev\nexora worktree list`.
+2. **The failing lane's worktree is left intact** for inspection — the slot IS freed so other
+   lanes continue. Inspect: `git -C C:\dev\nexora worktree list` (look for `lane-K` entries).
 3. Fix the problem (or finish the work by hand), then remove `autopilot-blocked` to re-queue,
    or close the issue if done.
-4. Lock auto-released on pause-run; if a crash left one, run `lock.ps1 -Action release`.
+4. After inspecting, remove the stale worktree manually:
+   `git -C C:\dev\nexora worktree remove --force <path>` then `git branch -D auto/issue-NN`.
+5. Leaked slots/locks after a crash: `start-n8n.ps1` clears all on next startup. Emergency
+   manual clear: remove `var\autopilot\slots\`, `var\autopilot\merge.lock`, `var\autopilot\db.lock`.
 
 **skip-and-continue (livelock/mechanical — autopilot moved on):**
 1. Read the Telegram ⏭️ notify-skip. The issue is labelled `autopilot-blocked` but the queue
@@ -221,6 +245,31 @@ you are three outcomes:
 
 **Livelock guard:** if the same issue is skipped `LivelockMax` (default 3) consecutive times,
 `recover.ps1` escalates to pause-run. Check `var/autopilot/attempts.json` for the ledger.
+
+## Concurrent lanes
+
+The loop processes up to **3 issues in parallel** using isolated git worktrees and a 3-slot
+semaphore (`semaphore.ps1`). Each slot K maps to:
+
+- **Worktree:** `<BaseRepo>-lanes\lane-K` (e.g. `C:\dev\nexora-lanes\lane-0`) — outside the main
+  repo so robocopy/IIS never touch it.
+- **Branch:** `auto/issue-NN` (off `feature/2.5.63`).
+- **State:** `var\autopilot\lanes\lane-K\` — log, run-state, baseline.
+
+**Isolation contract:**
+- `run-plan` and `run-exec` set `AUTOPILOT_LANE=1`, which tells `write-plan` NOT to create a nested
+  `plan/<slug>` worktree (it would bypass the serialized merge-back).
+- `db-lock.ps1` serializes `run-exec` across lanes (one at a time) — the NEXORA_TEST DB state
+  cannot be shared. `verify-exec` (pure git) runs concurrently.
+- `merge-back.ps1` acquires `merge.lock` (one lane merges at a time); on CONFLICT hands off to
+  `merge-resolve.ps1` which runs `claude -p opus` in the worktree.
+- A failed lane frees its slot (`pause-lane`), leaves its worktree for inspection, and the other
+  lanes keep going — no pipeline STOP.
+
+**Locking hierarchy** (innermost → outermost):
+1. `var\autopilot\slots\lane-K.lock` — semaphore slot (per-issue lifetime)
+2. `var\autopilot\db.lock` — DB build step (seconds to minutes)
+3. `var\autopilot\merge.lock` — merge-back critical section (seconds)
 
 ## Policy (non-negotiable)
 
