@@ -31,7 +31,18 @@ function Add-Label([string]$label) {
 }
 function Comment([string]$body) {
   if ($DryRun) { return }
-  gh issue comment $IssueNumber --repo $Repo --body $body | Out-Null
+  # Post the autopilot's OWN comments as the dedicated bot account when AUTOPILOT_BOT_TOKEN is set, so
+  # they are visibly distinct from your replies and a forged owner-clarification (posted by the bot) is
+  # never trusted. The token is scoped to THIS call only (save/restore); labels, issue reads, commits,
+  # and the owner's clarify-reply relay all keep the box's own (allowlisted) gh identity.
+  if ($env:AUTOPILOT_BOT_TOKEN) {
+    $prevToken = $env:GH_TOKEN
+    $env:GH_TOKEN = $env:AUTOPILOT_BOT_TOKEN
+    try     { gh issue comment $IssueNumber --repo $Repo --body $body | Out-Null }
+    finally { $env:GH_TOKEN = $prevToken }
+  } else {
+    gh issue comment $IssueNumber --repo $Repo --body $body | Out-Null
+  }
 }
 
 if ($Status -eq 'built') {

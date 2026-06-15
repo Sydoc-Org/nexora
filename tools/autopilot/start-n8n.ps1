@@ -32,12 +32,25 @@ if ($AllowedAuthors) { $env:AUTOPILOT_ALLOWED_AUTHORS = $AllowedAuthors }
 # hijacked agent reaching the keyring gh could forge a trusted clarification. Warn loudly; never
 # block. See README "Security model" item 5: authenticate gh as a dedicated, non-allowlisted bot.
 try {
-  $ghLogin = (& gh api user --jq '.login' 2>$null)
   $allow = if ($env:AUTOPILOT_ALLOWED_AUTHORS) { $env:AUTOPILOT_ALLOWED_AUTHORS -split '[,; ]+' | Where-Object { $_ } } else { @('benstreich') }
-  if ($ghLogin -and ($allow -contains $ghLogin.Trim())) {
-    Write-Warning "gh on this box is authenticated as '$($ghLogin.Trim())', which IS in AUTOPILOT_ALLOWED_AUTHORS ($($allow -join ', '))."
-    Write-Warning "  => the autopilot will comment AS a trusted user, so the owner-clarification gate is HOLLOW."
-    Write-Warning "  => authenticate gh as a dedicated bot account NOT in the allowlist (README Security model item 5)."
+  # The autopilot COMMENTS as AUTOPILOT_BOT_TOKEN's account if set (comment-result.ps1), else as the
+  # box's own gh login. That commenting identity must NOT be allowlisted, else its comments are
+  # indistinguishable from your trusted replies (a hijacked agent could forge a trusted clarification).
+  if ($env:AUTOPILOT_BOT_TOKEN) {
+    $prevToken = $env:GH_TOKEN; $env:GH_TOKEN = $env:AUTOPILOT_BOT_TOKEN
+    try { $commentLogin = (& gh api user --jq '.login' 2>$null) } finally { $env:GH_TOKEN = $prevToken }
+    $src = 'AUTOPILOT_BOT_TOKEN'
+    if (-not ($commentLogin -and $commentLogin.Trim())) {
+      Write-Warning "AUTOPILOT_BOT_TOKEN is set but 'gh api user' returned no login (invalid/expired/under-scoped token?) => the autopilot's comments will FAIL until this is fixed."
+    }
+  } else {
+    $commentLogin = (& gh api user --jq '.login' 2>$null)
+    $src = 'box gh login (no AUTOPILOT_BOT_TOKEN set)'
+  }
+  if ($commentLogin -and ($allow -contains $commentLogin.Trim())) {
+    Write-Warning "the autopilot will COMMENT as '$($commentLogin.Trim())' [$src], which IS in AUTOPILOT_ALLOWED_AUTHORS ($($allow -join ', '))."
+    Write-Warning "  => its comments are indistinguishable from your trusted replies (hollow owner-clarification gate)."
+    Write-Warning "  => set AUTOPILOT_BOT_TOKEN to a dedicated, non-allowlisted bot PAT (comments only). README Security model item 5."
   }
 } catch {}
 

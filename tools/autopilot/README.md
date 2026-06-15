@@ -88,16 +88,21 @@ surface. The controls:
 4. **`--dangerously-skip-permissions` is kept on purpose** — unattended headless feature work can't
    answer permission prompts and can't be covered by a static tool allowlist. The trust gate, not
    the permission flag, is how this is made safe.
-5. **Commenting identity should be a non-allowlisted bot.** Every trust check (the issue author and
+5. **The autopilot comments as a non-allowlisted bot.** Every trust check (the issue author and
    `owner-clarification:` replies) keys on `author.login` vs the allowlist — never on which account
-   `gh` is. So authenticate this box's `gh` as a **dedicated bot account** (e.g. `nexora-autopilot-bot`,
-   added as a **Write** collaborator) that is **NOT** in `AUTOPILOT_ALLOWED_AUTHORS`. Then the autopilot
-   comments as the bot (you stop replying to your own comments) and — crucially — a hijacked agent using
-   the box's keyring `gh` (item 3) can only post **as the bot**, so a forged `owner-clarification:` is
-   **not** trusted. If the box's `gh` is itself an allowlisted user (the default today), the gate is
-   **hollow**: the autopilot posts as a trusted user and a forged clarification would be believed.
-   `start-n8n.ps1` warns at startup when it detects this. Keep authoring issues + replies from your
-   personal (allowlisted) account — only those count as trusted clarifications.
+   `gh` is. So `comment-result.ps1` posts the autopilot's own comments through a dedicated **bot PAT**
+   in `AUTOPILOT_BOT_TOKEN` (scoped to the comment call only); **labels, issue reads, commits, and the
+   owner's clarify-reply relay keep your own (allowlisted) `gh` identity**. The bot is **NOT** in
+   `AUTOPILOT_ALLOWED_AUTHORS`, so its comments are visibly distinct from your replies and a forged
+   `owner-clarification:` posted by the bot is never trusted. Setup: create e.g. `nexora-autopilot-bot`,
+   add it as a **Read** collaborator (enough to comment on a private repo — it needs no write/push),
+   make a fine-grained PAT (Issues → Read & write, this repo only), and set it as `AUTOPILOT_BOT_TOKEN`
+   in the n8n env. `start-n8n.ps1` warns at startup if the commenting identity is itself allowlisted (a
+   hollow gate). Keep authoring issues + replies from your personal (allowlisted) account — only those
+   count as trusted clarifications. **Residual risk:** your allowlisted `gh` keyring still lives on the
+   box for reads/labels/commits, so a prompt-injected agent could in principle use it to forge an
+   `owner-clarification:` as you. Fully closing that needs the box's *default* `gh` to also be the bot,
+   or the stronger OS isolation below.
 
 **Want stronger isolation?** Run autopilot under a dedicated least-privilege Windows account / a
 disposable VM with its own narrowly-scoped `gh` token and **no** push credentials, building against
@@ -129,11 +134,14 @@ deliberate future option, not the default.
      `.env` / your service definition rather than the shell. Re-enabling `executeCommand` lets
      n8n run arbitrary shell — that's intended here, and bounded by the trusted-author gate
      (see Security model).
-2. **`gh` authed** to `Sydoc-Code/nexora` — **as a dedicated bot account**, NOT your personal login.
-   Create e.g. `nexora-autopilot-bot`, add it as a **Write** collaborator (it must comment + add/remove
-   labels), then `gh auth login` on this box as the bot (or a bot PAT with `repo` scope). Keep
-   `AUTOPILOT_ALLOWED_AUTHORS` = your personal login only — see Security model item 5 for why. The
-   autopilot then comments as the bot; you author issues + reply from your personal account.
+2. **`gh` authed on this box as YOUR own (allowlisted) account.** The box `gh` does issue reads,
+   label add/remove, commits, **and relays your clarify replies** (`n8n-clarify-reply.workflow.json`),
+   all of which must stay your *trusted* identity — `run-phase.ps1`/`triage.ps1` only honour
+   `owner-clarification:` comments whose author is in `AUTOPILOT_ALLOWED_AUTHORS`. **Do NOT** auth the
+   box as the bot, or the clarify relay's answers post as the bot and get dropped. The autopilot's own
+   comments are made through a separate **bot** identity supplied via `AUTOPILOT_BOT_TOKEN` only — see
+   Security model item 5 (create `nexora-autopilot-bot`, a **Read** collaborator, fine-grained PAT with
+   Issues → Read & write). Keep `AUTOPILOT_ALLOWED_AUTHORS` = your account; never add the bot.
 3. **Labels created** — run once:
    ```powershell
    pwsh -NoProfile -File C:\dev\nexora\tools\autopilot\setup-labels.ps1
@@ -231,6 +239,7 @@ two MANDATORY n8n vars above:
 | Var | Default | Effect |
 |-----|---------|--------|
 | `AUTOPILOT_ALLOWED_AUTHORS` | `benstreich` | Comma/space list of GitHub logins whose issues may be built (the primary security control). |
+| `AUTOPILOT_BOT_TOKEN` | unset | A dedicated, **non-allowlisted** bot's GitHub PAT. When set, `comment-result.ps1` posts the autopilot's own comments as the bot (scoped to that call); labels/reads/commits keep your gh identity. See Security model item 5. |
 | `AUTOPILOT_AUTOPUSH` | unset (off) | `1` enables `push-branch.ps1` to push the feature branch at queue-drain. |
 | `AUTOPILOT_DAILY_USD_CAP` | `25` | `cost-guard.ps1` pauses the run once today's spend reaches this. |
 | `AUTOPILOT_TG_TOKEN` / `AUTOPILOT_TG_CHAT` | unset | Optional: let `watchdog.ps1` ping Telegram on an n8n restart. |
