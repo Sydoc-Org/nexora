@@ -87,6 +87,10 @@ Assert "SIGNALS has pending row for diagnostician shape" `
 Assert "SIGNALS has pending row for read-only claude flag" `
     ($signals -match 'allowedTools|permission-mode|read-only.*claude|claude.*flag')
 
+# run-state contract (clearer-execution-titles feature)
+Assert "README pieces table has run-state.json" ($readme -match 'run-state\.json')
+Assert "SIGNALS documents run-state.json"        ($signals -match 'run-state\.json')
+
 Write-Host ""
 if ($fail -eq 0) { Write-Host "ALL PASS ($pass assertions)" }
 else              { Write-Host "FAILURES: $fail / $($pass+$fail)" }

@@ -63,6 +63,7 @@ The attempts ledger is persisted at `var/autopilot/attempts.json` (keyed by issu
 | `push-branch.ps1` | **Opt-in auto-push** (`AUTOPILOT_AUTOPUSH=1`, OFF by default). At queue-drain: reset the test DB, then `git push` the feature branch through the pre-push e2e gate. Never main, never PR, never `--no-verify`. |
 | `cost-guard.ps1` | **Daily USD cap.** `check` gates each issue before planning; `add` books each phase's `total_cost_usd`. Over `AUTOPILOT_DAILY_USD_CAP` (default $25) the run pauses until tomorrow. Fails open. |
 | `watchdog.ps1` | **Keep n8n alive.** If `:5678` is down the poll stalls; the watchdog restarts n8n via `start-n8n.ps1` (single-shot for Task Scheduler, or a foreground loop). |
+| `run-state.json` (var/autopilot/) | **State file.** Per-issue record `{number, title, phase, ts, procId}` written by `run-phase.ps1` at phase start, cleared on n8n startup. `nx status` reads it to show what is building and for how long. |
 
 These scripts are the "hands"; n8n's canvas is the "brain" (looping, branching, halting).
 
@@ -255,6 +256,8 @@ before each issue to catch under-specified tasks before burning plan/exec time.
 `cost-guard.ps1` caps daily spend; `watchdog.ps1` restarts a dead n8n; `push-branch.ps1`
 optionally pushes a clean run. Run n8n + the watchdog as services for true always-on — see the
 roadmap doc.
+
+`nx status` (or `nx -s`) shows the issue currently building as `#<n> <title>  -- building <elapsed>`; a leaked state file from a crashed run is suppressed by the same liveness check the lock uses.
 
 ## Roadmap (designed, not built)
 

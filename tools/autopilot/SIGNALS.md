@@ -132,6 +132,18 @@ gate is false the class is set to `infra` without invoking an LLM.
 concluded the work was already complete (counts as ok). `dirty` / `leftoverWorktree` = cleanup
 was incomplete (recover.ps1 accounts for these in the livelock ledger).
 
+### run-state.json (var/autopilot/run-state.json)
+
+Written by run-phase.ps1 at phase start (plan records number+title; execute preserves them and
+flips .phase); cleared on n8n startup by start-n8n.ps1. Consumed by `nx status`.
+
+```json
+{ "ts": "<ISO8601>", "phase": "plan|execute", "number": 94, "title": "<string>", "procId": 12345 }
+```
+
+Readers MUST treat the record as stale (no build in progress) when its file LastWriteTime is older
+than 3 min with no live autopilot claude.exe, or older than 3h outright -- mirroring lock.ps1.
+
 ## Pending — confirm on first live run
 
 | Signal | Status | Notes |
