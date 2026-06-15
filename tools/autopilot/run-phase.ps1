@@ -32,6 +32,9 @@ param(
   [string]$Model = '',
   [string]$Repo = 'Sydoc-Code/nexora',
   [string]$RepoPath = 'C:\dev\nexora',
+  [string]$LogPath = '',
+  [string]$StatePath = '',
+  [switch]$Lane,
   [string[]]$AllowedAuthors = @()
 )
 $ErrorActionPreference = 'Stop'
@@ -43,6 +46,9 @@ if (-not $AllowedAuthors -or $AllowedAuthors.Count -eq 0) {
 
 Set-Location $RepoPath
 $env:SQL_SYNC_SKIP = '1'   # scoped to this child process; never leaks to the user's shell
+# Lane mode: tell /write-plan to build in place on auto/issue-NN (no nested plan/<slug> worktree),
+# so handoff-session-state --merge-worktree never fires. Merge-back is owned by merge-back.ps1.
+if ($Lane) { $env:AUTOPILOT_LANE = '1' }
 # Defence in depth: don't hand cached API tokens to the permission-skipped agent.
 Remove-Item Env:GH_TOKEN, Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
 
@@ -89,16 +95,16 @@ else {
 # Stream the run to a live log so `nx --workflow-logs` can tail what the agent is doing,
 # and pass the final result line through to n8n. Prompt via stdin so multi-line issue
 # bodies never break argument quoting.
-$logDir = Join-Path $RepoPath 'var\autopilot\logs'
-New-Item -ItemType Directory -Force $logDir | Out-Null
-$log = Join-Path $logDir 'run.log'
+if ($LogPath) { $log = $LogPath } else { $log = Join-Path $RepoPath 'var\autopilot\logs\run.log' }
+New-Item -ItemType Directory -Force (Split-Path $log) | Out-Null
 "=== $Phase #$IssueNumber === $(Get-Date -Format o)" | Add-Content -Path $log -Encoding utf8
 
 # Run-state side-channel for `nx status` ("which issue is building, and for how long").
 # Plan phase has the title; execute phase has neither $issue nor a title (it reuses what the
 # plan phase persisted). State is cleared at a lifecycle boundary (start-n8n.ps1 startup), NOT
 # here -- deleting it per phase would lose the title before the execute phase reads it.
-$statePath = Join-Path $RepoPath 'var\autopilot\run-state.json'
+$statePath = if ($StatePath) { $StatePath } else { Join-Path $RepoPath 'var\autopilot\run-state.json' }
+New-Item -ItemType Directory -Force (Split-Path $statePath) | Out-Null
 if ($Phase -eq 'plan') {
   $state = @{ ts = (Get-Date -Format o); phase = $Phase; number = $IssueNumber; title = $issue.title; procId = $PID }
 } elseif (Test-Path $statePath) {
