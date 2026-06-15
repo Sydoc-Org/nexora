@@ -83,20 +83,20 @@
       <span class="reporting-simple-ractions">
         <input id="rsSaveName" class="reporting-input" hidden data-testid="rs-save-name"
                aria-label="{{ _('Report name') }}">
-        <button id="rsAdjustWizard" class="reporting-btn" hidden
+        <button id="rsAdjustWizard" class="reporting-btn nx-btn nx-btn--secondary" hidden
                 data-testid="rs-adjust-wizard">{{ _("Adjust in wizard") }}</button>
-        <button id="rsSave" class="reporting-btn" data-testid="rs-save">{{ _("Save") }}</button>
-        <button id="rsOpenAdvanced" class="reporting-btn" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
+        <button id="rsSave" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-save">{{ _("Save") }}</button>
+        <button id="rsOpenAdvanced" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
         {% if has_permission('reporting.export') %}
         <select id="rsExportFormat" class="reporting-export-format" data-testid="rs-export-format" title="{{ _('Export format') }}">
           <option value="xlsx">{{ _("Excel") }}</option>
           <option value="csv">CSV</option>
         </select>
-        <button id="rsExport" class="reporting-btn" data-testid="rs-export">{{ _("Export") }}</button>
+        <button id="rsExport" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-export">{{ _("Export") }}</button>
         {% endif %}
-        <button type="button" id="rsShowSql" class="reporting-link" hidden
+        <button type="button" id="rsShowSql" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" hidden
                 data-testid="rs-show-sql">{{ _("Show query") }}</button>
-        <button id="rsExit" class="reporting-link reporting-simple-close" data-testid="rs-exit"
+        <button id="rsExit" class="reporting-link reporting-simple-close nx-btn nx-btn--ghost nx-btn--sm" data-testid="rs-exit"
                 title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
       </span>
     </div>
