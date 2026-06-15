@@ -225,7 +225,7 @@
     },
     {
       "parameters": {
-        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\run-phase.ps1 -Phase execute"
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\run-phase.ps1 -Phase execute -IssueNumber {{ $('Loop Over Items').item.json.number }}"
       },
       "id": "cmd-runexec",
       "name": "run-exec",

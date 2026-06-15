@@ -33,4 +33,10 @@ Assert ($mb  -match '-Class "\{\{')        'mark-blocked node command quotes -Cl
 $cleanCond = (($wf.nodes | Where-Object { $_.name -eq 'clean?' }).parameters.conditions.conditions | Select-Object -First 1).leftValue
 Assert ($cleanCond -match "preflight") "clean? reads preflight's stdout, not its baseline input ($cleanCond)"
 
+# run-exec must forward the issue number so the execute phase's run.log header / run-state
+# carry the real issue, not #0. Mirrors run-plan. The `=` prefix is mandatory for n8n {{ }}.
+$exec = ($wf.nodes | Where-Object { $_.name -eq 'run-exec' }).parameters.command
+Assert ($exec -match '^=')                                       'run-exec command is an n8n expression (= prefix)'
+Assert ($exec -match "-IssueNumber \{\{ \`$\('Loop Over Items'\)\.item\.json\.number \}\}") 'run-exec passes -IssueNumber from the looped item'
+
 if ($fail) { "`n$fail assertion(s) FAILED"; exit 1 } else { "`nALL PASS"; exit 0 }
