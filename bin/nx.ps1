@@ -39,6 +39,33 @@ function Write-Warn ($msg) { Write-Host "  ⚠  $msg" -ForegroundColor DarkYello
 function Write-Info ($msg) { Write-Host "  →  $msg" -ForegroundColor Blue       }
 function Write-Dim  ($msg) { Write-Host "     $msg" -ForegroundColor Gray       }
 
+function Test-AutopilotClaudeAlive {
+    # Same probe lock.ps1 uses: an autopilot run's claude runs with -p or stream-json,
+    # and is NOT the interactive --remote-control session. Keep in sync with lock.ps1.
+    try {
+        return [bool](Get-CimInstance Win32_Process -Filter "Name='claude.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { ($_.CommandLine -like '* -p *' -or $_.CommandLine -like '*stream-json*') -and $_.CommandLine -notlike '*--remote-control*' })
+    } catch { return $false }
+}
+
+function Get-AutopilotStatusLine {
+    # Returns "#<n> <title>  -- building <Xm> (<phase>)" for the issue currently building,
+    # or $null if nothing is building / the state file is stale (leaked by a crashed run).
+    # Elapsed is computed from the file's LastWriteTime exactly like lock.ps1 -- never via
+    # ISO-string parsing (datetime minus datetimeoffset has no op_Subtraction overload, so
+    # parsing $state.ts would throw at runtime). Staleness mirrors lock.ps1: 3-min grace then require a live
+    # autopilot claude; hard cap 3h.
+    $statePath = Join-Path $AppDir 'var\autopilot\run-state.json'
+    if (-not (Test-Path $statePath)) { return $null }
+    try { $state = Get-Content $statePath -Raw | ConvertFrom-Json } catch { return $null }
+    $age   = (Get-Date) - (Get-Item $statePath).LastWriteTime
+    $stale = ($age.TotalHours -ge 3.0) -or ($age.TotalMinutes -ge 3 -and -not (Test-AutopilotClaudeAlive))
+    if ($stale) { return $null }
+    $mins  = [math]::Round($age.TotalMinutes)
+    $title = if ($state.title) { $state.title } else { '(title unknown)' }
+    return "#$($state.number) $title  -- building ${mins}m ($($state.phase))"
+}
+
 function Show-Help {
     Write-Host ""
     Write-Host "  nexora dev CLI" -ForegroundColor Blue
@@ -534,6 +561,10 @@ switch ($action) {
         } else {
             Write-Warn "Not running  — use -u / --up to start"
         }
+        # Autopilot build status is independent of the dev server (a build can run while
+        # nexora is down), so report it regardless of $p.
+        $apLine = Get-AutopilotStatusLine
+        if ($apLine) { Write-Info "autopilot: $apLine" }
     }
     'routes' { Show-Routes -Pattern $routesPattern }
     'doctor' {
