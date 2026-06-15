@@ -28,6 +28,8 @@ param(
   [string]$DbServer = 'INTSQL01',
   [int]$N8nPort = 5678,
   [string]$LockPath = 'C:\dev\nexora\var\autopilot.lock',
+  [int]$Slot = -1,
+  [string]$SlotsDir = 'C:\dev\nexora\var\autopilot\slots',
   [string]$BaselineFile = 'C:\dev\nexora\var\autopilot\run-baseline.json',
   [string]$AttemptsLedger = 'C:\dev\nexora\var\autopilot\attempts.json',
   [string]$CostLedger = 'C:\dev\nexora\var\autopilot\cost-ledger.json',
@@ -79,7 +81,7 @@ function Test-Poison {
   # leftover plan-* worktree whose HEAD is NOT an ancestor of branch HEAD.
   $branchHead = (git -C $RepoPath rev-parse HEAD).Trim()
   foreach ($wt in (git -C $RepoPath worktree list)) {
-    if ($wt -match 'worktrees[\\/]+plan-') {
+    if ($wt -match 'worktrees[\\/]+plan-' -or $wt -match '[\\/]lane-\d+\b') {
       $wtPath = ($wt -split '\s+')[0]
       $wtHead = (git -C $wtPath rev-parse HEAD 2>$null)
       if ($wtHead) { git -C $RepoPath merge-base --is-ancestor $wtHead.Trim() $branchHead 2>$null; if ($LASTEXITCODE -ne 0) { return $true } }
@@ -87,8 +89,16 @@ function Test-Poison {
   }
   $inf = ParseChild (& $probeInfra -DbServer $DbServer -N8nPort $N8nPort) $null
   if ($null -eq $inf -or -not ($inf.dbOk -and $inf.n8nOk -and $inf.ghOk -and $inf.netOk)) { return $true }
-  $lk = ParseChild (& $lockScript -Action check -LockPath $LockPath) $null
-  if ($null -eq $lk -or -not $lk.exists) { return $true }
+  if ($Slot -ge 0) {
+    $semScript = Join-Path $RepoPath 'tools\autopilot\semaphore.ps1'
+    $sm = ParseChild (& $semScript -Action check -SlotsDir $SlotsDir) $null
+    $held = $false
+    if ($sm -and $sm.slots) { $held = [bool](@($sm.slots) | Where-Object { [int]$_.slot -eq $Slot }) }
+    if (-not $held) { return $true }
+  } else {
+    $lk = ParseChild (& $lockScript -Action check -LockPath $LockPath) $null
+    if ($null -eq $lk -or -not $lk.exists) { return $true }
+  }
   return $false
 }
 function Ensure-CleanTree {
@@ -120,7 +130,8 @@ try {
   }
 
   # 2. Diagnose (captured; never leaks to stdout).
-  $diag = ParseChild (& $DiagnoseScript -IssueNumber $IssueNumber -Repo $Repo -RepoPath $RepoPath -DbServer $DbServer -N8nPort $N8nPort -BaselineFile $BaselineFile) ([pscustomobject]@{ class='unknown'; summary='diagnose unparseable'; suggestedFix=''; costUsd=0 })
+  $laneRunLog = Join-Path (Split-Path $BaselineFile) 'run.log'
+  $diag = ParseChild (& $DiagnoseScript -IssueNumber $IssueNumber -Repo $Repo -RepoPath $RepoPath -DbServer $DbServer -N8nPort $N8nPort -BaselineFile $BaselineFile -RunLog $laneRunLog) ([pscustomobject]@{ class='unknown'; summary='diagnose unparseable'; suggestedFix=''; costUsd=0 })
   if ($diag.costUsd) { & $costGuard -Action add -Cost ([double]$diag.costUsd) -LedgerFile $CostLedger | Out-Null }
   $class = $diag.class; $summary = $diag.summary
 
