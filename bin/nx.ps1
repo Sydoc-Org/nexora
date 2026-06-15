@@ -78,7 +78,7 @@ function Show-Help {
     Write-Host "    -u, --up              Start nexora"
     Write-Host "    -d, --down            Stop nexora"
     Write-Host "    -r, --restart         Restart nexora"
-    Write-Host "    -s, --status          Show running status (PID, env, port)"
+    Write-Host "    -s, --status          Show running status (PID, env, port) + in-flight autopilot issue"
     Write-Host "    -l, --logs            Stream live logs  " -NoNewline
     Write-Host "(requires a running instance)" -ForegroundColor Gray
     Write-Host "    -md, --maindir        cd into the nexora project directory"

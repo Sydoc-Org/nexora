@@ -28,6 +28,8 @@ switch ($Action) {
       $age = (Get-Date) - (Get-Item $LockPath).LastWriteTime
       # Is an autopilot run actually alive? Its claude runs with -p (plan/exec) or spawns
       # stream-json sub-agents. The interactive Claude Code session (--remote-control) is excluded.
+      # NOTE: bin/nx.ps1 Get-AutopilotStatusLine duplicates this probe + the 3h/3-min staleness
+      # rule for `nx status`. If you change the probe here, mirror it there.
       $running = $false
       try {
         $running = [bool](Get-CimInstance Win32_Process -Filter "Name='claude.exe'" -ErrorAction SilentlyContinue |
