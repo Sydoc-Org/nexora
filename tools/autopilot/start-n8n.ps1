@@ -60,6 +60,11 @@ try {
 $lock = 'C:\dev\nexora\var\autopilot.lock'
 if (Test-Path $lock) { Remove-Item $lock -Force -ErrorAction SilentlyContinue; Write-Host 'Cleared a leftover autopilot lock.' }
 
+# Same for a leaked run-state file (a run that died mid-phase) -- else `nx status`
+# would report a phantom build until the next plan phase overwrites it.
+$state = 'C:\dev\nexora\var\autopilot\run-state.json'
+if (Test-Path $state) { Remove-Item $state -Force -ErrorAction SilentlyContinue; Write-Host 'Cleared a leftover autopilot run-state.' }
+
 Write-Host 'Starting n8n with autopilot env (secure cookie off, Execute Command enabled)...'
 Write-Host 'Editor will be at http://localhost:5678/  (Ctrl+C to stop)'
 n8n start
