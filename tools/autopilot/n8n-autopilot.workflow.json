@@ -156,7 +156,7 @@
           "conditions": [
             {
               "id": "cond-clean",
-              "leftValue": "={{ $json.stdout.trim() }}",
+              "leftValue": "={{ $('preflight').item.json.stdout.trim() }}",
               "rightValue": "CLEAN",
               "operator": { "type": "string", "operation": "equals" }
             }

@@ -27,4 +27,10 @@ $mb  = ($wf.nodes | Where-Object { $_.name -eq 'mark-blocked' }).parameters.comm
 Assert ($rec -match '-PlanHeadSha "\{\{') 'recover node command quotes -PlanHeadSha (parsed)'
 Assert ($mb  -match '-Class "\{\{')        'mark-blocked node command quotes -Class (parsed)'
 
+# 4) clean? must read PREFLIGHT's stdout explicitly. `baseline` now sits between preflight and
+#    clean?, so a bare `$json.stdout` reads baseline's JSON (never 'CLEAN') => clean? always false
+#    => every run wrongly routes to recover and nothing builds.
+$cleanCond = (($wf.nodes | Where-Object { $_.name -eq 'clean?' }).parameters.conditions.conditions | Select-Object -First 1).leftValue
+Assert ($cleanCond -match "preflight") "clean? reads preflight's stdout, not its baseline input ($cleanCond)"
+
 if ($fail) { "`n$fail assertion(s) FAILED"; exit 1 } else { "`nALL PASS"; exit 0 }
