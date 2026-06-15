@@ -93,4 +93,21 @@ $logDir = Join-Path $RepoPath 'var\autopilot\logs'
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir 'run.log'
 "=== $Phase #$IssueNumber === $(Get-Date -Format o)" | Add-Content -Path $log -Encoding utf8
+
+# Run-state side-channel for `nx status` ("which issue is building, and for how long").
+# Plan phase has the title; execute phase has neither $issue nor a title (it reuses what the
+# plan phase persisted). State is cleared at a lifecycle boundary (start-n8n.ps1 startup), NOT
+# here -- deleting it per phase would lose the title before the execute phase reads it.
+$statePath = Join-Path $RepoPath 'var\autopilot\run-state.json'
+if ($Phase -eq 'plan') {
+  $state = @{ ts = (Get-Date -Format o); phase = $Phase; number = $IssueNumber; title = $issue.title; procId = $PID }
+} elseif (Test-Path $statePath) {
+  $prior = Get-Content $statePath -Raw | ConvertFrom-Json
+  $state = @{ ts = $prior.ts; phase = $Phase; number = $prior.number; title = $prior.title; procId = $PID }
+} else {
+  # Execute run with no prior plan-phase record (e.g. resumed half-built issue): record what we have.
+  $state = @{ ts = (Get-Date -Format o); phase = $Phase; number = $IssueNumber; title = ''; procId = $PID }
+}
+$state | ConvertTo-Json | Set-Content -Encoding utf8 $statePath
+
 $prompt | claude @claudeArgs | Tee-Object -FilePath $log -Append | Select-Object -Last 1
