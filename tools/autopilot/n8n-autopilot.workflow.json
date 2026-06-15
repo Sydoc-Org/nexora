@@ -290,7 +290,7 @@
     },
     {
       "parameters": {
-        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked -Class {{ (() => { try { return JSON.parse($('recover').item.json.stdout).class; } catch (e) { return ''; } })() }} -Detail {{ JSON.stringify((() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return ''; } })()) }}"
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked -Class \"{{ (() => { try { return JSON.parse($('recover').item.json.stdout).class; } catch (e) { return ''; } })() }}\" -Detail {{ JSON.stringify((() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return ''; } })()) }}"
       },
       "id": "cmd-markblocked",
       "name": "mark-blocked",
@@ -318,7 +318,7 @@
     },
     {
       "parameters": {
-        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\recover.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -PlanHeadSha {{ (() => { try { return JSON.parse($('verify-plan').item.json.stdout).headSha; } catch (e) { return ''; } })() }}"
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\recover.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -PlanHeadSha \"{{ (() => { try { return JSON.parse($('verify-plan').item.json.stdout).headSha; } catch (e) { return ''; } })() }}\""
       },
       "id": "cmd-recover",
       "name": "recover",
