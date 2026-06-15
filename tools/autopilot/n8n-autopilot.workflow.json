@@ -278,7 +278,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=✅ #{{ $('Loop Over Items').item.json.number }} built — commit pending push",
+        "text": "=✅ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} built — commit pending push",
         "additionalFields": {}
       },
       "id": "tg-built",
@@ -346,7 +346,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} recovered by autopilot — {{ (() => { try { const v = JSON.parse($('recover').item.json.stdout); return v.summary + (v.stashed ? ' ⚠ pre-existing WIP was stashed (git stash list / pop).' : ''); } catch (e) { return 'commit pending push'; } })() }}",
+        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} recovered by autopilot — {{ (() => { try { const v = JSON.parse($('recover').item.json.stdout); return v.summary + (v.stashed ? ' ⚠ pre-existing WIP was stashed (git stash list / pop).' : ''); } catch (e) { return 'commit pending push'; } })() }}",
         "additionalFields": {}
       },
       "id": "tg-recovered",
@@ -452,7 +452,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=⏭️ #{{ $('Loop Over Items').item.json.number }} skipped — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'blocked after recovery'; } })() }}",
+        "text": "=⏭️ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} skipped — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'blocked after recovery'; } })() }}",
         "additionalFields": {}
       },
       "id": "tg-skip",
@@ -465,7 +465,7 @@
     {
       "parameters": {
         "chatId": "REPLACE_WITH_CHAT_ID",
-        "text": "=❓ #{{ $('Loop Over Items').item.json.number }} needs input — {{ (() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return 'see the issue comment'; } })() }}",
+        "text": "=❓ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} needs input — {{ (() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return 'see the issue comment'; } })() }}",
         "additionalFields": {}
       },
       "id": "tg-questions",
