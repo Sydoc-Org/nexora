@@ -49,12 +49,45 @@ function Test-AutopilotClaudeAlive {
 }
 
 function Get-AutopilotStatusLine {
-    # Returns "#<n> <title>  -- building <Xm> (<phase>)" for the issue currently building,
-    # or $null if nothing is building / the state file is stale (leaked by a crashed run).
-    # Elapsed is computed from the file's LastWriteTime exactly like lock.ps1 -- never via
-    # ISO-string parsing (datetime minus datetimeoffset has no op_Subtraction overload, so
-    # parsing $state.ts would throw at runtime). Staleness mirrors lock.ps1: 3-min grace then require a live
-    # autopilot claude; hard cap 3h.
+    # Returns "#<n> <title>  -- building <Xm> (<phase>)" for a single-lane build, or
+    # "#<n> <title> (<phase>, <age>m, lane <K>); ..." for concurrent lanes.
+    # Elapsed is computed from the file's LastWriteTime -- never via ISO-string parsing
+    # (datetime minus datetimeoffset has no op_Subtraction overload, so parsing $state.ts
+    # would throw at runtime). Staleness: 3-min grace then require a live run; hard cap 3h.
+    # Concurrent lanes: staleness uses semaphore slot K (not the host-wide claude probe,
+    # which is always true with 3 simultaneous lanes and would never flag stale).
+    $semScript = Join-Path $AppDir 'tools\autopilot\semaphore.ps1'
+
+    # Per-lane run-states (concurrent mode). Each lives at var\autopilot\lanes\lane-K\run-state.json.
+    $lanesDir = Join-Path $AppDir 'var\autopilot\lanes'
+    if (Test-Path $lanesDir) {
+        $laneLines = @()
+        $laneStatePaths = @(Get-ChildItem $lanesDir -Filter 'run-state.json' -Recurse -ErrorAction SilentlyContinue)
+        foreach ($lsp in $laneStatePaths) {
+            try {
+                $state = Get-Content $lsp.FullName -Raw | ConvertFrom-Json
+                $age = (Get-Date) - $lsp.LastWriteTime
+                $slot = -1
+                if ($lsp.DirectoryName -match 'lane-(\d+)$') { $slot = [int]$Matches[1] }
+                $slotHeld = $false
+                if ($slot -ge 0 -and (Test-Path $semScript)) {
+                    try {
+                        $sm = (& $semScript -Action check 2>$null | Select-Object -Last 1 | ConvertFrom-Json)
+                        if ($sm -and $sm.slots) { $slotHeld = [bool](@($sm.slots) | Where-Object { [int]$_.slot -eq $slot }) }
+                    } catch {}
+                }
+                $stale = ($age.TotalHours -ge 3.0) -or ($age.TotalMinutes -ge 3 -and -not $slotHeld -and -not (Test-AutopilotClaudeAlive))
+                if (-not $stale) {
+                    $mins  = [math]::Round($age.TotalMinutes)
+                    $title = if ($state.title) { $state.title } else { '(title unknown)' }
+                    $laneLines += "#$($state.number) $title ($($state.phase), ${mins}m, lane $slot)"
+                }
+            } catch {}
+        }
+        if ($laneLines.Count -gt 0) { return ($laneLines -join '; ') }
+    }
+
+    # Legacy fallback: single run-state.json (single-lane mode).
     $statePath = Join-Path $AppDir 'var\autopilot\run-state.json'
     if (-not (Test-Path $statePath)) { return $null }
     try { $state = Get-Content $statePath -Raw | ConvertFrom-Json } catch { return $null }

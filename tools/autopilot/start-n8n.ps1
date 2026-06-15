@@ -65,6 +65,33 @@ if (Test-Path $lock) { Remove-Item $lock -Force -ErrorAction SilentlyContinue; W
 $state = 'C:\dev\nexora\var\autopilot\run-state.json'
 if (Test-Path $state) { Remove-Item $state -Force -ErrorAction SilentlyContinue; Write-Host 'Cleared a leftover autopilot run-state.' }
 
+# Concurrency self-heal: a crashed multi-lane run leaks slot files, per-lane state, and the merge/db
+# locks; the dispatcher would then under-fill forever. NOTE: only run start-n8n when no autopilot run
+# is active - this clears ALL slots unconditionally (the single-run code already assumes a clean restart).
+$base = 'C:\dev\nexora'
+foreach ($p in @("$base\var\autopilot\slots","$base\var\autopilot\merge.lock","$base\var\autopilot\db.lock")) {
+  if (Test-Path $p) { Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue; Write-Host "Cleared leftover autopilot state: $p" }
+}
+$lanesDir = "$base\var\autopilot\lanes"
+if (Test-Path $lanesDir) { Remove-Item $lanesDir -Recurse -Force -ErrorAction SilentlyContinue; Write-Host 'Cleared per-lane autopilot state.' }
+# Prune leftover lane worktrees ONLY when their HEAD already landed on the feature branch (never
+# discard unmerged work - leave it for inspection).
+try {
+  $featHead = (git -C $base rev-parse feature/2.5.63 2>$null)
+  foreach ($wt in (git -C $base worktree list 2>$null)) {
+    if ($wt -match '[\\/]lane-\d+\b') {
+      $wtPath = ($wt -split '\s+')[0]
+      $wtHead = (git -C $wtPath rev-parse HEAD 2>$null)
+      if ($featHead -and $wtHead) {
+        git -C $base merge-base --is-ancestor $wtHead.Trim() $featHead.Trim() 2>$null
+        if ($LASTEXITCODE -eq 0) { git -C $base worktree remove --force $wtPath 2>$null | Out-Null; Write-Host "Pruned merged lane worktree: $wtPath" }
+        else { Write-Host "Kept UNMERGED lane worktree for inspection: $wtPath" }
+      }
+    }
+  }
+  git -C $base worktree prune 2>$null | Out-Null
+} catch {}
+
 Write-Host 'Starting n8n with autopilot env (secure cookie off, Execute Command enabled)...'
 Write-Host 'Editor will be at http://localhost:5678/  (Ctrl+C to stop)'
 n8n start

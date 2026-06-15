@@ -55,10 +55,23 @@ function Send-Telegram([string]$text) {
   } catch { Write-Log "telegram notify failed: $($_.Exception.Message)" }
 }
 
+function Test-AutopilotLanesActive([string]$repo) {
+  # Returns $true when the semaphore has at least one held (non-stale) slot.
+  # With 3 concurrent lanes, the host-wide claude probe is always true and useless; prefer slot-based.
+  $semScript = Join-Path $repo 'tools\autopilot\semaphore.ps1'
+  if (-not (Test-Path $semScript)) { return $false }
+  try {
+    $sm = (& $semScript -Action check 2>$null | Select-Object -Last 1 | ConvertFrom-Json)
+    return ($sm -and ($sm.free -lt 3))
+  } catch { return $false }
+}
+
 function Invoke-Check {
   if (Test-N8nUp $Port) { return }
-  Write-Log "n8n DOWN on :$Port - restarting via start-n8n.ps1"
-  Send-Telegram "watchdog: n8n was down on :$Port - restarting."
+  $lanesActive = Test-AutopilotLanesActive $RepoPath
+  $laneNote = if ($lanesActive) { ' (active autopilot lanes detected - they will resume when n8n is back)' } else { '' }
+  Write-Log "n8n DOWN on :$Port - restarting via start-n8n.ps1$laneNote"
+  Send-Telegram "watchdog: n8n was down on :$Port - restarting.$laneNote"
   # Detached, hidden: start-n8n.ps1 runs `n8n start` (blocks), so it must own its own process.
   Start-Process -FilePath 'pwsh' `
     -ArgumentList @('-NoProfile', '-File', $startScript) `
