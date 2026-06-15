@@ -25,4 +25,9 @@ $q = & $script -IssueNumber 91 -ClassifierText $qtext 2>$null | Select-Object -L
 Assert ($q.buildable -eq $false) 'QUESTIONS token => buildable false'
 Assert ($q.questions -match 'Which DB') 'questions captured (multiline via (?s))'
 
+# Regression: triage must READ owner-clarification comments (else it re-asks forever after a reply).
+$src = Get-Content $script -Raw
+Assert ($src -match 'title,body,author,comments') 'triage fetches issue comments (--json includes comments)'
+Assert ($src -match 'owner-clarification:') 'triage pulls allowlisted owner-clarification: comments'
+
 if ($fail) { "`n$fail FAILED"; exit 1 } else { "`nALL PASS"; exit 0 }
