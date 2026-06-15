@@ -238,18 +238,18 @@
   </div>
 
   <div id="rpSqlAck" class="reporting-modal" hidden data-testid="reporting-sql-ack">
-    <div class="reporting-modal-box">
+    <div class="reporting-modal-box nx-card nx-card--pad">
       <h3>{{ _("Live SQL — read-only") }}</h3>
       <p>{{ _("You are about to run read-only SQL against a live reporting database. Queries cannot modify data, and every run is logged. Double-check your query before running.") }}</p>
       <div class="reporting-modal-actions">
-        <button id="rpSqlAckCancel" class="reporting-btn" data-testid="reporting-sql-ack-cancel">{{ _("Cancel") }}</button>
-        <button id="rpSqlAckAccept" class="reporting-btn reporting-btn-primary" data-testid="reporting-sql-ack-accept">{{ _("I understand") }}</button>
+        <button id="rpSqlAckCancel" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-sql-ack-cancel">{{ _("Cancel") }}</button>
+        <button id="rpSqlAckAccept" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-sql-ack-accept">{{ _("I understand") }}</button>
       </div>
     </div>
   </div>
 
   <div id="rpShareModal" class="reporting-modal" hidden data-testid="reporting-share-modal">
-    <div class="reporting-modal-box">
+    <div class="reporting-modal-box nx-card nx-card--pad">
       <h3>{{ _("Share report") }}</h3>
       <div class="reporting-share-vis">
         <label><input type="radio" name="rpShareVis" value="private" data-testid="reporting-share-private">
@@ -262,16 +262,16 @@
       <div class="reporting-share-add">
         <input id="rpShareUser" class="reporting-input" placeholder="{{ _('Email or username') }}" data-testid="reporting-share-user">
         <label class="reporting-share-canedit"><input type="checkbox" id="rpShareCanEdit"> {{ _("Can edit") }}</label>
-        <button id="rpShareAdd" class="reporting-btn" data-testid="reporting-share-add">{{ _("Add") }}</button>
+        <button id="rpShareAdd" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-share-add">{{ _("Add") }}</button>
       </div>
       <div class="reporting-modal-actions">
-        <button id="rpShareClose" class="reporting-btn" data-testid="reporting-share-close">{{ _("Close") }}</button>
+        <button id="rpShareClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-share-close">{{ _("Close") }}</button>
       </div>
     </div>
   </div>
 
   <div id="rpScheduleModal" class="reporting-modal" hidden data-testid="reporting-schedule-modal">
-    <div class="reporting-modal-box">
+    <div class="reporting-modal-box nx-card nx-card--pad">
       <h3>{{ _("Schedule report") }}</h3>
       <ul id="rpScheduleList" class="reporting-share-list" data-testid="reporting-schedule-list"></ul>
       <div class="reporting-admin-grid">
@@ -300,19 +300,19 @@
       <label class="reporting-admin-cols">{{ _("Recipients (comma-separated)") }}
         <input id="rpSchedRecipients" class="reporting-input" placeholder="a@example.com, b@example.com" data-testid="reporting-schedule-recipients"></label>
       <div class="reporting-modal-actions">
-        <button id="rpSchedAdd" class="reporting-btn reporting-btn-primary" data-testid="reporting-schedule-add">{{ _("Add schedule") }}</button>
-        <button id="rpScheduleClose" class="reporting-btn" data-testid="reporting-schedule-close">{{ _("Close") }}</button>
+        <button id="rpSchedAdd" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-schedule-add">{{ _("Add schedule") }}</button>
+        <button id="rpScheduleClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-schedule-close">{{ _("Close") }}</button>
       </div>
     </div>
   </div>
 
   <div id="rpNameModal" class="reporting-modal" hidden data-testid="reporting-name-modal">
-    <div class="reporting-modal-box">
+    <div class="reporting-modal-box nx-card nx-card--pad">
       <h3 id="rpNameModalTitle"></h3>
       <input id="rpNameModalInput" class="reporting-input" data-testid="reporting-name-input">
       <div class="reporting-modal-actions">
-        <button id="rpNameModalCancel" class="reporting-btn" data-testid="reporting-name-cancel">{{ _("Cancel") }}</button>
-        <button id="rpNameModalOk" class="reporting-btn reporting-btn-primary" data-testid="reporting-name-ok">{{ _("Save") }}</button>
+        <button id="rpNameModalCancel" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-name-cancel">{{ _("Cancel") }}</button>
+        <button id="rpNameModalOk" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-name-ok">{{ _("Save") }}</button>
       </div>
     </div>
   </div>
