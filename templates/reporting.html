@@ -154,7 +154,7 @@
           <input id="rpAiPrompt" class="reporting-ai-prompt"
                  placeholder="{{ _('Ask in plain language — e.g. “top 10 processes by volume this month”') }}"
                  data-testid="reporting-ai-prompt">
-          <button id="rpAiAsk" class="reporting-btn reporting-btn-primary"
+          <button id="rpAiAsk" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary"
                   data-testid="reporting-ai-ask">{{ _("Ask") }}</button>
         </div>
         <p id="rpAiHintBuild" class="reporting-ai-hint">{{ _("The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.") }}</p>
@@ -169,16 +169,16 @@
           <p id="rpAiExplain" class="reporting-ai-explain"></p>
           <p id="rpAiInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted SQL did not pass the read-only check — review it before running.") }}</p>
           <div class="reporting-ai-actions">
-            <button id="rpAiInsert" class="reporting-btn" data-testid="reporting-ai-insert">{{ _("Insert into SQL editor") }}</button>
-            <button id="rpAiCopy" class="reporting-link" data-testid="reporting-ai-copy">{{ _("Copy") }}</button>
+            <button id="rpAiInsert" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-insert">{{ _("Insert into SQL editor") }}</button>
+            <button id="rpAiCopy" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-ai-copy">{{ _("Copy") }}</button>
           </div>
         </div>
         <div id="rpAiDefResult" class="reporting-ai-result" hidden data-testid="reporting-ai-def-result">
           <p id="rpAiDefSummary" class="reporting-ai-explain" data-testid="reporting-ai-def-summary"></p>
           <p id="rpAiDefInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted report could not be validated — try rephrasing.") }}</p>
           <div class="reporting-ai-actions">
-            <button id="rpAiOpenBuilder" class="reporting-btn" data-testid="reporting-ai-open-builder">{{ _("Open in builder") }}</button>
-            <button id="rpAiMakeChart" class="reporting-btn" hidden data-testid="reporting-ai-make-chart">{{ _("Make a chart") }}</button>
+            <button id="rpAiOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-open-builder">{{ _("Open in builder") }}</button>
+            <button id="rpAiMakeChart" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-make-chart">{{ _("Make a chart") }}</button>
           </div>
         </div>
         <div id="rpAiAgentResult" class="reporting-ai-result" hidden data-testid="reporting-ai-agent-result">
@@ -189,8 +189,8 @@
           </details>
           <p id="rpAiAgentInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The agent stopped before producing a validated result — try rephrasing.") }}</p>
           <div class="reporting-ai-actions">
-            <button id="rpAiAgentOpenBuilder" class="reporting-btn" hidden data-testid="reporting-ai-agent-open-builder">{{ _("Open in builder") }}</button>
-            <button id="rpAiAgentInsertSql" class="reporting-btn" hidden data-testid="reporting-ai-agent-insert-sql">{{ _("Insert into SQL editor") }}</button>
+            <button id="rpAiAgentOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-open-builder">{{ _("Open in builder") }}</button>
+            <button id="rpAiAgentInsertSql" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-insert-sql">{{ _("Insert into SQL editor") }}</button>
           </div>
         </div>
         <p id="rpAiError" class="reporting-ai-error" hidden data-testid="reporting-ai-error"></p>
