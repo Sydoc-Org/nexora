@@ -1,3 +1,5 @@
+> ⏭️ **Newer same-date handoff:** `docs/superpowers/handoffs/2026-06-15-autopilot-concurrent-issues-plan.md` supersedes this one for resuming. Use `/reset-session <path>` to target a specific file.
+
 # Handoff — clearer-execution-titles plan written
 
 **Date:** 2026-06-15 (plan-only session) · **Branch:** `feature/2.5.63` · **202 commits unpushed** · **commit-only (remote)**
