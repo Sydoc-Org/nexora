@@ -100,6 +100,17 @@ def test_api_workitems_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_api_workitems_returns_degraded_key(user_client, workitems_all_perms):
+    resp = user_client.get("/api/workitems")
+    assert resp.status_code in (200, 500)
+    if resp.status_code == 200:
+        body = resp.get_json()
+        assert "workitems" in body
+        assert "pagination" in body
+        assert "degradedSources" in body
+        assert isinstance(body["degradedSources"], list)
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403

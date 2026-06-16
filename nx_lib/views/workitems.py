@@ -44,11 +44,15 @@ from ..octo import (
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
-    prepare_process_selection_sql,
+    prepare_process_selection_lists,
 )
 from ..security import has_permission, page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
-from ..workitem_sources import get_domain_for_workitem
+from ..workitem_sources import (
+    WorkitemFilter,
+    fetch_merged_page,
+    get_domain_for_workitem,
+)
 
 # ---------------------------- field/config helpers ---------------------------- #
 
@@ -191,59 +195,17 @@ def _get_workitems_data(args, export_all=False):
     elif process_name in allowed_processes_set:
         target_processes = [process_name]
 
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(
+    process_params, client_params = prepare_process_selection_lists(
         prefix=prefix, process_name=process_name
     )
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
 
-    where_clauses = [
-        f"tp.Name IN ({process_placeholders})",
-        f"tp.ClientName IN ({client_placeholders})",
-        "twi.Status <> 2",
-        f"tai.ActivityInstanceName not in ({activity_instances_to_ignore})",
-    ]
-
-    status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
-    if status and status in status_map:
-        where_clauses.append("twi.Status = ?")
-        params.append(status_map[status])
-
-    if tag_filter and has_permission("workitems.filter.tag"):
-        where_clauses.append(f"""
-            EXISTS (
-                SELECT 1
-                FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                WHERE wt.workitemid = twi.id AND t.TagName like ?
-            )
-        """)
-        params.append(f"%{tag_filter}%")
-
-    if search_term and has_permission("workitems.filter.workitemid"):
-        where_clauses.append("twi.id LIKE ?")
-        params.append(f"%{search_term}%")
-
-    if start_date and has_permission("workitems.filter.datetime"):
-        where_clauses.append("twi.ModifiedAt >= ?")
-        params.append(start_date)
-    if end_date and has_permission("workitems.filter.datetime"):
-        where_clauses.append("twi.ModifiedAt < ?")
-        params.append(end_date)
-    if priority and has_permission("workitems.filter.priority"):
-        where_clauses.append("ISNULL(wim.Priority, 0) = ?")
-        params.append(priority)
-    if assigned_user and has_permission("workitems.filter.assignedUser"):
-        if assigned_user == "None" or assigned_user == "Unassigned":
-            where_clauses.append("(wim.AssignedUserID IS NULL)")
-        else:
-            where_clauses.append("wim.AssignedUserID = ?")
-            params.append(assigned_user)
-
-    extra_clauses = []
-    extra_params = []
-    _docfield_temp_tables = []  # [(temp_name, [ids])] for large ID sets
+    # Doc-field search is pre-resolved (against SearchConfig -> StatisticsDB) into
+    # a single intersected id allow-set for the SQL Server source. None = no
+    # constraint; empty set = force no rows; populated = twi.ID IN (...).
+    docfield_ids = None
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
@@ -324,18 +286,12 @@ def _get_workitems_data(args, export_all=False):
                         stat_conn.close()
 
                 if matching_ids is None:
-                    continue
+                    continue  # error/no config -> no constraint from this pair
                 if not matching_ids:
-                    extra_clauses.append("1=0")
-                elif len(matching_ids) > 500:
-                    # Avoid SQL Server's 2100-param limit by using a temp table
-                    temp_name = f"#docf{len(_docfield_temp_tables)}"
-                    _docfield_temp_tables.append((temp_name, matching_ids))
-                    extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
-                else:
-                    ph = ",".join(["?"] * len(matching_ids))
-                    extra_clauses.append(f"twi.ID IN ({ph})")
-                    extra_params.extend(matching_ids)
+                    docfield_ids = set()  # a pair matched nothing -> whole result empty
+                    break
+                pair_ids = set(matching_ids)
+                docfield_ids = pair_ids if docfield_ids is None else (docfield_ids & pair_ids)
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
@@ -345,102 +301,32 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex:
                 conn_nex.close()
 
-    workitems_list = []
-    total_items = 0
-    conn = None
-    cursor = None
-    try:
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
+    status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
+    filt = WorkitemFilter(
+        process_names=process_params,
+        client_names=client_params,
+        activity_ignore_csv=activity_instances_to_ignore,
+        status_code=status_map.get(status) if status else None,
+        search_id=search_term
+        if (search_term and has_permission("workitems.filter.workitemid"))
+        else None,
+        start_date=start_date
+        if (start_date and has_permission("workitems.filter.datetime"))
+        else None,
+        end_date=end_date if (end_date and has_permission("workitems.filter.datetime")) else None,
+        priority=priority if (priority and has_permission("workitems.filter.priority")) else None,
+        assigned_user=assigned_user
+        if (assigned_user and has_permission("workitems.filter.assignedUser"))
+        else None,
+        tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
+        docfields=docfields or [],  # raw pairs -> PostgresSource (t_DocumentIndexes)
+        docvalues=docvalues or [],
+        docfield_ids=docfield_ids,  # StatisticsDB-resolved set -> SqlServerSource only
+    )
+    rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
+    workitems_list = rows
 
-        for temp_name, ids in _docfield_temp_tables:
-            cursor.execute(f"CREATE TABLE {temp_name} (id NVARCHAR(255))")
-            for i in range(0, len(ids), 1000):
-                batch = ids[i : i + 1000]
-                cursor.execute(
-                    f"INSERT INTO {temp_name}(id) VALUES {','.join(['(?)'] * len(batch))}",
-                    batch,
-                )
-
-        full_where = " AND ".join(where_clauses + extra_clauses)
-        full_params = list(params) + extra_params
-
-        # count pass
-        cursor.execute(
-            f"""
-            SELECT COUNT(twi.ID)
-            FROM t_WorkItems twi
-            INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-            WHERE {full_where}
-        """,
-            full_params,
-        )
-        total_items = cursor.fetchone()[0] or 0
-
-        # data pass
-        cursor.execute(
-            f"""
-            WITH WorkitemCTE AS (
-                SELECT
-                    twi.ModifiedAt, twi.ID AS WorkItemID,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
-                    END AS Status,
-                    CASE
-                        WHEN twi.Status = 5 THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
-                        ELSE 'Extraction'
-                    END AS CurrentStage,
-                    wim.Priority,
-                    (
-                        SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
-                WHERE {full_where}
-            )
-            SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
-            FROM WorkitemCTE WHERE rn = 1
-            ORDER BY ModifiedAt DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """,
-            [*full_params, offset, per_page],
-        )
-        for row in cursor.fetchall():
-            workitems_list.append(
-                {
-                    "modifiedat": row.ModifiedAt,
-                    "workitemid": row.WorkItemID,
-                    "status": row.Status,
-                    "current_stage": row.CurrentStage,
-                    "priority": row.Priority or 0,
-                    "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-                }
-            )
-
-    except Exception as e:
-        current_app.logger.error(f"Database error in _get_workitems_data: {e}")
-        raise
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-    total_pages = math.ceil(total_items / per_page)
+    total_pages = math.ceil(total_items / per_page) if per_page else 0
     return {
         "workitems": workitems_list,
         "pagination": {
@@ -449,6 +335,7 @@ def _get_workitems_data(args, export_all=False):
             "totalItems": total_items,
             "perPage": per_page,
         },
+        "degradedSources": degraded,
     }
 
 
