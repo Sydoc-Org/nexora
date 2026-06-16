@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-14 04:32+0200\n"
+"POT-Creation-Date: 2026-06-16 14:07+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:194
+#: nx_lib/octo.py:187
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
@@ -38,130 +38,130 @@ msgstr "Exportdatum"
 msgid "Workitem ID"
 msgstr "Workitem-ID"
 
-#: nx_lib/views/admin.py:170 nx_lib/views/admin.py:666
+#: nx_lib/views/admin.py:172 nx_lib/views/admin.py:668
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
-#: nx_lib/views/admin.py:185
+#: nx_lib/views/admin.py:187
 msgid "Organization created successfully."
 msgstr "Organisation erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:187
+#: nx_lib/views/admin.py:189
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin.py:190 nx_lib/views/admin.py:691
-#: nx_lib/views/workitems.py:1381 nx_lib/views/workitems.py:1432
-#: nx_lib/views/workitems.py:1474 nx_lib/views/workitems.py:1685
-#: nx_lib/views/workitems.py:1717
+#: nx_lib/views/admin.py:192 nx_lib/views/admin.py:693
+#: nx_lib/views/workitems.py:1227 nx_lib/views/workitems.py:1278
+#: nx_lib/views/workitems.py:1320 nx_lib/views/workitems.py:1531
+#: nx_lib/views/workitems.py:1563
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: nx_lib/views/admin.py:214
+#: nx_lib/views/admin.py:216
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:217 nx_lib/views/admin.py:241
-#: nx_lib/views/admin.py:747 nx_lib/views/admin.py:978
+#: nx_lib/views/admin.py:219 nx_lib/views/admin.py:243
+#: nx_lib/views/admin.py:749 nx_lib/views/admin.py:980
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
-#: nx_lib/views/admin.py:236
+#: nx_lib/views/admin.py:238
 msgid "Organization not found."
 msgstr "Organisation nicht gefunden."
 
-#: nx_lib/views/admin.py:238
+#: nx_lib/views/admin.py:240
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:686 templates/js/admin/_access_control_js.html:542
+#: nx_lib/views/admin.py:688 templates/js/admin/_access_control_js.html:542
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:688
+#: nx_lib/views/admin.py:690
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail existiert bereits."
 
-#: nx_lib/views/admin.py:719
+#: nx_lib/views/admin.py:721
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: nx_lib/views/admin.py:744
+#: nx_lib/views/admin.py:746
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:933
+#: nx_lib/views/admin.py:935
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:973
+#: nx_lib/views/admin.py:975
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:975
+#: nx_lib/views/admin.py:977
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1086
+#: nx_lib/views/admin.py:1088
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1129
+#: nx_lib/views/admin.py:1131
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1226 nx_lib/views/admin.py:1536
-#: nx_lib/views/admin.py:1578 nx_lib/views/admin.py:1623
-#: nx_lib/views/admin.py:1662 nx_lib/views/admin.py:1700
-#: nx_lib/views/admin.py:1733 nx_lib/views/chat.py:47
-#: nx_lib/views/dashboard.py:261 nx_lib/views/dashboard.py:344
-#: nx_lib/views/dashboard.py:463 nx_lib/views/dashboard.py:549
-#: nx_lib/views/dashboard.py:709 nx_lib/views/dashboard.py:785
-#: nx_lib/views/dashboard.py:807 nx_lib/views/dashboard.py:858
-#: nx_lib/views/dashboard.py:1325 nx_lib/views/dashboard.py:1369
-#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:461
-#: nx_lib/views/workitems.py:924 nx_lib/views/workitems.py:977
-#: nx_lib/views/workitems.py:1195 nx_lib/views/workitems.py:1238
-#: nx_lib/views/workitems.py:1329 nx_lib/views/workitems.py:1391
-#: nx_lib/views/workitems.py:1442 nx_lib/views/workitems.py:1484
-#: nx_lib/views/workitems.py:1635 nx_lib/views/workitems.py:1695
+#: nx_lib/views/admin.py:1228 nx_lib/views/admin.py:1538
+#: nx_lib/views/admin.py:1580 nx_lib/views/admin.py:1625
+#: nx_lib/views/admin.py:1664 nx_lib/views/admin.py:1702
+#: nx_lib/views/admin.py:1735 nx_lib/views/chat.py:47
+#: nx_lib/views/dashboard.py:265 nx_lib/views/dashboard.py:348
+#: nx_lib/views/dashboard.py:449 nx_lib/views/dashboard.py:535
+#: nx_lib/views/dashboard.py:695 nx_lib/views/dashboard.py:771
+#: nx_lib/views/dashboard.py:793 nx_lib/views/dashboard.py:844
+#: nx_lib/views/dashboard.py:1311 nx_lib/views/dashboard.py:1355
+#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:348
+#: nx_lib/views/workitems.py:811 nx_lib/views/workitems.py:823
+#: nx_lib/views/workitems.py:1041 nx_lib/views/workitems.py:1084
+#: nx_lib/views/workitems.py:1175 nx_lib/views/workitems.py:1237
+#: nx_lib/views/workitems.py:1288 nx_lib/views/workitems.py:1330
+#: nx_lib/views/workitems.py:1481 nx_lib/views/workitems.py:1541
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1269 nx_lib/views/workitems.py:1228
+#: nx_lib/views/admin.py:1271 nx_lib/views/workitems.py:1074
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1315
+#: nx_lib/views/admin.py:1317
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:1343
+#: nx_lib/views/admin.py:1345
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:1522
+#: nx_lib/views/admin.py:1524
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1587 nx_lib/views/admin.py:1717
-#: nx_lib/views/admin.py:1759
+#: nx_lib/views/admin.py:1589 nx_lib/views/admin.py:1719
+#: nx_lib/views/admin.py:1761
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:1668 nx_lib/views/admin.py:1706
+#: nx_lib/views/admin.py:1670 nx_lib/views/admin.py:1708
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:1683
+#: nx_lib/views/admin.py:1685
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:1719
+#: nx_lib/views/admin.py:1721
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1752
+#: nx_lib/views/admin.py:1754
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -170,7 +170,7 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:1761
+#: nx_lib/views/admin.py:1763
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -271,70 +271,70 @@ msgstr "Ungültige E-Mail-Adresse"
 msgid "No messages yet"
 msgstr "Noch keine Nachrichten"
 
-#: nx_lib/views/dashboard.py:74
+#: nx_lib/views/dashboard.py:78
 msgid "Imported today"
 msgstr "Heute importiert"
 
-#: nx_lib/views/dashboard.py:87
+#: nx_lib/views/dashboard.py:91
 msgid "Processed today"
 msgstr "Heute verarbeitet"
 
-#: nx_lib/views/dashboard.py:100
+#: nx_lib/views/dashboard.py:104
 msgid "Current backlog"
 msgstr "Aktueller Rückstand"
 
-#: nx_lib/views/dashboard.py:113
+#: nx_lib/views/dashboard.py:117
 msgid "Avg processing time"
 msgstr "Durchschn. Bearbeitungszeit"
 
-#: nx_lib/views/dashboard.py:126 templates/dashboard.html:80
+#: nx_lib/views/dashboard.py:130 templates/dashboard.html:80
 msgid "Documents Processed Over Time"
 msgstr "Verarbeitete Dokumente im Zeitverlauf"
 
-#: nx_lib/views/dashboard.py:148
+#: nx_lib/views/dashboard.py:152
 msgid "Top doctypes today"
 msgstr "Top-Dokumenttypen heute"
 
-#: nx_lib/views/dashboard.py:776
+#: nx_lib/views/dashboard.py:762
 msgid "Could not fetch field metadata"
 msgstr "Feld-Metadaten konnten nicht abgerufen werden"
 
-#: nx_lib/views/dashboard.py:798
+#: nx_lib/views/dashboard.py:784
 msgid "Could not load layout"
 msgstr "Layout konnte nicht geladen werden"
 
-#: nx_lib/views/dashboard.py:817 nx_lib/views/reporting.py:992
+#: nx_lib/views/dashboard.py:803 nx_lib/views/reporting.py:992
 #: nx_lib/views/reporting.py:1031 nx_lib/views/reporting.py:1090
 #: nx_lib/views/reporting.py:1218 nx_lib/views/reporting.py:1395
 #: nx_lib/views/reporting.py:1586 nx_lib/views/reporting.py:1639
 msgid "Invalid JSON body"
 msgstr "Ungültiger JSON-Body"
 
-#: nx_lib/views/dashboard.py:849
+#: nx_lib/views/dashboard.py:835
 msgid "Could not save layout"
 msgstr "Layout konnte nicht gespeichert werden"
 
-#: nx_lib/views/dashboard.py:869
+#: nx_lib/views/dashboard.py:855
 msgid "Could not reset layout"
 msgstr "Layout konnte nicht zurückgesetzt werden"
 
-#: nx_lib/views/dashboard.py:1337 nx_lib/views/dashboard.py:1374
+#: nx_lib/views/dashboard.py:1323 nx_lib/views/dashboard.py:1360
 msgid "Invalid widget"
 msgstr "Ungültiges Widget"
 
-#: nx_lib/views/dashboard.py:1353
+#: nx_lib/views/dashboard.py:1339
 msgid "Could not build query"
 msgstr "Abfrage konnte nicht erstellt werden"
 
-#: nx_lib/views/dashboard.py:1359 nx_lib/views/reporting.py:1051
+#: nx_lib/views/dashboard.py:1345 nx_lib/views/reporting.py:1051
 msgid "Could not run query"
 msgstr "Abfrage konnte nicht ausgeführt werden"
 
-#: nx_lib/views/dashboard.py:1401
+#: nx_lib/views/dashboard.py:1387
 msgid "Previous period"
 msgstr "Vorheriger Zeitraum"
 
-#: nx_lib/views/dashboard.py:1404
+#: nx_lib/views/dashboard.py:1390
 msgid "Could not build comparison"
 msgstr "Vergleich konnte nicht erstellt werden"
 
@@ -650,124 +650,124 @@ msgstr "Metrik konnte nicht aktualisiert werden"
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
-#: nx_lib/views/workitems.py:533
+#: nx_lib/views/workitems.py:420
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:872
+#: nx_lib/views/workitems.py:759
 msgid "No file part in the request."
 msgstr "Kein Dateiteil in der Anfrage."
 
-#: nx_lib/views/workitems.py:879
+#: nx_lib/views/workitems.py:766
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: nx_lib/views/workitems.py:883
+#: nx_lib/views/workitems.py:770
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: nx_lib/views/workitems.py:895
+#: nx_lib/views/workitems.py:782
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, in diesen Prozess zu importieren."
 
-#: nx_lib/views/workitems.py:910
+#: nx_lib/views/workitems.py:797
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: nx_lib/views/workitems.py:915
+#: nx_lib/views/workitems.py:802
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: nx_lib/views/workitems.py:917
+#: nx_lib/views/workitems.py:804
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 
-#: nx_lib/views/workitems.py:967
+#: nx_lib/views/workitems.py:818
 msgid "Could not fetch workitem data"
 msgstr "Workitem-Daten konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1043 nx_lib/views/workitems.py:1079
+#: nx_lib/views/workitems.py:889 nx_lib/views/workitems.py:925
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: nx_lib/views/workitems.py:1068 nx_lib/views/workitems.py:1136
+#: nx_lib/views/workitems.py:914 nx_lib/views/workitems.py:982
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: nx_lib/views/workitems.py:1092
+#: nx_lib/views/workitems.py:938
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: nx_lib/views/workitems.py:1120
+#: nx_lib/views/workitems.py:966
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:1185
+#: nx_lib/views/workitems.py:1031
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1187
+#: nx_lib/views/workitems.py:1033
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: nx_lib/views/workitems.py:1285
+#: nx_lib/views/workitems.py:1131
 msgid "No data found for this workitem."
 msgstr "Keine Daten für dieses Workitem gefunden."
 
-#: nx_lib/views/workitems.py:1319
+#: nx_lib/views/workitems.py:1165
 msgid "Could not fetch interactions"
 msgstr "Interaktionen konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1334
+#: nx_lib/views/workitems.py:1180
 msgid "Comment cannot be empty."
 msgstr "Kommentar darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1378
+#: nx_lib/views/workitems.py:1224
 msgid "Comment added."
 msgstr "Kommentar hinzugefügt."
 
-#: nx_lib/views/workitems.py:1396
+#: nx_lib/views/workitems.py:1242
 msgid "Invalid assignment."
 msgstr "Ungültige Zuweisung."
 
-#: nx_lib/views/workitems.py:1425
+#: nx_lib/views/workitems.py:1271
 msgid "assigned you on workitem"
 msgstr "hat Sie einem Workitem zugewiesen"
 
-#: nx_lib/views/workitems.py:1429
+#: nx_lib/views/workitems.py:1275
 msgid "Assignment updated."
 msgstr "Zuweisung aktualisiert."
 
-#: nx_lib/views/workitems.py:1447
+#: nx_lib/views/workitems.py:1293
 msgid "Invalid priority level."
 msgstr "Ungültige Prioritätsstufe."
 
-#: nx_lib/views/workitems.py:1471
+#: nx_lib/views/workitems.py:1317
 msgid "Priority updated."
 msgstr "Priorität aktualisiert."
 
-#: nx_lib/views/workitems.py:1504
+#: nx_lib/views/workitems.py:1350
 msgid "Could not fetch tags"
 msgstr "Tags konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1642
+#: nx_lib/views/workitems.py:1488
 msgid "Tag name cannot be empty."
 msgstr "Tag-Name darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1666
+#: nx_lib/views/workitems.py:1512
 msgid "Workitem already has this tag."
 msgstr "Workitem hat dieses Tag bereits."
 
-#: nx_lib/views/workitems.py:1678
+#: nx_lib/views/workitems.py:1524
 msgid "Tag added successfully."
 msgstr "Tag erfolgreich hinzugefügt."
 
-#: nx_lib/views/workitems.py:1710
+#: nx_lib/views/workitems.py:1556
 msgid "Tag association not found."
 msgstr "Tag-Zuordnung nicht gefunden."
 
-#: nx_lib/views/workitems.py:1714
+#: nx_lib/views/workitems.py:1560
 msgid "Tag removed successfully."
 msgstr "Tag erfolgreich entfernt."
 
@@ -3137,7 +3137,7 @@ msgstr "Letzte Bewegung am"
 msgid "Tag"
 msgstr "Tag"
 
-#: templates/js/_workitems_overview_js.html:1533
+#: templates/js/_workitems_overview_js.html:1575
 #: templates/workitems_overview.html:392
 msgid "selected"
 msgstr "ausgewählt"
@@ -3241,7 +3241,7 @@ msgstr ""
 msgid "Show where extracted values were found on the document"
 msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
 
-#: templates/js/_workitems_overview_js.html:2030
+#: templates/js/_workitems_overview_js.html:2072
 #: templates/workitems_overview.html:565
 msgid "Show sources"
 msgstr "Quellen anzeigen"
@@ -3585,14 +3585,14 @@ msgstr "Details"
 
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:229
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1798
+#: templates/js/_workitems_overview_js.html:1840
 msgid "Previous"
 msgstr "Vorherige"
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:230
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1804
+#: templates/js/_workitems_overview_js.html:1846
 #: templates/js/archive/_tour_js.html:17
 msgid "Next"
 msgstr "Nächste"
@@ -3972,7 +3972,7 @@ msgstr "Keine Einträge gefunden."
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1645
+#: templates/js/_workitems_overview_js.html:1687
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
@@ -4045,7 +4045,7 @@ msgstr "Dokumente"
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1518
+#: templates/js/_workitems_overview_js.html:1560
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
 
@@ -4876,17 +4876,17 @@ msgid "Failed to load image "
 msgstr "Bild konnte nicht geladen werden "
 
 #: templates/js/_workitems_overview_js.html:987
-#: templates/js/_workitems_overview_js.html:1659
+#: templates/js/_workitems_overview_js.html:1701
 msgid "High Priority"
 msgstr "Hohe Priorität"
 
 #: templates/js/_workitems_overview_js.html:988
-#: templates/js/_workitems_overview_js.html:1660
+#: templates/js/_workitems_overview_js.html:1702
 msgid "Medium Priority"
 msgstr "Mittlere Priorität"
 
 #: templates/js/_workitems_overview_js.html:989
-#: templates/js/_workitems_overview_js.html:1661
+#: templates/js/_workitems_overview_js.html:1703
 msgid "Low Priority"
 msgstr "Niedrige Priorität"
 
@@ -4902,27 +4902,35 @@ msgstr "Dateien ausgewählt"
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overview_js.html:1494
+#: templates/js/_workitems_overview_js.html:1487
+msgid "primary"
+msgstr "primär"
+
+#: templates/js/_workitems_overview_js.html:1489
+msgid "Some workitems are temporarily unavailable:"
+msgstr "Einige Workitems sind vorübergehend nicht verfügbar:"
+
+#: templates/js/_workitems_overview_js.html:1535
 msgid "Loading workitems..."
 msgstr "Workitems werden geladen..."
 
-#: templates/js/_workitems_overview_js.html:1561
+#: templates/js/_workitems_overview_js.html:1603
 msgid "selected workitems will be exported"
 msgstr "ausgewählte Workitems werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1562
+#: templates/js/_workitems_overview_js.html:1604
 msgid "All workitems matching current filters will be exported"
 msgstr "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1627
+#: templates/js/_workitems_overview_js.html:1669
 msgid "Export failed. Please try again."
 msgstr "Export fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: templates/js/_workitems_overview_js.html:1644
+#: templates/js/_workitems_overview_js.html:1686
 msgid "No workitems found"
 msgstr "Keine Workitems gefunden"
 
-#: templates/js/_workitems_overview_js.html:2030
+#: templates/js/_workitems_overview_js.html:2072
 msgid "Hide sources"
 msgstr "Quellen ausblenden"
 
