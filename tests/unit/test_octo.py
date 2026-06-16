@@ -12,7 +12,6 @@ from nx_lib import octo as octo_mod
 from nx_lib.octo import (
     get_access_token,
     get_activity_type_name,
-    get_domain_for_workitem,
     get_extensions_urls_fields,
     get_index_field_mappings,
     get_media,
@@ -119,15 +118,6 @@ def test_get_access_token_uses_per_client_creds(app, monkeypatch):
     sent_body = mock_post.call_args.kwargs["data"]
     assert sent_body["client_id"] == "MS02_ID"
     assert sent_body["client_secret"] == "MS02_SECRET"
-
-
-# ---------- get_domain_for_workitem ----------
-
-
-def test_get_domain_for_workitem_returns_octo_domain(app):
-    with app.app_context():
-        # Returns the OCTO_DOMAIN constant; just verify it's truthy & a string
-        assert isinstance(get_domain_for_workitem(123), str)
 
 
 # ---------- get_workitemdata_param ----------

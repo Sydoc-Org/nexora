@@ -3,6 +3,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import nx_lib.workitem_sources as ws
 from nx_lib.workitem_sources import (
     PostgresSource,
     SqlServerSource,
@@ -159,3 +160,61 @@ def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):
     by_id = {r["workitemid"]: r for r in out}
     assert by_id[1001]["priority"] == 3
     assert by_id[1002]["tags"] == [{"id": 9, "name": "vip", "color": "#0f0"}]
+
+
+def test_get_source_for_workitem_cache_hit(app, monkeypatch):
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: "ms02")
+    with app.app_context():
+        assert ws.get_source_for_workitem(424242) == "ms02"
+
+
+def test_get_source_for_workitem_probes_then_caches(app, monkeypatch):
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    cached = {}
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: cached.setdefault(wid, code))
+
+    class FakeMs02:
+        code = "ms02"
+
+        def has_workitem(self, wid):
+            return wid == 999000
+
+    monkeypatch.setattr(ws, "non_default_source_instances", lambda: [FakeMs02()])
+    with app.app_context():
+        assert ws.get_source_for_workitem(999000) == "ms02"
+        assert cached[999000] == "ms02"
+
+
+def test_get_source_for_workitem_defaults_when_no_match(app, monkeypatch):
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    monkeypatch.setattr(ws, "non_default_source_instances", lambda: [])
+    with app.app_context():
+        assert ws.get_source_for_workitem(5) == "default"
+
+
+def test_get_source_for_workitem_ambiguous_falls_back_to_default(app, monkeypatch):
+    """Fail-safe: if >1 non-default source claims an id (id spaces overlap),
+    routing must NOT guess — it logs and returns 'default'."""
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: None)
+
+    class Claimer:
+        def __init__(self, code):
+            self.code = code
+
+        def has_workitem(self, wid):
+            return True
+
+    monkeypatch.setattr(
+        ws, "non_default_source_instances", lambda: [Claimer("ms02"), Claimer("ms03")]
+    )
+    with app.app_context():
+        assert ws.get_source_for_workitem(5) == "default"
+
+
+def test_get_domain_for_workitem_maps_client_to_domain(app, monkeypatch):
+    monkeypatch.setattr(ws, "get_source_for_workitem", lambda wid: "default")
+    with app.app_context():
+        from nx_lib.workitem_sources import CLIENTS
+
+        assert ws.get_domain_for_workitem(5) == CLIENTS["default"].octo_domain

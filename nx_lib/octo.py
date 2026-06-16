@@ -52,10 +52,6 @@ def get_access_token(domain=None):
         return None
 
 
-def get_domain_for_workitem(workitem_id):
-    return OCTO_DOMAIN
-
-
 def get_workitemdata_param(workitem_id, domain=None):
     if domain is None:
         domain = OCTO_DOMAIN

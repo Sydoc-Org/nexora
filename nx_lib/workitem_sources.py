@@ -15,7 +15,7 @@ import psycopg2.extras
 from flask import current_app
 
 from . import config as cfg
-from .clients import CLIENTS
+from .clients import CLIENTS, non_default_clients
 from .db import engine_nexora_db
 
 DB_NEXORA = cfg.DB_NEXORA
@@ -468,3 +468,102 @@ def enrich_rows_from_nexora(rows):
     finally:
         conn.close()
     return rows
+
+
+def active_sources():
+    """All active sources, default first. Single-element list when MS02 absent."""
+    sources = [SqlServerSource()]
+    sources.extend(non_default_source_instances())
+    return sources
+
+
+def non_default_source_instances():
+    """Source instances for every registered non-default client."""
+    instances = []
+    for client in non_default_clients():
+        if client.dialect == "postgres":
+            instances.append(PostgresSource(CLIENTS_code=client.code))
+    return instances
+
+
+def _cache_lookup(workitem_id):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ClientCode FROM WorkitemSourceCache WHERE WorkItemID = ?",
+            str(workitem_id),
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+    except Exception as e:
+        current_app.logger.error(f"WorkitemSourceCache lookup({workitem_id}): {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def _cache_store(workitem_id, client_code):
+    """Idempotent upsert of id -> client_code. Only non-default ids are cached."""
+    if client_code == "default":
+        return
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            MERGE dbo.WorkitemSourceCache AS tgt
+            USING (SELECT ? AS WorkItemID, ? AS ClientCode) AS src
+            ON tgt.WorkItemID = src.WorkItemID
+            WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
+            """,
+            (str(workitem_id), client_code),
+        )
+        conn.commit()
+    except Exception as e:
+        current_app.logger.error(f"WorkitemSourceCache store({workitem_id}): {e}")
+    finally:
+        conn.close()
+
+
+def get_source_for_workitem(workitem_id):
+    """Resolve which client owns ``workitem_id``.
+
+    Order of trust (collision fail-safe):
+    1. Cache hit — authoritative.
+    2. Probe ALL non-default sources. Exactly one claimant -> that client (cache
+       it). Zero -> 'default'.
+    3. FAIL-SAFE: more than one claimant means id spaces overlap — do NOT guess,
+       log loudly and fall back to 'default'.
+    """
+    cached = _cache_lookup(workitem_id)
+    if cached:
+        return cached
+
+    claimers = []
+    for src in non_default_source_instances():
+        try:
+            if src.has_workitem(workitem_id):
+                claimers.append(src.code)
+        except Exception as e:
+            current_app.logger.error(f"probe {src.code} for {workitem_id}: {e}")
+
+    if len(claimers) == 1:
+        _cache_store(workitem_id, claimers[0])
+        return claimers[0]
+    if len(claimers) > 1:
+        current_app.logger.error(
+            f"AMBIGUOUS workitem routing: id {workitem_id} claimed by {claimers}. "
+            "ID spaces are no longer disjoint — falling back to 'default'. Switch "
+            "to UI-carried client tags (compound identity) to disambiguate."
+        )
+    return "default"
+
+
+def get_domain_for_workitem(workitem_id):
+    """Octo domain for a workitem's owning client. Real replacement for the
+    former octo.py stub."""
+    code = get_source_for_workitem(workitem_id)
+    client = CLIENTS.get(code) or CLIENTS["default"]
+    return client.octo_domain

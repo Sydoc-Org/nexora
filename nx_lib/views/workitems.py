@@ -38,7 +38,6 @@ from ..notifications import create_notification
 from ..octo import (
     get_access_token,
     get_activity_type_name,
-    get_domain_for_workitem,
     get_extensions_urls_fields,
     get_media,
     get_workitemdata_param,
@@ -49,6 +48,7 @@ from ..process_helpers import (
 )
 from ..security import has_permission, page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
+from ..workitem_sources import get_domain_for_workitem
 
 # ---------------------------- field/config helpers ---------------------------- #
 
