@@ -130,6 +130,34 @@ if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PW
 else:
     engine_ms02_pg = None
 
+# MS02 dashboard-statistics DB (Praesidialdepartement_BS, Azure Postgres).
+# Separate engine because a PG connection is bound to one database. Same
+# graceful-degrade pattern; reuses the MS02 TLS settings.
+if (
+    cfg.MS02_STATS_DB_HOST
+    and cfg.MS02_STATS_DB_NAME
+    and cfg.MS02_STATS_DB_USER
+    and cfg.MS02_STATS_DB_PWD
+):
+    engine_ms02_stats_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_STATS_DB_HOST,
+            cfg.MS02_STATS_DB_NAME,
+            cfg.MS02_STATS_DB_USER,
+            cfg.MS02_STATS_DB_PWD,
+            cfg.MS02_STATS_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_stats_pg = None
+
 # Read-only engine for the Reporting live-SQL sandbox. Uses a dedicated
 # db_datareader-only login over the Statistics DB. Stays None when the RO
 # credentials are not provisioned, so the SQL source simply degrades to

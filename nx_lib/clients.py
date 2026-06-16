@@ -7,7 +7,7 @@ import clients; clients imports neither.
 from dataclasses import dataclass
 
 from . import config as cfg
-from .db import engine_ms02_pg, engine_octo_db
+from .db import engine_ms02_pg, engine_ms02_stats_pg, engine_octo_db, engine_statistics_db
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,8 @@ class ClientConfig:
     octo_client_id: str | None
     octo_secret: str | None
     octo_grant_type: str | None
+    stats_engine: object = None
+    stats_dialect: str = "tsql"
 
 
 def _build_clients():
@@ -31,6 +33,8 @@ def _build_clients():
             octo_client_id=cfg.OCTO_CLIENT_ID,
             octo_secret=cfg.OCTO_CLIENT_SECRET,
             octo_grant_type=cfg.OCTO_GRANT_TYPE,
+            stats_engine=engine_statistics_db,
+            stats_dialect="tsql",
         ),
     }
     # MS02 is registered only when both its engine and Octo domain are present.
@@ -43,6 +47,8 @@ def _build_clients():
             octo_client_id=cfg.MS02_OCTO_CLIENT_ID,
             octo_secret=cfg.MS02_OCTO_CLIENT_SECRET,
             octo_grant_type=cfg.MS02_OCTO_GRANT_TYPE,
+            stats_engine=engine_ms02_stats_pg,
+            stats_dialect="postgres",
         )
     return clients
 

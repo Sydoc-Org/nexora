@@ -119,6 +119,16 @@ MS02_OCTO_GRANT_TYPE = os.environ.get("MS02_GRANT_TYPE", OCTO_GRANT_TYPE)
 MS02_DB_SSLMODE = os.environ.get("MS02_DB_SSLMODE", "require")
 MS02_DB_SSLROOTCERT = os.environ.get("MS02_DB_SSLROOTCERT")
 
+# MS02 dashboard-statistics DB (separate Postgres DB "Praesidialdepartement_BS"
+# on the same Azure host/login as the MS02 runtime DB). A PG connection is bound
+# to one database, so the stats DB needs its own engine. Defaults reuse the
+# MS02_DB_* server/login with dbname=Praesidialdepartement_BS.
+MS02_STATS_DB_HOST = os.environ.get("MS02_STATS_DB_HOST", MS02_DB_HOST)
+MS02_STATS_DB_NAME = os.environ.get("MS02_STATS_DB_NAME", "Praesidialdepartement_BS")
+MS02_STATS_DB_USER = os.environ.get("MS02_STATS_DB_USER", MS02_DB_USER)
+MS02_STATS_DB_PWD = os.environ.get("MS02_STATS_DB_PWD", MS02_DB_PWD)
+MS02_STATS_DB_PORT = os.environ.get("MS02_STATS_DB_PORT", MS02_DB_PORT)
+
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
 
 CSP = {
