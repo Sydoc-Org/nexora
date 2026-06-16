@@ -57,3 +57,16 @@ def test_workitems_export_modal_closes(nexora_server, page):
     expect(close).to_be_visible()
     close.click()
     expect(close).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_workitems_merged_list_renders(nexora_server, page):
+    """Smoke: the multi-source list page renders its grid for an authorized
+    user even when the TEST runtime DB has no rows (single-source passthrough
+    when MS02 is unconfigured = byte-identical to before)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    # The table container is present even with an empty runtime DB in TEST.
+    expect(page.locator("#workitemsTable")).to_be_visible()
+    # And the page did not hard-error (filter form rendered).
+    expect(page.locator('[data-testid="workitems-filter-form"]')).to_be_visible()
