@@ -529,7 +529,7 @@ def dashboard_hourly_stats():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
             target_processes,
         )
         configs = cursor_nex.fetchall()
@@ -615,7 +615,7 @@ def dashboard_avg_processing_time():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
             target_processes,
         )
         configs = cursor_nex.fetchall()
@@ -1226,7 +1226,8 @@ def build_widget_query(widget, global_filters, allowed_processes):
         placeholders = ",".join(["?"] * len(target_processes))
         cur.execute(
             f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition "
-            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"FROM Statconfig WHERE ProcessName IN ({placeholders}) "
+            f"AND ISNULL(ClientCode, 'default') <> 'ms02'",
             target_processes,
         )
         configs = cur.fetchall()

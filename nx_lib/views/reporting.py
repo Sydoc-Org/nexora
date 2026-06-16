@@ -635,7 +635,7 @@ def _load_process_configs(target_processes):
         # SELECT * so a pre-0020 Statconfig (no WorkitemColumn yet) still
         # serves the date columns; WorkitemColumn is read defensively.
         cur.execute(
-            f"SELECT * FROM Statconfig WHERE ProcessName IN ({ph})",
+            f"SELECT * FROM Statconfig WHERE ProcessName IN ({ph}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
             target_processes,
         )
         return [

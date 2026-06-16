@@ -204,7 +204,7 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         # WorkitemColumn. SELECT * so a pre-0020 Statconfig (no WorkitemColumn)
         # still yields the date fields; the helpers read attributes defensively.
         try:
-            cur.execute("SELECT * FROM Statconfig")
+            cur.execute("SELECT * FROM Statconfig WHERE ISNULL(ClientCode, 'default') <> 'ms02'")
             statconfig_rows = cur.fetchall()
         except Exception:
             current_app.logger.warning("reporting catalog: Statconfig unavailable")
