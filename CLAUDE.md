@@ -27,6 +27,9 @@ The app connects to four SQL Server databases via SQLAlchemy engines with pyodbc
 - `engineGeneraliDB` — tenant-specific DB for Generali-branded pages.
 - `engine_statistics_ro` — read-only `db_datareader` login over the Statistics DB used by the reporting SQL sandbox (`DB_REPORTING_RO_USER` / `DB_REPORTING_RO_PWD` env vars; until set, the SQL source returns 503).
 - `engine_octo_ro` — read-only `db_datareader` login over the Octopus runtime DB, used by the reporting SQL sandbox's Octopus target (`DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD` env vars; until set, the Octopus target returns 503).
+- `engine_ms02_pg` — the MS02 client's Azure Postgres runtime DB (same Octo schema, PG dialect); stays `None` until its `MS02_*` env vars are set (graceful degrade).
+
+**Multi-source workitems (MS02 client):** the MS02 client is integrated via `nx_lib/workitem_sources.py` (per-source adapters `SqlServerSource`/`PostgresSource`, plus the probe-then-cache routing backed by `dbo.WorkitemSourceCache`, migration `0023`) and `nx_lib/clients.py` (client registry mapping each client to its runtime engine + Octo creds). Octo access-token requests are signed with per-client credentials. The Postgres driver is `psycopg2-binary` (must be installed on the prod interpreter separately — see `docs/howto/iis.md`).
 
 DDL source lives under `sql/`, organized to mirror SSMS Object Explorer. The **live INT database is the source of truth** for committed-state DDL — the per-object files are auto-generated and must not be hand-edited.
 

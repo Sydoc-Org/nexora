@@ -9,6 +9,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Multi-source workitems (MS02 client).** The workitems list, detail page, CSV export, and
+  dashboard (activity feed + C+A backlog KPI) now merge a second client, "MS02", whose runtime
+  data lives in Azure Postgres and whose Octo API is at a separate domain. New
+  `nx_lib/workitem_sources.py` (source adapters + probe-then-cache routing) and
+  `nx_lib/clients.py` (client registry). New `engine_ms02_pg` engine (graceful-degrade) plus
+  `MS02_*` env vars; the Postgres driver is `psycopg2-binary`. Routing cache table
+  `dbo.WorkitemSourceCache` (migration `0023`). Octo access-token requests are now signed with
+  per-client credentials. The list `/api/workitems` response gained a `degradedSources` array
+  and the UI shows a non-blocking banner when a source is temporarily unavailable.
 - Autopilot/nx: `nx status` (alias `nx -s`) now also shows the issue an autopilot run is currently building as `#<n> <title>  -- building <elapsed> (<phase>)`, read from `var/autopilot/run-state.json` and suppressed when stale by the same liveness rule as the run lock. The four per-item n8n Telegram notifications (built, recovered, skipped, needs-input) now name the issue title alongside its number, and the execute-phase node now forwards the issue number (run.log header reads `execute #<n>` instead of `#0`).
 - Autopilot: **concurrent multi-lane processing** — up to 3 GitHub issues now build simultaneously in isolated git worktrees (`<repo>-lanes\lane-K`) on `auto/issue-NN` branches. A 3-slot atomic semaphore (`semaphore.ps1`) replaces the single global lock. Per-issue lane lifecycle (`lane.ps1`), DB serialization (`db-lock.ps1`), serialized merge-back under `merge.lock` (`merge-back.ps1`), and a conflict-resolver agent (`merge-resolve.ps1`) are added. The n8n canvas is rewired to dispatch per-item (`dispatch-acquire → got-slot?`), wrap the DB-touching build step in `db-acquire/db-release`, and merge each lane's work back individually (`merge-back → merge-route → merge-resolve`). A failed lane frees its slot and the other lanes continue — no pipeline STOP. `run-phase.ps1` gains `-LogPath`, `-StatePath`, `-Lane` params; `write-plan` skips nested worktree creation when `AUTOPILOT_LANE=1`. `nx status` enumerates per-lane states. `start-n8n.ps1` ancestor-checks and prunes stale lane worktrees on startup.
 - Reporting: alert-only schedules — a schedule can carry a threshold condition
@@ -453,6 +462,8 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
 ### Changed
+- Workitems list: a runtime-DB outage now renders an empty list with a "temporarily unavailable"
+  banner instead of a 500 error (graceful degradation for the multi-source design).
 - **Reporting Simple wizard: curated breakdown dimensions.** For the Document
   Processing source, business dimensions (Document Source, Document Type,
   Forwarding, Owner no., Property No., Registered, Tenancy no.) are listed first;
