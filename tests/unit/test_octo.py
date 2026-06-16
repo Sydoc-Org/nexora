@@ -92,6 +92,35 @@ def test_get_access_token_returns_none_on_http_error(app):
     assert tok is None
 
 
+def test_get_access_token_uses_per_client_creds(app, monkeypatch):
+    """A registered non-default domain signs the token request with that
+    client's client_id/secret, not the global default creds."""
+    from nx_lib import clients
+
+    monkeypatch.setattr(
+        clients,
+        "octo_creds_for_domain",
+        lambda domain: ("MS02_ID", "MS02_SECRET", "client_credentials")
+        if domain == "ms02.octo.example"
+        else ("DEF_ID", "DEF_SECRET", "client_credentials"),
+    )
+    # Re-point the name octo.py imported, too (it imported the function object).
+    monkeypatch.setattr(octo_mod, "octo_creds_for_domain", clients.octo_creds_for_domain)
+
+    fake_resp = MagicMock(status_code=200)
+    fake_resp.json.return_value = {"access_token": "ms02-tok", "expires_in": 3600}
+    with (
+        patch.object(octo_mod.requests, "post", return_value=fake_resp) as mock_post,
+        app.app_context(),
+    ):
+        tok = get_access_token(domain="ms02.octo.example")
+
+    assert tok == "ms02-tok"
+    sent_body = mock_post.call_args.kwargs["data"]
+    assert sent_body["client_id"] == "MS02_ID"
+    assert sent_body["client_secret"] == "MS02_SECRET"
+
+
 # ---------- get_domain_for_workitem ----------
 
 

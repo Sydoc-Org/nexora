@@ -10,12 +10,8 @@ import requests
 from flask import current_app
 from flask_babel import gettext as _
 
-from .config import (
-    OCTO_CLIENT_ID,
-    OCTO_CLIENT_SECRET,
-    OCTO_DOMAIN,
-    OCTO_GRANT_TYPE,
-)
+from .clients import octo_creds_for_domain
+from .config import OCTO_DOMAIN
 from .db import engine_nexora_db
 from .extensions import cache
 from .field_locations import extract_field_locations
@@ -30,15 +26,16 @@ def get_access_token(domain=None):
     if token:
         return token
 
+    client_id, client_secret, grant_type = octo_creds_for_domain(domain)
     url = f"https://{domain}/auth/connect/token"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
     }
     body = {
-        "grant_type": OCTO_GRANT_TYPE,
-        "client_id": OCTO_CLIENT_ID,
-        "client_secret": OCTO_CLIENT_SECRET,
+        "grant_type": grant_type,
+        "client_id": client_id,
+        "client_secret": client_secret,
     }
 
     try:
