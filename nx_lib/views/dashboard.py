@@ -17,7 +17,7 @@ from flask import (
 from flask_babel import gettext as _
 
 from ..config import DB_STATISTICS
-from ..db import engine_nexora_db, engine_statistics_db
+from ..db import engine_ms02_stats_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
@@ -34,6 +34,21 @@ from ..workitem_sources import (
 
 def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
+
+
+def _split_stat_configs(configs):
+    """Partition Statconfig rows by serving client. Returns (default_rows, has_ms02).
+    Rows with a blank/missing ClientCode count as 'default' (back-compat with
+    pre-0024 data). MS02 stats are not per-process, so we only need a flag."""
+    default_rows = []
+    has_ms02 = False
+    for r in configs:
+        code = getattr(r, "ClientCode", None) or "default"
+        if code == "ms02":
+            has_ms02 = True
+        else:
+            default_rows.append(r)
+    return default_rows, has_ms02
 
 
 DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
@@ -287,7 +302,7 @@ def dashboard_processed_over_time():
 
         placeholders = ",".join(["?"] * len(target_processes))
         config_query = f"""
-            SELECT ProcessName, TableName, ExportColumn, additionalCondition
+            SELECT ProcessName, TableName, ExportColumn, additionalCondition, ClientCode
             FROM Statconfig
             WHERE ProcessName IN ({placeholders})
         """
@@ -299,8 +314,10 @@ def dashboard_processed_over_time():
         if not configs:
             return jsonify({"labels": [], "data": []})
 
+        default_configs, has_ms02 = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             convert = "convert" in str(row.ExportColumn).lower()
             date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -327,6 +344,24 @@ def dashboard_processed_over_time():
             cursor.close()
             conn.close()
             conn = None
+
+        if has_ms02 and engine_ms02_stats_pg is not None:
+            try:
+                mconn = engine_ms02_stats_pg.raw_connection()
+                try:
+                    mcur = mconn.cursor()
+                    mcur.execute(
+                        "SELECT datuminexport::date AS d, COUNT(*) AS c "
+                        "FROM public.batchtracking "
+                        "WHERE datuminexport >= CURRENT_DATE - 14 "
+                        "GROUP BY datuminexport::date"
+                    )
+                    for d, c in mcur.fetchall():
+                        counts[d] = counts.get(d, 0) + c
+                finally:
+                    mconn.close()
+            except Exception as e:
+                current_app.logger.error(f"processed_over_time ms02 stats failed: {e}")
 
         sorted_dates = sorted(counts.keys())
         return jsonify({"labels": sorted_dates, "data": [counts[d] for d in sorted_dates]})
@@ -380,14 +415,16 @@ def dashboard_kpi_stats():
         placeholders = ",".join(["?"] * len(target_processes))
 
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
 
-        if configs:
+        default_configs, has_ms02 = _split_stat_configs(configs)
+
+        if default_configs:
             sub_queries = []
-            for row in configs:
+            for row in default_configs:
                 col_export = row.ExportColumn
                 col_import = row.ImportColumn
                 condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -412,6 +449,26 @@ def dashboard_kpi_stats():
                 if row:
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
+
+        if has_ms02 and engine_ms02_stats_pg is not None:
+            try:
+                mconn = engine_ms02_stats_pg.raw_connection()
+                try:
+                    mcur = mconn.cursor()
+                    mcur.execute(
+                        "SELECT "
+                        "COUNT(*) FILTER (WHERE datuminexport::date = CURRENT_DATE), "
+                        "COUNT(*) FILTER (WHERE datumimportiert::date = CURRENT_DATE) "
+                        "FROM public.batchtracking"
+                    )
+                    mrow = mcur.fetchone()
+                    if mrow:
+                        processed_today += mrow[0] or 0
+                        imported_today += mrow[1] or 0
+                finally:
+                    mconn.close()
+            except Exception as e:
+                current_app.logger.error(f"kpi_stats ms02 stats failed: {e}")
 
         if target_processes:
             proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
