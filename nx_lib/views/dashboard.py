@@ -16,16 +16,20 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from ..config import DB_STATISTICS, OCTO_DOMAIN
-from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
+from ..config import DB_STATISTICS
+from ..db import engine_nexora_db, engine_statistics_db
 from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
-    get_params_from_process_list,
 )
 from ..security import page_visibility, require_permission
+from ..workitem_sources import (
+    get_domain_for_workitem,
+    recent_activity_rows,
+    total_backlog_count,
+)
 
 
 def make_cache_key(*args, **kwargs):
@@ -367,10 +371,8 @@ def dashboard_kpi_stats():
 
     conn_nex = None
     conn_stat = None
-    conn_octo = None
     cursor_nex = None
     cursor_stat = None
-    cursor_octo = None
 
     try:
         conn_nex = engine_nexora_db.raw_connection()
@@ -411,22 +413,10 @@ def dashboard_kpi_stats():
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
 
-        conn_octo = engine_octo_db.raw_connection()
-        cursor_octo = conn_octo.cursor()
-
         if target_processes:
-            p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-            cursor_octo.execute(
-                f"""
-                SELECT COUNT(*) FROM t_WorkItems w
-                LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-                LEFT JOIN t_Processes p on p.id = a.ProcessID
-                LEFT JOIN t_ActivityTypes act on act.id = a.ActivityTypeID
-                WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND act.Name = 'C+A';
-            """,
-                p_params,
-            )
-            current_backlog += cursor_octo.fetchone()[0]
+            proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+            cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
+            current_backlog += total_backlog_count(proc_params, cli_params)
 
         return jsonify(
             {
@@ -444,14 +434,10 @@ def dashboard_kpi_stats():
             cursor_nex.close()
         if cursor_stat:
             cursor_stat.close()
-        if cursor_octo:
-            cursor_octo.close()
         if conn_nex:
             conn_nex.close()
         if conn_stat:
             conn_stat.close()
-        if conn_octo:
-            conn_octo.close()
 
 
 @cache.cached(
@@ -1414,7 +1400,6 @@ def dashboard_widget_compare():
     key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
 )
 def api_recent_activity():
-    conn = None
     try:
         prefix = "dashboard.filter.process."
         process_name = session.get("process_name_dashboard", "all")
@@ -1436,40 +1421,24 @@ def api_recent_activity():
         if not target_processes:
             return jsonify([])
 
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
+        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
         activity_instances_to_ignore = get_activity_instances_to_ignore()
-
-        p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-        cursor.execute(
-            f"""
-            SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
-            FROM t_WorkItems twi
-            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE twi.Status <> 2
-              AND tp.Name IN ({p_ph})
-              AND tp.ClientName IN ({c_ph})
-              AND tai.ActivityInstanceName not in ({activity_instances_to_ignore})
-            ORDER BY twi.ModifiedAt DESC
-        """,
-            p_params,
+        raw_rows = recent_activity_rows(
+            proc_params, cli_params, activity_instances_to_ignore, top=3
         )
-        raw_rows = list(cursor.fetchall())
-        raw_rows.sort(key=lambda r: r.ModifiedAt, reverse=True)
 
         activity = []
-        for row in raw_rows[:3]:
-            workitemdata, doc_id = get_workitemdata_param(row.ID, OCTO_DOMAIN)
-            _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(
-                workitemdata, doc_id, OCTO_DOMAIN
-            )
+        for row in raw_rows:
+            domain = get_domain_for_workitem(row["id"])
+            workitemdata, doc_id = get_workitemdata_param(row["id"], domain)
+            _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
             activity.append(
                 {
-                    "id": row.ID,
-                    "time": row.ModifiedAt.strftime("%H:%M"),
-                    "process": row.ProcessName,
+                    "id": row["id"],
+                    "time": row["modifiedat"].strftime("%H:%M"),
+                    "process": row["process"],
                     "fields": fields,
                 }
             )
@@ -1478,9 +1447,6 @@ def api_recent_activity():
     except Exception as e:
         current_app.logger.error(f"Activity feed error: {e}")
         return jsonify([])
-    finally:
-        if conn:
-            conn.close()
 
 
 def register_routes(app):

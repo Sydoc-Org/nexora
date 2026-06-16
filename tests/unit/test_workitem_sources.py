@@ -270,3 +270,151 @@ def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
     assert [r["workitemid"] for r in rows] == [2]
     assert total == 1
     assert degraded == ["ms02"]
+
+
+# ---------------- dashboard source-awareness (Task 14) ---------------- #
+
+
+def test_sqlserver_recent_rows_normalizes(app):
+    data_row = MagicMock(
+        ID=7,
+        ModifiedAt=datetime(2026, 6, 16, 9, 15, 0),
+        ProcessName="Invoices",
+    )
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [data_row]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = SqlServerSource()
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+
+    assert rows == [
+        {
+            "id": 7,
+            "modifiedat": datetime(2026, 6, 16, 9, 15, 0),
+            "process": "Invoices",
+            "client": "default",
+        }
+    ]
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "?" in executed_sql
+    assert "%s" not in executed_sql
+
+
+def test_sqlserver_backlog_count(app):
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = [12]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = SqlServerSource()
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        count = src.backlog_count(["Invoices"], ["Privera"])
+
+    assert count == 12
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "C+A" in executed_sql
+
+
+def test_postgres_recent_rows_uses_pg_sql(app):
+    data_row = MagicMock(
+        id=1001,
+        modifiedat=datetime(2026, 6, 16, 9, 20, 0),
+        process="Invoices",
+    )
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [data_row]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = PostgresSource(CLIENTS_code="ms02")
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+
+    assert rows[0]["id"] == 1001
+    assert rows[0]["client"] == "ms02"
+    assert rows[0]["process"] == "Invoices"
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "%s" in executed_sql
+    assert '"t_WorkItems"' in executed_sql
+    assert "?" not in executed_sql
+
+
+def test_postgres_backlog_count(app):
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = [4]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = PostgresSource(CLIENTS_code="ms02")
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        count = src.backlog_count(["Invoices"], ["Privera"])
+
+    assert count == 4
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "%s" in executed_sql
+    assert '"t_WorkItems"' in executed_sql
+    assert "?" not in executed_sql
+
+
+def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
+    class Fake:
+        def __init__(self, code, rows):
+            self.code = code
+            self._rows = rows
+
+        def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+            return self._rows
+
+    f1 = Fake(
+        "default",
+        [
+            {
+                "id": 1,
+                "modifiedat": datetime(2026, 6, 16, 9, 10),
+                "process": "P",
+                "client": "default",
+            },
+            {
+                "id": 2,
+                "modifiedat": datetime(2026, 6, 16, 9, 30),
+                "process": "P",
+                "client": "default",
+            },
+        ],
+    )
+    f2 = Fake(
+        "ms02",
+        [
+            {
+                "id": 1001,
+                "modifiedat": datetime(2026, 6, 16, 9, 20),
+                "process": "Q",
+                "client": "ms02",
+            },
+        ],
+    )
+    monkeypatch.setattr(ws, "active_sources", lambda: [f1, f2])
+    with app.app_context():
+        out = ws.recent_activity_rows(["P"], ["C"], "'Ignore'", top=2)
+    assert [r["id"] for r in out] == [2, 1001]  # newest first, capped to 2
+
+
+def test_total_backlog_count_sums(app, monkeypatch):
+    class Fake:
+        def __init__(self, code, n):
+            self.code = code
+            self._n = n
+
+        def backlog_count(self, process_names, client_names):
+            return self._n
+
+    monkeypatch.setattr(ws, "active_sources", lambda: [Fake("default", 3), Fake("ms02", 4)])
+    with app.app_context():
+        assert ws.total_backlog_count(["P"], ["C"]) == 7
