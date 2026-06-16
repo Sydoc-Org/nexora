@@ -50,10 +50,12 @@ def merge_sorted_rows(row_lists):
     """Merge per-source normalized rows into one list, newest first.
 
     Deterministic tie-break on workitemid (ascending) so equal timestamps order
-    stably across sources.
+    stably across sources. The tie-break key is stringified so equal-timestamp
+    rows from different sources never raise TypeError when their id types differ
+    (e.g. int vs str); ordering of same-timestamp rows is otherwise immaterial.
     """
     flat = [r for rows in row_lists for r in rows]
-    flat.sort(key=lambda r: r["workitemid"])
+    flat.sort(key=lambda r: str(r["workitemid"]))
     flat.sort(key=lambda r: r["modifiedat"], reverse=True)
     return flat
 
@@ -719,6 +721,11 @@ def fetch_merged_page(filt, offset, limit):
             current_app.logger.error(f"source {sources[0].code} failed: {e}")
             return [], 0, [sources[0].code]
 
+    # The page total is the sum of per-source counts. This is exact because
+    # workitem ids are globally unique across sources (the disjoint-id invariant
+    # the routing fail-safe in get_source_for_workitem enforces): no workitem is
+    # counted by more than one source. If id spaces ever overlap, this total
+    # could double-count — that's the trigger to move to compound identity.
     per_source_rows = []
     total = 0
     degraded = []
