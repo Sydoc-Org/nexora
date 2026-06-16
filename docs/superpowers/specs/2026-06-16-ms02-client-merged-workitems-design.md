@@ -206,7 +206,7 @@ New keys in `env/INT.env` (already present under `MS02_`; **confirm exact spelli
 
 ## 10. Risks & edge cases
 
-- **Cross-source ID collision.** If IDs are GUIDs, non-issue; deterministic default-first probe resolves the theoretical clash. **Confirm ID type** against the MS02 PG schema during planning.
+- **Cross-source ID collision.** Confirmed disjoint/globally-unique IDs (owner, 2026-06-16), so an id maps to exactly one DB and probe-then-cache is correct today. **Fail-safe for the future** (a second Postgres client on the same server with an overlapping id space): routing trusts (1) the cache, which the merged list warms *authoritatively* from the row's real source; (2) a probe that checks **all** non-default sources and detects ambiguity rather than first-match-wins; (3) on >1 claimant, logs loudly and falls back to `default` (visible failure, never silent wrong-routing). The structural escalation when overlap becomes routine is **compound identity** — the UI carries the client tag (`?client=`) so routing never guesses; this is documented in the plan and intentionally not built now (YAGNI).
 - **`media_info_{wid}` / `media_data_{wid}` cache keys are per-id** — safe iff IDs are globally unique (expected). Confirm with the GUID check above.
 - **Cross-cloud latency** (on-prem IIS → Azure PG): mitigated by per-source timeout + degrade (§4.5) and a small PG pool.
 - **Deep pagination** cost (§4.4): bounded by realistic queue depth; revisit only if a real workflow pages thousands deep.
