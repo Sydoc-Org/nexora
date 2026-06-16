@@ -657,7 +657,14 @@ class WorkitemFilter:
     priority: str | None = None
     assigned_user: str | None = None
     tag: str | None = None
-    # Pre-resolved id allow-set from the docfield search (applies to ALL sources).
+    # Raw doc-field search pairs. Each source resolves them against its OWN stats
+    # store (spec §4.6): SqlServerSource via SearchConfig->StatisticsDB (the
+    # orchestrator pre-resolves those into `docfield_ids` below); PostgresSource
+    # in-query against its own t_documentindexes (Name/Stringvalue).
+    docfields: list = field(default_factory=list)
+    docvalues: list = field(default_factory=list)
+    # StatisticsDB-resolved id allow-set for the SQL SERVER source ONLY (default
+    # client's stats store). PostgresSource ignores this and uses the raw pairs.
     docfield_ids: set | None = None
 
 
@@ -1182,14 +1189,28 @@ class PostgresSource:
             clauses.append('twi."ModifiedAt" < %s')
             params.append(filt.end_date)
 
-        # Combine docfield ids (all-source) with NexoraDB-resolved ids (PG-only).
-        allow = _intersect_id_sets(filt.docfield_ids, resolve_nexora_filter_ids(filt))
+        # NexoraDB-backed filters (tag/priority/assigned) -> id allow-set; those
+        # metadata rows live in NexoraDB for workitems of every client.
+        allow = resolve_nexora_filter_ids(filt)
         if allow is not None:
             if not allow:
                 clauses.append("1=0")
             else:
                 clauses.append('twi."ID" = ANY(%s)')
                 params.append(list(allow))
+        # Doc-field search -> in-query EXISTS against MS02's own t_documentindexes
+        # (Name/Stringvalue), one per (docfield, docvalue) pair, AND semantics.
+        for name, value in zip(filt.docfields or [], filt.docvalues or [], strict=False):
+            name = (name or "").strip()
+            value = (value or "").strip()
+            if not name or not value:
+                continue
+            clauses.append(
+                'EXISTS (SELECT 1 FROM t_documentindexes di '
+                'WHERE di.workitemid = twi."ID" AND di."Name" = %s AND di."Stringvalue" LIKE %s)'
+            )
+            params.append(name)
+            params.append(f"%{value}%")
         return " AND ".join(clauses), params
 
     def list_workitems(self, filt, offset, limit):
@@ -1674,7 +1695,9 @@ filt = WorkitemFilter(
     priority=priority if (priority and has_permission("workitems.filter.priority")) else None,
     assigned_user=assigned_user if (assigned_user and has_permission("workitems.filter.assignedUser")) else None,
     tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
-    docfield_ids=docfield_ids,            # set or None
+    docfields=docfields or [],            # raw pairs -> PostgresSource (t_documentindexes)
+    docvalues=docvalues or [],
+    docfield_ids=docfield_ids,            # StatisticsDB-resolved set -> SqlServerSource only
 )
 
 rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
@@ -1700,9 +1723,13 @@ return {
 }
 ```
 
-- [ ] **Step 3: Move docfield pre-resolution to produce `docfield_ids`**
+- [ ] **Step 3: Doc-field handling is per source (spec §4.6)**
 
-The existing docfield block (lines ~248–346) already computes `matching_ids` per docfield and applies them via `extra_clauses`. Refactor it to instead intersect all docfield matches into a single `docfield_ids` set (or `None` when no docfield filter is active), which is passed to the filter. Keep the StatisticsDB SearchConfig logic identical; only change the output from `extra_clauses`/temp-tables to a Python set. (The sources now own how the id set is applied per dialect.)
+Doc-field search resolves against each client's **own** stats store, so it is NOT a single shared id-set:
+- **Default / SQL Server:** keep the existing `SearchConfig`→StatisticsDB block (lines ~248–346) — refactor only its *output* from `extra_clauses`/`#temp` tables to a single `docfield_ids` Python set (or `None` when no docfield filter). Pass it to the filter as `docfield_ids`; `SqlServerSource` applies it unchanged.
+- **MS02 / Postgres:** pass the **raw** `docfields` / `docvalues` request lists straight into the filter. `PostgresSource` resolves them in-query via `EXISTS` against its own `t_documentindexes` (`Name`/`Stringvalue`, join `workitemid`) — see Task 9. It ignores `docfield_ids`.
+
+So the orchestrator still does the StatisticsDB pre-resolution (default-only), AND threads the raw pairs through for MS02. *Confirm at build time:* whether the UI doc-field identifier matches MS02 `t_documentindexes."Name"` (a name-mapping may be needed) and the `t_documentindexes` identifier casing.
 
 - [ ] **Step 4: Extend the integration test (tolerant of empty TEST runtime DB)**
 
@@ -1816,6 +1843,8 @@ git commit -m "feat(workitems): source-agnostic single-workitem fetch; detail Oc
 ---
 
 ### Task 14: Dashboard source-awareness + `OCTO_DOMAIN` fix
+
+> **Scope:** only the **OctoDB-based** dashboard bits — KPI backlog (`C+A` count) and the activity feed. The **StatisticsDB-backed** widgets (processed-over-time, processed/imported KPIs, the other charts) are made multi-source in **Phase 6** (separate MS02 stats table), not here.
 
 **Files:**
 - Modify: `nx_lib/views/dashboard.py` (KPI backlog ~414–429; activity feed ~1439–1483; imports ~19–23)
@@ -1995,8 +2024,134 @@ git commit -m "docs(workitems): document MS02 multi-source client + psycopg2 pro
 
 ---
 
+## Phase 6 — Dashboard statistics multi-source (separate MS02 stats table)
+
+The dashboard's StatisticsDB-backed widgets must include MS02. MS02's processing-event data lives in a **separate MS02 Postgres table** (NOT `t_documentindexes`). Approach: add a `ClientCode` to `Statconfig`, route each process's aggregation to its client's stats engine (StatisticsDB T-SQL vs MS02 Postgres), and sum per-client results. Centralize on the `Statconfig`→`[(engine, sql, params)]` builder so every widget that routes through it becomes multi-source at once.
+
+> **Owner-provided parameters for this phase** (substitute before/at Task 19–20):
+> - `<MS02_STATS_TABLE>` — the MS02 Postgres table holding per-item processing events.
+> - `<MS02_EXPORT_COL>` / `<MS02_IMPORT_COL>` — its processed/imported timestamp columns.
+> - `<MS02_STATS_PROCESS_JOIN>` — how a row ties to a process name (a column, or one table per process).
+> Until these are known, Tasks 19–20 are designed but not runnable; Task 18 (the `ClientCode` column) is.
+
+### Task 18: Migration — `Statconfig.ClientCode`
+
+**Files:**
+- Create: `sql/_migrations/NexoraDB/0024_statconfig_clientcode.sql`
+
+- [ ] **Step 1: Write the idempotent migration + MS02 seed template**
+
+```sql
+-- 0024_statconfig_clientcode.sql
+-- Tag each Statconfig row with the client whose stats engine serves it.
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID('dbo.Statconfig') AND name = 'ClientCode'
+)
+BEGIN
+    ALTER TABLE dbo.Statconfig
+        ADD ClientCode NVARCHAR(50) NOT NULL
+        CONSTRAINT DF_Statconfig_ClientCode DEFAULT 'default';
+END
+GO
+-- MS02 process rows (TEMPLATE — fill in real ProcessName / TableName / columns,
+-- one row per MS02 process, then uncomment):
+-- INSERT INTO dbo.Statconfig (ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode)
+-- VALUES ('<ms02client>.<process>', '<MS02_STATS_TABLE>', '<MS02_EXPORT_COL>', '<MS02_IMPORT_COL>', NULL, 'ms02');
+-- GO
+```
+
+- [ ] **Step 2: Apply + sync + commit**
+
+```powershell
+python scripts/db-migrate.py --env INT
+python sql/sync-from-db.py --check
+```
+```bash
+git add sql/_migrations/NexoraDB/0024_statconfig_clientcode.sql sql/NexoraDB/
+git commit -m "feat(db): add Statconfig.ClientCode for multi-source dashboard stats"
+```
+
+### Task 19: Make the central stats builder client-aware
+
+**Files:**
+- Modify: `nx_lib/views/dashboard.py` (the `Statconfig`→`[(engine, sql, params)]` builder, ≈lines 1180–1205, plus its callers)
+- Test: `tests/integration/test_dashboard_routes.py` or a new `tests/unit/test_dashboard_stats.py`
+
+- [ ] **Step 1: Confirm the seam**
+
+Read `dashboard.py` ≈1180–1205 (the helper that selects from `Statconfig` and returns `[(engine_statistics_db, sql, params)]`) and grep its callers: `grep -n "Statconfig" nx_lib/views/dashboard.py`. Identify which widgets route through it vs. build SQL inline (`dashboard_processed_over_time` ≈259 and `dashboard_kpi_stats` ≈342 build inline — those are Task 20).
+
+- [ ] **Step 2: Write the failing test (mixed-client Statconfig → two engine tuples)**
+
+```python
+def test_stats_builder_groups_by_client(app, monkeypatch):
+    # Statconfig returns one default row + one ms02 row; builder must emit one
+    # (engine, sql, params) per client, each pointed at the right engine.
+    rows = [
+        MagicMock(ProcessName="A.x", TableName="dbo.statA", ExportColumn="ExportDate",
+                  ImportColumn="ImportDate", additionalCondition=None, ClientCode="default"),
+        MagicMock(ProcessName="MS02.y", TableName="ms02_stats", ExportColumn="exported_at",
+                  ImportColumn="imported_at", additionalCondition=None, ClientCode="ms02"),
+    ]
+    # ... mock the NexoraDB Statconfig cursor to return `rows`, then call the builder
+    # and assert it returns two tuples whose engines are engine_statistics_db and
+    # engine_ms02_pg respectively, and the ms02 SQL contains '::date' / no '[DB_STATISTICS]'.
+```
+
+- [ ] **Step 3: Implement grouping + PG dialect rendering**
+
+Change the `Statconfig` query to also select `ClientCode`. Group config rows by `ClientCode`. For each group emit a `(engine, sql, params)` tuple:
+- `default` → `engine_statistics_db`, existing T-SQL against `[{DB_STATISTICS}].{TableName}`.
+- `ms02` → `engine_ms02_pg`, PG SQL against `{TableName}` (no `[DB_STATISTICS].` prefix). Dialect twins: `CAST(col AS DATE)`→`col::date`, `DATEADD(day,-14,GETDATE())`→`CURRENT_DATE - 14`, `GETDATE()`→`NOW()`, `?`→`%s`.
+
+Callers iterate the tuples, run each on its engine, and merge results in Python (sum counts by bucket/date). Wrap each engine run in try/except so a down MS02 degrades to default-only (same philosophy as the list).
+
+- [ ] **Step 4: Run + commit**
+
+```powershell
+python -m pytest tests/unit/test_dashboard_stats.py tests/integration/test_dashboard_routes.py -v
+```
+```bash
+git add nx_lib/views/dashboard.py tests/
+git commit -m "feat(dashboard): client-aware stats builder (StatisticsDB + MS02 Postgres)"
+```
+
+### Task 20: Port the inline-SQL widgets to multi-source
+
+**Files:**
+- Modify: `nx_lib/views/dashboard.py` (`dashboard_processed_over_time` ≈259–335; `dashboard_kpi_stats` ≈342–435)
+
+- [ ] **Step 1: `processed_over_time`** — replace the single inline `engine_statistics_db` run with the per-client grouping from Task 19: build each client's day-bucket subqueries in its dialect, run on its engine, merge `counts[date] += c` across clients. PG twin of the bucket: `SELECT col::date AS d, COUNT(*) c FROM {table} WHERE col >= CURRENT_DATE - 14 {cond} GROUP BY col::date`.
+- [ ] **Step 2: `kpi_stats`** — `processed_today` / `imported_today` become a sum across clients (default StatisticsDB + MS02 PG "today" counts). Backlog already multi-sourced in Task 14.
+- [ ] **Step 3: TDD per dialect** (mocked cursors) + the existing zero-perm short-circuit tests stay green (no DB hit when a user lacks `dashboard.filter.process.*`).
+- [ ] **Step 4: Manual smoke + commit** — dashboard with an MS02 process granted shows MS02 in processed-over-time + KPIs.
+
+```bash
+git add nx_lib/views/dashboard.py tests/
+git commit -m "feat(dashboard): processed-over-time + KPIs include MS02 stats"
+```
+
+### Task 21: Validate + docs (Phase 6)
+
+- [ ] **Step 1:** Playwright the dashboard with MS02 data; screenshot to `var/screenshots/ms02-dashboard-stats.png` (send via SendUserFile if remote).
+- [ ] **Step 2:** `CHANGELOG.md` + `CLAUDE.md` note `Statconfig.ClientCode` and MS02 dashboard stats (migration `0024`).
+- [ ] **Step 3: Commit.**
+
+```bash
+git add CHANGELOG.md CLAUDE.md
+git commit -m "docs(dashboard): document MS02 multi-source dashboard statistics"
+```
+
+---
+
 ## Self-review notes (verify before execution)
 
-- **Spec coverage:** §3 registry → Task 5; §3.3 routing → Task 10; §3.4 engine → Task 3; §4 merged list (filter taxonomy, dialect twins, enrichment, pagination, resilience) → Tasks 7–12; §5 detail/single/dashboard → Tasks 13–14; §6 Octo creds → Task 6; §7 env → Tasks 2,17; §8 migration → Task 4; §9 testing → throughout + Tasks 15–16; §11 deploy/docs → Task 17. Covered.
+- **Spec coverage:** §3 registry → Task 5; §3.3 routing → Task 10; §3.4 engine → Task 3; §4 merged list (filter taxonomy, dialect twins, enrichment, pagination, resilience) → Tasks 7–12; §4.6 doc-field-per-source (`t_documentindexes`) → Tasks 7/9/12; §5 detail/single/dashboard-OctoDB → Tasks 13–14; §5.1 dashboard statistics multi-source → Phase 6 (Tasks 18–21); §6 Octo creds → Task 6; §7 env → Tasks 2,17; §8 migration → Tasks 4,18; §9 testing → throughout + Tasks 15–16,21; §11 deploy/docs → Tasks 17,21. Covered.
 - **Type consistency:** the normalized row dict is identical in `SqlServerSource`, `PostgresSource`, `merge_sorted_rows`, `enrich_rows_from_nexora`, and `fetch_merged_page`. `WorkitemFilter` field names are used identically in both sources. `get_source_for_workitem` returns a client code string; `get_domain_for_workitem` maps it to a domain.
-- **Open confirmations (do at execution time, against INT):** exact `MS02_*` env key spelling; the MS02 Postgres `t_WorkItems`/`t_Processes` column casing (the PG SQL quotes `"ID"`, `"Name"`, `"ClientName"`, `"ModifiedAt"`, `"Status"`, `"ActivityInstanceID"`, `"ProcessID"`, `"ActivityInstanceName"` — confirm the actual identifier case in the MS02 schema and adjust quoting if it differs); confirm `Workitem_Metadata`/`Workitem_Tags` column names match the enrichment SQL.
+- **Open confirmations (do at execution time, against INT):**
+  - exact `MS02_*` env key spelling;
+  - MS02 Postgres `t_WorkItems`/`t_Processes` column **casing** (the PG SQL quotes `"ID"`, `"Name"`, `"ClientName"`, `"ModifiedAt"`, `"Status"`, `"ActivityInstanceID"`, `"ProcessID"`, `"ActivityInstanceName"` — confirm + adjust quoting if it differs);
+  - MS02 `t_documentindexes` casing + columns (`workitemid` / `"Name"` / `"Stringvalue"`), and whether the UI doc-field identifier matches `t_documentindexes."Name"` (name-mapping may be needed);
+  - **Phase 6:** the MS02 stats table name + export/import timestamp column names + how it joins to a process (owner-provided); seed the `Statconfig` MS02 rows;
+  - confirm `Workitem_Metadata`/`Workitem_Tags` column names match the enrichment SQL.

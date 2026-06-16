@@ -44,6 +44,8 @@ CREATE TABLE [dbo].[ReportSchedules](
 	[NextRunAt] [datetime2](7) NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
+	[AlertOp] [nvarchar](8) NULL,
+	[AlertThreshold] [float] NULL,
  CONSTRAINT [PK_ReportSchedules] PRIMARY KEY CLUSTERED 
 (
 	[ScheduleID] ASC

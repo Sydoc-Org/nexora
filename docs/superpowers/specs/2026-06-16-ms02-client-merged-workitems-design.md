@@ -113,7 +113,7 @@ The existing list WHERE clause splits cleanly:
 | Filter | Source of truth | PG handling |
 |---|---|---|
 | process name `tp.Name`, client `tp.ClientName`, `Status`, `ActivityInstanceName`, `id LIKE`, `ModifiedAt` range | runtime DB (`t_*`) | **portable** — translate dialect, run on each source |
-| doc-field search | pre-resolved to an **ID set** from StatisticsDB (existing block) | apply `id IN (...)` to both sources (already app-side) |
+| doc-field search | **per source** (see §4.6) — default: `SearchConfig`→StatisticsDB; MS02: its own `t_documentindexes` | default pre-resolves to an ID set (existing block) for the SQL Server source; MS02 applies an in-query `EXISTS` against `t_documentindexes`. **No shared id-set.** |
 | **tag** (`Workitem_Tags`/`Tags`), **priority** (`Workitem_Metadata`), **assigned-user** (`Workitem_Metadata`) | **NexoraDB** | **pre-resolve to an ID set** from NexoraDB (same pattern as doc-field), then `id IN (...)` on both sources |
 
 So NexoraDB-dependent filters are lifted out of the per-source query and turned into an allow-set of IDs — the per-source SQL becomes pure runtime-DB SQL that ports to Postgres.
@@ -128,13 +128,11 @@ So NexoraDB-dependent filters are lifted out of the per-source query and turned 
 - `ISNULL(...)` → `COALESCE(...)`.
 - Parameter marker: pyodbc uses `?`, psycopg2 uses `%s`. The source impl owns its own marker; the `WorkitemFilter` carries dialect-neutral predicate parts + params and each source renders them.
 
-### 4.3 App-side enrichment (unifies both sources)
+### 4.3 NexoraDB enrichment (Postgres source only)
 
-After the merged base rows are chosen, enrich **once** over the merged ID set, from NexoraDB:
-- `Priority`, `AssignedUserID` ← `Workitem_Metadata`
-- tags ← `Workitem_Tags` ⋈ `Tags`
+The **SQL Server source keeps its in-query cross-DB joins** to NexoraDB (`Workitem_Metadata` for Priority, `Workitem_Tags`⋈`Tags` for tags) — zero behaviour change, lowest risk. The **Postgres source cannot join NexoraDB in-query**, so after it fetches base rows it enriches Priority + tags app-side over its row ids via the shared `enrich_rows_from_nexora` helper. Both sources emit the same normalized row shape; the small duplication (in-query for SS, app-side for PG) is deliberate, to avoid refactoring the proven default query.
 
-This replaces the in-query cross-DB joins for **both** sources (the SQL Server path is refactored to use the same enrichment — behaviour-preserving; covered by tests). Result: one enrichment path, source-agnostic.
+(NexoraDB-backed **filters** — tag/priority/assigned — are pre-resolved to an ID set for the PG source via `resolve_nexora_filter_ids`, since those metadata rows live in NexoraDB for workitems of **every** client.)
 
 ### 4.4 Pagination & count
 
@@ -147,6 +145,17 @@ This replaces the in-query cross-DB joins for **both** sources (the SQL Server p
 
 Per-source query runs under a wall-clock timeout (same philosophy as `ping_db`). If MS02's Postgres is slow/unreachable, the list **degrades to default-only + a non-blocking banner** ("MS02 source temporarily unavailable") rather than hanging or erroring the whole page. A down second source must never take down the list.
 
+### 4.6 Doc-field search is per source (`t_documentindexes`)
+
+For the default client, doc-field search resolves via `SearchConfig` (NexoraDB) → StatisticsDB and is pre-applied as an ID set (existing block, kept inside the SQL Server source). MS02 has **no StatisticsDB**; its document index values live in its own Postgres OctoDB table **`t_documentindexes`** — a key-value store with columns `Name` (field name) and `Stringvalue` (value), joined to a workitem by `workitemid`. The Postgres source therefore resolves doc-field search **in-query**, one `EXISTS` per `(docfield, docvalue)` pair:
+
+```sql
+AND EXISTS (SELECT 1 FROM t_documentindexes di
+           WHERE di.workitemid = twi."ID" AND di."Name" = %s AND di."Stringvalue" LIKE %s)
+```
+
+So `WorkitemFilter` carries the **raw** `(docfields, docvalues)` pairs; each source resolves them against its own stats store. **Field VALUES** on the detail page / CSV export are unaffected — they continue to come from the (per-client, domain-routed) Octo thin-document API for every client; `t_documentindexes` is **search-only**. *Confirm at build time:* the MS02 `t_documentindexes` identifier casing, and whether the UI doc-field identifier matches `t_documentindexes."Name"` (a name-mapping may be needed).
+
 ---
 
 ## 5. Detail page, single-workitem, CSV export, dashboard
@@ -154,7 +163,13 @@ Per-source query runs under a wall-clock timeout (same philosophy as `ping_db`).
 - **Detail page** (`workitem_detail`): runtime-DB query routes via `get_source_for_workitem(id)` → source impl; Octo calls already route via `get_domain_for_workitem(id)` (now real). Document rendering / field & table source highlighting are unchanged — they consume Octo output that's already domain-routed.
 - **`get_single_workitem`**: route to the owning source; tags via app-side enrichment.
 - **CSV export**: rows come from the merged list path; per-row Octo via the row's domain (already plumbed at line ~591/602).
-- **Dashboard**: the two `engine_octo_db` sites become source-aware; `dashboard.py:1463` `OCTO_DOMAIN` → `get_domain_for_workitem(row.ID)`. Counts that today come from one OctoDB query become a sum across sources (same merge helper).
+- **Dashboard (OctoDB-based bits)**: the two `engine_octo_db` sites (KPI backlog `C+A` count; activity feed) become source-aware; `dashboard.py:1463` `OCTO_DOMAIN` → `get_domain_for_workitem(row.ID)`. Counts that today come from one OctoDB query become a sum across sources.
+
+### 5.1 Dashboard statistics (multi-source)
+
+The dashboard's Statistics-DB-backed widgets (`processed_over_time`, `kpi_stats` processed/imported counts, and the other chart endpoints) are driven by `Statconfig` (NexoraDB): `ProcessName → (TableName, ExportColumn, ImportColumn, additionalCondition)`, aggregated against `[{DB_STATISTICS}].{TableName}`. MS02's processing-event data lives in a **separate MS02 Postgres table** (owner-provided name + real export/import timestamp columns) — **not** in `t_documentindexes`.
+
+Design: extend `Statconfig` with a `ClientCode` column (default `'default'`). MS02 processes get rows with `ClientCode='ms02'`, `TableName` = the MS02 stats table, and the MS02 export/import column names. The dashboard groups configs by `ClientCode` and runs each group's aggregation against that client's stats engine (`engine_statistics_db` T-SQL vs `engine_ms02_pg` Postgres), summing per-client results in Python. The central seam is the `Statconfig`→`[(engine, sql, params)]` builder (≈`dashboard.py:1186–1201`): make it emit one tuple per `ClientCode` group with the right engine + dialect-rendered SQL, and every widget that routes through it becomes multi-source at once. PG dialect twins: `CAST(col AS DATE)`→`col::date`, `DATEADD(day,-14,GETDATE())`→`CURRENT_DATE - 14`, `GETDATE()`→`NOW()`, and drop the `[DB_STATISTICS].` prefix (the MS02 table is local to its PG DB). Same graceful-degrade as the list: a down MS02 contributes nothing; default widgets still render.
 
 **Source-aware query-site inventory (the work):** list count pass, list data pass, `get_single_workitem`, detail-page runtime query, CSV export row source, dashboard count query, dashboard per-workitem fetch.
 
