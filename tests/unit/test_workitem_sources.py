@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 from nx_lib.workitem_sources import (
+    PostgresSource,
     SqlServerSource,
     WorkitemFilter,
     enrich_rows_from_nexora,
@@ -100,6 +101,42 @@ def test_resolve_nexora_filter_ids_intersects_active_filters(app):
         eng.raw_connection.return_value = fake_conn
         ids = resolve_nexora_filter_ids(f)
     assert ids == {1002}
+
+
+def test_postgres_source_builds_pg_sql_and_enriches(app):
+    # psycopg2 cursor returns namedtuple-ish rows; we normalize by attribute.
+    count_row = [2]
+    data_rows = [
+        MagicMock(
+            modifiedat=datetime(2026, 6, 16, 9, 5, 0),
+            workitemid=1001,
+            status="Ready",
+            currentstage="Extraction",
+        ),
+    ]
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = count_row
+    fake_cur.fetchall.return_value = data_rows
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = PostgresSource(CLIENTS_code="ms02")
+    with (
+        patch.object(src, "engine") as eng,
+        patch("nx_lib.workitem_sources.enrich_rows_from_nexora", side_effect=lambda r: r),
+        patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", return_value=None),
+        app.app_context(),
+    ):
+        eng.raw_connection.return_value = fake_conn
+        rows, total = src.list_workitems(_mk_filter(), offset=0, limit=40)
+
+    assert total == 2
+    assert rows[0]["workitemid"] == 1001
+    assert rows[0]["client"] == "ms02"
+    # Verify the executed SQL used %s placeholders (psycopg2), not ?.
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "%s" in executed_sql
+    assert "?" not in executed_sql
 
 
 def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):

@@ -11,6 +11,7 @@ import octo (document fetching stays in the views).
 import json
 from dataclasses import dataclass, field
 
+import psycopg2.extras
 from flask import current_app
 
 from . import config as cfg
@@ -282,6 +283,149 @@ def resolve_nexora_filter_ids(filt):
         return set()
     finally:
         conn.close()
+
+
+def _pgmarks(seq):
+    return ", ".join(["%s"] * len(seq))
+
+
+class PostgresSource:
+    """MS02 client: Azure Postgres runtime DB. Same Octo schema, PG dialect.
+    NexoraDB-backed filters are pre-resolved to an id allow-set; tags/priority
+    are enriched app-side. Postgres identifiers are case-preserved PascalCase,
+    so every table/column is double-quoted."""
+
+    def __init__(self, CLIENTS_code="ms02"):  # noqa: N803
+        self.code = CLIENTS_code
+        client = CLIENTS.get(CLIENTS_code)
+        self.engine = client.runtime_engine if client else None
+
+    def has_workitem(self, workitem_id):
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            cur.execute('SELECT 1 FROM "t_WorkItems" WHERE "ID" = %s LIMIT 1', (workitem_id,))
+            return cur.fetchone() is not None
+        except Exception as e:
+            current_app.logger.error(f"PostgresSource.has_workitem({workitem_id}): {e}")
+            return False
+        finally:
+            conn.close()
+
+    def _build_where(self, filt):
+        clauses = [
+            f'tp."Name" IN ({_pgmarks(filt.process_names)})',
+            f'tp."ClientName" IN ({_pgmarks(filt.client_names)})',
+            'twi."Status" <> 2',
+        ]
+        params = list(filt.process_names) + list(filt.client_names)
+        # activity_ignore_csv is a literal "'A','B'" list (already escaped upstream).
+        if filt.activity_ignore_csv:
+            clauses.append(f'tai."ActivityInstanceName" NOT IN ({filt.activity_ignore_csv})')
+        if filt.status_code is not None:
+            clauses.append('twi."Status" = %s')
+            params.append(filt.status_code)
+        if filt.search_id:
+            clauses.append('CAST(twi."ID" AS TEXT) LIKE %s')
+            params.append(f"%{filt.search_id}%")
+        if filt.start_date:
+            clauses.append('twi."ModifiedAt" >= %s')
+            params.append(filt.start_date)
+        if filt.end_date:
+            clauses.append('twi."ModifiedAt" < %s')
+            params.append(filt.end_date)
+
+        # NexoraDB-backed filters (tag/priority/assigned) -> id allow-set; those
+        # metadata rows live in NexoraDB for workitems of every client.
+        allow = resolve_nexora_filter_ids(filt)
+        if allow is not None:
+            if not allow:
+                clauses.append("1=0")
+            else:
+                clauses.append('twi."ID" = ANY(%s)')
+                params.append(list(allow))
+        # Doc-field search -> in-query EXISTS against MS02's own t_DocumentIndexes
+        # (Name/StringValue), one per (docfield, docvalue) pair, AND semantics.
+        for name, value in zip(filt.docfields or [], filt.docvalues or [], strict=False):
+            name = (name or "").strip()
+            value = (value or "").strip()
+            if not name or not value:
+                continue
+            clauses.append(
+                'EXISTS (SELECT 1 FROM "t_DocumentIndexes" di '
+                'WHERE di."WorkItemID" = twi."ID" AND di."Name" = %s AND di."StringValue" LIKE %s)'
+            )
+            params.append(name)
+            params.append(f"%{value}%")
+        return " AND ".join(clauses), params
+
+    def list_workitems(self, filt, offset, limit):
+        where, params = self._build_where(filt)
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            cur.execute(
+                f"""
+                SELECT COUNT(twi."ID")
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
+                WHERE {where}
+                """,
+                params,
+            )
+            total = cur.fetchone()[0] or 0
+
+            cur.execute(
+                f"""
+                WITH ranked AS (
+                    SELECT
+                        twi."ModifiedAt" AS modifiedat,
+                        twi."ID" AS workitemid,
+                        CASE
+                            WHEN twi."Status" = 0 THEN 'Ready'
+                            WHEN twi."Status" = 5 THEN 'Done'
+                            ELSE 'In Progress'
+                        END AS status,
+                        CASE
+                            WHEN twi."Status" = 5 THEN 'Delivery'
+                            WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                            WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                            WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                            WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                            WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                            ELSE 'Extraction'
+                        END AS currentstage,
+                        ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                    FROM "t_WorkItems" twi
+                    JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                    JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
+                    WHERE {where}
+                )
+                SELECT modifiedat, workitemid, status, currentstage
+                FROM ranked WHERE rn = 1
+                ORDER BY modifiedat DESC
+                LIMIT %s OFFSET %s
+                """,
+                [*params, limit, offset],
+            )
+            rows = [
+                {
+                    "modifiedat": r.modifiedat,
+                    "workitemid": r.workitemid,
+                    "status": r.status,
+                    "current_stage": r.currentstage,
+                    "priority": 0,
+                    "tags": [],
+                    "client": self.code,
+                }
+                for r in cur.fetchall()
+            ]
+        finally:
+            conn.close()
+
+        enrich_rows_from_nexora(rows)
+        return rows, total
 
 
 def enrich_rows_from_nexora(rows):
