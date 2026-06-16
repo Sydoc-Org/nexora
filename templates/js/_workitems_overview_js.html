@@ -1472,6 +1472,47 @@ async function uploadBatchFiles(files, processName) {
                     fetchDocFieldValues(docValueInput?.value || '');
                 });
             }
+            function renderDegradedBanner(codes) {
+                const BANNER_ID = 'workitems-degraded-banner';
+                let banner = document.getElementById(BANNER_ID);
+
+                if (!codes || codes.length === 0) {
+                    if (banner) {
+                        banner.classList.add('hidden');
+                        banner.querySelector('.nx-degraded-msg').textContent = '';
+                    }
+                    return;
+                }
+
+                const sourceNames = { ms02: 'MS02', default: '{{ _("primary") }}' };
+                const labels = codes.map(c => sourceNames[c] || c.toUpperCase()).join(', ');
+                const tpl = '{{ _("Some workitems are temporarily unavailable:") }}';
+
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = BANNER_ID;
+                    banner.role = 'alert';
+                    banner.className = 'bg-amber-50 border border-amber-300 text-amber-800 rounded-md px-4 py-3 mb-4 flex items-center justify-between';
+                    banner.innerHTML = [
+                        '<div class="flex items-center gap-2">',
+                        '  <i class="fas fa-triangle-exclamation text-amber-500"></i>',
+                        '  <span class="nx-degraded-msg"></span>',
+                        '</div>',
+                        '<button type="button" class="ml-4 text-amber-600 hover:text-amber-900 font-bold leading-none" aria-label="dismiss">&#x00D7;</button>'
+                    ].join('');
+                    banner.querySelector('button').addEventListener('click', () => banner.classList.add('hidden'));
+
+                    const tbody = document.getElementById('workitemsTbody');
+                    const table = tbody ? tbody.closest('table') : null;
+                    if (table && table.parentNode) {
+                        table.parentNode.insertBefore(banner, table);
+                    }
+                }
+
+                banner.querySelector('.nx-degraded-msg').textContent = tpl + ' ' + labels;
+                banner.classList.remove('hidden');
+            }
+
             async function fetchAndUpdateWorkitems(page = 1) {
                 const tbody = document.getElementById('workitemsTbody');
                 const filterForm = document.getElementById('filterForm');
@@ -1509,6 +1550,7 @@ async function uploadBatchFiles(files, processName) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const data = await response.json();
+                    try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
                     renderTable(data.workitems);
                     renderPagination(data.pagination);
 
