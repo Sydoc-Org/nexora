@@ -2026,13 +2026,37 @@ git commit -m "docs(workitems): document MS02 multi-source client + psycopg2 pro
 
 ## Phase 6 — Dashboard statistics multi-source (separate MS02 stats table)
 
-The dashboard's StatisticsDB-backed widgets must include MS02. MS02's processing-event data lives in a **separate MS02 Postgres table** (NOT `t_documentindexes`). Approach: add a `ClientCode` to `Statconfig`, route each process's aggregation to its client's stats engine (StatisticsDB T-SQL vs MS02 Postgres), and sum per-client results. Centralize on the `Statconfig`→`[(engine, sql, params)]` builder so every widget that routes through it becomes multi-source at once.
+The dashboard's StatisticsDB-backed widgets must include MS02. MS02's processing-event data lives in **`public.batchtracking`** in a **separate Postgres database `Praesidialdepartement_BS`** (its own DB — not the MS02 workitems DB, not `t_documentindexes`): `datuminexport` = processed/export timestamp, `datumimportiert` = import timestamp, plus a `workitemid` column. **MS02 stats are not split per process** — aggregate the whole table once and add it to the default per-process sums. Because a Postgres connection is bound to one database, this needs a **second MS02 engine** (`engine_ms02_stats_pg` → `Praesidialdepartement_BS`). Approach: add `ClientCode` to `Statconfig` (gates MS02 in/out by permission), give each `ClientConfig` a `stats_engine`, and route the per-`ClientCode` aggregation to that engine — deduping the MS02 group to one `batchtracking` query (no per-process filter). Central seam: the `Statconfig`→`[(engine, sql, params)]` builder (≈`dashboard.py:1186–1201`).
 
-> **Owner-provided parameters for this phase** (substitute before/at Task 19–20):
-> - `<MS02_STATS_TABLE>` — the MS02 Postgres table holding per-item processing events.
-> - `<MS02_EXPORT_COL>` / `<MS02_IMPORT_COL>` — its processed/imported timestamp columns.
-> - `<MS02_STATS_PROCESS_JOIN>` — how a row ties to a process name (a column, or one table per process).
-> Until these are known, Tasks 19–20 are designed but not runnable; Task 18 (the `ClientCode` column) is.
+> **Concrete for MS02** (owner, 2026-06-16): stats table `public.batchtracking` in DB **`Praesidialdepartement_BS`** (separate Postgres DB); processed/export col `datuminexport`, import col `datumimportiert`; `workitemid` available but **not needed** (no per-process split — aggregate the whole table).
+> **Still owner-provided:** the `MS02_STATS_DB_*` connection creds for `Praesidialdepartement_BS` (likely the same Azure host/login as `MS02_DB_*`, just `dbname=Praesidialdepartement_BS`), and the list of MS02 `ProcessName`s to seed into `Statconfig` for gating.
+
+### Task 18a: Second MS02 stats engine + config (`Praesidialdepartement_BS`)
+
+Dashboard stats live in a **separate** Postgres DB, so they need their own engine.
+
+- [ ] **Step 1: Config** — in `nx_lib/config.py`, after the Task 2 MS02 block, add (defaults reuse the MS02_DB_* server/login with `dbname=Praesidialdepartement_BS`):
+
+```python
+MS02_STATS_DB_HOST = os.environ.get("MS02_STATS_DB_HOST", MS02_DB_HOST)
+MS02_STATS_DB_NAME = os.environ.get("MS02_STATS_DB_NAME", "Praesidialdepartement_BS")
+MS02_STATS_DB_USER = os.environ.get("MS02_STATS_DB_USER", MS02_DB_USER)
+MS02_STATS_DB_PWD = os.environ.get("MS02_STATS_DB_PWD", MS02_DB_PWD)
+MS02_STATS_DB_PORT = os.environ.get("MS02_STATS_DB_PORT", MS02_DB_PORT)
+```
+
+- [ ] **Step 2: Engine** — in `nx_lib/db.py`, after `engine_ms02_pg`, add `engine_ms02_stats_pg` with the same guarded `get_pg_url(...)` pattern (None unless all `MS02_STATS_DB_*` are set). Add it to the admin DB-ping list and `nx --doctor` alongside `engine_ms02_pg`.
+
+- [ ] **Step 3: Registry** — extend `ClientConfig` with `stats_engine` + `stats_dialect`; in `nx_lib/clients.py` import `engine_statistics_db` + `engine_ms02_stats_pg` and set default → `(engine_statistics_db, "tsql")`, ms02 → `(engine_ms02_stats_pg, "postgres")`.
+
+- [ ] **Step 4: Commit.**
+
+```bash
+git add nx_lib/config.py nx_lib/db.py nx_lib/clients.py nx_lib/views/admin.py
+git commit -m "feat(db): second MS02 engine for the Praesidialdepartement_BS stats DB"
+```
+
+> **For Tasks 19–20:** the MS02 stats engine is **`engine_ms02_stats_pg`** (via `ClientConfig.stats_engine`), **not** `engine_ms02_pg`. Because MS02 has no per-process split, **dedupe the `ms02` config group to ONE query** over `public.batchtracking` (`datuminexport` for processed / over-time, `datumimportiert` for imported) — never per-process, or it multi-counts.
 
 ### Task 18: Migration — `Statconfig.ClientCode`
 
@@ -2054,10 +2078,13 @@ BEGIN
         CONSTRAINT DF_Statconfig_ClientCode DEFAULT 'default';
 END
 GO
--- MS02 process rows (TEMPLATE — fill in real ProcessName / TableName / columns,
--- one row per MS02 process, then uncomment):
+-- MS02 process rows: gate MS02 dashboard stats by permission. All MS02 rows
+-- point at the SAME table (public.batchtracking in the separate
+-- Praesidialdepartement_BS DB) with NO per-process filter — the dashboard
+-- dedupes them to ONE query. Seed one row per MS02 ProcessName the dashboard
+-- should expose (owner fills the ProcessName list), then uncomment:
 -- INSERT INTO dbo.Statconfig (ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode)
--- VALUES ('<ms02client>.<process>', '<MS02_STATS_TABLE>', '<MS02_EXPORT_COL>', '<MS02_IMPORT_COL>', NULL, 'ms02');
+-- VALUES ('<ms02client>.<process>', 'public.batchtracking', 'datuminexport', 'datumimportiert', NULL, 'ms02');
 -- GO
 ```
 
@@ -2153,5 +2180,5 @@ git commit -m "docs(dashboard): document MS02 multi-source dashboard statistics"
   - exact `MS02_*` env key spelling;
   - MS02 Postgres `t_WorkItems`/`t_Processes` column **casing** (the PG SQL quotes `"ID"`, `"Name"`, `"ClientName"`, `"ModifiedAt"`, `"Status"`, `"ActivityInstanceID"`, `"ProcessID"`, `"ActivityInstanceName"` — confirm + adjust quoting if it differs);
   - MS02 `t_documentindexes` casing + columns (`workitemid` / `"Name"` / `"Stringvalue"`), and whether the UI doc-field identifier matches `t_documentindexes."Name"` (name-mapping may be needed);
-  - **Phase 6:** the MS02 stats table name + export/import timestamp column names + how it joins to a process (owner-provided); seed the `Statconfig` MS02 rows;
+  - **Phase 6 (mostly known):** stats = `public.batchtracking` in the separate `Praesidialdepartement_BS` DB; cols `datuminexport` (processed) / `datumimportiert` (imported); aggregate-once, no per-process. **Still needed:** the `MS02_STATS_DB_*` creds for that DB (may reuse the MS02_DB host/login with `dbname=Praesidialdepartement_BS`), and the list of MS02 `ProcessName`s to seed into `Statconfig` for gating;
   - confirm `Workitem_Metadata`/`Workitem_Tags` column names match the enrichment SQL.
