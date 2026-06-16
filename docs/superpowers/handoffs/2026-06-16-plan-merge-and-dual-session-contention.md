@@ -1,3 +1,5 @@
+> ⏭ **Newer same-date handoff supersedes this one for resuming:** `docs/superpowers/handoffs/2026-06-16-ms02-multisource-workitems-spec-and-plan.md` (MS02 multi-source workitems — spec + plan). `/reset-session` should resume from that file; this one remains valid for the dual-session / merge context below.
+
 # Handoff — plain-language plan worktree merged; "phantom autopilot" = a 2nd Claude session
 
 **Date:** 2026-06-16 (morning) · **Branch:** `feature/2.5.63` · **19 commits ahead of origin** · **commit-only (remote)**
