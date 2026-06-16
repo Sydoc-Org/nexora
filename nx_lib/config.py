@@ -95,6 +95,22 @@ OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
 OCTO_DOMAIN = os.environ.get("OCTO_DOMAIN")
 
+# --- MS02 client: Azure Postgres runtime DB + second Octo endpoint -----------
+# Internal attribute names mirror the default DB_*/OCTO_* set with an MS02_
+# prefix; the os.environ.get() keys match env/INT.env, which mirrors the
+# default DB_SERVER_PRD / DB_UID / DB_OCTO_RUNTIME and OCTO_* names with an
+# MS02_ prefix. Absent on dev/test boxes without MS02 creds -> the engine
+# (Task 3) degrades to None and the feature stays dormant.
+MS02_DB_HOST = os.environ.get("MS02_DB_SERVER_PRD")
+MS02_DB_NAME = os.environ.get("MS02_DB_OCTO_RUNTIME")
+MS02_DB_USER = os.environ.get("MS02_DB_UID")
+MS02_DB_PWD = os.environ.get("MS02_DB_PWD")
+MS02_DB_PORT = os.environ.get("MS02_DB_PORT", "5432")
+MS02_OCTO_DOMAIN = os.environ.get("MS02_OCTO_DOMAIN")
+MS02_OCTO_CLIENT_ID = os.environ.get("MS02_CLIENT_ID")
+MS02_OCTO_CLIENT_SECRET = os.environ.get("MS02_CLIENT_SECRET")
+MS02_OCTO_GRANT_TYPE = os.environ.get("MS02_GRANT_TYPE", OCTO_GRANT_TYPE)
+
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
 
 CSP = {
