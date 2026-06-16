@@ -9,6 +9,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
 ### Added
+- **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the
+  processed/imported KPIs now include MS02, whose processing events live in `public.batchtracking` in
+  a separate Azure Postgres DB (`Praesidialdepartement_BS`). New `engine_ms02_stats_pg` engine and
+  `MS02_STATS_DB_*` env vars; `dbo.Statconfig` gained a `ClientCode` column (migration `0024`) to route
+  each stats group to its serving engine. MS02 stats are activated by seeding `ms02`-tagged Statconfig
+  rows (one per exposed ProcessName).
 - **Multi-source workitems (MS02 client).** The workitems list, detail page, CSV export, and
   dashboard (activity feed + C+A backlog KPI) now merge a second client, "MS02", whose runtime
   data lives in Azure Postgres and whose Octo API is at a separate domain. New
