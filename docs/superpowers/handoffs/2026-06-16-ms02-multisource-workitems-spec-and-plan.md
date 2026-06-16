@@ -1,3 +1,6 @@
+> ➡️ **SUPERSEDED — the plan has since been fully executed.** Resume from
+> `docs/superpowers/handoffs/2026-06-16-ms02-multisource-workitems-execution-complete.md`.
+
 # Handoff — MS02 client: merged multi-source workitems (spec + plan, design-only)
 
 **Date:** 2026-06-16 (midday) · **Branch:** `feature/2.5.63` · **24 commits ahead of origin** · **commit-only (remote)**
