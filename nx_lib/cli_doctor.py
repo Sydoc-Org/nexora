@@ -311,6 +311,7 @@ def _check_databases() -> list[CheckResult]:
     try:
         from .db import (
             engine_generali_db,
+            engine_ms02_pg,
             engine_nexora_db,
             engine_octo_db,
             engine_statistics_db,
@@ -331,6 +332,7 @@ def _check_databases() -> list[CheckResult]:
         (engine_octo_db, "OctoDB"),
         (engine_statistics_db, "StatisticsDB"),
         (engine_generali_db, "GeneraliDB"),
+        *([(engine_ms02_pg, "MS02 (PG)")] if engine_ms02_pg is not None else []),
     ]
     pings = ping_dbs_parallel(targets, timeout_s=3.0)
     pings_by_label = {p["label"]: p for p in pings}

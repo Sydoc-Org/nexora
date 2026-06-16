@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 
 from . import config as cfg
 
@@ -46,6 +47,23 @@ def get_ro_db_url(d, s=None, uid=None, pwd=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
+def get_pg_url(host, db, uid, pwd, port="5432"):
+    """Build a SQLAlchemy URL for an Azure Postgres DB over psycopg2 with TLS.
+
+    Uses ``URL.create`` so special characters in the password are handled
+    safely (no manual percent-encoding). Azure Postgres requires SSL.
+    """
+    return URL.create(
+        "postgresql+psycopg2",
+        username=uid,
+        password=pwd,
+        host=host,
+        port=int(port),
+        database=db,
+        query={"sslmode": "require"},
+    )
+
+
 engine_octo_db = create_engine(
     get_db_url(cfg.DB_OCTO_RUNTIME),
     pool_size=10,
@@ -78,6 +96,27 @@ engine_generali_db = create_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
 )
+
+# MS02 client runtime DB (Azure Postgres). Stays None until its env vars are
+# provisioned, so dev/test boxes without MS02 credentials boot normally — same
+# graceful-degrade pattern as engine_statistics_ro / engine_octo_ro.
+if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PWD:
+    engine_ms02_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_DB_HOST,
+            cfg.MS02_DB_NAME,
+            cfg.MS02_DB_USER,
+            cfg.MS02_DB_PWD,
+            cfg.MS02_DB_PORT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_pg = None
 
 # Read-only engine for the Reporting live-SQL sandbox. Uses a dedicated
 # db_datareader-only login over the Statistics DB. Stays None when the RO
