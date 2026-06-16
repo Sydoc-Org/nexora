@@ -218,3 +218,44 @@ def test_get_domain_for_workitem_maps_client_to_domain(app, monkeypatch):
         from nx_lib.workitem_sources import CLIENTS
 
         assert ws.get_domain_for_workitem(5) == CLIENTS["default"].octo_domain
+
+
+def test_fetch_merged_page_single_source_passthrough(app, monkeypatch):
+    one = SqlServerSource()
+    monkeypatch.setattr(ws, "active_sources", lambda: [one])
+    monkeypatch.setattr(one, "list_workitems", lambda filt, offset, limit: ([_row(1, 10)], 1))
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+    assert total == 1
+    assert degraded == []
+    assert rows[0]["workitemid"] == 1
+
+
+def test_fetch_merged_page_merges_and_slices(app, monkeypatch):
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    monkeypatch.setattr(ws, "active_sources", lambda: [s1, s2])
+    monkeypatch.setattr(
+        s1, "list_workitems", lambda filt, offset, limit: ([_row(2, 30), _row(1, 10)], 2)
+    )
+    monkeypatch.setattr(s2, "list_workitems", lambda filt, offset, limit: ([_row(1001, 20)], 1))
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=2)
+    assert total == 3
+    assert [r["workitemid"] for r in rows] == [2, 1001]  # top 2 of merged desc
+
+
+def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    monkeypatch.setattr(ws, "active_sources", lambda: [s1, s2])
+    monkeypatch.setattr(s1, "list_workitems", lambda filt, offset, limit: ([_row(2, 30)], 1))
+
+    def boom(*a, **k):
+        raise RuntimeError("PG down")
+
+    monkeypatch.setattr(s2, "list_workitems", boom)
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+    assert [r["workitemid"] for r in rows] == [2]
+    assert total == 1
+    assert degraded == ["ms02"]

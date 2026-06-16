@@ -567,3 +567,45 @@ def get_domain_for_workitem(workitem_id):
     code = get_source_for_workitem(workitem_id)
     client = CLIENTS.get(code) or CLIENTS["default"]
     return client.octo_domain
+
+
+def fetch_merged_page(filt, offset, limit):
+    """Fetch one page across all active sources.
+
+    Returns ``(rows, total, degraded)`` where ``degraded`` is the list of client
+    codes that errored (so the UI can show a non-blocking banner). A failed
+    source contributes no rows and no count — the page still renders.
+
+    Single active source: pass (offset, limit) straight through (byte-identical
+    to the original single-DB behaviour). Multiple: fetch each source's top
+    (offset+limit), merge by ModifiedAt desc, slice the page, sum counts.
+    """
+    sources = active_sources()
+    if len(sources) == 1:
+        try:
+            rows, total = sources[0].list_workitems(filt, offset, limit)
+            return rows, total, []
+        except Exception as e:
+            current_app.logger.error(f"source {sources[0].code} failed: {e}")
+            return [], 0, [sources[0].code]
+
+    per_source_rows = []
+    total = 0
+    degraded = []
+    for src in sources:
+        try:
+            rows, count = src.list_workitems(filt, 0, offset + limit)
+            per_source_rows.append(rows)
+            total += count
+        except Exception as e:
+            current_app.logger.error(f"source {src.code} failed: {e}")
+            degraded.append(src.code)
+    merged = merge_sorted_rows(per_source_rows)
+    page = merged[offset : offset + limit]
+
+    # Warm the routing cache for non-default rows on this page.
+    for r in page:
+        if r["client"] != "default":
+            _cache_store(r["workitemid"], r["client"])
+
+    return page, total, degraded
