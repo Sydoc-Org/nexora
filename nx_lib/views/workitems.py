@@ -4,7 +4,6 @@ plus the CSV exporter."""
 import base64
 import csv
 import io
-import json
 import math
 import re
 import uuid
@@ -29,8 +28,8 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN, PATHS
-from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
+from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
+from ..db import engine_nexora_db, engine_statistics_db
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
@@ -52,6 +51,7 @@ from ..workitem_sources import (
     WorkitemFilter,
     fetch_merged_page,
     get_domain_for_workitem,
+    single_workitem_tags,
 )
 
 # ---------------------------- field/config helpers ---------------------------- #
@@ -810,53 +810,12 @@ def get_single_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    conn = None
-    cursor = None
     try:
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
-
-        query = f"""
-            WITH WorkitemCTE AS (
-                SELECT
-                    twi.ID AS WorkItemID,
-                    (
-                        SELECT
-                            t.TagID AS id,
-                            t.TagName AS name,
-                            t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                WHERE twi.ID = ?
-            )
-            SELECT WorkItemID, TagsJSON
-            FROM WorkitemCTE
-            WHERE rn = 1
-        """
-        cursor.execute(query, workitemid)
-        row = cursor.fetchone()
-
-        if not row:
-            return jsonify({"error": "Workitem not found"}), 404
-
-        workitem_data = {
-            "workitemid": row.WorkItemID,
-            "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-        }
-        return jsonify(workitem_data)
+        tags = single_workitem_tags(workitemid)
+        return jsonify({"workitemid": workitemid, "tags": tags})
     except Exception as e:
         current_app.logger.error(f"Failed to fetch single workitem {workitemid}: {e}")
         return jsonify({"error": _("Could not fetch workitem data")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 def api_get_media_info(workitem_id):

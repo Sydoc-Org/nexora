@@ -561,6 +561,26 @@ def get_source_for_workitem(workitem_id):
     return "default"
 
 
+def single_workitem_tags(workitem_id):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT t.TagID, t.TagName, t.TagColor
+            FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
+            WHERE wt.WorkItemID = ?
+            """,
+            str(workitem_id),
+        )
+        return [{"id": r.TagID, "name": r.TagName, "color": r.TagColor} for r in cur.fetchall()]
+    except Exception as e:
+        current_app.logger.error(f"single_workitem_tags({workitem_id}): {e}")
+        return []
+    finally:
+        conn.close()
+
+
 def get_domain_for_workitem(workitem_id):
     """Octo domain for a workitem's owning client. Real replacement for the
     former octo.py stub."""

@@ -244,6 +244,17 @@ def test_fetch_merged_page_merges_and_slices(app, monkeypatch):
     assert [r["workitemid"] for r in rows] == [2, 1001]  # top 2 of merged desc
 
 
+def test_single_workitem_tags_uses_nexora(app, monkeypatch):
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [MagicMock(TagID=3, TagName="x", TagColor="#111")]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        tags = ws.single_workitem_tags(42)
+    assert tags == [{"id": 3, "name": "x", "color": "#111"}]
+
+
 def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
     s1, s2 = SqlServerSource(), SqlServerSource()
     s2.code = "ms02"
