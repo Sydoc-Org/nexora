@@ -110,6 +110,14 @@ MS02_OCTO_DOMAIN = os.environ.get("MS02_OCTO_DOMAIN")
 MS02_OCTO_CLIENT_ID = os.environ.get("MS02_CLIENT_ID")
 MS02_OCTO_CLIENT_SECRET = os.environ.get("MS02_CLIENT_SECRET")
 MS02_OCTO_GRANT_TYPE = os.environ.get("MS02_GRANT_TYPE", OCTO_GRANT_TYPE)
+# TLS hardening for the MS02 Postgres connection. Default 'require' encrypts but
+# does NOT verify the server certificate (psycopg2-binary's libpq has no default
+# CA store on Windows, so verify-full refuses to connect until a CA bundle is
+# provisioned). To close the MITM gap once the Azure root-CA bundle is on the
+# host (dev + prod): set MS02_DB_SSLMODE=verify-full and MS02_DB_SSLROOTCERT to
+# the bundle path. See nx_lib/db.get_pg_url.
+MS02_DB_SSLMODE = os.environ.get("MS02_DB_SSLMODE", "require")
+MS02_DB_SSLROOTCERT = os.environ.get("MS02_DB_SSLROOTCERT")
 
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
 

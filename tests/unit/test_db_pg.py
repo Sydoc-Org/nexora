@@ -22,3 +22,23 @@ def test_get_pg_url_renders_with_sslmode():
     rendered = url.render_as_string(hide_password=False)
     assert rendered.startswith("postgresql+psycopg2://")
     assert "sslmode=require" in rendered
+
+
+def test_get_pg_url_supports_cert_verification():
+    # TLS hardening path: verify-full + a root-CA bundle closes the MITM gap.
+    url = get_pg_url(
+        "h",
+        "d",
+        "u",
+        "pw",
+        sslmode="verify-full",
+        sslrootcert="/etc/ssl/azure-root.pem",
+    )
+    assert url.query.get("sslmode") == "verify-full"
+    assert url.query.get("sslrootcert") == "/etc/ssl/azure-root.pem"
+
+
+def test_get_pg_url_omits_sslrootcert_when_unset():
+    # Default mode carries no sslrootcert key (no bundle provisioned yet).
+    url = get_pg_url("h", "d", "u", "pw")
+    assert "sslrootcert" not in url.query

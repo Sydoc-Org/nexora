@@ -47,12 +47,22 @@ def get_ro_db_url(d, s=None, uid=None, pwd=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_pg_url(host, db, uid, pwd, port="5432"):
+def get_pg_url(host, db, uid, pwd, port="5432", sslmode="require", sslrootcert=None):
     """Build a SQLAlchemy URL for an Azure Postgres DB over psycopg2 with TLS.
 
     Uses ``URL.create`` so special characters in the password are handled
     safely (no manual percent-encoding). Azure Postgres requires SSL.
+
+    ``sslmode`` defaults to ``require`` (encrypt, but do not verify the server
+    certificate) because psycopg2-binary's bundled libpq has no default CA
+    store on Windows, so ``verify-full`` would refuse to connect until an Azure
+    root-CA bundle is provisioned. To close the MITM gap, set ``sslmode`` to
+    ``verify-full`` (or ``verify-ca``) and pass ``sslrootcert`` pointing at that
+    bundle — see the MS02_DB_SSLMODE / MS02_DB_SSLROOTCERT config knobs.
     """
+    query = {"sslmode": sslmode}
+    if sslrootcert:
+        query["sslrootcert"] = sslrootcert
     return URL.create(
         "postgresql+psycopg2",
         username=uid,
@@ -60,7 +70,7 @@ def get_pg_url(host, db, uid, pwd, port="5432"):
         host=host,
         port=int(port),
         database=db,
-        query={"sslmode": "require"},
+        query=query,
     )
 
 
@@ -108,6 +118,8 @@ if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PW
             cfg.MS02_DB_USER,
             cfg.MS02_DB_PWD,
             cfg.MS02_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
         ),
         pool_size=5,
         max_overflow=10,
