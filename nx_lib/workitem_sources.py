@@ -15,6 +15,7 @@ from flask import current_app
 
 from . import config as cfg
 from .clients import CLIENTS
+from .db import engine_nexora_db
 
 DB_NEXORA = cfg.DB_NEXORA
 
@@ -220,3 +221,106 @@ class SqlServerSource:
 
 def _qmarks(seq):
     return ", ".join(["?"] * len(seq))
+
+
+def _chunked(seq, n=1000):
+    seq = list(seq)
+    for i in range(0, len(seq), n):
+        yield seq[i : i + n]
+
+
+def resolve_nexora_filter_ids(filt):
+    """Resolve tag/priority/assigned filters to a set of matching workitem ids
+    from NexoraDB. Returns None when no NexoraDB-backed filter is active (i.e.
+    no id constraint); returns a (possibly empty) set otherwise.
+
+    Used by sources whose runtime DB cannot join NexoraDB in-query (Postgres).
+    """
+    active = []
+    if filt.tag:
+        active.append(("tag", filt.tag))
+    if filt.priority:
+        active.append(("priority", filt.priority))
+    if filt.assigned_user:
+        active.append(("assigned", filt.assigned_user))
+    if not active:
+        return None
+
+    result = None
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        for kind, val in active:
+            ids = set()
+            if kind == "tag":
+                cur.execute(
+                    "SELECT DISTINCT wt.WorkItemID "
+                    "FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID "
+                    "WHERE t.TagName LIKE ?",
+                    f"%{val}%",
+                )
+            elif kind == "priority":
+                cur.execute(
+                    "SELECT WorkItemID FROM Workitem_Metadata WHERE ISNULL(Priority, 0) = ?",
+                    val,
+                )
+            else:  # assigned
+                if val in ("None", "Unassigned"):
+                    cur.execute(
+                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID IS NULL"
+                    )
+                else:
+                    cur.execute(
+                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID = ?",
+                        val,
+                    )
+            ids = {r.WorkItemID for r in cur.fetchall()}
+            result = ids if result is None else (result & ids)
+        return result if result is not None else set()
+    except Exception as e:
+        current_app.logger.error(f"resolve_nexora_filter_ids: {e}")
+        return set()
+    finally:
+        conn.close()
+
+
+def enrich_rows_from_nexora(rows):
+    """Attach priority + tags to base rows from NexoraDB, keyed by workitemid.
+    Mutates and returns ``rows``. Safe on an empty list."""
+    ids = [r["workitemid"] for r in rows]
+    if not ids:
+        return rows
+    by_id = {r["workitemid"]: r for r in rows}
+
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        for chunk in _chunked(ids):
+            ph = ", ".join(["?"] * len(chunk))
+            cur.execute(
+                f"SELECT WorkItemID, Priority FROM Workitem_Metadata WHERE WorkItemID IN ({ph})",
+                list(chunk),
+            )
+            for r in cur.fetchall():
+                if r.WorkItemID in by_id:
+                    by_id[r.WorkItemID]["priority"] = r.Priority or 0
+        for chunk in _chunked(ids):
+            ph = ", ".join(["?"] * len(chunk))
+            cur.execute(
+                f"""
+                SELECT wt.WorkItemID, t.TagID, t.TagName, t.TagColor
+                FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
+                WHERE wt.WorkItemID IN ({ph})
+                """,
+                list(chunk),
+            )
+            for r in cur.fetchall():
+                if r.WorkItemID in by_id:
+                    by_id[r.WorkItemID]["tags"].append(
+                        {"id": r.TagID, "name": r.TagName, "color": r.TagColor}
+                    )
+    except Exception as e:
+        current_app.logger.error(f"enrich_rows_from_nexora: {e}")
+    finally:
+        conn.close()
+    return rows

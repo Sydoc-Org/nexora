@@ -3,7 +3,13 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from nx_lib.workitem_sources import SqlServerSource, WorkitemFilter, merge_sorted_rows
+from nx_lib.workitem_sources import (
+    SqlServerSource,
+    WorkitemFilter,
+    enrich_rows_from_nexora,
+    merge_sorted_rows,
+    resolve_nexora_filter_ids,
+)
 
 
 def _row(wid, mins, client="default"):
@@ -70,3 +76,49 @@ def test_sqlserver_source_normalizes_rows(app):
     assert rows[0]["priority"] == 0  # None -> 0
     assert rows[0]["tags"][0]["name"] == "urgent"
     assert rows[0]["client"] == "default"
+
+
+def test_resolve_nexora_filter_ids_returns_none_when_no_filters(app):
+    f = _mk_filter()  # no tag/priority/assigned
+    with app.app_context():
+        assert resolve_nexora_filter_ids(f) is None
+
+
+def test_resolve_nexora_filter_ids_intersects_active_filters(app):
+    f = _mk_filter()
+    f.tag = "urgent"
+    f.priority = "2"
+    # tag query -> {1001, 1002}; priority query -> {1002, 1003}; intersect -> {1002}
+    fake_cur = MagicMock()
+    fake_cur.fetchall.side_effect = [
+        [MagicMock(WorkItemID=1001), MagicMock(WorkItemID=1002)],
+        [MagicMock(WorkItemID=1002), MagicMock(WorkItemID=1003)],
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        ids = resolve_nexora_filter_ids(f)
+    assert ids == {1002}
+
+
+def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):
+    rows = [
+        {"workitemid": 1001, "priority": 0, "tags": []},
+        {"workitemid": 1002, "priority": 0, "tags": []},
+    ]
+    fake_cur = MagicMock()
+    fake_cur.fetchall.side_effect = [
+        # priority rows
+        [MagicMock(WorkItemID=1001, Priority=3)],
+        # tag rows
+        [MagicMock(WorkItemID=1002, TagID=9, TagName="vip", TagColor="#0f0")],
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        out = enrich_rows_from_nexora(rows)
+    by_id = {r["workitemid"]: r for r in out}
+    assert by_id[1001]["priority"] == 3
+    assert by_id[1002]["tags"] == [{"id": 9, "name": "vip", "color": "#0f0"}]
