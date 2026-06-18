@@ -43,7 +43,9 @@ GO
 
 -- MS02 doc-field mapping row. Columnar columns stay NULL (EAV resolution does
 -- not join StatisticsDB). Each col_<field> = the doc-field "Name" to match.
--- OWNER: fill the col_<field> -> "Name" values, then uncomment:
+-- OWNER: fill the col_<field> -> "Name" values, then uncomment the ENTIRE
+-- block below (the IF/BEGIN guard through the closing GO) -- NOT just the
+-- INSERT, or it would run unconditionally:
 -- IF NOT EXISTS (SELECT 1 FROM dbo.SearchConfig WHERE ProcessName = 'sydoc.praesidialdepartement_bs')
 -- BEGIN
 --     INSERT INTO dbo.SearchConfig
