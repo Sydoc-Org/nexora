@@ -48,6 +48,9 @@ from ..process_helpers import (
 from ..security import has_permission, page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
 from ..workitem_sources import (
+    _MS02_DOCFIELD_NAME_COL,
+    _MS02_DOCFIELD_TABLE,
+    _MS02_DOCFIELD_VALUE_COL,
     WorkitemFilter,
     fetch_merged_page,
     get_domain_for_workitem,
@@ -412,6 +415,11 @@ def api_docfield_values():
         return jsonify([])
 
     target_col_name = f"col_{field}"
+    # Whitelist the column name before interpolating it into the SearchConfig SQL
+    # below (the same guard the workitems search path uses) -- `field` is a raw
+    # request arg, so without this it is a SQL-injection vector against NexoraDB.
+    if target_col_name not in get_valid_search_columns():
+        return jsonify([])
     conn = None
     cur = None
     try:
@@ -440,12 +448,6 @@ def api_docfield_values():
             and getattr(c, target_col_name)
         ]
         if ms02_names:
-            from ..workitem_sources import (
-                _MS02_DOCFIELD_NAME_COL,
-                _MS02_DOCFIELD_TABLE,
-                _MS02_DOCFIELD_VALUE_COL,
-            )
-
             if engine_ms02_docfields_pg is None:
                 return jsonify([])
             ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
