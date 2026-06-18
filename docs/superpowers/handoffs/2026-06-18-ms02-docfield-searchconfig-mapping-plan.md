@@ -1,3 +1,6 @@
+> **➡ SUPERSEDED by a same-date handoff:** the plan in this file has since been **executed in full** (all 9 tasks). For the current state, resume from
+> `docs/superpowers/handoffs/2026-06-18-ms02-docfield-searchconfig-execution-complete.md`.
+
 # Handoff — MS02 doc-field search → SearchConfig mapping (plan written, design-only)
 
 **Date:** 2026-06-18 (morning) · **Branch:** `feature/2.5.63` · **55 commits ahead of origin** · **commit-only (remote)**
