@@ -129,6 +129,18 @@ MS02_STATS_DB_USER = os.environ.get("MS02_STATS_DB_USER", MS02_DB_USER)
 MS02_STATS_DB_PWD = os.environ.get("MS02_STATS_DB_PWD", MS02_DB_PWD)
 MS02_STATS_DB_PORT = os.environ.get("MS02_STATS_DB_PORT", MS02_DB_PORT)
 
+# MS02 doc-field index DB (separate Postgres DB on the same Azure host/login as
+# the MS02 runtime DB, but a DIFFERENT database name). A PG connection is bound
+# to one database, so the doc-field index needs its own engine. Defaults reuse
+# the MS02_DB_* server/login/port/TLS; ONLY the dbname differs and has NO safe
+# default -- the owner supplies MS02_DOCFIELDS_DB_NAME, so until it is set the
+# engine (Task 2) degrades to None and MS02 doc-field search stays a no-op.
+MS02_DOCFIELDS_DB_HOST = os.environ.get("MS02_DOCFIELDS_DB_HOST", MS02_DB_HOST)
+MS02_DOCFIELDS_DB_NAME = os.environ.get("MS02_DOCFIELDS_DB_NAME")
+MS02_DOCFIELDS_DB_USER = os.environ.get("MS02_DOCFIELDS_DB_USER", MS02_DB_USER)
+MS02_DOCFIELDS_DB_PWD = os.environ.get("MS02_DOCFIELDS_DB_PWD", MS02_DB_PWD)
+MS02_DOCFIELDS_DB_PORT = os.environ.get("MS02_DOCFIELDS_DB_PORT", MS02_DB_PORT)
+
 BEXIO_PAT = os.environ.get("BEXIO_PAT")
 
 CSP = {
