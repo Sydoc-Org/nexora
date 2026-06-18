@@ -429,6 +429,56 @@ def api_docfield_values():
         if not configs:
             return jsonify([])
 
+        # MS02 (EAV) processes resolve suggestions from the separate doc-field DB,
+        # not [DB_STATISTICS]. A row whose ClientCode='ms02' carries the EAV
+        # "Name" value in col_<field>; query DISTINCT "StringValue" for it.
+        # `SELECT * FROM SearchConfig` already surfaces ClientCode after 0027.
+        ms02_names = [
+            getattr(c, target_col_name)
+            for c in configs
+            if (getattr(c, "ClientCode", "default") or "default") == "ms02"
+            and getattr(c, target_col_name)
+        ]
+        if ms02_names:
+            from ..workitem_sources import (
+                _MS02_DOCFIELD_NAME_COL,
+                _MS02_DOCFIELD_TABLE,
+                _MS02_DOCFIELD_VALUE_COL,
+            )
+
+            if engine_ms02_docfields_pg is None:
+                return jsonify([])
+            ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
+            all_vals = cache.get(ms02_cache_key)
+            if all_vals is None:
+                df_conn = None
+                raw_vals = []
+                try:
+                    name_ph = ",".join(["%s"] * len(ms02_names))
+                    df_conn = engine_ms02_docfields_pg.raw_connection()
+                    df_cur = df_conn.cursor()
+                    df_cur.execute(
+                        f'SELECT DISTINCT "{_MS02_DOCFIELD_VALUE_COL}" '
+                        f'FROM "{_MS02_DOCFIELD_TABLE}" '
+                        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
+                        f'AND "{_MS02_DOCFIELD_VALUE_COL}" IS NOT NULL '
+                        f'AND "{_MS02_DOCFIELD_VALUE_COL}" <> %s '
+                        f'ORDER BY "{_MS02_DOCFIELD_VALUE_COL}" LIMIT 500',
+                        [*ms02_names, ""],
+                    )
+                    raw_vals = [r[0] for r in df_cur.fetchall()]
+                    df_cur.close()
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values ms02 error: {e}")
+                    raw_vals = []
+                finally:
+                    if df_conn:
+                        df_conn.close()
+                all_vals = sorted(set(raw_vals))
+                cache.set(ms02_cache_key, all_vals, timeout=600)
+            q_lower = q.lower()
+            return jsonify([v for v in all_vals if not q or q_lower in v.lower()][:15])
+
         cache_key = f"docfield_vals_{process}_{field}"
         all_vals = cache.get(cache_key)
 

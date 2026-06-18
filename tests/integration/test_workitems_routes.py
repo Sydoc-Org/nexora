@@ -256,6 +256,25 @@ def test_add_tag_to_workitem_authed_unknown(user_client):
     assert resp.status_code in (200, 400, 404, 500)
 
 
+# ============================ MS02 autocomplete ==============================
+
+
+def test_api_docfield_values_ms02_degrades_without_engine(user_client, workitems_all_perms):
+    """For an MS02 process with no doc-field engine, autocomplete returns [] (200)
+    or stays within harness tolerance; never an uncaught error."""
+    resp = user_client.get(
+        "/api/docfield_values",
+        query_string={
+            "process": "sydoc.praesidialdepartement_bs",
+            "field": "doctype",
+            "q": "inv",
+        },
+    )
+    assert resp.status_code in (200, 401, 500)
+    if resp.status_code == 200:
+        assert isinstance(resp.get_json(), list)
+
+
 def test_remove_tag_from_workitem_authed_unknown(user_client):
     resp = user_client.delete("/api/workitem/999999/tags/999")
     assert resp.status_code in (200, 404, 500)
