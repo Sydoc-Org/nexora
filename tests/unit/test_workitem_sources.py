@@ -532,3 +532,26 @@ def test_build_where_ignores_raw_docfields_for_ms02(app):
         where, _ = src._build_where(filt)
     assert "t_DocumentIndexes" not in where
     assert "EXISTS" not in where
+
+
+def test_resolve_ms02_docfield_ids_later_empty_forces_empty(app):
+    # First docfield populates the result; a LATER docfield matching nothing must
+    # still short-circuit the WHOLE result to empty (mid-loop `return set()`).
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,), (2,)], []]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1"), (["Doctype"], "nope")])
+    assert result == set()
+
+
+def test_resolve_ms02_docfield_ids_skips_pairs_with_no_names(app):
+    # A docfield mapping to no EAV "Name" imposes no constraint from itself; a
+    # later mapped docfield still resolves. Only the mapped pair runs a query.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(7,)]]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [([], "x"), (["Barcode"], "1")])
+    assert result == {7}
+    assert cur.execute.call_count == 1
