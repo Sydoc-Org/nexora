@@ -7,6 +7,8 @@ has NO default (engine degrades to None until the owner sets it).
 
 import os
 
+import pytest
+
 from nx_lib import config as cfg
 
 
@@ -24,9 +26,10 @@ def test_ms02_docfields_keys_exist():
 def test_ms02_docfields_name_has_no_default():
     # The doc-field dbname must NOT default to a fabricated value: when the env
     # var is unset the engine has to stay None. (Env-conditional so a box that
-    # HAS it set still passes.)
-    if not os.environ.get("MS02_DOCFIELDS_DB_NAME"):
-        assert cfg.MS02_DOCFIELDS_DB_NAME is None
+    # HAS it set is skipped rather than silently passing.)
+    if os.environ.get("MS02_DOCFIELDS_DB_NAME"):
+        pytest.skip("MS02_DOCFIELDS_DB_NAME is set; no-default contract not testable")
+    assert cfg.MS02_DOCFIELDS_DB_NAME is None
 
 
 def test_ms02_docfields_host_defaults_to_runtime_host():
