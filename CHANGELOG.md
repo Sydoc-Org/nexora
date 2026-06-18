@@ -8,7 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
 
+### Changed
+
+- MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
+
 ### Added
+- `engine_ms02_docfields_pg` (+ `MS02_DOCFIELDS_DB_*` env vars) — a dedicated SQLAlchemy engine for the MS02 doc-field index database, and a source/dialect-aware `dbo.SearchConfig.ClientCode` column (migration `0027`).
 - **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the
   processed/imported KPIs now include MS02, whose processing events live in `public.batchtracking` in
   a separate Azure Postgres DB (`Praesidialdepartement_BS`). New `engine_ms02_stats_pg` engine and

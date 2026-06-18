@@ -113,7 +113,7 @@ The existing list WHERE clause splits cleanly:
 | Filter | Source of truth | PG handling |
 |---|---|---|
 | process name `tp.Name`, client `tp.ClientName`, `Status`, `ActivityInstanceName`, `id LIKE`, `ModifiedAt` range | runtime DB (`t_*`) | **portable** — translate dialect, run on each source |
-| doc-field search | **per source** (see §4.6) — default: `SearchConfig`→StatisticsDB; MS02: its own `t_documentindexes` | default pre-resolves to an ID set (existing block) for the SQL Server source; MS02 applies an in-query `EXISTS` against `t_documentindexes`. **No shared id-set.** |
+| doc-field search | **`SearchConfig`-driven for both** (see §4.6); `ClientCode` routes columnar (default→StatisticsDB) vs EAV (MS02→`engine_ms02_docfields_pg`, a separate doc-field DB) | **each pre-resolves to its OWN id allow-set** — default→`docfield_ids` (SQL Server), MS02→`ms02_docfield_ids` (Postgres), applied as `id = ANY(...)`. No in-query `EXISTS`; the doc-field DB is never joined to the runtime DB. Sets are per-source (never shared/intersected across sources). |
 | **tag** (`Workitem_Tags`/`Tags`), **priority** (`Workitem_Metadata`), **assigned-user** (`Workitem_Metadata`) | **NexoraDB** | **pre-resolve to an ID set** from NexoraDB (same pattern as doc-field), then `id IN (...)` on both sources |
 
 So NexoraDB-dependent filters are lifted out of the per-source query and turned into an allow-set of IDs — the per-source SQL becomes pure runtime-DB SQL that ports to Postgres.
@@ -145,16 +145,33 @@ The **SQL Server source keeps its in-query cross-DB joins** to NexoraDB (`Workit
 
 Per-source query runs under a wall-clock timeout (same philosophy as `ping_db`). If MS02's Postgres is slow/unreachable, the list **degrades to default-only + a non-blocking banner** ("MS02 source temporarily unavailable") rather than hanging or erroring the whole page. A down second source must never take down the list.
 
-### 4.6 Doc-field search is per source (`t_documentindexes`)
+### 4.6 Doc-field search via SearchConfig (superseded direct t_documentindexes coupling)
 
-For the default client, doc-field search resolves via `SearchConfig` (NexoraDB) → StatisticsDB and is pre-applied as an ID set (existing block, kept inside the SQL Server source). MS02 has **no StatisticsDB**; its document index values live in its own Postgres OctoDB table **`t_documentindexes`** — a key-value store with columns `Name` (field name) and `Stringvalue` (value), joined to a workitem by `workitemid`. The Postgres source therefore resolves doc-field search **in-query**, one `EXISTS` per `(docfield, docvalue)` pair:
+> **Superseded (2026-06-18).** The original design resolved MS02 doc-field search
+> via an in-query `EXISTS` against MS02's own runtime `t_documentindexes`. That
+> direct coupling does not scale and has been replaced: doc-field search now flows
+> through nexora's normal mapping layer (`dbo.SearchConfig`, made client-aware via
+> the `ClientCode` column, migration `0027`) for ALL clients, and the MS02 field
+> VALUE is resolved against a DEDICATED MS02 doc-field Postgres database
+> (`engine_ms02_docfields_pg`, a different dbname from the runtime DB). Because a
+> single Postgres connection binds to one database, the doc-field DB cannot be
+> joined to the runtime DB in-query; matches are PRE-RESOLVED to a workitem-id
+> allow-set and applied as `twi."ID" = ANY(%s)`, mirroring the default source's
+> `docfield_ids`. No ETL. See migration `0027`,
+> `nx_lib/workitem_sources.resolve_ms02_docfield_ids`, and
+> `docs/superpowers/plans/2026-06-18-ms02-docfield-searchconfig-mapping.md`.
 
-```sql
-AND EXISTS (SELECT 1 FROM t_documentindexes di
-           WHERE di.workitemid = twi."ID" AND di."Name" = %s AND di."Stringvalue" LIKE %s)
-```
-
-So `WorkitemFilter` carries the **raw** `(docfields, docvalues)` pairs; each source resolves them against its own stats store. **Field VALUES** on the detail page / CSV export are unaffected — they continue to come from the (per-client, domain-routed) Octo thin-document API for every client; `t_documentindexes` is **search-only**. *Confirm at build time:* the MS02 `t_documentindexes` identifier casing, and whether the UI doc-field identifier matches `t_documentindexes."Name"` (a name-mapping may be needed).
+For both clients, `dbo.SearchConfig` (NexoraDB) is the mapping. A `ClientCode`
+column routes each row: `'default'` rows are columnar (`col_<field>` = a
+StatisticsDB physical column, resolved on `engine_statistics_db`); `'ms02'` rows
+are EAV (`col_<field>` = the doc-field `"Name"` VALUE to match, resolved on
+`engine_ms02_docfields_pg` as `WHERE "Name" = <col_field> AND "StringValue" LIKE %value%`).
+The orchestrator pre-resolves each client's matches into a SEPARATE id allow-set
+(default → `docfield_ids` for the SQL Server source; MS02 → `ms02_docfield_ids`
+for the Postgres source). `t_DocumentIndexes` is no longer queried at runtime.
+**Field VALUES** on the detail page / CSV export are unchanged — they still come
+from the per-client domain-routed Octo thin-document API; the doc-field DB is
+search-only.
 
 ---
 
