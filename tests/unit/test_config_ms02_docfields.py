@@ -33,4 +33,5 @@ def test_ms02_docfields_host_defaults_to_runtime_host():
     # HOST/USER/PWD/PORT default to the MS02 runtime values.
     assert cfg.MS02_DOCFIELDS_DB_HOST == cfg.MS02_DB_HOST
     assert cfg.MS02_DOCFIELDS_DB_USER == cfg.MS02_DB_USER
+    assert cfg.MS02_DOCFIELDS_DB_PWD == cfg.MS02_DB_PWD
     assert cfg.MS02_DOCFIELDS_DB_PORT == cfg.MS02_DB_PORT
