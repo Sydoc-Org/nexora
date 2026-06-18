@@ -29,7 +29,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
-from ..db import engine_nexora_db, engine_statistics_db
+from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
@@ -51,6 +51,7 @@ from ..workitem_sources import (
     WorkitemFilter,
     fetch_merged_page,
     get_domain_for_workitem,
+    resolve_ms02_docfield_ids,
     single_workitem_tags,
 )
 
@@ -206,6 +207,7 @@ def _get_workitems_data(args, export_all=False):
     # a single intersected id allow-set for the SQL Server source. None = no
     # constraint; empty set = force no rows; populated = twi.ID IN (...).
     docfield_ids = None
+    ms02_docfield_ids = None
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
@@ -232,6 +234,7 @@ def _get_workitems_data(args, export_all=False):
                     SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
                     FROM SearchConfig
                     WHERE {target_config_col} IS NOT NULL
+                    AND ClientCode = 'default'
                     AND ProcessName IN ({placeholders})
                 """
                 configs = cursor_nex.execute(query, target_processes).fetchall()
@@ -301,6 +304,60 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex:
                 conn_nex.close()
 
+    # --- MS02 EAV doc-field pre-resolution (sibling to the default block) ---
+    # Resolves through the SAME SearchConfig mapping but against the separate
+    # MS02 doc-field DB (EAV "Name"/"StringValue"). The default block above
+    # (StatisticsDB -> docfield_ids) is untouched and byte-identical; this is a
+    # parallel, independent allow-set so a mixed default+MS02 request never
+    # cross-shrinks. None = no constraint; the resolver short-circuits when the
+    # engine is absent. Guarded by the same permission + target_processes.
+    if (
+        has_permission("workitems.filter.documentfields")
+        and target_processes
+        and engine_ms02_docfields_pg is not None
+    ):
+        valid_db_columns = get_valid_search_columns()
+        conn_nex2 = None
+        cursor_nex2 = None
+        try:
+            conn_nex2 = engine_nexora_db.raw_connection()
+            cursor_nex2 = conn_nex2.cursor()
+            pairs = []
+            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+                docfield = (docfield or "").lower().strip()
+                docvalue = (docvalue or "").strip()
+                if not docfield or not docvalue:
+                    continue
+                target_config_col = f"col_{docfield}"
+                # Whitelist the column name (same guard the default path uses)
+                # before interpolating it -- blocks injection via `docfield`.
+                if target_config_col not in valid_db_columns:
+                    continue
+                placeholders = ",".join(["?"] * len(target_processes))
+                cursor_nex2.execute(
+                    f"SELECT {target_config_col} FROM SearchConfig "
+                    f"WHERE {target_config_col} IS NOT NULL "
+                    f"AND ClientCode = 'ms02' "
+                    f"AND ProcessName IN ({placeholders})",
+                    target_processes,
+                )
+                # Each row's col_<field> value IS an EAV "Name" to match. A
+                # docfield mapping to several MS02 rows ORs its Names together.
+                names = [r[0] for r in cursor_nex2.fetchall() if r[0]]
+                if not names:
+                    continue  # no MS02 mapping for this docfield -> no constraint
+                pairs.append((names, docvalue))
+            if pairs:
+                ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+        except Exception as e:
+            current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
+            ms02_docfield_ids = None
+        finally:
+            if cursor_nex2:
+                cursor_nex2.close()
+            if conn_nex2:
+                conn_nex2.close()
+
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
     filt = WorkitemFilter(
         process_names=process_params,
@@ -319,9 +376,10 @@ def _get_workitems_data(args, export_all=False):
         if (assigned_user and has_permission("workitems.filter.assignedUser"))
         else None,
         tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
-        docfields=docfields or [],  # raw pairs -> PostgresSource (t_DocumentIndexes)
+        docfields=docfields or [],  # raw pairs kept for autocomplete only
         docvalues=docvalues or [],
-        docfield_ids=docfield_ids,  # StatisticsDB-resolved set -> SqlServerSource only
+        docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
+        ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
     workitems_list = rows

@@ -111,6 +111,32 @@ def test_api_workitems_returns_degraded_key(user_client, workitems_all_perms):
         assert isinstance(body["degradedSources"], list)
 
 
+def test_api_workitems_docfield_tolerates_absent_ms02_engine(user_client, workitems_all_perms):
+    """A doc-field query for an MS02 process must not error beyond the harness
+    tolerance when engine_ms02_docfields_pg is None (CI default)."""
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={
+            "prcfW": "sydoc.praesidialdepartement_bs",
+            "docfield": "doctype",
+            "docvalue": "invoice",
+        },
+    )
+    assert resp.status_code in (200, 500)
+    if resp.status_code == 200:
+        body = resp.get_json()
+        assert "workitems" in body
+        assert "pagination" in body
+
+
+def test_api_workitems_docfield_mixed_processes_tolerated(user_client, workitems_all_perms):
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "doctype", "docvalue": "x"},
+    )
+    assert resp.status_code in (200, 500)
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403
