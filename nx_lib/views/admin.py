@@ -24,6 +24,7 @@ from werkzeug.exceptions import HTTPException
 
 from ..db import (
     engine_generali_db,
+    engine_ms02_docfields_pg,
     engine_ms02_pg,
     engine_ms02_stats_pg,
     engine_nexora_db,
@@ -115,6 +116,11 @@ def admin_dashboard():
             *(
                 [(engine_ms02_stats_pg, "MS02 stats (PG)")]
                 if engine_ms02_stats_pg is not None
+                else []
+            ),
+            *(
+                [(engine_ms02_docfields_pg, "MS02 docfields (PG)")]
+                if engine_ms02_docfields_pg is not None
                 else []
             ),
         ],
