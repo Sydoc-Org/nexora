@@ -158,6 +158,38 @@ if (
 else:
     engine_ms02_stats_pg = None
 
+# MS02 doc-field index DB (separate Postgres DB on the same Azure host/login as
+# the MS02 runtime DB). A PG connection is bound to one database, so the
+# doc-field index needs its own engine -- a third MS02 engine alongside the
+# runtime (engine_ms02_pg) and dashboard-stats (engine_ms02_stats_pg) ones.
+# Same graceful-degrade pattern; reuses the MS02 TLS settings. Doc-field search
+# pre-resolves matches against this DB into a workitem-ID allow-set (it is never
+# joined in-query to the runtime DB).
+if (
+    cfg.MS02_DOCFIELDS_DB_HOST
+    and cfg.MS02_DOCFIELDS_DB_NAME
+    and cfg.MS02_DOCFIELDS_DB_USER
+    and cfg.MS02_DOCFIELDS_DB_PWD
+):
+    engine_ms02_docfields_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_DOCFIELDS_DB_HOST,
+            cfg.MS02_DOCFIELDS_DB_NAME,
+            cfg.MS02_DOCFIELDS_DB_USER,
+            cfg.MS02_DOCFIELDS_DB_PWD,
+            cfg.MS02_DOCFIELDS_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_docfields_pg = None
+
 # Read-only engine for the Reporting live-SQL sandbox. Uses a dedicated
 # db_datareader-only login over the Statistics DB. Stays None when the RO
 # credentials are not provisioned, so the SQL source simply degrades to
