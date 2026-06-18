@@ -35,15 +35,22 @@ class WorkitemFilter:
     priority: str | None = None
     assigned_user: str | None = None
     tag: str | None = None
-    # Raw doc-field search pairs. Each source resolves them against its OWN stats
-    # store (spec §4.6): SqlServerSource via SearchConfig->StatisticsDB (the
-    # orchestrator pre-resolves those into `docfield_ids` below); PostgresSource
-    # in-query against its own t_documentindexes (Name/Stringvalue).
+    # Raw doc-field search pairs, kept for the autocomplete endpoint only. The
+    # ACTUAL search is now ALWAYS pre-resolved by the orchestrator into a per-
+    # source id allow-set:
+    #   - SqlServerSource (default): SearchConfig -> StatisticsDB -> docfield_ids.
+    #   - PostgresSource  (MS02):    SearchConfig -> engine_ms02_docfields_pg
+    #                                (separate EAV doc-field DB) -> ms02_docfield_ids.
+    # Neither source resolves the raw pairs in-query anymore.
     docfields: list = field(default_factory=list)
     docvalues: list = field(default_factory=list)
-    # StatisticsDB-resolved id allow-set for the SQL SERVER source ONLY (default
-    # client's stats store). PostgresSource ignores this and uses the raw pairs.
+    # StatisticsDB-resolved id allow-set for the SQL SERVER source ONLY.
     docfield_ids: set | None = None
+    # MS02 doc-field DB-resolved id allow-set for the Postgres source ONLY. Kept
+    # separate from docfield_ids so a request that mixes default + MS02 processes
+    # never lets one source's doc-field match shrink the other source's results.
+    # None = no constraint; empty set = force zero rows; populated = ANY(%s).
+    ms02_docfield_ids: set | None = None
 
 
 def merge_sorted_rows(row_lists):
@@ -341,6 +348,77 @@ def resolve_nexora_filter_ids(filt):
         conn.close()
 
 
+# OWNER-CONFIRMED doc-field index identifiers (see the plan's Owner-actions).
+# These name the table + columns in the SEPARATE MS02 doc-field DB. Defaults
+# mirror the runtime t_DocumentIndexes; if the owner confirms different names
+# for THIS database, change them here (one place) -- both the resolver and the
+# autocomplete branch read them.
+_MS02_DOCFIELD_TABLE = "t_DocumentIndexes"
+_MS02_DOCFIELD_ID_COL = "WorkItemID"
+_MS02_DOCFIELD_NAME_COL = "Name"
+_MS02_DOCFIELD_VALUE_COL = "StringValue"
+
+
+def build_ms02_docfield_sql(names):
+    """Per-docfield EAV lookup SQL for the MS02 doc-field index DB.
+
+    ``names`` is the OR-set of EAV "Name" values one searched docfield maps to.
+    Returns the SQL; the caller binds the ``names`` values then the LIKE value.
+    Table/column identifiers are config constants (quoted, never user input);
+    the matched values are bound %s params -> no injection.
+    """
+    name_ph = ", ".join(["%s"] * len(names))
+    return (
+        f'SELECT DISTINCT "{_MS02_DOCFIELD_ID_COL}" FROM "{_MS02_DOCFIELD_TABLE}" '
+        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
+        f'AND "{_MS02_DOCFIELD_VALUE_COL}" LIKE %s'
+    )
+
+
+def resolve_ms02_docfield_ids(engine, pairs):
+    """Resolve MS02 doc-field search to a workitem-id allow-set.
+
+    ``pairs`` is ``[(names_list, value), ...]`` -- one entry per searched
+    docfield, where ``names_list`` is the OR-set of EAV "Name" values that
+    docfield maps to (from SearchConfig.col_<field>) and ``value`` is the user's
+    search term. Each docfield matches any of its Names (OR via "Name" IN(...));
+    docfields are AND-intersected.
+
+    Three-way contract (mirrors the DEFAULT docfield pre-fetch block in
+    _get_workitems_data -- matching_ids=None -> continue/no-constraint; NOT
+    resolve_nexora_filter_ids, which returns set() on error):
+      * None      -> no constraint (engine absent, no pairs, or any error).
+                     The page must still render.
+      * set()     -> a docfield matched nothing -> force zero MS02 rows.
+      * {ids...}  -> intersected allow-set -> twi."ID" = ANY(%s).
+    Never raises: on error it logs and returns None (no constraint).
+    """
+    if engine is None or not pairs:
+        return None
+
+    result = None
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        for names, value in pairs:
+            if not names:
+                continue  # docfield with no mapped Name -> no constraint from it
+            sql = build_ms02_docfield_sql(names)
+            cur.execute(sql, [*names, f"%{value}%"])
+            ids = {row[0] for row in cur.fetchall()}
+            if not ids:
+                return set()  # a docfield matched nothing -> whole result empty
+            result = ids if result is None else (result & ids)
+        return result
+    except Exception as e:
+        current_app.logger.error(f"resolve_ms02_docfield_ids: {e}")
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def _pgmarks(seq):
     return ", ".join(["%s"] * len(seq))
 
@@ -400,19 +478,18 @@ class PostgresSource:
             else:
                 clauses.append('twi."ID" = ANY(%s)')
                 params.append(list(allow))
-        # Doc-field search -> in-query EXISTS against MS02's own t_DocumentIndexes
-        # (Name/StringValue), one per (docfield, docvalue) pair, AND semantics.
-        for name, value in zip(filt.docfields or [], filt.docvalues or [], strict=False):
-            name = (name or "").strip()
-            value = (value or "").strip()
-            if not name or not value:
-                continue
-            clauses.append(
-                'EXISTS (SELECT 1 FROM "t_DocumentIndexes" di '
-                'WHERE di."WorkItemID" = twi."ID" AND di."Name" = %s AND di."StringValue" LIKE %s)'
-            )
-            params.append(name)
-            params.append(f"%{value}%")
+        # Doc-field search -> pre-resolved id allow-set against the SEPARATE MS02
+        # doc-field DB (engine_ms02_docfields_pg). The orchestrator resolves the
+        # SearchConfig-mapped EAV match into filt.ms02_docfield_ids BEFORE this
+        # runs, because a single PG connection binds to one database and cannot
+        # join the doc-field DB to the runtime DB in-query. Same three-way
+        # contract as the NexoraDB allow-set above.
+        if filt.ms02_docfield_ids is not None:
+            if not filt.ms02_docfield_ids:
+                clauses.append("1=0")
+            else:
+                clauses.append('twi."ID" = ANY(%s)')
+                params.append(list(filt.ms02_docfield_ids))
         return " AND ".join(clauses), params
 
     def list_workitems(self, filt, offset, limit):

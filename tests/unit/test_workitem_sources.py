@@ -418,3 +418,117 @@ def test_total_backlog_count_sums(app, monkeypatch):
     monkeypatch.setattr(ws, "active_sources", lambda: [Fake("default", 3), Fake("ms02", 4)])
     with app.app_context():
         assert ws.total_backlog_count(["P"], ["C"]) == 7
+
+
+# ---------------- MS02 doc-field resolver (Task 5) ---------------- #
+
+
+def test_build_ms02_docfield_sql_uses_quoted_eav_identifiers():
+    sql = ws.build_ms02_docfield_sql(["Barcode", "Doctype"])
+    # Quoted PascalCase EAV identifiers + psycopg2 %s markers, no '?' marker.
+    assert '"Name" IN (%s, %s)' in sql
+    assert '"StringValue" LIKE %s' in sql
+    assert "?" not in sql
+    assert '"WorkItemID"' in sql  # selects the workitem id column
+
+
+def test_resolve_ms02_docfield_ids_engine_none_returns_none():
+    assert ws.resolve_ms02_docfield_ids(None, [(["Barcode"], "123")]) is None
+
+
+def test_resolve_ms02_docfield_ids_empty_pairs_returns_none():
+    assert ws.resolve_ms02_docfield_ids(MagicMock(), []) is None
+
+
+def test_resolve_ms02_docfield_ids_intersects_pairs(app):
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    # First docfield matches {1,2,3}; second {2,3,4}; AND => {2,3}.
+    cur.fetchall.side_effect = [[(1,), (2,), (3,)], [(2,), (3,), (4,)]]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1"), (["Doctype"], "x")])
+    assert result == {2, 3}
+
+
+def test_resolve_ms02_docfield_ids_empty_match_forces_empty(app):
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[]]  # a docfield matched nothing
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "nope")])
+    assert result == set()
+
+
+def test_resolve_ms02_docfield_ids_query_error_returns_none(app):
+    engine = MagicMock()
+    engine.raw_connection.side_effect = Exception("boom")
+    with app.app_context():
+        assert ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1")]) is None
+
+
+def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
+    src = ws.PostgresSource.__new__(ws.PostgresSource)  # skip __init__
+    src.code = "ms02"
+    src.engine = None
+    filt = ws.WorkitemFilter(
+        process_names=["p"],
+        client_names=["c"],
+        activity_ignore_csv="",
+        ms02_docfield_ids={10, 20},
+    )
+    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+        where, params = src._build_where(filt)
+    assert 'twi."ID" = ANY(%s)' in where
+    assert "t_DocumentIndexes" not in where
+    assert "EXISTS" not in where
+    assert any(isinstance(p, list) and set(p) == {10, 20} for p in params)
+
+
+def test_build_where_empty_ms02_docfield_ids_forces_no_rows(app):
+    src = ws.PostgresSource.__new__(ws.PostgresSource)
+    src.code = "ms02"
+    src.engine = None
+    filt = ws.WorkitemFilter(
+        process_names=["p"],
+        client_names=["c"],
+        activity_ignore_csv="",
+        ms02_docfield_ids=set(),
+    )
+    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+        where, _ = src._build_where(filt)
+    assert "1=0" in where
+    assert "t_DocumentIndexes" not in where
+
+
+def test_build_where_none_ms02_docfield_ids_adds_no_clause(app):
+    src = ws.PostgresSource.__new__(ws.PostgresSource)
+    src.code = "ms02"
+    src.engine = None
+    filt = ws.WorkitemFilter(
+        process_names=["p"],
+        client_names=["c"],
+        activity_ignore_csv="",
+        ms02_docfield_ids=None,
+    )
+    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+        where, _ = src._build_where(filt)
+    assert "t_DocumentIndexes" not in where
+    assert "ANY(%s)" not in where
+
+
+def test_build_where_ignores_raw_docfields_for_ms02(app):
+    # Raw docfields/docvalues must NO LONGER produce an in-query EXISTS.
+    src = ws.PostgresSource.__new__(ws.PostgresSource)
+    src.code = "ms02"
+    src.engine = None
+    filt = ws.WorkitemFilter(
+        process_names=["p"],
+        client_names=["c"],
+        activity_ignore_csv="",
+        docfields=["barcode"],
+        docvalues=["123"],
+    )
+    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+        where, _ = src._build_where(filt)
+    assert "t_DocumentIndexes" not in where
+    assert "EXISTS" not in where
