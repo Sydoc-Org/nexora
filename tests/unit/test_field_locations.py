@@ -145,6 +145,85 @@ def test_batch_child_documents_offset_page_by_prior_image_media():
     assert out["Doc date"]["locations"][0]["page"] == 1  # child1, offset +1
 
 
+# --- nested / non-"Batch" container documents -----------------------------
+# MS02 documents are a tree (MobScnBatch -> MobScnDossier -> MobScnDocument)
+# whose page images + index fields live on the leaf documents, and whose types
+# are NOT the literal "Batch". The flatten must recurse on any document that has
+# children, to any depth, regardless of DocumentType.
+
+
+def test_non_batch_container_recurses_to_leaf_fields():
+    leaf = {
+        "DocumentType": "MobScnDocument",
+        "Media": [{"Extension": ".jpg", "Url": "u0"}],
+        "IndexFields": [_field("DocNo", "INV-9", _loc(0, [(1, 1, 5, 5)]))],
+    }
+    dossier = {
+        "DocumentType": "MobScnDossier",
+        "Media": [],
+        "IndexFields": [],
+        "ChildDocuments": [leaf],
+    }
+    assert extract_field_locations(dossier, MAPPING) == [
+        {
+            "key": "Doc number",
+            "label": "Doc number",
+            "value": "INV-9",
+            "locations": [{"page": 0, "rect": {"left": 1, "top": 1, "width": 5, "height": 5}}],
+        }
+    ]
+
+
+def test_multi_level_container_offsets_pages_across_all_leaves():
+    leaf_a = {
+        "Media": [{"Extension": ".jpg", "Url": "a"}],
+        "IndexFields": [_field("DocNo", "A", _loc(0, [(1, 1, 5, 5)]))],
+    }
+    leaf_b = {
+        "Media": [{"Extension": ".jpg", "Url": "b"}],
+        "IndexFields": [_field("DocDate", "B", _loc(0, [(2, 2, 6, 6)]))],
+    }
+    dossier1 = {"DocumentType": "MobScnDossier", "ChildDocuments": [leaf_a]}
+    dossier2 = {"DocumentType": "MobScnDossier", "ChildDocuments": [leaf_b]}
+    batch = {"DocumentType": "MobScnBatch", "ChildDocuments": [dossier1, dossier2]}
+    out = {o["key"]: o for o in extract_field_locations(batch, MAPPING)}
+    assert out["Doc number"]["locations"][0]["page"] == 0  # leaf_a, offset 0
+    assert out["Doc date"]["locations"][0]["page"] == 1  # leaf_b, offset +1 (after leaf_a's image)
+
+
+def test_container_own_media_and_fields_ignored():
+    # A container's own media/fields are never emitted — only its leaves'
+    # (mirrors the original Batch behavior, which ignored the batch root).
+    leaf = {
+        "Media": [{"Extension": ".jpg", "Url": "leaf"}],
+        "IndexFields": [_field("DocNo", "leaf-val", _loc(0, [(1, 1, 5, 5)]))],
+    }
+    batch = {
+        "DocumentType": "MobScnBatch",
+        "Media": [{"Extension": ".jpg", "Url": "batch-cover"}],
+        "IndexFields": [_field("DocNo", "batch-val", _loc(0, [(9, 9, 9, 9)]))],
+        "ChildDocuments": [leaf],
+    }
+    assert extract_field_locations(batch, MAPPING) == [
+        {
+            "key": "Doc number",
+            "label": "Doc number",
+            "value": "leaf-val",
+            "locations": [{"page": 0, "rect": {"left": 1, "top": 1, "width": 5, "height": 5}}],
+        }
+    ]
+
+
+def test_empty_child_documents_treated_as_leaf():
+    # ChildDocuments == [] is falsy -> the node is its own leaf, not a container.
+    doc = {
+        "DocumentType": "Single",
+        "ChildDocuments": [],
+        "IndexFields": [_field("DocNo", "X", _loc(0, [(1, 1, 5, 5)]))],
+    }
+    assert extract_field_locations(doc, MAPPING)[0]["value"] == "X"
+
+
 # --- confidence (optional key) --------------------------------------------
 
 

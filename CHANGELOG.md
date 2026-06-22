@@ -12,6 +12,10 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 
 - MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
 
+### Fixed
+
+- Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
+
 ### Added
 - `engine_ms02_docfields_pg` (+ `MS02_DOCFIELDS_DB_*` env vars) — a dedicated SQLAlchemy engine for the MS02 doc-field index database, and a source/dialect-aware `dbo.SearchConfig.ClientCode` column (migration `0027`).
 - **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the

@@ -251,6 +251,57 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
     assert table_sources == []
 
 
+def test_get_extensions_urls_fields_non_batch_container_recurses(app):
+    """MS02-style nested document (MobScnBatch -> MobScnDossier ->
+    MobScnDocument): images + mapped fields aggregate from the leaf documents,
+    even though no DocumentType is the literal 'Batch'."""
+    leaf1 = {
+        "DocumentType": "MobScnDocument",
+        "Media": [{"Url": "https://cdn/p1.jpg", "Extension": ".jpg"}],
+        "IndexFields": [{"Name": "DokArtName", "FieldValue": {"Text": "Bewilligungen"}}],
+    }
+    leaf2 = {
+        "DocumentType": "MobScnDocument",
+        "Media": [{"Url": "https://cdn/p2.jpg", "Extension": ".jpg"}],
+        "IndexFields": [{"Name": "DokDatum", "FieldValue": {"Text": "2026-06-17"}}],
+    }
+    dossier = {
+        "DocumentType": "MobScnDossier",
+        "Media": [],
+        "IndexFields": [],
+        "ChildDocuments": [leaf1, leaf2],
+    }
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.return_value = None
+    fake_resp.json.return_value = {
+        "DocumentType": "MobScnBatch",
+        "Media": [],
+        "IndexFields": [],
+        "ChildDocuments": [dossier],
+    }
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        patch.object(
+            octo_mod,
+            "get_index_field_mappings",
+            return_value={"DokArtName": "doc_type", "DokDatum": "doc_date"},
+        ),
+        app.app_context(),
+    ):
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-ms02"
+        )
+
+    assert extensions == [".jpg", ".jpg"]
+    assert urls == ["https://cdn/p1.jpg", "https://cdn/p2.jpg"]
+    assert fields == {"doc_type": "Bewilligungen", "doc_date": "2026-06-17"}
+    assert field_sources == [
+        {"key": "doc_type", "label": "doc_type", "value": "Bewilligungen", "locations": []},
+        {"key": "doc_date", "label": "doc_date", "value": "2026-06-17", "locations": []},
+    ]
+
+
 def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
     with (
         patch.object(octo_mod, "get_access_token", return_value="tok"),

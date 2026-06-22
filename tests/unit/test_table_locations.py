@@ -146,3 +146,26 @@ def test_batch_page_offset_shifts_child_table_page():
     doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
     cell = extract_table_locations(doc)[0]["rows"][0][0]
     assert cell["locations"][0]["page"] == 1
+
+
+# --- nested / non-"Batch" container documents (MS02 MobScn* tree) -----------
+
+
+def test_non_batch_container_recurses_for_tables():
+    leaf = _table("T", [[_cell("A", "v", R, page_index=0)]])
+    leaf["Media"] = [{"Extension": ".jpg", "Url": "u"}]
+    dossier = {"DocumentType": "MobScnDossier", "ChildDocuments": [leaf]}
+    ts = extract_table_locations(dossier)
+    assert len(ts) == 1
+    assert ts[0]["rows"][0][0]["value"] == "v"
+
+
+def test_multi_level_container_table_page_offset():
+    # MobScnBatch -> MobScnDossier -> [leaf0 (1 image, no table), leaf1 (table)]
+    leaf0 = {"Media": [{"Extension": ".jpg", "Url": "u0"}], "Tables": []}
+    leaf1 = _table("T", [[_cell("A", "v", R, page_index=0)]])
+    leaf1["Media"] = []
+    dossier = {"DocumentType": "MobScnDossier", "ChildDocuments": [leaf0, leaf1]}
+    batch = {"DocumentType": "MobScnBatch", "ChildDocuments": [dossier]}
+    cell = extract_table_locations(batch)[0]["rows"][0][0]
+    assert cell["locations"][0]["page"] == 1

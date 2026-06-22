@@ -14,7 +14,7 @@ from .clients import octo_creds_for_domain
 from .config import OCTO_DOMAIN
 from .db import engine_nexora_db
 from .extensions import cache
-from .field_locations import extract_field_locations
+from .field_locations import extract_field_locations, items_of
 from .table_locations import extract_table_locations
 
 
@@ -127,10 +127,11 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
 
     field_mapping = get_index_field_mappings()
 
-    if doc_json.get("DocumentType") == "Batch" and doc_json.get("ChildDocuments"):
-        items_to_process = doc_json["ChildDocuments"]
-    else:
-        items_to_process = [doc_json]
+    # Flatten container documents (Octo "Batch", MS02 MobScnBatch/Dossier/...)
+    # to their leaf documents — recursively, via the shared helper — so a parent
+    # workitem surfaces the pages + fields that live on its children, at any
+    # depth. Single documents and one-level batches are unaffected.
+    items_to_process = items_of(doc_json)
 
     for item in items_to_process:
         media_list = item.get("Media") or []

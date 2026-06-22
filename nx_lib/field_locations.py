@@ -78,10 +78,27 @@ def _rects_from_location(loc):
 
 
 def _items(doc_json):
-    """Batch documents expose their pages via ChildDocuments; everything else
-    is a single item."""
-    if doc_json.get("DocumentType") == "Batch" and doc_json.get("ChildDocuments"):
-        return doc_json["ChildDocuments"]
+    """Flatten a thin-document tree to the leaf documents that actually carry
+    pages + index fields, in pre-order.
+
+    A document with a non-empty ``ChildDocuments`` list is a *container* and
+    contributes nothing itself — we descend into its children, recursively, to
+    any depth. A document with no children is a leaf and represents itself.
+
+    This generalises the original one-level ``DocumentType == "Batch"`` switch:
+    an Octo "Batch" is just a container one level deep, while client document
+    trees can nest further (e.g. MS02's ``MobScnBatch`` -> ``MobScnDossier`` ->
+    ``MobScnDocument``). Gating on the *presence of children* rather than a
+    literal type name flattens both the same way, so the page images and field
+    values of the leaf documents surface on the parent workitem regardless of
+    how the client names its container types. One-level batches and plain
+    single documents are unaffected (same leaves, same order)."""
+    children = doc_json.get("ChildDocuments")
+    if children:
+        leaves = []
+        for child in children:
+            leaves.extend(_items(child))
+        return leaves
     return [doc_json]
 
 
