@@ -8,6 +8,8 @@ Module graph (no cycles): workitem_sources -> clients, db, config. It does NOT
 import octo (document fetching stays in the views).
 """
 
+import contextlib
+import io
 import json
 from dataclasses import dataclass, field
 
@@ -417,6 +419,86 @@ def resolve_ms02_docfield_ids(engine, pairs):
     finally:
         if conn is not None:
             conn.close()
+
+
+_PREPARED_TRUE = {"true", "1", "yes", "y", "ja", "x", "wahr"}
+_PREPARED_MAX_ROWS = 10000  # bound a malicious/oversized workbook
+
+
+def _norm_pid(value):
+    """Stringify a cell value as a PID without Excel's float trailing '.0'."""
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+def parse_prepared_xlsx(data):
+    """Parse the MS02 'prepared documents' xlsx into [(pid, prepared_bool), ...].
+
+    Two columns by header (case-insensitive, order-agnostic): "PID" and
+    "Prepared". Blanks/blank-PID rows are skipped; PIDs are deduped (first wins);
+    integer-looking PIDs never gain a trailing '.0'; at most _PREPARED_MAX_ROWS
+    data rows are kept. Returns (pairs, error): error is None on success or a
+    short message on a malformed/empty workbook or a missing PID column. NEVER
+    raises -- the route surfaces ``error`` as a flash.
+    """
+    import openpyxl  # local import: openpyxl is heavyish and only used here
+
+    def _log(msg):
+        with contextlib.suppress(RuntimeError):  # no app context in unit tests
+            current_app.logger.error(msg)
+
+    wb = None
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception as e:
+        _log(f"parse_prepared_xlsx load: {e}")
+        return [], "Could not read the Excel file."
+    try:
+        sh = wb.active
+        rows = sh.iter_rows(values_only=True)
+        try:
+            header = next(rows)
+        except StopIteration:
+            return [], "The Excel file is empty."
+        idx = {}
+        for i, cell in enumerate(header or []):
+            key = str(cell).strip().lower() if cell is not None else ""
+            if key in ("pid", "prepared"):
+                idx[key] = i
+        if "pid" not in idx:
+            return [], "Missing required 'PID' column."
+        pid_i = idx["pid"]
+        prep_i = idx.get("prepared")
+        out = []
+        seen = set()
+        for row in rows:
+            if len(out) >= _PREPARED_MAX_ROWS:
+                break
+            if row is None:
+                continue
+            pid = _norm_pid(row[pid_i] if pid_i < len(row) else None)
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            prepared = False
+            if prep_i is not None and prep_i < len(row):
+                raw = row[prep_i]
+                if isinstance(raw, bool):
+                    prepared = raw
+                elif raw is not None:
+                    prepared = str(raw).strip().lower() in _PREPARED_TRUE
+            out.append((pid, prepared))
+        return out, None
+    except Exception as e:
+        _log(f"parse_prepared_xlsx: {e}")
+        return [], "Could not parse the Excel file."
+    finally:
+        if wb is not None:
+            with contextlib.suppress(Exception):
+                wb.close()
 
 
 def _pgmarks(seq):
