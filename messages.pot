@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-16 14:07+0200\n"
+"POT-Creation-Date: 2026-06-22 13:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:187
+#: nx_lib/octo.py:188
 msgid "Error fetching activity instance"
 msgstr ""
 
@@ -41,137 +41,137 @@ msgstr ""
 msgid "Workitem ID"
 msgstr ""
 
-#: nx_lib/views/admin.py:172 nx_lib/views/admin.py:668
+#: nx_lib/views/admin.py:184 nx_lib/views/admin.py:680
 msgid "All fields are required."
 msgstr ""
 
-#: nx_lib/views/admin.py:187
+#: nx_lib/views/admin.py:199
 msgid "Organization created successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:189
+#: nx_lib/views/admin.py:201
 msgid "Organization already exists."
 msgstr ""
 
-#: nx_lib/views/admin.py:192 nx_lib/views/admin.py:693
-#: nx_lib/views/workitems.py:1227 nx_lib/views/workitems.py:1278
-#: nx_lib/views/workitems.py:1320 nx_lib/views/workitems.py:1531
-#: nx_lib/views/workitems.py:1563
+#: nx_lib/views/admin.py:204 nx_lib/views/admin.py:705
+#: nx_lib/views/workitems.py:1487 nx_lib/views/workitems.py:1538
+#: nx_lib/views/workitems.py:1580 nx_lib/views/workitems.py:1791
+#: nx_lib/views/workitems.py:1823
 msgid "An unexpected error occurred."
 msgstr ""
 
-#: nx_lib/views/admin.py:216
+#: nx_lib/views/admin.py:228
 msgid "Organization updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:219 nx_lib/views/admin.py:243
-#: nx_lib/views/admin.py:749 nx_lib/views/admin.py:980
+#: nx_lib/views/admin.py:231 nx_lib/views/admin.py:255
+#: nx_lib/views/admin.py:761 nx_lib/views/admin.py:992
 msgid "An error occurred."
 msgstr ""
 
-#: nx_lib/views/admin.py:238
+#: nx_lib/views/admin.py:250
 msgid "Organization not found."
 msgstr ""
 
-#: nx_lib/views/admin.py:240
+#: nx_lib/views/admin.py:252
 msgid "Organization deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:688 templates/js/admin/_access_control_js.html:542
+#: nx_lib/views/admin.py:700 templates/js/admin/_access_control_js.html:542
 msgid "User created successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:690
+#: nx_lib/views/admin.py:702
 msgid "Username or email already exists."
 msgstr ""
 
-#: nx_lib/views/admin.py:721
+#: nx_lib/views/admin.py:733
 msgid "Permission Denied for this action."
 msgstr ""
 
-#: nx_lib/views/admin.py:746
+#: nx_lib/views/admin.py:758
 msgid "User updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:935
+#: nx_lib/views/admin.py:947
 msgid "You cannot delete your own account."
 msgstr ""
 
-#: nx_lib/views/admin.py:975
+#: nx_lib/views/admin.py:987
 msgid "User not found."
 msgstr ""
 
-#: nx_lib/views/admin.py:977
+#: nx_lib/views/admin.py:989
 msgid "User deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin.py:1088
+#: nx_lib/views/admin.py:1100
 msgid "Could not fetch logs"
 msgstr ""
 
-#: nx_lib/views/admin.py:1131
+#: nx_lib/views/admin.py:1143
 msgid "Could not fetch sessions"
 msgstr ""
 
-#: nx_lib/views/admin.py:1228 nx_lib/views/admin.py:1538
-#: nx_lib/views/admin.py:1580 nx_lib/views/admin.py:1625
-#: nx_lib/views/admin.py:1664 nx_lib/views/admin.py:1702
-#: nx_lib/views/admin.py:1735 nx_lib/views/chat.py:47
-#: nx_lib/views/dashboard.py:265 nx_lib/views/dashboard.py:348
-#: nx_lib/views/dashboard.py:449 nx_lib/views/dashboard.py:535
-#: nx_lib/views/dashboard.py:695 nx_lib/views/dashboard.py:771
-#: nx_lib/views/dashboard.py:793 nx_lib/views/dashboard.py:844
-#: nx_lib/views/dashboard.py:1311 nx_lib/views/dashboard.py:1355
-#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:348
-#: nx_lib/views/workitems.py:811 nx_lib/views/workitems.py:823
-#: nx_lib/views/workitems.py:1041 nx_lib/views/workitems.py:1084
-#: nx_lib/views/workitems.py:1175 nx_lib/views/workitems.py:1237
-#: nx_lib/views/workitems.py:1288 nx_lib/views/workitems.py:1330
-#: nx_lib/views/workitems.py:1481 nx_lib/views/workitems.py:1541
+#: nx_lib/views/admin.py:1240 nx_lib/views/admin.py:1550
+#: nx_lib/views/admin.py:1592 nx_lib/views/admin.py:1637
+#: nx_lib/views/admin.py:1676 nx_lib/views/admin.py:1714
+#: nx_lib/views/admin.py:1747 nx_lib/views/chat.py:47
+#: nx_lib/views/dashboard.py:280 nx_lib/views/dashboard.py:383
+#: nx_lib/views/dashboard.py:506 nx_lib/views/dashboard.py:592
+#: nx_lib/views/dashboard.py:752 nx_lib/views/dashboard.py:828
+#: nx_lib/views/dashboard.py:850 nx_lib/views/dashboard.py:901
+#: nx_lib/views/dashboard.py:1369 nx_lib/views/dashboard.py:1413
+#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:485
+#: nx_lib/views/workitems.py:1071 nx_lib/views/workitems.py:1083
+#: nx_lib/views/workitems.py:1301 nx_lib/views/workitems.py:1344
+#: nx_lib/views/workitems.py:1435 nx_lib/views/workitems.py:1497
+#: nx_lib/views/workitems.py:1548 nx_lib/views/workitems.py:1590
+#: nx_lib/views/workitems.py:1741 nx_lib/views/workitems.py:1801
 msgid "Not authorized"
 msgstr ""
 
-#: nx_lib/views/admin.py:1271 nx_lib/views/workitems.py:1074
+#: nx_lib/views/admin.py:1283 nx_lib/views/workitems.py:1334
 msgid "Could not fetch users"
 msgstr ""
 
-#: nx_lib/views/admin.py:1317
+#: nx_lib/views/admin.py:1329
 msgid "Name is required"
 msgstr ""
 
-#: nx_lib/views/admin.py:1345
+#: nx_lib/views/admin.py:1357
 msgid "Profile saved successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1524
+#: nx_lib/views/admin.py:1536
 msgid "Overrides updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1589 nx_lib/views/admin.py:1719
-#: nx_lib/views/admin.py:1761
+#: nx_lib/views/admin.py:1601 nx_lib/views/admin.py:1731
+#: nx_lib/views/admin.py:1773
 msgid "Permission not found"
 msgstr ""
 
-#: nx_lib/views/admin.py:1670 nx_lib/views/admin.py:1708
+#: nx_lib/views/admin.py:1682 nx_lib/views/admin.py:1720
 msgid "Code and description are required"
 msgstr ""
 
-#: nx_lib/views/admin.py:1685
+#: nx_lib/views/admin.py:1697
 msgid "Permission created successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1721
+#: nx_lib/views/admin.py:1733
 msgid "Permission updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1754
+#: nx_lib/views/admin.py:1766
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: nx_lib/views/admin.py:1763
+#: nx_lib/views/admin.py:1775
 msgid "Permission deleted successfully"
 msgstr ""
 
@@ -265,70 +265,70 @@ msgstr ""
 msgid "No messages yet"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:78
+#: nx_lib/views/dashboard.py:93
 msgid "Imported today"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:91
+#: nx_lib/views/dashboard.py:106
 msgid "Processed today"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:104
+#: nx_lib/views/dashboard.py:119
 msgid "Current backlog"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:117
+#: nx_lib/views/dashboard.py:132
 msgid "Avg processing time"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:130 templates/dashboard.html:80
+#: nx_lib/views/dashboard.py:145 templates/dashboard.html:80
 msgid "Documents Processed Over Time"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:152
+#: nx_lib/views/dashboard.py:167
 msgid "Top doctypes today"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:762
+#: nx_lib/views/dashboard.py:819
 msgid "Could not fetch field metadata"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:784
+#: nx_lib/views/dashboard.py:841
 msgid "Could not load layout"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:803 nx_lib/views/reporting.py:992
+#: nx_lib/views/dashboard.py:860 nx_lib/views/reporting.py:992
 #: nx_lib/views/reporting.py:1031 nx_lib/views/reporting.py:1090
 #: nx_lib/views/reporting.py:1218 nx_lib/views/reporting.py:1395
 #: nx_lib/views/reporting.py:1586 nx_lib/views/reporting.py:1639
 msgid "Invalid JSON body"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:835
+#: nx_lib/views/dashboard.py:892
 msgid "Could not save layout"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:855
+#: nx_lib/views/dashboard.py:912
 msgid "Could not reset layout"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:1323 nx_lib/views/dashboard.py:1360
+#: nx_lib/views/dashboard.py:1381 nx_lib/views/dashboard.py:1418
 msgid "Invalid widget"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:1339
+#: nx_lib/views/dashboard.py:1397
 msgid "Could not build query"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:1345 nx_lib/views/reporting.py:1051
+#: nx_lib/views/dashboard.py:1403 nx_lib/views/reporting.py:1051
 msgid "Could not run query"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:1387
+#: nx_lib/views/dashboard.py:1445
 msgid "Previous period"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:1390
+#: nx_lib/views/dashboard.py:1448
 msgid "Could not build comparison"
 msgstr ""
 
@@ -638,124 +638,144 @@ msgstr ""
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/workitems.py:420
+#: nx_lib/views/workitems.py:606
 msgid "Could not fetch values"
 msgstr ""
 
-#: nx_lib/views/workitems.py:759
+#: nx_lib/views/workitems.py:950 nx_lib/views/workitems.py:1019
 msgid "No file part in the request."
 msgstr ""
 
-#: nx_lib/views/workitems.py:766
+#: nx_lib/views/workitems.py:957 nx_lib/views/workitems.py:1022
 msgid "No file selected for uploading."
 msgstr ""
 
-#: nx_lib/views/workitems.py:770
+#: nx_lib/views/workitems.py:961
 msgid "No target process selected."
 msgstr ""
 
-#: nx_lib/views/workitems.py:782
+#: nx_lib/views/workitems.py:973
 msgid "You do not have permission to import to this process."
 msgstr ""
 
-#: nx_lib/views/workitems.py:797
+#: nx_lib/views/workitems.py:988
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr ""
 
-#: nx_lib/views/workitems.py:802
+#: nx_lib/views/workitems.py:993
 msgid "An error occurred while saving the file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:804
+#: nx_lib/views/workitems.py:995
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:818
+#: nx_lib/views/workitems.py:1016
+msgid "This import is only available for the MS02 client."
+msgstr ""
+
+#: nx_lib/views/workitems.py:1026
+msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
+msgstr ""
+
+#: nx_lib/views/workitems.py:1034
+msgid "The Excel file has no usable rows."
+msgstr ""
+
+#: nx_lib/views/workitems.py:1047
+msgid "The personal-number field is not configured for MS02."
+msgstr ""
+
+#: nx_lib/views/workitems.py:1054
+msgid "Could not resolve personal numbers against the MS02 index."
+msgstr ""
+
+#: nx_lib/views/workitems.py:1078
 msgid "Could not fetch workitem data"
 msgstr ""
 
-#: nx_lib/views/workitems.py:889 nx_lib/views/workitems.py:925
+#: nx_lib/views/workitems.py:1149 nx_lib/views/workitems.py:1185
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:914 nx_lib/views/workitems.py:982
+#: nx_lib/views/workitems.py:1174 nx_lib/views/workitems.py:1242
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:938
+#: nx_lib/views/workitems.py:1198
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:966
+#: nx_lib/views/workitems.py:1226
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1031
+#: nx_lib/views/workitems.py:1291
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1033
+#: nx_lib/views/workitems.py:1293
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1131
+#: nx_lib/views/workitems.py:1391
 msgid "No data found for this workitem."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1165
+#: nx_lib/views/workitems.py:1425
 msgid "Could not fetch interactions"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1180
+#: nx_lib/views/workitems.py:1440
 msgid "Comment cannot be empty."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1224
+#: nx_lib/views/workitems.py:1484
 msgid "Comment added."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1242
+#: nx_lib/views/workitems.py:1502
 msgid "Invalid assignment."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1271
+#: nx_lib/views/workitems.py:1531
 msgid "assigned you on workitem"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1275
+#: nx_lib/views/workitems.py:1535
 msgid "Assignment updated."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1293
+#: nx_lib/views/workitems.py:1553
 msgid "Invalid priority level."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1317
+#: nx_lib/views/workitems.py:1577
 msgid "Priority updated."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1350
+#: nx_lib/views/workitems.py:1610
 msgid "Could not fetch tags"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1488
+#: nx_lib/views/workitems.py:1748
 msgid "Tag name cannot be empty."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1512
+#: nx_lib/views/workitems.py:1772
 msgid "Workitem already has this tag."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1524
+#: nx_lib/views/workitems.py:1784
 msgid "Tag added successfully."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1556
+#: nx_lib/views/workitems.py:1816
 msgid "Tag association not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1560
+#: nx_lib/views/workitems.py:1820
 msgid "Tag removed successfully."
 msgstr ""
 
@@ -1178,8 +1198,8 @@ msgstr ""
 #: templates/generali_projectmanagement.html:282
 #: templates/generali_reporting.html:231 templates/generali_reporting.html:318
 #: templates/generali_reporting.html:343 templates/reporting.html:245
-#: templates/reporting.html:314 templates/workitems_overview.html:447
-#: templates/workitems_overview.html:543
+#: templates/reporting.html:314 templates/workitems_overview.html:466
+#: templates/workitems_overview.html:562
 msgid "Cancel"
 msgstr ""
 
@@ -1338,11 +1358,11 @@ msgstr ""
 msgid "Kommunikation"
 msgstr ""
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:336
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:355
 msgid "Select all"
 msgstr ""
 
-#: templates/generali-dashboard.html:156
+#: templates/generali-dashboard.html:156 templates/workitems_overview.html:339
 msgid "Clear"
 msgstr ""
 
@@ -1555,7 +1575,7 @@ msgstr ""
 #: templates/generali_documents.html:278
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:406
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:425
 msgid "Showing"
 msgstr ""
 
@@ -1566,7 +1586,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:99
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:408
+#: templates/workitems_overview.html:427
 msgid "of"
 msgstr ""
 
@@ -1575,7 +1595,7 @@ msgstr ""
 #: templates/generali_documents.html:282
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:410
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:429
 msgid "results"
 msgstr ""
 
@@ -1802,7 +1822,7 @@ msgstr ""
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:79
 #: templates/invoices.html:124 templates/workitems_overview.html:122
-#: templates/workitems_overview.html:350
+#: templates/workitems_overview.html:369
 msgid "Status"
 msgstr ""
 
@@ -2299,8 +2319,8 @@ msgid "All Statuses"
 msgstr ""
 
 #: templates/admin/logs.html:21 templates/invoices.html:100
-#: templates/workitems_overview.html:311 templates/workitems_overview.html:396
-#: templates/workitems_overview.html:549
+#: templates/workitems_overview.html:311 templates/workitems_overview.html:415
+#: templates/workitems_overview.html:568
 msgid "Export CSV"
 msgstr ""
 
@@ -2733,7 +2753,7 @@ msgid "Add"
 msgstr ""
 
 #: templates/admin/logs.html:140 templates/reporting.html:268
-#: templates/reporting.html:304 templates/workitems_overview.html:556
+#: templates/reporting.html:304 templates/workitems_overview.html:575
 msgid "Close"
 msgstr ""
 
@@ -2997,7 +3017,7 @@ msgstr ""
 msgid "List of all workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:342
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:361
 msgid "Workitem"
 msgstr ""
 
@@ -3005,7 +3025,7 @@ msgstr ""
 msgid "All statuses"
 msgstr ""
 
-#: templates/workitems_overview.html:164 templates/workitems_overview.html:365
+#: templates/workitems_overview.html:164 templates/workitems_overview.html:384
 msgid "Priority"
 msgstr ""
 
@@ -3050,114 +3070,120 @@ msgstr ""
 msgid "Type to search…"
 msgstr ""
 
-#: templates/workitems_overview.html:358
+#: templates/js/_workitems_overview_js.html:1446
+#: templates/js/_workitems_overview_js.html:1477
+#: templates/workitems_overview.html:327
+msgid "Prepared documents"
+msgstr ""
+
+#: templates/workitems_overview.html:377
 msgid "Last movement at"
 msgstr ""
 
-#: templates/workitems_overview.html:370
+#: templates/workitems_overview.html:389
 msgid "Tag"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1575
-#: templates/workitems_overview.html:392
+#: templates/js/_workitems_overview_js.html:1641
+#: templates/workitems_overview.html:411
 msgid "selected"
 msgstr ""
 
-#: templates/workitems_overview.html:400
+#: templates/workitems_overview.html:419
 msgid "Deselect"
 msgstr ""
 
-#: templates/workitems_overview.html:421
+#: templates/workitems_overview.html:440
 msgid "Batch Import"
 msgstr ""
 
-#: templates/workitems_overview.html:427
+#: templates/workitems_overview.html:446
 msgid "Destination Process"
 msgstr ""
 
-#: templates/workitems_overview.html:432
+#: templates/workitems_overview.html:451
 msgid "Choose a process..."
 msgstr ""
 
-#: templates/workitems_overview.html:441
+#: templates/workitems_overview.html:460
 msgid "Please select a valid process."
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:1139
-#: templates/workitems_overview.html:451
+#: templates/workitems_overview.html:470
 msgid "Import File"
 msgstr ""
 
-#: templates/workitems_overview.html:463
+#: templates/workitems_overview.html:482
 msgid "Export Workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:474
+#: templates/workitems_overview.html:493
 msgid "Always included"
 msgstr ""
 
-#: templates/workitems_overview.html:477
+#: templates/workitems_overview.html:496
 msgid "Workitem ID, Status, Stage, Last Movement, Priority, Tags"
 msgstr ""
 
-#: templates/workitems_overview.html:483
+#: templates/workitems_overview.html:502
 msgid "Optional extras"
 msgstr ""
 
-#: templates/workitems_overview.html:488
+#: templates/workitems_overview.html:507
 msgid "Document fields"
 msgstr ""
 
-#: templates/workitems_overview.html:489
+#: templates/workitems_overview.html:508
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:495
+#: templates/workitems_overview.html:514
 msgid "Audit history"
 msgstr ""
 
-#: templates/workitems_overview.html:496
+#: templates/workitems_overview.html:515
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:502
+#: templates/workitems_overview.html:521
 msgid "Images as base64"
 msgstr ""
 
-#: templates/workitems_overview.html:503
+#: templates/workitems_overview.html:522
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:507
+#: templates/workitems_overview.html:526
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
 msgstr ""
 
-#: templates/workitems_overview.html:507
+#: templates/workitems_overview.html:526
 msgid "or higher."
 msgstr ""
 
-#: templates/workitems_overview.html:536
+#: templates/workitems_overview.html:555
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
 msgstr ""
 
-#: templates/workitems_overview.html:562
+#: templates/workitems_overview.html:581
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:2072
-#: templates/workitems_overview.html:565
+#: templates/js/_workitems_overview_js.html:2138
+#: templates/workitems_overview.html:584
 msgid "Show sources"
 msgstr ""
 
-#: templates/workitems_overview.html:573 templates/workitems_overview.html:574
+#: templates/workitems_overview.html:592 templates/workitems_overview.html:593
 msgid "Extracted values"
 msgstr ""
 
@@ -3496,14 +3522,14 @@ msgstr ""
 
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:229
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1840
+#: templates/js/_workitems_overview_js.html:1906
 msgid "Previous"
 msgstr ""
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:230
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1846
+#: templates/js/_workitems_overview_js.html:1912
 #: templates/js/archive/_tour_js.html:17
 msgid "Next"
 msgstr ""
@@ -3869,7 +3895,7 @@ msgstr ""
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1687
+#: templates/js/_workitems_overview_js.html:1753
 msgid "Try adjusting your filters or resetting the search."
 msgstr ""
 
@@ -3942,7 +3968,7 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1560
+#: templates/js/_workitems_overview_js.html:1626
 msgid "Failed to load data. Please try again."
 msgstr ""
 
@@ -4756,17 +4782,17 @@ msgid "Failed to load image "
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:987
-#: templates/js/_workitems_overview_js.html:1701
+#: templates/js/_workitems_overview_js.html:1767
 msgid "High Priority"
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:988
-#: templates/js/_workitems_overview_js.html:1702
+#: templates/js/_workitems_overview_js.html:1768
 msgid "Medium Priority"
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:989
-#: templates/js/_workitems_overview_js.html:1703
+#: templates/js/_workitems_overview_js.html:1769
 msgid "Low Priority"
 msgstr ""
 
@@ -4782,35 +4808,52 @@ msgstr ""
 msgid "No fields available"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1487
+#: templates/js/_workitems_overview_js.html:1457
+#: templates/js/_workitems_overview_js.html:1474
+msgid "Import failed."
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:1464
+msgid "Matched"
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:1464
+msgid "PIDs"
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:1467
+msgid "Some PIDs matched no workitem."
+msgstr ""
+
+#: templates/js/_workitems_overview_js.html:1551
 msgid "primary"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1489
+#: templates/js/_workitems_overview_js.html:1553
 msgid "Some workitems are temporarily unavailable:"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1535
+#: templates/js/_workitems_overview_js.html:1601
 msgid "Loading workitems..."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1603
+#: templates/js/_workitems_overview_js.html:1669
 msgid "selected workitems will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1604
+#: templates/js/_workitems_overview_js.html:1670
 msgid "All workitems matching current filters will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1669
+#: templates/js/_workitems_overview_js.html:1735
 msgid "Export failed. Please try again."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1686
+#: templates/js/_workitems_overview_js.html:1752
 msgid "No workitems found"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:2072
+#: templates/js/_workitems_overview_js.html:2138
 msgid "Hide sources"
 msgstr ""
 
