@@ -6,6 +6,7 @@ import csv
 import io
 import math
 import re
+import secrets
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -28,7 +29,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from ..clients import CLIENTS  # noqa: F401  # used by upload route (Task 6)
+from ..clients import CLIENTS
 from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
 from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache
@@ -55,9 +56,9 @@ from ..workitem_sources import (
     WorkitemFilter,
     fetch_merged_page,
     get_domain_for_workitem,
-    parse_prepared_xlsx,  # noqa: F401  # used by upload route (Task 6)
+    parse_prepared_xlsx,
     resolve_ms02_docfield_ids,
-    resolve_ms02_pid_ids,  # noqa: F401  # used by upload route (Task 6)
+    resolve_ms02_pid_ids,
     single_workitem_tags,
 )
 
@@ -158,6 +159,56 @@ def get_valid_search_columns():
         current_app.logger.error(f"Error fetching search config columns: {e}")
         return []
     finally:
+        if conn:
+            conn.close()
+
+
+# The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
+# EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
+_MS02_PID_SEARCH_FIELD = "pid"
+
+
+def _ms02_target_processes():
+    """The user's MS02-eligible process allow-list, derived the same way
+    _get_workitems_data does (from workitems.filter.process.* perms)."""
+    prefix = "workitems.filter.process."
+    out = []
+    for perm in session.get("permissions", []):
+        if perm.startswith(prefix):
+            parts = perm.split(".")
+            if len(parts) >= 2:
+                out.append(f"{parts[-2]}.{parts[-1]}")
+    return out
+
+
+def _ms02_pid_eav_names(target_processes):
+    """Read the personal-number EAV "Name"(s) from the 'ms02' SearchConfig rows
+    (col_pid) for the given processes. Mirrors the orchestrator's MS02 doc-field
+    SearchConfig read: whitelisted column, ClientCode='ms02', ProcessName IN
+    (target_processes) -- NEVER a hardcoded process key. Returns the list of
+    Names (usually one) or [] when unseeded."""
+    col = f"col_{_MS02_PID_SEARCH_FIELD}"
+    if col not in get_valid_search_columns() or not target_processes:
+        return []
+    conn = None
+    cur = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cur.execute(
+            f"SELECT {col} FROM SearchConfig "
+            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
+            f"AND ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        return [r[0] for r in cur.fetchall() if r[0]]
+    except Exception as e:
+        current_app.logger.error(f"_ms02_pid_eav_names: {e}")
+        return []
+    finally:
+        if cur:
+            cur.close()
         if conn:
             conn.close()
 
@@ -941,6 +992,71 @@ def import_workitems():
     return redirect(url_for("workitems_overview"))
 
 
+@require_permission("workitems.import.preparedaudit")
+def import_prepared_audit():
+    """MS02-only: upload a two-column Excel (PID = personal number, Prepared =
+    informational), resolve each PID through the MS02 doc-field index to its
+    workitem id(s), stash the id-set in the session under a token, and return
+    the token so the list can re-query and display the matched workitems (the
+    user opens each to read the full Octo audit). Display only -- the Prepared
+    column is never reconciled against the audit."""
+    # Defensive parity with import_workitems (require_permission already gates
+    # auth, redirecting unauthenticated users to login; this never 401s a gated
+    # caller -- it is dead-code parity, not a tested path).
+    if "username" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    # MS02-only gate: no MS02 doc-field engine / no ms02 client -> not available.
+    if engine_ms02_docfields_pg is None or "ms02" not in CLIENTS:
+        return jsonify({"error": _("This import is only available for the MS02 client.")}), 400
+
+    if "preparedAuditFile" not in request.files:
+        return jsonify({"error": _("No file part in the request.")}), 400
+    file = request.files["preparedAuditFile"]
+    if not file or file.filename == "":
+        return jsonify({"error": _("No file selected for uploading.")}), 400
+
+    if not is_file_allowed(file.filename, file.stream):
+        return jsonify(
+            {"error": _("Invalid file type. Please upload a valid Excel (.xlsx) file.")}
+        ), 400
+
+    data = file.stream.read()
+    pairs, parse_err = parse_prepared_xlsx(data)
+    if parse_err:
+        return jsonify({"error": parse_err}), 400
+    if not pairs:
+        return jsonify({"error": _("The Excel file has no usable rows.")}), 400
+
+    pids = [pid for pid, _prep in pairs]
+    prepared = {pid: prep for pid, prep in pairs}
+
+    eav_names = _ms02_pid_eav_names(_ms02_target_processes())
+    if not eav_names:
+        return jsonify(
+            {
+                "token": None,
+                "prepared": prepared,
+                "matched": 0,
+                "total": len(pids),
+                "warning": _("The personal-number field is not configured for MS02."),
+            }
+        ), 200
+
+    id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, eav_names, pids)
+    ids = sorted(id_set) if id_set else []
+    token = secrets.token_urlsafe(16)
+    session[f"pid_import:{token}"] = ids
+    return jsonify(
+        {
+            "token": token,
+            "prepared": prepared,
+            "matched": len(ids),
+            "total": len(pids),
+        }
+    ), 200
+
+
 def get_single_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1719,6 +1835,12 @@ def register_routes(app):
         "/import_workitems",
         endpoint="import_workitems",
         view_func=import_workitems,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/import_prepared_audit",
+        endpoint="import_prepared_audit",
+        view_func=import_prepared_audit,
         methods=["POST"],
     )
     app.add_url_rule(

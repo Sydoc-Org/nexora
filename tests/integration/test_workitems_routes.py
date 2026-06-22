@@ -278,3 +278,25 @@ def test_api_docfield_values_ms02_degrades_without_engine(user_client, workitems
 def test_remove_tag_from_workitem_authed_unknown(user_client):
     resp = user_client.delete("/api/workitem/999999/tags/999")
     assert resp.status_code in (200, 404, 500)
+
+
+# ============================ /import_prepared_audit =========================
+
+
+def test_import_prepared_audit_gated(noperm_client):
+    resp = noperm_client.post("/import_prepared_audit")
+    assert resp.status_code == 403
+
+
+def test_import_prepared_audit_no_file(user_client, workitems_all_perms):
+    resp = user_client.post("/import_prepared_audit")
+    # No MS02 engine in CI -> MS02-only gate fires first -> 400 (never 500).
+    assert resp.status_code in (400, 403)
+
+
+def test_import_prepared_audit_rejects_non_xlsx(user_client, workitems_all_perms):
+    import io
+
+    data = {"preparedAuditFile": (io.BytesIO(b"%PDF-1.4 nope"), "x.xlsx")}
+    resp = user_client.post("/import_prepared_audit", data=data, content_type="multipart/form-data")
+    assert resp.status_code in (400, 403)  # rejected, not a 500
