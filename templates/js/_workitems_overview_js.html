@@ -1399,6 +1399,8 @@ async function uploadBatchFiles(files, processName) {
             }
 
 
+            let activePidToken = null;  // null = no PID filter; set = filter active
+
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
 
@@ -1414,6 +1416,68 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
             }
+            const preparedBtn = document.getElementById('preparedAuditBtn');
+            const preparedInput = document.getElementById('preparedAuditFile');
+            if (preparedBtn && preparedInput) {
+                preparedBtn.addEventListener('click', () => {
+                    preparedInput.value = '';
+                    preparedInput.click();
+                });
+                preparedInput.addEventListener('change', () => {
+                    if (preparedInput.files && preparedInput.files.length > 0) {
+                        uploadPreparedAudit(preparedInput.files[0]);
+                    }
+                });
+            }
+            const bannerClear = document.getElementById('preparedAuditBannerClear');
+            if (bannerClear) {
+                bannerClear.addEventListener('click', () => {
+                    activePidToken = null;
+                    const b = document.getElementById('preparedAuditBanner');
+                    if (b) b.classList.add('hidden');
+                    fetchAndUpdateWorkitems(1);  // reload unfiltered
+                });
+            }
+
+            async function uploadPreparedAudit(file) {
+                if (!file) return;
+                const btn = document.getElementById('preparedAuditBtn');
+                if (btn) { btn.disabled = true; btn.innerHTML =
+                    `<i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Prepared documents") }}`; }
+                try {
+                    const formData = new FormData();
+                    formData.append('preparedAuditFile', file);
+                    const resp = await fetch(`${API_PREFIX}import_prepared_audit`, {
+                        headers: {'X-CSRFToken': csrfToken},
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok) {
+                        showNotification(data.error || {{ _("Import failed.") | tojson }}, 'error');
+                        return;
+                    }
+                    activePidToken = data.token || null;
+                    const banner = document.getElementById('preparedAuditBanner');
+                    const text = document.getElementById('preparedAuditBannerText');
+                    if (banner && text) {
+                        let msg = `{{ _("Matched") }} ${data.matched} / ${data.total} {{ _("PIDs") }}.`;
+                        if (data.warning) msg += ' ' + data.warning;
+                        else if (data.matched < data.total)
+                            msg += ' {{ _("Some PIDs matched no workitem.") }}';
+                        text.textContent = msg;
+                        banner.classList.remove('hidden');
+                    }
+                    await fetchAndUpdateWorkitems(1);
+                } catch (e) {
+                    console.error('uploadPreparedAudit', e);
+                    showNotification({{ _("Import failed.") | tojson }}, 'error');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML =
+                        `<i class="fas fa-file-excel mr-2"></i>{{ _("Prepared documents") }}`; }
+                }
+            }
+
             const dropZoneOverlay = document.getElementById('dropZoneOverlay');
             if (dropZoneOverlay) {
                 let dragCounter = 0;
@@ -1523,7 +1587,9 @@ async function uploadBatchFiles(files, processName) {
                     params.append(el.name, el.value);
                 }
                 params.set('page', page);
-                const url = `${API_PREFIX}api/workitems?${params.toString()}`;
+                const fetchParams = new URLSearchParams(params);
+                if (activePidToken) fetchParams.set('pidImport', activePidToken);
+                const url = `${API_PREFIX}api/workitems?${fetchParams.toString()}`;
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
 
