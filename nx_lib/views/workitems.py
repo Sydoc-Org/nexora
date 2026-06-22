@@ -28,6 +28,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from ..clients import CLIENTS  # noqa: F401  # used by upload route (Task 6)
 from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
 from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache
@@ -54,7 +55,9 @@ from ..workitem_sources import (
     WorkitemFilter,
     fetch_merged_page,
     get_domain_for_workitem,
+    parse_prepared_xlsx,  # noqa: F401  # used by upload route (Task 6)
     resolve_ms02_docfield_ids,
+    resolve_ms02_pid_ids,  # noqa: F401  # used by upload route (Task 6)
     single_workitem_tags,
 )
 
@@ -361,6 +364,27 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex2:
                 conn_nex2.close()
 
+    # --- MS02 'prepared documents' PID import allow-set ---
+    # The upload route (import_prepared_audit) resolved the uploaded personal-
+    # number PIDs to MS02 workitem ids and stashed them in the session under a
+    # token; the JS re-queries the list with ?pidImport=<token>. Read the id-set
+    # back out and intersect into ms02_docfield_ids so the SAME PostgresSource
+    # twi."ID" = ANY(%s) seam applies it; force MS02-only by flagging the
+    # default source off. An unknown/expired token resolves to an empty set
+    # (zero MS02 rows) rather than silently dropping the MS02-only gate.
+    pid_import_active = False
+    pid_token = args.get("pidImport", "").strip()
+    if pid_token:
+        pid_import_active = True
+        stored = session.get(f"pid_import:{pid_token}") or []
+        pid_ids = set()
+        for raw in stored:
+            try:
+                pid_ids.add(int(raw))
+            except (TypeError, ValueError):
+                continue
+        ms02_docfield_ids = pid_ids if ms02_docfield_ids is None else ms02_docfield_ids & pid_ids
+
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
     filt = WorkitemFilter(
         process_names=process_params,
@@ -383,6 +407,7 @@ def _get_workitems_data(args, export_all=False):
         docvalues=docvalues or [],
         docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
         ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
+        pid_import_active=pid_import_active,
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
     workitems_list = rows

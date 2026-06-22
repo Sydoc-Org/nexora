@@ -53,6 +53,10 @@ class WorkitemFilter:
     # never lets one source's doc-field match shrink the other source's results.
     # None = no constraint; empty set = force zero rows; populated = ANY(%s).
     ms02_docfield_ids: set | None = None
+    # True when the request is an MS02 'prepared documents' PID import. The
+    # default SQL Server source has no PID concept, so it contributes nothing
+    # during a PID import -- the list shows only the matched MS02 workitems.
+    pid_import_active: bool = False
 
 
 def merge_sorted_rows(row_lists):
@@ -93,6 +97,8 @@ class SqlServerSource:
     def list_workitems(self, filt, offset, limit):
         """Return (rows, total_count). Builds the same WHERE + SQL the original
         _get_workitems_data ran against engine_octo_db."""
+        if filt.pid_import_active:
+            return [], 0  # MS02-only PID import: default source contributes nothing
         where_clauses = [
             f"tp.Name IN ({_qmarks(filt.process_names)})",
             f"tp.ClientName IN ({_qmarks(filt.client_names)})",
