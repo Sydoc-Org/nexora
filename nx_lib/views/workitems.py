@@ -213,6 +213,38 @@ def _ms02_pid_eav_names(target_processes):
             conn.close()
 
 
+def _ms02_pid_processes(target_processes):
+    """The subset of target_processes that have a personal-number EAV "Name"
+    seeded (col_pid) in the 'ms02' SearchConfig -- i.e. the processes the
+    Prepared-documents PID import actually applies to. Sibling of
+    _ms02_pid_eav_names: same WHERE, but returns the ProcessName keys (so the UI
+    can show the upload button only when one of them is the selected filter)."""
+    col = f"col_{_MS02_PID_SEARCH_FIELD}"
+    if col not in get_valid_search_columns() or not target_processes:
+        return []
+    conn = None
+    cur = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cur.execute(
+            f"SELECT ProcessName FROM SearchConfig "
+            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
+            f"AND ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        return [r[0] for r in cur.fetchall() if r[0]]
+    except Exception as e:
+        current_app.logger.error(f"_ms02_pid_processes: {e}")
+        return []
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 def _get_workitems_data(args, export_all=False):
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
@@ -900,6 +932,11 @@ def workitems_overview():
 
         prepared_import_perm = has_permission("workitems.import.preparedaudit")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+        # Processes the Prepared-documents button applies to (have a PID column
+        # seeded for ms02); the button stays hidden until one is the selected filter.
+        pid_processes = (
+            _ms02_pid_processes(allowed_processes) if prepared_import_perm and ms02_active else []
+        )
 
         portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
@@ -936,6 +973,7 @@ def workitems_overview():
             details_add_comment_perm=details_add_comment_perm,
             prepared_import_perm=prepared_import_perm,
             ms02_active=ms02_active,
+            pid_processes=pid_processes,
         )
     except Exception:
         return render_template("500.html")

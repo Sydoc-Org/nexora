@@ -1141,6 +1141,10 @@ async function uploadBatchFiles(files, processName) {
     }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // PID-import filter token. Declared up here (not next to its UI wiring
+            // below) so fetchAndUpdateWorkitems, called on initial load a few lines
+            // down, can read it without a temporal-dead-zone ReferenceError.
+            let activePidToken = null;  // null = no PID filter; set = filter active
             // Init combobox interaction for existing doc field rows
             document.querySelectorAll('.doc-field-combobox').forEach(initDocFieldCombobox);
 
@@ -1399,8 +1403,6 @@ async function uploadBatchFiles(files, processName) {
             }
 
 
-            let activePidToken = null;  // null = no PID filter; set = filter active
-
             const importBtn = document.getElementById('importBtn');
             const importFileInput = document.getElementById('importFile');
 
@@ -1416,6 +1418,18 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
             }
+            // Prepared-documents button: only visible while a process that has a
+            // PID column seeded (server-provided list) is the selected filter.
+            const preparedWrap = document.getElementById('preparedAuditWrap');
+            if (preparedWrap) {
+                const pidProcesses = JSON.parse(preparedWrap.dataset.pidProcesses || '[]');
+                const procSelEl = document.getElementById('prcfW');
+                const syncPreparedBtn = () => preparedWrap.classList.toggle(
+                    'hidden', !pidProcesses.includes(procSelEl?.value || 'all'));
+                procSelEl?.addEventListener('change', syncPreparedBtn);
+                syncPreparedBtn();
+            }
+
             const preparedBtn = document.getElementById('preparedAuditBtn');
             const preparedInput = document.getElementById('preparedAuditFile');
             if (preparedBtn && preparedInput) {

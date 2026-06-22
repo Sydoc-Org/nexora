@@ -318,8 +318,9 @@
               <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
             </button>
           </div>
-          {% if prepared_import_perm and ms02_active %}
-          <div class="inline-block">
+          {% if prepared_import_perm and ms02_active and pid_processes %}
+          <div class="inline-block hidden" id="preparedAuditWrap"
+            data-pid-processes='{{ pid_processes | tojson }}'>
             <input type="file" id="preparedAuditFile" name="preparedAuditFile"
               class="hidden" accept=".xlsx" data-testid="workitems-prepared-audit-file">
             <button type="button" id="preparedAuditBtn"
@@ -331,7 +332,7 @@
         </div>
       </form>
 
-      {% if prepared_import_perm and ms02_active %}
+      {% if prepared_import_perm and ms02_active and pid_processes %}
       <div id="preparedAuditBanner"
         class="hidden mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
         <span id="preparedAuditBannerText"></span>
