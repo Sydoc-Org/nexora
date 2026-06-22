@@ -501,6 +501,54 @@ def parse_prepared_xlsx(data):
                 wb.close()
 
 
+def build_ms02_pid_sql(eav_names):
+    """SQL for resolving a personal-number (PID) list against the MS02 doc-field
+    index. The personal-number EAV "Name"(s) matched against MANY exact
+    "StringValue" PIDs (OR via = ANY). Identifiers are config constants (quoted,
+    never user input); the Name(s) + the PID list are bound %s params -> no
+    injection. This is the INVERSE shape of build_ms02_docfield_sql (the Name
+    IN-set is paired with an exact = ANY PID list, not a single LIKE) -- a
+    sibling, not a reuse of the AND/LIKE doc-field search resolver."""
+    name_ph = ", ".join(["%s"] * len(eav_names))
+    return (
+        f'SELECT DISTINCT "{_MS02_DOCFIELD_ID_COL}" FROM "{_MS02_DOCFIELD_TABLE}" '
+        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
+        f'AND "{_MS02_DOCFIELD_VALUE_COL}" = ANY(%s)'
+    )
+
+
+def resolve_ms02_pid_ids(engine, eav_names, pid_values):
+    """Resolve a list of personal-number PIDs to an MS02 workitem-id allow-set.
+
+    ``eav_names`` is the list of doc-field index "Name" values the PID is stored
+    under (from 'ms02' SearchConfig col_pid rows -- never hard-coded; usually one
+    Name). ``pid_values`` is the deduped PID list from the uploaded Excel.
+    Matching is EXACT (= ANY), not LIKE, since PIDs are precise identifiers. One
+    PID can map to many workitems; the result is the UNION of all matching
+    workitem ids.
+
+    Three-way contract (mirrors resolve_ms02_docfield_ids):
+      * None      -> no constraint (engine absent, no names, no PIDs, or error).
+      * set()     -> no PID matched a workitem -> force zero MS02 rows.
+      * {ids...}  -> union allow-set -> twi."ID" = ANY(%s).
+    Never raises: on error it logs and returns None (no constraint).
+    """
+    if engine is None or not eav_names or not pid_values:
+        return None
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(build_ms02_pid_sql(eav_names), [*eav_names, list(pid_values)])
+        return {row[0] for row in cur.fetchall()}
+    except Exception as e:
+        current_app.logger.error(f"resolve_ms02_pid_ids: {e}")
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def _pgmarks(seq):
     return ", ".join(["%s"] * len(seq))
 

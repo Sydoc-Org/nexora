@@ -555,3 +555,54 @@ def test_resolve_ms02_docfield_ids_skips_pairs_with_no_names(app):
         result = ws.resolve_ms02_docfield_ids(engine, [([], "x"), (["Barcode"], "1")])
     assert result == {7}
     assert cur.execute.call_count == 1
+
+
+def test_build_ms02_pid_sql_uses_quoted_identifiers_and_any():
+    sql = ws.build_ms02_pid_sql(["PID"])
+    assert '"WorkItemID"' in sql
+    assert '"Name" IN (%s)' in sql
+    assert '"StringValue" = ANY(%s)' in sql
+    assert "?" not in sql  # psycopg2 markers, not pyodbc
+    assert "LIKE" not in sql  # exact match, not substring
+
+
+def test_resolve_ms02_pid_ids_engine_none_returns_none():
+    assert ws.resolve_ms02_pid_ids(None, ["PID"], ["1", "2"]) is None
+
+
+def test_resolve_ms02_pid_ids_no_names_returns_none(app):
+    with app.app_context():
+        assert ws.resolve_ms02_pid_ids(MagicMock(), [], ["1"]) is None
+
+
+def test_resolve_ms02_pid_ids_empty_values_returns_none(app):
+    with app.app_context():
+        assert ws.resolve_ms02_pid_ids(MagicMock(), ["PID"], []) is None
+
+
+def test_resolve_ms02_pid_ids_unions_matches(app):
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.return_value = [(10,), (20,), (30,)]
+    with app.app_context():
+        result = ws.resolve_ms02_pid_ids(engine, ["PID"], ["100", "200"])
+    assert result == {10, 20, 30}
+    # params: the name(s) first, then the list of PIDs bound to ANY(%s)
+    args = cur.execute.call_args[0]
+    assert args[1][0] == "PID"
+    assert sorted(args[1][1]) == ["100", "200"]
+
+
+def test_resolve_ms02_pid_ids_no_match_returns_empty_set(app):
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.return_value = []
+    with app.app_context():
+        assert ws.resolve_ms02_pid_ids(engine, ["PID"], ["nope"]) == set()
+
+
+def test_resolve_ms02_pid_ids_query_error_returns_none(app):
+    engine = MagicMock()
+    engine.raw_connection.side_effect = Exception("boom")
+    with app.app_context():
+        assert ws.resolve_ms02_pid_ids(engine, ["PID"], ["1"]) is None
