@@ -1,5 +1,7 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[SearchConfig] DROP CONSTRAINT [DF_SearchConfig_ClientCode]
+GO
 DROP TABLE [dbo].[SearchConfig]
 GO
 SET ANSI_NULLS ON
@@ -44,9 +46,12 @@ CREATE TABLE [dbo].[SearchConfig](
 	[col_archiveboxno] [varchar](100) NULL,
 	[col_targetsystemfilename] [nvarchar](100) NULL,
 	[col_emailfromaddress] [nvarchar](100) NULL,
+	[ClientCode] [nvarchar](50) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ProcessName] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SearchConfig] ADD  CONSTRAINT [DF_SearchConfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
 GO
