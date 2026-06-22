@@ -1036,7 +1036,7 @@ def import_prepared_audit():
         return jsonify(
             {
                 "token": None,
-                "prepared": prepared,
+                "prepared": {},
                 "matched": 0,
                 "total": len(pids),
                 "warning": _("The personal-number field is not configured for MS02."),
@@ -1044,7 +1044,11 @@ def import_prepared_audit():
         ), 200
 
     id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, eav_names, pids)
-    ids = sorted(id_set) if id_set else []
+    if id_set is None:
+        return jsonify(
+            {"error": _("Could not resolve personal numbers against the MS02 index.")}
+        ), 500
+    ids = sorted(id_set)  # set() -> [] is an intentional zero-match, with a valid token
     token = secrets.token_urlsafe(16)
     session[f"pid_import:{token}"] = ids
     return jsonify(
