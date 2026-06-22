@@ -1,3 +1,6 @@
+> **➡️ SUPERSEDED — the plan below was EXECUTED.** The feature is built (all 11 tasks, final review READY TO MERGE). For the current state see
+> `docs/superpowers/handoffs/2026-06-22-ms02-prepared-docs-audit-import-execution-complete.md`.
+
 # Handoff — MS02 prepared-documents Excel import + audit display (plan written, design-only)
 
 **Date:** 2026-06-22 (morning) · **Branch:** `feature/2.5.63` · **74 commits ahead of origin** · **commit-only (remote)**
