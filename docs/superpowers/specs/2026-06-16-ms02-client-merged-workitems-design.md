@@ -171,7 +171,7 @@ The orchestrator pre-resolves each client's matches into a SEPARATE id allow-set
 for the Postgres source). `t_DocumentIndexes` is no longer queried at runtime.
 **Field VALUES** on the detail page / CSV export are unchanged — they still come
 from the per-client domain-routed Octo thin-document API; the doc-field DB is
-search-only.
+search-only. The same EAV index and `engine_ms02_docfields_pg` connection also back the PID-list import (`resolve_ms02_pid_ids` / `/import_prepared_audit`), which resolves personal-number PIDs to workitem ids via exact `= ANY` matching against the `col_pid` `SearchConfig` field (migration `0029`, perm `workitems.import.preparedaudit`).
 
 ---
 

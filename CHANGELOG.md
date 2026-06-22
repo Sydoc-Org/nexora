@@ -17,6 +17,16 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
 
 ### Added
+- **MS02 'prepared documents' Excel import (workitems).** An MS02-only upload
+  control on the workitems list accepts a two-column Excel (`PID` = personal
+  number, `Prepared` = informational) and resolves each PID through the MS02
+  doc-field index (`engine_ms02_docfields_pg`) to its workitem(s), listing them
+  so the full Octo audit can be reviewed. Gated by the new permission
+  `workitems.import.preparedaudit` (migration `0029`). Excel parsing via openpyxl
+  (already a dependency); no reconcile logic — the `Prepared` column is
+  display-only. New `resolve_ms02_pid_ids` resolver + `/import_prepared_audit`
+  route reuse the existing `ms02_docfield_ids` → `twi."ID" = ANY(%s)` seam; the
+  resolved id-set is passed via a session token, never serialized into the URL.
 - `engine_ms02_docfields_pg` (+ `MS02_DOCFIELDS_DB_*` env vars) — a dedicated SQLAlchemy engine for the MS02 doc-field index database, and a source/dialect-aware `dbo.SearchConfig.ClientCode` column (migration `0027`).
 - **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the
   processed/imported KPIs now include MS02, whose processing events live in `public.batchtracking` in
