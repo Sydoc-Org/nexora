@@ -318,8 +318,27 @@
               <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
             </button>
           </div>
+          {% if prepared_import_perm and ms02_active %}
+          <div class="inline-block">
+            <input type="file" id="preparedAuditFile" name="preparedAuditFile"
+              class="hidden" accept=".xlsx" data-testid="workitems-prepared-audit-file">
+            <button type="button" id="preparedAuditBtn"
+              class="nx-btn nx-btn--secondary" data-testid="workitems-prepared-audit">
+              <i class="fas fa-file-excel mr-2"></i>{{ _("Prepared documents") }}
+            </button>
+          </div>
+          {% endif %}
         </div>
       </form>
+
+      {% if prepared_import_perm and ms02_active %}
+      <div id="preparedAuditBanner"
+        class="hidden mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <span id="preparedAuditBannerText"></span>
+        <button type="button" id="preparedAuditBannerClear"
+          class="ml-3 underline">{{ _("Clear") }}</button>
+      </div>
+      {% endif %}
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">
