@@ -72,6 +72,7 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.filter.assignedUser', 'Filter workitems by assigned user'),
     ('workitems.filter.documentfields', 'Filter workitems by document fields'),
     ('workitems.import.workitem', 'Import workitems'),
+    ('workitems.import.preparedaudit', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
     ('invoices.view', 'View invoices'),
     ('invoices.download', 'Download invoices'),
     ('invoices.filter.date', 'Filter invoices by date'),
