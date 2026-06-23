@@ -125,3 +125,172 @@ def test_pid_ids_intersected_with_existing_ms02_docfield_ids(app):
     # {10,20,40} (MS02 docfield pre-resolve) ∩ {10,20,30} (pidImport) == {10,20}
     assert captured["filt"].ms02_docfield_ids == {10, 20}
     assert captured["filt"].pid_import_active is True
+
+
+def test_richer_stash_pid_ids_loaded_correctly(app):
+    """New dict stash: ids key drives the allow-set."""
+    captured = {}
+
+    def fake_fetch(filt, offset, limit):
+        captured["filt"] = filt
+        return [], 0, []
+
+    with app.test_request_context():
+        from flask import session
+
+        session["pid_import:tok_rich"] = {
+            "ids": [10, 20, 30],
+            "pid_to_wids": {"p1": [10]},
+            "payloads": {
+                "p1": {"collected": True, "collected_by": "A", "prepared": False, "prepared_by": ""}
+            },
+        }
+        with (
+            patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
+            patch.object(wv, "has_permission", return_value=True),
+        ):
+            wv._get_workitems_data(MultiDict([("pidImport", "tok_rich")]))
+    assert captured["filt"].ms02_docfield_ids == {10, 20, 30}
+    assert captured["filt"].pid_import_active is True
+
+
+def test_import_payload_merged_onto_matched_row(app):
+    """Rows whose workitemid appears in pid_to_wids get pid_import grafted in."""
+    matched_row = {
+        "workitemid": 10,
+        "status": "Done",
+        "modifiedat": None,
+        "priority": 0,
+        "tags": [],
+        "current_stage": "",
+        "client": "ms02",
+    }
+
+    def fake_fetch(filt, offset, limit):
+        return [matched_row], 1, []
+
+    with app.test_request_context():
+        from flask import session
+
+        session["pid_import:tok_merge"] = {
+            "ids": [10],
+            "pid_to_wids": {"999": [10]},
+            "payloads": {
+                "999": {
+                    "collected": True,
+                    "collected_by": "Guy1",
+                    "prepared": True,
+                    "prepared_by": "Girl2",
+                }
+            },
+        }
+        with (
+            patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
+            patch.object(wv, "has_permission", return_value=True),
+        ):
+            result = wv._get_workitems_data(MultiDict([("pidImport", "tok_merge")]))
+
+    workitems = result["workitems"]
+    assert len(workitems) == 1
+    imp = workitems[0].get("pid_import")
+    assert imp is not None
+    assert imp["collected"] is True
+    assert imp["collected_by"] == "Guy1"
+    assert imp["prepared"] is True
+    assert imp["prepared_by"] == "Girl2"
+
+
+def test_unmatched_pid_becomes_synthetic_row_on_page_1(app):
+    """PIDs with no wids -> synthetic row appended (offset=0 = page 1)."""
+
+    def fake_fetch(filt, offset, limit):
+        return [], 0, []
+
+    with app.test_request_context():
+        from flask import session
+
+        session["pid_import:tok_synthetic"] = {
+            "ids": [],
+            "pid_to_wids": {},  # empty: no PID resolved to any workitem
+            "payloads": {
+                "77777": {
+                    "collected": False,
+                    "collected_by": "",
+                    "prepared": True,
+                    "prepared_by": "Bob",
+                }
+            },
+        }
+        with (
+            patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
+            patch.object(wv, "has_permission", return_value=True),
+        ):
+            result = wv._get_workitems_data(MultiDict([("pidImport", "tok_synthetic")]))
+
+    workitems = result["workitems"]
+    assert len(workitems) == 1
+    syn = workitems[0]
+    assert syn.get("synthetic") is True
+    assert syn["pid"] == "77777"
+    assert syn["pid_import"]["prepared_by"] == "Bob"
+    assert result["pagination"]["totalItems"] == 1
+
+
+def test_synthetic_rows_not_appended_on_page_2(app):
+    """offset > 0 (page 2+): no synthetic rows appended."""
+
+    def fake_fetch(filt, offset, limit):
+        return [], 0, []
+
+    with app.test_request_context():
+        from flask import session
+
+        session["pid_import:tok_p2"] = {
+            "ids": [],
+            "pid_to_wids": {},
+            "payloads": {
+                "55555": {
+                    "collected": False,
+                    "collected_by": "",
+                    "prepared": False,
+                    "prepared_by": "",
+                }
+            },
+        }
+        with (
+            patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
+            patch.object(wv, "has_permission", return_value=True),
+        ):
+            # page=2 -> offset = (2-1)*40 = 40
+            result = wv._get_workitems_data(MultiDict([("pidImport", "tok_p2"), ("page", "2")]))
+
+    assert result["workitems"] == []
+    assert result["pagination"]["totalItems"] == 0
+
+
+def test_legacy_flatlist_stash_degrades_without_synthetics(app):
+    """Legacy bare-list session token (pre-deploy format) still drives the
+    allow-set but yields NO row enrichment and NO synthetic rows."""
+    captured = {}
+
+    def fake_fetch(filt, offset, limit):
+        captured["filt"] = filt
+        return [], 0, []
+
+    with app.test_request_context():
+        from flask import session
+
+        # Legacy format: a bare list, not the new {ids, pid_to_wids, payloads} dict.
+        session["pid_import:tok_legacy"] = [10, 20, 30]
+        with (
+            patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
+            patch.object(wv, "has_permission", return_value=True),
+        ):
+            result = wv._get_workitems_data(MultiDict([("pidImport", "tok_legacy")]))
+
+    # Legacy ids still constrain the MS02 allow-set.
+    assert captured["filt"].ms02_docfield_ids == {10, 20, 30}
+    assert captured["filt"].pid_import_active is True
+    # _pid_import_meta is None for the legacy branch -> no synthetics, no bump.
+    assert result["workitems"] == []
+    assert result["pagination"]["totalItems"] == 0
