@@ -1,3 +1,5 @@
+> **↪ Newer same-date handoff:** `docs/superpowers/handoffs/2026-06-23-docfield-dropdown-clipping-fix.md` (workitems doc-field dropdown hidden-under-table + scrollbar-close fix — separate from this plan). This file's plan worktree is still the `/execute-plan` vessel.
+
 # Handoff — Prepared-docs import: button fix + 5-column Excel + merge/standalone (PLAN ONLY, not executed)
 
 **Date:** 2026-06-23 (midday) · **Branch:** `feature/2.5.63` · **95 commits ahead of origin** · **commit-only (remote)**
