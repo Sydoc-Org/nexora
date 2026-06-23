@@ -1,3 +1,5 @@
+> **↪ SUPERSEDED — newer same-date handoff:** `docs/superpowers/handoffs/2026-06-23-prepared-documents-register-plan.md` (a PLAN to REPLACE this overlay with a persistent standalone register). Resume there with `/execute-plan`.
+
 # Handoff — Prepared-docs import: button fix + 5-col Excel + extra columns (EXECUTION COMPLETE, merged)
 
 **Date:** 2026-06-23 (afternoon) · **Branch:** `feature/2.5.63` (worktree merged back) · **commit-only (remote)**
