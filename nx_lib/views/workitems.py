@@ -543,8 +543,10 @@ def _get_workitems_data(args, export_all=False):
                 row["pid_import"] = payloads.get(pid)
 
         # Append synthetic rows for unmatched PIDs — PAGE 1 ONLY (offset == 0).
-        # On page 2+ the paginator already accounts for them in total_items;
-        # re-appending would inflate the count and duplicate the rows.
+        # Known limitation: synthetic rows live only on page 1; on page 2+ they
+        # are not appended and total_items reverts to the real count (so the
+        # displayed total differs between page 1 and later pages of the same
+        # import). Accepted trade-off — imports are typically a single page.
         if offset == 0:
             matched_pids = set(pid_to_wids.keys())  # all PIDs that have ANY wid match
             for pid, pid_payld in payloads.items():
