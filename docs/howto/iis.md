@@ -28,3 +28,14 @@ installed separately on the prod interpreter after the deploy mirrors the code:
 
   Until installed, `engine_ms02_pg` stays `None` and the MS02 source degrades
   silently (workitems shows only the default SQL Server client; no 500 errors).
+
+- **PDF page rendering** (`nx_lib/octo.py`): the workitem viewer rasterises PDF
+  document media (e.g. MS02 `MobScn` pages) to images via `pypdfium2`, a single
+  binary wheel (no system Poppler/Ghostscript). Install it on SYAPP01 once:
+
+  ```powershell
+  D:\sydoc\tools\py\python.exe -m pip install pypdfium2
+  ```
+
+  Until installed, PDF media degrades silently (`pdf_page_count` returns 0, so
+  PDF-backed pages just don't appear; image/TIFF pages are unaffected).

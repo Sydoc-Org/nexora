@@ -15,10 +15,22 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 
 ### Fixed
 
+- Workitems document images returned 500 / showed "Failed to load image" whenever the Octo document service advertised a media-stream URL on a **bare internal host** (e.g. `https://mobscn02/...`) instead of its gateway FQDN — that host doesn't resolve off the Octo network. `nx_lib/octo.py` now rewrites a media URL whose host has no dot to the configured gateway domain (which serves the same `/api/documentservice/` path), so the stream is fetchable from anywhere the gateway resolves. URLs that already carry an FQDN are left untouched. The proper long-term fix is Octo-side (configure that instance to emit its FQDN), but nexora no longer depends on the internal hostname resolving.
 - Workitems list failed to load for everyone: a temporal-dead-zone `ReferenceError` ("can't access lexical declaration 'activePidToken' before initialization"). The prepared-documents PID-filter token was declared (`let activePidToken`) below the initial `fetchAndUpdateWorkitems()` call, but that function reads it on the first load — so the list (and its document thumbnails) never rendered. The declaration is now hoisted to the top of the page's init scope.
 - Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
 
 ### Added
+- **PDF page rendering in the workitem viewer.** Document media delivered as PDF
+  (e.g. MS02 `MobScn` pages) now renders as page thumbnails + lightbox images
+  like JPEG/PNG/TIFF media. `get_extensions_urls_fields` expands one PDF media
+  into one slot per page (page carried in the URL fragment, `#page=N`), and
+  `api_get_media_raw` rasterises the requested page to JPEG on demand (cached per
+  page) via `pypdfium2` — a single binary wheel, no system Poppler/Ghostscript.
+  New `requirements.txt` entry `pypdfium2`; must be installed on the prod
+  interpreter separately (see `docs/howto/iis.md`). Degrades gracefully when the
+  wheel is absent (PDF pages just don't appear; image/TIFF pages unaffected).
+  Source-highlight overlay alignment for PDF pages is not yet wired (image-media
+  overlays are unchanged).
 - **MS02 'prepared documents' Excel import (workitems).** An MS02-only upload
   control on the workitems list accepts a two-column Excel (`PID` = personal
   number, `Prepared` = informational) and resolves each PID through the MS02

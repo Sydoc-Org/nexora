@@ -83,6 +83,8 @@ prompt-toolkit==3.0.51
     # via nexora
 psycopg2-binary==2.9.12
     # via nexora
+pypdfium2==4.30.0
+    # via nexora
 pygments==2.20.0
     # via rich
 pyodbc==5.2.0

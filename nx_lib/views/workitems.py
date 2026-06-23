@@ -42,6 +42,8 @@ from ..octo import (
     get_extensions_urls_fields,
     get_media,
     get_workitemdata_param,
+    pdf_src_bytes,
+    render_pdf_page_jpeg,
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
@@ -1237,6 +1239,31 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
+
+        if target_extension == ".pdf":
+            # PDF media is expanded one slot per page (page in the URL fragment).
+            # Rasterise the requested page to JPEG, cached per (workitem, slot).
+            _pdf_cache_key = f"media_raw_pdfpage_{workitem_id}_{media_index}"
+            cached_jpeg = cache.get(_pdf_cache_key)
+            if cached_jpeg is not None:
+                return send_file(
+                    io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False
+                )
+            base_url, _sep, frag = target_url.partition("#")
+            page_index = 0
+            if frag.startswith("page="):
+                try:
+                    page_index = int(frag[len("page=") :])
+                except ValueError:
+                    page_index = 0
+            try:
+                pdf_bytes = pdf_src_bytes(base_url, domain)
+                jpeg_bytes = render_pdf_page_jpeg(pdf_bytes, page_index)
+            except Exception as e:
+                print(f"PDF page render failed: {e}")
+                return _("Failed to render PDF page"), 500
+            cache.set(_pdf_cache_key, jpeg_bytes, timeout=3600)
+            return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
 
         if target_extension == ".tif":
             _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
