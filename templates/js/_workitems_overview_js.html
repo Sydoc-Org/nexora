@@ -1145,6 +1145,11 @@ async function uploadBatchFiles(files, processName) {
             // below) so fetchAndUpdateWorkitems, called on initial load a few lines
             // down, can read it without a temporal-dead-zone ReferenceError.
             let activePidToken = null;  // null = no PID filter; set = filter active
+            // Toggle the 4 import columns by toggling 'no-import-cols' on the table.
+            function setImportColsVisible(visible) {
+                const tbl = document.getElementById('workitemsTable');
+                if (tbl) tbl.classList.toggle('no-import-cols', !visible);
+            }
             // Init combobox interaction for existing doc field rows
             document.querySelectorAll('.doc-field-combobox').forEach(initDocFieldCombobox);
 
@@ -1436,12 +1441,7 @@ async function uploadBatchFiles(files, processName) {
             // PID column seeded (server-provided list) is the selected filter.
             const preparedWrap = document.getElementById('preparedAuditWrap');
             if (preparedWrap) {
-                const pidProcesses = JSON.parse(preparedWrap.dataset.pidProcesses || '[]');
-                const procSelEl = document.getElementById('prcfW');
-                const syncPreparedBtn = () => preparedWrap.classList.toggle(
-                    'hidden', !pidProcesses.includes(procSelEl?.value || 'all'));
-                procSelEl?.addEventListener('change', syncPreparedBtn);
-                syncPreparedBtn();
+                preparedWrap.classList.remove('hidden');
             }
 
             const preparedBtn = document.getElementById('preparedAuditBtn');
@@ -1461,6 +1461,7 @@ async function uploadBatchFiles(files, processName) {
             if (bannerClear) {
                 bannerClear.addEventListener('click', () => {
                     activePidToken = null;
+                    setImportColsVisible(false);
                     const b = document.getElementById('preparedAuditBanner');
                     if (b) b.classList.add('hidden');
                     fetchAndUpdateWorkitems(1);  // reload unfiltered
@@ -1486,13 +1487,14 @@ async function uploadBatchFiles(files, processName) {
                         return;
                     }
                     activePidToken = data.token || null;
+                    if (activePidToken) setImportColsVisible(true);
                     const banner = document.getElementById('preparedAuditBanner');
                     const text = document.getElementById('preparedAuditBannerText');
                     if (banner && text) {
+                        const unmatched = data.total - data.matched;
                         let msg = `{{ _("Matched") }} ${data.matched} / ${data.total} {{ _("PIDs") }}.`;
+                        if (unmatched > 0) msg += ` ${unmatched} {{ _("unmatched — shown as synthetic rows.") }}`;
                         if (data.warning) msg += ' ' + data.warning;
-                        else if (data.matched < data.total)
-                            msg += ' {{ _("Some PIDs matched no workitem.") }}';
                         text.textContent = msg;
                         banner.classList.remove('hidden');
                     }
@@ -1766,6 +1768,7 @@ async function uploadBatchFiles(files, processName) {
             }
 
             function renderTable(workitems) {
+                setImportColsVisible(activePidToken !== null);
                 const tbody = document.getElementById('workitemsTbody');
                 tbody.innerHTML = '';
                 allRenderedWorkitems = workitems;
@@ -1773,8 +1776,9 @@ async function uploadBatchFiles(files, processName) {
                 updateBulkBar();
 
                 if (workitems.length === 0) {
+                    const emptyColspan = activePidToken ? 11 : 7;
                     tbody.innerHTML = `
-                        <tr><td colspan="7">
+                        <tr><td colspan="${emptyColspan}">
                             <div class="nx-empty">
                                 <div class="nx-empty__art"><i class="fas fa-inbox"></i></div>
                                 <p class="nx-empty__title">{{ _("No workitems found") }}</p>
@@ -1785,6 +1789,32 @@ async function uploadBatchFiles(files, processName) {
                 }
 
                 workitems.forEach(workitem => {
+                    // --- SYNTHETIC ROW (unmatched PID from import) ---
+                    if (workitem.synthetic) {
+                        const imp = workitem.pid_import || {};
+                        const bool2icon = v => v ? '<i class="fas fa-check text-green-600"></i>' : '<span class="text-gray-400">—</span>';
+                        const str2cell = v => (v && v.trim()) ? v : '<span class="text-gray-400">—</span>';
+                        const syntheticRow = `
+                         <tr class="workitem-row workitem-row--synthetic bg-amber-50 italic" data-status="">
+                            <td class="px-4 py-4 text-center w-10"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-amber-700 nx-mono font-medium">${workitem.pid || '—'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span class="text-xs text-gray-400">{{ _("No match") }}</span>
+                            </td>
+                            <td class="px-6 py-4"></td>
+                            <td class="px-6 py-4"></td>
+                            <td class="px-6 py-4"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${bool2icon(imp.collected)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${str2cell(imp.collected_by)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${bool2icon(imp.prepared)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${str2cell(imp.prepared_by)}</td>
+                            <td class="px-6 py-4"></td>
+                         </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', syntheticRow);
+                        return;
+                    }
+
                     const statusBadge = {
                         'Ready':       '<span class="nx-label nx-label--blue">Ready</span>',
                         'In Progress': '<span class="nx-label nx-label--amber">In Progress</span>',
@@ -1809,6 +1839,22 @@ async function uploadBatchFiles(files, processName) {
                         <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
                         </td>
+                        ${(() => {
+                            const imp = workitem.pid_import || null;
+                            const bool2icon = v => v ? '<i class="fas fa-check text-green-600"></i>' : '<span class="text-gray-400">—</span>';
+                            const str2cell = v => (v && v.trim()) ? v : '<span class="text-gray-400">—</span>';
+                            return imp ? `
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${bool2icon(imp.collected)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${str2cell(imp.collected_by)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${bool2icon(imp.prepared)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center import-col">${str2cell(imp.prepared_by)}</td>
+                            ` : `
+                            <td class="import-col"></td>
+                            <td class="import-col"></td>
+                            <td class="import-col"></td>
+                            <td class="import-col"></td>
+                            `;
+                        })()}
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
                                 data-workitemid="${workitem.workitemid}" data-testid="workitems-details-toggle-${workitem.workitemid}">
@@ -1818,7 +1864,7 @@ async function uploadBatchFiles(files, processName) {
                     </tr>
                     <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
                         data-status="${workitem.status}"
-                        data-current-stage="${workitem.current_stage || ''}"><td colspan="7"></td></tr>
+                        data-current-stage="${workitem.current_stage || ''}"><td colspan="${activePidToken ? 11 : 7}"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
                 });

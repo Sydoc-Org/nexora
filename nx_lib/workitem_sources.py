@@ -474,16 +474,59 @@ def _norm_pid(value):
 
 
 def parse_prepared_xlsx(data):
-    """Parse the MS02 'prepared documents' xlsx into [(pid, prepared_bool), ...].
+    """Parse the MS02 'prepared documents' xlsx into a list of row dicts.
 
-    Two columns by header (case-insensitive, order-agnostic): "PID" and
-    "Prepared". Blanks/blank-PID rows are skipped; PIDs are deduped (first wins);
-    integer-looking PIDs never gain a trailing '.0'; at most _PREPARED_MAX_ROWS
-    data rows are kept. Returns (pairs, error): error is None on success or a
-    short message on a malformed/empty workbook or a missing PID column. NEVER
-    raises -- the route surfaces ``error`` as a flash.
+    Columns (case-insensitive, order-agnostic): PID, Collected (bool),
+    CollectedBy (name), Prepared (bool), PreparedBy (name). The real-world
+    header has a DUPLICATE 'PreparedBy' — the 4th column is the Prepared flag
+    (user typo). The parser resolves duplicates by positional first-wins:
+    first 'PreparedBy' fills the Prepared flag slot; second fills PreparedBy.
+
+    Backward-compatible: a 2-column file (PID + Prepared) returns dicts with
+    collected=False, collected_by='', prepared_by=''.
+
+    Slot assignment: each normalized header key maps to an ordered list of
+    slots it can fill (first unfilled slot wins):
+      'pid'         -> [pid]
+      'collected'   -> [collected_flag]
+      'collectedby' -> [collected_by]
+      'prepared'    -> [prepared_flag]
+      'preparedby'  -> [prepared_flag, prepared_by]   # handles the typo
+
+    Returns (rows, error):
+      rows: list[dict] with keys pid/collected/collected_by/prepared/prepared_by;
+            deduped on pid (first wins); blanks/blank-pid rows skipped;
+            at most _PREPARED_MAX_ROWS rows.
+      error: None on success or a short human message on failure. NEVER raises.
     """
     import openpyxl  # local import: openpyxl is heavyish and only used here
+
+    key_to_slots = {
+        "pid": ["pid"],
+        "collected": ["collected_flag"],
+        "collectedby": ["collected_by"],
+        "prepared": ["prepared_flag"],
+        "preparedby": ["prepared_flag", "prepared_by"],
+    }
+
+    def _norm_header(cell):
+        return (
+            str(cell).strip().lower().replace(" ", "").replace("_", "") if cell is not None else ""
+        )
+
+    def _to_bool(raw):
+        if isinstance(raw, bool):
+            return raw
+        if raw is None:
+            return False
+        return str(raw).strip().lower() in _PREPARED_TRUE
+
+    def _to_str(raw):
+        if raw is None:
+            return ""
+        if isinstance(raw, float) and raw.is_integer():
+            return str(int(raw))
+        return str(raw).strip()
 
     def _log(msg):
         with contextlib.suppress(RuntimeError):  # no app context in unit tests
@@ -497,23 +540,33 @@ def parse_prepared_xlsx(data):
         return [], "Could not read the Excel file."
     try:
         sh = wb.active
-        rows = sh.iter_rows(values_only=True)
+        rows_iter = sh.iter_rows(values_only=True)
         try:
-            header = next(rows)
+            header = next(rows_iter)
         except StopIteration:
             return [], "The Excel file is empty."
-        idx = {}
+
+        # Build slot -> column_index map (first-wins per slot).
+        assigned = {}  # slot -> column index
         for i, cell in enumerate(header or []):
-            key = str(cell).strip().lower() if cell is not None else ""
-            if key in ("pid", "prepared"):
-                idx[key] = i
-        if "pid" not in idx:
+            key = _norm_header(cell)
+            for slot in key_to_slots.get(key, []):
+                if slot not in assigned:
+                    assigned[slot] = i
+                    break
+
+        if "pid" not in assigned:
             return [], "Missing required 'PID' column."
-        pid_i = idx["pid"]
-        prep_i = idx.get("prepared")
+
+        pid_i = assigned["pid"]
+        col_i = assigned.get("collected_flag")
+        cby_i = assigned.get("collected_by")
+        prep_i = assigned.get("prepared_flag")
+        pby_i = assigned.get("prepared_by")
+
         out = []
         seen = set()
-        for row in rows:
+        for row in rows_iter:
             if len(out) >= _PREPARED_MAX_ROWS:
                 break
             if row is None:
@@ -522,14 +575,19 @@ def parse_prepared_xlsx(data):
             if not pid or pid in seen:
                 continue
             seen.add(pid)
-            prepared = False
-            if prep_i is not None and prep_i < len(row):
-                raw = row[prep_i]
-                if isinstance(raw, bool):
-                    prepared = raw
-                elif raw is not None:
-                    prepared = str(raw).strip().lower() in _PREPARED_TRUE
-            out.append((pid, prepared))
+
+            def _cell(idx, row=row):
+                return row[idx] if idx is not None and idx < len(row) else None
+
+            out.append(
+                {
+                    "pid": pid,
+                    "collected": _to_bool(_cell(col_i)),
+                    "collected_by": _to_str(_cell(cby_i)),
+                    "prepared": _to_bool(_cell(prep_i)),
+                    "prepared_by": _to_str(_cell(pby_i)),
+                }
+            )
         return out, None
     except Exception as e:
         _log(f"parse_prepared_xlsx: {e}")
@@ -574,6 +632,69 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
         return ids
     except Exception as e:
         current_app.logger.error(f"resolve_ms02_pid_ids: {e}")
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def resolve_ms02_pid_to_wids(engine, specs, pid_values):
+    """Resolve a list of personal-number PIDs to a per-PID workitem-id map
+    (columnar). Sibling of resolve_ms02_pid_ids; returns the per-PID mapping
+    needed to merge import values onto matched rows and detect unmatched PIDs
+    (for synthetic-row generation).
+
+    Reuses _ms02_columnar_sql / _MS02_IDENT / _as_workitem_ids to avoid
+    duplicating identifier-safety logic. Projects both the pid and id columns
+    by wrapping the columnar SQL: SELECT DISTINCT "pid_col"::text, "id_col".
+
+    Three-way contract (mirrors resolve_ms02_pid_ids):
+      * None        -> no constraint (engine absent, no specs, no PIDs, error).
+      * {}          -> no PID matched any workitem (zero rows from DB).
+      * {pid: [...]}-> matched PIDs only; unmatched PIDs are ABSENT from dict.
+    Never raises: on error it logs and returns None.
+    """
+    if engine is None or not specs or not pid_values:
+        return None
+    pid_list = [str(p) for p in pid_values]
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        result: dict[str, list[int]] = {}
+        for table, id_col, pid_col, time_filter in specs:
+            # Validate identifiers using the same _MS02_IDENT guard as
+            # _ms02_columnar_sql — keeps security logic in one place.
+            if not (table and id_col and pid_col):
+                continue
+            if not (_MS02_IDENT.match(id_col) and _MS02_IDENT.match(pid_col)):
+                current_app.logger.error(
+                    f"resolve_ms02_pid_to_wids: unsafe identifier {(id_col, pid_col)}"
+                )
+                continue
+            sql = (
+                f'SELECT DISTINCT "{pid_col}"::text, "{id_col}"'
+                f" FROM {table}"
+                f' WHERE "{pid_col}"::text = ANY(%s)'
+            )
+            if time_filter:
+                sql += f" AND {time_filter}"
+            cur.execute(sql, [pid_list])
+            for pid_raw, wid_raw in cur.fetchall():
+                pid_str = str(pid_raw) if pid_raw is not None else None
+                if not pid_str:
+                    continue
+                wids = _as_workitem_ids([(wid_raw,)])
+                if not wids:
+                    continue
+                wid = next(iter(wids))
+                if pid_str not in result:
+                    result[pid_str] = []
+                if wid not in result[pid_str]:
+                    result[pid_str].append(wid)
+        return result
+    except Exception as e:
+        current_app.logger.error(f"resolve_ms02_pid_to_wids: {e}")
         return None
     finally:
         if conn is not None:

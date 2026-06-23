@@ -641,3 +641,76 @@ def test_sqlserver_source_suppressed_during_pid_import(app):
         rows, total = src.list_workitems(filt, 0, 40)
     assert rows == []
     assert total == 0
+
+
+# ---------------- resolve_ms02_pid_to_wids (per-PID mapping) ---------------- #
+
+
+def test_resolve_ms02_pid_to_wids_returns_none_on_no_engine(app):
+    from nx_lib.workitem_sources import resolve_ms02_pid_to_wids
+
+    with app.app_context():
+        assert resolve_ms02_pid_to_wids(None, [("t", "id", "pid", None)], ["123"]) is None
+
+
+def test_resolve_ms02_pid_to_wids_returns_none_on_no_specs(app):
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_pid_to_wids
+
+    with app.app_context():
+        assert resolve_ms02_pid_to_wids(MagicMock(), [], ["123"]) is None
+
+
+def test_resolve_ms02_pid_to_wids_returns_none_on_no_pids(app):
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_pid_to_wids
+
+    with app.app_context():
+        assert resolve_ms02_pid_to_wids(MagicMock(), [("t", "id", "pid", None)], []) is None
+
+
+def test_resolve_ms02_pid_to_wids_groups_by_pid(app):
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_pid_to_wids
+
+    mock_cur = MagicMock()
+    mock_cur.fetchall.return_value = [("30111679", "100"), ("30111679", "200"), ("99999", "300")]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cur
+    mock_engine = MagicMock()
+    mock_engine.raw_connection.return_value = mock_conn
+
+    with app.app_context():
+        result = resolve_ms02_pid_to_wids(
+            mock_engine,
+            [("DossierStatistik", "WorkItemID", "DossierNummer", None)],
+            ["30111679", "99999"],
+        )
+    assert result is not None
+    assert set(result["30111679"]) == {100, 200}
+    assert result["99999"] == [300]
+
+
+def test_resolve_ms02_pid_to_wids_empty_dict_on_no_match(app):
+    """Zero DB rows -> empty dict (not None)."""
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_pid_to_wids
+
+    mock_cur = MagicMock()
+    mock_cur.fetchall.return_value = []
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cur
+    mock_engine = MagicMock()
+    mock_engine.raw_connection.return_value = mock_conn
+
+    with app.app_context():
+        result = resolve_ms02_pid_to_wids(
+            mock_engine,
+            [("DossierStatistik", "WorkItemID", "DossierNummer", None)],
+            ["NOTFOUND"],
+        )
+    assert result == {}

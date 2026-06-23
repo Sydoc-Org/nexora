@@ -59,7 +59,7 @@ from ..workitem_sources import (
     get_domain_for_workitem,
     parse_prepared_xlsx,
     resolve_ms02_docfield_ids,
-    resolve_ms02_pid_ids,
+    resolve_ms02_pid_to_wids,
     single_workitem_tags,
 )
 
@@ -477,16 +477,30 @@ def _get_workitems_data(args, export_all=False):
     # default source off. An unknown/expired token resolves to an empty set
     # (zero MS02 rows) rather than silently dropping the MS02-only gate.
     pid_import_active = False
+    _pid_import_meta = None  # {pid_to_wids, payloads} for row enrichment
     pid_token = args.get("pidImport", "").strip()
     if pid_token:
         pid_import_active = True
-        stored = session.get(f"pid_import:{pid_token}") or []
+        stored = session.get(f"pid_import:{pid_token}")
         pid_ids = set()
-        for raw in stored:
-            try:
-                pid_ids.add(int(raw))
-            except (TypeError, ValueError):
-                continue
+        if isinstance(stored, dict):
+            # New richer payload: {ids, pid_to_wids, payloads}
+            for raw in stored.get("ids") or []:
+                try:
+                    pid_ids.add(int(raw))
+                except (TypeError, ValueError):
+                    continue
+            _pid_import_meta = {
+                "pid_to_wids": stored.get("pid_to_wids") or {},
+                "payloads": stored.get("payloads") or {},
+            }
+        elif isinstance(stored, list):
+            # Legacy flat list (pre-deploy session token): degrade gracefully.
+            for raw in stored:
+                try:
+                    pid_ids.add(int(raw))
+                except (TypeError, ValueError):
+                    continue
         ms02_docfield_ids = pid_ids if ms02_docfield_ids is None else ms02_docfield_ids & pid_ids
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
@@ -514,7 +528,45 @@ def _get_workitems_data(args, export_all=False):
         pid_import_active=pid_import_active,
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
-    workitems_list = rows
+    workitems_list = list(rows)
+
+    if pid_import_active and _pid_import_meta:
+        pid_to_wids = _pid_import_meta["pid_to_wids"]
+        payloads = _pid_import_meta["payloads"]
+        # Reverse map: wid_int -> pid_str for O(1) row merge lookup.
+        wid_to_pid = {wid: pid for pid, wids in pid_to_wids.items() for wid in wids}
+        # Merge import values onto matched real rows.
+        for row in workitems_list:
+            wid = row.get("workitemid")
+            if wid is not None and wid in wid_to_pid:
+                pid = wid_to_pid[wid]
+                row["pid_import"] = payloads.get(pid)
+
+        # Append synthetic rows for unmatched PIDs — PAGE 1 ONLY (offset == 0).
+        # Known limitation: synthetic rows live only on page 1; on page 2+ they
+        # are not appended and total_items reverts to the real count (so the
+        # displayed total differs between page 1 and later pages of the same
+        # import). Accepted trade-off — imports are typically a single page.
+        if offset == 0:
+            matched_pids = set(pid_to_wids.keys())  # all PIDs that have ANY wid match
+            for pid, pid_payld in payloads.items():
+                if pid not in matched_pids:
+                    workitems_list.append(
+                        {
+                            "workitemid": None,
+                            "synthetic": True,
+                            "pid": pid,
+                            "pid_import": pid_payld,
+                            "modifiedat": None,
+                            "status": None,
+                            "current_stage": None,
+                            "priority": None,
+                            "tags": [],
+                            "client": None,
+                        }
+                    )
+            n_synthetic = sum(1 for pid in payloads if pid not in matched_pids)
+            total_items += n_synthetic
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
     return {
@@ -703,6 +755,7 @@ def export_workitems_csv():
         current_app.logger.error(f"Export: failed to fetch workitems: {e}")
         return jsonify({"error": "Failed to fetch workitems"}), 500
 
+    workitems = [w for w in workitems if not w.get("synthetic")]
     if specific_ids:
         workitems = [w for w in workitems if w["workitemid"] in specific_ids]
 
@@ -1062,12 +1115,12 @@ def import_workitems():
 
 @require_permission("workitems.import.preparedaudit")
 def import_prepared_audit():
-    """MS02-only: upload a two-column Excel (PID = personal number, Prepared =
-    informational), resolve each PID through the MS02 doc-field index to its
-    workitem id(s), stash the id-set in the session under a token, and return
-    the token so the list can re-query and display the matched workitems (the
-    user opens each to read the full Octo audit). Display only -- the Prepared
-    column is never reconciled against the audit."""
+    """MS02-only: upload a five-column Excel (PID, Collected, CollectedBy,
+    Prepared, PreparedBy), resolve each PID through the MS02 doc-field index to
+    its workitem id(s), stash the id-set and per-PID payload in the session under
+    a token, and return the token so the list can re-query and display the matched
+    workitems (the user opens each to read the full Octo audit). Display only --
+    the Prepared column is never reconciled against the audit."""
     # Defensive parity with import_workitems (require_permission already gates
     # auth, redirecting unauthenticated users to login; this never 401s a gated
     # caller -- it is dead-code parity, not a tested path).
@@ -1096,34 +1149,51 @@ def import_prepared_audit():
     if not pairs:
         return jsonify({"error": _("The Excel file has no usable rows.")}), 400
 
-    pids = [pid for pid, _prep in pairs]
-    prepared = {pid: prep for pid, prep in pairs}
+    pids = [row["pid"] for row in pairs]
+    payloads = {
+        row["pid"]: {
+            "collected": row["collected"],
+            "collected_by": row["collected_by"],
+            "prepared": row["prepared"],
+            "prepared_by": row["prepared_by"],
+        }
+        for row in pairs
+    }
 
     pid_specs = _ms02_pid_specs(_ms02_target_processes())
     if not pid_specs:
         return jsonify(
             {
                 "token": None,
-                "prepared": {},
+                "payloads": {},
                 "matched": 0,
                 "total": len(pids),
                 "warning": _("The personal-number field is not configured for MS02."),
             }
         ), 200
 
-    id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, pid_specs, pids)
-    if id_set is None:
+    pid_to_wids = resolve_ms02_pid_to_wids(engine_ms02_docfields_pg, pid_specs, pids)
+    if pid_to_wids is None:
         return jsonify(
             {"error": _("Could not resolve personal numbers against the MS02 index.")}
         ), 500
-    ids = sorted(id_set)  # set() -> [] is an intentional zero-match, with a valid token
+
+    # Flat union id-set for the WorkitemFilter.ms02_docfield_ids allow-set seam.
+    id_set = {wid for wids in pid_to_wids.values() for wid in wids}
+    matched_pids = {pid for pid, wids in pid_to_wids.items() if wids}
+    ids = sorted(id_set)
+
     token = secrets.token_urlsafe(16)
-    session[f"pid_import:{token}"] = ids
+    session[f"pid_import:{token}"] = {
+        "ids": ids,
+        "pid_to_wids": {pid: list(wids) for pid, wids in pid_to_wids.items()},
+        "payloads": payloads,
+    }
     return jsonify(
         {
             "token": token,
-            "prepared": prepared,
-            "matched": len(ids),
+            "payloads": payloads,
+            "matched": len(matched_pids),
             "total": len(pids),
         }
     ), 200
