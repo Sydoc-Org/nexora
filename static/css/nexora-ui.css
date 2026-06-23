@@ -331,9 +331,14 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 
 @keyframes nx-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.nx-rise { animation: nx-rise 0.32s var(--nx-ease) both; }
-.nx-rise-2 { animation: nx-rise 0.32s var(--nx-ease) 0.05s both; }
-.nx-rise-3 { animation: nx-rise 0.32s var(--nx-ease) 0.10s both; }
+/* fill-mode `backwards` (not `both`): show the from-state during the delay to
+   avoid a flash, but revert to the base `transform: none` after the animation.
+   `both` holds the filled `to` as a resolved identity matrix, which still creates
+   a stacking context -- that trapped overflowing popovers (e.g. the workitems
+   doc-field dropdown) under the next .nx-rise card. */
+.nx-rise { animation: nx-rise 0.32s var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise 0.32s var(--nx-ease) 0.05s backwards; }
+.nx-rise-3 { animation: nx-rise 0.32s var(--nx-ease) 0.10s backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .nx-rise, .nx-rise-2, .nx-rise-3 { animation: none; }

@@ -1269,20 +1269,34 @@ async function uploadBatchFiles(files, processName) {
                     dropdown.classList.remove('hidden');
                 }
 
+                function closeDropdown() {
+                    dropdown.classList.add('hidden');
+                    if (hiddenInput._userSelected) {
+                        // Restore the selected field's label
+                        const opts = hiddenInput._docFieldOptions || [];
+                        const current = opts.find(f => f.value === hiddenInput.value);
+                        if (current) searchInput.value = current.label;
+                    } else {
+                        searchInput.value = '';
+                    }
+                }
+
                 searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
                 searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
-                searchInput.addEventListener('blur', () => {
-                    setTimeout(() => {
-                        dropdown.classList.add('hidden');
-                        if (hiddenInput._userSelected) {
-                            // Restore the selected field's label
-                            const opts = hiddenInput._docFieldOptions || [];
-                            const current = opts.find(f => f.value === hiddenInput.value);
-                            if (current) searchInput.value = current.label;
-                        } else {
-                            searchInput.value = '';
-                        }
-                    }, 150);
+                // Close on a real click outside the combobox -- NOT on blur. Dragging the
+                // dropdown's native scrollbar blurs the input without dispatching a DOM
+                // mousedown we can cancel, so the old blur-based close hid the list
+                // mid-scroll: a long field list looked un-scrollable to mouse users.
+                document.addEventListener('mousedown', (e) => {
+                    if (!dropdown.classList.contains('hidden') && !wrapper.contains(e.target)) {
+                        closeDropdown();
+                    }
+                });
+                // Keyboard: Tab/Escape leaves the combobox -> close. We deliberately do
+                // NOT close on plain blur, so grabbing the dropdown's native scrollbar
+                // (which blurs the input) keeps the list open instead of hiding mid-scroll.
+                searchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' || e.key === 'Tab') closeDropdown();
                 });
             }
 
