@@ -1,3 +1,5 @@
+> **➡ NEWER same-date handoff:** `docs/superpowers/handoffs/2026-06-23-prepared-import-button-extra-fields-plan.md` is the latest (a `/write-plan` session, plan in an open worktree). For a fresh resume use `/reset-session docs/superpowers/handoffs/2026-06-23-prepared-import-button-extra-fields-plan.md`, or `/execute-plan` to build it.
+
 # Handoff — MS02 doc-field search (columnar rewrite) + PDF/media fixes + prepared-docs button
 
 **Date:** 2026-06-23 (afternoon) · **Branch:** `feature/2.5.63` · **94 commits ahead of origin** · **commit-only (remote)**
