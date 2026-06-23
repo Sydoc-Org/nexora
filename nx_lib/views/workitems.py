@@ -59,7 +59,7 @@ from ..workitem_sources import (
     get_domain_for_workitem,
     parse_prepared_xlsx,
     resolve_ms02_docfield_ids,
-    resolve_ms02_pid_ids,
+    resolve_ms02_pid_to_wids,
     single_workitem_tags,
 )
 
@@ -480,9 +480,10 @@ def _get_workitems_data(args, export_all=False):
     pid_token = args.get("pidImport", "").strip()
     if pid_token:
         pid_import_active = True
-        stored = session.get(f"pid_import:{pid_token}") or []
+        stored = session.get(f"pid_import:{pid_token}") or {}
         pid_ids = set()
-        for raw in stored:
+        raw_ids = stored.get("ids", []) if isinstance(stored, dict) else []
+        for raw in raw_ids:
             try:
                 pid_ids.add(int(raw))
             except (TypeError, ValueError):
@@ -1062,12 +1063,12 @@ def import_workitems():
 
 @require_permission("workitems.import.preparedaudit")
 def import_prepared_audit():
-    """MS02-only: upload a two-column Excel (PID = personal number, Prepared =
-    informational), resolve each PID through the MS02 doc-field index to its
-    workitem id(s), stash the id-set in the session under a token, and return
-    the token so the list can re-query and display the matched workitems (the
-    user opens each to read the full Octo audit). Display only -- the Prepared
-    column is never reconciled against the audit."""
+    """MS02-only: upload a five-column Excel (PID, Collected, CollectedBy,
+    Prepared, PreparedBy), resolve each PID through the MS02 doc-field index to
+    its workitem id(s), stash the id-set and per-PID payload in the session under
+    a token, and return the token so the list can re-query and display the matched
+    workitems (the user opens each to read the full Octo audit). Display only --
+    the Prepared column is never reconciled against the audit."""
     # Defensive parity with import_workitems (require_permission already gates
     # auth, redirecting unauthenticated users to login; this never 401s a gated
     # caller -- it is dead-code parity, not a tested path).
@@ -1096,34 +1097,51 @@ def import_prepared_audit():
     if not pairs:
         return jsonify({"error": _("The Excel file has no usable rows.")}), 400
 
-    pids = [pid for pid, _prep in pairs]
-    prepared = {pid: prep for pid, prep in pairs}
+    pids = [row["pid"] for row in pairs]
+    payloads = {
+        row["pid"]: {
+            "collected": row["collected"],
+            "collected_by": row["collected_by"],
+            "prepared": row["prepared"],
+            "prepared_by": row["prepared_by"],
+        }
+        for row in pairs
+    }
 
     pid_specs = _ms02_pid_specs(_ms02_target_processes())
     if not pid_specs:
         return jsonify(
             {
                 "token": None,
-                "prepared": {},
+                "payloads": {},
                 "matched": 0,
                 "total": len(pids),
                 "warning": _("The personal-number field is not configured for MS02."),
             }
         ), 200
 
-    id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, pid_specs, pids)
-    if id_set is None:
+    pid_to_wids = resolve_ms02_pid_to_wids(engine_ms02_docfields_pg, pid_specs, pids)
+    if pid_to_wids is None:
         return jsonify(
             {"error": _("Could not resolve personal numbers against the MS02 index.")}
         ), 500
-    ids = sorted(id_set)  # set() -> [] is an intentional zero-match, with a valid token
+
+    # Flat union id-set for the WorkitemFilter.ms02_docfield_ids allow-set seam.
+    id_set = {wid for wids in pid_to_wids.values() for wid in wids}
+    matched_pids = {pid for pid, wids in pid_to_wids.items() if wids}
+    ids = sorted(id_set)
+
     token = secrets.token_urlsafe(16)
-    session[f"pid_import:{token}"] = ids
+    session[f"pid_import:{token}"] = {
+        "ids": ids,
+        "pid_to_wids": {pid: list(wids) for pid, wids in pid_to_wids.items()},
+        "payloads": payloads,
+    }
     return jsonify(
         {
             "token": token,
-            "prepared": prepared,
-            "matched": len(ids),
+            "payloads": payloads,
+            "matched": len(matched_pids),
             "total": len(pids),
         }
     ), 200

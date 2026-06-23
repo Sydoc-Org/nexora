@@ -18,7 +18,7 @@ def test_pid_ids_intersected_into_ms02_docfield_ids(app):
     with app.test_request_context():
         from flask import session
 
-        session["pid_import:tok123"] = [10, 20, 30]
+        session["pid_import:tok123"] = {"ids": [10, 20, 30], "pid_to_wids": {}, "payloads": {}}
         with (
             patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
             patch.object(wv, "has_permission", return_value=True),
@@ -98,7 +98,11 @@ def test_pid_ids_intersected_with_existing_ms02_docfield_ids(app):
         # A process permission makes target_processes non-empty, which is required
         # for both docfield blocks to execute.
         session["permissions"] = ["workitems.filter.process.foo.bar"]
-        session["pid_import:tok_intersect"] = [10, 20, 30]
+        session["pid_import:tok_intersect"] = {
+            "ids": [10, 20, 30],
+            "pid_to_wids": {},
+            "payloads": {},
+        }
 
         with (
             patch.object(wv, "fetch_merged_page", side_effect=fake_fetch),
