@@ -303,3 +303,31 @@ def test_import_prepared_audit_rejects_non_xlsx(user_client, workitems_all_perms
     # CI has no MS02 engine -> MS02-only gate returns 400 (not 403; perms are all granted)
     assert resp.status_code == 400
     assert "MS02" in (resp.get_json() or {}).get("error", "")
+
+
+def test_prepared_audit_wrap_renders_without_pid_processes(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Button wrapper renders when perm+ms02_active even if pid_processes is empty."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    # The route body uses the view-module-local has_permission binding (imported
+    # in workitems.py), which workitems_all_perms (patches nx_lib.security) does
+    # not reach -- so prepared_import_perm would be False. Patch it here so the
+    # perm gate for the button is satisfied.
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    # Force pid_processes empty regardless of DB contents so the test truly
+    # discriminates the per-process gate (the bug this fix removes).
+    monkeypatch.setattr(wv, "_ms02_pid_processes", lambda *a, **k: [])
+    resp = user_client.get("/workitems")
+    assert resp.status_code == 200
+    # Assert on markers that exist ONLY inside the guarded Jinja blocks --
+    # the bare ids "preparedAuditWrap"/"preparedAuditBanner" also appear as
+    # getElementById literals in the always-rendered JS partial, so they would
+    # not discriminate the guard. data-testid="workitems-prepared-audit" lives
+    # only in the button block; "bg-emerald-50" only in the banner block.
+    assert b'data-testid="workitems-prepared-audit"' in resp.data
+    assert b"bg-emerald-50" in resp.data

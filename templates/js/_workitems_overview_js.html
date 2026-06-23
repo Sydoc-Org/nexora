@@ -1422,12 +1422,7 @@ async function uploadBatchFiles(files, processName) {
             // PID column seeded (server-provided list) is the selected filter.
             const preparedWrap = document.getElementById('preparedAuditWrap');
             if (preparedWrap) {
-                const pidProcesses = JSON.parse(preparedWrap.dataset.pidProcesses || '[]');
-                const procSelEl = document.getElementById('prcfW');
-                const syncPreparedBtn = () => preparedWrap.classList.toggle(
-                    'hidden', !pidProcesses.includes(procSelEl?.value || 'all'));
-                procSelEl?.addEventListener('change', syncPreparedBtn);
-                syncPreparedBtn();
+                preparedWrap.classList.remove('hidden');
             }
 
             const preparedBtn = document.getElementById('preparedAuditBtn');
