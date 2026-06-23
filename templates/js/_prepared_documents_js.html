@@ -1,0 +1,77 @@
+<script>
+  (function () {
+    const API_PREFIX = window.API_PREFIX || "/";
+    const csrfToken = document.getElementById("csrfToken")?.value || "";
+
+    const fileInput = document.getElementById("preparedDocsFile");
+    const uploadBtn = document.getElementById("preparedDocsUploadBtn");
+    const clearBtn = document.getElementById("preparedDocsClearBtn");
+    const notice = document.getElementById("preparedDocsNotice");
+    const noticeText = document.getElementById("preparedDocsNoticeText");
+
+    function showNotice(message, ok) {
+      if (!notice || !noticeText) return;
+      noticeText.textContent = message;
+      notice.classList.remove("hidden");
+      notice.classList.toggle("border-emerald-200", ok);
+      notice.classList.toggle("bg-emerald-50", ok);
+      notice.classList.toggle("text-emerald-800", ok);
+      notice.classList.toggle("border-rose-200", !ok);
+      notice.classList.toggle("bg-rose-50", !ok);
+      notice.classList.toggle("text-rose-800", !ok);
+    }
+
+    uploadBtn?.addEventListener("click", () => fileInput?.click());
+
+    fileInput?.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("preparedAuditFile", file);
+      try {
+        const resp = await fetch(`${API_PREFIX}import_prepared_audit`, {
+          headers: { "X-CSRFToken": csrfToken },
+          method: "POST",
+          body: formData,
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showNotice(data.error || "{{ _('Upload failed.') }}", false);
+          return;
+        }
+        const tmpl = "{{ _('Imported %(total)s rows (%(new)s new, %(updated)s updated).', total='%(total)s', new='%(new)s', updated='%(updated)s') }}";
+        const msg = tmpl
+          .replace("%(total)s", data.total)
+          .replace("%(new)s", data.inserted)
+          .replace("%(updated)s", data.updated);
+        showNotice(msg, true);
+        setTimeout(() => window.location.reload(), 700);
+      } catch (e) {
+        showNotice("{{ _('Upload failed.') }}", false);
+      } finally {
+        fileInput.value = "";
+      }
+    });
+
+    clearBtn?.addEventListener("click", async () => {
+      if (!window.confirm("{{ _('Clear the entire prepared-documents list? This cannot be undone.') }}")) {
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_PREFIX}prepared_documents/clear`, {
+          headers: { "X-CSRFToken": csrfToken },
+          method: "POST",
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showNotice(data.error || "{{ _('Could not clear the list.') }}", false);
+          return;
+        }
+        showNotice("{{ _('Prepared-documents list cleared.') }}", true);
+        setTimeout(() => window.location.reload(), 500);
+      } catch (e) {
+        showNotice("{{ _('Could not clear the list.') }}", false);
+      }
+    });
+  })();
+</script>
