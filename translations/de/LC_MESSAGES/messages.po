@@ -4374,7 +4374,7 @@ msgstr "%(total)s Zeilen importiert (%(new)s neu, %(updated)s aktualisiert)."
 
 #: templates/js/_prepared_documents_js.html:57
 msgid "Clear the entire prepared-documents list? This cannot be undone."
-msgstr "Die gesamte Liste der vorbereiteten Dokumente löschen? Dies kann nicht rükgängig gemacht werden."
+msgstr "Die gesamte Liste der vorbereiteten Dokumente löschen? Dies kann nicht rückgängig gemacht werden."
 
 #: templates/js/_prepared_documents_js.html:67
 #: templates/js/_prepared_documents_js.html:73
