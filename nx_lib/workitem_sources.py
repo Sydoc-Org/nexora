@@ -11,6 +11,7 @@ import octo (document fetching stays in the views).
 import contextlib
 import io
 import json
+import re
 from dataclasses import dataclass, field
 
 import psycopg2.extras
@@ -361,47 +362,72 @@ def resolve_nexora_filter_ids(filt):
 # mirror the runtime t_DocumentIndexes; if the owner confirms different names
 # for THIS database, change them here (one place) -- both the resolver and the
 # autocomplete branch read them.
-_MS02_DOCFIELD_TABLE = "t_DocumentIndexes"
-_MS02_DOCFIELD_ID_COL = "WorkItemID"
-_MS02_DOCFIELD_NAME_COL = "Name"
-_MS02_DOCFIELD_VALUE_COL = "StringValue"
+# Plain SQL identifier (the field/id column names interpolated into MS02 queries
+# come from admin-controlled SearchConfig, but we still validate before quoting).
+_MS02_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def build_ms02_docfield_sql(names):
-    """Per-docfield EAV lookup SQL for the MS02 doc-field index DB.
+def _ms02_id_column(join_condition, alias):
+    """Pull the workitem-id column out of a SearchConfig JoinCondition like
+    ``d.WorkItemID = twi.id`` -- the ``<alias>.<col>`` side. Returns the bare
+    column name ('WorkItemID') or None. The same config row drives the default
+    StatisticsDB path, which derives its id column from JoinCondition the same way."""
+    if not join_condition or not alias:
+        return None
+    for part in re.split(r"\s*=\s*", join_condition.strip()):
+        m = re.match(rf"^{re.escape(alias)}\.(\w+)$", part.strip(), re.IGNORECASE)
+        if m:
+            return m.group(1)
+    return None
 
-    ``names`` is the OR-set of EAV "Name" values one searched docfield maps to.
-    Returns the SQL; the caller binds the ``names`` values then the ILIKE value.
-    Table/column identifiers are config constants (quoted, never user input);
-    the matched values are bound %s params -> no injection.
 
-    The value match uses ``ILIKE`` (case-insensitive): Postgres ``LIKE`` is
-    case-sensitive, whereas the default-client path runs on SQL Server's
-    case-insensitive default collation -- ILIKE keeps MS02 doc-field search
-    behaving the same way (searching "agostinis" finds "Agostinis").
+def _ms02_columnar_sql(table, id_col, field_col, time_filter, value_clause):
+    """Build a columnar MS02 lookup against a per-client statistik table.
+
+    The MS02 doc-field source is NOT an EAV table -- it is a wide table (e.g.
+    ``public."DossierStatistik"``) with one column per field plus a workitem-id
+    column. ``table`` (already schema-qualified/quoted) and ``time_filter`` come
+    verbatim from SearchConfig (admin-controlled, like the default path); the
+    id/field columns are validated as plain identifiers and double-quoted (PG is
+    case-sensitive, so ``WorkItemID`` must be quoted). ``value_clause`` is the
+    bound predicate applied to ``"<field>"::text`` -- ``ILIKE %s`` for search,
+    ``= ANY(%s)`` for a PID list. Returns SQL, or None if an identifier is unsafe.
     """
-    name_ph = ", ".join(["%s"] * len(names))
-    return (
-        f'SELECT DISTINCT "{_MS02_DOCFIELD_ID_COL}" FROM "{_MS02_DOCFIELD_TABLE}" '
-        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
-        f'AND "{_MS02_DOCFIELD_VALUE_COL}" ILIKE %s'
-    )
+    if not (table and id_col and field_col):
+        return None
+    if not (_MS02_IDENT.match(id_col) and _MS02_IDENT.match(field_col)):
+        current_app.logger.error(f"_ms02_columnar_sql: unsafe identifier {(id_col, field_col)}")
+        return None
+    sql = f'SELECT DISTINCT "{id_col}" FROM {table} WHERE "{field_col}"::text {value_clause}'
+    if time_filter:
+        sql += f" AND {time_filter}"
+    return sql
+
+
+def _as_workitem_ids(rows):
+    """Coerce a statistik WorkItemID column (varchar in PG) to the int ids the
+    runtime ``twi."ID"`` allow-set is matched against; non-numeric ids are dropped."""
+    out = set()
+    for row in rows:
+        try:
+            out.add(int(row[0]))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def resolve_ms02_docfield_ids(engine, pairs):
-    """Resolve MS02 doc-field search to a workitem-id allow-set.
+    """Resolve MS02 doc-field search to a workitem-id allow-set (columnar).
 
-    ``pairs`` is ``[(names_list, value), ...]`` -- one entry per searched
-    docfield, where ``names_list`` is the OR-set of EAV "Name" values that
-    docfield maps to (from SearchConfig.col_<field>) and ``value`` is the user's
-    search term. Each docfield matches any of its Names (OR via "Name" IN(...));
-    docfields are AND-intersected.
+    ``pairs`` is ``[(specs, value), ...]`` -- one entry per searched docfield,
+    where ``specs`` is the list of ``(table, id_col, field_col, time_filter)``
+    config rows the docfield maps to (from the 'ms02' SearchConfig rows; usually
+    one). Within a docfield the rows are OR'd; docfields are AND-intersected. The
+    field-column match is case-insensitive (ILIKE), matching the default SQL
+    Server path's collation.
 
-    Three-way contract (mirrors the DEFAULT docfield pre-fetch block in
-    _get_workitems_data -- matching_ids=None -> continue/no-constraint; NOT
-    resolve_nexora_filter_ids, which returns set() on error):
+    Three-way contract (mirrors the DEFAULT docfield pre-fetch block):
       * None      -> no constraint (engine absent, no pairs, or any error).
-                     The page must still render.
       * set()     -> a docfield matched nothing -> force zero MS02 rows.
       * {ids...}  -> intersected allow-set -> twi."ID" = ANY(%s).
     Never raises: on error it logs and returns None (no constraint).
@@ -414,15 +440,17 @@ def resolve_ms02_docfield_ids(engine, pairs):
     try:
         conn = engine.raw_connection()
         cur = conn.cursor()
-        for names, value in pairs:
-            if not names:
-                continue  # docfield with no mapped Name -> no constraint from it
-            sql = build_ms02_docfield_sql(names)
-            cur.execute(sql, [*names, f"%{value}%"])
-            ids = {row[0] for row in cur.fetchall()}
-            if not ids:
+        for specs, value in pairs:
+            field_ids = set()
+            for table, id_col, field_col, time_filter in specs:
+                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, "ILIKE %s")
+                if sql is None:
+                    continue
+                cur.execute(sql, [f"%{value}%"])
+                field_ids |= _as_workitem_ids(cur.fetchall())
+            if not field_ids:
                 return set()  # a docfield matched nothing -> whole result empty
-            result = ids if result is None else (result & ids)
+            result = field_ids if result is None else (result & field_ids)
         return result
     except Exception as e:
         current_app.logger.error(f"resolve_ms02_docfield_ids: {e}")
@@ -512,46 +540,38 @@ def parse_prepared_xlsx(data):
                 wb.close()
 
 
-def build_ms02_pid_sql(eav_names):
-    """SQL for resolving a personal-number (PID) list against the MS02 doc-field
-    index. The personal-number EAV "Name"(s) matched against MANY exact
-    "StringValue" PIDs (OR via = ANY). Identifiers are config constants (quoted,
-    never user input); the Name(s) + the PID list are bound %s params -> no
-    injection. This is the INVERSE shape of build_ms02_docfield_sql (the Name
-    IN-set is paired with an exact = ANY PID list, not a single LIKE) -- a
-    sibling, not a reuse of the AND/LIKE doc-field search resolver."""
-    name_ph = ", ".join(["%s"] * len(eav_names))
-    return (
-        f'SELECT DISTINCT "{_MS02_DOCFIELD_ID_COL}" FROM "{_MS02_DOCFIELD_TABLE}" '
-        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
-        f'AND "{_MS02_DOCFIELD_VALUE_COL}" = ANY(%s)'
-    )
+def resolve_ms02_pid_ids(engine, specs, pid_values):
+    """Resolve a list of personal-number PIDs to an MS02 workitem-id allow-set
+    (columnar).
 
-
-def resolve_ms02_pid_ids(engine, eav_names, pid_values):
-    """Resolve a list of personal-number PIDs to an MS02 workitem-id allow-set.
-
-    ``eav_names`` is the list of doc-field index "Name" values the PID is stored
-    under (from 'ms02' SearchConfig col_pid rows -- never hard-coded; usually one
-    Name). ``pid_values`` is the deduped PID list from the uploaded Excel.
-    Matching is EXACT (= ANY), not LIKE, since PIDs are precise identifiers. One
-    PID can map to many workitems; the result is the UNION of all matching
-    workitem ids.
+    ``specs`` is the list of ``(table, id_col, pid_col, time_filter)`` config rows
+    the PID column maps to (from the 'ms02' SearchConfig col_pid rows -- never
+    hard-coded; usually one). ``pid_values`` is the deduped PID list from the
+    uploaded Excel. Matching is EXACT (``= ANY``), not ILIKE, since PIDs are
+    precise identifiers. One PID can map to many workitems; the result is the
+    UNION across all specs.
 
     Three-way contract (mirrors resolve_ms02_docfield_ids):
-      * None      -> no constraint (engine absent, no names, no PIDs, or error).
+      * None      -> no constraint (engine absent, no specs, no PIDs, or error).
       * set()     -> no PID matched a workitem -> force zero MS02 rows.
       * {ids...}  -> union allow-set -> twi."ID" = ANY(%s).
     Never raises: on error it logs and returns None (no constraint).
     """
-    if engine is None or not eav_names or not pid_values:
+    if engine is None or not specs or not pid_values:
         return None
+    pid_list = [str(p) for p in pid_values]
     conn = None
     try:
         conn = engine.raw_connection()
         cur = conn.cursor()
-        cur.execute(build_ms02_pid_sql(eav_names), [*eav_names, list(pid_values)])
-        return {row[0] for row in cur.fetchall()}
+        ids = set()
+        for table, id_col, pid_col, time_filter in specs:
+            sql = _ms02_columnar_sql(table, id_col, pid_col, time_filter, "= ANY(%s)")
+            if sql is None:
+                continue
+            cur.execute(sql, [pid_list])
+            ids |= _as_workitem_ids(cur.fetchall())
+        return ids
     except Exception as e:
         current_app.logger.error(f"resolve_ms02_pid_ids: {e}")
         return None

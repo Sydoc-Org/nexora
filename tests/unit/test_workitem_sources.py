@@ -420,21 +420,41 @@ def test_total_backlog_count_sums(app, monkeypatch):
         assert ws.total_backlog_count(["P"], ["C"]) == 7
 
 
-# ---------------- MS02 doc-field resolver (Task 5) ---------------- #
+# ---------------- MS02 doc-field resolver (columnar) ---------------- #
+
+# (table, id_col, field_col, time_filter) -- the spec shape the resolver consumes.
+_SPEC = ('public."DossierStatistik"', "WorkItemID", "DossierBarcode", None)
+_PID_SPEC = ('public."DossierStatistik"', "WorkItemID", "DossierNummer", None)
 
 
-def test_build_ms02_docfield_sql_uses_quoted_eav_identifiers():
-    sql = ws.build_ms02_docfield_sql(["Barcode", "Doctype"])
-    # Quoted PascalCase EAV identifiers + psycopg2 %s markers, no '?' marker.
-    assert '"Name" IN (%s, %s)' in sql
-    # ILIKE (case-insensitive) for parity with the default SQL Server path.
-    assert '"StringValue" ILIKE %s' in sql
-    assert "?" not in sql
-    assert '"WorkItemID"' in sql  # selects the workitem id column
+def test_ms02_id_column_parses_join_condition():
+    assert ws._ms02_id_column("d.WorkItemID = twi.id", "d") == "WorkItemID"
+    assert ws._ms02_id_column("twi.id = d.WorkItemID", "d") == "WorkItemID"
+    assert ws._ms02_id_column("", "d") is None
+    assert ws._ms02_id_column("x.Foo = twi.id", "d") is None  # alias mismatch
+
+
+def test_ms02_columnar_sql_quotes_identifiers_and_uses_ilike():
+    sql = ws._ms02_columnar_sql(_SPEC[0], "WorkItemID", "DossierBarcode", None, "ILIKE %s")
+    assert sql == (
+        'SELECT DISTINCT "WorkItemID" FROM public."DossierStatistik" '
+        'WHERE "DossierBarcode"::text ILIKE %s'
+    )
+
+
+def test_ms02_columnar_sql_appends_time_filter():
+    sql = ws._ms02_columnar_sql(_SPEC[0], "WorkItemID", "DossierBarcode", "x > now()", "= ANY(%s)")
+    assert sql.endswith("AND x > now()")
+    assert '"DossierBarcode"::text = ANY(%s)' in sql
+
+
+def test_ms02_columnar_sql_rejects_unsafe_identifier(app):
+    with app.app_context():
+        assert ws._ms02_columnar_sql(_SPEC[0], "WorkItemID", 'bad"; DROP', None, "ILIKE %s") is None
 
 
 def test_resolve_ms02_docfield_ids_engine_none_returns_none():
-    assert ws.resolve_ms02_docfield_ids(None, [(["Barcode"], "123")]) is None
+    assert ws.resolve_ms02_docfield_ids(None, [([_SPEC], "123")]) is None
 
 
 def test_resolve_ms02_docfield_ids_empty_pairs_returns_none():
@@ -447,8 +467,29 @@ def test_resolve_ms02_docfield_ids_intersects_pairs(app):
     # First docfield matches {1,2,3}; second {2,3,4}; AND => {2,3}.
     cur.fetchall.side_effect = [[(1,), (2,), (3,)], [(2,), (3,), (4,)]]
     with app.app_context():
-        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1"), (["Doctype"], "x")])
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1"), ([_SPEC], "x")])
     assert result == {2, 3}
+
+
+def test_resolve_ms02_docfield_ids_ors_specs_within_field(app):
+    # Two specs for ONE docfield are OR'd (union), not intersected.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)], [(2,)]]
+    spec2 = ('public."BatchStatistik"', "WorkItemID", "BatchName", None)
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC, spec2], "1")])
+    assert result == {1, 2}
+
+
+def test_resolve_ms02_docfield_ids_coerces_ids_to_int(app):
+    # Statistik WorkItemID is varchar; the allow-set must be ints (twi."ID").
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[("1",), ("2",), ("bad",)]]  # 'bad' dropped
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1")])
+    assert result == {1, 2}
 
 
 def test_resolve_ms02_docfield_ids_empty_match_forces_empty(app):
@@ -456,7 +497,7 @@ def test_resolve_ms02_docfield_ids_empty_match_forces_empty(app):
     cur = engine.raw_connection.return_value.cursor.return_value
     cur.fetchall.side_effect = [[]]  # a docfield matched nothing
     with app.app_context():
-        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "nope")])
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "nope")])
     assert result == set()
 
 
@@ -464,7 +505,7 @@ def test_resolve_ms02_docfield_ids_query_error_returns_none(app):
     engine = MagicMock()
     engine.raw_connection.side_effect = Exception("boom")
     with app.app_context():
-        assert ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1")]) is None
+        assert ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1")]) is None
 
 
 def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
@@ -542,43 +583,22 @@ def test_resolve_ms02_docfield_ids_later_empty_forces_empty(app):
     cur = engine.raw_connection.return_value.cursor.return_value
     cur.fetchall.side_effect = [[(1,), (2,)], []]
     with app.app_context():
-        result = ws.resolve_ms02_docfield_ids(engine, [(["Barcode"], "1"), (["Doctype"], "nope")])
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1"), ([_SPEC], "nope")])
     assert result == set()
 
 
-def test_resolve_ms02_docfield_ids_skips_pairs_with_no_names(app):
-    # A docfield mapping to no EAV "Name" imposes no constraint from itself; a
-    # later mapped docfield still resolves. Only the mapped pair runs a query.
-    engine = MagicMock()
-    cur = engine.raw_connection.return_value.cursor.return_value
-    cur.fetchall.side_effect = [[(7,)]]
-    with app.app_context():
-        result = ws.resolve_ms02_docfield_ids(engine, [([], "x"), (["Barcode"], "1")])
-    assert result == {7}
-    assert cur.execute.call_count == 1
-
-
-def test_build_ms02_pid_sql_uses_quoted_identifiers_and_any():
-    sql = ws.build_ms02_pid_sql(["PID"])
-    assert '"WorkItemID"' in sql
-    assert '"Name" IN (%s)' in sql
-    assert '"StringValue" = ANY(%s)' in sql
-    assert "?" not in sql  # psycopg2 markers, not pyodbc
-    assert "LIKE" not in sql  # exact match, not substring
-
-
 def test_resolve_ms02_pid_ids_engine_none_returns_none():
-    assert ws.resolve_ms02_pid_ids(None, ["PID"], ["1", "2"]) is None
+    assert ws.resolve_ms02_pid_ids(None, [_PID_SPEC], ["1", "2"]) is None
 
 
-def test_resolve_ms02_pid_ids_no_names_returns_none(app):
+def test_resolve_ms02_pid_ids_no_specs_returns_none(app):
     with app.app_context():
         assert ws.resolve_ms02_pid_ids(MagicMock(), [], ["1"]) is None
 
 
 def test_resolve_ms02_pid_ids_empty_values_returns_none(app):
     with app.app_context():
-        assert ws.resolve_ms02_pid_ids(MagicMock(), ["PID"], []) is None
+        assert ws.resolve_ms02_pid_ids(MagicMock(), [_PID_SPEC], []) is None
 
 
 def test_resolve_ms02_pid_ids_unions_matches(app):
@@ -586,12 +606,11 @@ def test_resolve_ms02_pid_ids_unions_matches(app):
     cur = engine.raw_connection.return_value.cursor.return_value
     cur.fetchall.return_value = [(10,), (20,), (30,)]
     with app.app_context():
-        result = ws.resolve_ms02_pid_ids(engine, ["PID"], ["100", "200"])
+        result = ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["100", "200"])
     assert result == {10, 20, 30}
-    # params: the name(s) first, then the list of PIDs bound to ANY(%s)
+    # the PID list is bound to "<pid_col>"::text = ANY(%s)
     args = cur.execute.call_args[0]
-    assert args[1][0] == "PID"
-    assert sorted(args[1][1]) == ["100", "200"]
+    assert sorted(args[1][0]) == ["100", "200"]
 
 
 def test_resolve_ms02_pid_ids_no_match_returns_empty_set(app):
@@ -599,14 +618,14 @@ def test_resolve_ms02_pid_ids_no_match_returns_empty_set(app):
     cur = engine.raw_connection.return_value.cursor.return_value
     cur.fetchall.return_value = []
     with app.app_context():
-        assert ws.resolve_ms02_pid_ids(engine, ["PID"], ["nope"]) == set()
+        assert ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["nope"]) == set()
 
 
 def test_resolve_ms02_pid_ids_query_error_returns_none(app):
     engine = MagicMock()
     engine.raw_connection.side_effect = Exception("boom")
     with app.app_context():
-        assert ws.resolve_ms02_pid_ids(engine, ["PID"], ["1"]) is None
+        assert ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["1"]) is None
 
 
 def test_sqlserver_source_suppressed_during_pid_import(app):

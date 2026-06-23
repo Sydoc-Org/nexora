@@ -52,10 +52,9 @@ from ..process_helpers import (
 from ..security import has_permission, page_visibility, require_permission
 from ..users import get_all_portal_users, resolve_user_icon_url
 from ..workitem_sources import (
-    _MS02_DOCFIELD_NAME_COL,
-    _MS02_DOCFIELD_TABLE,
-    _MS02_DOCFIELD_VALUE_COL,
+    _MS02_IDENT,
     WorkitemFilter,
+    _ms02_id_column,
     fetch_merged_page,
     get_domain_for_workitem,
     parse_prepared_xlsx,
@@ -183,12 +182,14 @@ def _ms02_target_processes():
     return out
 
 
-def _ms02_pid_eav_names(target_processes):
-    """Read the personal-number EAV "Name"(s) from the 'ms02' SearchConfig rows
-    (col_pid) for the given processes. Mirrors the orchestrator's MS02 doc-field
-    SearchConfig read: whitelisted column, ClientCode='ms02', ProcessName IN
-    (target_processes) -- NEVER a hardcoded process key. Returns the list of
-    Names (usually one) or [] when unseeded."""
+def _ms02_pid_specs(target_processes):
+    """Columnar specs for resolving personal numbers (PIDs) against the MS02
+    statistik table: ``[(table, id_col, pid_col, time_filter), ...]`` read from
+    the 'ms02' SearchConfig col_pid rows for the given processes (whitelisted
+    column, ClientCode='ms02', ProcessName IN (target_processes) -- NEVER a
+    hardcoded process key). ``time_filter`` is None: the PID lookup is an exact
+    match that must surface ALL matching workitems, unbounded by time. Returns []
+    when unseeded."""
     col = f"col_{_MS02_PID_SEARCH_FIELD}"
     if col not in get_valid_search_columns() or not target_processes:
         return []
@@ -199,14 +200,22 @@ def _ms02_pid_eav_names(target_processes):
         cur = conn.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cur.execute(
-            f"SELECT {col} FROM SearchConfig "
+            f"SELECT TableName, TableAlias, JoinCondition, {col} FROM SearchConfig "
             f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
             f"AND ProcessName IN ({placeholders})",
             target_processes,
         )
-        return [r[0] for r in cur.fetchall() if r[0]]
+        specs = []
+        for table_name, alias, join_cond, pid_col in cur.fetchall():
+            if not (table_name and pid_col):
+                continue
+            id_col = _ms02_id_column(join_cond, alias)
+            if not id_col:
+                continue
+            specs.append((table_name, id_col, pid_col, None))
+        return specs
     except Exception as e:
-        current_app.logger.error(f"_ms02_pid_eav_names: {e}")
+        current_app.logger.error(f"_ms02_pid_specs: {e}")
         return []
     finally:
         if cur:
@@ -216,10 +225,10 @@ def _ms02_pid_eav_names(target_processes):
 
 
 def _ms02_pid_processes(target_processes):
-    """The subset of target_processes that have a personal-number EAV "Name"
-    seeded (col_pid) in the 'ms02' SearchConfig -- i.e. the processes the
+    """The subset of target_processes that have a personal-number column
+    (col_pid) mapped in the 'ms02' SearchConfig -- i.e. the processes the
     Prepared-documents PID import actually applies to. Sibling of
-    _ms02_pid_eav_names: same WHERE, but returns the ProcessName keys (so the UI
+    _ms02_pid_specs: same WHERE, but returns the ProcessName keys (so the UI
     can show the upload button only when one of them is the selected filter)."""
     col = f"col_{_MS02_PID_SEARCH_FIELD}"
     if col not in get_valid_search_columns() or not target_processes:
@@ -426,18 +435,28 @@ def _get_workitems_data(args, export_all=False):
                     continue
                 placeholders = ",".join(["?"] * len(target_processes))
                 cursor_nex2.execute(
-                    f"SELECT {target_config_col} FROM SearchConfig "
+                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col} "
+                    f"FROM SearchConfig "
                     f"WHERE {target_config_col} IS NOT NULL "
                     f"AND ClientCode = 'ms02' "
                     f"AND ProcessName IN ({placeholders})",
                     target_processes,
                 )
-                # Each row's col_<field> value IS an EAV "Name" to match. A
-                # docfield mapping to several MS02 rows ORs its Names together.
-                names = [r[0] for r in cursor_nex2.fetchall() if r[0]]
-                if not names:
+                # Each ms02 row maps this docfield to a COLUMN in a wide statistik
+                # table (col_<field> = the column name); build one columnar spec
+                # per row (rows for this docfield are OR'd in the resolver).
+                specs = []
+                for r in cursor_nex2.fetchall():
+                    table_name, alias, join_cond, time_filter, field_col = r
+                    if not (table_name and field_col):
+                        continue
+                    id_col = _ms02_id_column(join_cond, alias)
+                    if not id_col:
+                        continue
+                    specs.append((table_name, id_col, field_col, time_filter))
+                if not specs:
                     continue  # no MS02 mapping for this docfield -> no constraint
-                pairs.append((names, docvalue))
+                pairs.append((specs, docvalue))
             if pairs:
                 ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
         except Exception as e:
@@ -547,17 +566,18 @@ def api_docfield_values():
         if not configs:
             return jsonify([])
 
-        # MS02 (EAV) processes resolve suggestions from the separate doc-field DB,
-        # not [DB_STATISTICS]. A row whose ClientCode='ms02' carries the EAV
-        # "Name" value in col_<field>; query DISTINCT "StringValue" for it.
-        # `SELECT * FROM SearchConfig` already surfaces ClientCode after 0027.
-        ms02_names = [
-            getattr(c, target_col_name)
+        # MS02 processes resolve suggestions from the separate doc-field DB, not
+        # [DB_STATISTICS]. An 'ms02' row carries the COLUMN name in col_<field> of
+        # a wide statistik table (TableName); query DISTINCT values of that column.
+        # `SELECT * FROM SearchConfig` already surfaces ClientCode/TableName.
+        ms02_configs = [
+            c
             for c in configs
             if (getattr(c, "ClientCode", "default") or "default") == "ms02"
             and getattr(c, target_col_name)
+            and c.TableName
         ]
-        if ms02_names:
+        if ms02_configs:
             if engine_ms02_docfields_pg is None:
                 return jsonify([])
             ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
@@ -566,19 +586,22 @@ def api_docfield_values():
                 df_conn = None
                 raw_vals = []
                 try:
-                    name_ph = ",".join(["%s"] * len(ms02_names))
                     df_conn = engine_ms02_docfields_pg.raw_connection()
                     df_cur = df_conn.cursor()
-                    df_cur.execute(
-                        f'SELECT DISTINCT "{_MS02_DOCFIELD_VALUE_COL}" '
-                        f'FROM "{_MS02_DOCFIELD_TABLE}" '
-                        f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
-                        f'AND "{_MS02_DOCFIELD_VALUE_COL}" IS NOT NULL '
-                        f'AND "{_MS02_DOCFIELD_VALUE_COL}" <> %s '
-                        f'ORDER BY "{_MS02_DOCFIELD_VALUE_COL}" LIMIT 500',
-                        [*ms02_names, ""],
-                    )
-                    raw_vals = [r[0] for r in df_cur.fetchall()]
+                    for c in ms02_configs:
+                        col = getattr(c, target_col_name)
+                        if not _MS02_IDENT.match(col):  # defense-in-depth on the column
+                            continue
+                        stf = c.SuggestionTimeFilter
+                        sql = (
+                            f'SELECT DISTINCT "{col}"::text AS v FROM {c.TableName} '
+                            f'WHERE "{col}"::text IS NOT NULL AND "{col}"::text <> %s'
+                        )
+                        if stf:
+                            sql += f" AND {stf}"
+                        sql += " ORDER BY v LIMIT 500"
+                        df_cur.execute(sql, [""])
+                        raw_vals.extend(r[0] for r in df_cur.fetchall())
                     df_cur.close()
                 except Exception as e:
                     current_app.logger.error(f"/api/docfield_values ms02 error: {e}")
@@ -1076,8 +1099,8 @@ def import_prepared_audit():
     pids = [pid for pid, _prep in pairs]
     prepared = {pid: prep for pid, prep in pairs}
 
-    eav_names = _ms02_pid_eav_names(_ms02_target_processes())
-    if not eav_names:
+    pid_specs = _ms02_pid_specs(_ms02_target_processes())
+    if not pid_specs:
         return jsonify(
             {
                 "token": None,
@@ -1088,7 +1111,7 @@ def import_prepared_audit():
             }
         ), 200
 
-    id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, eav_names, pids)
+    id_set = resolve_ms02_pid_ids(engine_ms02_docfields_pg, pid_specs, pids)
     if id_set is None:
         return jsonify(
             {"error": _("Could not resolve personal numbers against the MS02 index.")}

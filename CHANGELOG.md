@@ -10,10 +10,20 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 
 ### Changed
 
-- MS02 doc-field search value matching is now **case-insensitive** (`ILIKE`
-  instead of `LIKE`), matching the default-client path which runs on SQL
-  Server's case-insensitive collation. Postgres `LIKE` is case-sensitive, so
-  searching e.g. "agostinis" previously missed "Agostinis".
+- **MS02 doc-field search reworked from EAV to columnar.** The MS02 doc-field
+  source is not an EAV table (`t_DocumentIndexes` `"Name"`/`"StringValue"`, the
+  `0027` assumption) — it is a wide per-process *statistik* table
+  (`public."DossierStatistik"`) with one column per field plus a `WorkItemID`
+  column. `resolve_ms02_docfield_ids` / `resolve_ms02_pid_ids` and the
+  `api_docfield_values` autocomplete now run a **columnar** query
+  (`SELECT DISTINCT "WorkItemID" FROM <TableName> WHERE "<col>"::text ILIKE %s`,
+  AND-intersected across fields), reading `TableName`/`TableAlias`/`JoinCondition`
+  from SearchConfig exactly like the default StatisticsDB path. Value matching is
+  case-insensitive (`ILIKE`, parity with SQL Server's collation); `'ms02'`
+  SearchConfig rows carry Postgres-syntax `TimeFilter`s. Migration `0030`
+  configures `sydoc.05_PDBS` (`ClientCode='ms02'`, the column mappings, the PG
+  time filters, the `IndexFieldMappings` + `search_field_labels` seeds). Without
+  it the row stayed `ClientCode='default'` and was (wrongly) sent to SQL Server.
 - Workitems list: the MS02 "Prepared documents" upload button (and its banner) now appear **only when the selected process filter is one the PID import actually applies to** — i.e. a process that has a personal-number column (`col_pid`) seeded in its `ms02` `SearchConfig` row. On "All Processes" or any other process the button is hidden. The eligible-process list is computed server-side (`_ms02_pid_processes`) and the button is toggled client-side as the process filter changes; no hardcoded process key.
 - MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
 
