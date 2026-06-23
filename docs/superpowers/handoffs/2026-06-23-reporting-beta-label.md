@@ -1,3 +1,5 @@
+> **➡ NEWER same-date handoff:** `docs/superpowers/handoffs/2026-06-23-ms02-docfield-columnar-pdf-media.md` is the latest. The "concurrent uncommitted MS02 WIP" flagged below is that session's work, now committed (`1fa8437`). For a fresh resume use `/reset-session docs/superpowers/handoffs/2026-06-23-ms02-docfield-columnar-pdf-media.md`.
+
 # Handoff — "Beta" label on the Reporting page (SHIPPED, merged to feature/2.5.63)
 
 **Date:** 2026-06-23 (morning) · **Branch:** `feature/2.5.63` · **92 commits ahead of origin** · **commit-only (remote)**
