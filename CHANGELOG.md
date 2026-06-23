@@ -25,6 +25,9 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   time filters, the `IndexFieldMappings` + `search_field_labels` seeds). Without
   it the row stayed `ClientCode='default'` and was (wrongly) sent to SQL Server.
 - Workitems list: the MS02 "Prepared documents" upload button is now visible whenever the user holds `workitems.import.preparedaudit` AND MS02 is active — decoupled from the selected process filter. Previously the per-process JS gate (`syncPreparedBtn`) kept the button hidden on "All Processes" (the default filter), so it was effectively never visible. The gate is removed; both Jinja guards updated.
+- The MS02 prepared-documents upload on the workitems page now links to the new
+  Prepared Documents register page instead of running a transient
+  `?pidImport=<token>` overlay over the list.
 - MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
 
 ### Fixed
@@ -34,6 +37,14 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 - Workitems document images returned 500 / showed "Failed to load image" whenever the Octo document service advertised a media-stream URL on a **bare internal host** (e.g. `https://mobscn02/...`) instead of its gateway FQDN — that host doesn't resolve off the Octo network. `nx_lib/octo.py` now rewrites a media URL whose host has no dot to the configured gateway domain (which serves the same `/api/documentservice/` path), so the stream is fetchable from anywhere the gateway resolves. URLs that already carry an FQDN are left untouched. The proper long-term fix is Octo-side (configure that instance to emit its FQDN), but nexora no longer depends on the internal hostname resolving.
 - Workitems list failed to load for everyone: a temporal-dead-zone `ReferenceError` ("can't access lexical declaration 'activePidToken' before initialization"). The prepared-documents PID-filter token was declared (`let activePidToken`) below the initial `fetchAndUpdateWorkitems()` call, but that function reads it on the first load — so the list (and its document thumbnails) never rendered. The declaration is now hoisted to the top of the page's init scope.
 - Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
+
+### Removed
+- The MS02 prepared-documents session-overlay model: the `pid_import:<token>`
+  session stash, the `?pidImport=` read-back path (`pid_import_active` /
+  `_pid_import_meta`), the row-merge + page-1-only synthetic-row append in
+  `_get_workitems_data`, the CSV synthetic guard, and the
+  `WorkitemFilter.pid_import_active` field with the `SqlServerSource`
+  short-circuit. Superseded by the persistent `dbo.PreparedDocuments` register.
 
 ### Added
 - **MS02 on the remaining two dashboard charts.** The "documents per hour" and "average processing time" charts now include MS02 alongside the default client (the processed/imported KPIs and "processed over time" already did). Both read the MS02 table + date columns from the `'ms02'` `Statconfig` row (`public."DossierStatistik"`): hourly buckets by `EXTRACT(HOUR FROM DatumInTempExport)`; avg-processing-time by `EXTRACT(EPOCH FROM (DatumInTempExport - ImportDate))`, contributing one client-level average weighted equally with the default bucket (the same mean-of-means the default path already applies across its processes). All four MS02 stat branches now share one `_ms02_stat_rows` helper for connection handling + error swallowing, and read their source from `Statconfig` rather than hardcoding a table name.
@@ -48,7 +59,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   wheel is absent (PDF pages just don't appear; image/TIFF pages unaffected).
   Source-highlight overlay alignment for PDF pages is not yet wired (image-media
   overlays are unchanged).
-- **MS02 'prepared documents' Excel import — extended to 5-column format.** The Excel now accepts PID, Collected (0/1 flag), CollectedBy (name), Prepared (0/1 flag), PreparedBy (name) — tolerates the duplicate 'PreparedBy' header typo (4th col = Prepared flag; 5th = PreparedBy name) via positional first-wins slot assignment. Four extra columns (Collected / Collected by / Prepared / Prepared by) appear in the workitems table during an active import. Matched PIDs merge imported values onto existing rows; unmatched PIDs appear as synthetic rows (amber italic, no audit link). Session payload changed from a flat id-list to `{ids, pid_to_wids, payloads}`. New `resolve_ms02_pid_to_wids` per-PID map resolver. Gated by `workitems.import.preparedaudit` (migration `0029`).
+- **MS02 "Prepared Documents" standalone register.** The MS02 prepared-documents
+  Excel intake now persists in its own DB-backed register on a dedicated page
+  (`GET /prepared_documents`) instead of a transient session filter over the
+  workitems list. Accumulating, upsert-by-PID (one row per personal number;
+  re-uploading a PID updates its row), shared across all MS02 users (`UploadedBy`
+  is an audit stamp, not a visibility scope), read-only with a clear-whole-list
+  action for v1. Columns: PID, Collected, Collected by, Prepared, Prepared by,
+  plus a live (non-stored) Octo cross-reference status ("In Octo" + open-workitem
+  link when the PID resolves through the MS02 doc-field index, dash otherwise).
+  Real DB pagination (OFFSET/FETCH). Backed by new table `dbo.PreparedDocuments`
+  (migration `0033`). Gated by the existing `workitems.import.preparedaudit`
+  permission AND `ms02_active` (no new permission).
 - `engine_ms02_docfields_pg` (+ `MS02_DOCFIELDS_DB_*` env vars) — a dedicated SQLAlchemy engine for the MS02 doc-field index database, and a source/dialect-aware `dbo.SearchConfig.ClientCode` column (migration `0027`).
 - **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the
   processed/imported KPIs now include MS02, whose processing events live in `public."DossierStatistik"` in
