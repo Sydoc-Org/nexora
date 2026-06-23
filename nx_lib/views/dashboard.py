@@ -37,18 +37,60 @@ def make_cache_key(*args, **kwargs):
 
 
 def _split_stat_configs(configs):
-    """Partition Statconfig rows by serving client. Returns (default_rows, has_ms02).
+    """Partition Statconfig rows by serving client. Returns (default_rows, ms02_rows).
     Rows with a blank/missing ClientCode count as 'default' (back-compat with
-    pre-0024 data). MS02 stats are not per-process, so we only need a flag."""
+    pre-0024 data)."""
     default_rows = []
-    has_ms02 = False
+    ms02_rows = []
     for r in configs:
         code = getattr(r, "ClientCode", None) or "default"
         if code == "ms02":
-            has_ms02 = True
+            ms02_rows.append(r)
         else:
             default_rows.append(r)
-    return default_rows, has_ms02
+    return default_rows, ms02_rows
+
+
+def _ms02_source(ms02_rows):
+    """Resolve the single MS02 stats source from its Statconfig row(s).
+
+    Returns (table, export_expr, import_expr) or None. MS02 rows all point at the
+    same table (no per-process split), so we dedupe to the first row. TableName is
+    used verbatim (already schema-qualified, e.g. public."DossierStatistik"); the
+    column names are admin-controlled Statconfig values, quoted as Postgres
+    identifiers because they are PascalCase. The old hardcoded
+    'public.batchtracking'/'datuminexport' literals never existed in the MS02 DB."""
+    if not ms02_rows:
+        return None
+    r = ms02_rows[0]
+
+    def q(col):
+        return '"' + str(col).replace('"', '""') + '"'
+
+    return r.TableName, q(r.ExportColumn), q(r.ImportColumn)
+
+
+def _ms02_stat_rows(sql):
+    """Run a read-only query on the MS02 stats engine; return rows, or [] if the
+    engine is unconfigured/unreachable or the query errors. Centralises the
+    connection handling + error swallowing for the dashboard's MS02 branches: a
+    failure here must never break the default-client numbers, so it logs and
+    yields no rows. MS02 Statconfig conditions (additionalCondition) are
+    Postgres-syntax and currently NULL, so they are not applied here.
+    # ponytail: no per-call additionalCondition; add when an MS02 row needs one."""
+    if engine_ms02_stats_pg is None:
+        return []
+    try:
+        mconn = engine_ms02_stats_pg.raw_connection()
+        try:
+            mcur = mconn.cursor()
+            mcur.execute(sql)
+            return mcur.fetchall()
+        finally:
+            mconn.close()
+    except Exception as e:
+        current_app.logger.error(f"ms02 dashboard stats query failed: {e}")
+        return []
 
 
 DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
@@ -302,7 +344,7 @@ def dashboard_processed_over_time():
 
         placeholders = ",".join(["?"] * len(target_processes))
         config_query = f"""
-            SELECT ProcessName, TableName, ExportColumn, additionalCondition, ClientCode
+            SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode
             FROM Statconfig
             WHERE ProcessName IN ({placeholders})
         """
@@ -314,7 +356,7 @@ def dashboard_processed_over_time():
         if not configs:
             return jsonify({"labels": [], "data": []})
 
-        default_configs, has_ms02 = _split_stat_configs(configs)
+        default_configs, ms02_rows = _split_stat_configs(configs)
 
         sub_queries = []
         for row in default_configs:
@@ -345,23 +387,16 @@ def dashboard_processed_over_time():
             conn.close()
             conn = None
 
-        if has_ms02 and engine_ms02_stats_pg is not None:
-            try:
-                mconn = engine_ms02_stats_pg.raw_connection()
-                try:
-                    mcur = mconn.cursor()
-                    mcur.execute(
-                        "SELECT datuminexport::date AS d, COUNT(*) AS c "
-                        "FROM public.batchtracking "
-                        "WHERE datuminexport >= CURRENT_DATE - 14 "
-                        "GROUP BY datuminexport::date"
-                    )
-                    for d, c in mcur.fetchall():
-                        counts[d] = counts.get(d, 0) + c
-                finally:
-                    mconn.close()
-            except Exception as e:
-                current_app.logger.error(f"processed_over_time ms02 stats failed: {e}")
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, _imp = ms02_src
+            for d, c in _ms02_stat_rows(
+                f"SELECT {exp}::date AS d, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {exp} >= CURRENT_DATE - 14 "
+                f"GROUP BY {exp}::date"
+            ):
+                counts[d] = counts.get(d, 0) + c
 
         sorted_dates = sorted(counts.keys())
         return jsonify({"labels": sorted_dates, "data": [counts[d] for d in sorted_dates]})
@@ -420,7 +455,7 @@ def dashboard_kpi_stats():
         )
         configs = cursor_nex.fetchall()
 
-        default_configs, has_ms02 = _split_stat_configs(configs)
+        default_configs, ms02_rows = _split_stat_configs(configs)
 
         if default_configs:
             sub_queries = []
@@ -450,25 +485,18 @@ def dashboard_kpi_stats():
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
 
-        if has_ms02 and engine_ms02_stats_pg is not None:
-            try:
-                mconn = engine_ms02_stats_pg.raw_connection()
-                try:
-                    mcur = mconn.cursor()
-                    mcur.execute(
-                        "SELECT "
-                        "COUNT(*) FILTER (WHERE datuminexport::date = CURRENT_DATE), "
-                        "COUNT(*) FILTER (WHERE datumimportiert::date = CURRENT_DATE) "
-                        "FROM public.batchtracking"
-                    )
-                    mrow = mcur.fetchone()
-                    if mrow:
-                        processed_today += mrow[0] or 0
-                        imported_today += mrow[1] or 0
-                finally:
-                    mconn.close()
-            except Exception as e:
-                current_app.logger.error(f"kpi_stats ms02 stats failed: {e}")
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, imp = ms02_src
+            mrows = _ms02_stat_rows(
+                f"SELECT "
+                f"COUNT(*) FILTER (WHERE {exp}::date = CURRENT_DATE), "
+                f"COUNT(*) FILTER (WHERE {imp}::date = CURRENT_DATE) "
+                f"FROM {tbl}"
+            )
+            if mrows:
+                processed_today += mrows[0][0] or 0
+                imported_today += mrows[0][1] or 0
 
         if target_processes:
             proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
@@ -529,7 +557,7 @@ def dashboard_hourly_stats():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
@@ -537,8 +565,10 @@ def dashboard_hourly_stats():
         if not configs:
             return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
             sub_queries.append(f"""
                 SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
@@ -561,6 +591,17 @@ def dashboard_hourly_stats():
             cursor_stat.execute(full_query)
             for row in cursor_stat.fetchall():
                 hourly[row.h] = hourly.get(row.h, 0) + row.total
+
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, _imp = ms02_src
+            for h, c in _ms02_stat_rows(
+                f"SELECT EXTRACT(HOUR FROM {exp})::int AS h, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {exp}::date = CURRENT_DATE "
+                f"GROUP BY EXTRACT(HOUR FROM {exp})"
+            ):
+                hourly[int(h)] = hourly.get(int(h), 0) + c
 
         return jsonify(
             {
@@ -615,13 +656,15 @@ def dashboard_avg_processing_time():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
 
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             if not row.ImportColumn:
                 continue
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -648,6 +691,21 @@ def dashboard_avg_processing_time():
             row = cursor_stat.fetchone()
             if row and row[0] is not None:
                 avg_values.append(row[0])
+
+        # MS02 contributes one client-level average (export - import seconds),
+        # weighted equally with the default bucket — same mean-of-means the
+        # default path already applies across its processes.
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, imp = ms02_src
+            mrows = _ms02_stat_rows(
+                f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
+                f"FROM {tbl} "
+                f"WHERE {exp}::date = CURRENT_DATE "
+                f"AND {imp} IS NOT NULL AND {exp} > {imp}"
+            )
+            if mrows and mrows[0][0] is not None:
+                avg_values.append(float(mrows[0][0]))
 
         if not avg_values:
             return jsonify({"avg_minutes": None, "avg_display": "—"})
