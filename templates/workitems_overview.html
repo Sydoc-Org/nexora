@@ -319,26 +319,13 @@
             </button>
           </div>
           {% if prepared_import_perm and ms02_active %}
-          <div class="inline-block hidden" id="preparedAuditWrap">
-            <input type="file" id="preparedAuditFile" name="preparedAuditFile"
-              class="hidden" accept=".xlsx" data-testid="workitems-prepared-audit-file">
-            <button type="button" id="preparedAuditBtn"
-              class="nx-btn nx-btn--secondary" data-testid="workitems-prepared-audit">
-              <i class="fas fa-file-excel mr-2"></i>{{ _("Prepared documents") }}
-            </button>
-          </div>
+          <a href="{{ url_for('prepared_documents') }}"
+            class="nx-btn nx-btn--secondary" data-testid="prepared-docs-link">
+            <i class="fas fa-file-excel mr-2"></i>{{ _("Prepared documents") }}
+          </a>
           {% endif %}
         </div>
       </form>
-
-      {% if prepared_import_perm and ms02_active %}
-      <div id="preparedAuditBanner"
-        class="hidden mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        <span id="preparedAuditBannerText"></span>
-        <button type="button" id="preparedAuditBannerClear"
-          class="ml-3 underline">{{ _("Clear") }}</button>
-      </div>
-      {% endif %}
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">
@@ -346,10 +333,7 @@
             class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm"
             style="display: none;">
           </div>
-          <style>
-            #workitemsTable.no-import-cols .import-col { display: none !important; }
-          </style>
-          <table class="nx-table no-import-cols" id="workitemsTable">
+          <table class="nx-table" id="workitemsTable">
             <thead>
               <tr>
                 <th scope="col" class="px-4 py-4 w-10 text-center">
@@ -391,18 +375,6 @@
                   <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <i class="fas fa-tag" title="{{_('Tag')}}"></i>
                   </span>
-                </th>
-                <th scope="col" class="import-col px-6 py-3 text-center whitespace-nowrap">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Collected") }}</span>
-                </th>
-                <th scope="col" class="import-col px-6 py-3 text-center whitespace-nowrap">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Collected by") }}</span>
-                </th>
-                <th scope="col" class="import-col px-6 py-3 text-center whitespace-nowrap">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Prepared") }}</span>
-                </th>
-                <th scope="col" class="import-col px-6 py-3 text-center whitespace-nowrap">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Prepared by") }}</span>
                 </th>
                 <th scope="col" class="relative px-6 py-3">
                   <span class="sr-only">Details</span>
