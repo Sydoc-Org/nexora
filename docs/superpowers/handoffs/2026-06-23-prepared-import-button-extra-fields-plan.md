@@ -1,4 +1,4 @@
-> **↪ Newer same-date handoff:** `docs/superpowers/handoffs/2026-06-23-docfield-dropdown-clipping-fix.md` (workitems doc-field dropdown hidden-under-table + scrollbar-close fix — separate from this plan). This file's plan worktree is still the `/execute-plan` vessel.
+> **↪ EXECUTED — see** `docs/superpowers/handoffs/2026-06-23-prepared-import-button-extra-fields-execution-complete.md`. This plan was run via `/execute-plan` (all 8 tasks, whole-branch review = ready to merge) and **merged into `feature/2.5.63`**; the plan worktree was removed. (Also same-date but unrelated: `docs/superpowers/handoffs/2026-06-23-docfield-dropdown-clipping-fix.md`.)
 
 # Handoff — Prepared-docs import: button fix + 5-column Excel + merge/standalone (PLAN ONLY, not executed)
 
