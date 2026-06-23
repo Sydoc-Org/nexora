@@ -427,7 +427,8 @@ def test_build_ms02_docfield_sql_uses_quoted_eav_identifiers():
     sql = ws.build_ms02_docfield_sql(["Barcode", "Doctype"])
     # Quoted PascalCase EAV identifiers + psycopg2 %s markers, no '?' marker.
     assert '"Name" IN (%s, %s)' in sql
-    assert '"StringValue" LIKE %s' in sql
+    # ILIKE (case-insensitive) for parity with the default SQL Server path.
+    assert '"StringValue" ILIKE %s' in sql
     assert "?" not in sql
     assert '"WorkItemID"' in sql  # selects the workitem id column
 

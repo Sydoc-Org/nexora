@@ -371,15 +371,20 @@ def build_ms02_docfield_sql(names):
     """Per-docfield EAV lookup SQL for the MS02 doc-field index DB.
 
     ``names`` is the OR-set of EAV "Name" values one searched docfield maps to.
-    Returns the SQL; the caller binds the ``names`` values then the LIKE value.
+    Returns the SQL; the caller binds the ``names`` values then the ILIKE value.
     Table/column identifiers are config constants (quoted, never user input);
     the matched values are bound %s params -> no injection.
+
+    The value match uses ``ILIKE`` (case-insensitive): Postgres ``LIKE`` is
+    case-sensitive, whereas the default-client path runs on SQL Server's
+    case-insensitive default collation -- ILIKE keeps MS02 doc-field search
+    behaving the same way (searching "agostinis" finds "Agostinis").
     """
     name_ph = ", ".join(["%s"] * len(names))
     return (
         f'SELECT DISTINCT "{_MS02_DOCFIELD_ID_COL}" FROM "{_MS02_DOCFIELD_TABLE}" '
         f'WHERE "{_MS02_DOCFIELD_NAME_COL}" IN ({name_ph}) '
-        f'AND "{_MS02_DOCFIELD_VALUE_COL}" LIKE %s'
+        f'AND "{_MS02_DOCFIELD_VALUE_COL}" ILIKE %s'
     )
 
 

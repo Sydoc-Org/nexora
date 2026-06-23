@@ -10,6 +10,10 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
 
 ### Changed
 
+- MS02 doc-field search value matching is now **case-insensitive** (`ILIKE`
+  instead of `LIKE`), matching the default-client path which runs on SQL
+  Server's case-insensitive collation. Postgres `LIKE` is case-sensitive, so
+  searching e.g. "agostinis" previously missed "Agostinis".
 - Workitems list: the MS02 "Prepared documents" upload button (and its banner) now appear **only when the selected process filter is one the PID import actually applies to** — i.e. a process that has a personal-number column (`col_pid`) seeded in its `ms02` `SearchConfig` row. On "All Processes" or any other process the button is hidden. The eligible-process list is computed server-side (`_ms02_pid_processes`) and the button is toggled client-side as the process filter changes; no hardcoded process key.
 - MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
 
