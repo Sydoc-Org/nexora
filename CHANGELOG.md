@@ -24,7 +24,7 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   configures `sydoc.05_PDBS` (`ClientCode='ms02'`, the column mappings, the PG
   time filters, the `IndexFieldMappings` + `search_field_labels` seeds). Without
   it the row stayed `ClientCode='default'` and was (wrongly) sent to SQL Server.
-- Workitems list: the MS02 "Prepared documents" upload button (and its banner) now appear **only when the selected process filter is one the PID import actually applies to** — i.e. a process that has a personal-number column (`col_pid`) seeded in its `ms02` `SearchConfig` row. On "All Processes" or any other process the button is hidden. The eligible-process list is computed server-side (`_ms02_pid_processes`) and the button is toggled client-side as the process filter changes; no hardcoded process key.
+- Workitems list: the MS02 "Prepared documents" upload button is now visible whenever the user holds `workitems.import.preparedaudit` AND MS02 is active — decoupled from the selected process filter. Previously the per-process JS gate (`syncPreparedBtn`) kept the button hidden on "All Processes" (the default filter), so it was effectively never visible. The gate is removed; both Jinja guards updated.
 - MS02 doc-field (document-field) search now resolves through nexora's `dbo.SearchConfig` mapping (made source/dialect-aware via the new `ClientCode` column, migration `0027`) instead of an in-query `EXISTS` against MS02's own `t_DocumentIndexes` runtime table. The matched field VALUE is resolved against a dedicated MS02 Azure-Postgres doc-field database via the new `engine_ms02_docfields_pg` engine + `MS02_DOCFIELDS_DB_*` env vars (graceful-degrade to `None` until configured); matches are pre-resolved to a workitem-id allow-set and applied as `twi."ID" = ANY(...)`, mirroring the default source. No ETL/ingestion. Default-client doc-field search is unchanged.
 
 ### Fixed
@@ -45,16 +45,7 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   wheel is absent (PDF pages just don't appear; image/TIFF pages unaffected).
   Source-highlight overlay alignment for PDF pages is not yet wired (image-media
   overlays are unchanged).
-- **MS02 'prepared documents' Excel import (workitems).** An MS02-only upload
-  control on the workitems list accepts a two-column Excel (`PID` = personal
-  number, `Prepared` = informational) and resolves each PID through the MS02
-  doc-field index (`engine_ms02_docfields_pg`) to its workitem(s), listing them
-  so the full Octo audit can be reviewed. Gated by the new permission
-  `workitems.import.preparedaudit` (migration `0029`). Excel parsing via openpyxl
-  (already a dependency); no reconcile logic — the `Prepared` column is
-  display-only. New `resolve_ms02_pid_ids` resolver + `/import_prepared_audit`
-  route reuse the existing `ms02_docfield_ids` → `twi."ID" = ANY(%s)` seam; the
-  resolved id-set is passed via a session token, never serialized into the URL.
+- **MS02 'prepared documents' Excel import — extended to 5-column format.** The Excel now accepts PID, Collected (0/1 flag), CollectedBy (name), Prepared (0/1 flag), PreparedBy (name) — tolerates the duplicate 'PreparedBy' header typo (4th col = Prepared flag; 5th = PreparedBy name) via positional first-wins slot assignment. Four extra columns (Collected / Collected by / Prepared / Prepared by) appear in the workitems table during an active import. Matched PIDs merge imported values onto existing rows; unmatched PIDs appear as synthetic rows (amber italic, no audit link). Session payload changed from a flat id-list to `{ids, pid_to_wids, payloads}`. New `resolve_ms02_pid_to_wids` per-PID map resolver. Gated by `workitems.import.preparedaudit` (migration `0029`).
 - `engine_ms02_docfields_pg` (+ `MS02_DOCFIELDS_DB_*` env vars) — a dedicated SQLAlchemy engine for the MS02 doc-field index database, and a source/dialect-aware `dbo.SearchConfig.ClientCode` column (migration `0027`).
 - **Multi-source dashboard statistics (MS02).** The dashboard's "processed over time" chart and the
   processed/imported KPIs now include MS02, whose processing events live in `public.batchtracking` in
