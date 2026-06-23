@@ -47,6 +47,10 @@ CREATE TABLE [dbo].[SearchConfig](
 	[col_targetsystemfilename] [nvarchar](100) NULL,
 	[col_emailfromaddress] [nvarchar](100) NULL,
 	[ClientCode] [nvarchar](50) NOT NULL,
+	[col_batchname] [nvarchar](100) NULL,
+	[col_pid] [nvarchar](100) NULL,
+	[col_dossierpositioninbatch] [nvarchar](100) NULL,
+	[col_pagecount] [nvarchar](100) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ProcessName] ASC
