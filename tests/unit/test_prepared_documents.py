@@ -8,6 +8,8 @@ MERGE exemplar _cache_store uses neither OUTPUT nor a post-fetch).
 
 from unittest.mock import MagicMock
 
+import pytest
+
 import nx_lib.prepared_documents as pd
 
 
@@ -84,20 +86,22 @@ def test_upsert_mixed_batch_counts(monkeypatch):
     assert result == {"inserted": 1, "updated": 1, "total": 2}
 
 
-def test_upsert_raises_runtimeerror_on_db_failure(monkeypatch):
+def test_upsert_raises_runtimeerror_on_db_failure(app, monkeypatch):
     cur = MagicMock()
     cur.execute.side_effect = Exception("boom")
     engine, conn = _mock_engine(cur)
     monkeypatch.setattr(pd, "engine_nexora_db", engine)
     rows = [
-        {"pid": "1", "collected": False, "collected_by": "", "prepared": False, "prepared_by": ""}
+        {
+            "pid": "1",
+            "collected": False,
+            "collected_by": "",
+            "prepared": False,
+            "prepared_by": "",
+        }
     ]
-    try:
+    with app.app_context(), pytest.raises(RuntimeError, match="prepared documents upsert failed"):
         pd.upsert_prepared_documents(rows, uploaded_by=None)
-        raised = False
-    except RuntimeError:
-        raised = True
-    assert raised is True
     conn.rollback.assert_called_once()
 
 
