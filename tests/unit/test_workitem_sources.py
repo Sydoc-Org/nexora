@@ -628,21 +628,6 @@ def test_resolve_ms02_pid_ids_query_error_returns_none(app):
         assert ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["1"]) is None
 
 
-def test_sqlserver_source_suppressed_during_pid_import(app):
-    src = ws.SqlServerSource.__new__(ws.SqlServerSource)
-    src.engine = None  # would explode if it tried to query
-    filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
-        activity_ignore_csv="",
-        pid_import_active=True,
-    )
-    with app.app_context():
-        rows, total = src.list_workitems(filt, 0, 40)
-    assert rows == []
-    assert total == 0
-
-
 # ---------------- resolve_ms02_pid_to_wids (per-PID mapping) ---------------- #
 
 

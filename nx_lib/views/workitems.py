@@ -478,41 +478,6 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex2:
                 conn_nex2.close()
 
-    # --- MS02 'prepared documents' PID import allow-set ---
-    # The upload route (import_prepared_audit) resolved the uploaded personal-
-    # number PIDs to MS02 workitem ids and stashed them in the session under a
-    # token; the JS re-queries the list with ?pidImport=<token>. Read the id-set
-    # back out and intersect into ms02_docfield_ids so the SAME PostgresSource
-    # twi."ID" = ANY(%s) seam applies it; force MS02-only by flagging the
-    # default source off. An unknown/expired token resolves to an empty set
-    # (zero MS02 rows) rather than silently dropping the MS02-only gate.
-    pid_import_active = False
-    _pid_import_meta = None  # {pid_to_wids, payloads} for row enrichment
-    pid_token = args.get("pidImport", "").strip()
-    if pid_token:
-        pid_import_active = True
-        stored = session.get(f"pid_import:{pid_token}")
-        pid_ids = set()
-        if isinstance(stored, dict):
-            # New richer payload: {ids, pid_to_wids, payloads}
-            for raw in stored.get("ids") or []:
-                try:
-                    pid_ids.add(int(raw))
-                except (TypeError, ValueError):
-                    continue
-            _pid_import_meta = {
-                "pid_to_wids": stored.get("pid_to_wids") or {},
-                "payloads": stored.get("payloads") or {},
-            }
-        elif isinstance(stored, list):
-            # Legacy flat list (pre-deploy session token): degrade gracefully.
-            for raw in stored:
-                try:
-                    pid_ids.add(int(raw))
-                except (TypeError, ValueError):
-                    continue
-        ms02_docfield_ids = pid_ids if ms02_docfield_ids is None else ms02_docfield_ids & pid_ids
-
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
     filt = WorkitemFilter(
         process_names=process_params,
@@ -535,48 +500,9 @@ def _get_workitems_data(args, export_all=False):
         docvalues=docvalues or [],
         docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
         ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
-        pid_import_active=pid_import_active,
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
-    workitems_list = list(rows)
-
-    if pid_import_active and _pid_import_meta:
-        pid_to_wids = _pid_import_meta["pid_to_wids"]
-        payloads = _pid_import_meta["payloads"]
-        # Reverse map: wid_int -> pid_str for O(1) row merge lookup.
-        wid_to_pid = {wid: pid for pid, wids in pid_to_wids.items() for wid in wids}
-        # Merge import values onto matched real rows.
-        for row in workitems_list:
-            wid = row.get("workitemid")
-            if wid is not None and wid in wid_to_pid:
-                pid = wid_to_pid[wid]
-                row["pid_import"] = payloads.get(pid)
-
-        # Append synthetic rows for unmatched PIDs — PAGE 1 ONLY (offset == 0).
-        # Known limitation: synthetic rows live only on page 1; on page 2+ they
-        # are not appended and total_items reverts to the real count (so the
-        # displayed total differs between page 1 and later pages of the same
-        # import). Accepted trade-off — imports are typically a single page.
-        if offset == 0:
-            matched_pids = set(pid_to_wids.keys())  # all PIDs that have ANY wid match
-            for pid, pid_payld in payloads.items():
-                if pid not in matched_pids:
-                    workitems_list.append(
-                        {
-                            "workitemid": None,
-                            "synthetic": True,
-                            "pid": pid,
-                            "pid_import": pid_payld,
-                            "modifiedat": None,
-                            "status": None,
-                            "current_stage": None,
-                            "priority": None,
-                            "tags": [],
-                            "client": None,
-                        }
-                    )
-            n_synthetic = sum(1 for pid in payloads if pid not in matched_pids)
-            total_items += n_synthetic
+    workitems_list = rows
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
     return {
@@ -765,7 +691,6 @@ def export_workitems_csv():
         current_app.logger.error(f"Export: failed to fetch workitems: {e}")
         return jsonify({"error": "Failed to fetch workitems"}), 500
 
-    workitems = [w for w in workitems if not w.get("synthetic")]
     if specific_ids:
         workitems = [w for w in workitems if w["workitemid"] in specific_ids]
 
