@@ -331,3 +331,243 @@ def test_prepared_audit_wrap_renders_without_pid_processes(
     # only in the button block; "bg-emerald-50" only in the banner block.
     assert b'data-testid="workitems-prepared-audit"' in resp.data
     assert b"bg-emerald-50" in resp.data
+
+
+def test_import_prepared_audit_upserts_when_ms02_active(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Past the MS02 gate, a valid xlsx upserts into the register and returns
+    {inserted, updated, total} (no token, no synthetic-row machinery)."""
+    import io
+
+    import openpyxl
+
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    # Bypass the MIME sniff for the synthetic xlsx bytes.
+    monkeypatch.setattr(wv, "is_file_allowed", lambda name, stream: True)
+
+    captured = {}
+
+    def fake_upsert(rows, uploaded_by):
+        captured["rows"] = rows
+        captured["uploaded_by"] = uploaded_by
+        return {"inserted": len(rows), "updated": 0, "total": len(rows)}
+
+    monkeypatch.setattr(wv, "upsert_prepared_documents", fake_upsert)
+
+    wb = openpyxl.Workbook()
+    sh = wb.active
+    sh.append(["PID", "Collected", "CollectedBy", "Prepared", "PreparedBy"])
+    sh.append(["100", 1, "Alice", 1, "Bob"])
+    buf = io.BytesIO()
+    wb.save(buf)
+
+    resp = user_client.post(
+        "/import_prepared_audit",
+        data={"preparedAuditFile": (io.BytesIO(buf.getvalue()), "p.xlsx")},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["total"] == 1
+    assert body["inserted"] == 1
+    assert captured["rows"][0]["pid"] == "100"
+
+
+def test_import_prepared_audit_persists_even_without_pid_specs(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """The register must persist rows even when no MS02 PID specs are configured
+    (the default CI/TEST path: SearchConfig has no 'ms02' col_pid). The old
+    warning early-return is intentionally gone -- Octo status degrades on the
+    page, the upload still upserts."""
+    import io
+
+    import openpyxl
+
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "is_file_allowed", lambda name, stream: True)
+    # No PID specs configured.
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(
+        wv,
+        "upsert_prepared_documents",
+        lambda rows, uploaded_by: {"inserted": len(rows), "updated": 0, "total": len(rows)},
+    )
+
+    wb = openpyxl.Workbook()
+    sh = wb.active
+    sh.append(["PID", "Prepared"])
+    sh.append(["100", 1])
+    buf = io.BytesIO()
+    wb.save(buf)
+
+    resp = user_client.post(
+        "/import_prepared_audit",
+        data={"preparedAuditFile": (io.BytesIO(buf.getvalue()), "p.xlsx")},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["total"] == 1
+    assert "token" not in body
+    assert "warning" not in body
+
+
+def test_import_prepared_audit_db_failure_returns_500(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import io
+
+    import openpyxl
+
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "is_file_allowed", lambda name, stream: True)
+
+    def boom(rows, uploaded_by):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(wv, "upsert_prepared_documents", boom)
+
+    wb = openpyxl.Workbook()
+    sh = wb.active
+    sh.append(["PID", "Prepared"])
+    sh.append(["100", 1])
+    buf = io.BytesIO()
+    wb.save(buf)
+
+    resp = user_client.post(
+        "/import_prepared_audit",
+        data={"preparedAuditFile": (io.BytesIO(buf.getvalue()), "p.xlsx")},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 500
+    assert "error" in (resp.get_json() or {})
+
+
+# ====================== /prepared_documents (register page) =================
+
+
+def test_prepared_documents_page_gated(noperm_client):
+    """No permission -> 403 (or login redirect)."""
+    resp = noperm_client.get("/prepared_documents")
+    assert resp.status_code in (403, 302)
+
+
+def test_prepared_documents_page_denies_without_ms02(user_client, workitems_all_perms):
+    """Perm present but no MS02 engine in CI -> ms02_active gate denies (403)."""
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 403
+
+
+def test_prepared_documents_page_renders_when_ms02_active(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Perm + ms02_active -> 200; table renders. DB read + Octo resolve mocked.
+    The in-body prepared_import_perm uses the wv-local has_permission binding,
+    so patch that too (the documented fixture trap)."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b"100" in resp.data
+
+
+def test_prepared_documents_page_octo_resolve_failure_degrades(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """resolve returning None must NOT break the page (status degrades to dash)."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": False,
+                "collected_by": "",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": None,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+
+
+def test_prepared_documents_clear_gated(noperm_client):
+    resp = noperm_client.post("/prepared_documents/clear")
+    assert resp.status_code in (403, 302)
+
+
+def test_prepared_documents_clear_400_without_ms02(user_client, workitems_all_perms):
+    resp = user_client.post("/prepared_documents/clear")
+    assert resp.status_code == 400
+    assert b"MS02" in resp.data
+
+
+def test_prepared_documents_clear_deletes_when_ms02_active(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "clear_prepared_documents", lambda: 3)
+    resp = user_client.post("/prepared_documents/clear")
+    assert resp.status_code == 200
+    assert resp.get_json()["deleted"] == 3

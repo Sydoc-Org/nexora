@@ -6,7 +6,6 @@ import csv
 import io
 import math
 import re
-import secrets
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -45,11 +44,22 @@ from ..octo import (
     pdf_src_bytes,
     render_pdf_page_jpeg,
 )
+from ..prepared_documents import (
+    clear_prepared_documents,
+    count_prepared_documents,
+    fetch_prepared_documents_page,
+    upsert_prepared_documents,
+)
 from ..process_helpers import (
     get_activity_instances_to_ignore,
     prepare_process_selection_lists,
 )
-from ..security import has_permission, page_visibility, require_permission
+from ..security import (
+    PermissionDenied,
+    has_permission,
+    page_visibility,
+    require_permission,
+)
 from ..users import get_all_portal_users, resolve_user_icon_url
 from ..workitem_sources import (
     _MS02_IDENT,
@@ -1116,11 +1126,13 @@ def import_workitems():
 @require_permission("workitems.import.preparedaudit")
 def import_prepared_audit():
     """MS02-only: upload a five-column Excel (PID, Collected, CollectedBy,
-    Prepared, PreparedBy), resolve each PID through the MS02 doc-field index to
-    its workitem id(s), stash the id-set and per-PID payload in the session under
-    a token, and return the token so the list can re-query and display the matched
-    workitems (the user opens each to read the full Octo audit). Display only --
-    the Prepared column is never reconciled against the audit."""
+    Prepared, PreparedBy) and UPSERT each row by PID into the persistent
+    dbo.PreparedDocuments register (one row per PID; re-uploading a PID updates
+    its row). Returns {inserted, updated, total}. The register is shared across
+    MS02 users and viewed on the /prepared_documents page (this route no longer
+    resolves PIDs to workitem ids or stashes anything in the session). Rows
+    persist regardless of whether the PID column is configured -- the live Octo
+    status on the page degrades to a dash when it cannot resolve."""
     # Defensive parity with import_workitems (require_permission already gates
     # auth, redirecting unauthenticated users to login; this never 401s a gated
     # caller -- it is dead-code parity, not a tested path).
@@ -1149,54 +1161,24 @@ def import_prepared_audit():
     if not pairs:
         return jsonify({"error": _("The Excel file has no usable rows.")}), 400
 
-    pids = [row["pid"] for row in pairs]
-    payloads = {
-        row["pid"]: {
+    rows = [
+        {
+            "pid": row["pid"],
             "collected": row["collected"],
             "collected_by": row["collected_by"],
             "prepared": row["prepared"],
             "prepared_by": row["prepared_by"],
         }
         for row in pairs
-    }
+    ]
 
-    pid_specs = _ms02_pid_specs(_ms02_target_processes())
-    if not pid_specs:
+    try:
+        result = upsert_prepared_documents(rows, session.get("userid"))
+    except RuntimeError:
         return jsonify(
-            {
-                "token": None,
-                "payloads": {},
-                "matched": 0,
-                "total": len(pids),
-                "warning": _("The personal-number field is not configured for MS02."),
-            }
-        ), 200
-
-    pid_to_wids = resolve_ms02_pid_to_wids(engine_ms02_docfields_pg, pid_specs, pids)
-    if pid_to_wids is None:
-        return jsonify(
-            {"error": _("Could not resolve personal numbers against the MS02 index.")}
+            {"error": _("Could not save the prepared documents. Please try again.")}
         ), 500
-
-    # Flat union id-set for the WorkitemFilter.ms02_docfield_ids allow-set seam.
-    id_set = {wid for wids in pid_to_wids.values() for wid in wids}
-    matched_pids = {pid for pid, wids in pid_to_wids.items() if wids}
-    ids = sorted(id_set)
-
-    token = secrets.token_urlsafe(16)
-    session[f"pid_import:{token}"] = {
-        "ids": ids,
-        "pid_to_wids": {pid: list(wids) for pid, wids in pid_to_wids.items()},
-        "payloads": payloads,
-    }
-    return jsonify(
-        {
-            "token": token,
-            "payloads": payloads,
-            "matched": len(matched_pids),
-            "total": len(pids),
-        }
-    ), 200
+    return jsonify(result), 200
 
 
 def get_single_workitem(workitemid):
@@ -1986,6 +1968,80 @@ def remove_tag_from_workitem(workitemid, tag_id):
             conn.close()
 
 
+@require_permission("workitems.import.preparedaudit")
+def prepared_documents():
+    """MS02-only standalone 'prepared documents' register page. Reads a real
+    OFFSET/FETCH page of dbo.PreparedDocuments and resolves a live (non-stored)
+    Octo cross-reference status for the visible PIDs via resolve_ms02_pid_to_wids.
+    Read-only + clear-whole-list for v1."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not ms02_active:
+        raise PermissionDenied(_("This page is only available for the MS02 client."))
+
+    per_page = 40
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+    offset = (page - 1) * per_page
+
+    try:
+        total_items = count_prepared_documents()
+        rows = fetch_prepared_documents_page(offset, per_page)
+    except Exception as e:
+        current_app.logger.error(f"prepared_documents read: {e}")
+        total_items, rows = 0, []
+
+    # Live Octo soft-status for the visible page's PIDs (never stored; degrade to
+    # a dash on None/empty/error -- resolve_ms02_pid_to_wids never raises).
+    octo_status = {}
+    pids = [r["pid"] for r in rows if r["pid"]]
+    if pids:
+        pid_specs = _ms02_pid_specs(_ms02_target_processes())
+        pid_to_wids = (
+            resolve_ms02_pid_to_wids(engine_ms02_docfields_pg, pid_specs, pids)
+            if pid_specs
+            else None
+        )
+        if pid_to_wids:
+            for pid, wids in pid_to_wids.items():
+                if wids:
+                    octo_status[pid] = {"in_octo": True, "wid": wids[0]}
+
+    total_pages = math.ceil(total_items / per_page) if per_page else 0
+    pagination = {
+        "currentPage": page,
+        "totalPages": total_pages,
+        "totalItems": total_items,
+        "perPage": per_page,
+    }
+    return render_template(
+        "prepared_documents.html",
+        rows=rows,
+        pagination=pagination,
+        octo_status=octo_status,
+        prepared_import_perm=has_permission("workitems.import.preparedaudit"),
+        ms02_active=ms02_active,
+        pageV=page_visibility(),
+    )
+
+
+@require_permission("workitems.import.preparedaudit")
+def clear_prepared_documents_route():
+    """MS02-only: delete every row in the prepared-documents register."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not ms02_active:
+        return jsonify({"error": _("This import is only available for the MS02 client.")}), 400
+    try:
+        deleted = clear_prepared_documents()
+    except Exception as e:
+        current_app.logger.error(f"clear_prepared_documents_route: {e}")
+        return jsonify(
+            {"error": _("Could not clear the prepared documents. Please try again.")}
+        ), 500
+    return jsonify({"deleted": deleted}), 200
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/config/fields", endpoint="api_config_fields", view_func=api_config_fields
@@ -2008,6 +2064,18 @@ def register_routes(app):
         "/import_prepared_audit",
         endpoint="import_prepared_audit",
         view_func=import_prepared_audit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/prepared_documents",
+        endpoint="prepared_documents",
+        view_func=prepared_documents,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/prepared_documents/clear",
+        endpoint="clear_prepared_documents_route",
+        view_func=clear_prepared_documents_route,
         methods=["POST"],
     )
     app.add_url_rule(
