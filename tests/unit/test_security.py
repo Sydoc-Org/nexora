@@ -305,11 +305,11 @@ def test_startpage_redirect_to_returns_login_when_no_perms():
 
 
 # ---------------------------------------------------------------------------
-# page_visibility — all 16 keys
+# page_visibility — all 18 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_17_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
@@ -317,6 +317,7 @@ def test_page_visibility_returns_all_17_keys_with_no_perms(fake_session):
         "dashboardPagePerm",
         "reportingPagePerm",
         "workitemsPagePerm",
+        "preparedDocsPagePerm",
         "invoicesPagePerm",
         "chatPagePerm",
         "generaliPagePerm",

@@ -136,6 +136,7 @@ def page_visibility():
         "dashboardPagePerm": has_permission("dashboard.view"),
         "reportingPagePerm": has_permission("reporting.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
+        "preparedDocsPagePerm": has_permission("workitems.import.preparedaudit"),
         "invoicesPagePerm": has_permission("invoices.view"),
         "chatPagePerm": has_permission("chat.view"),
         "generaliPagePerm": has_permission("generali.dashboard.view"),
