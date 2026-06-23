@@ -1,3 +1,5 @@
+> ➡️ **SUPERSEDED — this plan was executed.** See `docs/superpowers/handoffs/2026-06-23-prepared-documents-register-execution-complete.md` (all 11 tasks built + reviewed, ready to merge).
+
 # Handoff — Prepared Documents Register (MS02): standalone persistent list (PLAN ONLY, not executed)
 
 **Date:** 2026-06-23 (afternoon/late) · **Branch:** `feature/2.5.63` · **112 commits ahead of origin** · **commit-only (remote)**
