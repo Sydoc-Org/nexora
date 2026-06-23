@@ -1,3 +1,5 @@
+> ➡️ **Newer same-date handoff:** a later session (same day) wrote the *prepared-docs ⇄ workitem preview* PLAN. To resume **that**, see `docs/superpowers/handoffs/2026-06-23-prepared-docs-workitem-preview-plan.md`. This register handoff remains valid for its own owner-owed items (push, PR, PROD verification).
+
 # Handoff — Prepared Documents Register (MS02): EXECUTION COMPLETE
 
 **Date:** 2026-06-23 (evening) · **Branch:** `feature/2.5.63` · **125 commits ahead of origin** · **commit-only (remote)**
