@@ -484,11 +484,11 @@ def test_prepared_documents_page_renders_when_ms02_active(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit: [
+        lambda offset, limit, pid=None: [
             {
                 "id": 1,
                 "pid": "100",
@@ -521,11 +521,11 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit: [
+        lambda offset, limit, pid=None: [
             {
                 "id": 1,
                 "pid": "100",
