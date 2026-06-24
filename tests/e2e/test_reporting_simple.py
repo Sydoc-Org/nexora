@@ -308,6 +308,33 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     _stub_ai_build(page)
+
+    # Capture every run payload AND stub a deterministic success. "Ask AI" below
+    # kicks off an async runCurrent() that fires a real /api/reporting/run; if
+    # that run errors on the test backend, showResultError() hides rs-chips,
+    # racing the chip click below (chips visible at assert time, gone by click).
+    # Stubbing the response keeps the chips up regardless of the backend.
+    run_payloads = []
+
+    def _capture_run(route):
+        run_payloads.append(route.request.post_data_json)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _capture_run)
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
     chips = page.get_by_test_id("rs-chips")
@@ -316,13 +343,6 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname eq acme.inv")
 
     # Edit the filter value in place; the run payload must carry the new value.
-    run_payloads = []
-
-    def _capture_run(route):
-        run_payloads.append(route.request.post_data_json)
-        route.continue_()
-
-    page.route("**/api/reporting/run", _capture_run)
     chips.get_by_test_id("rs-chip").first.click()
     page.get_by_test_id("rs-chip-input").fill("acme.other")
     page.get_by_test_id("rs-chip-apply").click()
