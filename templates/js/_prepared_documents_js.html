@@ -91,7 +91,7 @@
       } catch (e) { /* labels fall back to raw keys */ }
     }
 
-    function openPreview(wid) {
+    function openPreview(wid, status, currentStage) {
       if (!previewModal || !previewBody || !window.NexoraWorkitemDetail) return;
       if (!_pdocLightbox && window.NexoraWorkitemDetail.attachLightbox) {
         _pdocLightbox = window.NexoraWorkitemDetail.attachLightbox({
@@ -104,7 +104,10 @@
       previewBody.innerHTML = "";
       ensureFieldConfig().then(() => {
         window.NexoraWorkitemDetail.render(wid, previewBody, {
-          readOnly: true, perms: window.__pdocPreviewPerms || {},
+          readOnly: true,
+          perms: window.__pdocPreviewPerms || {},
+          status: status || "",
+          currentStage: currentStage || "",
         });
       });
       previewModal.classList.remove("hidden");
@@ -118,7 +121,7 @@
 
     document.addEventListener("click", (event) => {
       const btn = event.target.closest('[data-testid="prepared-docs-preview"]');
-      if (btn) { event.preventDefault(); openPreview(btn.dataset.wid); return; }
+      if (btn) { event.preventDefault(); openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage); return; }
     });
     previewClose?.addEventListener("click", closePreview);
     previewModal?.addEventListener("click", (e) => { if (e.target === previewModal) closePreview(); });

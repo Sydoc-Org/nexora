@@ -899,3 +899,6 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     assert b'data-wid="42"' in resp.data
     assert b'data-status="In Progress"' in resp.data
     assert b'data-current-stage="Validation"' in resp.data
+    assert (
+        b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage)" in resp.data
+    )
