@@ -27,6 +27,11 @@ Migrations are immutable once applied: the runner refuses to re-run a file
 whose checksum no longer matches what was recorded at apply time. To make
 further changes, write a new migration.
 
+If a checksum drifts without a real content edit -- e.g. line-ending
+renormalization (the checksum is over raw bytes, so CRLF vs LF differs) --
+re-bless the recorded checksums to the current file bytes with ``--rebless``
+(no SQL is run; pair with ``--dry-run`` to preview first).
+
 Escape hatch (offline): ``SQL_SYNC_SKIP=1`` makes ``--check`` exit 0 without
 contacting the DB. Same env var also disables the pre-commit check.
 """
@@ -186,6 +191,20 @@ def record_applied(conn, filename: str, checksum: bytes) -> None:
         cur.close()
 
 
+def rebless_checksum(conn, filename: str, checksum: bytes) -> None:
+    """Overwrite the recorded checksum of an already-applied migration."""
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE dbo.SchemaMigrations SET Checksum = ? WHERE FileName = ?",
+            checksum,
+            filename,
+        )
+        conn.commit()
+    finally:
+        cur.close()
+
+
 def plan_for_db(conn, db_folder: str) -> tuple[list[Path], list[Path]]:
     """Return (to_apply, mutated).
     - to_apply: unapplied files, in name order.
@@ -208,6 +227,30 @@ def run_for_db(args, cfg, db_folder: str, db_name: str, sqlcmd_exe: str) -> tupl
     conn = connect(cfg.DB_SERVER_PRD, db_name, cfg.DB_UID, cfg.DB_PWD)
     try:
         to_apply, mutated = plan_for_db(conn, db_folder)
+
+        if args.rebless:
+            if not mutated:
+                print("  no checksum drift -- nothing to re-bless")
+                return (0, 0)
+            print(f"  {len(mutated)} migration(s) with drifted checksums:")
+            for m in mutated:
+                print(f"    ~ {m.name}")
+            if args.dry_run:
+                print("  (--dry-run, not re-blessed)")
+                return (0, len(mutated))
+            if args.env == "PROD" and not args.yes:
+                ans = (
+                    input(f"  re-bless {len(mutated)} checksum(s) on PROD/{db_name}? [y/N] ")
+                    .strip()
+                    .lower()
+                )
+                if ans != "y":
+                    print("  skipped")
+                    return (0, len(mutated))
+            for m in mutated:
+                rebless_checksum(conn, m.name, file_checksum(m))
+                print(f"  ~> {m.name} (checksum updated)")
+            return (0, 0)
 
         if mutated:
             sys.stderr.write(f"  ERROR: {len(mutated)} migration(s) edited after being applied:\n")
@@ -288,6 +331,13 @@ def main() -> int:
         action="store_true",
         help="Record files as applied without running them (when already run in SSMS)",
     )
+    p.add_argument(
+        "--rebless",
+        action="store_true",
+        help="Update recorded checksums of already-applied migrations whose file "
+        "bytes drifted (e.g. line-ending renormalization). Runs no SQL; "
+        "use with --dry-run to preview.",
+    )
     p.add_argument("--yes", "-y", action="store_true", help="Skip the PROD confirmation prompt")
     args = p.parse_args()
 
@@ -309,7 +359,7 @@ def main() -> int:
 
     # sqlcmd only needed when we'll actually execute SQL.
     sqlcmd_exe = ""
-    if not (args.check or args.dry_run or args.mark_applied):
+    if not (args.check or args.dry_run or args.mark_applied or args.rebless):
         sqlcmd_exe = find_sqlcmd()
 
     total_applied = 0

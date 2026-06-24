@@ -146,6 +146,24 @@ jobs:
             throw "Aborting deploy: neither $prodEnvFile nor $legacyProdEnvFile exists. The app will fail to load secrets without one of them."
           }
 
+      # db-migrate.py checksums raw file bytes; the persistent runner can carry
+      # CRLF .sql from before *.sql got `text eol=lf`, which makes an
+      # already-applied migration look "edited" and aborts the migrate step.
+      # Re-normalise to LF first (same reason as the .py step in the test job).
+      - name: Normalize SQL line endings to LF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          Get-ChildItem -Path sql -Recurse -Include *.sql | ForEach-Object {
+            $text = [System.IO.File]::ReadAllText($_.FullName, $utf8NoBom)
+            $normalized = $text -replace "`r`n", "`n"
+            if ($normalized -ne $text) {
+              [System.IO.File]::WriteAllText($_.FullName, $normalized, $utf8NoBom)
+              Write-Host "  fixed: $($_.FullName)"
+            }
+          }
+
       - name: Apply DB migrations to PROD
         shell: powershell
         run: |
