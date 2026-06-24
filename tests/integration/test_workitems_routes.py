@@ -634,3 +634,40 @@ def test_prepared_documents_modal_wires_shared_renderer(
     assert b"NexoraWorkitemDetail.render" in resp.data
     assert b"attachLightbox" in resp.data
     assert b"api/config/fields" in resp.data
+
+
+def test_prepared_documents_preview_present_when_media_degrades(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Octo resolve returning None still renders the page with the modal shell (image
+    degradation is client-side; the panel must not be gated on media)."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b'data-testid="prepared-docs-preview-modal"' in resp.data
