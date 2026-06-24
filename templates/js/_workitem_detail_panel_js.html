@@ -580,7 +580,16 @@
         loadCollaborationData(wid, readOnly ? [] : (window.mentionableUsers || []));
         return wid;
       };
-      function _renderHeaderChip() {}            // placeholder; replaced in Task 3.4
+      const _PREPARED_DOCS_URL = API_PREFIX + "prepared_documents";
+      function _renderHeaderChip(workitemId, opts) {
+        const pid = opts && opts.inRegisterPid;
+        if (!pid) return;
+        const host = document.getElementById(`detail-panel-header-${workitemId}`);
+        if (!host) return;
+        const url = `${_PREPARED_DOCS_URL}?pid=${encodeURIComponent(pid)}`;
+        host.innerHTML = `<a href="${url}" class="nx-label nx-label--blue inline-flex items-center gap-1"
+          data-testid="workitem-in-register"><i class="fas fa-clipboard-list"></i>{{ _("In register") }}</a>`;
+      }
 
       window.NexoraWorkitemDetail.attachLightbox = function (cfg) {
         // --- closure-local state per instance ---

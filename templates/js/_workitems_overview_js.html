@@ -1046,6 +1046,7 @@ async function uploadBatchFiles(files, processName) {
             }
 
             function renderTable(workitems) {
+                _inRegisterByWid = {};
                 const tbody = document.getElementById('workitemsTbody');
                 tbody.innerHTML = '';
                 allRenderedWorkitems = workitems;
@@ -1099,9 +1100,14 @@ async function uploadBatchFiles(files, processName) {
                     </tr>
                     <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
                         data-status="${workitem.status}"
-                        data-current-stage="${workitem.current_stage || ''}"><td colspan="7"></td></tr>
+                        data-current-stage="${workitem.current_stage || ''}"
+                        data-pid="${workitem.pid || ''}"
+                        data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="7"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
+                    if (workitem.in_register && workitem.pid) {
+                        _inRegisterByWid[String(workitem.workitemid)] = workitem.pid;
+                    }
                 });
 
                 // Attach checkbox listeners after rows are inserted
