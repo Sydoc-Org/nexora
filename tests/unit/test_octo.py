@@ -185,8 +185,11 @@ def test_get_extensions_urls_fields_single_doc(app):
     fake_resp.json.return_value = {
         "DocumentType": "Single",
         "Media": [
-            {"Url": "https://cdn/x.png", "Extension": ".PNG"},
-            {"Url": "https://cdn/y.bin", "Extension": ".bin"},  # not in whitelist
+            # Dotted hosts are already FQDNs, so _media_url_for_gateway leaves them
+            # unchanged (no-dot hosts get rewritten to the gateway -- that swap is
+            # covered by test_octo_media.py); these tests assert parsing, not the swap.
+            {"Url": "https://cdn.sydoc.ch/x.png", "Extension": ".PNG"},
+            {"Url": "https://cdn.sydoc.ch/y.bin", "Extension": ".bin"},  # not in whitelist
         ],
         "IndexFields": [
             {"Name": "Invoice_Date", "FieldValue": {"Text": "2026-06-01"}},
@@ -209,7 +212,7 @@ def test_get_extensions_urls_fields_single_doc(app):
         )
 
     assert extensions == [".png"]
-    assert urls == ["https://cdn/x.png"]
+    assert urls == ["https://cdn.sydoc.ch/x.png"]
     assert fields == {"invoice_date": "2026-06-01"}
     # mapped field with a value but no Location -> present, un-locatable
     assert field_sources == [
@@ -226,11 +229,11 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
         "DocumentType": "Batch",
         "ChildDocuments": [
             {
-                "Media": [{"Url": "https://cdn/a.jpg", "Extension": ".jpg"}],
+                "Media": [{"Url": "https://cdn.sydoc.ch/a.jpg", "Extension": ".jpg"}],
                 "IndexFields": [],
             },
             {
-                "Media": [{"Url": "https://cdn/b.tif", "Extension": ".TIF"}],
+                "Media": [{"Url": "https://cdn.sydoc.ch/b.tif", "Extension": ".TIF"}],
                 "IndexFields": [],
             },
         ],
@@ -245,7 +248,7 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
             "wid", "doc-batch"
         )
     assert extensions == [".jpg", ".tif"]
-    assert urls == ["https://cdn/a.jpg", "https://cdn/b.tif"]
+    assert urls == ["https://cdn.sydoc.ch/a.jpg", "https://cdn.sydoc.ch/b.tif"]
     assert fields == {}
     assert field_sources == []
     assert table_sources == []
@@ -257,12 +260,12 @@ def test_get_extensions_urls_fields_non_batch_container_recurses(app):
     even though no DocumentType is the literal 'Batch'."""
     leaf1 = {
         "DocumentType": "MobScnDocument",
-        "Media": [{"Url": "https://cdn/p1.jpg", "Extension": ".jpg"}],
+        "Media": [{"Url": "https://cdn.sydoc.ch/p1.jpg", "Extension": ".jpg"}],
         "IndexFields": [{"Name": "DokArtName", "FieldValue": {"Text": "Bewilligungen"}}],
     }
     leaf2 = {
         "DocumentType": "MobScnDocument",
-        "Media": [{"Url": "https://cdn/p2.jpg", "Extension": ".jpg"}],
+        "Media": [{"Url": "https://cdn.sydoc.ch/p2.jpg", "Extension": ".jpg"}],
         "IndexFields": [{"Name": "DokDatum", "FieldValue": {"Text": "2026-06-17"}}],
     }
     dossier = {
@@ -294,7 +297,7 @@ def test_get_extensions_urls_fields_non_batch_container_recurses(app):
         )
 
     assert extensions == [".jpg", ".jpg"]
-    assert urls == ["https://cdn/p1.jpg", "https://cdn/p2.jpg"]
+    assert urls == ["https://cdn.sydoc.ch/p1.jpg", "https://cdn.sydoc.ch/p2.jpg"]
     assert fields == {"doc_type": "Bewilligungen", "doc_date": "2026-06-17"}
     assert field_sources == [
         {"key": "doc_type", "label": "doc_type", "value": "Bewilligungen", "locations": []},
