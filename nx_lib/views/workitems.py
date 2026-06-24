@@ -943,6 +943,10 @@ def workitems_overview():
         prepared_import_perm = has_permission("workitems.import.preparedaudit")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
 
+        prepared_docs_process_match = (
+            ms02_active and prepared_import_perm and process_name in _ms02_target_processes()
+        )
+
         portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
             "workitems_overview.html",
@@ -978,6 +982,7 @@ def workitems_overview():
             details_add_comment_perm=details_add_comment_perm,
             prepared_import_perm=prepared_import_perm,
             ms02_active=ms02_active,
+            prepared_docs_process_match=prepared_docs_process_match,
         )
     except Exception:
         return render_template("500.html")

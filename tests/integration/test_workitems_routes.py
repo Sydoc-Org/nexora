@@ -313,23 +313,68 @@ def test_import_prepared_audit_rejects_non_xlsx(user_client, workitems_all_perms
     assert "MS02" in (resp.get_json() or {}).get("error", "")
 
 
-def test_prepared_audit_link_renders_when_ms02_active(
+def test_prepared_docs_link_renders_only_for_target_process(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """The workitems toolbar shows a link to the register page when
-    perm + ms02_active (independent of any process filter); the old upload/banner
-    machinery is gone. The in-body perm uses the wv-local has_permission."""
+    """The Workitems toolbar shows the register link ONLY when the selected
+    process is an MS02 prepared-docs target process (locked decision)."""
+    import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
     from nx_lib.clients import CLIENTS
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    resp = user_client.get("/workitems")
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    # The _reload_user_permissions before_request hook overwrites session["permissions"]
+    # from the DB on every request. Patch load_permissions_for_user so the hook
+    # writes back a list that includes the process permission we need.
+    # _reload_user_permissions (before_request hook) calls load_permissions_for_user
+    # and overwrites session["permissions"] on every request. Patching it here is
+    # the real mechanism that puts workitems.filter.process.sydoc.05_PDBS into
+    # allowed_processes — no session seed needed.
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.import.preparedaudit",
+            "workitems.filter.process.sydoc.05_PDBS",
+        ],
+    )
+
+    # Selected = the target process -> link present.
+    resp = user_client.get("/workitems?prcfW=sydoc.05_PDBS")
     assert resp.status_code == 200
     assert b"prepared-docs-link" in resp.data
     assert b"/prepared_documents" in resp.data
-    assert b"bg-emerald-50" not in resp.data
+
+
+def test_prepared_docs_link_hidden_on_all_processes(user_client, workitems_all_perms, monkeypatch):
+    """'All Processes' (and any non-PDBS process) hide the register link."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    # Patch load_permissions_for_user so the before_request hook is self-contained
+    # and does not hit the real test DB.
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.import.preparedaudit",
+            "workitems.filter.process.sydoc.05_PDBS",
+        ],
+    )
+
+    resp = user_client.get("/workitems")  # defaults to prcfW=all
+    assert resp.status_code == 200
+    assert b"prepared-docs-link" not in resp.data
 
 
 def test_import_prepared_audit_upserts_when_ms02_active(
