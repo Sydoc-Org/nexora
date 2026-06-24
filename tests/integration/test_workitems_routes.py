@@ -716,6 +716,44 @@ def test_prepared_documents_pid_filter_passes_through(
     assert b'data-testid="prepared-docs-show-all"' in resp.data
 
 
+def test_prepared_documents_centered_headers_use_align_center(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    # The three centered columns now carry the .nx-table align helper on the <th>,
+    # so headers no longer render left while bodies render center.
+    assert resp.data.count(b'class="px-6 py-3 align-center"') == 3
+
+
 def test_stamp_in_register_marks_rows(monkeypatch):
     import nx_lib.views.workitems as wv
     from nx_lib.clients import CLIENTS
