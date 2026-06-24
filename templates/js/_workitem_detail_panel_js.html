@@ -213,7 +213,6 @@
               }});
               if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
               const data = await response.json();
-              console.log(data)
               if (prioritySelector) prioritySelector.value = data.priority;
               if (assignSelector) assignSelector.value = data.assigneduserid;
               if (tagsContainer) renderTagsInDetails(workitemId, data.tags);

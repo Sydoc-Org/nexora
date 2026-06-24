@@ -387,7 +387,7 @@
 
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 if (commentsContainer && commentsContainer.dataset.loaded !== 'true') {
-                    loadCollaborationData(workitemid);
+                    loadCollaborationData(workitemid, mentionableUsers);
                 }
 
                 const imageContainer = document.getElementById(`image-container-${workitemid}`);
@@ -487,7 +487,7 @@
                 textarea.value = '';
                 const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
                 commentsContainer.dataset.loaded = 'false';
-                loadCollaborationData(workitemid);
+                loadCollaborationData(workitemid, mentionableUsers);
 
             } catch (error) {
                 console.error("Comment post error:", error);
@@ -502,6 +502,7 @@
                 }});
                 if (!response.ok) throw new Error('Could not fetch users');
                 mentionableUsers = await response.json();
+                window.mentionableUsers = mentionableUsers;
             } catch (error) {
                 console.error("Failed to fetch users for mentions:", error);
             }
@@ -702,6 +703,7 @@ async function uploadBatchFiles(files, processName) {
                 const data = await res.json();
 
                 mentionableUsers = data.users || [];
+                window.mentionableUsers = mentionableUsers;
                 fieldConfig = data.field_config || { search_options: {}, labels: {} };
 
                 const allTags = data.tags || [];
