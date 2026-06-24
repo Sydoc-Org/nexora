@@ -613,3 +613,24 @@ def test_prepared_documents_preview_button_requires_details_view(
     resp2 = user_client.get("/prepared_documents")
     assert resp2.status_code == 200
     assert b'data-testid="prepared-docs-preview"' not in resp2.data
+
+
+def test_prepared_documents_modal_wires_shared_renderer(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 0)
+    monkeypatch.setattr(wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b"NexoraWorkitemDetail.render" in resp.data
+    assert b"attachLightbox" in resp.data
+    assert b"api/config/fields" in resp.data

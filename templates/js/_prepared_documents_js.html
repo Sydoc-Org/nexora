@@ -73,5 +73,64 @@
         showNotice("{{ _('Could not clear the list.') }}", false);
       }
     });
+
+    {% if details_view_perm %}
+    // ---- Read-only workitem preview modal (MS02) ----
+    const previewModal = document.getElementById("pdocPreviewModal");
+    const previewBody = document.getElementById("pdocPreviewBody");
+    const previewClose = document.getElementById("pdocPreviewClose");
+    let _pdocLightbox = null;
+
+    async function ensureFieldConfig() {
+      if (window.fieldConfig && window.fieldConfig.labels && Object.keys(window.fieldConfig.labels).length) return;
+      try {
+        const res = await fetch(`${API_PREFIX}api/config/fields`, {
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+        });
+        if (res.ok) window.fieldConfig = await res.json();
+      } catch (e) { /* labels fall back to raw keys */ }
+    }
+
+    function openPreview(wid) {
+      if (!previewModal || !previewBody || !window.NexoraWorkitemDetail) return;
+      if (!_pdocLightbox && window.NexoraWorkitemDetail.attachLightbox) {
+        _pdocLightbox = window.NexoraWorkitemDetail.attachLightbox({
+          modal: "pdocPreviewLightbox", image: "pdocPreviewImage",
+          hlLayer: "pdocPreviewHlLayer", hlToggle: "pdocPreviewHlToggle",
+          hlToggleLabel: "pdocPreviewHlToggleLabel",
+          reviewPanel: "pdocPreviewReviewPanel", reviewPanelBody: "pdocPreviewReviewPanelBody",
+        });
+      }
+      previewBody.innerHTML = "";
+      ensureFieldConfig().then(() => {
+        window.NexoraWorkitemDetail.render(wid, previewBody, {
+          readOnly: true, perms: window.__pdocPreviewPerms || {},
+        });
+      });
+      previewModal.classList.remove("hidden");
+    }
+
+    function closePreview() {
+      if (!previewModal) return;
+      previewModal.classList.add("hidden");
+      if (previewBody) previewBody.innerHTML = "";
+    }
+
+    document.addEventListener("click", (event) => {
+      const btn = event.target.closest('[data-testid="prepared-docs-preview"]');
+      if (btn) { event.preventDefault(); openPreview(btn.dataset.wid); return; }
+    });
+    previewClose?.addEventListener("click", closePreview);
+    previewModal?.addEventListener("click", (e) => { if (e.target === previewModal) closePreview(); });
+    document.addEventListener("keydown", (e) => {
+      // Yield to the lightbox's own Escape handler first (its shell is #pdocPreviewLightbox,
+      // display:flex when open); only close the preview when the lightbox is not open.
+      const lb = document.getElementById("pdocPreviewLightbox");
+      const lbOpen = lb && lb.style.display === "flex";
+      if (e.key === "Escape" && !lbOpen && previewModal && !previewModal.classList.contains("hidden")) {
+        closePreview();
+      }
+    });
+    {% endif %}
   })();
 </script>
