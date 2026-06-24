@@ -9,6 +9,11 @@
 *.py                  text eol=lf
 *.yml                 text eol=lf
 *.yaml                text eol=lf
+# Templates and JS partials: same story as the docs below -- the mixed-line-ending
+# hook enforces LF, but autocrlf checks them out as CRLF on Windows, so a push's
+# full-range scan rejects them. Pin to LF.
+*.html                text eol=lf
+*.js                  text eol=lf
 scripts/git-hooks/*   text eol=lf
 .git/hooks/*          text eol=lf
 # Docs and message catalogs: the mixed-line-ending pre-commit hook enforces LF,
