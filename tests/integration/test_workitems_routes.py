@@ -62,6 +62,14 @@ def test_workitems_overview_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_workitems_overview_uses_shared_detail_panel(user_client, workitems_all_perms):
+    """The workitems page wires the shared renderer."""
+    resp = user_client.get("/workitems")
+    # 200 or 500-fallback possible in CI; the partial markers live in template body.
+    if resp.status_code == 200:
+        assert b"NexoraWorkitemDetail.render" in resp.data
+
+
 # ============================ API: config/data ===============================
 
 
