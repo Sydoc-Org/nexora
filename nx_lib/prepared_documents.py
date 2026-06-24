@@ -91,13 +91,16 @@ def upsert_prepared_documents(rows, uploaded_by):
             conn.close()
 
 
-def count_prepared_documents():
-    """Total row count of the register (for pagination)."""
+def count_prepared_documents(pid=None):
+    """Total row count of the register (for pagination). Optional exact PID filter."""
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM dbo.PreparedDocuments")
+        if pid:
+            cur.execute("SELECT COUNT(*) FROM dbo.PreparedDocuments WHERE PID = ?", [str(pid)])
+        else:
+            cur.execute("SELECT COUNT(*) FROM dbo.PreparedDocuments")
         row = cur.fetchone()
         return int(row[0]) if row else 0
     finally:
@@ -105,8 +108,9 @@ def count_prepared_documents():
             conn.close()
 
 
-def fetch_prepared_documents_page(offset, limit):
+def fetch_prepared_documents_page(offset, limit, pid=None):
     """Return one OFFSET/FETCH page of the register, newest id first.
+    Optional exact PID filter (for the reverse ?pid deep-link).
 
     Returns list[dict] with keys id/pid/collected/collected_by/prepared/
     prepared_by/uploaded_by/uploaded_at/updated_at.
@@ -115,14 +119,18 @@ def fetch_prepared_documents_page(offset, limit):
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
-        cur.execute(
+        base = (
             "SELECT ID, PID, Collected, CollectedBy, Prepared, PreparedBy, "
             "       UploadedBy, UploadedAt, UpdatedAt "
             "FROM dbo.PreparedDocuments "
-            "ORDER BY ID DESC "
-            "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
-            [int(offset), int(limit)],
         )
+        params = []
+        if pid:
+            base += "WHERE PID = ? "
+            params.append(str(pid))
+        base += "ORDER BY ID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+        params += [int(offset), int(limit)]
+        cur.execute(base, params)
         out = []
         for r in cur.fetchall():
             out.append(
@@ -154,6 +162,33 @@ def clear_prepared_documents():
         deleted = cur.rowcount
         conn.commit()
         return int(deleted) if deleted is not None and deleted >= 0 else 0
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def pids_in_register(pids):
+    """Return the subset of `pids` present in dbo.PreparedDocuments.
+
+    One parameterized SELECT (PID IN (...)). Empty input -> empty set without a DB
+    round-trip. Never raises into the request: on any DB error it logs and returns an
+    empty set (the reverse chip just won't show)."""
+    wanted = [str(p) for p in (pids or []) if str(p).strip()]
+    if not wanted:
+        return set()
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        placeholders = ",".join(["?"] * len(wanted))
+        cur.execute(
+            f"SELECT PID FROM dbo.PreparedDocuments WHERE PID IN ({placeholders})",
+            wanted,
+        )
+        return {str(r[0]) for r in cur.fetchall() if r[0] is not None}
+    except Exception as e:
+        current_app.logger.error(f"pids_in_register: {e}")
+        return set()
     finally:
         if conn is not None:
             conn.close()
