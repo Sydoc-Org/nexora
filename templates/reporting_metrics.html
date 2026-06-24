@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Reporting metrics - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="nx-app">
+  {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <main class="reporting-admin" data-testid="reporting-metrics-admin">
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-calculator"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Reporting metrics") }}</h1>
+          </div>
+        </div>
+      </div>
+      <div class="nx-page-head__actions">
+        <a href="{{ url_for('reporting') }}" class="nx-btn nx-btn--secondary" data-testid="reporting-metrics-back">
+          <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back to Reporting") }}</span>
+        </a>
+      </div>
+    </div>
+    <p class="reporting-admin-note">{{ _("Canonical metrics are named server-side aggregations bound to a source. A report's selected columns become the grouping; each metric adds an aggregated column.") }}</p>
+
+    <section>
+      <h3>{{ _("Registered metrics") }}</h3>
+      <table class="reporting-table" data-testid="reporting-metrics-rows">
+        <thead><tr>
+          <th>{{ _("Code") }}</th><th>{{ _("Source") }}</th><th>{{ _("Label") }}</th>
+          <th>{{ _("Aggregation") }}</th><th>{{ _("Base field") }}</th>
+          <th>{{ _("Enabled") }}</th><th>{{ _("Order") }}</th><th></th>
+        </tr></thead>
+        <tbody id="rpmRows"></tbody>
+      </table>
+    </section>
+
+    <section class="reporting-admin-form">
+      <h3 id="rpmFormTitle">{{ _("Add metric") }}</h3>
+      <div class="reporting-admin-grid">
+        <label>{{ _("Code") }}<input id="rpmCode" class="reporting-input" data-testid="rpm-code"></label>
+        <label>{{ _("Source") }}<select id="rpmSource" class="reporting-input" data-testid="rpm-source"></select></label>
+        <label>{{ _("Label") }}<input id="rpmLabel" class="reporting-input" data-testid="rpm-label"></label>
+        <label>{{ _("Aggregation") }}<select id="rpmAggregation" class="reporting-input">
+          <option value="count">count</option>
+          <option value="count_distinct">count_distinct</option>
+          <option value="sum">sum</option>
+          <option value="avg">avg</option>
+          <option value="min">min</option>
+          <option value="max">max</option>
+        </select></label>
+        <label>{{ _("Base field") }}<input id="rpmBaseField" class="reporting-input" data-testid="rpm-basefield"></label>
+        <label>{{ _("Format") }}<select id="rpmFormat" class="reporting-input">
+          <option value="">—</option>
+          <option value="int">int</option>
+          <option value="decimal">decimal</option>
+          <option value="percent">percent</option>
+        </select></label>
+        <label>{{ _("Sort order") }}<input id="rpmSortOrder" class="reporting-input" type="number" value="100"></label>
+        <label class="reporting-admin-check"><input id="rpmEnabled" type="checkbox" checked> {{ _("Enabled") }}</label>
+      </div>
+      <div class="reporting-admin-actions">
+        <button id="rpmSave" class="reporting-btn" data-testid="rpm-save">{{ _("Save") }}</button>
+        <button id="rpmReset" class="reporting-link" data-testid="rpm-reset">{{ _("Clear form") }}</button>
+        <span id="rpmMsg" class="reporting-admin-msg" data-testid="rpm-msg"></span>
+      </div>
+    </section>
+  </main>
+
+  {% include 'js/_reporting_metrics_js.html' %}
+</body>
+
+</html>

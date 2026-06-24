@@ -1,7 +1,5 @@
 """E2E tests for misc pages: hero landing, jdvance, maintenance, 404 handler."""
 
-import re
-
 import pytest
 from playwright.sync_api import expect
 
@@ -24,14 +22,6 @@ def test_hero_access_portal_navigates_to_login(nexora_server, page):
     page.click('[data-testid="hero-access-portal-cta"]')
     page.wait_for_url("**/login")
     expect(page.locator('[data-testid="login-form"]')).to_be_visible()
-
-
-@pytest.mark.flaky_e2e
-def test_hero_faq_accordion_toggles(nexora_server, page):
-    page.goto(f"{nexora_server}/")
-    btn = page.locator('[data-testid="hero-faq-formats"]')
-    page.click('[data-testid="hero-faq-formats"]')
-    expect(btn).to_have_class(re.compile(r"\bactive\b"))
 
 
 @pytest.mark.flaky_e2e

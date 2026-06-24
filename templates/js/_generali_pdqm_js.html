@@ -194,8 +194,8 @@
         const tParentSub = r.parentSubCategory ? (translationsMap[r.parentSubCategory] || r.parentSubCategory) : null;
         const tSub       = translationsMap[r.subCategory]       || r.subCategory       || '—';
         const parentSubDisplay = tParentSub === null
-            ? '<span class="text-gray-400">—</span>'
-            : `<span class="text-sm text-gray-700">${tParentSub}</span>`;
+            ? '<span style="color:var(--nx-text-meta)">—</span>'
+            : `<span>${tParentSub}</span>`;
 
         const editable  = canEditRecord(r);
         const deletable = canDeleteRecord(r);
@@ -203,35 +203,35 @@
         let actionBtns = '';
         if (canEdit)   actionBtns += `<button ${editable  ? `onclick="openEditModal(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}" data-testid="generali-pdqm-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
         if (canDelete) actionBtns += `<button ${deletable ? `onclick="deleteRecord(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-testid="generali-pdqm-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
-        const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
+        const actionsCell = showActions ? `<td class="align-center whitespace-nowrap">${actionBtns}</td>` : '';
 
         const parentSubValue = r.parentSubCategory !== null && r.parentSubCategory !== undefined ? r.parentSubCategory : '';
 
-        return `<tr class="hover:bg-gray-50 transition"
+        return `<tr
             data-record-id="${r.id}"
             data-for-date="${r.forDate || ''}"
             data-parent="${(r.parentCategory || '').replace(/"/g, '&quot;')}"
             data-parent-sub="${parentSubValue.replace(/"/g, '&quot;')}"
             data-sub="${(r.subCategory || '').replace(/"/g, '&quot;')}"
             data-quantity="${r.quantity !== null ? r.quantity : ''}">
-            <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm font-semibold text-gray-800">${formatDate(r.forDate)}</span>
+            <td class="align-center whitespace-nowrap">
+                <span class="nx-mono" style="font-weight:600">${formatDate(r.forDate)}</span>
             </td>
-            <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
+            <td class="align-center whitespace-nowrap">
+                <span>${r.fullname || r.userId || '—'}</span>
             </td>
-            <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-800">${tParent}</span>
+            <td>
+                <span>${tParent}</span>
             </td>
-            <td class="px-4 py-3 text-left">${parentSubDisplay}</td>
-            <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-600">${tSub}</span>
+            <td>${parentSubDisplay}</td>
+            <td>
+                <span style="color:var(--nx-text-sec)">${tSub}</span>
             </td>
-            <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${r.quantity !== null ? r.quantity : '—'}</span>
+            <td class="align-center whitespace-nowrap">
+                <span class="nx-label nx-label--indigo nx-label--nodot">${r.quantity !== null ? r.quantity : '—'}</span>
             </td>
-            <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-xs text-gray-400">${formatDateTime(r.recordDateTime)}</span>
+            <td class="align-center whitespace-nowrap">
+                <span class="nx-mono" style="color:var(--nx-text-meta)">${formatDateTime(r.recordDateTime)}</span>
             </td>
             ${actionsCell}
         </tr>`;
@@ -247,7 +247,7 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.success) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-red-500 text-sm">${data.error || 'Error'}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-sm" style="color:var(--nx-danger)">${data.error || 'Error'}</td></tr>`;
                     return;
                 }
 
@@ -256,7 +256,7 @@
 
                 _currentRecords = data.records;
                 if (!data.records.length) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16 text-gray-400 text-sm">{{ _("No records found") }}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div><p class="nx-empty__title">{{ _("No records found") }}</p><p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div></td></tr>`;
                 } else {
                     tbody.innerHTML = data.records.map(renderRow).join('');
                 }
@@ -268,7 +268,7 @@
                 renderPagination(pg.page, pg.total_pages);
             })
             .catch(e => {
-                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-red-500 text-sm">Network error</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-sm" style="color:var(--nx-danger)">Network error</td></tr>`;
                 console.error(e);
             });
     }
@@ -284,8 +284,8 @@
             b.innerHTML = label;
             b.disabled = disabled;
             b.className = [
-                'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
-                active   ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+                'nx-btn nx-btn--sm',
+                active   ? 'nx-btn--primary' : 'nx-btn--secondary',
                 disabled ? 'opacity-40 cursor-not-allowed' : ''
             ].join(' ');
             if (!disabled) b.onclick = () => loadRecords(targetPage);
@@ -400,7 +400,7 @@
         populateSubSelect(document.getElementById('addSubCategory'), '', null);
         document.getElementById('addQuantity').value = '';
         document.getElementById('addModalError').classList.add('hidden');
-        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModalErrorText').textContent = '';
         {% if can_add_for_org or can_add_transorg %}
         loadOrgUsers();
         {% endif %}
@@ -461,13 +461,14 @@
         const sub        = document.getElementById('addSubCategory').value;
         const quantity   = document.getElementById('addQuantity').value;
         const errEl      = document.getElementById('addModalError');
+        const errTextEl  = document.getElementById('addModalErrorText');
         const userIdEl   = document.getElementById('addUserId');
         const userId     = userIdEl ? (userIdEl.value || null) : null;
 
         const addParentSubKey = parentSub === NULL_SENTINEL ? '' : parentSub;
         const addSubs = (categoriesData[parent] && categoriesData[parent][addParentSubKey]) ? categoriesData[parent][addParentSubKey] : [];
         if (!forDate || !parent || (addSubs.length > 0 && !sub) || !quantity) {
-            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errTextEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -493,13 +494,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = {{ _("Network error.") | tojson }};
+            errTextEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -646,7 +647,8 @@
                 loadRecords(currentPage);
             } else {
                 const errDiv = document.createElement('div');
-                errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+                errDiv.className = 'fixed bottom-4 right-4 z-50 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+                errDiv.style.background = 'var(--nx-danger)';
                 errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
                 document.body.appendChild(errDiv);
                 setTimeout(() => errDiv.remove(), 4000);
@@ -662,7 +664,8 @@
     // ----------------------------- excel export ----------------------------- //
     function showExportError(msg) {
         const errDiv = document.createElement('div');
-        errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+        errDiv.className = 'fixed bottom-4 right-4 z-50 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+        errDiv.style.background = 'var(--nx-danger)';
         errDiv.textContent = msg;
         document.body.appendChild(errDiv);
         setTimeout(() => errDiv.remove(), 4000);

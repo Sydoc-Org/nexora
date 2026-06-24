@@ -8,6 +8,16 @@ ALLOWED_MIME_TYPES = {
     "png": ["image/png"],
     "jpg": ["image/jpeg"],
     "jpeg": ["image/jpeg"],
+    # .xlsx is an OOXML zip container. libmagic reports it as the office-openxml
+    # type on newer builds, but falls back to a generic zip/octet-stream on
+    # others -- accept all three for the .xlsx extension. (The extension is still
+    # required, and the parser (parse_prepared_xlsx) is the real structural gate:
+    # a renamed .pdf/.zip without a valid workbook returns a parse error.)
+    "xlsx": [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/zip",
+        "application/octet-stream",
+    ],
 }
 
 

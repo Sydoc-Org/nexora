@@ -5,28 +5,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Invoices - nexora") }}</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
 </head>
 
-<body class="text-gray-800 bg-white">
+<body class="nx-app">
   {% set active_page = 'invoices' %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto p-6">
-    <div class="mb-8">
-      <h2 class="text-3xl font-bold text-gray-800 mb-2">
-        {{ _("My Invoices") }}
-      </h2>
-      <p class="text-gray-600">{{ _("Search and filter your past invoices for our services.") }}</p>
+  <main class="nx-main">
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("My Invoices") }}</h1>
+            <p class="nx-subtitle">{{ _("Search and filter your past invoices for our services.") }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <form id="filterForm" class="bg-white p-6 rounded-xl shadow-lg mb-6" data-testid="invoices-filter-form">
+    <form id="filterForm" class="nx-filter mb-6 nx-rise-2" data-testid="invoices-filter-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -35,8 +40,7 @@
         </label>
             <div class="relative mt-1">
         <select id="clientFilter" name="client_id"
-          class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="invoices-client-filter">
+          class="nx-select h-11 appearance-none pr-10" data-testid="invoices-client-filter">
           <option value="">{{ _("All Clients") }}</option>
           {% for client in clients %}
             <option value="{{ client.id }}" {% if request.args.get('client_id')|int == client.id %}selected{% endif %}>
@@ -57,7 +61,7 @@
             </label>
             <div class="relative mt-1">
               <input type="text" id="dateFrom" name="dateFrom" value="{{ dateFrom or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" data-testid="invoices-date-from" />
+                class="nx-input h-11" data-testid="invoices-date-from" />
             </div>
           </div>
 
@@ -67,7 +71,7 @@
             </label>
             <div class="relative mt-1">
               <input type="text" id="dateTo" name="dateTo" value="{{ dateTo or '' }}" {% if date_perm == False %} disabled {% endif %} placeholder="yyyy-mm-dd"
-                class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm" data-testid="invoices-date-to" />
+                class="nx-input h-11" data-testid="invoices-date-to" />
             </div>
           </div>
 
@@ -75,8 +79,7 @@
           <label for="statusFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Status") }}</label>
             <div class="relative mt-1">
           <select id="statusFilter" name="status" {% if status_perm == False %} disabled {% endif %}
-            class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5
-        shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none pr-10" data-testid="invoices-status-filter">
+            class="nx-select h-11 appearance-none pr-10" data-testid="invoices-status-filter">
             <option value="">{{ _("All Statuses") }}</option>
             <option value="Paid" {% if status == 'Paid' %}selected{% endif %}>{{ _("Paid") }}</option>
             <option value="Open" {% if status == 'Open' %}selected{% endif %}>{{ _("Open") }}</option>
@@ -90,10 +93,10 @@
       </div>
        <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
           <a href="{{ url_for('invoices') }}"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200 text-center" data-testid="invoices-reset">{{
+            class="nx-btn nx-btn--secondary" data-testid="invoices-reset">{{
             _("Reset") }}</a>
           <button type="button" id="exportInvoicesCsvBtn"
-            class="bg-white text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="invoices-export-csv">
+            class="nx-btn nx-btn--secondary" data-testid="invoices-export-csv">
             <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
           </button>
         </div>
@@ -101,20 +104,19 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="mb-4">
         {% for category, message in messages %}
-          <div class="rounded-lg border px-4 py-3 {% if category == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %}" role="alert">
-            <span class="block sm:inline">{{ message }}</span>
+          <div class="nx-flash nx-flash--{{ 'success' if category == 'success' else 'error' }}" role="alert">
+            <i class="fas {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+            <span>{{ message }}</span>
           </div>
         {% endfor %}
-        </div>
       {% endif %}
     {% endwith %}
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden relative">
+    <div class="nx-table-wrap relative nx-rise-3">
       <div class="overflow-x-auto">
-        <table class="w-full" id="invoicesTable">
-          <thead class="bg-gray-50 border-b border-gray-200">
+        <table class="nx-table" id="invoicesTable">
+          <thead>
             <tr>
               <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Invoice #") }}</th>
               <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Date") }}</th>
@@ -123,7 +125,7 @@
               <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Actions") }}</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200" id="invoicesTbody">
+          <tbody id="invoicesTbody">
              <tr>
                 <td colspan="5" class="text-center py-10 text-gray-500">
                   <i class="fas fa-spinner fa-spin text-2xl"></i>

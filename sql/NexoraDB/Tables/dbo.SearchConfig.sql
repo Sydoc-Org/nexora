@@ -1,5 +1,7 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[SearchConfig] DROP CONSTRAINT [DF_SearchConfig_ClientCode]
+GO
 DROP TABLE [dbo].[SearchConfig]
 GO
 SET ANSI_NULLS ON
@@ -42,23 +44,18 @@ CREATE TABLE [dbo].[SearchConfig](
 	[col_separatorsheet] [varchar](100) NULL,
 	[col_docid] [varchar](100) NULL,
 	[col_archiveboxno] [varchar](100) NULL,
-	[col_scanbatchnr] [nvarchar](100) NULL,
-	[col_pid] [nvarchar](100) NULL,
-	[col_personalfileid] [nvarchar](100) NULL,
-	[col_employmentfileid] [nvarchar](100) NULL,
-	[col_doctypeidtargetsystem] [nvarchar](100) NULL,
-	[col_doctypeidsydoc] [nvarchar](100) NULL,
-	[col_registeridtargetsystem] [nvarchar](100) NULL,
-	[col_masterdataseparatorsheettype] [nvarchar](100) NULL,
-	[col_masterdatabirthday] [nvarchar](100) NULL,
-	[col_masterdatafirstname] [nvarchar](100) NULL,
-	[col_masterdatalastname] [nvarchar](100) NULL,
-	[col_masterdataseparatorsheetid] [nvarchar](100) NULL,
 	[col_targetsystemfilename] [nvarchar](100) NULL,
 	[col_emailfromaddress] [nvarchar](100) NULL,
+	[ClientCode] [nvarchar](50) NOT NULL,
+	[col_batchname] [nvarchar](100) NULL,
+	[col_pid] [nvarchar](100) NULL,
+	[col_dossierpositioninbatch] [nvarchar](100) NULL,
+	[col_pagecount] [nvarchar](100) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ProcessName] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SearchConfig] ADD  CONSTRAINT [DF_SearchConfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
 GO

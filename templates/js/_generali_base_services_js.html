@@ -109,21 +109,21 @@
         if (canDelete) actionBtns += `<button ${deletable ? `onclick="deleteRecord(${r.id})"` : 'disabled'} class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-testid="generali-base-services-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
         const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
 
-        return `<tr class="hover:bg-gray-50 transition" data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-category="${(r.category||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
+        return `<tr data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-category="${(r.category||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm font-semibold text-gray-800">${formatDate(r.forDate)}</span>
+                <span class="text-sm font-semibold nx-mono">${formatDate(r.forDate)}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
+                <span class="text-sm">${r.fullname || r.userId || '—'}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-800">${r.category || '—'}</span>
+                <span class="text-sm">${r.category || '—'}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${formatHours(r.effortInHours)} h</span>
+                <span class="nx-label nx-label--indigo nx-label--nodot">${formatHours(r.effortInHours)} h</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-xs text-gray-400">${formatDateTime(r.recordDateTime)}</span>
+                <span class="text-xs nx-mono" style="color:var(--nx-text-sec)">${formatDateTime(r.recordDateTime)}</span>
             </td>
             ${actionsCell}
         </tr>`;
@@ -151,7 +151,11 @@
 
             _currentRecords = data.records;
             if (!data.records.length) {
-                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16 text-gray-400 text-sm">{{ _("No records found") }}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="py-16">
+                    <div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div>
+                    <p class="nx-empty__title">{{ _("No records found") }}</p>
+                    <p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div>
+                </td></tr>`;
             } else {
                 tbody.innerHTML = data.records.map(renderRow).join('');
             }
@@ -178,8 +182,8 @@
             b.innerHTML = label;
             b.disabled = disabled;
             b.className = [
-                'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
-                active   ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+                'nx-btn nx-btn--sm',
+                active   ? 'nx-btn--primary' : 'nx-btn--secondary',
                 disabled ? 'opacity-40 cursor-not-allowed' : ''
             ].join(' ');
             if (!disabled) b.onclick = () => loadRecords(targetPage);
@@ -269,7 +273,7 @@
         document.getElementById('addEffortHours').value = '';
         if (canAddForOrg) document.getElementById('addUserId').value = '';
         document.getElementById('addModalError').classList.add('hidden');
-        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModalErrorText').textContent = '';
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('addModal').classList.add('flex');
     }
@@ -289,10 +293,11 @@
         const forDate  = document.getElementById('addForDate').value.trim();
         const category = document.getElementById('addCategory').value;
         const effort   = document.getElementById('addEffortHours').value;
-        const errEl    = document.getElementById('addModalError');
+        const errEl     = document.getElementById('addModalError');
+        const errTextEl = document.getElementById('addModalErrorText');
 
         if (!forDate || !category || !effort) {
-            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errTextEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -316,13 +321,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = {{ _("Network error.") | tojson }};
+            errTextEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });

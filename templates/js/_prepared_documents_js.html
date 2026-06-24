@@ -1,0 +1,139 @@
+<script>
+  (function () {
+    const API_PREFIX = window.API_PREFIX || "/";
+    const csrfToken = document.getElementById("csrfToken")?.value || "";
+
+    const fileInput = document.getElementById("preparedDocsFile");
+    const uploadBtn = document.getElementById("preparedDocsUploadBtn");
+    const clearBtn = document.getElementById("preparedDocsClearBtn");
+    const notice = document.getElementById("preparedDocsNotice");
+    const noticeText = document.getElementById("preparedDocsNoticeText");
+
+    function showNotice(message, ok) {
+      if (!notice || !noticeText) return;
+      noticeText.textContent = message;
+      notice.classList.remove("hidden");
+      notice.classList.toggle("border-emerald-200", ok);
+      notice.classList.toggle("bg-emerald-50", ok);
+      notice.classList.toggle("text-emerald-800", ok);
+      notice.classList.toggle("border-rose-200", !ok);
+      notice.classList.toggle("bg-rose-50", !ok);
+      notice.classList.toggle("text-rose-800", !ok);
+    }
+
+    uploadBtn?.addEventListener("click", () => fileInput?.click());
+
+    fileInput?.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("preparedAuditFile", file);
+      try {
+        const resp = await fetch(`${API_PREFIX}import_prepared_audit`, {
+          headers: { "X-CSRFToken": csrfToken },
+          method: "POST",
+          body: formData,
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showNotice(data.error || "{{ _('Upload failed.') }}", false);
+          return;
+        }
+        const tmpl = "{{ _('Imported %(total)s rows (%(new)s new, %(updated)s updated).', total='%(total)s', new='%(new)s', updated='%(updated)s') }}";
+        const msg = tmpl
+          .replace("%(total)s", data.total)
+          .replace("%(new)s", data.inserted)
+          .replace("%(updated)s", data.updated);
+        showNotice(msg, true);
+        setTimeout(() => window.location.reload(), 700);
+      } catch (e) {
+        showNotice("{{ _('Upload failed.') }}", false);
+      } finally {
+        fileInput.value = "";
+      }
+    });
+
+    clearBtn?.addEventListener("click", async () => {
+      if (!window.confirm("{{ _('Clear the entire prepared-documents list? This cannot be undone.') }}")) {
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_PREFIX}prepared_documents/clear`, {
+          headers: { "X-CSRFToken": csrfToken },
+          method: "POST",
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          showNotice(data.error || "{{ _('Could not clear the list.') }}", false);
+          return;
+        }
+        showNotice("{{ _('Prepared-documents list cleared.') }}", true);
+        setTimeout(() => window.location.reload(), 500);
+      } catch (e) {
+        showNotice("{{ _('Could not clear the list.') }}", false);
+      }
+    });
+
+    {% if details_view_perm %}
+    // ---- Read-only workitem preview modal (MS02) ----
+    const previewModal = document.getElementById("pdocPreviewModal");
+    const previewBody = document.getElementById("pdocPreviewBody");
+    const previewClose = document.getElementById("pdocPreviewClose");
+    let _pdocLightbox = null;
+
+    async function ensureFieldConfig() {
+      if (window.fieldConfig && window.fieldConfig.labels && Object.keys(window.fieldConfig.labels).length) return;
+      try {
+        const res = await fetch(`${API_PREFIX}api/config/fields`, {
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+        });
+        if (res.ok) window.fieldConfig = await res.json();
+      } catch (e) { /* labels fall back to raw keys */ }
+    }
+
+    function openPreview(wid, status, currentStage) {
+      if (!previewModal || !previewBody || !window.NexoraWorkitemDetail) return;
+      if (!_pdocLightbox && window.NexoraWorkitemDetail.attachLightbox) {
+        _pdocLightbox = window.NexoraWorkitemDetail.attachLightbox({
+          modal: "pdocPreviewLightbox", image: "pdocPreviewImage",
+          hlLayer: "pdocPreviewHlLayer", hlToggle: "pdocPreviewHlToggle",
+          hlToggleLabel: "pdocPreviewHlToggleLabel",
+          reviewPanel: "pdocPreviewReviewPanel", reviewPanelBody: "pdocPreviewReviewPanelBody",
+        });
+      }
+      previewBody.innerHTML = "";
+      ensureFieldConfig().then(() => {
+        window.NexoraWorkitemDetail.render(wid, previewBody, {
+          readOnly: true,
+          perms: window.__pdocPreviewPerms || {},
+          status: status || "",
+          currentStage: currentStage || "",
+        });
+      });
+      previewModal.classList.remove("hidden");
+    }
+
+    function closePreview() {
+      if (!previewModal) return;
+      previewModal.classList.add("hidden");
+      if (previewBody) previewBody.innerHTML = "";
+    }
+
+    document.addEventListener("click", (event) => {
+      const btn = event.target.closest('[data-testid="prepared-docs-preview"]');
+      if (btn) { event.preventDefault(); openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage); return; }
+    });
+    previewClose?.addEventListener("click", closePreview);
+    previewModal?.addEventListener("click", (e) => { if (e.target === previewModal) closePreview(); });
+    document.addEventListener("keydown", (e) => {
+      // Yield to the lightbox's own Escape handler first (its shell is #pdocPreviewLightbox,
+      // display:flex when open); only close the preview when the lightbox is not open.
+      const lb = document.getElementById("pdocPreviewLightbox");
+      const lbOpen = lb && lb.style.display === "flex";
+      if (e.key === "Escape" && !lbOpen && previewModal && !previewModal.classList.contains("hidden")) {
+        closePreview();
+      }
+    });
+    {% endif %}
+  })();
+</script>

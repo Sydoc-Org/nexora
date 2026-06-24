@@ -24,7 +24,7 @@
         data.forEach(conv => {
           const isActive = activeConversationId === conv.id;
           const div = document.createElement('div');
-          div.className = `p-3 rounded cursor-pointer flex items-center gap-3 ${isActive ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-100'}`;
+          div.className = `p-3 rounded cursor-pointer flex items-center gap-3 ${isActive ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-gray-100'}`;
           div.onclick = () => openChat(conv.id, conv.name, conv.avatar);
           div.setAttribute('data-testid', `chat-conversation-${conv.id}`);
 
@@ -85,7 +85,7 @@
     const workitemRegex = /\/(\d+)/g;
     return text.replace(workitemRegex, (match, id) => {
       const url = `${API_PREFIX}workitems?search=${id}`;
-      return `<a href="${url}" class="text-blue-300 underline font-bold hover:text-blue-100" data-testid="chat-workitem-link-${id}"><i class="fa-solid fa-file-lines mr-1"></i>${match}</a>`;
+      return `<a href="${url}" class="text-indigo-200 underline font-bold hover:text-white" data-testid="chat-workitem-link-${id}"><i class="fa-solid fa-file-lines mr-1"></i>${match}</a>`;
     });
   }
 
@@ -127,7 +127,7 @@
 
           div.innerHTML = `
                 <div class="flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}">
-                    <div class="${isMe ? 'bg-blue-600 text-white' : 'bg-white border text-gray-800'} px-4 py-2 rounded-lg shadow-sm">
+                    <div class="${isMe ? 'nx-bubble-me text-white' : 'bg-white border text-gray-800'} px-4 py-2 rounded-lg shadow-sm">
                         ${formattedText}
                     </div>
                     <span class="text-[10px] text-gray-400 mt-1">${msg.time}</span>

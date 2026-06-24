@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 
 from . import config as cfg
 
@@ -25,6 +26,52 @@ def get_db_url(d, s=None):
         f"PWD={cfg.DB_PWD};"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
+
+
+def get_ro_db_url(d, s=None, uid=None, pwd=None):
+    """Build a connection URL using a dedicated read-only reporting login.
+
+    Defaults to the Statistics RO login (``DB_REPORTING_RO_*``); pass ``uid`` /
+    ``pwd`` to use a different read-only login (e.g. the Octopus target's).
+    """
+    server = s if s is not None else cfg.DB_SERVER_PRD
+    uid = uid if uid is not None else cfg.DB_REPORTING_RO_USER
+    pwd = pwd if pwd is not None else cfg.DB_REPORTING_RO_PWD
+    params = urllib.parse.quote_plus(
+        f"DRIVER={{SQL Server}};"
+        f"SERVER={server},1433;"
+        f"DATABASE={d};"
+        f"UID={uid};"
+        f"PWD={pwd};"
+    )
+    return f"mssql+pyodbc:///?odbc_connect={params}"
+
+
+def get_pg_url(host, db, uid, pwd, port="5432", sslmode="require", sslrootcert=None):
+    """Build a SQLAlchemy URL for an Azure Postgres DB over psycopg2 with TLS.
+
+    Uses ``URL.create`` so special characters in the password are handled
+    safely (no manual percent-encoding). Azure Postgres requires SSL.
+
+    ``sslmode`` defaults to ``require`` (encrypt, but do not verify the server
+    certificate) because psycopg2-binary's bundled libpq has no default CA
+    store on Windows, so ``verify-full`` would refuse to connect until an Azure
+    root-CA bundle is provisioned. To close the MITM gap, set ``sslmode`` to
+    ``verify-full`` (or ``verify-ca``) and pass ``sslrootcert`` pointing at that
+    bundle — see the MS02_DB_SSLMODE / MS02_DB_SSLROOTCERT config knobs.
+    """
+    query = {"sslmode": sslmode}
+    if sslrootcert:
+        query["sslrootcert"] = sslrootcert
+    return URL.create(
+        "postgresql+psycopg2",
+        username=uid,
+        password=pwd,
+        host=host,
+        port=int(port),
+        database=db,
+        query=query,
+    )
 
 
 engine_octo_db = create_engine(
@@ -59,6 +106,125 @@ engine_generali_db = create_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
 )
+
+# MS02 client runtime DB (Azure Postgres). Stays None until its env vars are
+# provisioned, so dev/test boxes without MS02 credentials boot normally — same
+# graceful-degrade pattern as engine_statistics_ro / engine_octo_ro.
+if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PWD:
+    engine_ms02_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_DB_HOST,
+            cfg.MS02_DB_NAME,
+            cfg.MS02_DB_USER,
+            cfg.MS02_DB_PWD,
+            cfg.MS02_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_pg = None
+
+# MS02 dashboard-statistics DB (Praesidialdepartement_BS, Azure Postgres).
+# Separate engine because a PG connection is bound to one database. Same
+# graceful-degrade pattern; reuses the MS02 TLS settings.
+if (
+    cfg.MS02_STATS_DB_HOST
+    and cfg.MS02_STATS_DB_NAME
+    and cfg.MS02_STATS_DB_USER
+    and cfg.MS02_STATS_DB_PWD
+):
+    engine_ms02_stats_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_STATS_DB_HOST,
+            cfg.MS02_STATS_DB_NAME,
+            cfg.MS02_STATS_DB_USER,
+            cfg.MS02_STATS_DB_PWD,
+            cfg.MS02_STATS_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_stats_pg = None
+
+# MS02 doc-field index DB (separate Postgres DB on the same Azure host/login as
+# the MS02 runtime DB). A PG connection is bound to one database, so the
+# doc-field index needs its own engine -- a third MS02 engine alongside the
+# runtime (engine_ms02_pg) and dashboard-stats (engine_ms02_stats_pg) ones.
+# Same graceful-degrade pattern; reuses the MS02 TLS settings. Doc-field search
+# pre-resolves matches against this DB into a workitem-ID allow-set (it is never
+# joined in-query to the runtime DB).
+if (
+    cfg.MS02_DOCFIELDS_DB_HOST
+    and cfg.MS02_DOCFIELDS_DB_NAME
+    and cfg.MS02_DOCFIELDS_DB_USER
+    and cfg.MS02_DOCFIELDS_DB_PWD
+):
+    engine_ms02_docfields_pg = create_engine(
+        get_pg_url(
+            cfg.MS02_DOCFIELDS_DB_HOST,
+            cfg.MS02_DOCFIELDS_DB_NAME,
+            cfg.MS02_DOCFIELDS_DB_USER,
+            cfg.MS02_DOCFIELDS_DB_PWD,
+            cfg.MS02_DOCFIELDS_DB_PORT,
+            sslmode=cfg.MS02_DB_SSLMODE,
+            sslrootcert=cfg.MS02_DB_SSLROOTCERT,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_ms02_docfields_pg = None
+
+# Read-only engine for the Reporting live-SQL sandbox. Uses a dedicated
+# db_datareader-only login over the Statistics DB. Stays None when the RO
+# credentials are not provisioned, so the SQL source simply degrades to
+# "unavailable" rather than breaking startup on dev/test boxes.
+if cfg.DB_REPORTING_RO_USER and cfg.DB_REPORTING_RO_PWD and cfg.DB_STATISTICS:
+    engine_statistics_ro = create_engine(
+        get_ro_db_url(cfg.DB_STATISTICS),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_statistics_ro = None
+
+# Second read-only engine for the SQL sandbox's Octopus target. Uses its own
+# dedicated db_datareader-only login (DB_REPORTING_OCTO_RO_*) over the Octopus
+# runtime DB. Stays None until those credentials are provisioned, so the
+# Octopus SQL target degrades to "unavailable" rather than breaking startup.
+if cfg.DB_REPORTING_OCTO_RO_USER and cfg.DB_REPORTING_OCTO_RO_PWD and cfg.DB_OCTO_RUNTIME:
+    engine_octo_ro = create_engine(
+        get_ro_db_url(
+            cfg.DB_OCTO_RUNTIME,
+            uid=cfg.DB_REPORTING_OCTO_RO_USER,
+            pwd=cfg.DB_REPORTING_OCTO_RO_PWD,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_octo_ro = None
 
 # Dedicated executor for DB health pings so a hung server doesn't block the page.
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")

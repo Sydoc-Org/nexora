@@ -1,0 +1,1063 @@
+.reporting-main {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 16px;
+  padding: 20px;
+}
+
+.reporting-fields,
+.reporting-wells {
+  background: #fff;
+  border: 1px solid #eef;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.reporting-results {
+  background: #fff;
+  border: 1px solid #eef;
+  border-radius: 14px;
+  padding: 14px;
+  min-height: 60vh;
+}
+
+.reporting-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.reporting-mode-toggle button {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.reporting-saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reporting-saved select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  max-width: 200px;
+}
+
+.reporting-export-format {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  background: #fff;
+}
+
+.reporting-mode-toggle button.active {
+  background: #4338ca;
+  color: #fff;
+}
+
+.reporting-mode-toggle button[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.reporting-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #4338ca;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.reporting-btn:hover {
+  background: #3730a3;
+}
+
+.reporting-link {
+  background: none;
+  border: none;
+  color: #4338ca;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.reporting-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.reporting-input,
+.reporting-title-input,
+#rpSource {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 6px 0;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.reporting-field-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.reporting-field-list li {
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.reporting-field-list li:hover {
+  background: #eef2ff;
+}
+
+/* --- Process scope picker (client / process multi-select) ----------------- */
+.reporting-scope {
+  position: relative;
+  margin: 6px 0;
+}
+.reporting-scope-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  color: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.reporting-scope-btn:hover { border-color: #c7c7c7; }
+.reporting-scope-btn .fa-chevron-down { font-size: 11px; color: #888; }
+.reporting-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+.reporting-scope-menu {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 50vh;
+  overflow: auto;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.reporting-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.reporting-scope-row:hover { background: #eef2ff; }
+.reporting-scope-row input { margin: 0; cursor: pointer; }
+.reporting-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reporting-scope-all { font-weight: 600; }
+.reporting-scope-all + .reporting-scope-client { border-top: 1px solid #eee; }
+.reporting-scope-client { font-weight: 600; }
+.reporting-scope-proc { padding-left: 26px; color: #444; }
+
+/* Grain selector on a date column in the Columns well */
+.reporting-grain {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+
+.reporting-well {
+  margin-bottom: 16px;
+}
+
+.reporting-well h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #888;
+  margin-bottom: 6px;
+  margin-top: 0;
+}
+
+.reporting-well ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reporting-well ul li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.reporting-well ul li input {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.reporting-well ul li button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+/* Metrics well: each selected-metric row is a <select> + remove button. The
+   input-only flex rule above doesn't cover <select>, so stretch it here. */
+.reporting-well ul li.reporting-metric-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.reporting-filter-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.reporting-filter-row select,
+.reporting-filter-row input {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.reporting-filter-row button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.reporting-table-wrap {
+  overflow: auto;
+}
+
+.reporting-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.reporting-table th,
+.reporting-table td {
+  border: 1px solid #eee;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.reporting-table th {
+  background: #f8f8ff;
+  font-weight: 600;
+}
+
+.reporting-empty,
+.reporting-error {
+  color: #888;
+  padding: 20px;
+  margin: 0;
+}
+
+.reporting-error {
+  color: #c0392b;
+}
+
+@media (max-width: 1100px) {
+  .reporting-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Phase 2: live SQL --- */
+.reporting-sql-panel { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.reporting-sql-bar { display: flex; align-items: center; gap: 8px; }
+.reporting-sql-editor {
+  width: 100%; min-height: 180px; resize: vertical;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid #d1d5db;
+  border-radius: 6px; tab-size: 2;
+}
+.reporting-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.reporting-modal[hidden] { display: none; }
+.reporting-modal-box {
+  background: #fff; border-radius: 10px; padding: 22px; max-width: 460px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+.reporting-modal-box h3 { margin: 0 0 8px; }
+.reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* Share modal */
+.reporting-share-vis { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.reporting-share-vis label { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }
+.reporting-share-h { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .05em; color: #888; }
+.reporting-share-list { list-style: none; padding: 0; margin: 0 0 10px; max-height: 180px; overflow: auto; }
+.reporting-share-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+}
+.reporting-share-empty { color: #888; border-bottom: none !important; }
+.reporting-share-add { display: flex; align-items: center; gap: 8px; }
+.reporting-share-add .reporting-input { margin: 0; flex: 1; }
+.reporting-share-canedit { font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+/* --- Phase 3: result views (chart + pivot) --- */
+.reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+.reporting-view-toggle[hidden] { display: none; }
+.reporting-view-toggle button {
+  padding: 4px 12px; border-radius: 8px; border: 1px solid #ddd;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.reporting-view-toggle button.active { background: #4338ca; color: #fff; border-color: #4338ca; }
+
+.reporting-viz[hidden] { display: none; }
+.reporting-viz-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.reporting-viz-bar select {
+  padding: 5px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+}
+.reporting-viz-lbl {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: #888;
+}
+.reporting-chart-canvas { position: relative; height: 60vh; min-height: 360px; }
+.reporting-viz-note { color: #888; font-size: 12px; margin: 8px 0 0; }
+
+/* Pivot drag-and-drop shelf + matrix */
+.reporting-pivot-shelf {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
+}
+.reporting-pivot-zone {
+  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px; min-height: 90px;
+  background: #fafbff;
+}
+.reporting-pivot-zone.drop-hover { border-color: #4338ca; background: #eef2ff; }
+.reporting-pivot-zone h5 {
+  margin: 0 0 6px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .05em; color: #64748b;
+}
+.reporting-pivot-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+.reporting-pivot-chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: grab;
+  background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px;
+  padding: 3px 8px; font-size: 12px; user-select: none;
+}
+.reporting-pivot-chip select {
+  border: 1px solid #c7d2fe; border-radius: 6px; font-size: 11px; padding: 1px 2px;
+  background: #fff;
+}
+.reporting-pivot-rm {
+  background: none; border: none; color: #6366f1; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0;
+}
+/* Nested (multi-level) pivot column headers: center grouped cells, keep
+   borders crisp across the spanned rows. */
+.reporting-pivot-table thead th {
+  text-align: center; vertical-align: middle; background: #f8f8ff;
+  border: 1px solid #e5e7eb;
+}
+.reporting-pivot-corner { background: #f1f5f9; }
+.reporting-pivot-rowhdr { font-weight: 600; background: #f8f8ff; }
+.reporting-pivot-total { background: #f1f5f9; font-weight: 600; }
+.reporting-pivot-totalrow td { border-top: 2px solid #cbd5e1; }
+
+@media (max-width: 900px) {
+  .reporting-pivot-shelf { grid-template-columns: 1fr 1fr; }
+}
+
+/* --- A3: source-registry admin page --- */
+.reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
+.reporting-admin-note { color: #64748b; font-size: 13px; margin: 4px 0 16px; }
+.reporting-admin section {
+  background: #fff; border: 1px solid #eef; border-radius: 14px; padding: 14px; margin-bottom: 16px;
+}
+.reporting-admin section h3 { margin-top: 0; }
+.reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
+.reporting-admin-grid label,
+.reporting-admin-cols {
+  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #555;
+}
+.reporting-admin-check { flex-direction: row !important; align-items: center; gap: 6px; }
+.reporting-admin-cols { margin-top: 10px; }
+.reporting-admin-cols .reporting-sql-editor { min-height: 110px; }
+.reporting-admin-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.reporting-admin-msg { font-size: 13px; color: #059669; }
+@media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }
+
+/* --- Animation layer (Motion). The entrance pre-hide is applied only when
+   motion is enabled (<html class="rp-anim">, set by an inline head script).
+   Users with prefers-reduced-motion never get the class, so content shows
+   instantly; js/_reporting_anim_js.html reveals + animates the columns and
+   removes the class once the entrance finishes. --- */
+.rp-anim .reporting-fields,
+.rp-anim .reporting-results,
+.rp-anim .reporting-wells { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-anim .reporting-fields,
+  .rp-anim .reporting-results,
+  .rp-anim .reporting-wells { opacity: 1; }
+}
+
+/* --- AI assistant panel (Phase 1) --- */
+.reporting-ai-panel { padding: .75rem; border: 1px solid var(--rp-border, #d0d7de); border-radius: 6px; margin-bottom: .5rem; }
+.reporting-ai-bar { display: flex; gap: .5rem; }
+.reporting-ai-prompt { flex: 1; padding: .4rem .6rem; }
+.reporting-ai-hint { font-size: .8rem; color: #57606a; margin: .4rem 0 0; }
+.reporting-ai-result { margin-top: .6rem; }
+.reporting-ai-sql { background: #f6f8fa; padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
+.reporting-ai-explain { font-size: .85rem; color: #24292f; }
+.reporting-ai-invalid { color: #9a6700; font-size: .85rem; }
+.reporting-ai-error { color: #cf222e; font-size: .85rem; }
+.reporting-ai-actions { display: flex; gap: .5rem; align-items: center; margin-top: .4rem; }
+/* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
+.rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
+
+/* --- AI assistant: Surface-A sub-mode (Phase 2) --- */
+.reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
+.reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--rp-border, #d0d7de); background: #fff; border-radius: 6px; cursor: pointer; }
+.reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
+
+/* ============================================================
+   nexora-ui HARMONIZATION (appended last → overrides the page's
+   own palette). Maps the reporting builder onto the global
+   --nx-* design tokens (loaded app-wide from _header.html), so
+   it shares the indigo→violet brand signature, hairline keylines
+   and dark-mode awareness of the rest of the app. Layout (grids/
+   flex) is untouched — only colour, border, radius, type, shadow.
+   These rules are unlayered, so they also win over Tailwind's
+   utility layer (e.g. body bg-gray-50). See the design-system
+   memory for the token vocabulary + the Tailwind-layer gotcha.
+   ============================================================ */
+body.nx-app {
+  background: var(--nx-page);
+  color: var(--nx-text);
+  font-family: var(--nx-font);
+}
+
+.reporting-main { font-family: var(--nx-font); }
+
+/* Branded page header — sits above the builder grid (a sibling, not a grid
+   child) so its right-aligned actions stay on-screen even when the builder
+   grid overflows horizontally. Left padding matches the grid's 20px so the
+   title lines up with the Source panel; the grid's own padding-top supplies
+   the gap below. */
+.reporting-page-head { padding: 20px 20px 0; margin-bottom: 0; }
+
+/* Panels / surfaces */
+.reporting-fields,
+.reporting-wells,
+.reporting-results,
+.reporting-admin section {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  box-shadow: var(--nx-shadow);
+  color: var(--nx-text);
+}
+
+/* Typography helpers */
+.reporting-label,
+.reporting-well h4,
+.reporting-share-h,
+.reporting-viz-lbl,
+.reporting-pivot-zone h5 { color: var(--nx-text-meta); }
+.reporting-empty,
+.reporting-viz-note,
+.reporting-admin-note { color: var(--nx-text-sec); }
+.reporting-error { color: var(--nx-danger); }
+.reporting-admin-msg { color: var(--nx-success); }
+
+/* Buttons — solid accent default, brand-gradient primary */
+.reporting-btn {
+  background: var(--nx-accent);
+  border: 1px solid transparent;
+  border-radius: var(--nx-radius-sm);
+  transition: filter var(--nx-dur) var(--nx-ease);
+}
+.reporting-btn:hover { background: var(--nx-accent-hover); filter: brightness(1.02); }
+.reporting-btn-primary,
+.reporting-modal-actions .reporting-btn-primary {
+  background: var(--nx-brand-grad);
+  border-color: transparent;
+  color: #fff;
+}
+.reporting-btn-primary:hover { filter: brightness(1.05); }
+.reporting-link { color: var(--nx-accent); }
+.reporting-link:hover { color: var(--nx-accent-hover); text-decoration: underline; }
+
+/* Mode + view + sub-mode toggles share the active brand gradient */
+.reporting-mode-toggle button,
+.reporting-view-toggle button,
+.reporting-ai-submode button {
+  background: var(--nx-card);
+  color: var(--nx-text-sec);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  cursor: pointer;
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.reporting-mode-toggle button:hover:not([disabled]):not(.active),
+.reporting-view-toggle button:hover:not(.active),
+.reporting-ai-submode button:hover:not(.active) { background: var(--nx-accent-tint); }
+.reporting-mode-toggle button.active,
+.reporting-view-toggle button.active {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-color: transparent;
+}
+.reporting-ai-submode button.active {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent-soft);
+  color: var(--nx-accent);
+  font-weight: 600;
+}
+
+/* Inputs / selects / textareas */
+.reporting-input,
+.reporting-title-input,
+.reporting-saved select,
+.reporting-export-format,
+#rpSource,
+.reporting-well ul li input,
+.reporting-filter-row select,
+.reporting-filter-row input,
+.reporting-viz-bar select,
+.reporting-sql-editor,
+.reporting-ai-prompt {
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+.reporting-input:focus,
+.reporting-title-input:focus,
+#rpSource:focus,
+.reporting-sql-editor:focus,
+.reporting-ai-prompt:focus,
+.reporting-saved select:focus,
+.reporting-viz-bar select:focus {
+  outline: none;
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-tint);
+}
+
+/* Field list + table */
+.reporting-field-list li:hover { background: var(--nx-accent-tint); }
+
+/* Process scope picker — tokenized for theme consistency */
+.reporting-scope-btn,
+.reporting-scope-menu {
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border-color: var(--nx-border);
+}
+.reporting-scope-btn:hover { border-color: var(--nx-accent-soft); }
+.reporting-scope-btn:focus-visible {
+  outline: none;
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-tint);
+}
+.reporting-scope-menu { box-shadow: var(--nx-shadow); }
+.reporting-scope-btn .fa-chevron-down { color: var(--nx-text-meta); }
+.reporting-scope-row:hover { background: var(--nx-accent-tint); }
+.reporting-scope-all + .reporting-scope-client { border-color: var(--nx-border); }
+.reporting-scope-proc { color: var(--nx-text-sec); }
+.reporting-table th,
+.reporting-table td { border-color: var(--nx-border); }
+.reporting-table th,
+.reporting-pivot-table thead th,
+.reporting-pivot-rowhdr { background: var(--nx-alt); color: var(--nx-text); }
+.reporting-pivot-corner,
+.reporting-pivot-total { background: var(--nx-sunken); }
+
+/* Pivot shelf */
+.reporting-pivot-zone { background: var(--nx-alt); border-color: var(--nx-border); }
+.reporting-pivot-zone.drop-hover { border-color: var(--nx-accent); background: var(--nx-accent-tint); }
+.reporting-pivot-chip {
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  color: var(--nx-text);
+}
+.reporting-pivot-chip select { border-color: var(--nx-accent-soft); background: var(--nx-card); color: var(--nx-text); }
+.reporting-pivot-rm { color: var(--nx-accent); }
+
+/* Modals */
+.reporting-modal-box {
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  box-shadow: var(--nx-shadow-pop);
+}
+
+/* AI panel chrome */
+.reporting-ai-panel {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-alt);
+}
+.reporting-ai-hint { color: var(--nx-text-sec); }
+.reporting-ai-sql { background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); }
+.reporting-ai-explain { color: var(--nx-text); }
+.reporting-ai-invalid { color: var(--nx-warning); }
+.reporting-ai-error { color: var(--nx-danger); }
+
+/* --- Agent (Surface C) thread + tool-step trace --- */
+.reporting-ai-thread { display: flex; flex-direction: column; gap: .5rem; }
+.reporting-ai-turn {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  padding: .5rem .6rem;
+  background: var(--nx-card);
+}
+.reporting-ai-q { margin: 0 0 .25rem; font-size: .85rem; color: var(--nx-text-sec); }
+.reporting-ai-q-badge {
+  display: inline-block; margin-right: .4rem; padding: 0 .4rem;
+  border-radius: var(--nx-radius-pill); font-size: .7rem; font-weight: 600;
+  background: var(--nx-accent-tint); color: var(--nx-accent);
+}
+.reporting-ai-a { margin: 0; font-size: .9rem; color: var(--nx-text); white-space: pre-wrap; }
+.reporting-ai-trace-wrap { margin-top: .5rem; }
+.reporting-ai-trace-summary {
+  cursor: pointer; font-size: .8rem; color: var(--nx-text-meta);
+  user-select: none;
+}
+.reporting-ai-trace { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
+.reporting-ai-step {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  font-size: .8rem; color: var(--nx-text-sec);
+}
+.reporting-ai-step-name {
+  font-family: var(--nx-mono); font-size: .78rem;
+  background: var(--nx-sunken); padding: .05rem .35rem; border-radius: var(--nx-radius-sm);
+}
+.reporting-ai-step-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.05rem; height: 1.05rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 700; color: #fff;
+}
+.reporting-ai-step-chip.is-ok { background: var(--nx-success); }
+.reporting-ai-step-chip.is-err { background: var(--nx-danger); }
+.reporting-ai-step-meta { color: var(--nx-text-meta); font-size: .72rem; }
+
+/* ============================================================
+   REDESIGN — layout, density & structure (appended last).
+   The harmonization block above mapped colour onto the --nx-*
+   tokens but explicitly left layout/grids/flex alone. This block
+   fixes the structural problems that made the page look unfinished:
+   a cramped single-row toolbar, the mode toggle wrapping into a
+   broken vertical stack, every button reading as a primary, the
+   empty results void, the giant blank side cards, and the bare
+   metric wells. Built on the global nexora-ui components; every
+   id/.class/data-testid the JS + e2e suite use is preserved.
+   ============================================================ */
+
+/* Top-align the three columns so the side cards hug their content
+   instead of stretching to the tall results card. */
+.reporting-main {
+  gap: 20px;
+  padding: 20px 24px 32px;
+  align-items: start;
+}
+.reporting-fields,
+.reporting-wells { align-self: start; }
+.reporting-results { padding: 18px 20px; min-height: 70vh; }
+
+/* --- Source panel --- */
+.reporting-fields { padding: 16px; }
+#rpSource { margin: 6px 0 0; }
+#rpFieldSearch { margin: 12px 0 8px; }
+.reporting-field-list { margin: 0; }
+.reporting-field-list li {
+  position: relative;
+  padding: 8px 28px 8px 10px;
+  border-radius: var(--nx-radius-sm);
+  color: var(--nx-text);
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.reporting-field-list li::after {
+  content: "+";
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; font-weight: 700; line-height: 1;
+  color: var(--nx-accent); opacity: 0;
+  transition: opacity var(--nx-dur) var(--nx-ease);
+}
+.reporting-field-list li:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+.reporting-field-list li:hover::after { opacity: 1; }
+
+/* --- Toolbar: structured, wraps as groups, one primary action --- */
+.reporting-toolbar {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--nx-divider);
+}
+
+/* Mode toggle → segmented control (was shrinking + wrapping vertically) */
+.reporting-mode-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+.reporting-mode-toggle button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 14px;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  color: var(--nx-text-sec);
+}
+.reporting-mode-toggle button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+}
+
+/* Report title — reads as an editable document title, fills the slack */
+.reporting-title-input {
+  flex: 1 1 200px;
+  min-width: 150px;
+  margin: 0;
+  padding: 7px 10px;
+  font-size: 15px; font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.reporting-title-input:hover { border-color: var(--nx-border); }
+.reporting-title-input::placeholder { font-weight: 500; }
+
+/* Saved-report cluster */
+.reporting-saved { flex-shrink: 0; gap: 8px; }
+.reporting-saved select { margin: 0; }
+.reporting-saved-links { display: inline-flex; align-items: center; gap: 2px; }
+.reporting-saved .reporting-link {
+  padding: 5px 7px;
+  border-radius: var(--nx-radius-sm);
+  font-size: 12.5px;
+}
+.reporting-saved .reporting-link:hover { background: var(--nx-accent-tint); text-decoration: none; }
+.reporting-saved .reporting-link:disabled { opacity: .4; cursor: not-allowed; background: none; }
+
+/* Action cluster pinned right */
+.reporting-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.reporting-actions-sep {
+  width: 1px; align-self: stretch; margin: 2px 2px;
+  background: var(--nx-border);
+}
+
+/* Buttons — default is now SECONDARY; gradient reserved for the one
+   primary (Run) so the toolbar has a single clear call to action. */
+.reporting-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px;
+  font-size: 13px; font-weight: 500;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  white-space: nowrap;
+}
+.reporting-btn:hover { background: var(--nx-alt); filter: none; }
+.reporting-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
+.reporting-btn .fas { font-size: 11px; }
+.reporting-btn-primary,
+.reporting-actions .reporting-btn-primary,
+.reporting-modal-actions .reporting-btn-primary {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.45);
+}
+.reporting-btn-primary:hover { filter: brightness(1.06); background: var(--nx-brand-grad); }
+.reporting-export-format { margin: 0; padding: 7px 9px; }
+
+/* View toggle (Grid / Chart / Pivot) → segmented, matches mode toggle */
+.reporting-view-toggle {
+  display: inline-flex;
+  gap: 3px; padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  margin-bottom: 14px;
+}
+.reporting-view-toggle button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--nx-text-sec);
+}
+.reporting-view-toggle button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+}
+
+/* --- Right wells: a clean divided stack instead of floating labels --- */
+.reporting-wells { padding: 4px 16px 12px; }
+.reporting-well {
+  margin: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.reporting-well:last-child { border-bottom: none; padding-bottom: 4px; }
+.reporting-well h4 { margin: 0 0 8px; }
+.reporting-well ul:empty { display: none; }
+.reporting-well ul li input,
+.reporting-well ul li.reporting-metric-row select,
+.reporting-filter-row select,
+.reporting-filter-row input { padding: 6px 8px; }
+.reporting-filter-row { margin-bottom: 8px; }
+
+/* "+ Add metric/filter/sort" → dashed ghost add-buttons (fill the dead
+   space + signal the affordance). These are .reporting-link buttons. */
+#rpAddMetric, #rpAddFilter, #rpAddSort {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+  padding: 6px 11px;
+  border: 1px dashed var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  font-size: 12.5px; font-weight: 500;
+  color: var(--nx-accent);
+}
+#rpAddMetric:hover, #rpAddFilter:hover, #rpAddSort:hover {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent-soft);
+  border-style: solid;
+  text-decoration: none;
+}
+#rpSubtitle { margin: 6px 0 0; }
+
+/* --- Results: empty state + a calmer, GitHub-style data table --- */
+.reporting-table-wrap { min-height: 64vh; }
+.reporting-empty-state { padding: 64px 24px; min-height: inherit; }
+.reporting-empty,
+.reporting-error { text-align: center; padding: 48px 24px; font-size: 14px; }
+
+.reporting-table th,
+.reporting-table td {
+  border: none;
+  border-bottom: 1px solid var(--nx-divider);
+  padding: 10px 14px;
+}
+.reporting-table thead th {
+  background: var(--nx-alt);
+  border-bottom: 1px solid var(--nx-border);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--nx-text-meta);
+}
+.reporting-table tbody tr:hover { background: var(--nx-alt); }
+.reporting-table tbody tr:last-child td { border-bottom: none; }
+
+/* --- AI panel: a touch more padding so it doesn't feel cramped --- */
+.reporting-ai-panel { padding: 14px 16px; }
+.reporting-ai-bar { gap: 8px; }
+.reporting-ai-prompt { padding: 8px 12px; }
+
+/* SQL / Ask-AI modes hide both sidebars (JS adds .reporting-main--single):
+   collapse to one full-width column so the editor/assistant gets the room
+   instead of being squeezed into the 260px builder track. */
+.reporting-main--single { grid-template-columns: 1fr; }
+
+/* AI sub-mode switch (Build a report / Write SQL / Agent) → segmented control,
+   matching the main mode toggle (was wrapping into a broken vertical stack). */
+.reporting-ai-submode {
+  display: inline-flex;
+  gap: 3px; padding: 3px;
+  background: var(--nx-sunken);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  margin-bottom: 12px;
+}
+.reporting-ai-submode button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: calc(var(--nx-radius-sm) - 2px);
+  padding: 6px 14px;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  color: var(--nx-text-sec);
+}
+.reporting-ai-submode button.active {
+  background: var(--nx-card);
+  color: var(--nx-accent);
+  border-color: transparent;
+  box-shadow: var(--nx-shadow);
+  font-weight: 600;
+}
+.reporting-ai-result { max-width: 760px; }
+
+@media (max-width: 1100px) {
+  .reporting-actions { margin-left: 0; }
+  .reporting-title-input { flex-basis: 100%; order: -1; }
+}
+
+/* --- Simple/Advanced tabs (Spec 2) --- */
+.reporting-tabs { margin: 0 24px 12px; }
+
+/* --- Simple pane (Spec 2) --- */
+.reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }
+.reporting-simple-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.reporting-simple-aibar { display: flex; gap: 8px; flex: 1; min-width: 260px; }
+.reporting-simple-aibar .reporting-input { flex: 1; }
+.reporting-simple-search { max-width: 220px; margin-left: auto; }
+.reporting-simple-h { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 10px; }
+.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.reporting-simple-card { text-align: left; cursor: pointer; border: 1px solid var(--nx-border); border-radius: 8px; padding: 12px 14px; background: var(--nx-card); color: var(--nx-text); font-family: inherit; }
+.reporting-simple-card:hover { border-color: var(--nx-accent); box-shadow: 0 2px 8px var(--nx-accent-soft); }
+.reporting-simple-card .rs-card-name { font-weight: 600; font-size: 14px; margin: 0 0 4px; }
+.reporting-simple-card .rs-card-meta { font-size: 12px; color: var(--nx-text-meta); margin: 0; }
+.reporting-simple-empty { font-size: 13px; color: var(--nx-text-sec); padding: 8px 0 4px; }
+.reporting-simple-step { margin: 18px 0; }
+.reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 7px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.reporting-simple-choice.is-selected { border-color: var(--nx-accent); background: var(--nx-accent-tint); font-weight: 600; }
+.reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+.reporting-simple-scope { margin-top: 14px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); max-width: 520px; }
+.reporting-simple-scope summary { cursor: pointer; font-weight: 600; padding: 10px 12px; display: flex; align-items: center; gap: 8px; list-style-position: inside; }
+.reporting-simple-scope-badge { margin-left: auto; font-weight: 500; font-size: 12px; background: var(--nx-accent-tint); color: var(--nx-accent); border-radius: 999px; padding: 2px 10px; }
+.reporting-simple-scope > div { padding: 0 12px 10px; max-height: 220px; overflow: auto; }
+.reporting-simple-scope label { display: block; padding: 3px 0; }
+.reporting-simple-runbtn { margin-top: 14px; }
+.reporting-simple-resultbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.reporting-simple-rtitle { margin: 0; font-size: 16px; flex: 1; }
+.reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
+.reporting-simple-cards { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
+.reporting-simple-cards:has(#rsChartCard[hidden]) { grid-template-columns: 260px; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; }
+.reporting-simple-chartcard canvas { max-height: 320px; }
+.reporting-simple-table { margin-top: 12px; }
+.reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
+.reporting-simple-wizbar { display: flex; justify-content: space-between; align-items: center; }
+.reporting-simple-close { font-size: 20px; line-height: 1; padding: 2px 8px; }
+.reporting-simple-charttools { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; z-index: 1; }
+.reporting-chartbtn { border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--nx-text-meta); cursor: pointer; }
+.reporting-chartbtn.is-selected { border-color: var(--nx-accent); color: var(--nx-accent); background: var(--nx-accent-tint); }
+@media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }
+
+/* AI thinking indicator (Simple pane) */
+.reporting-ai-loading {
+  display: flex; align-items: center; justify-content: center; gap: .6rem;
+  padding: 2.5rem 0; color: var(--nx-text-sec);
+}
+.reporting-ai-dots i {
+  display: inline-block; width: 8px; height: 8px; margin: 0 2px;
+  border-radius: 50%; background: currentColor;
+  animation: rs-ai-pulse 1.2s infinite ease-in-out;
+}
+.reporting-ai-dots i:nth-child(2) { animation-delay: .2s; }
+.reporting-ai-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes rs-ai-pulse {
+  0%, 80%, 100% { opacity: .25; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reporting-ai-dots i { animation: none; }
+}
+
+/* Refine bar (Simple pane, F2-T4) */
+.reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
+.reporting-simple-refine .reporting-input { flex: 1; }
+
+/* Editable AI filter/process chips (Simple pane, F2-T5) */
+.reporting-simple-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 .6rem; }
+.rs-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .15rem .6rem; border-radius: 999px; font-size: .85em;
+  background: var(--nx-accent-tint); border: 1px solid var(--nx-border);
+  cursor: pointer;
+}
+.rs-chip--empty { cursor: default; opacity: .7; }
+.rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
+.rs-chip-editor { display: inline-flex; align-items: center; gap: .35rem; }
+.rs-chip-editor input, .rs-chip-editor select { max-width: 11rem; }
+
+/* --- Show query panel (T7) --- */
+.reporting-sqlview { margin-top: 12px; }
+.reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px; max-height: 240px; overflow: auto; margin: 0; }
+.reporting-sqlview-params { font-size: 12px; color: var(--nx-text-meta); margin: 6px 0 0; }
+
+/* SQL token highlighting (Show-query panels + AI SQL draft) */
+.reporting-sqlview pre .sql-kw, .reporting-ai-sql .sql-kw { color: #cf222e; font-weight: 600; }
+.reporting-sqlview pre .sql-string, .reporting-ai-sql .sql-string { color: #0a3069; }
+.reporting-sqlview pre .sql-number, .reporting-ai-sql .sql-number { color: #0550ae; }
+.reporting-sqlview pre .sql-ident, .reporting-ai-sql .sql-ident { color: #953800; }
+.reporting-sqlview pre .sql-param, .reporting-ai-sql .sql-param { color: #8250df; font-weight: 600; }
+.reporting-sqlview pre .sql-comment, .reporting-ai-sql .sql-comment { color: #6e7781; font-style: italic; }
+
+.reporting-sched-alert-hint { margin: 4px 0 8px; font-size: 12px; color: #6b7280; }
+
+/* --- Truncation note (T6) --- */
+.reporting-truncated-note { margin: 0 0 8px; font-size: 12px; color: #b45309; }

@@ -1,0 +1,50 @@
+<script>
+// Simple/Advanced tab controller. Included LAST on the page so all pane markup
+// and window.Reporting exist. Resolution order for the initial tab lives in the
+// head script (window.__rpInitialTab): ?tab= > localStorage > 'simple'.
+(function () {
+  var ORDER = ['simple', 'advanced'];
+  var EL = {
+    simple:   { tab: 'rpTabSimple',   pane: 'rpPaneSimple' },
+    advanced: { tab: 'rpTabAdvanced', pane: 'rpPaneAdvanced' }
+  };
+  var current = null;
+
+  function show(name) {
+    if (!EL[name]) name = 'simple';
+    current = name;
+    ORDER.forEach(function (k) {
+      var tab = document.getElementById(EL[k].tab);
+      var pane = document.getElementById(EL[k].pane);
+      var active = k === name;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.tabIndex = active ? 0 : -1;
+      pane.hidden = !active;
+    });
+    try { localStorage.setItem('nx.reporting.tab', name); } catch (e) {}
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', name);
+      history.replaceState(null, '', url);
+    } catch (e) {}
+    document.dispatchEvent(new CustomEvent('rp:tabshown', { detail: { tab: name } }));
+  }
+
+  ORDER.forEach(function (k) {
+    var el = document.getElementById(EL[k].tab);
+    el.addEventListener('click', function () { show(k); });
+    el.addEventListener('keydown', function (e) {
+      var i = ORDER.indexOf(current), next = null;
+      if (e.key === 'ArrowRight') next = ORDER[(i + 1) % ORDER.length];
+      else if (e.key === 'ArrowLeft') next = ORDER[(i - 1 + ORDER.length) % ORDER.length];
+      else if (e.key === 'Home') next = ORDER[0];
+      else if (e.key === 'End') next = ORDER[ORDER.length - 1];
+      if (next) { e.preventDefault(); show(next); document.getElementById(EL[next].tab).focus(); }
+    });
+  });
+
+  window.ReportingTabs = { show: show, current: function () { return current; } };
+  show(window.__rpInitialTab || 'simple');
+}());
+</script>

@@ -1,0 +1,52 @@
+<script>
+/* Shared SQL display helper: escape + token-highlight a T-SQL string into a
+   <pre>. Display-only — the raw string stays authoritative for the Copy
+   buttons. Used by the Simple and Advanced Show-query panels and the AI
+   Write-SQL draft. Exposed on window so page.evaluate e2e tests reach it. */
+window.ReportingSqlFormat = (function () {
+  'use strict';
+  var KEYWORDS = {};
+  ('SELECT FROM WHERE GROUP BY ORDER HAVING UNION ALL JOIN INNER LEFT RIGHT ' +
+   'FULL OUTER CROSS APPLY ON AS AND OR NOT NULL IS IN EXISTS LIKE BETWEEN ' +
+   'CASE WHEN THEN ELSE END TOP DISTINCT COUNT SUM AVG MIN MAX CAST CONVERT ' +
+   'COALESCE OVER PARTITION WITH OFFSET FETCH NEXT ROWS ONLY ASC DESC ' +
+   'DATEADD DATEDIFF GETDATE IIF')
+    .split(' ').forEach(function (k) { KEYWORDS[k] = 1; });
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* Tokenize the RAW sql and escape each piece as it is emitted, so no
+     unescaped input ever reaches innerHTML. Alternatives, in order:
+     comment | 'string' ('' escapes) | [bracketed ident] | number | ? | word */
+  function toHtml(sql) {
+    sql = String(sql == null ? '' : sql);
+    var re = /(--[^\n]*)|('(?:[^']|'')*')|(\[[^\]]*\])|((?:\d+\.\d+|\d+)(?!\w))|(\?)|([A-Za-z_][A-Za-z0-9_]*)/g;
+    var out = '', last = 0, m;
+    while ((m = re.exec(sql)) !== null) {
+      out += esc(sql.slice(last, m.index));
+      if (m[1]) out += '<span class="sql-comment">' + esc(m[1]) + '</span>';
+      else if (m[2]) out += '<span class="sql-string">' + esc(m[2]) + '</span>';
+      else if (m[3]) out += '<span class="sql-ident">' + esc(m[3]) + '</span>';
+      else if (m[4]) out += '<span class="sql-number">' + esc(m[4]) + '</span>';
+      else if (m[5]) out += '<span class="sql-param">' + esc(m[5]) + '</span>';
+      else out += KEYWORDS[m[6].toUpperCase()]
+        ? '<span class="sql-kw">' + esc(m[6]) + '</span>'
+        : esc(m[6]);
+      last = re.lastIndex;
+    }
+    out += esc(sql.slice(last));
+    return out;
+  }
+
+  function render(preEl, sql) {
+    if (!preEl) return;
+    preEl.innerHTML = toHtml(sql);
+  }
+
+  return { toHtml: toHtml, render: render };
+})();
+</script>

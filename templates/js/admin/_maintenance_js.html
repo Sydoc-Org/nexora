@@ -106,7 +106,7 @@
         }
 
         const tdWindow = document.createElement('td');
-        tdWindow.className = 'admin-mono';
+        tdWindow.className = 'nx-mono';
         tdWindow.style.fontSize = '12px';
         tdWindow.textContent = formatRange(b.StartAt, b.EndAt);
 
@@ -122,12 +122,12 @@
         const amin = b.AnnounceMinutesBefore;
         if (amin && amin > 0) {
             const pill = document.createElement('span');
-            pill.style.cssText = 'font-size:12px;color:#4338ca;font-weight:600;';
+            pill.style.cssText = 'font-size:12px;color:var(--nx-accent);font-weight:600;';
             pill.textContent = amin + ' min';
             tdAnnounce.appendChild(pill);
         } else {
             const dash = document.createElement('span');
-            dash.style.color = '#94a3b8';
+            dash.style.color = 'var(--nx-text-meta)';
             dash.textContent = '—';
             tdAnnounce.appendChild(dash);
         }
@@ -140,14 +140,14 @@
         tdActions.className = 'align-right';
         if (canEdit) {
             const editBtn = document.createElement('button');
-            editBtn.className = 'admin-btn admin-btn-ghost';
+            editBtn.className = 'nx-btn nx-btn--ghost nx-btn--sm';
             editBtn.type = 'button';
             editBtn.textContent = {{ _("Edit") | tojson }};
             editBtn.addEventListener('click', () => openEditMaintModal(b));
             const delBtn = document.createElement('button');
-            delBtn.className = 'admin-btn admin-btn-ghost';
+            delBtn.className = 'nx-btn nx-btn--ghost nx-btn--sm';
             delBtn.type = 'button';
-            delBtn.style.color = 'var(--a-danger)';
+            delBtn.style.color = 'var(--nx-danger)';
             delBtn.textContent = {{ _("Delete") | tojson }};
             delBtn.addEventListener('click', () => openDeleteModal(b.ID));
             tdActions.appendChild(editBtn);
@@ -181,7 +181,7 @@
             const tr = document.createElement('tr');
             const td = document.createElement('td');
             td.colSpan = 7;
-            td.style.cssText = 'text-align:center;padding:48px 0;color:#94a3b8';
+            td.style.cssText = 'text-align:center;padding:48px 0;color:var(--nx-text-meta)';
             td.textContent = {{ _("No banners found") | tojson }};
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -199,7 +199,7 @@
         td.style.cssText = 'text-align:center;padding:48px 0';
         const sp = document.createElement('i');
         sp.className = 'fas fa-spinner fa-spin';
-        sp.style.cssText = 'color:#4f46e5;font-size:24px';
+        sp.style.cssText = 'color:var(--nx-accent);font-size:24px';
         td.appendChild(sp);
         tr.appendChild(td);
         tbody.appendChild(tr);
@@ -216,7 +216,7 @@
                 const r = document.createElement('tr');
                 const c = document.createElement('td');
                 c.colSpan = 7;
-                c.style.cssText = 'text-align:center;padding:32px 0;color:#dc2626';
+                c.style.cssText = 'text-align:center;padding:32px 0;color:var(--nx-danger)';
                 c.textContent = e.message || 'Network error';
                 r.appendChild(c);
                 tbody.appendChild(r);

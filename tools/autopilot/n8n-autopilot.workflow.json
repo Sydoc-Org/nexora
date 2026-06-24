@@ -1,0 +1,1614 @@
+{
+  "name": "autopilot",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 7200,
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "meta": {},
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "trg-schedule",
+      "name": "Every 2 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\fetch-queue.ps1"
+      },
+      "id": "cmd-fetch",
+      "name": "fetch-queue",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        220,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = JSON.parse($input.first().json.stdout || '[]');\nreturn [{ json: { queue: q, count: q.length } }];"
+      },
+      "id": "code-parse",
+      "name": "parse-queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-havework",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-havework",
+      "name": "have-work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\lock.ps1 -Action acquire"
+      },
+      "id": "cmd-acquire",
+      "name": "acquire-lock",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        880,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-gotlock",
+              "leftValue": "={{ JSON.parse($json.stdout).status }}",
+              "rightValue": "ACQUIRED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-gotlock",
+      "name": "got-lock?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $('parse-queue').first().json.queue;\nreturn q.map(i => ({ json: i }));"
+      },
+      "id": "code-split",
+      "name": "split-to-items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-items",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1540,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\lock.ps1 -Action release"
+      },
+      "id": "cmd-release-done",
+      "name": "release-lock-done",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=🏁 autopilot run complete — queue drained.{{ (() => { try { const p = JSON.parse($('push-branch').item.json.stdout); if (!p || p.status === 'disabled') return ''; if (p.pushed) return ' Pushed ' + p.branch + ' to origin (e2e gate passed).'; return ' ⚠ NOT pushed — ' + p.reason; } catch (e) { return ''; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-summary",
+      "name": "notify-summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -Command \"if (git -C C:\\dev\\nexora status --porcelain) { 'DIRTY' } else { 'CLEAN' }\""
+      },
+      "id": "cmd-preflight",
+      "name": "preflight",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-clean",
+              "leftValue": "={{ $('preflight').item.json.stdout.trim() }}",
+              "rightValue": "CLEAN",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-clean",
+      "name": "clean?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\baseline.ps1"
+      },
+      "id": "cmd-baseline",
+      "name": "baseline",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\run-phase.ps1 -Phase plan -IssueNumber ={{ $('Loop Over Items').item.json.number }} -RepoPath \"={{ JSON.parse($('dispatch-acquire').item.json.stdout).worktree }}\" -LogPath \"=C:\\\\dev\\\\nexora\\\\var\\\\autopilot\\\\lanes\\\\lane-{{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\\\\run.log\" -StatePath \"=C:\\\\dev\\\\nexora\\\\var\\\\autopilot\\\\lanes\\\\lane-{{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\\\\run-state.json\" -Lane"
+      },
+      "id": "cmd-runplan",
+      "name": "run-plan",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\probe-state.ps1 -Phase plan -BeforeSha {{ JSON.parse($('baseline').item.json.stdout).sha }}"
+      },
+      "id": "cmd-verifyplan",
+      "name": "verify-plan",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-planok",
+              "leftValue": "={{ JSON.parse($json.stdout).ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-planok",
+      "name": "plan-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\run-phase.ps1 -Phase execute -IssueNumber ={{ $('Loop Over Items').item.json.number }} -RepoPath \"={{ JSON.parse($('dispatch-acquire').item.json.stdout).worktree }}\" -LogPath \"=C:\\\\dev\\\\nexora\\\\var\\\\autopilot\\\\lanes\\\\lane-{{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\\\\run.log\" -StatePath \"=C:\\\\dev\\\\nexora\\\\var\\\\autopilot\\\\lanes\\\\lane-{{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\\\\run-state.json\" -Lane"
+      },
+      "id": "cmd-runexec",
+      "name": "run-exec",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\probe-state.ps1 -Phase execute -BeforeSha {{ JSON.parse($('verify-plan').item.json.stdout).headSha }}"
+      },
+      "id": "cmd-verifyexec",
+      "name": "verify-exec",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-execok",
+              "leftValue": "={{ JSON.parse($json.stdout).ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-execok",
+      "name": "exec-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status built"
+      },
+      "id": "cmd-commentbuilt",
+      "name": "comment-built",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3740,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=✅ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} built — commit pending push",
+        "additionalFields": {}
+      },
+      "id": "tg-built",
+      "name": "notify-built",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3960,
+        480
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status blocked -Class \"{{ (() => { try { return JSON.parse($('recover').item.json.stdout).class; } catch (e) { return ''; } })() }}\" -Detail {{ JSON.stringify((() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return ''; } })()) }}"
+      },
+      "id": "cmd-markblocked",
+      "name": "mark-blocked",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\lock.ps1 -Action release"
+      },
+      "id": "cmd-release-halt",
+      "name": "release-lock-halt",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        760
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "noop-stop",
+      "name": "STOP",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\recover.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -PlanHeadSha \"{{ (() => { try { return JSON.parse($('verify-plan').item.json.stdout).headSha; } catch (e) { return ''; } })() }}\""
+      },
+      "id": "cmd-recover",
+      "name": "recover",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).action }}",
+                    "rightValue": "built",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "built"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).action }}",
+                    "rightValue": "skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "skip"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).action }}",
+                    "rightValue": "pause-run",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "pause-run"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "sw-route",
+      "name": "route-recovery",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        3300,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=🛠️ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} recovered by autopilot — {{ (() => { try { const v = JSON.parse($('recover').item.json.stdout); return v.summary + (v.stashed ? ' ⚠ pre-existing WIP was stashed (git stash list / pop).' : ''); } catch (e) { return 'commit pending push'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-recovered",
+      "name": "notify-recovered",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3520,
+        1000
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\push-branch.ps1"
+      },
+      "id": "cmd-pushbranch",
+      "name": "push-branch",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action check"
+      },
+      "id": "cmd-costcheck",
+      "name": "cost-check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2090,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-costok",
+              "leftValue": "={{ JSON.parse($json.stdout).underBudget }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-costok",
+      "name": "cost-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2090,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=💸 autopilot paused — daily cost cap reached.{{ (() => { try { const c = JSON.parse($('cost-check').item.json.stdout); return ' Spent $' + c.spentToday + ' of $' + c.cap + ' today; the queue resumes after midnight.'; } catch (e) { return ''; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-costcap",
+      "name": "notify-costcap",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2090,
+        60
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action add"
+      },
+      "id": "cmd-costaddplan",
+      "name": "cost-add-plan",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2530,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\cost-guard.ps1 -Action add"
+      },
+      "id": "cmd-costaddexec",
+      "name": "cost-add-exec",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3190,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "noop-continue",
+      "name": "continue-collector",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        4180,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status built"
+      },
+      "id": "cmd-built-recovered",
+      "name": "comment-built-recovered",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3740,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=⏭️ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} skipped — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'blocked after recovery'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-skip",
+      "name": "notify-skip",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3520,
+        760
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=❓ #{{ $('Loop Over Items').item.json.number }} {{ $('Loop Over Items').item.json.title }} needs input — {{ (() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return 'see the issue comment'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-questions",
+      "name": "notify-questions",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2750,
+        760
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=⏸️ autopilot run paused — {{ (() => { try { return JSON.parse($('recover').item.json.stdout).summary; } catch (e) { return 'infra/cost — poll will retry'; } })() }}",
+        "additionalFields": {}
+      },
+      "id": "tg-pause",
+      "name": "notify-pause",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        1240
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "autopilot-telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\triage.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "cmd-triage",
+      "name": "triage",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2310,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-triageok",
+              "leftValue": "={{ JSON.parse($json.stdout).buildable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-triageok",
+      "name": "triage-ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2530,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\comment-result.ps1 -IssueNumber {{ $('Loop Over Items').item.json.number }} -Status needs-input -Detail {{ JSON.stringify((() => { try { return JSON.parse($('triage').item.json.stdout).questions; } catch (e) { return ''; } })()) }}"
+      },
+      "id": "cmd-needsinput",
+      "name": "label-needs-input",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2530,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\lane.ps1 -Action acquire -IssueNumber ={{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "exec-dispatch-acquire",
+      "name": "dispatch-acquire",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-gotslot",
+              "leftValue": "={{ JSON.parse($json.stdout).status }}",
+              "rightValue": "ACQUIRED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-gotslot",
+      "name": "got-slot?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1870,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\db-lock.ps1 -Action acquire"
+      },
+      "id": "exec-db-acquire",
+      "name": "db-acquire",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2970,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\db-lock.ps1 -Action release"
+      },
+      "id": "exec-db-release",
+      "name": "db-release",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3410,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\merge-back.ps1 -Slot \"={{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\" -IssueNumber ={{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "exec-merge-back",
+      "name": "merge-back",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3630,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).status }}",
+                    "rightValue": "MERGED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "MERGED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).status }}",
+                    "rightValue": "CONFLICT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "CONFLICT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).status }}",
+                    "rightValue": "BUSY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "BUSY"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "sw-merge-route",
+      "name": "merge-route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        3850,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\merge-resolve.ps1 -Slot \"={{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\" -IssueNumber ={{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "exec-merge-resolve",
+      "name": "merge-resolve",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        4070,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=pwsh -NoProfile -File C:\\dev\\nexora\\tools\\autopilot\\lane.ps1 -Action release -Slot \"={{ JSON.parse($('dispatch-acquire').item.json.stdout).slot }}\" -IssueNumber ={{ $('Loop Over Items').item.json.number }}"
+      },
+      "id": "exec-pause-lane",
+      "name": "pause-lane",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3960,
+        1240
+      ]
+    }
+  ],
+  "connections": {
+    "Every 2 min": {
+      "main": [
+        [
+          {
+            "node": "fetch-queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-queue": {
+      "main": [
+        [
+          {
+            "node": "parse-queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-queue": {
+      "main": [
+        [
+          {
+            "node": "have-work?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "have-work?": {
+      "main": [
+        [
+          {
+            "node": "split-to-items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "acquire-lock": {
+      "main": [
+        [
+          {
+            "node": "got-lock?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "got-lock?": {
+      "main": [
+        [
+          {
+            "node": "split-to-items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "split-to-items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "push-branch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "dispatch-acquire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "push-branch": {
+      "main": [
+        [
+          {
+            "node": "release-lock-done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "release-lock-done": {
+      "main": [
+        [
+          {
+            "node": "notify-summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "preflight": {
+      "main": [
+        [
+          {
+            "node": "baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "baseline": {
+      "main": [
+        [
+          {
+            "node": "clean?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean?": {
+      "main": [
+        [
+          {
+            "node": "cost-check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "recover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cost-check": {
+      "main": [
+        [
+          {
+            "node": "cost-ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cost-ok?": {
+      "main": [
+        [
+          {
+            "node": "triage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify-costcap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-costcap": {
+      "main": [
+        [
+          {
+            "node": "release-lock-halt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "triage": {
+      "main": [
+        [
+          {
+            "node": "triage-ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "triage-ok?": {
+      "main": [
+        [
+          {
+            "node": "run-plan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify-questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-questions": {
+      "main": [
+        [
+          {
+            "node": "label-needs-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "label-needs-input": {
+      "main": [
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "run-plan": {
+      "main": [
+        [
+          {
+            "node": "cost-add-plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cost-add-plan": {
+      "main": [
+        [
+          {
+            "node": "verify-plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify-plan": {
+      "main": [
+        [
+          {
+            "node": "plan-ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "plan-ok?": {
+      "main": [
+        [
+          {
+            "node": "db-acquire",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "recover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "run-exec": {
+      "main": [
+        [
+          {
+            "node": "cost-add-exec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cost-add-exec": {
+      "main": [
+        [
+          {
+            "node": "verify-exec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify-exec": {
+      "main": [
+        [
+          {
+            "node": "db-release",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "exec-ok?": {
+      "main": [
+        [
+          {
+            "node": "merge-back",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "recover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comment-built": {
+      "main": [
+        [
+          {
+            "node": "notify-built",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-built": {
+      "main": [
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recover": {
+      "main": [
+        [
+          {
+            "node": "route-recovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "route-recovery": {
+      "main": [
+        [
+          {
+            "node": "comment-built-recovered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "mark-blocked",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify-pause",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify-pause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comment-built-recovered": {
+      "main": [
+        [
+          {
+            "node": "notify-recovered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-recovered": {
+      "main": [
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mark-blocked": {
+      "main": [
+        [
+          {
+            "node": "notify-skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-skip": {
+      "main": [
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "continue-collector": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notify-pause": {
+      "main": [
+        [
+          {
+            "node": "pause-lane",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "release-lock-halt": {
+      "main": [
+        [
+          {
+            "node": "STOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dispatch-acquire": {
+      "main": [
+        {
+          "node": "got-slot?",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    },
+    "got-slot?": {
+      "main": [
+        [
+          {
+            "node": "preflight",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "db-acquire": {
+      "main": [
+        {
+          "node": "run-exec",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    },
+    "db-release": {
+      "main": [
+        {
+          "node": "exec-ok?",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    },
+    "merge-back": {
+      "main": [
+        {
+          "node": "merge-route",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    },
+    "merge-route": {
+      "main": [
+        [
+          {
+            "node": "comment-built",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "merge-resolve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "continue-collector",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "notify-pause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "merge-resolve": {
+      "main": [
+        {
+          "node": "continue-collector",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    },
+    "pause-lane": {
+      "main": [
+        {
+          "node": "continue-collector",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    }
+  }
+}

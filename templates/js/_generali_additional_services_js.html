@@ -156,24 +156,24 @@
 
         const tParent = translationsMap[r.parentCategory] || r.parentCategory || '—';
         const tSub    = translationsMap[r.subCategory]    || r.subCategory    || '—';
-        return `<tr class="hover:bg-gray-50 transition" data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-parent="${(r.parentCategory||'').replace(/"/g,'&quot;')}" data-sub="${(r.subCategory||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
+        return `<tr data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-parent="${(r.parentCategory||'').replace(/"/g,'&quot;')}" data-sub="${(r.subCategory||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm font-semibold text-gray-800">${formatDate(r.forDate)}</span>
+                <span class="text-sm font-semibold nx-mono">${formatDate(r.forDate)}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-sm text-gray-700">${r.fullname || r.userId || '—'}</span>
+                <span class="text-sm">${r.fullname || r.userId || '—'}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-800">${tParent}</span>
+                <span class="text-sm">${tParent}</span>
             </td>
             <td class="px-4 py-3 text-left">
-                <span class="text-sm text-gray-600">${tSub}</span>
+                <span class="text-sm" style="color:var(--nx-text-sec)">${tSub}</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">${formatHours(r.effortInHours)} h</span>
+                <span class="nx-label nx-label--indigo nx-label--nodot">${formatHours(r.effortInHours)} h</span>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">
-                <span class="text-xs text-gray-400">${formatDateTime(r.recordDateTime)}</span>
+                <span class="text-xs nx-mono" style="color:var(--nx-text-sec)">${formatDateTime(r.recordDateTime)}</span>
             </td>
             ${actionsCell}
         </tr>`;
@@ -201,7 +201,7 @@
 
                 _currentRecords = data.records;
                 if (!data.records.length) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16 text-gray-400 text-sm">{{ _("No records found") }}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div><p class="nx-empty__title">{{ _("No records found") }}</p><p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div></td></tr>`;
                 } else {
                     tbody.innerHTML = data.records.map(renderRow).join('');
                 }
@@ -229,8 +229,8 @@
             b.innerHTML = label;
             b.disabled = disabled;
             b.className = [
-                'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
-                active  ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+                'nx-btn nx-btn--sm',
+                active  ? 'nx-btn--primary' : 'nx-btn--secondary',
                 disabled ? 'opacity-40 cursor-not-allowed' : ''
             ].join(' ');
             if (!disabled) b.onclick = () => loadRecords(targetPage);
@@ -328,7 +328,7 @@
         document.getElementById('addEffortHours').value = '';
         if (canAddForOrg) document.getElementById('addUserId').value = '';
         document.getElementById('addModalError').classList.add('hidden');
-        document.getElementById('addModalError').textContent = '';
+        document.getElementById('addModalErrorText').textContent = '';
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('addModal').classList.add('flex');
     }
@@ -354,10 +354,11 @@
         const sub        = document.getElementById('addSubCategory').value;
         const effort     = document.getElementById('addEffortHours').value;
         const errEl      = document.getElementById('addModalError');
+        const errTextEl  = document.getElementById('addModalErrorText');
 
         const addHasSubs = (categoriesData[parent] || []).length > 0;
         if (!forDate || !parent || (addHasSubs && !sub) || !effort) {
-            errEl.textContent = {{ _("Please fill in all fields.") | tojson }};
+            errTextEl.textContent = {{ _("Please fill in all fields.") | tojson }};
             errEl.classList.remove('hidden');
             return;
         }
@@ -381,13 +382,13 @@
                 closeAddModal();
                 loadRecords(1);
             } else {
-                errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
+                errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
             }
         })
         .catch(() => {
             this.disabled = false;
-            errEl.textContent = {{ _("Network error.") | tojson }};
+            errTextEl.textContent = {{ _("Network error.") | tojson }};
             errEl.classList.remove('hidden');
         });
     });
@@ -508,11 +509,7 @@
             if (data.success) loadRecords(currentPage);
             else {
                 // show error inline via a brief toast-style approach
-                const errDiv = document.createElement('div');
-                errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-                errDiv.textContent = data.error || {{ _("Error deleting record.") | tojson }};
-                document.body.appendChild(errDiv);
-                setTimeout(() => errDiv.remove(), 4000);
+                showExportError(data.error || {{ _("Error deleting record.") | tojson }});
             }
         })
         .catch(() => {
@@ -525,8 +522,14 @@
     // ----------------------------- excel export ----------------------------- //
     function showExportError(msg) {
         const errDiv = document.createElement('div');
-        errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-        errDiv.textContent = msg;
+        errDiv.className = 'nx-flash nx-flash--error fixed bottom-4 right-4 z-50 shadow-lg';
+        errDiv.setAttribute('role', 'alert');
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-circle-exclamation';
+        const span = document.createElement('span');
+        span.textContent = msg;
+        errDiv.appendChild(icon);
+        errDiv.appendChild(span);
         document.body.appendChild(errDiv);
         setTimeout(() => errDiv.remove(), 4000);
     }

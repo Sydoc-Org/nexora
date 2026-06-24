@@ -1,0 +1,156 @@
+<script>
+(function () {
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  let editingId = null;
+  let sources = [];
+
+  async function api(url, opts) {
+    opts = opts || {};
+    const res = await fetch(url, Object.assign(
+      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    if (!res.ok) {
+      const b = await res.json().catch(function () { return {}; });
+      throw new Error(b.error || res.statusText);
+    }
+    return res;
+  }
+
+  function td(text) {
+    var t = document.createElement('td');
+    t.textContent = (text == null ? '' : String(text));
+    return t;
+  }
+
+  function sourceLabel(id) {
+    for (var i = 0; i < sources.length; i++) {
+      if (String(sources[i].id) === String(id)) return sources[i].label;
+    }
+    return id == null ? '' : String(id);
+  }
+
+  function fillSources() {
+    var sel = document.getElementById('rpmSource');
+    sel.innerHTML = '';
+    sources.forEach(function (s) {
+      var o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.label;
+      sel.appendChild(o);
+    });
+  }
+
+  function render(data) {
+    sources = data.sources || [];
+    fillSources();
+    var body = document.getElementById('rpmRows');
+    body.innerHTML = '';
+    (data.rows || []).forEach(function (r) {
+      var tr = document.createElement('tr');
+      [r.code, sourceLabel(r.sourceId), r.label, r.aggregation,
+       r.baseField || '—', r.enabled ? '✓' : '✗', r.sortOrder].forEach(function (v) {
+        tr.appendChild(td(v));
+      });
+      var act = document.createElement('td');
+      var e = document.createElement('button');
+      e.className = 'reporting-link';
+      e.textContent = '{{ _("Edit") }}';
+      e.onclick = function () { fillForm(r); };
+      var d = document.createElement('button');
+      d.className = 'reporting-link';
+      d.textContent = '{{ _("Delete") }}';
+      d.onclick = function () { if (window.confirm('{{ _("Delete this metric?") }}')) del(r.id); };
+      act.appendChild(e);
+      act.appendChild(document.createTextNode(' '));
+      act.appendChild(d);
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+  }
+
+  function load() {
+    api('/api/reporting/admin/metrics').then(function (r) { return r.json(); })
+      .then(render).catch(function (err) { msg(err.message, true); });
+  }
+
+  function val(id) { return document.getElementById(id).value; }
+
+  function syncBaseField() {
+    var agg = document.getElementById('rpmAggregation').value;
+    var bf = document.getElementById('rpmBaseField');
+    if (agg === 'count') {
+      bf.value = '';
+      bf.disabled = true;
+    } else {
+      bf.disabled = false;
+    }
+  }
+
+  function fillForm(r) {
+    editingId = r.id;
+    document.getElementById('rpmFormTitle').textContent = '{{ _("Edit metric") }}: ' + r.code;
+    document.getElementById('rpmCode').value = r.code;
+    document.getElementById('rpmSource').value = r.sourceId;
+    document.getElementById('rpmLabel').value = r.label;
+    document.getElementById('rpmAggregation').value = r.aggregation;
+    document.getElementById('rpmBaseField').value = r.baseField || '';
+    document.getElementById('rpmFormat').value = r.format || '';
+    document.getElementById('rpmSortOrder').value = r.sortOrder;
+    document.getElementById('rpmEnabled').checked = !!r.enabled;
+    syncBaseField();
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function reset() {
+    editingId = null;
+    document.getElementById('rpmFormTitle').textContent = '{{ _("Add metric") }}';
+    ['rpmCode', 'rpmLabel', 'rpmBaseField']
+      .forEach(function (i) { document.getElementById(i).value = ''; });
+    if (sources.length) document.getElementById('rpmSource').value = sources[0].id;
+    document.getElementById('rpmAggregation').value = 'count';
+    document.getElementById('rpmFormat').value = '';
+    document.getElementById('rpmSortOrder').value = '100';
+    document.getElementById('rpmEnabled').checked = true;
+    syncBaseField();
+    msg('');
+  }
+
+  function payload() {
+    return {
+      code: val('rpmCode'),
+      sourceId: val('rpmSource'),
+      label: val('rpmLabel'),
+      aggregation: val('rpmAggregation'),
+      baseField: val('rpmBaseField') || null,
+      format: val('rpmFormat') || null,
+      enabled: document.getElementById('rpmEnabled').checked,
+      sortOrder: parseInt(val('rpmSortOrder'), 10) || 100,
+    };
+  }
+
+  function save() {
+    var url = editingId ? '/api/reporting/admin/metrics/' + editingId : '/api/reporting/admin/metrics';
+    var method = editingId ? 'PUT' : 'POST';
+    api(url, { method: method, body: JSON.stringify(payload()) })
+      .then(function () { reset(); load(); msg('{{ _("Saved") }}'); })
+      .catch(function (err) { msg(err.message, true); });
+  }
+
+  function del(id) {
+    api('/api/reporting/admin/metrics/' + id, { method: 'DELETE' })
+      .then(function () { load(); })
+      .catch(function (err) { msg(err.message, true); });
+  }
+
+  function msg(t, isErr) {
+    var m = document.getElementById('rpmMsg');
+    m.textContent = t;
+    m.className = 'reporting-admin-msg' + (isErr ? ' reporting-error' : '');
+  }
+
+  document.getElementById('rpmAggregation').addEventListener('change', syncBaseField);
+  document.getElementById('rpmSave').addEventListener('click', save);
+  document.getElementById('rpmReset').addEventListener('click', reset);
+  syncBaseField();
+  load();
+}());
+</script>

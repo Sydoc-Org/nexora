@@ -1,0 +1,80 @@
+/* ============================================================
+   nexora-ui AUTH layer — shared brand styling for the pre-login
+   pages (login, forgot/ reset password, 2FA setup + verify).
+   These pages each use the same Tailwind structure (white header
+   + logo, a `rounded-xl shadow-2xl` card, `focus:ring-indigo-500`
+   inputs and a `bg-gradient-primary` button), so this layer can
+   harmonize all of them onto the global --nx-* design tokens
+   (loaded from nexora-ui.css) without per-page markup churn.
+   Pre-login pages have no dark-mode toggle, so this is the light
+   brand identity only. Loaded AFTER each page's own stylesheet
+   so it wins on source order; brand-critical rules use !important
+   to also beat the Tailwind CDN's runtime utilities.
+   ============================================================ */
+
+body {
+  font-family: var(--nx-font, 'Inter', system-ui, sans-serif);
+  /* a barely-there indigo→violet wash so the card floats on brand,
+     not flat white — matches the app shell's tinted surfaces. */
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, var(--nx-accent-tint, #eef2ff) 0%, transparent 60%),
+    radial-gradient(50rem 36rem at -10% 110%, #f5f3ff 0%, transparent 55%),
+    var(--nx-page, #f8fafc) !important;
+}
+
+/* Brand gradient — the app-wide indigo→violet signature. Overrides
+   each page's locally-defined .bg-gradient-primary (blue/purple). */
+.bg-gradient-primary {
+  background-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)) !important;
+  box-shadow: 0 6px 18px -6px rgba(79, 70, 229, 0.55);
+}
+.bg-gradient-primary:hover { filter: brightness(1.04); opacity: 1 !important; }
+
+/* The auth card: nx radius + soft pop shadow + a gradient top edge
+   (the same signature used on page-title chips elsewhere). */
+.rounded-xl.shadow-2xl {
+  border-radius: var(--nx-radius, 14px) !important;
+  box-shadow: var(--nx-shadow-pop, 0 24px 50px -12px rgba(17, 24, 39, 0.28)) !important;
+  border-top: 4px solid transparent;
+  border-image: var(--nx-brand-grad, linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)) 1;
+  position: relative;
+}
+
+/* Header + brand keylines */
+header.bg-white { border-bottom: 1px solid var(--nx-border, #e5e7eb); }
+
+/* Inputs — brand focus ring (most pages already ask for indigo-500;
+   this makes the ring the exact accent + soft halo, consistently). */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--nx-accent, #4f46e5) !important;
+  box-shadow: 0 0 0 3px var(--nx-accent-tint, #eef2ff) !important;
+}
+
+/* Links pick up the accent */
+a.text-indigo-600,
+.text-indigo-600 { color: var(--nx-accent, #4f46e5) !important; }
+
+/* Flash / validation messages, branded + tokenized */
+.error-message {
+  padding: 12px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--nx-radius-sm, 10px);
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid var(--nx-danger, #dc2626);
+  color: var(--nx-danger, #dc2626);
+  text-align: center;
+  font-size: 0.9rem;
+}
+.success-message {
+  padding: 12px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--nx-radius-sm, 10px);
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid var(--nx-success, #16a34a);
+  color: var(--nx-success, #16a34a);
+  text-align: center;
+  font-size: 0.9rem;
+}

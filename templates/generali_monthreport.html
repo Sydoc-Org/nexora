@@ -4,83 +4,106 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Month Report") }} — {{ section_title }} - nexora</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'generali_' ~ section %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto px-3 py-4 sm:p-6">
+  <main class="nx-main">
 
     <!-- Page Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Month Report") }} — {{ section_title }}</h2>
-        <p class="text-gray-500 font-medium">{{ month_label }}</p>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-calendar-days"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Month Report") }} — {{ section_title }}</h1>
+            <p class="nx-subtitle">{{ month_label }}</p>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="nx-page-head__actions flex-wrap">
         <a href="{{ back_url }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-back">
+           class="nx-btn nx-btn--secondary" data-testid="generali-month-report-back">
           <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back") }}</span>
         </a>
       </div>
     </div>
 
     <!-- Month Navigation -->
-    <div class="flex items-center justify-center gap-4 mb-6">
+    <div class="flex items-center justify-center gap-4 mb-6 nx-rise-2">
       <a href="?year={{ prev_year }}&month={{ prev_month }}"
-         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-prev">
+         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-prev">
         <i class="fas fa-chevron-left"></i>
       </a>
-      <span class="text-lg font-bold text-gray-900 min-w-36 text-center">{{ month_label }}</span>
+      <span class="text-lg font-bold min-w-36 text-center nx-mono">{{ month_label }}</span>
       {% if is_current_month %}
-      <span class="inline-flex items-center bg-gray-50 text-gray-300 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-100 cursor-not-allowed select-none">
+      <span class="nx-btn nx-btn--secondary cursor-not-allowed select-none" style="opacity:.45" aria-disabled="true">
         <i class="fas fa-chevron-right"></i>
       </span>
       {% else %}
       <a href="?year={{ next_year }}&month={{ next_month }}"
-         class="inline-flex items-center bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-month-report-next">
+         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-next">
         <i class="fas fa-chevron-right"></i>
       </a>
       {% endif %}
     </div>
 
     <!-- Stat Cards -->
-    <div class="grid grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6">
+    <div class="grid grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6 nx-rise-2">
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Entries") }}</p>
-        <p class="text-3xl font-bold text-gray-900">{{ summary.total_entries }}</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Total Entries") }}</p>
+          <p class="nx-stat__value">{{ summary.total_entries }}</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-list-check"></i></div>
       </div>
 
       {% if section == 'reporting' %}
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("On Time") }}</p>
-        <p class="text-3xl font-bold text-emerald-600">{{ summary.on_time }}</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("On Time") }}</p>
+          <p class="nx-stat__value">{{ summary.on_time }}</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--green"><i class="fas fa-circle-check"></i></div>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Late") }}</p>
-        <p class="text-3xl font-bold text-red-500">{{ summary.late }}</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Late") }}</p>
+          <p class="nx-stat__value">{{ summary.late }}</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--amber"><i class="fas fa-clock"></i></div>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("On-Time Rate") }}</p>
-        <p class="text-3xl font-bold text-indigo-600">{{ summary.pct_on_time }}%</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("On-Time Rate") }}</p>
+          <p class="nx-stat__value">{{ summary.pct_on_time }}%</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--blue"><i class="fas fa-percent"></i></div>
       </div>
 
       {% elif section == 'pdqm' %}
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Quantity") }}</p>
-        <p class="text-3xl font-bold text-indigo-600">{{ summary.total_quantity }}</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Total Quantity") }}</p>
+          <p class="nx-stat__value">{{ summary.total_quantity }}</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-hashtag"></i></div>
       </div>
 
       {% else %}
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Hours") }}</p>
-        <p class="text-3xl font-bold text-indigo-600">{{ summary.total_hours }}</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Total Hours") }}</p>
+          <p class="nx-stat__value">{{ summary.total_hours }}</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-hourglass-half"></i></div>
       </div>
       {% endif %}
 
@@ -89,53 +112,53 @@
     <!-- Breakdown Table (not shown for Project Management) -->
     {% if section != 'projectmanagement' %}
       {% if rows %}
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="nx-table-wrap nx-rise-3">
         <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
+          <table class="nx-table">
+            <thead>
               <tr>
                 <th class="px-6 py-4 text-left">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Category") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("Category") }}</span>
                 </th>
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Entries") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("Entries") }}</span>
                 </th>
                 {% if section == 'reporting' %}
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("On Time") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("On Time") }}</span>
                 </th>
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Late") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("Late") }}</span>
                 </th>
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("On-Time Rate") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("On-Time Rate") }}</span>
                 </th>
                 {% elif section == 'pdqm' %}
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Total Quantity") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("Total Quantity") }}</span>
                 </th>
                 {% else %}
                 <th class="px-6 py-4 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Total Hours") }}</span>
+                  <span class="text-xs font-semibold uppercase tracking-wider">{{ _("Total Hours") }}</span>
                 </th>
                 {% endif %}
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
+            <tbody>
               {% for row in rows %}
-              <tr class="hover:bg-gray-50 transition">
-                <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ row.category }}</td>
+              <tr>
+                <td class="px-6 py-4 text-sm font-medium">{{ row.category }}</td>
                 {% if section == 'reporting' %}
-                <td class="px-6 py-4 text-center text-sm text-gray-700">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-semibold text-emerald-600">{{ row.on_time }}</td>
-                <td class="px-6 py-4 text-center text-sm font-semibold text-red-500">{{ row.late }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600">{{ row.pct }}%</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono" style="color:var(--nx-success)">{{ row.on_time }}</td>
+                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono" style="color:var(--nx-danger)">{{ row.late }}</td>
+                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.pct }}%</td>
                 {% elif section == 'pdqm' %}
-                <td class="px-6 py-4 text-center text-sm text-gray-700">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600">{{ row.total_quantity }}</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_quantity }}</td>
                 {% else %}
-                <td class="px-6 py-4 text-center text-sm text-gray-700">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600">{{ row.total_hours }}</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_hours }}</td>
                 {% endif %}
               </tr>
               {% endfor %}
@@ -144,9 +167,9 @@
         </div>
       </div>
       {% else %}
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-        <i class="fas fa-calendar-xmark text-4xl text-gray-300 mb-3"></i>
-        <p class="text-gray-400 font-medium">{{ _("No data for this month.") }}</p>
+      <div class="nx-empty nx-rise-3">
+        <div class="nx-empty__art"><i class="fas fa-calendar-xmark"></i></div>
+        <p class="nx-empty__title">{{ _("No data for this month.") }}</p>
       </div>
       {% endif %}
     {% endif %}

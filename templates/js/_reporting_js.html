@@ -1,0 +1,1425 @@
+<script>
+(function () {
+  const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const state = {
+    source: null, fields: [], columns: [], filters: [], sort: [],
+    // Process scope. `allProcesses` is the caller's allowed '<client>.<process>'
+    // list for the current source (the pickable set); `selProcesses` is the
+    // selected subset. Serialised to scope.clients/processes by buildScope().
+    allProcesses: [], selProcesses: [],
+    mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
+    lastResult: null, view: 'grid', currentReportId: null, currentReportName: null,
+    currentReportOwned: true, currentReportCanEdit: true,
+    // Semantic metrics: cached full map {sourceId: [{code,label,...}]} (null until
+    // fetched), the per-source available list, and the selected metric codes.
+    metricsBySource: null, availableMetrics: [], metrics: []
+  };
+
+  // Relative-date token presets for date-typed filter fields. Token shape
+  // {token: '<name>'[, n]} matches nx_lib/reporting/tokens.py.
+  var DATE_TOKEN_PRESETS = [
+    ['today', {{ _("Today")|tojson }}],
+    ['yesterday', {{ _("Yesterday")|tojson }}],
+    ['this_week', {{ _("This week")|tojson }}],
+    ['last_week', {{ _("Last week")|tojson }}],
+    ['this_month', {{ _("This month")|tojson }}],
+    ['last_month', {{ _("Last month")|tojson }}],
+    ['this_quarter', {{ _("This quarter")|tojson }}],
+    ['last_quarter', {{ _("Last quarter")|tojson }}],
+    ['last_3_months', {{ _("Last 3 months")|tojson }}],
+    ['this_year', {{ _("This year")|tojson }}],
+    ['last_year', {{ _("Last year")|tojson }}],
+    ['last_n_days', {{ _("Last N days")|tojson }}]
+  ];
+  var CUSTOM_DATES_LABEL = {{ _("Custom dates…")|tojson }};
+
+  async function api(url, opts) {
+    opts = opts || {};
+    const res = await fetch(url, Object.assign(
+      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } },
+      opts
+    ));
+    if (!res.ok) {
+      const body = await res.json().catch(function () { return {}; });
+      throw new Error(body.error || res.statusText);
+    }
+    return res;
+  }
+
+  // ---- Process scope (client / process picker) -------------------------------
+  // Processes are '<client>.<process>'; the client is the text before the first
+  // dot (mirrors nx_lib/process_helpers).
+  function clientOf(p) {
+    var i = p.indexOf('.');
+    return i < 0 ? p : p.slice(0, i);
+  }
+
+  // allProcesses grouped by client, preserving first-seen order.
+  function processGroups() {
+    var groups = [], byClient = {};
+    state.allProcesses.forEach(function (p) {
+      var c = clientOf(p);
+      if (!byClient[c]) { byClient[c] = { client: c, procs: [] }; groups.push(byClient[c]); }
+      byClient[c].procs.push(p);
+    });
+    return groups;
+  }
+
+  function isSelected(p) { return state.selProcesses.indexOf(p) !== -1; }
+
+  // Serialise the selection into {clients, processes}. A fully-selected client is
+  // emitted as a client (durable — it picks up processes added under it later); a
+  // partially selected client emits its individually-picked processes. Everything
+  // selected -> empty scope, which the server reads as "all allowed" (keeps saved
+  // definitions portable and matches the pre-picker default).
+  function buildScope() {
+    var all = state.allProcesses, sel = state.selProcesses;
+    if (!all.length || sel.length >= all.length) return { clients: [], processes: [] };
+    var selSet = {};
+    sel.forEach(function (p) { selSet[p] = true; });
+    var clients = [], processes = [];
+    processGroups().forEach(function (g) {
+      if (g.procs.every(function (p) { return selSet[p]; })) { clients.push(g.client); return; }
+      g.procs.forEach(function (p) { if (selSet[p]) processes.push(p); });
+    });
+    return { clients: clients, processes: processes };
+  }
+
+  // Adopt a source's allowed process list, selecting everything (default) or the
+  // subset implied by a saved scope {clients, processes}.
+  function setProcessScope(allProcesses, savedScope) {
+    state.allProcesses = (allProcesses || []).slice();
+    var sc = savedScope || {};
+    var clients = sc.clients || [], procs = sc.processes || [];
+    if (!clients.length && !procs.length) {
+      state.selProcesses = state.allProcesses.slice();
+    } else {
+      var clientSet = {}; clients.forEach(function (c) { clientSet[c] = true; });
+      var procSet = {}; procs.forEach(function (p) { procSet[p] = true; });
+      state.selProcesses = state.allProcesses.filter(function (p) {
+        return procSet[p] || clientSet[clientOf(p)];
+      });
+      // A saved scope that now resolves to nothing (perms changed) falls back to all.
+      if (!state.selProcesses.length) state.selProcesses = state.allProcesses.slice();
+    }
+    renderProcessPicker();
+  }
+
+  function toggleProcess(p) {
+    if (isSelected(p)) {
+      // Keep at least one selected. The native click already unchecked the box,
+      // so re-render to repaint it to its true (still-selected) state.
+      if (state.selProcesses.length <= 1) { renderProcessPicker(); return; }
+      state.selProcesses = state.selProcesses.filter(function (x) { return x !== p; });
+    } else {
+      state.selProcesses = state.selProcesses.concat([p]);
+    }
+    onScopeChanged();
+  }
+
+  function toggleClient(client) {
+    var procs = state.allProcesses.filter(function (p) { return clientOf(p) === client; });
+    if (procs.every(isSelected)) {
+      var next = state.selProcesses.filter(function (p) { return clientOf(p) !== client; });
+      // Would empty the whole selection — repaint to undo the native uncheck.
+      if (!next.length) { renderProcessPicker(); return; }
+      state.selProcesses = next;
+    } else {
+      var add = procs.filter(function (p) { return !isSelected(p); });
+      state.selProcesses = state.selProcesses.concat(add);
+    }
+    onScopeChanged();
+  }
+
+  function selectAllProcesses() {
+    state.selProcesses = state.allProcesses.slice();
+    onScopeChanged();
+  }
+
+  // A docprocessing field is available when at least one selected process exposes
+  // it (mirrors the workitems field list: a single process shows its own fields,
+  // "all" shows the union). Fields with no `processes` tag — e.g. table sources —
+  // are always shown.
+  function isFieldAvailable(f) {
+    if (!state.allProcesses.length) return true;          // non-docprocessing: no scope
+    if (!f.processes || !f.processes.length) return true;
+    for (var i = 0; i < f.processes.length; i++) {
+      if (state.selProcesses.indexOf(f.processes[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Drop selected columns / filters / sort whose field is no longer available under
+  // the current process scope, so narrowing the scope can't leave a broken
+  // definition (the query builder rejects a field absent from every scoped process).
+  function pruneUnavailableSelections() {
+    var avail = {};
+    state.fields.forEach(function (f) { if (isFieldAvailable(f)) avail[f.field] = true; });
+    state.columns = state.columns.filter(function (c) { return avail[c.field]; });
+    state.filters = state.filters.filter(function (f) {
+      return f.field === 'processname' || avail[f.field]; // processname is synthetic + always valid
+    });
+    state.sort = state.sort.filter(function (s) { return avail[s.field]; });
+  }
+
+  // The user changed the process scope: refresh the picker, prune now-invalid
+  // picks, and re-render the field list + wells + filters.
+  function onScopeChanged() {
+    renderProcessPicker();
+    pruneUnavailableSelections();
+    renderFields();
+    renderWells();
+    renderFilters();
+  }
+
+  // One checkbox row (a <label> wrapping the box + text). Clicking the label
+  // toggles the box natively, firing `onToggle`.
+  function scopeRow(labelText, checked, indeterminate, onToggle) {
+    var row = document.createElement('label');
+    row.className = 'reporting-scope-row';
+    var box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = checked;
+    box.indeterminate = !!indeterminate;
+    box.addEventListener('change', onToggle);
+    var span = document.createElement('span');
+    span.textContent = labelText;
+    row.appendChild(box);
+    row.appendChild(span);
+    return row;
+  }
+
+  function renderProcessPicker() {
+    var wrap = document.getElementById('rpScopeWrap');
+    if (!wrap) return;
+    // Only sources that carry processes (docprocessing) get the picker; table
+    // sources have an empty allowed list -> hide the control entirely.
+    if (!state.allProcesses.length) {
+      wrap.hidden = true;
+      toggleScopeMenu(false);
+      return;
+    }
+    wrap.hidden = false;
+
+    var menu = document.getElementById('rpScopeMenu');
+    menu.innerHTML = '';
+    var total = state.allProcesses.length, selN = state.selProcesses.length;
+
+    var allRow = scopeRow('{{ _("All processes") }}', selN >= total, selN > 0 && selN < total,
+      function () { selectAllProcesses(); });
+    allRow.classList.add('reporting-scope-all');
+    menu.appendChild(allRow);
+
+    processGroups().forEach(function (g) {
+      var sel = g.procs.filter(isSelected).length;
+      var clientRow = scopeRow(g.client, sel === g.procs.length, sel > 0 && sel < g.procs.length,
+        (function (c) { return function () { toggleClient(c); }; })(g.client));
+      clientRow.classList.add('reporting-scope-client');
+      menu.appendChild(clientRow);
+      g.procs.forEach(function (p) {
+        var label = p.slice(g.client.length + 1) || p; // process part after '<client>.'
+        var row = scopeRow(label, isSelected(p), false,
+          (function (proc) { return function () { toggleProcess(proc); }; })(p));
+        row.classList.add('reporting-scope-proc');
+        menu.appendChild(row);
+      });
+    });
+
+    updateScopeSummary();
+  }
+
+  function updateScopeSummary() {
+    var summary = document.getElementById('rpScopeSummary');
+    if (!summary) return;
+    var total = state.allProcesses.length, selN = state.selProcesses.length;
+    summary.textContent = (selN >= total) ? '{{ _("All processes") }}' : (selN + ' / ' + total);
+  }
+
+  function toggleScopeMenu(open) {
+    var menu = document.getElementById('rpScopeMenu');
+    var btn = document.getElementById('rpScopeBtn');
+    if (!menu || !btn) return;
+    var willOpen = (open === undefined) ? menu.hidden : open;
+    menu.hidden = !willOpen;
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  }
+
+  function buildDefinition() {
+    return {
+      schemaVersion: 1,
+      source: state.source,
+      visualization: 'table',
+      title: document.getElementById('rpTitle').value || 'Untitled report',
+      subtitle: document.getElementById('rpSubtitle').value || null,
+      columns: state.columns.map(function (c) {
+        var col = { field: c.field, header: c.header || c.label, agg: null };
+        if (c.grain) col.grain = c.grain;
+        return col;
+      }),
+      groupBy: [],
+      filters: state.filters,
+      sort: state.sort,
+      // Canonical metrics: when present the selected Columns become the grouping
+      // and the server returns these as aggregations. Omit when none selected.
+      metrics: state.metrics.map(function (c) { return { metric: c }; }),
+      scope: buildScope(),
+      rowLimit: 5000,
+      sql: null,
+      sqlTarget: null,
+    };
+  }
+
+  // Definition for whichever mode is active (curated builder vs SQL editor).
+  function currentDefinition() {
+    return state.mode === 'sql' ? sqlDefinition() : buildDefinition();
+  }
+
+  function reportTitle() {
+    return document.getElementById('rpTitle').value
+      || (state.mode === 'sql' ? 'SQL report' : 'Report');
+  }
+
+  function exportFormat() {
+    var el = document.getElementById('rpExportFormat');
+    return (el && el.value) || 'xlsx';
+  }
+
+  function downloadBlob(blob, filename) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  function renderFields() {
+    var q = document.getElementById('rpFieldSearch').value.toLowerCase();
+    var ul = document.getElementById('rpFieldList');
+    ul.innerHTML = '';
+    state.fields.filter(function (f) {
+      return isFieldAvailable(f) && f.label.toLowerCase().indexOf(q) !== -1;
+    }).forEach(function (f) {
+      var li = document.createElement('li');
+      li.textContent = f.label;
+      li.onclick = function () {
+        if (!state.columns.find(function (c) { return c.field === f.field; })) {
+          state.columns.push(Object.assign({}, f, {
+            header: f.label,
+            grain: f.grainable ? 'month' : undefined,
+          }));
+          renderWells();
+        }
+      };
+      ul.appendChild(li);
+    });
+  }
+
+  function renderWells() {
+    var cols = document.getElementById('rpWellColumns');
+    cols.innerHTML = '';
+    state.columns.forEach(function (c, i) {
+      var li = document.createElement('li');
+      var inp = document.createElement('input');
+      inp.value = c.header;
+      inp.oninput = function (e) { c.header = e.target.value; };
+      // Date columns get a grain selector (day/week/month/quarter/year).
+      var grainSel = null;
+      if (c.grainable) {
+        grainSel = document.createElement('select');
+        grainSel.className = 'reporting-grain';
+        [['day', '{{ _("Day") }}'], ['week', '{{ _("Week") }}'], ['month', '{{ _("Month") }}'],
+         ['quarter', '{{ _("Quarter") }}'], ['year', '{{ _("Year") }}']].forEach(function (g) {
+          var opt = document.createElement('option');
+          opt.value = g[0]; opt.textContent = g[1];
+          grainSel.appendChild(opt);
+        });
+        grainSel.value = c.grain || 'month';
+        grainSel.onchange = function (e) { c.grain = e.target.value; };
+      }
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.columns.splice(i, 1); renderWells(); };
+      li.appendChild(inp);
+      if (grainSel) li.appendChild(grainSel);
+      li.appendChild(rm);
+      cols.appendChild(li);
+    });
+    // Sort entries reference selected columns, so drop any whose column was
+    // removed, then re-render the Sort well.
+    state.sort = state.sort.filter(function (s) {
+      return state.columns.find(function (c) { return c.field === s.field; });
+    });
+    renderSort();
+  }
+
+  function resetViews(hasData) {
+    state._chartMounted = false;
+    state._pivotMounted = false;
+    document.getElementById('rpViewToggle').hidden = !hasData;
+    setView('grid');
+  }
+
+  function setView(view) {
+    state.view = view;
+    document.getElementById('rpResults').hidden = view !== 'grid';
+    document.getElementById('rpChart').hidden = view !== 'chart';
+    document.getElementById('rpPivot').hidden = view !== 'pivot';
+    [['rpViewGrid', 'grid'], ['rpViewChart', 'chart'], ['rpViewPivot', 'pivot']]
+      .forEach(function (p) {
+        document.getElementById(p[0]).classList.toggle('active', p[1] === view);
+      });
+    if (!state.lastResult) return;
+    if (view === 'chart' && !state._chartMounted) {
+      ReportingViz.mountChart(document.getElementById('rpChart'),
+        state.lastResult.columns, state.lastResult.rows);
+      state._chartMounted = true;
+    }
+    if (view === 'pivot' && !state._pivotMounted) {
+      ReportingViz.mountPivot(document.getElementById('rpPivot'),
+        state.lastResult.columns, state.lastResult.rows);
+      state._pivotMounted = true;
+    }
+  }
+
+  var I18N_RUNNING = {{ _("Running your report…")|tojson }};
+  var I18N_SHOW_QUERY = {{ _("Show query")|tojson }};
+  var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
+  var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
+  var I18N_COPIED = {{ _("Copied")|tojson }};
+  var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
+
+  function renderResults(data) {
+    state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    // Stash the echoed SQL for the Show query panel. Only /run echoes sql;
+    // SQL-sandbox runs (/api/reporting/sql/run) never set a sql key — button stays hidden.
+    var sqlBtn = document.getElementById('rpShowSql');
+    var sqlView = document.getElementById('rpSqlView');
+    state._lastSql = data.sql || null;
+    state._lastSqlPretty = data.sqlPretty || null;
+    state._lastParams = data.params || [];
+    if (sqlBtn) {
+      sqlBtn.hidden = !state._lastSql;
+      sqlBtn.textContent = I18N_SHOW_QUERY;
+    }
+    if (sqlView) sqlView.hidden = true;
+    resetViews(!!(data.rows && data.rows.length));
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    if (!data.rows.length) {
+      var empty = document.createElement('p');
+      empty.className = 'reporting-empty';
+      empty.textContent = '{{ _("No rows.") }}';
+      wrap.appendChild(empty);
+      return;
+    }
+    if (data.truncated && data.rowCount) {
+      var note = document.createElement('p');
+      note.className = 'reporting-truncated-note';
+      note.textContent = I18N_TRUNCATED.replace('{n}', String(data.rowCount));
+      wrap.appendChild(note);
+    }
+
+    var table = document.createElement('table');
+    table.className = 'reporting-table';
+
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    data.columns.forEach(function (c) {
+      var th = document.createElement('th');
+      th.textContent = c.header;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    data.rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      r.forEach(function (v) {
+        var td = document.createElement('td');
+        td.textContent = (v == null ? '' : String(v));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    wrap.appendChild(table);
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    var sqlOn = mode === 'sql';
+    document.getElementById('rpModeSql').classList.toggle('active', sqlOn);
+    document.getElementById('rpModeTable').classList.toggle('active', !sqlOn);
+    document.getElementById('rpSqlPanel').hidden = !sqlOn;
+    document.querySelector('.reporting-fields').style.display = sqlOn ? 'none' : '';
+    document.querySelector('.reporting-wells').style.display = sqlOn ? 'none' : '';
+    // SQL mode hides both sidebars; span the results column full-width so it
+    // doesn't collapse into the grid's narrow first track. Table mode restores
+    // the 3-column builder layout.
+    document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
+  }
+
+  function showError(msg) {
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'reporting-error';
+    p.textContent = msg;
+    wrap.appendChild(p);
+  }
+  // In-flight indicator for report runs. Lives inside #rpResults so the
+  // renderResults/showError innerHTML swap self-cleans it. The view is forced
+  // to grid because #rpResults is hidden whenever state.view !== 'grid' —
+  // without this, a re-run from Chart/Pivot would show nothing. Run is
+  // disabled so a double-click can't fire two parallel requests (rpRun is the
+  // only run trigger on this tab). DOM-built so the translated label needs no
+  // escaping. The Motion observer ignores non-TABLE/.reporting-empty/
+  // .reporting-error nodes, so this block is animation-inert.
+  function showRunLoading() {
+    document.getElementById('rpRun').disabled = true;
+    document.getElementById('rpViewToggle').hidden = true;
+    setView('grid');
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'reporting-ai-loading';
+    box.setAttribute('data-testid', 'reporting-run-loading');
+    var dots = document.createElement('span');
+    dots.className = 'reporting-ai-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    dots.innerHTML = '<i></i><i></i><i></i>';
+    var label = document.createElement('span');
+    label.setAttribute('role', 'status');
+    label.textContent = I18N_RUNNING;
+    box.appendChild(dots);
+    box.appendChild(label);
+    wrap.appendChild(box);
+  }
+  function endRunLoading() {
+    document.getElementById('rpRun').disabled = false;
+  }
+
+  // Modal replacement for window.prompt: resolves the trimmed name, or null
+  // on cancel/empty.
+  function promptName(title, initial) {
+    return new Promise(function (resolve) {
+      var modal = document.getElementById('rpNameModal');
+      var input = document.getElementById('rpNameModalInput');
+      var ok = document.getElementById('rpNameModalOk');
+      var cancel = document.getElementById('rpNameModalCancel');
+      document.getElementById('rpNameModalTitle').textContent = title;
+      input.value = initial || '';
+      modal.hidden = false;
+      input.focus();
+      input.select();
+      function done(v) {
+        modal.hidden = true;
+        ok.onclick = cancel.onclick = input.onkeydown = null;
+        resolve(v);
+      }
+      ok.onclick = function () { done(input.value.trim() || null); };
+      cancel.onclick = function () { done(null); };
+      input.onkeydown = function (e) {
+        if (e.key === 'Enter') ok.click();
+        if (e.key === 'Escape') cancel.click();
+      };
+    });
+  }
+
+  function ackThen(cb) {
+    if (state.sqlSource && state.sqlSource.acknowledged) { cb(); return; }
+    var modal = document.getElementById('rpSqlAck');
+    modal.hidden = false;
+    document.getElementById('rpSqlAckCancel').onclick = function () { modal.hidden = true; };
+    document.getElementById('rpSqlAckAccept').onclick = function () {
+      api('/api/reporting/sql/ack', { method: 'POST', body: '{}' }).then(function () {
+        // Ack is per-user — mark every SQL target acknowledged so switching
+        // targets afterwards doesn't re-prompt.
+        state.sqlSources.forEach(function (s) { s.acknowledged = true; });
+        modal.hidden = true;
+        cb();
+      }).catch(function (e) { modal.hidden = true; showError(e.message); });
+    };
+  }
+
+  function sqlBody() {
+    return {
+      target: document.getElementById('rpSqlTarget').value || 'statistics',
+      sql: document.getElementById('rpSqlEditor').value,
+    };
+  }
+
+  function runSql() {
+    ackThen(function () {
+      showRunLoading();
+      api('/api/reporting/sql/run', { method: 'POST', body: JSON.stringify(sqlBody()) })
+        .then(function (res) { return res.json(); })
+        .then(function (data) { endRunLoading(); renderResults(data); })
+        .catch(function (e) { endRunLoading(); showError(e.message); });
+    });
+  }
+
+  function sqlDefinition() {
+    var b = sqlBody();
+    return {
+      kind: 'sql', target: b.target, sql: b.sql,
+      title: document.getElementById('rpTitle').value || 'SQL report',
+    };
+  }
+
+  // Save the current report. asNew, no loaded report, or a loaded report the
+  // caller can't edit => create a copy; otherwise overwrite in place via PUT.
+  function doSave(asNew) {
+    var def = currentDefinition();
+    var canOverwrite = state.currentReportId
+      && (state.currentReportOwned || state.currentReportCanEdit);
+    if (asNew || !canOverwrite) {
+      promptName('{{ _("Report name") }}', reportTitle()).then(function (name) {
+        if (!name) return;
+        api('/api/reporting/reports', {
+          method: 'POST',
+          body: JSON.stringify({ name: name, definition: def }),
+        }).then(function (res) { return res.json(); })
+          .then(function (data) {
+            state.currentReportId = data.id || null;
+            state.currentReportName = name;
+            state.currentReportOwned = true;
+            state.currentReportCanEdit = true;
+            loadReports();
+            window.alert('{{ _("Saved") }}');
+          }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+      });
+      return;
+    }
+    var newName = document.getElementById('rpTitle').value || state.currentReportName || 'Report';
+    api('/api/reporting/reports/' + state.currentReportId, {
+      method: 'PUT',
+      body: JSON.stringify({ name: newName, definition: def }),
+    }).then(function () {
+      state.currentReportName = newName;
+      loadReports();
+      window.alert('{{ _("Saved") }}');
+    }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+  }
+
+  function save(asNew) {
+    if (state.mode === 'sql') { ackThen(function () { doSave(asNew); }); }
+    else { doSave(asNew); }
+  }
+
+  // Export the raw result grid (curated or SQL) in the chosen file format.
+  function exportGridRows() {
+    var fmt = exportFormat();
+    var ext = fmt === 'csv' ? '.csv' : '.xlsx';
+    var body = currentDefinition();
+    body.format = fmt;
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) body.chartImage = png;
+    }
+    var run = function () {
+      api('/api/reporting/export', { method: 'POST', body: JSON.stringify(body) })
+        .then(function (res) { return res.blob(); })
+        .then(function (blob) {
+          downloadBlob(blob, (document.getElementById('rpTitle').value || 'report') + ext);
+        }).catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+    };
+    if (state.mode === 'sql') { ackThen(run); } else { run(); }
+  }
+
+  // Export the client-computed pivot matrix via the grid-export endpoint.
+  function exportPivot() {
+    var ex = ReportingViz.getPivotExport();
+    if (!ex || !ex.rows.length) { window.alert('{{ _("Nothing to export.") }}'); return; }
+    var fmt = exportFormat();
+    var ext = fmt === 'csv' ? '.csv' : '.xlsx';
+    var title = document.getElementById('rpTitle').value || 'pivot';
+    var gridBody = { columns: ex.columns, rows: ex.rows, title: title, format: fmt };
+    if (fmt === 'xlsx') {
+      var png = window.ReportingViz && ReportingViz.chartPngDataUrl();
+      if (png) gridBody.chartImage = png;
+    }
+    api('/api/reporting/export/grid', {
+      method: 'POST',
+      body: JSON.stringify(gridBody),
+    }).then(function (res) { return res.blob(); })
+      .then(function (blob) { downloadBlob(blob, title + ext); })
+      .catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+  }
+
+  // Export what's on screen: chart -> PNG, pivot -> matrix, grid -> raw rows.
+  function exportCurrent() {
+    if (state.view === 'chart') {
+      var fn = (document.getElementById('rpTitle').value || 'chart') + '.png';
+      if (!ReportingViz.exportChartPng(fn)) { window.alert('{{ _("Nothing to export.") }}'); }
+      return;
+    }
+    if (state.view === 'pivot') { exportPivot(); return; }
+    exportGridRows();
+  }
+
+  function loadSources() {
+    api('/api/reporting/sources').then(function (res) {
+      return res.json();
+    }).then(function (sources) {
+      var sel = document.getElementById('rpSource');
+      sel.innerHTML = '';
+      state.sourcesById = {};
+      sources.forEach(function (s) { state.sourcesById[s.id] = s; });
+      state.sqlSources = sources.filter(function (s) { return s.kind === 'sql'; });
+      // Ack is per-user, identical across SQL targets — track via the first one.
+      state.sqlSource = state.sqlSources[0] || null;
+      var curated = sources.filter(function (s) { return s.kind !== 'sql'; });
+      var sqlBtn = document.getElementById('rpModeSql');
+      if (state.sqlSources.length) {
+        sqlBtn.disabled = false;
+        sqlBtn.removeAttribute('title');
+        var tsel = document.getElementById('rpSqlTarget');
+        tsel.innerHTML = '';
+        state.sqlSources.forEach(function (s) {
+          var topt = document.createElement('option');
+          topt.value = s.target || 'statistics';
+          topt.textContent = s.label;
+          tsel.appendChild(topt);
+        });
+      }
+      curated.forEach(function (s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        sel.appendChild(opt);
+      });
+      function pick() {
+        var s = curated.find(function (x) { return x.id === sel.value; });
+        if (!s) return;
+        state.source = s.id;
+        state.fields = s.fields || [];
+        setProcessScope(s.processes || [], null);
+        state.columns = [];
+        renderFields();
+        renderWells();
+        // Re-derive the per-source metric list (prunes now-unavailable picks).
+        refreshAvailableMetrics();
+      }
+      sel.onchange = pick;
+      if (curated.length) pick();
+    }).catch(function (e) {
+      console.error('{{ _("Could not load sources") }}:', e.message);
+    });
+  }
+
+  function run() {
+    showRunLoading();
+    return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { endRunLoading(); renderResults(data); })
+      .catch(function (e) { endRunLoading(); showError(e.message); });
+  }
+
+  function addFilter() {
+    var first = state.fields.find(function (f) { return f.filterable && isFieldAvailable(f); });
+    if (!first) return;
+    state.filters.push({ field: first.field, op: 'eq', value: '' });
+    renderFilters();
+  }
+
+  function renderFilters() {
+    var box = document.getElementById('rpWellFilters');
+    box.innerHTML = '';
+    state.filters.forEach(function (f, i) {
+      var row = document.createElement('div');
+      row.className = 'reporting-filter-row';
+
+      var fld = document.createElement('select');
+      state.fields.filter(function (x) {
+        return x.filterable && isFieldAvailable(x);
+      }).forEach(function (x) {
+        var opt = document.createElement('option');
+        opt.value = x.field;
+        opt.textContent = x.label;
+        fld.appendChild(opt);
+      });
+      fld.value = f.field;
+      // Re-render when field changes so flatpickr/presets initialize correctly.
+      // Also reset op to 'eq' so a token-shaped value can't survive a switch to
+      // a non-date field and 400 on run.
+      fld.onchange = function (e) { f.field = e.target.value; f.op = 'eq'; f.value = ''; renderFilters(); };
+
+      var fieldMeta = state.fields.find(function (x) { return x.field === f.field; });
+      var isDateField = !!(fieldMeta && (/date/i.test(fieldMeta.type) || fieldMeta.grainable));
+      var tokenActive = isDateField && f.value && typeof f.value === 'object'
+        && !Array.isArray(f.value) && typeof f.value.token === 'string';
+
+      var preset = null, nInput = null;
+      if (isDateField) {
+        preset = document.createElement('select');
+        var co = document.createElement('option');
+        co.value = '';
+        co.textContent = CUSTOM_DATES_LABEL;
+        preset.appendChild(co);
+        DATE_TOKEN_PRESETS.forEach(function (t) {
+          var o = document.createElement('option');
+          o.value = t[0];
+          o.textContent = t[1];
+          preset.appendChild(o);
+        });
+        nInput = document.createElement('input');
+        nInput.type = 'number';
+        nInput.min = '1';
+        nInput.max = '366';
+        nInput.hidden = true;
+        if (tokenActive) {
+          preset.value = f.value.token;
+          if (f.value.token === 'last_n_days') {
+            nInput.hidden = false;
+            nInput.value = f.value.n || 30;
+          }
+        }
+        preset.onchange = function () {
+          if (!preset.value) { f.op = 'eq'; f.value = ''; renderFilters(); return; }
+          f.op = 'between';
+          f.value = preset.value === 'last_n_days'
+            ? { token: 'last_n_days', n: parseInt(nInput.value, 10) || 30 }
+            : { token: preset.value };
+          renderFilters();
+        };
+        nInput.oninput = function () {
+          if (f.value && f.value.token === 'last_n_days') {
+            f.value.n = Math.max(1, Math.min(366, parseInt(nInput.value, 10) || 30));
+          }
+        };
+      }
+
+      var op = document.createElement('select');
+      ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
+        'is_null', 'is_not_null'].forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        op.appendChild(opt);
+      });
+      op.value = tokenActive ? 'eq' : f.op;
+      op.onchange = function (e) { f.op = e.target.value; };
+      op.hidden = tokenActive;
+
+      var val = document.createElement('input');
+      val.value = (!tokenActive && f.value != null) ? f.value : '';
+      val.oninput = function (e) { f.value = e.target.value; };
+      val.hidden = tokenActive;
+
+      // Initialize flatpickr for date/datetime fields if the library is present.
+      if (!tokenActive && fieldMeta && /date/i.test(fieldMeta.type)
+          && typeof flatpickr === 'function') {
+        var fpOpts = { allowInput: true, onChange: function (d, s) { f.value = s; } };
+        if (/time|datetime/i.test(fieldMeta.type)) {
+          fpOpts.enableTime = true;
+          fpOpts.dateFormat = 'Y-m-d H:i';
+        } else {
+          fpOpts.dateFormat = 'Y-m-d';
+        }
+        flatpickr(val, fpOpts);
+      }
+
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.filters.splice(i, 1); renderFilters(); };
+
+      row.appendChild(fld);
+      if (preset) row.appendChild(preset);
+      row.appendChild(op);
+      row.appendChild(val);
+      if (nInput) row.appendChild(nInput);
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
+  function addSort() {
+    // Sort fields must be among the selected columns (the backend rejects sort
+    // fields not in the projection), so seed from the first selected column.
+    if (!state.columns.length) return;
+    state.sort.push({ field: state.columns[0].field, dir: 'asc' });
+    renderSort();
+  }
+
+  function renderSort() {
+    var box = document.getElementById('rpWellSort');
+    box.innerHTML = '';
+    state.sort.forEach(function (s, i) {
+      var row = document.createElement('div');
+      row.className = 'reporting-filter-row';
+
+      var fld = document.createElement('select');
+      state.columns.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c.field;
+        opt.textContent = c.header || c.label || c.field;
+        fld.appendChild(opt);
+      });
+      fld.value = s.field;
+      fld.onchange = function (e) { s.field = e.target.value; };
+
+      var dir = document.createElement('select');
+      ['asc', 'desc'].forEach(function (d) {
+        var opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        dir.appendChild(opt);
+      });
+      dir.value = s.dir;
+      dir.onchange = function (e) { s.dir = e.target.value; };
+
+      var rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.onclick = function () { state.sort.splice(i, 1); renderSort(); };
+
+      row.appendChild(fld);
+      row.appendChild(dir);
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
+  // ---- Metrics ----
+
+  // Look up a selected metric's display metadata for the current source.
+  function metricMeta(code) {
+    return state.availableMetrics.find(function (m) { return m.code === code; })
+      || { code: code, label: code };
+  }
+
+  // Derive the available metrics for the currently-selected source from the
+  // cached map, and prune any selected codes the new source doesn't offer.
+  function refreshAvailableMetrics() {
+    var map = state.metricsBySource || {};
+    state.availableMetrics = map[state.source] || [];
+    var codes = {};
+    state.availableMetrics.forEach(function (m) { codes[m.code] = true; });
+    state.metrics = state.metrics.filter(function (c) { return codes[c]; });
+    renderMetrics();
+  }
+
+  // Fetch the full accessible-metrics map once and cache it, then derive the
+  // per-source list. A failed fetch is non-fatal: treat as "no metrics".
+  function loadMetrics() {
+    api('/api/reporting/metrics').then(function (res) { return res.json(); })
+      .then(function (map) {
+        state.metricsBySource = map || {};
+        refreshAvailableMetrics();
+      }).catch(function (e) {
+        console.error('{{ _("Could not load metrics") }}:', e.message);
+        state.metricsBySource = {};
+        refreshAvailableMetrics();
+      });
+  }
+
+  function renderMetrics() {
+    var ul = document.getElementById('rpWellMetrics');
+    ul.innerHTML = '';
+    state.metrics.forEach(function (code, i) {
+      var li = document.createElement('li');
+      li.className = 'reporting-metric-row';
+      // A <select> per row (current code + any unselected codes) lets the user
+      // swap which metric this row is — same pattern as the Sort well's field
+      // picker. If the code isn't in the catalog (stale saved report), still
+      // show it as a synthetic option so the row round-trips.
+      var sel = document.createElement('select');
+      sel.setAttribute('data-testid', 'reporting-metric-select');
+      var opts = state.availableMetrics.filter(function (m) {
+        return m.code === code || state.metrics.indexOf(m.code) === -1;
+      });
+      if (!opts.find(function (m) { return m.code === code; })) {
+        opts = [metricMeta(code)].concat(opts);
+      }
+      opts.forEach(function (m) {
+        var opt = document.createElement('option');
+        opt.value = m.code;
+        opt.textContent = m.label || m.code;
+        sel.appendChild(opt);
+      });
+      sel.value = code;
+      sel.onchange = function (e) { state.metrics[i] = e.target.value; renderMetrics(); };
+      li.appendChild(sel);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = '×';
+      rm.onclick = function () { state.metrics.splice(i, 1); renderMetrics(); };
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+    // The hint explains that Columns become the grouping once a metric is picked.
+    document.getElementById('rpMetricHint').hidden = state.metrics.length === 0;
+    var addBtn = document.getElementById('rpAddMetric');
+    // No remaining unselected metrics for this source => nothing to add.
+    var remaining = state.availableMetrics.filter(function (m) {
+      return state.metrics.indexOf(m.code) === -1;
+    });
+    addBtn.disabled = remaining.length === 0;
+  }
+
+  // Add a metric. Mirrors addSort/addFilter: append the first available
+  // unselected code, then re-render so its row appears with a pick <select>.
+  function addMetric() {
+    var remaining = state.availableMetrics.filter(function (m) {
+      return state.metrics.indexOf(m.code) === -1;
+    });
+    if (!remaining.length) return;
+    state.metrics.push(remaining[0].code);
+    renderMetrics();
+  }
+
+  function loadReports() {
+    api('/api/reporting/reports').then(function (res) { return res.json(); })
+      .then(function (reports) {
+        var sel = document.getElementById('rpSavedReports');
+        var current = sel.value;
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = '{{ _("Saved reports…") }}';
+        sel.appendChild(ph);
+        function addOpt(group, r) {
+          var opt = document.createElement('option');
+          opt.value = r.id;
+          var suffix = (r.kind === 'sql' ? ' (SQL)' : '');
+          if (!r.owned && r.ownerName) suffix += ' — ' + r.ownerName;
+          else if (r.owned && r.visibility === 'shared') suffix += ' · {{ _("shared") }}';
+          opt.textContent = r.name + suffix;
+          opt.dataset.owned = r.owned ? '1' : '0';
+          opt.dataset.canEdit = r.canEdit ? '1' : '0';
+          group.appendChild(opt);
+        }
+        var mine = (reports || []).filter(function (r) { return r.owned; });
+        var shared = (reports || []).filter(function (r) { return !r.owned; });
+        if (mine.length) {
+          var g1 = document.createElement('optgroup');
+          g1.label = '{{ _("My reports") }}';
+          mine.forEach(function (r) { addOpt(g1, r); });
+          sel.appendChild(g1);
+        }
+        if (shared.length) {
+          var g2 = document.createElement('optgroup');
+          g2.label = '{{ _("Shared with me") }}';
+          shared.forEach(function (r) { addOpt(g2, r); });
+          sel.appendChild(g2);
+        }
+        if (current) sel.value = current;
+        updateShareButton();
+      }).catch(function (e) {
+        console.error('{{ _("Could not load saved reports") }}:', e.message);
+      });
+  }
+
+  // The Share/Schedule buttons only apply to a report the caller owns.
+  function updateShareButton() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    var owned = !!(opt && opt.dataset && opt.dataset.owned === '1');
+    document.getElementById('rpShare').disabled = !owned;
+    var sched = document.getElementById('rpSchedule');
+    if (sched) sched.disabled = !owned;
+  }
+
+  // Restore a saved definition into the builder (curated) or SQL editor.
+  function applyDefinition(def, name, id) {
+    state.currentReportId = id || null;
+    state.currentReportName = name || null;
+    document.getElementById('rpTitle').value = name || def.title || '';
+    if (def.kind === 'sql') {
+      setMode('sql');
+      var tsel = document.getElementById('rpSqlTarget');
+      if (def.target) tsel.value = def.target;
+      document.getElementById('rpSqlEditor').value = def.sql || '';
+      return;
+    }
+    setMode('table');
+    state.source = def.source || state.source;
+    var src = state.sourcesById[state.source];
+    if (src) {
+      document.getElementById('rpSource').value = src.id;
+      state.fields = src.fields || [];
+      // Restore the saved process scope (def.scope) against this source's
+      // currently-allowed processes; falls back to "all" when absent.
+      setProcessScope(src.processes || [], def.scope);
+    }
+    // Re-hydrate column metadata (label/type/filterable) from the live catalog;
+    // a field that left the catalog still loads with its raw key as the label.
+    state.columns = (def.columns || []).map(function (c) {
+      var meta = state.fields.find(function (f) { return f.field === c.field; })
+        || { field: c.field, label: c.field };
+      var col = Object.assign({}, meta, { header: c.header || meta.label });
+      if (c.grain) col.grain = c.grain;
+      return col;
+    });
+    state.filters = (def.filters || []).map(function (f) { return Object.assign({}, f); });
+    state.sort = (def.sort || []).map(function (s) { return Object.assign({}, s); });
+    // Restore selected metrics (def.metrics = [{metric: code}, ...]); derive the
+    // available list for the restored source, then keep only codes it still offers.
+    state.availableMetrics = (state.metricsBySource || {})[state.source] || [];
+    var availCodes = {};
+    state.availableMetrics.forEach(function (m) { availCodes[m.code] = true; });
+    state.metrics = (def.metrics || [])
+      .map(function (m) { return m && m.metric; })
+      .filter(function (c) { return c && availCodes[c]; });
+    document.getElementById('rpSubtitle').value = def.subtitle || '';
+    renderFields();
+    renderWells();
+    renderFilters();
+    renderMetrics();
+  }
+
+  // Open an AI definition in the builder, run it, then show it as the hinted chart.
+  function applyDefinitionAndChart(def, hint) {
+    applyDefinition(def, def.title || 'AI report', null);
+    // Clear any prior result so a failed run (run() swallows errors) can't leave
+    // stale data that the guard below would chart against.
+    state.lastResult = null;
+    var p = run();
+    if (p && p.then) {
+      p.then(function () {
+        if (!hint || !state.lastResult || !state.lastResult.rows.length) return;
+        setView('chart');
+        if (window.ReportingViz && ReportingViz.applyChartHint) ReportingViz.applyChartHint(hint);
+      });
+    }
+  }
+
+  function loadSelectedReport() {
+    var id = document.getElementById('rpSavedReports').value;
+    if (!id) return;
+    api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
+      .then(function (data) {
+        applyDefinition(data.definition || {}, data.name, data.id);
+        state.currentReportOwned = !!data.owned;
+        state.currentReportCanEdit = !!data.canEdit;
+      })
+      .catch(function (e) { showError(e.message); });
+  }
+
+  function renameSelectedReport() {
+    var sel = document.getElementById('rpSavedReports');
+    var id = sel.value;
+    if (!id) return;
+    var current = sel.options[sel.selectedIndex].textContent.replace(/ \(SQL\)$/, '');
+    promptName('{{ _("New name") }}', current).then(function (name) {
+      if (!name || name === current) return;
+      // Name-only change; PUT requires the definition too, so fetch it first.
+      api('/api/reporting/reports/' + id).then(function (res) { return res.json(); })
+        .then(function (data) {
+          return api('/api/reporting/reports/' + id, {
+            method: 'PUT',
+            body: JSON.stringify({ name: name, definition: data.definition }),
+          });
+        }).then(function () { loadReports(); })
+        .catch(function (e) { window.alert('{{ _("Rename failed") }}: ' + e.message); });
+    });
+  }
+
+  function deleteSelectedReport() {
+    var sel = document.getElementById('rpSavedReports');
+    var id = sel.value;
+    if (!id) return;
+    if (!window.confirm('{{ _("Delete this saved report?") }}')) return;
+    api('/api/reporting/reports/' + id, { method: 'DELETE' })
+      .then(function () {
+        if (String(state.currentReportId) === String(id)) {
+          state.currentReportId = null;
+          state.currentReportName = null;
+        }
+        loadReports();
+      }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
+  }
+
+  // ---- Sharing ----
+  var shareReportId = null;
+
+  function openShare() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    shareReportId = sel.value;
+    api('/api/reporting/reports/' + shareReportId + '/shares')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        renderShareState(data);
+        document.getElementById('rpShareModal').hidden = false;
+      }).catch(function (e) { window.alert(e.message); });
+  }
+
+  function renderShareState(data) {
+    var vis = data.visibility || 'private';
+    Array.prototype.forEach.call(
+      document.querySelectorAll('input[name="rpShareVis"]'),
+      function (r) { r.checked = (r.value === vis); }
+    );
+    var list = document.getElementById('rpShareList');
+    list.innerHTML = '';
+    (data.shares || []).forEach(function (s) {
+      var li = document.createElement('li');
+      var name = document.createElement('span');
+      name.className = 'reporting-share-name';
+      name.textContent = s.name + (s.canEdit ? ' ({{ _("can edit") }})' : '');
+      li.appendChild(name);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'reporting-link';
+      rm.textContent = '{{ _("Remove") }}';
+      rm.onclick = function () { removeShare(s.userId); };
+      li.appendChild(rm);
+      list.appendChild(li);
+    });
+    if (!(data.shares || []).length) {
+      var empty = document.createElement('li');
+      empty.className = 'reporting-share-empty';
+      empty.textContent = '{{ _("Not shared with anyone yet.") }}';
+      list.appendChild(empty);
+    }
+  }
+
+  function postShare(body) {
+    return api('/api/reporting/reports/' + shareReportId + '/shares', {
+      method: 'POST', body: JSON.stringify(body),
+    }).then(function (res) { return res.json(); })
+      .then(function (data) { renderShareState(data); loadReports(); });
+  }
+
+  function removeShare(userId) {
+    api('/api/reporting/reports/' + shareReportId + '/shares/' + userId, { method: 'DELETE' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { renderShareState(data); loadReports(); })
+      .catch(function (e) { window.alert(e.message); });
+  }
+
+  document.getElementById('rpShare').addEventListener('click', openShare);
+  document.getElementById('rpShareClose').addEventListener('click', function () {
+    document.getElementById('rpShareModal').hidden = true;
+  });
+  document.getElementById('rpShareAdd').addEventListener('click', function () {
+    var u = document.getElementById('rpShareUser').value.trim();
+    if (!u) return;
+    var canEdit = document.getElementById('rpShareCanEdit').checked;
+    postShare({ user: u, canEdit: canEdit })
+      .then(function () {
+        document.getElementById('rpShareUser').value = '';
+        document.getElementById('rpShareCanEdit').checked = false;
+      }).catch(function (e) { window.alert(e.message); });
+  });
+  Array.prototype.forEach.call(
+    document.querySelectorAll('input[name="rpShareVis"]'),
+    function (r) {
+      r.addEventListener('change', function () {
+        if (r.checked) postShare({ visibility: r.value }).catch(function (e) { window.alert(e.message); });
+      });
+    }
+  );
+  document.getElementById('rpSavedReports').addEventListener('change', updateShareButton);
+
+  // ---- Scheduling ----
+  var scheduleReportId = null;
+  var FREQ_LABELS = { daily: '{{ _("Daily") }}', weekly: '{{ _("Weekly") }}', monthly: '{{ _("Monthly") }}' };
+  var ALERT_LABELS = { gt: '>', gte: '≥', lt: '<', lte: '≤' };
+
+  function schedAlertChanged() {
+    var alertOn = !!document.getElementById('rpSchedAlertOp').value;
+    document.getElementById('rpSchedAlertValWrap').hidden = !alertOn;
+    document.getElementById('rpSchedAlertHint').hidden = !alertOn;
+  }
+
+  function schedFreqChanged() {
+    var freq = document.getElementById('rpSchedFreq').value;
+    document.getElementById('rpSchedWeekdayWrap').hidden = freq !== 'weekly';
+    document.getElementById('rpSchedDomWrap').hidden = freq !== 'monthly';
+  }
+
+  function openSchedule() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    scheduleReportId = sel.value;
+    schedFreqChanged();
+    document.getElementById('rpSchedAlertOp').value = '';
+    document.getElementById('rpSchedAlertVal').value = '0';
+    schedAlertChanged();
+    loadSchedules();
+    document.getElementById('rpScheduleModal').hidden = false;
+  }
+
+  function loadSchedules() {
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules')
+      .then(function (res) { return res.json(); })
+      .then(renderSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
+  function renderSchedules(list) {
+    var box = document.getElementById('rpScheduleList');
+    box.innerHTML = '';
+    if (!(list || []).length) {
+      var li = document.createElement('li');
+      li.className = 'reporting-share-empty';
+      li.textContent = '{{ _("No schedules yet.") }}';
+      box.appendChild(li);
+      return;
+    }
+    list.forEach(function (s) {
+      var li = document.createElement('li');
+      var t = (s.hour < 10 ? '0' : '') + s.hour + ':' + (s.minute < 10 ? '0' : '') + s.minute;
+      var desc = (FREQ_LABELS[s.frequency] || s.frequency) + ' ' + t + ' UTC · ' +
+        s.format.toUpperCase() + ' · ' + s.recipients +
+        (s.alertOp ? ' · ' + '{{ _("only when total") }}' + ' ' +
+          (ALERT_LABELS[s.alertOp] || s.alertOp) + ' ' + s.alertThreshold : '') +
+        (s.enabled ? '' : ' (' + '{{ _("disabled") }}' + ')');
+      var span = document.createElement('span');
+      span.className = 'reporting-share-name';
+      span.textContent = desc;
+      li.appendChild(span);
+      var tg = document.createElement('button');
+      tg.type = 'button';
+      tg.className = 'reporting-link';
+      tg.dataset.testid = 'reporting-schedule-toggle';
+      tg.textContent = s.enabled ? '{{ _("Disable") }}' : '{{ _("Enable") }}';
+      tg.onclick = function () { setScheduleEnabled(s, !s.enabled); };
+      li.appendChild(tg);
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'reporting-link';
+      rm.textContent = '{{ _("Remove") }}';
+      rm.onclick = function () { deleteSchedule(s.id); };
+      li.appendChild(rm);
+      box.appendChild(li);
+    });
+  }
+
+  function addSchedule() {
+    var freq = document.getElementById('rpSchedFreq').value;
+    var time = (document.getElementById('rpSchedTime').value || '06:00').split(':');
+    var body = {
+      frequency: freq,
+      hour: parseInt(time[0], 10) || 0,
+      minute: parseInt(time[1], 10) || 0,
+      format: document.getElementById('rpSchedFormat').value,
+      recipients: document.getElementById('rpSchedRecipients').value,
+      enabled: true,
+    };
+    if (freq === 'weekly') body.weekday = parseInt(document.getElementById('rpSchedWeekday').value, 10);
+    if (freq === 'monthly') body.dayOfMonth = parseInt(document.getElementById('rpSchedDom').value, 10);
+    var alertOp = document.getElementById('rpSchedAlertOp').value;
+    if (alertOp) {
+      body.alertOp = alertOp;
+      body.alertThreshold = parseFloat(document.getElementById('rpSchedAlertVal').value) || 0;
+    }
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules', {
+      method: 'POST', body: JSON.stringify(body),
+    }).then(function () {
+      document.getElementById('rpSchedRecipients').value = '';
+      loadSchedules();
+    }).catch(function (e) { window.alert(e.message); });
+  }
+
+  function deleteSchedule(id) {
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + id, { method: 'DELETE' })
+      .then(loadSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
+  // Flip Enabled via the (previously UI-less) PUT update endpoint. PUT is
+  // full-replace and recomputes NextRunAt, so re-enabling re-anchors the next
+  // run. The window.alert matches the file's current idiom (menu row 8 sweeps
+  // them all later).
+  function setScheduleEnabled(s, enabled) {
+    var body = {
+      frequency: s.frequency, hour: s.hour, minute: s.minute,
+      format: s.format, recipients: s.recipients, enabled: enabled,
+    };
+    if (s.frequency === 'weekly') body.weekday = s.weekday;
+    if (s.frequency === 'monthly') body.dayOfMonth = s.dayOfMonth;
+    if (s.alertOp) { body.alertOp = s.alertOp; body.alertThreshold = s.alertThreshold; }
+    api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + s.id, {
+      method: 'PUT', body: JSON.stringify(body),
+    }).then(loadSchedules).catch(function (e) { window.alert(e.message); });
+  }
+
+  var rpSchedule = document.getElementById('rpSchedule');
+  if (rpSchedule) {
+    rpSchedule.addEventListener('click', openSchedule);
+    document.getElementById('rpSchedFreq').addEventListener('change', schedFreqChanged);
+    document.getElementById('rpSchedAlertOp').addEventListener('change', schedAlertChanged);
+    document.getElementById('rpSchedAdd').addEventListener('click', addSchedule);
+    document.getElementById('rpScheduleClose').addEventListener('click', function () {
+      document.getElementById('rpScheduleModal').hidden = true;
+    });
+  }
+
+  document.getElementById('rpViewGrid').addEventListener('click', function () { setView('grid'); });
+  document.getElementById('rpViewChart').addEventListener('click', function () { setView('chart'); });
+  document.getElementById('rpViewPivot').addEventListener('click', function () { setView('pivot'); });
+  document.getElementById('rpLoad').addEventListener('click', loadSelectedReport);
+  document.getElementById('rpRename').addEventListener('click', renameSelectedReport);
+  document.getElementById('rpDelete').addEventListener('click', deleteSelectedReport);
+  document.getElementById('rpFieldSearch').addEventListener('input', renderFields);
+  document.getElementById('rpRun').addEventListener('click', function () {
+    if (state.mode === 'sql') { runSql(); } else { run(); }
+  });
+  document.getElementById('rpSave').addEventListener('click', function () { save(false); });
+  document.getElementById('rpSaveAs').addEventListener('click', function () { save(true); });
+  document.getElementById('rpExport').addEventListener('click', exportCurrent);
+  document.getElementById('rpModeTable').addEventListener('click', function () { setMode('table'); });
+  document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
+  document.getElementById('rpAddFilter').addEventListener('click', addFilter);
+  document.getElementById('rpAddSort').addEventListener('click', addSort);
+  document.getElementById('rpAddMetric').addEventListener('click', addMetric);
+
+  // Process-scope dropdown: toggle on the button, close on an outside click.
+  var rpScopeBtn = document.getElementById('rpScopeBtn');
+  if (rpScopeBtn) {
+    rpScopeBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleScopeMenu(); });
+    document.addEventListener('click', function (e) {
+      var wrap = document.getElementById('rpScopeWrap');
+      if (wrap && !wrap.contains(e.target)) toggleScopeMenu(false);
+    });
+    // Escape (from the button or any checkbox in the menu) closes + returns focus.
+    document.getElementById('rpScopeWrap').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { toggleScopeMenu(false); rpScopeBtn.focus(); }
+    });
+  }
+
+  var rpShowSqlBtn = document.getElementById('rpShowSql');
+  if (rpShowSqlBtn) {
+    rpShowSqlBtn.addEventListener('click', function () {
+      if (!state._lastSql) return;
+      var view = document.getElementById('rpSqlView');
+      view.hidden = !view.hidden;
+      this.textContent = view.hidden ? I18N_SHOW_QUERY : I18N_HIDE_QUERY;
+      if (!view.hidden) {
+        ReportingSqlFormat.render(document.getElementById('rpSqlText'),
+          state._lastSqlPretty || state._lastSql);
+        document.getElementById('rpSqlParams').textContent = (state._lastParams || []).length
+          ? I18N_SQL_PARAMS + ': ' + state._lastParams.map(function (p, i) {
+              return (i + 1) + " = '" + String(p) + "'";
+            }).join(', ')
+          : '';
+      }
+    });
+  }
+  var rpSqlViewCopyBtn = document.getElementById('rpSqlViewCopy');
+  if (rpSqlViewCopyBtn) {
+    rpSqlViewCopyBtn.addEventListener('click', function () {
+      if (!state._lastSql) return;
+      var text = state._lastSql + '\n-- params: ' + JSON.stringify(state._lastParams || []);
+      var btn = this;
+      navigator.clipboard.writeText(text).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = I18N_COPIED;
+        setTimeout(function () { btn.textContent = prev; }, 1200);
+      }).catch(function () { /* clipboard unavailable */ });
+    });
+  }
+
+  loadMetrics();
+  loadSources();
+  loadReports();
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart });
+}());
+</script>

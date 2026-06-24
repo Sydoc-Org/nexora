@@ -12,7 +12,6 @@ from nx_lib import octo as octo_mod
 from nx_lib.octo import (
     get_access_token,
     get_activity_type_name,
-    get_domain_for_workitem,
     get_extensions_urls_fields,
     get_index_field_mappings,
     get_media,
@@ -92,13 +91,33 @@ def test_get_access_token_returns_none_on_http_error(app):
     assert tok is None
 
 
-# ---------- get_domain_for_workitem ----------
+def test_get_access_token_uses_per_client_creds(app, monkeypatch):
+    """A registered non-default domain signs the token request with that
+    client's client_id/secret, not the global default creds."""
+    from nx_lib import clients
 
+    monkeypatch.setattr(
+        clients,
+        "octo_creds_for_domain",
+        lambda domain: ("MS02_ID", "MS02_SECRET", "client_credentials")
+        if domain == "ms02.octo.example"
+        else ("DEF_ID", "DEF_SECRET", "client_credentials"),
+    )
+    # Re-point the name octo.py imported, too (it imported the function object).
+    monkeypatch.setattr(octo_mod, "octo_creds_for_domain", clients.octo_creds_for_domain)
 
-def test_get_domain_for_workitem_returns_octo_domain(app):
-    with app.app_context():
-        # Returns the OCTO_DOMAIN constant; just verify it's truthy & a string
-        assert isinstance(get_domain_for_workitem(123), str)
+    fake_resp = MagicMock(status_code=200)
+    fake_resp.json.return_value = {"access_token": "ms02-tok", "expires_in": 3600}
+    with (
+        patch.object(octo_mod.requests, "post", return_value=fake_resp) as mock_post,
+        app.app_context(),
+    ):
+        tok = get_access_token(domain="ms02.octo.example")
+
+    assert tok == "ms02-tok"
+    sent_body = mock_post.call_args.kwargs["data"]
+    assert sent_body["client_id"] == "MS02_ID"
+    assert sent_body["client_secret"] == "MS02_SECRET"
 
 
 # ---------- get_workitemdata_param ----------
@@ -166,8 +185,11 @@ def test_get_extensions_urls_fields_single_doc(app):
     fake_resp.json.return_value = {
         "DocumentType": "Single",
         "Media": [
-            {"Url": "https://cdn/x.png", "Extension": ".PNG"},
-            {"Url": "https://cdn/y.bin", "Extension": ".bin"},  # not in whitelist
+            # Dotted hosts are already FQDNs, so _media_url_for_gateway leaves them
+            # unchanged (no-dot hosts get rewritten to the gateway -- that swap is
+            # covered by test_octo_media.py); these tests assert parsing, not the swap.
+            {"Url": "https://cdn.sydoc.ch/x.png", "Extension": ".PNG"},
+            {"Url": "https://cdn.sydoc.ch/y.bin", "Extension": ".bin"},  # not in whitelist
         ],
         "IndexFields": [
             {"Name": "Invoice_Date", "FieldValue": {"Text": "2026-06-01"}},
@@ -185,11 +207,19 @@ def test_get_extensions_urls_fields_single_doc(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc-1")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-1"
+        )
 
     assert extensions == [".png"]
-    assert urls == ["https://cdn/x.png"]
+    assert urls == ["https://cdn.sydoc.ch/x.png"]
     assert fields == {"invoice_date": "2026-06-01"}
+    # mapped field with a value but no Location -> present, un-locatable
+    assert field_sources == [
+        {"key": "invoice_date", "label": "invoice_date", "value": "2026-06-01", "locations": []}
+    ]
+    # with_tables defaults False -> no table payload for the scalar-only callers
+    assert table_sources == []
 
 
 def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
@@ -199,11 +229,11 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
         "DocumentType": "Batch",
         "ChildDocuments": [
             {
-                "Media": [{"Url": "https://cdn/a.jpg", "Extension": ".jpg"}],
+                "Media": [{"Url": "https://cdn.sydoc.ch/a.jpg", "Extension": ".jpg"}],
                 "IndexFields": [],
             },
             {
-                "Media": [{"Url": "https://cdn/b.tif", "Extension": ".TIF"}],
+                "Media": [{"Url": "https://cdn.sydoc.ch/b.tif", "Extension": ".TIF"}],
                 "IndexFields": [],
             },
         ],
@@ -214,10 +244,65 @@ def test_get_extensions_urls_fields_batch_doc_iterates_children(app):
         patch.object(octo_mod, "get_index_field_mappings", return_value={}),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc-batch")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-batch"
+        )
     assert extensions == [".jpg", ".tif"]
-    assert urls == ["https://cdn/a.jpg", "https://cdn/b.tif"]
+    assert urls == ["https://cdn.sydoc.ch/a.jpg", "https://cdn.sydoc.ch/b.tif"]
     assert fields == {}
+    assert field_sources == []
+    assert table_sources == []
+
+
+def test_get_extensions_urls_fields_non_batch_container_recurses(app):
+    """MS02-style nested document (MobScnBatch -> MobScnDossier ->
+    MobScnDocument): images + mapped fields aggregate from the leaf documents,
+    even though no DocumentType is the literal 'Batch'."""
+    leaf1 = {
+        "DocumentType": "MobScnDocument",
+        "Media": [{"Url": "https://cdn.sydoc.ch/p1.jpg", "Extension": ".jpg"}],
+        "IndexFields": [{"Name": "DokArtName", "FieldValue": {"Text": "Bewilligungen"}}],
+    }
+    leaf2 = {
+        "DocumentType": "MobScnDocument",
+        "Media": [{"Url": "https://cdn.sydoc.ch/p2.jpg", "Extension": ".jpg"}],
+        "IndexFields": [{"Name": "DokDatum", "FieldValue": {"Text": "2026-06-17"}}],
+    }
+    dossier = {
+        "DocumentType": "MobScnDossier",
+        "Media": [],
+        "IndexFields": [],
+        "ChildDocuments": [leaf1, leaf2],
+    }
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.return_value = None
+    fake_resp.json.return_value = {
+        "DocumentType": "MobScnBatch",
+        "Media": [],
+        "IndexFields": [],
+        "ChildDocuments": [dossier],
+    }
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        patch.object(
+            octo_mod,
+            "get_index_field_mappings",
+            return_value={"DokArtName": "doc_type", "DokDatum": "doc_date"},
+        ),
+        app.app_context(),
+    ):
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-ms02"
+        )
+
+    assert extensions == [".jpg", ".jpg"]
+    assert urls == ["https://cdn.sydoc.ch/p1.jpg", "https://cdn.sydoc.ch/p2.jpg"]
+    assert fields == {"doc_type": "Bewilligungen", "doc_date": "2026-06-17"}
+    assert field_sources == [
+        {"key": "doc_type", "label": "doc_type", "value": "Bewilligungen", "locations": []},
+        {"key": "doc_date", "label": "doc_date", "value": "2026-06-17", "locations": []},
+    ]
 
 
 def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
@@ -230,10 +315,64 @@ def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields = get_extensions_urls_fields("wid", "doc")
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc"
+        )
     assert extensions == []
     assert urls == []
     assert fields == {}
+    assert field_sources == []
+    assert table_sources == []
+
+
+def test_get_extensions_urls_fields_with_tables_parses_tables(app):
+    """with_tables=True requests WithTables=true and returns parsed table_sources."""
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.return_value = None
+    fake_resp.json.return_value = {
+        "DocumentType": "Single",
+        "Media": [{"Url": "https://cdn/p.jpg", "Extension": ".jpg"}],
+        "IndexFields": [],
+        "Tables": [
+            {
+                "Name": "TabVat",
+                "Rows": [
+                    {
+                        "Cells": [
+                            {
+                                "ColumnName": "TabNetAmount",
+                                "CellValue": {"Text": "236.82"},
+                                "Confidence": 0.0,
+                                "Location": {
+                                    "PageIndex": 0,
+                                    "Rectangle": {
+                                        "Left": 851,
+                                        "Top": 2407,
+                                        "Width": 543,
+                                        "Height": 544,
+                                    },
+                                },
+                            }
+                        ]
+                    }
+                ],
+            }
+        ],
+    }
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp) as mock_get,
+        patch.object(octo_mod, "get_index_field_mappings", return_value={}),
+        app.app_context(),
+    ):
+        *_rest, table_sources = get_extensions_urls_fields("wid", "doc-t", with_tables=True)
+
+    assert "WithTables=true" in mock_get.call_args.kwargs["url"]
+    assert len(table_sources) == 1
+    assert table_sources[0]["title"] == "TabVat"
+    cell = table_sources[0]["rows"][0][0]
+    assert cell["value"] == "236.82"
+    assert cell["locations"][0]["page"] == 0
 
 
 # ---------- get_media ----------

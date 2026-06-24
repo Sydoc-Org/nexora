@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Full product documentation lives in Confluence: https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774
+Documentation is authored in git (`docs/`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`) and auto-published to Confluence (read-only mirror): https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774 — see `docs/howto/confluence-sync.md`.
 
 ## Project overview
 
@@ -25,6 +25,13 @@ The app connects to four SQL Server databases via SQLAlchemy engines with pyodbc
 - `engineOctoDB` — Octopus runtime DB on `DB_SERVER_PRD`.
 - `engineStatisticsDB` — stats DB on `DB_SERVER_PRD`.
 - `engineGeneraliDB` — tenant-specific DB for Generali-branded pages.
+- `engine_statistics_ro` — read-only `db_datareader` login over the Statistics DB used by the reporting SQL sandbox (`DB_REPORTING_RO_USER` / `DB_REPORTING_RO_PWD` env vars; until set, the SQL source returns 503).
+- `engine_octo_ro` — read-only `db_datareader` login over the Octopus runtime DB, used by the reporting SQL sandbox's Octopus target (`DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD` env vars; until set, the Octopus target returns 503).
+- `engine_ms02_pg` — the MS02 client's Azure Postgres runtime DB (same Octo schema, PG dialect); stays `None` until its `MS02_*` env vars are set (graceful degrade).
+- `engine_ms02_stats_pg` — the MS02 client's dashboard-statistics DB (`Praesidialdepartement_BS`, Azure Postgres); stays `None` until `MS02_STATS_DB_*` are set (defaults reuse the MS02 runtime host/login). The dashboard reads the actual stats table + date columns from the `'ms02'` `dbo.Statconfig` row (`public."DossierStatistik"`, cols `DatumInTempExport`/`ImportDate` — *not* the dead `public.batchtracking` that `0025` first seeded; corrected by migration `0031`), so it never hardcodes a Postgres table name.
+- `engine_ms02_docfields_pg` — the MS02 client's doc-field source DB (Azure Postgres, same host/login as the MS02 runtime, a *different* dbname — for MS02 the client's *statistik* DB `Praesidialdepartement_BS`, which holds the per-process columnar tables like `public."DossierStatistik"`); stays `None` until `MS02_DOCFIELDS_DB_*` are set (defaults reuse the MS02 runtime host/login; only the dbname differs). Doc-field search pre-resolves matches against it into a workitem-id allow-set — no ETL, never joined in-query to the runtime DB.
+
+**Multi-source workitems (MS02 client):** the MS02 client is integrated via `nx_lib/workitem_sources.py` (per-source adapters `SqlServerSource`/`PostgresSource`, plus the probe-then-cache routing backed by `dbo.WorkitemSourceCache`, migration `0023`) and `nx_lib/clients.py` (client registry mapping each client to its runtime engine + Octo creds). Octo access-token requests are signed with per-client credentials. The Postgres driver is `psycopg2-binary` (must be installed on the prod interpreter separately — see `docs/howto/iis.md`). Dashboard statistics are made multi-source via `dbo.Statconfig.ClientCode` (migration `0024`) — `'default'` rows are served by the Statistics DB (T-SQL), `'ms02'` rows by `engine_ms02_stats_pg` (Postgres, aggregated once over `public.batchtracking`); the `ClientConfig` registry carries each client's `stats_engine`/`stats_dialect`. Doc-field (document-field) search is also `SearchConfig`-driven for every client: `dbo.SearchConfig.ClientCode` (migration `0027`, mirroring `Statconfig.ClientCode` from `0024`) routes `'default'` rows to StatisticsDB and `'ms02'` rows to `engine_ms02_docfields_pg`. For BOTH, `col_<field>` is a real **column** name in a wide per-process *statistik* table (`SearchConfig.TableName`, e.g. `public."DossierStatistik"`), matched columnar as `"<col>"::text ILIKE %value%` and pre-resolved to a workitem-id allow-set (`resolve_ms02_docfield_ids` in `nx_lib/workitem_sources.py`) applied as `twi."ID" = ANY(...)`. Migration `0030` corrected the earlier EAV (`t_DocumentIndexes` `"Name"`/`"StringValue"`) assumption from `0027`: the MS02 doc-field source is the columnar `DossierStatistik` (in the same Postgres DB the stats engine uses), not an EAV index; `'ms02'` rows therefore carry Postgres-syntax `TimeFilter`s (the `'default'` rows stay T-SQL). The same statistik table also backs an MS02-only **personal-number (PID) import**: `resolve_ms02_pid_to_wids` (per-PID map resolver; sibling to `resolve_ms02_pid_ids`) and the `/import_prepared_audit` route upserts an uploaded five-column Excel (PID/Collected/CollectedBy/Prepared/PreparedBy — duplicate 'PreparedBy' header tolerated via positional first-wins) by PID into the persistent register `dbo.PreparedDocuments` (migration `0033`): one row per personal number, accumulating, shared across MS02 users, read-only + clear-whole-list (v1). The register is viewed on the standalone `/prepared_documents` page (route in `nx_lib/views/workitems.py`; data access in `nx_lib/prepared_documents.py`; templates `prepared_documents.html` + paired `templates/js/_prepared_documents_js.html`) with real OFFSET/FETCH pagination and a live (non-stored) Octo cross-reference status column computed per page via `resolve_ms02_pid_to_wids`. The workitems-page link to that page is shown only when an MS02 prepared-docs target process is selected (e.g. `sydoc.05_PDBS`); it is hidden on "All Processes" and on non-PDBS processes. Gated by `workitems.import.preparedaudit` (migration `0029`, reused) AND `ms02_active`; registered in `page_visibility()` as `preparedDocsPagePerm`. The earlier transient session-overlay (`?pidImport=<token>` filter with row-merge + synthetic rows) has been removed. The personal-number column is owner-seeded as the `'ms02'` `SearchConfig` `col_pid` value (read dynamically per the user's `target_processes`, e.g. `ProcessName='sydoc.05_PDBS'`; the full PDBS mapping + `ClientCode='ms02'` is migration `0030`). The register's Octo-Status cell also exposes a read-only **Preview** modal (via the shared `templates/js/_workitem_detail_panel_js.html` partial) showing the full workitem detail panel beside a renamed "Open in Workitems" link; write controls are suppressed in that context. The modal's Import → Extraction → Validation → Delivery timeline reflects the document's live Octo stage/status (resolved via `resolve_octo_wid_stage`, forwarded as `data-status`/`data-current-stage` into the shared renderer). A reverse **"In register"** chip on the Workitems detail panel links back to `prepared_documents?pid=<pid>`, and the register accepts an exact `?pid=` URL filter with a "Show all" reset link. New helpers: `pids_in_register()` (bulk PID→register-presence lookup in `nx_lib/prepared_documents.py`) and `resolve_ms02_wids_to_pids()` (workitem-ID → PID reverse map in `nx_lib/workitem_sources.py`). MS02-only; no new permission, no new migration.
 
 DDL source lives under `sql/`, organized to mirror SSMS Object Explorer. The **live INT database is the source of truth** for committed-state DDL — the per-object files are auto-generated and must not be hand-edited.
 
@@ -38,7 +45,7 @@ sql/
   sync-from-db.py  regenerates the per-object dumps from INT via mssql-scripter
   requirements.txt mssql-scripter
 scripts/
-  db-migrate.py    applies pending migrations on INT or PROD
+  db-migrate.py    applies pending migrations on INT, STAGING or PROD
 ```
 
 Only the two app-owned databases are tracked. `StatisticsDB` (sydoc_stat) and `OctoDB` are deliberately excluded — they're treated as runtime/vendor surfaces, not schema we own.
@@ -48,14 +55,16 @@ Only the two app-owned databases are tracked. `StatisticsDB` (sydoc_stat) and `O
 - `scripts/db-migrate.py` — moves schema forward by running ordered migration files. Records each applied file in `dbo.SchemaMigrations` (per database) and refuses to re-run a file whose checksum changed.
 - `sql/sync-from-db.py` — read-only dump of the current INT schema into per-object files for review and code search.
 
-Install once per clone:
+Install once per clone (handled by `.\bootstrap.ps1`, or manually):
 
 ```
-pip install -r sql/requirements.txt
-powershell -File scripts/install-git-hooks.ps1
+pip install -r sql/requirements.txt   # mssql-scripter, used by sync-from-db.py
+pre-commit install --install-hooks     # wire the git hooks (pre-commit framework)
 ```
 
-The pre-commit hook (`scripts/git-hooks/pre-commit`) runs:
+Detailed walkthrough: `docs/howto/db-migrations.md`.
+
+The pre-commit hook (the `sql-migrate-int` and `sql-sync-check` hooks in `.pre-commit-config.yaml`) runs:
 
 1. `scripts/db-migrate.py --env INT` — **auto-applies** any pending migrations to INT.
 2. `sql/sync-from-db.py --check` — verifies the per-object dumps still match INT.
@@ -89,18 +98,20 @@ Documentation is part of the change, not a follow-up. Whenever you add, rename, 
 - **Changelog:** add an entry under `[Unreleased]` in `CHANGELOG.md` (Keep-a-Changelog categories — Added / Changed / Fixed / Removed). When a version ships, promote `[Unreleased]` to a dated `[x.y.z]` section.
 - **Touched docs:** update whatever the change affects — this file, `README.md`, `CONTRIBUTING.md`, and `docs/howto/*`. Keep the path / flag / symbol references in this file accurate (they drift fast).
 - **Stale docs:** if you notice an existing doc that has drifted (wrong path, renamed symbol, removed flag, superseded workflow), fix it in the same commit rather than leaving it. Prefer correcting or deleting a superseded doc over adding a parallel one.
+- **Confluence:** `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md` and `CHANGELOG.md` are auto-published to the Confluence space on push to `main` (`.github/workflows/confluence-docs.yml`). Never edit those pages in Confluence — the sync overwrites them. Details: `docs/howto/confluence-sync.md`.
 
 ## Architectural conventions
 
 - **Auth & sessions:** Flask-Session with filesystem backend in `var/session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.
-- **Permissions:** Permissions are string codes (e.g. `admin.view`, `generali.pdqm.view`) loaded via the `dbo.spGetUserPermissions` stored procedure into `session['permissions']`. A `@app.before_request` hook (`reload_user_permissions`) refreshes them on every non-static request. Guard routes with `@require_permission('some.code')`; check in templates/code with `has_permission(code)`. `page_visibility()` is the canonical map of page-level perms; `startpage_redirect_to` picks the landing route based on which perms the user has.
+- **Permissions:** Permissions are string codes (e.g. `admin.view`, `generali.pdqm.view`) loaded via the `dbo.spGetUserPermissions` stored procedure into `session['permissions']`. A `@app.before_request` hook (`reload_user_permissions`) refreshes them on every non-static request. Guard routes with `@require_permission('some.code')`; check in templates/code with `has_permission(code)`. `page_visibility()` is the canonical map of page-level perms; `startpage_redirect_to` picks the landing route based on which perms the user has. The `reporting.*` permission family (page access, per-source grants, the SQL sandbox, the AI assistant, scheduling, semantic-metrics admin, and row scope) and the full reporting architecture — Simple/Advanced tabs, the report builder, the provider-agnostic AI assistant (Surfaces A/B/C), cross-user sharing, the DB-backed source registry, and scheduled email delivery — are documented in `docs/howto/reporting.md` and `docs/design/reporting-ai-assistant.md`.
 - **Locale:** i18n via Flask-Babel. Supported locales are `en`, `de`, `fr`, `it`. `get_locale()` prefers `session['locale']`, then the user's DB-stored `locale`, then `Accept-Language`. When the user logs in, `load_user_locale` hydrates the session locale from the `Users` table once.
 - **Logging:** Every non-static request is written as a CSV row to `var/logs/user/YYYYMMDDHH/nexora_logs.csv` via an `@app.after_request` hook. The `ops/cleanup/csvLogs_toDB.ps1` script ingests these into the stats DB. `ops/cleanup/cleanup_expired_sessionFiles.ps1` prunes the `var/session/` directory. The Flask app logger also writes to `var/logs/system/app.log`.
-- **Routing:** Routes live in `nx_lib/views/` (`auth`, `admin`, `dashboard`, `workitems`, `chat`, `invoices`, `notifications`, `core`, `generali`, `profile`). Templates are flat under `templates/` with a few subfolders: `admin/` (admin pages + `modals/`), `handlers/` (403/404/500), `js/` (per-page JS as Jinja partials, included by the matching page template), `jd/`, `nexora_logo/`. Page template `foo.html` typically pairs with `templates/js/_foo_js.html`.
+- **Routing:** Routes live in `nx_lib/views/` (`auth`, `admin`, `dashboard`, `workitems`, `chat`, `invoices`, `notifications`, `core`, `generali`, `profile`, `reporting`). Templates are flat under `templates/` with a few subfolders: `admin/` (admin pages + `modals/`), `handlers/` (403/404/500), `js/` (per-page JS as Jinja partials, included by the matching page template), `jd/`, `nexora_logo/`. Page template `foo.html` typically pairs with `templates/js/_foo_js.html`.
 - **Error pages:** Custom 403/404/500 handlers render `templates/handlers/*.html`. Raise `PermissionDenied` (a subclass of `HTTPException`) to trigger the 403 page from inside a route.
 - **Rate limiting:** `flask_limiter` is configured globally (`limiter = Limiter(...)`); apply `@limiter.limit(...)` per route when needed.
 - **File uploads:** Use `werkzeug.utils.secure_filename` plus `python-magic-bin` (`magic`) for MIME sniffing — existing upload handlers follow that pattern; don't trust the client-reported content type.
 - **Prefix middleware:** `PrefixMiddleware` exists for deploying under a URL prefix; it's defined but only wired up when needed.
+- **Workitems document viewer / source highlighting:** the workitems page renders document pages as images and overlays where each extracted **field** and **table-cell** value was found (the "Show sources" overlay: click-to-locate, confidence colouring, split-pane lightbox). Backed by `nx_lib/octo.py` (`get_extensions_urls_fields`) and the pure helpers `nx_lib/field_locations.py` / `nx_lib/table_locations.py`; front-end in `static/css/source-highlight.css`. Panel rendering lives in the shared partial `templates/js/_workitem_detail_panel_js.html` (exposes `window.NexoraWorkitemDetail.render(wid, container, {readOnly, perms, inRegisterPid})` + `attachLightbox(idMap)`), consumed by both the Workitems row-expand and the Prepared Documents register preview modal. `templates/js/_workitems_overview_js.html` retains the list/filter/export code, the `tbody` write delegation, and calls the shared renderer. Container documents (Octo `Batch`, MS02 `MobScnBatch`/`MobScnDossier`, …) are flattened **recursively** to their leaf documents — keyed on the presence of `ChildDocuments`, not a literal type name — via the shared `field_locations._items`/`items_of` helper, so a parent/batch workitem surfaces all its children's pages + fields at any nesting depth (single docs and one-level batches are unchanged). Gated by `workitems.details.view.*` (incl. the grantable `.confidence` / `.source_location`, migration `0018`). Full design: `docs/superpowers/specs/2026-06-09-workitem-table-highlighting-design.md`.
 
 ## Testing & browser automation
 
@@ -112,6 +123,12 @@ The `nx` CLI tool starts and inspects the nexora dev server. Full reference: `do
 - `nx` (no args) — interactive TUI (REPL with tab-completion and live status)
 
 Playwright screenshot artifacts go in `screenshots/` (never the repo root).
+
+## Working with Claude Code
+
+Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission, use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores.
+
+**Session handoff loop:** when a batch of work is done (committed, tests green, nothing queued) or the conversation is getting heavy (nearing auto-compact), run `/handoff-session-state` **unprompted** — it writes a zero-context handoff, commits it, drops the gitignored `var/handoff-pending` flag, and prompts the user to `/clear`. On the next session start, a SessionStart hook reads the flag and instructs the fresh session to resume via `/reset-session`, which consumes the flag. Details: `docs/howto/claude-workflow.md` ("Session handoff loop").
 
 ## Git — Branch-based policy
 
@@ -144,7 +161,7 @@ pybabel update -i messages.pot -d translations
 pybabel compile -d translations
 ```
 
-`babel.cfg` extracts from `*.py` and `templates/**.html`. Mark strings with `{{ _('...') }}` in templates and `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po` file.
+`babel.cfg` extracts from `nx_lib/**.py` (recursive — so route/flash messages are translated), root-level `*.py`, and `templates/**.html`. Mark strings with `{{ _('...') }}` in templates and `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po` file. The `test_translations.py` suite enforces that `messages.pot` is in sync and every msgid is translated (non-fuzzy) in de/fr/it.
 
 ## Secrets
 

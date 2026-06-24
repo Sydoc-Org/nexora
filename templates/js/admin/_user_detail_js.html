@@ -5,8 +5,8 @@
         const container = document.getElementById('notification-container');
         if (!container) { alert(msg); return; }
         const el = document.createElement('div');
-        el.style.cssText = 'background:#fff;border:1px solid var(--a-border);padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-size:13px;margin-bottom:8px;';
-        if (tone === 'error') el.style.borderColor = 'var(--a-danger)';
+        el.style.cssText = 'background:var(--nx-card);border:1px solid var(--nx-border);padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-size:13px;margin-bottom:8px;';
+        if (tone === 'error') el.style.borderColor = 'var(--nx-danger)';
         el.textContent = msg;
         container.appendChild(el);
         setTimeout(() => el.remove(), 3500);
@@ -318,11 +318,11 @@
 
         function sourceBadge(src) {
             const span = document.createElement('span');
-            span.className = 'admin-badge';
-            if (src === 'profile')        { span.classList.add('admin-badge--gray');  span.textContent = '{{ _("Profile") }}'; }
-            else if (src === 'override-allow') { span.classList.add('admin-badge--green'); span.textContent = '{{ _("Override · Allow") }}'; }
-            else if (src === 'override-deny')  { span.classList.add('admin-badge--red');   span.textContent = '{{ _("Override · Deny") }}'; }
-            else                            { span.classList.add('admin-badge--amber'); span.textContent = '{{ _("Profile · Deny") }}'; }
+            span.className = 'nx-label';
+            if (src === 'profile')        { span.classList.add('nx-label--gray');  span.textContent = '{{ _("Profile") }}'; }
+            else if (src === 'override-allow') { span.classList.add('nx-label--ok'); span.textContent = '{{ _("Override · Allow") }}'; }
+            else if (src === 'override-deny')  { span.classList.add('nx-label--error');   span.textContent = '{{ _("Override · Deny") }}'; }
+            else                            { span.classList.add('nx-label--warn'); span.textContent = '{{ _("Profile · Deny") }}'; }
             return span;
         }
 
@@ -332,13 +332,13 @@
             const tr = document.createElement('tr');
             tr.setAttribute(tag, text);
             tr.setAttribute('onclick', 'permGroupToggle(this)');
-            tr.style.cssText = 'cursor:pointer;user-select:none;background:var(--a-bg-alt)';
+            tr.style.cssText = 'cursor:pointer;user-select:none;background:var(--nx-alt)';
             const td = document.createElement('td');
             td.setAttribute('colspan', '2');
             const isGroup = tag === 'data-perm-group';
             td.style.cssText = isGroup
-                ? 'padding:6px 12px;font-size:11px;font-weight:700;color:var(--a-text-sec);text-transform:uppercase;letter-spacing:0.6px'
-                : 'padding:4px 24px;font-size:11px;font-weight:600;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.5px;background:var(--a-bg)';
+                ? 'padding:6px 12px;font-size:11px;font-weight:700;color:var(--nx-text-sec);text-transform:uppercase;letter-spacing:0.6px'
+                : 'padding:4px 24px;font-size:11px;font-weight:600;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.5px;background:var(--nx-bg)';
             const chevron = document.createElement('span');
             chevron.className = 'perm-chevron';
             chevron.style.cssText = 'display:inline-block;margin-right:5px;transition:transform 0.15s' + (isGroup ? '' : ';font-size:10px');
@@ -373,17 +373,17 @@
                 const tdPerm = document.createElement('td');
                 const code = document.createElement('div');
                 const codeMono = document.createElement('span');
-                codeMono.className = 'admin-mono';
+                codeMono.className = 'nx-mono';
                 codeMono.textContent = e.Code || '';
                 code.appendChild(codeMono);
                 if (isDenied) {
                     const tag = document.createElement('span');
-                    tag.style.cssText = 'font-size:10px;margin-left:8px;color:var(--a-danger);text-transform:uppercase;letter-spacing:0.6px;font-weight:600';
+                    tag.style.cssText = 'font-size:10px;margin-left:8px;color:var(--nx-danger);text-transform:uppercase;letter-spacing:0.6px;font-weight:600';
                     tag.textContent = '{{ _("Denied") }}';
                     code.appendChild(tag);
                 }
                 const desc = document.createElement('div');
-                desc.style.cssText = 'font-size:12px;color:var(--a-text-sec);margin-top:2px';
+                desc.style.cssText = 'font-size:12px;color:var(--nx-text-sec);margin-top:2px';
                 desc.textContent = e.Description || '';
                 tdPerm.appendChild(code);
                 tdPerm.appendChild(desc);
@@ -442,7 +442,7 @@
                     const td = document.createElement('td');
                     td.setAttribute('colspan', '2');
                     td.className = 'admin-empty';
-                    td.style.color = 'var(--a-danger)';
+                    td.style.color = 'var(--nx-danger)';
                     td.textContent = '{{ _("Could not load effective permissions.") }}';
                     tr.appendChild(td);
                     tbody.appendChild(tr);
@@ -481,7 +481,7 @@
                 const td = document.createElement('td');
                 td.setAttribute('colspan', '2');
                 td.className = 'admin-empty';
-                td.style.color = 'var(--a-danger)';
+                td.style.color = 'var(--nx-danger)';
                 td.textContent = '{{ _("Could not load effective permissions.") }}';
                 tr.appendChild(td);
                 tbody.appendChild(tr);
@@ -553,7 +553,7 @@
                     const td = document.createElement('td');
                     td.setAttribute('colspan', '3');
                     td.className = 'admin-empty';
-                    td.style.color = 'var(--a-danger)';
+                    td.style.color = 'var(--nx-danger)';
                     td.textContent = '{{ _("Could not load activity.") }}';
                     tr.appendChild(td);
                     tbody.appendChild(tr);
@@ -589,7 +589,7 @@
                     methodSpan.className = 'log-method log-method--' + esc(method);
                     methodSpan.textContent = method;
                     const pathSpan = document.createElement('span');
-                    pathSpan.className = 'admin-mono';
+                    pathSpan.className = 'nx-mono';
                     pathSpan.style.fontSize = '11px';
                     pathSpan.textContent = pathShort;
                     tdAction.appendChild(methodSpan);
@@ -615,7 +615,7 @@
                 const td = document.createElement('td');
                 td.setAttribute('colspan', '3');
                 td.className = 'admin-empty';
-                td.style.color = 'var(--a-danger)';
+                td.style.color = 'var(--nx-danger)';
                 td.textContent = '{{ _("Could not load activity.") }}';
                 tr.appendChild(td);
                 tbody.appendChild(tr);

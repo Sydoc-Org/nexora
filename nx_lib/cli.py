@@ -25,8 +25,7 @@ from prompt_toolkit.shortcuts import clear as pt_clear
 from prompt_toolkit.styles import Style
 
 from .config import PATHS
-
-_NX_VERSION = "2.5.60"
+from .version import __version__
 
 APP_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = PATHS.logs / "system"
@@ -800,7 +799,7 @@ def _build_splash() -> str:
     while len(right_lines) < max_inner:
         right_lines.append("")
 
-    left = _build_panel(f"nexora dev CLI v{_NX_VERSION}", left_lines, LEFT_INNER, BORDER, TITLE)
+    left = _build_panel(f"nexora dev CLI v{__version__}", left_lines, LEFT_INNER, BORDER, TITLE)
     right = _build_panel("Quick start", right_lines, RIGHT_INNER, BORDER, TITLE)
 
     return "\n".join(f"{lt}  {rt}" for lt, rt in zip(left, right, strict=False))

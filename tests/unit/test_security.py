@@ -264,6 +264,7 @@ def test_require_any_permission_redirects_when_no_username(fake_session, app):
 def _all_false_page_v():
     return {
         "dashboardPagePerm": False,
+        "reportingPagePerm": False,
         "workitemsPagePerm": False,
         "invoicesPagePerm": False,
         "generaliPagePerm": False,
@@ -304,17 +305,19 @@ def test_startpage_redirect_to_returns_login_when_no_perms():
 
 
 # ---------------------------------------------------------------------------
-# page_visibility — all 16 keys
+# page_visibility — all 18 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_16_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
         "adminPagePerm",
         "dashboardPagePerm",
+        "reportingPagePerm",
         "workitemsPagePerm",
+        "preparedDocsPagePerm",
         "invoicesPagePerm",
         "chatPagePerm",
         "generaliPagePerm",
@@ -417,3 +420,19 @@ def test_revoke_session_by_id_returns_false_when_sid_absent(auth_app_ctx):
     sid = f"never-existed-{uuid.uuid4().hex}"
     result = _revoke_session_by_id(sid)
     assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Task 8: page_visibility includes reportingPagePerm
+# ---------------------------------------------------------------------------
+
+
+def test_page_visibility_includes_reporting(app):
+    from nx_lib.security import page_visibility
+
+    with app.test_request_context():
+        from flask import session
+
+        session["permissions"] = ["reporting.view"]
+        pv = page_visibility()
+        assert pv["reportingPagePerm"] is True

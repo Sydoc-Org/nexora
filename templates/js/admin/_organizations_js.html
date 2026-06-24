@@ -90,11 +90,11 @@
             const orgJson = JSON.stringify(org).replace(/"/g, '&quot;');
             const search = (String(org.organizationcode || '') + ' ' + String(org.organization || '')).toLowerCase();
             return `<tr data-search="${escapeHtml(search)}" data-testid="admin-org-row-${escapeHtml(org.organizationcode)}">
-                <td><span class="admin-mono">${escapeHtml(org.organizationcode)}</span></td>
+                <td><span class="nx-mono">${escapeHtml(org.organizationcode)}</span></td>
                 <td>${escapeHtml(org.organization)}</td>
                 <td class="align-right">
-                    <button data-organization="${orgJson}" class="edit-organization-btn admin-btn admin-btn-ghost" type="button" data-testid="admin-org-edit-${escapeHtml(org.organizationcode)}">{{ _("Edit") }}</button>
-                    <button onclick="deleteorganization('${escapeHtml(org.organizationcode)}')" class="admin-btn admin-btn-ghost" style="color:var(--a-danger)" type="button" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
+                    <button data-organization="${orgJson}" class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-${escapeHtml(org.organizationcode)}">{{ _("Edit") }}</button>
+                    <button onclick="deleteorganization('${escapeHtml(org.organizationcode)}')" class="nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
                 </td>
             </tr>`;
         }

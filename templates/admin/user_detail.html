@@ -5,32 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ user.fullname }} — {{ _('User detail') }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
-<body class="admin-page">
-    <style>
-      .perm-tabs    { display:flex; gap:24px; margin:0; padding:0; list-style:none; border-bottom:1px solid var(--a-border); margin-bottom:16px; }
-      .perm-tab-btn { padding:10px 0; border:none; background:transparent; font-size:13px; font-weight:500; color:var(--a-text-sec); border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-      .perm-tab-btn:hover { color:var(--a-text); }
-      .perm-tab-btn.is-active { color:var(--a-text); border-bottom-color:var(--a-indigo); font-weight:600; }
-    </style>
+<body class="nx-app">
     <div id="notification-container" class="fixed top-4 right-4 z-[200] w-full max-w-xs space-y-3"></div>
 
     {% set active_page = 'admin_user_detail' %}
     {% include '_header.html' %}
     {% import 'admin/_admin_helpers.html' as a %}
 
-    <main>
+    <main class="nx-main">
         {{ a.page_header(
             title=user.fullname,
             subtitle=user.username ~ ' · ' ~ (user.AccessProfileName or _('No profile')),
-            back_url=url_for('admin_access_control')
+            back_url=url_for('admin_access_control'),
+            icon='fa-user'
         ) }}
 
         {# ------------- Profile section ------------- #}
-        <div class="admin-card" style="margin-bottom:20px">
-            <div class="admin-section" style="margin-bottom:16px">{{ _('Profile') }}</div>
+        <div class="nx-card" style="margin-bottom:20px">
+            <div class="nx-section" style="margin-bottom:16px">{{ _('Profile') }}</div>
 
             <form id="userProfileForm"
                   data-user-id="{{ user.userID }}"
@@ -38,59 +33,59 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div>
-                    <label class="admin-meta" for="fld-username" style="display:block;margin-bottom:6px">{{ _('Username') }}</label>
-                    <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="admin-input" data-testid="admin-userdetail-username">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-username">{{ _('Username') }}</label>
+                    <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="nx-input" data-testid="admin-userdetail-username">
                 </div>
                 <div>
-                    <label class="admin-meta" for="fld-fullname" style="display:block;margin-bottom:6px">{{ _('Full name') }}</label>
-                    <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="admin-input" data-testid="admin-userdetail-fullname">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-fullname">{{ _('Full name') }}</label>
+                    <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="nx-input" data-testid="admin-userdetail-fullname">
                 </div>
                 <div>
-                    <label class="admin-meta" for="fld-email" style="display:block;margin-bottom:6px">{{ _('Email') }}</label>
-                    <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="admin-input" data-testid="admin-userdetail-email">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-email">{{ _('Email') }}</label>
+                    <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="nx-input" data-testid="admin-userdetail-email">
                 </div>
                 <div>
-                    <label class="admin-meta" for="fld-profile" style="display:block;margin-bottom:6px">{{ _('Access profile') }}</label>
-                    <select id="fld-profile" name="accessprofile" class="admin-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-profile">{{ _('Access profile') }}</label>
+                    <select id="fld-profile" name="accessprofile" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
                         {% for p in assignable_profiles %}
                         <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="admin-meta" for="fld-org" style="display:block;margin-bottom:6px">{{ _('Organization') }}</label>
-                    <select id="fld-org" name="organization" class="admin-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-org">{{ _('Organization') }}</label>
+                    <select id="fld-org" name="organization" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
                         {% for o in organizations %}
                         <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="admin-meta" for="fld-password" style="display:block;margin-bottom:6px">{{ _('New password') }}</label>
-                    <input type="password" id="fld-password" name="password" class="admin-input" placeholder="{{ _('Leave blank to keep current') }}" data-testid="admin-userdetail-password">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-password">{{ _('New password') }}</label>
+                    <input type="password" id="fld-password" name="password" class="nx-input" placeholder="{{ _('Leave blank to keep current') }}" data-testid="admin-userdetail-password">
                 </div>
 
                 <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px">
-                    <a href="{{ url_for('admin_access_control') }}" class="admin-btn admin-btn-secondary" data-testid="admin-userdetail-cancel">{{ _('Cancel') }}</a>
+                    <a href="{{ url_for('admin_access_control') }}" class="nx-btn nx-btn--secondary" data-testid="admin-userdetail-cancel">{{ _('Cancel') }}</a>
                     {% if can_edit_user %}
-                    <button type="submit" class="admin-btn admin-btn-primary" data-testid="admin-userdetail-save">{{ _('Save changes') }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-userdetail-save">{{ _('Save changes') }}</button>
                     {% endif %}
                 </div>
             </form>
         </div>
 
     {# ------------- Permissions section (tabbed) ------------- #}
-    <div class="admin-card" style="margin-bottom:20px">
-        <div class="admin-section" style="margin-bottom:14px">{{ _('Permissions') }}</div>
+    <div class="nx-card" style="margin-bottom:20px">
+        <div class="nx-section" style="margin-bottom:14px">{{ _('Permissions') }}</div>
 
-        <ul class="perm-tabs">
+        <ul class="nx-tabs">
             <li>
-                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="perm-tab-btn is-active" data-testid="admin-userdetail-tab-effective">
+                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="nx-tab is-active" data-testid="admin-userdetail-tab-effective">
                     <i class="fas fa-shield-halved"></i>{{ _('Effective Permissions') }}
                 </button>
             </li>
             <li>
-                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="perm-tab-btn" data-testid="admin-userdetail-tab-overrides">
+                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="nx-tab" data-testid="admin-userdetail-tab-overrides">
                     <i class="fas fa-sliders"></i>{{ _('Overrides') }}
                 </button>
             </li>
@@ -99,21 +94,21 @@
         <!-- ── EFFECTIVE PERMISSIONS TAB ─────────────────────────── -->
         <div id="perm-tab-effective">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-                <p style="font-size:12px;color:var(--a-text-sec);margin:0;max-width:640px">
+                <p style="font-size:12px;color:var(--nx-text-sec);margin:0;max-width:640px">
                     {{ _("The actual permission set this user has — profile combined with any per-user overrides.") }}
                 </p>
-                <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="effSummary"></div>
+                <div style="font-size:11px;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="effSummary"></div>
             </div>
 
             <div style="margin-bottom:12px">
-                <div class="admin-input-icon" style="max-width:320px">
+                <div class="nx-input-icon" style="max-width:320px">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="effSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-effective-search">
+                    <input type="text" id="effSearch" class="nx-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-effective-search">
                 </div>
             </div>
 
-            <div class="admin-table-wrap">
-                <table class="admin-table">
+            <div class="nx-table-wrap">
+                <table class="nx-table">
                     <thead>
                         <tr>
                             <th>{{ _('Permission') }}</th>
@@ -130,22 +125,22 @@
         <!-- ── OVERRIDES TAB ─────────────────────────────────────── -->
         <div id="perm-tab-overrides" class="hidden">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-                <p style="font-size:12px;color:var(--a-text-sec);margin:0;max-width:640px">
+                <p style="font-size:12px;color:var(--nx-text-sec);margin:0;max-width:640px">
                     {{ _('Override the access profile on a per-permission basis. Leave as None to inherit from the profile.') }}
                 </p>
-                <div style="font-size:11px;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="overrideSummary"></div>
+                <div style="font-size:11px;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.6px" id="overrideSummary"></div>
             </div>
 
             <form id="overridesForm" data-user-id="{{ user.userID }}" data-testid="admin-userdetail-overrides-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div style="margin-bottom:12px">
-                    <div class="admin-input-icon" style="max-width:320px">
+                    <div class="nx-input-icon" style="max-width:320px">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="overrideSearch" class="admin-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-override-search">
+                        <input type="text" id="overrideSearch" class="nx-input" placeholder="{{ _('Filter permissions...') }}" data-testid="admin-userdetail-override-search">
                     </div>
                 </div>
-                <div class="admin-table-wrap">
-                    <table class="admin-table">
+                <div class="nx-table-wrap">
+                    <table class="nx-table">
                         <thead>
                             <tr>
                                 <th>{{ _('Permission') }}</th>
@@ -164,24 +159,24 @@
                             {% if group != ns.prev_group %}
                             {% set ns.prev_group = group %}
                             {% set ns.prev_sub = '' %}
-                            <tr data-perm-group="{{ group }}" style="background:var(--a-bg-alt);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
-                                <td colspan="4" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--a-text-sec);text-transform:uppercase;letter-spacing:0.6px">
+                            <tr data-perm-group="{{ group }}" style="background:var(--nx-alt);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                                <td colspan="4" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--nx-text-sec);text-transform:uppercase;letter-spacing:0.6px">
                                     <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s">▾</span>{{ group }}
                                 </td>
                             </tr>
                             {% endif %}
                             {% if action and sub != ns.prev_sub %}
                             {% set ns.prev_sub = sub %}
-                            <tr data-perm-sub-group="{{ sub }}" style="background:var(--a-bg);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
-                                <td colspan="4" style="padding:4px 24px;font-size:11px;font-weight:600;color:var(--a-text-meta);text-transform:uppercase;letter-spacing:0.5px">
+                            <tr data-perm-sub-group="{{ sub }}" style="background:var(--nx-bg);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                                <td colspan="4" style="padding:4px 24px;font-size:11px;font-weight:600;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.5px">
                                     <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s;font-size:10px">▾</span>{{ action }}
                                 </td>
                             </tr>
                             {% endif %}
                             <tr data-perm-id="{{ perm.PermissionID }}" data-perm-code="{{ perm.Code }}" data-search="{{ ((perm.Code or '') ~ ' ' ~ (perm.Description or ''))|lower }}">
                                 <td style="padding-left:36px">
-                                    <div><span class="admin-mono">{{ perm.Code }}</span></div>
-                                    <div style="font-size:12px;color:var(--a-text-sec);margin-top:2px">{{ perm.Description }}</div>
+                                    <div><span class="nx-mono">{{ perm.Code }}</span></div>
+                                    <div style="font-size:12px;color:var(--nx-text-sec);margin-top:2px">{{ perm.Description }}</div>
                                 </td>
                                 <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="None" {% if not can_edit_overrides %}disabled{% endif %} checked data-testid="admin-userdetail-override-{{ perm.PermissionID }}-none"></td>
                                 <td class="align-center"><input type="radio" name="perm_{{ perm.PermissionID }}" value="D" {% if not can_edit_overrides %}disabled{% endif %} data-testid="admin-userdetail-override-{{ perm.PermissionID }}-deny"></td>
@@ -193,7 +188,7 @@
                 </div>
                 {% if can_edit_overrides %}
                 <div style="display:flex;justify-content:flex-end;margin-top:12px">
-                    <button type="submit" class="admin-btn admin-btn-primary" data-testid="admin-userdetail-save-overrides">{{ _('Save overrides') }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-userdetail-save-overrides">{{ _('Save overrides') }}</button>
                 </div>
                 {% endif %}
             </form>
@@ -201,22 +196,22 @@
     </div>
 
     {# ------------- Activity (last 7 days) ------------- #}
-    <div class="admin-card" style="margin-bottom:20px">
+    <div class="nx-card" style="margin-bottom:20px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-wrap:wrap">
             <div>
-                <div class="admin-section">{{ _('Activity') }}</div>
-                <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0">
+                <div class="nx-section">{{ _('Activity') }}</div>
+                <p style="font-size:12px;color:var(--nx-text-sec);margin:4px 0 0">
                     {{ _("Recent actions by this user — last 7 days.") }}
                 </p>
             </div>
             <a href="{{ url_for('admin_logs_view') }}?username={{ user.username|urlencode }}"
-               class="admin-btn admin-btn-ghost" style="font-size:12px" data-testid="admin-userdetail-view-all-logs">
+               class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="admin-userdetail-view-all-logs">
                 {{ _('View all in logs') }} <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px"></i>
             </a>
         </div>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
+        <div class="nx-table-wrap">
+            <table class="nx-table">
                 <thead>
                     <tr>
                         <th style="width:170px">{{ _('Time') }}</th>
@@ -228,11 +223,11 @@
                     <tr><td colspan="3" class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i> &nbsp; {{ _('Loading...') }}</td></tr>
                 </tbody>
             </table>
-            <div style="padding:10px 16px;border-top:1px solid var(--a-border);display:flex;align-items:center;justify-content:space-between">
-                <span style="font-size:12px;color:var(--a-text-sec)" id="activityPageInfo"></span>
+            <div style="padding:10px 16px;border-top:1px solid var(--nx-border);display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:12px;color:var(--nx-text-sec)" id="activityPageInfo"></span>
                 <div style="display:flex;gap:8px">
-                    <button id="activityPrevBtn" class="admin-btn admin-btn-secondary" type="button" disabled data-testid="admin-userdetail-activity-prev">{{ _('Previous') }}</button>
-                    <button id="activityNextBtn" class="admin-btn admin-btn-secondary" type="button" disabled data-testid="admin-userdetail-activity-next">{{ _('Next') }}</button>
+                    <button id="activityPrevBtn" class="nx-btn nx-btn--secondary" type="button" disabled data-testid="admin-userdetail-activity-prev">{{ _('Previous') }}</button>
+                    <button id="activityNextBtn" class="nx-btn nx-btn--secondary" type="button" disabled data-testid="admin-userdetail-activity-next">{{ _('Next') }}</button>
                 </div>
             </div>
         </div>
@@ -240,22 +235,22 @@
 
     {# ------------- Danger zone ------------- #}
     {% if can_delete_user %}
-    <div class="admin-card" style="border-color:var(--a-danger)">
+    <div class="nx-card" style="border-color:var(--nx-danger)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
             <div>
-                <div class="admin-section" style="color:var(--a-danger)">{{ _('Danger zone') }}</div>
-                <p style="font-size:12px;color:var(--a-text-sec);margin:4px 0 0">
+                <div class="nx-section" style="color:var(--nx-danger)">{{ _('Danger zone') }}</div>
+                <p style="font-size:12px;color:var(--nx-text-sec);margin:4px 0 0">
                     {{ _('Deleting this user is irreversible. Their access is revoked immediately.') }}
                 </p>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button id="signOutAllBtn" class="admin-btn admin-btn-secondary"
+                <button id="signOutAllBtn" class="nx-btn nx-btn--secondary"
                         data-user-id="{{ user.userID }}"
                         data-username="{{ user.username }}"
                         type="button" data-testid="admin-userdetail-sign-out-all">
                     <i class="fas fa-sign-out-alt"></i> {{ _('Sign out everywhere') }}
                 </button>
-                <button id="deleteUserBtn" class="admin-btn admin-btn-danger"
+                <button id="deleteUserBtn" class="nx-btn nx-btn--danger"
                         data-user-id="{{ user.userID }}"
                         data-username="{{ user.username }}"
                         type="button" data-testid="admin-userdetail-delete">
@@ -268,16 +263,16 @@
     {# Confirm-delete modal (inline, self-contained) #}
     <div id="confirmDeleteModal"
          style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.4);align-items:center;justify-content:center">
-        <div style="background:#fff;border-radius:10px;padding:24px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)">
-            <i class="fas fa-exclamation-triangle" style="color:var(--a-danger);font-size:28px"></i>
+        <div style="background:var(--nx-card);border-radius:10px;padding:24px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)">
+            <i class="fas fa-exclamation-triangle" style="color:var(--nx-danger);font-size:28px"></i>
             <h3 style="font-size:16px;font-weight:600;margin:10px 0 6px">{{ _('Delete user?') }}</h3>
-            <p style="font-size:13px;color:var(--a-text-sec);margin:0 0 16px" id="confirmDeleteMessage"></p>
+            <p style="font-size:13px;color:var(--nx-text-sec);margin:0 0 16px" id="confirmDeleteMessage"></p>
             <div style="display:flex;justify-content:center;gap:8px">
-                <button type="button" class="admin-btn admin-btn-secondary"
+                <button type="button" class="nx-btn nx-btn--secondary"
                         onclick="document.getElementById('confirmDeleteModal').style.display='none'" data-testid="admin-userdetail-confirm-delete-cancel">
                     {{ _('Cancel') }}
                 </button>
-                <button type="button" id="confirmDeleteBtn" class="admin-btn admin-btn-danger" data-testid="admin-userdetail-confirm-delete">
+                <button type="button" id="confirmDeleteBtn" class="nx-btn nx-btn--danger" data-testid="admin-userdetail-confirm-delete">
                     {{ _('Delete') }}
                 </button>
             </div>

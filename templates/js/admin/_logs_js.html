@@ -69,17 +69,17 @@
                 tr.innerHTML = `
                     <td>
                         <div style="font-weight:500">${escapeHtml(dateStr)}</div>
-                        <div style="font-size:11px;color:var(--a-text-meta)">${escapeHtml(timeStr)}</div>
+                        <div style="font-size:11px;color:var(--nx-text-meta)">${escapeHtml(timeStr)}</div>
                     </td>
                     <td>${escapeHtml(log.Username || 'Anonymous')}</td>
                     <td>
                         <span class="log-method ${methodClass}">${escapeHtml(method)}</span>
-                        <span class="admin-mono" title="${escapeHtml(path)}" style="font-size:11px">${escapeHtml(pathShort)}</span>
+                        <span class="nx-mono" title="${escapeHtml(path)}" style="font-size:11px">${escapeHtml(pathShort)}</span>
                     </td>
                     <td><span class="log-status log-status--${statusTone}"><i class="fas ${statusIcon}" style="font-size:10px;margin-right:4px"></i>${escapeHtml(statusLabel)}</span></td>
-                    <td><span class="admin-mono" style="font-size:11px">${escapeHtml(log.RequestIpAddress || '')}</span></td>
+                    <td><span class="nx-mono" style="font-size:11px">${escapeHtml(log.RequestIpAddress || '')}</span></td>
                     <td class="align-right">
-                        <button onclick="openLogModal(${index})" class="admin-btn admin-btn-ghost" style="color:var(--a-indigo)" type="button" data-testid="admin-logs-view-${index}">
+                        <button onclick="openLogModal(${index})" class="nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-accent)" type="button" data-testid="admin-logs-view-${index}">
                             {{ _("View") }} <i class="fas fa-expand-alt" style="font-size:10px;margin-left:4px"></i>
                         </button>
                     </td>
@@ -91,7 +91,7 @@
 
         } catch(e) {
             console.error(e);
-            tbody.innerHTML = `<tr><td colspan="6" class="admin-empty" style="color:var(--a-danger)"><i class="fas fa-circle-exclamation"></i>   {{ _("Error loading logs.") }}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="admin-empty" style="color:var(--nx-danger)"><i class="fas fa-circle-exclamation"></i>   {{ _("Error loading logs.") }}</td></tr>`;
         }
     }
 

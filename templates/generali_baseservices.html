@@ -4,67 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Generali Base Services - nexora") }}</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/workitems_overview.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'generali_baseservices' %}
   {% include '_header.html' %}
 
-  <main class="container mx-auto px-3 py-4 sm:p-6">
+  <main class="nx-main">
 
     <!-- Page Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{{ _("Generali Base Services") }}</h2>
-        <p class="text-gray-500 font-medium">{{ _("Daily effort tracking by category") }}</p>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-inbox"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Generali Base Services") }}</h1>
+            <p class="nx-subtitle">{{ _("Daily effort tracking by category") }}</p>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="nx-page-head__actions">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-base-services-add-entry">
+          class="nx-btn nx-btn--primary" data-testid="generali-base-services-add-entry">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Entry") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn" onclick="exportToExcel()"
-          class="inline-flex items-center gap-2 bg-white text-green-700 px-4 py-2.5 rounded-xl hover:bg-green-50 transition text-sm font-semibold border border-green-200" data-testid="generali-base-services-export-excel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-base-services-export-excel">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_baseservices_monthreport') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-monthreport-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-monthreport-link">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-reporting-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-reporting-link">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+    <div class="nx-filter mb-6">
       <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
         <div class="w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-start-date" />
+            class="nx-input h-11 w-full" data-testid="generali-base-services-start-date" />
         </div>
         <div class="w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-end-date" />
+            class="nx-input h-11 w-full" data-testid="generali-base-services-end-date" />
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Category") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Category") }}</label>
           <div class="relative">
             <select id="filterCategory"
-              class="block w-full sm:min-w-56 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-category-filter">
+              class="nx-select h-11 w-full sm:min-w-56 appearance-none pr-10" data-testid="generali-base-services-category-filter">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -73,10 +78,10 @@
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Organization") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-organization-filter">
+              class="nx-select h-11 w-full sm:min-w-44 appearance-none pr-10" data-testid="generali-base-services-organization-filter">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -85,10 +90,10 @@
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 w-full sm:w-auto" id="filterUserWrapper" style="display:none">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="block w-full sm:min-w-44 h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-user-filter">
+              class="nx-select h-11 w-full sm:min-w-44 appearance-none pr-10" data-testid="generali-base-services-user-filter">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -98,11 +103,11 @@
         </div>
         <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
           <button id="applyFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-base-services-apply-filter">
+            class="nx-btn nx-btn--primary flex-1 sm:flex-none h-11" data-testid="generali-base-services-apply-filter">
             <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
           </button>
           <button id="resetFilterBtn"
-            class="flex-1 sm:flex-none h-11 bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-base-services-reset-filter">
+            class="nx-btn nx-btn--ghost flex-1 sm:flex-none h-11" data-testid="generali-base-services-reset-filter">
             {{ _("Reset") }}
           </button>
         </div>
@@ -110,11 +115,11 @@
     </div>
 
     <div class="mb-4 flex items-center gap-2">
-      <span class="text-sm text-gray-500 font-medium">{{ _("Total hours (filtered):") }}</span>
-      <span id="totalHoursDisplay" class="text-sm font-bold text-indigo-600">—</span>
+      <span class="text-sm font-medium" style="color:var(--nx-text-sec)">{{ _("Total hours (filtered):") }}</span>
+      <span id="totalHoursDisplay" class="text-sm font-bold nx-mono nx-grad-text">—</span>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    <div class="nx-table-wrap"
          id="recordsTable"
          data-can-edit="{{ can_edit | tojson }}"
          data-can-edit-transorg="{{ can_edit_transorg | tojson }}"
@@ -126,32 +131,20 @@
          data-can-add-for-org="{{ can_add_for_org | tojson }}"
          data-can-add-transorg="{{ can_add_transorg | tojson }}">
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+        <table class="nx-table">
+          <thead>
             <tr>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Date") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("User") }}</span>
-              </th>
-              <th class="px-4 py-4 text-left">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Category") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Hours") }}</span>
-              </th>
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Recorded At") }}</span>
-              </th>
+              <th class="px-4 py-4 text-center">{{ _("Date") }}</th>
+              <th class="px-4 py-4 text-center">{{ _("User") }}</th>
+              <th class="px-4 py-4 text-left">{{ _("Category") }}</th>
+              <th class="px-4 py-4 text-center">{{ _("Hours") }}</th>
+              <th class="px-4 py-4 text-center">{{ _("Recorded At") }}</th>
               {% if can_edit or can_delete %}
-              <th class="px-4 py-4 text-center">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ _("Actions") }}</span>
-              </th>
+              <th class="px-4 py-4 text-center">{{ _("Actions") }}</th>
               {% endif %}
             </tr>
           </thead>
-          <tbody id="recordsTbody" class="bg-white divide-y divide-gray-200">
+          <tbody id="recordsTbody">
             <tr>
               <td colspan="{{ 6 if (can_edit or can_delete) else 5 }}" class="text-center py-16">
                 <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
@@ -163,11 +156,11 @@
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
-      <div class="text-sm text-gray-500 font-medium">
+      <div class="text-sm font-medium" style="color:var(--nx-text-sec)">
         {{ _("Showing") }}
-        <span class="font-semibold text-gray-700" id="showingCount">—</span>
+        <span class="font-semibold nx-mono" id="showingCount">—</span>
         {{ _("of") }}
-        <span class="font-semibold text-gray-700" id="totalCount">—</span>
+        <span class="font-semibold nx-mono" id="totalCount">—</span>
         {{ _("results") }}
       </div>
       <div id="paginationControls" class="flex items-center gap-2"></div>
@@ -177,21 +170,23 @@
 
   {% if can_add %}
   <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-lg font-bold text-gray-900">{{ _("Add Entry") }}</h3>
+    <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-divider)">
+        <h3 class="text-lg font-bold nx-title">{{ _("Add Entry") }}</h3>
         <button id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-base-services-add-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-      <div id="addModalError" class="hidden mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex-shrink-0"></div>
+      <div id="addModalError" class="hidden mx-6 mt-4 nx-flash nx-flash--error flex-shrink-0" role="alert">
+        <i class="fas fa-circle-exclamation"></i><span id="addModalErrorText"></span>
+      </div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         {% if can_add_for_org or can_add_transorg %}
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("User") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("User") }}</label>
           <div class="relative">
             <select id="addUserId"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-add-user">
+              class="nx-select h-9 w-full appearance-none pr-10" data-testid="generali-base-services-add-user">
               <option value="">{{ _("Myself") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -201,15 +196,15 @@
         </div>
         {% endif %}
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Date") }}</label>
           <input type="text" id="addForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-add-date" />
+            class="nx-input h-9 w-full" data-testid="generali-base-services-add-date" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Category") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Category") }}</label>
           <div class="relative">
             <select id="addCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-add-category">
+              class="nx-select h-9 w-full appearance-none pr-10" data-testid="generali-base-services-add-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -218,18 +213,18 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Effort (hours)") }}</label>
           <input type="number" id="addEffortHours" placeholder="0.5" step="0.5" min="0.5"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-add-effort" />
+            class="nx-input h-9 w-full" data-testid="generali-base-services-add-effort" />
         </div>
       </div>
-      <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-divider)">
         <button id="cancelAddModalBtn"
-          class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-add-cancel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-base-services-add-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="submitAddBtn"
-          class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-base-services-add-submit">
+          class="nx-btn nx-btn--primary" data-testid="generali-base-services-add-submit">
           {{ _("Submit") }}
         </button>
       </div>
@@ -238,24 +233,24 @@
   {% endif %}
 
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-        <h3 class="text-base font-bold text-gray-900">{{ _("Edit Entry") }}</h3>
+    <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-divider)">
+        <h3 class="text-base font-bold nx-title">{{ _("Edit Entry") }}</h3>
         <button id="closeEditBtn" class="text-gray-400 hover:text-gray-600 transition" data-testid="generali-base-services-edit-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Date") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Date") }}</label>
           <input type="text" id="editForDate" placeholder="yyyy-mm-dd"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-edit-date" />
+            class="nx-input h-9 w-full" data-testid="generali-base-services-edit-date" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Category") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Category") }}</label>
           <div class="relative">
             <select id="editCategory"
-              class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10" data-testid="generali-base-services-edit-category">
+              class="nx-select h-9 w-full appearance-none pr-10" data-testid="generali-base-services-edit-category">
               <option value="">{{ _("Select…") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -264,19 +259,19 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ _("Effort (hours)") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Effort (hours)") }}</label>
           <input type="number" id="editEffortHours" placeholder="0.5" step="0.5" min="0.5"
-            class="block w-full h-9 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-base-services-edit-effort" />
+            class="nx-input h-9 w-full" data-testid="generali-base-services-edit-effort" />
         </div>
         <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
       </div>
-      <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <div class="flex gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-divider)">
         <button id="cancelEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-edit-cancel">
+          class="nx-btn nx-btn--secondary flex-1" data-testid="generali-base-services-edit-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="saveEditBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm" data-testid="generali-base-services-edit-save">
+          class="nx-btn nx-btn--primary flex-1" data-testid="generali-base-services-edit-save">
           {{ _("Save") }}
         </button>
       </div>
@@ -285,23 +280,23 @@
 
   <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs flex flex-col overflow-hidden">
+    <div class="nx-card w-full max-w-xs flex flex-col overflow-hidden">
       <div class="flex items-center gap-3 px-6 pt-6 pb-4">
         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
           <i class="fas fa-trash text-red-500"></i>
         </div>
         <div>
-          <h3 class="text-base font-bold text-gray-900">{{ _("Delete record") }}</h3>
-          <p class="text-sm text-gray-500 mt-0.5">{{ _("This action cannot be undone.") }}</p>
+          <h3 class="text-base font-bold nx-title">{{ _("Delete record") }}</h3>
+          <p class="text-sm mt-0.5" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
         </div>
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">
         <button id="cancelDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition" data-testid="generali-base-services-delete-cancel">
+          class="nx-btn nx-btn--secondary flex-1" data-testid="generali-base-services-delete-cancel">
           {{ _("Cancel") }}
         </button>
         <button id="confirmDeleteBtn"
-          class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition shadow-sm" data-testid="generali-base-services-delete-confirm">
+          class="nx-btn nx-btn--danger flex-1" data-testid="generali-base-services-delete-confirm">
           {{ _("Delete") }}
         </button>
       </div>

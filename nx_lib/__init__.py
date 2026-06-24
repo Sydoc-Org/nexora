@@ -60,6 +60,7 @@ def create_app():
         invoices,
         notifications,
         profile,
+        reporting,
         workitems,
     )
 
@@ -68,6 +69,7 @@ def create_app():
     profile.register_routes(app)
     admin.register_routes(app)
     dashboard.register_routes(app)
+    reporting.register_routes(app)
     workitems.register_routes(app)
     generali.register_routes(app)
     notifications.register_routes(app)

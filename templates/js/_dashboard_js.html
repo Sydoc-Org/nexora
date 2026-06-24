@@ -9,6 +9,30 @@
     Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.color = '#6b7280';
 
+    // Theme-aware chart colors: read the --nx-* design tokens (which flip
+    // under html.dark) and re-theme live charts when dark mode is toggled.
+    function nxAxis() {
+        const cs = getComputedStyle(document.body);
+        return {
+            grid: (cs.getPropertyValue('--nx-divider') || '#f3f4f6').trim(),
+            text: (cs.getPropertyValue('--nx-text-meta') || '#9ca3af').trim()
+        };
+    }
+    function applyChartTheme() {
+        const { grid, text } = nxAxis();
+        Chart.defaults.color = text;
+        [processedChart, statusChart, hourlyChart].forEach(ch => {
+            if (!ch || !ch.options || !ch.options.scales) return;
+            Object.values(ch.options.scales).forEach(sc => {
+                if (sc && sc.grid) sc.grid.color = grid;
+                if (sc) sc.ticks = Object.assign({}, sc.ticks, { color: text });
+            });
+            ch.update('none');
+        });
+    }
+    new MutationObserver(applyChartTheme).observe(
+        document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     function shuffleObject(obj) {
         const entries = Object.entries(obj);
         for (let i = entries.length - 1; i > 0; i--) {
@@ -157,7 +181,7 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
                             x: { grid: { display: false } }
                         },
                         plugins: { legend: { display: false } }
@@ -201,7 +225,7 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f3f4f6' } },
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
                             x: { grid: { display: false } }
                         },
                         plugins: { legend: { display: false } }

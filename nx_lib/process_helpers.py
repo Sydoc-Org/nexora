@@ -44,6 +44,35 @@ def prepare_process_selection_sql(prefix, process_name):
         raise
 
 
+def prepare_process_selection_lists(prefix, process_name):
+    """Like prepare_process_selection_sql but returns (process_params, client_params)
+    as separate lists (no placeholder strings) — for the multi-source WorkitemFilter."""
+    try:
+        perms = session.get("permissions", [])
+        process_params = []
+        client_params = []
+        if process_name == "all":
+            unique_processes = set()
+            unique_clients = set()
+            for perm in perms:
+                if perm.startswith(prefix):
+                    parts = perm.split(".")
+                    unique_clients.add(parts[-2])
+                    unique_processes.add(parts[-1])
+            process_params = sorted(unique_processes)
+            client_params = sorted(unique_clients)
+        else:
+            if has_permission(f"{prefix}{process_name}"):
+                parts = process_name.split(".")
+                if len(parts) >= 2:
+                    client_params = [parts[0]]
+                    process_params = [parts[1]]
+        return process_params, client_params
+    except Exception as e:
+        current_app.logger.error(f"Failed to prepare process selection lists: {e}")
+        raise
+
+
 def get_activity_instances_to_ignore():
     cached = cache.get("activity_instances_ignore")
     if cached is not None:

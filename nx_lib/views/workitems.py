@@ -4,7 +4,6 @@ plus the CSV exporter."""
 import base64
 import csv
 import io
-import json
 import math
 import re
 import uuid
@@ -29,8 +28,9 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from ..config import DB_NEXORA, DB_STATISTICS, OCTO_DOMAIN, PATHS
-from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
+from ..clients import CLIENTS
+from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
+from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
@@ -38,17 +38,43 @@ from ..notifications import create_notification
 from ..octo import (
     get_access_token,
     get_activity_type_name,
-    get_domain_for_workitem,
     get_extensions_urls_fields,
     get_media,
     get_workitemdata_param,
+    pdf_src_bytes,
+    render_pdf_page_jpeg,
+)
+from ..prepared_documents import (
+    clear_prepared_documents,
+    count_prepared_documents,
+    fetch_prepared_documents_page,
+    pids_in_register,
+    upsert_prepared_documents,
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
-    prepare_process_selection_sql,
+    prepare_process_selection_lists,
 )
-from ..security import has_permission, page_visibility, require_permission
+from ..security import (
+    PermissionDenied,
+    has_permission,
+    page_visibility,
+    require_permission,
+)
 from ..users import get_all_portal_users, resolve_user_icon_url
+from ..workitem_sources import (
+    _MS02_IDENT,
+    WorkitemFilter,
+    _ms02_id_column,
+    fetch_merged_page,
+    get_domain_for_workitem,
+    parse_prepared_xlsx,
+    resolve_ms02_docfield_ids,
+    resolve_ms02_pid_to_wids,
+    resolve_ms02_wids_to_pids,
+    resolve_octo_wid_stage,
+    single_workitem_tags,
+)
 
 # ---------------------------- field/config helpers ---------------------------- #
 
@@ -151,6 +177,121 @@ def get_valid_search_columns():
             conn.close()
 
 
+# The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
+# EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
+_MS02_PID_SEARCH_FIELD = "pid"
+
+
+def _ms02_target_processes():
+    """The user's MS02-eligible process allow-list, derived the same way
+    _get_workitems_data does (from workitems.filter.process.* perms)."""
+    prefix = "workitems.filter.process."
+    out = []
+    for perm in session.get("permissions", []):
+        if perm.startswith(prefix):
+            parts = perm.split(".")
+            if len(parts) >= 2:
+                out.append(f"{parts[-2]}.{parts[-1]}")
+    return out
+
+
+def _ms02_pid_specs(target_processes):
+    """Columnar specs for resolving personal numbers (PIDs) against the MS02
+    statistik table: ``[(table, id_col, pid_col, time_filter), ...]`` read from
+    the 'ms02' SearchConfig col_pid rows for the given processes (whitelisted
+    column, ClientCode='ms02', ProcessName IN (target_processes) -- NEVER a
+    hardcoded process key). ``time_filter`` is None: the PID lookup is an exact
+    match that must surface ALL matching workitems, unbounded by time. Returns []
+    when unseeded."""
+    col = f"col_{_MS02_PID_SEARCH_FIELD}"
+    if col not in get_valid_search_columns() or not target_processes:
+        return []
+    conn = None
+    cur = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cur.execute(
+            f"SELECT TableName, TableAlias, JoinCondition, {col} FROM SearchConfig "
+            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
+            f"AND ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        specs = []
+        for table_name, alias, join_cond, pid_col in cur.fetchall():
+            if not (table_name and pid_col):
+                continue
+            id_col = _ms02_id_column(join_cond, alias)
+            if not id_col:
+                continue
+            specs.append((table_name, id_col, pid_col, None))
+        return specs
+    except Exception as e:
+        current_app.logger.error(f"_ms02_pid_specs: {e}")
+        return []
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def _ms02_prepared_docs_processes():
+    """The MS02 processes for which the Prepared Documents register is relevant:
+    the 'ms02' SearchConfig rows that carry a col_pid mapping (single source of
+    truth, NEVER a hardcoded process key -- currently just ['sydoc.05_PDBS']).
+    The Workitems toolbar link is gated to these processes. Returns [] when
+    unseeded or on error so the caller degrades to hiding the link."""
+    col = f"col_{_MS02_PID_SEARCH_FIELD}"
+    if col not in get_valid_search_columns():
+        return []
+    conn = None
+    cur = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT DISTINCT ProcessName FROM SearchConfig "
+            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' AND ProcessName IS NOT NULL"
+        )
+        return [r[0] for r in cur.fetchall() if r[0]]
+    except Exception as e:
+        current_app.logger.error(f"_ms02_prepared_docs_processes: {e}")
+        return []
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def _stamp_in_register(rows):
+    """MS02-only, in place: stamp row['pid'] + row['in_register'] onto each visible
+    workitem row. Resolves the page's wids -> PIDs (resolve_ms02_wids_to_pids) and
+    intersects with the register (pids_in_register). Guarded so the default client /
+    CI path is byte-for-byte unchanged; never raises into the request."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not (ms02_active and rows):
+        return
+    try:
+        pid_specs = _ms02_pid_specs(_ms02_target_processes())
+        wid_to_pid = (
+            resolve_ms02_wids_to_pids(
+                engine_ms02_docfields_pg, pid_specs, [r["workitemid"] for r in rows]
+            )
+            if pid_specs
+            else None
+        ) or {}
+        registered = pids_in_register(list(wid_to_pid.values())) if wid_to_pid else set()
+        for r in rows:
+            pid = wid_to_pid.get(r["workitemid"])
+            r["pid"] = pid or ""
+            r["in_register"] = bool(pid and pid in registered)
+    except Exception as e:
+        current_app.logger.error(f"_stamp_in_register: {e}")
+
+
 def _get_workitems_data(args, export_all=False):
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
@@ -191,59 +332,18 @@ def _get_workitems_data(args, export_all=False):
     elif process_name in allowed_processes_set:
         target_processes = [process_name]
 
-    params, process_placeholders, client_placeholders = prepare_process_selection_sql(
+    process_params, client_params = prepare_process_selection_lists(
         prefix=prefix, process_name=process_name
     )
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
 
-    where_clauses = [
-        f"tp.Name IN ({process_placeholders})",
-        f"tp.ClientName IN ({client_placeholders})",
-        "twi.Status <> 2",
-        f"tai.ActivityInstanceName not in ({activity_instances_to_ignore})",
-    ]
-
-    status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
-    if status and status in status_map:
-        where_clauses.append("twi.Status = ?")
-        params.append(status_map[status])
-
-    if tag_filter and has_permission("workitems.filter.tag"):
-        where_clauses.append(f"""
-            EXISTS (
-                SELECT 1
-                FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                WHERE wt.workitemid = twi.id AND t.TagName like ?
-            )
-        """)
-        params.append(f"%{tag_filter}%")
-
-    if search_term and has_permission("workitems.filter.workitemid"):
-        where_clauses.append("twi.id LIKE ?")
-        params.append(f"%{search_term}%")
-
-    if start_date and has_permission("workitems.filter.datetime"):
-        where_clauses.append("twi.ModifiedAt >= ?")
-        params.append(start_date)
-    if end_date and has_permission("workitems.filter.datetime"):
-        where_clauses.append("twi.ModifiedAt < ?")
-        params.append(end_date)
-    if priority and has_permission("workitems.filter.priority"):
-        where_clauses.append("ISNULL(wim.Priority, 0) = ?")
-        params.append(priority)
-    if assigned_user and has_permission("workitems.filter.assignedUser"):
-        if assigned_user == "None" or assigned_user == "Unassigned":
-            where_clauses.append("(wim.AssignedUserID IS NULL)")
-        else:
-            where_clauses.append("wim.AssignedUserID = ?")
-            params.append(assigned_user)
-
-    extra_clauses = []
-    extra_params = []
-    _docfield_temp_tables = []  # [(temp_name, [ids])] for large ID sets
+    # Doc-field search is pre-resolved (against SearchConfig -> StatisticsDB) into
+    # a single intersected id allow-set for the SQL Server source. None = no
+    # constraint; empty set = force no rows; populated = twi.ID IN (...).
+    docfield_ids = None
+    ms02_docfield_ids = None
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
@@ -270,6 +370,7 @@ def _get_workitems_data(args, export_all=False):
                     SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
                     FROM SearchConfig
                     WHERE {target_config_col} IS NOT NULL
+                    AND ClientCode = 'default'
                     AND ProcessName IN ({placeholders})
                 """
                 configs = cursor_nex.execute(query, target_processes).fetchall()
@@ -324,18 +425,12 @@ def _get_workitems_data(args, export_all=False):
                         stat_conn.close()
 
                 if matching_ids is None:
-                    continue
+                    continue  # error/no config -> no constraint from this pair
                 if not matching_ids:
-                    extra_clauses.append("1=0")
-                elif len(matching_ids) > 500:
-                    # Avoid SQL Server's 2100-param limit by using a temp table
-                    temp_name = f"#docf{len(_docfield_temp_tables)}"
-                    _docfield_temp_tables.append((temp_name, matching_ids))
-                    extra_clauses.append(f"twi.ID IN (SELECT id FROM {temp_name})")
-                else:
-                    ph = ",".join(["?"] * len(matching_ids))
-                    extra_clauses.append(f"twi.ID IN ({ph})")
-                    extra_params.extend(matching_ids)
+                    docfield_ids = set()  # a pair matched nothing -> whole result empty
+                    break
+                pair_ids = set(matching_ids)
+                docfield_ids = pair_ids if docfield_ids is None else (docfield_ids & pair_ids)
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
@@ -345,102 +440,98 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex:
                 conn_nex.close()
 
-    workitems_list = []
-    total_items = 0
-    conn = None
-    cursor = None
-    try:
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
-
-        for temp_name, ids in _docfield_temp_tables:
-            cursor.execute(f"CREATE TABLE {temp_name} (id NVARCHAR(255))")
-            for i in range(0, len(ids), 1000):
-                batch = ids[i : i + 1000]
-                cursor.execute(
-                    f"INSERT INTO {temp_name}(id) VALUES {','.join(['(?)'] * len(batch))}",
-                    batch,
+    # --- MS02 EAV doc-field pre-resolution (sibling to the default block) ---
+    # Resolves through the SAME SearchConfig mapping but against the separate
+    # MS02 doc-field DB (EAV "Name"/"StringValue"). The default block above
+    # (StatisticsDB -> docfield_ids) is untouched and byte-identical; this is a
+    # parallel, independent allow-set so a mixed default+MS02 request never
+    # cross-shrinks. None = no constraint; the resolver short-circuits when the
+    # engine is absent. Guarded by the same permission + target_processes.
+    if (
+        has_permission("workitems.filter.documentfields")
+        and target_processes
+        and engine_ms02_docfields_pg is not None
+    ):
+        valid_db_columns = get_valid_search_columns()
+        conn_nex2 = None
+        cursor_nex2 = None
+        try:
+            conn_nex2 = engine_nexora_db.raw_connection()
+            cursor_nex2 = conn_nex2.cursor()
+            pairs = []
+            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+                docfield = (docfield or "").lower().strip()
+                docvalue = (docvalue or "").strip()
+                if not docfield or not docvalue:
+                    continue
+                target_config_col = f"col_{docfield}"
+                # Whitelist the column name (same guard the default path uses)
+                # before interpolating it -- blocks injection via `docfield`.
+                if target_config_col not in valid_db_columns:
+                    continue
+                placeholders = ",".join(["?"] * len(target_processes))
+                cursor_nex2.execute(
+                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col} "
+                    f"FROM SearchConfig "
+                    f"WHERE {target_config_col} IS NOT NULL "
+                    f"AND ClientCode = 'ms02' "
+                    f"AND ProcessName IN ({placeholders})",
+                    target_processes,
                 )
+                # Each ms02 row maps this docfield to a COLUMN in a wide statistik
+                # table (col_<field> = the column name); build one columnar spec
+                # per row (rows for this docfield are OR'd in the resolver).
+                specs = []
+                for r in cursor_nex2.fetchall():
+                    table_name, alias, join_cond, time_filter, field_col = r
+                    if not (table_name and field_col):
+                        continue
+                    id_col = _ms02_id_column(join_cond, alias)
+                    if not id_col:
+                        continue
+                    specs.append((table_name, id_col, field_col, time_filter))
+                if not specs:
+                    continue  # no MS02 mapping for this docfield -> no constraint
+                pairs.append((specs, docvalue))
+            if pairs:
+                ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+        except Exception as e:
+            current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
+            ms02_docfield_ids = None
+        finally:
+            if cursor_nex2:
+                cursor_nex2.close()
+            if conn_nex2:
+                conn_nex2.close()
 
-        full_where = " AND ".join(where_clauses + extra_clauses)
-        full_params = list(params) + extra_params
+    status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
+    filt = WorkitemFilter(
+        process_names=process_params,
+        client_names=client_params,
+        activity_ignore_csv=activity_instances_to_ignore,
+        status_code=status_map.get(status) if status else None,
+        search_id=search_term
+        if (search_term and has_permission("workitems.filter.workitemid"))
+        else None,
+        start_date=start_date
+        if (start_date and has_permission("workitems.filter.datetime"))
+        else None,
+        end_date=end_date if (end_date and has_permission("workitems.filter.datetime")) else None,
+        priority=priority if (priority and has_permission("workitems.filter.priority")) else None,
+        assigned_user=assigned_user
+        if (assigned_user and has_permission("workitems.filter.assignedUser"))
+        else None,
+        tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
+        docfields=docfields or [],  # raw pairs kept for autocomplete only
+        docvalues=docvalues or [],
+        docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
+        ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
+    )
+    rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
+    _stamp_in_register(rows)
+    workitems_list = rows
 
-        # count pass
-        cursor.execute(
-            f"""
-            SELECT COUNT(twi.ID)
-            FROM t_WorkItems twi
-            INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-            WHERE {full_where}
-        """,
-            full_params,
-        )
-        total_items = cursor.fetchone()[0] or 0
-
-        # data pass
-        cursor.execute(
-            f"""
-            WITH WorkitemCTE AS (
-                SELECT
-                    twi.ModifiedAt, twi.ID AS WorkItemID,
-                    CASE
-                        WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
-                    END AS Status,
-                    CASE
-                        WHEN twi.Status = 5 THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%C+A%' THEN 'Validation'
-                        WHEN tai.ActivityInstanceName LIKE '%Export%' OR tai.ActivityInstanceName LIKE '%Exp%' THEN 'Delivery'
-                        WHEN tai.ActivityInstanceName LIKE '%Import%' OR tai.ActivityInstanceName LIKE '%Imp%' THEN 'Import'
-                        WHEN tai.ActivityInstanceName LIKE '%Extract%' OR tai.ActivityInstanceName LIKE '%OCR%' THEN 'Extraction'
-                        WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
-                        ELSE 'Extraction'
-                    END AS CurrentStage,
-                    wim.Priority,
-                    (
-                        SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
-                WHERE {full_where}
-            )
-            SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
-            FROM WorkitemCTE WHERE rn = 1
-            ORDER BY ModifiedAt DESC
-            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-        """,
-            [*full_params, offset, per_page],
-        )
-        for row in cursor.fetchall():
-            workitems_list.append(
-                {
-                    "modifiedat": row.ModifiedAt,
-                    "workitemid": row.WorkItemID,
-                    "status": row.Status,
-                    "current_stage": row.CurrentStage,
-                    "priority": row.Priority or 0,
-                    "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-                }
-            )
-
-    except Exception as e:
-        current_app.logger.error(f"Database error in _get_workitems_data: {e}")
-        raise
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-    total_pages = math.ceil(total_items / per_page)
+    total_pages = math.ceil(total_items / per_page) if per_page else 0
     return {
         "workitems": workitems_list,
         "pagination": {
@@ -449,6 +540,7 @@ def _get_workitems_data(args, export_all=False):
             "totalItems": total_items,
             "perPage": per_page,
         },
+        "degradedSources": degraded,
     }
 
 
@@ -467,6 +559,11 @@ def api_docfield_values():
         return jsonify([])
 
     target_col_name = f"col_{field}"
+    # Whitelist the column name before interpolating it into the SearchConfig SQL
+    # below (the same guard the workitems search path uses) -- `field` is a raw
+    # request arg, so without this it is a SQL-injection vector against NexoraDB.
+    if target_col_name not in get_valid_search_columns():
+        return jsonify([])
     conn = None
     cur = None
     try:
@@ -483,6 +580,54 @@ def api_docfield_values():
 
         if not configs:
             return jsonify([])
+
+        # MS02 processes resolve suggestions from the separate doc-field DB, not
+        # [DB_STATISTICS]. An 'ms02' row carries the COLUMN name in col_<field> of
+        # a wide statistik table (TableName); query DISTINCT values of that column.
+        # `SELECT * FROM SearchConfig` already surfaces ClientCode/TableName.
+        ms02_configs = [
+            c
+            for c in configs
+            if (getattr(c, "ClientCode", "default") or "default") == "ms02"
+            and getattr(c, target_col_name)
+            and c.TableName
+        ]
+        if ms02_configs:
+            if engine_ms02_docfields_pg is None:
+                return jsonify([])
+            ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
+            all_vals = cache.get(ms02_cache_key)
+            if all_vals is None:
+                df_conn = None
+                raw_vals = []
+                try:
+                    df_conn = engine_ms02_docfields_pg.raw_connection()
+                    df_cur = df_conn.cursor()
+                    for c in ms02_configs:
+                        col = getattr(c, target_col_name)
+                        if not _MS02_IDENT.match(col):  # defense-in-depth on the column
+                            continue
+                        stf = c.SuggestionTimeFilter
+                        sql = (
+                            f'SELECT DISTINCT "{col}"::text AS v FROM {c.TableName} '
+                            f'WHERE "{col}"::text IS NOT NULL AND "{col}"::text <> %s'
+                        )
+                        if stf:
+                            sql += f" AND {stf}"
+                        sql += " ORDER BY v LIMIT 500"
+                        df_cur.execute(sql, [""])
+                        raw_vals.extend(r[0] for r in df_cur.fetchall())
+                    df_cur.close()
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values ms02 error: {e}")
+                    raw_vals = []
+                finally:
+                    if df_conn:
+                        df_conn.close()
+                all_vals = sorted(set(raw_vals))
+                cache.set(ms02_cache_key, all_vals, timeout=600)
+            q_lower = q.lower()
+            return jsonify([v for v in all_vals if not q or q_lower in v.lower()][:15])
 
         cache_key = f"docfield_vals_{process}_{field}"
         all_vals = cache.get(cache_key)
@@ -611,7 +756,7 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields = get_extensions_urls_fields(
+                            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
@@ -825,6 +970,19 @@ def workitems_overview():
         details_assign_users_perm = has_permission("workitems.details.assign.users")
         details_add_comment_perm = has_permission("workitems.details.add.comment")
 
+        prepared_import_perm = has_permission("workitems.import.preparedaudit")
+        ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+
+        # The Prepared Documents toolbar link is rendered whenever the user holds
+        # the perm + MS02 is active, but is shown only for the PDBS prepared-docs
+        # processes. The process dropdown updates the page via AJAX (no full
+        # reload), so JS toggles the link live from ms02_pdoc_processes when the
+        # dropdown changes; prepared_docs_process_match is just the initial state.
+        ms02_pdoc_processes = (
+            _ms02_prepared_docs_processes() if (ms02_active and prepared_import_perm) else []
+        )
+        prepared_docs_process_match = process_name in ms02_pdoc_processes
+
         portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
             "workitems_overview.html",
@@ -858,6 +1016,10 @@ def workitems_overview():
             details_add_tag_perm=details_add_tag_perm,
             details_assign_users_perm=details_assign_users_perm,
             details_add_comment_perm=details_add_comment_perm,
+            prepared_import_perm=prepared_import_perm,
+            ms02_active=ms02_active,
+            prepared_docs_process_match=prepared_docs_process_match,
+            ms02_pdoc_processes=ms02_pdoc_processes,
         )
     except Exception:
         return render_template("500.html")
@@ -919,57 +1081,74 @@ def import_workitems():
     return redirect(url_for("workitems_overview"))
 
 
+@require_permission("workitems.import.preparedaudit")
+def import_prepared_audit():
+    """MS02-only: upload a five-column Excel (PID, Collected, CollectedBy,
+    Prepared, PreparedBy) and UPSERT each row by PID into the persistent
+    dbo.PreparedDocuments register (one row per PID; re-uploading a PID updates
+    its row). Returns {inserted, updated, total}. The register is shared across
+    MS02 users and viewed on the /prepared_documents page (this route no longer
+    resolves PIDs to workitem ids or stashes anything in the session). Rows
+    persist regardless of whether the PID column is configured -- the live Octo
+    status on the page degrades to a dash when it cannot resolve."""
+    # Defensive parity with import_workitems (require_permission already gates
+    # auth, redirecting unauthenticated users to login; this never 401s a gated
+    # caller -- it is dead-code parity, not a tested path).
+    if "username" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    # MS02-only gate: no MS02 doc-field engine / no ms02 client -> not available.
+    if engine_ms02_docfields_pg is None or "ms02" not in CLIENTS:
+        return jsonify({"error": _("This import is only available for the MS02 client.")}), 400
+
+    if "preparedAuditFile" not in request.files:
+        return jsonify({"error": _("No file part in the request.")}), 400
+    file = request.files["preparedAuditFile"]
+    if not file or file.filename == "":
+        return jsonify({"error": _("No file selected for uploading.")}), 400
+
+    if not is_file_allowed(file.filename, file.stream):
+        return jsonify(
+            {"error": _("Invalid file type. Please upload a valid Excel (.xlsx) file.")}
+        ), 400
+
+    data = file.stream.read()
+    pairs, parse_err = parse_prepared_xlsx(data)
+    if parse_err:
+        return jsonify({"error": parse_err}), 400
+    if not pairs:
+        return jsonify({"error": _("The Excel file has no usable rows.")}), 400
+
+    rows = [
+        {
+            "pid": row["pid"],
+            "collected": row["collected"],
+            "collected_by": row["collected_by"],
+            "prepared": row["prepared"],
+            "prepared_by": row["prepared_by"],
+        }
+        for row in pairs
+    ]
+
+    try:
+        result = upsert_prepared_documents(rows, session.get("userid"))
+    except RuntimeError:
+        return jsonify(
+            {"error": _("Could not save the prepared documents. Please try again.")}
+        ), 500
+    return jsonify(result), 200
+
+
 def get_single_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    conn = None
-    cursor = None
     try:
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
-
-        query = f"""
-            WITH WorkitemCTE AS (
-                SELECT
-                    twi.ID AS WorkItemID,
-                    (
-                        SELECT
-                            t.TagID AS id,
-                            t.TagName AS name,
-                            t.TagColor AS color
-                        FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                        JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                        WHERE wt.WorkItemID = twi.ID
-                        FOR JSON PATH
-                    ) AS TagsJSON,
-                    ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
-                FROM t_WorkItems twi
-                WHERE twi.ID = ?
-            )
-            SELECT WorkItemID, TagsJSON
-            FROM WorkitemCTE
-            WHERE rn = 1
-        """
-        cursor.execute(query, workitemid)
-        row = cursor.fetchone()
-
-        if not row:
-            return jsonify({"error": "Workitem not found"}), 404
-
-        workitem_data = {
-            "workitemid": row.WorkItemID,
-            "tags": json.loads(row.TagsJSON) if row.TagsJSON else [],
-        }
-        return jsonify(workitem_data)
+        tags = single_workitem_tags(workitemid)
+        return jsonify({"workitemid": workitemid, "tags": tags})
     except Exception as e:
         current_app.logger.error(f"Failed to fetch single workitem {workitemid}: {e}")
         return jsonify({"error": _("Could not fetch workitem data")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 def api_get_media_info(workitem_id):
@@ -978,15 +1157,64 @@ def api_get_media_info(workitem_id):
     try:
         can_view_images = has_permission("workitems.details.view.images")
         can_view_fields = has_permission("workitems.details.view.fields")
+        can_view_confidence = has_permission("workitems.details.view.confidence")
+        # Source-location boxes are drawn over the page image, so the location data
+        # needs BOTH the dedicated location perm AND images (no image -> nothing to
+        # draw on / broken click-to-locate).
+        can_view_location = can_view_images and has_permission(
+            "workitems.details.view.source_location"
+        )
+
+        def _suppress(data):
+            # Granular per-permission suppression (returns a copy so the cached
+            # object is never mutated):
+            #   fields                    -> see the extracted values at all
+            #   images + source_location  -> see WHERE on the page (boxes + locate)
+            #   confidence                -> see the extraction confidence %
+            d = data.copy()
+            # lets the front-end suppress the "no source location" badge when the
+            # perm is absent (vs. a value that genuinely has no location).
+            d["source_location_visible"] = can_view_location
+            d["confidence_visible"] = can_view_confidence
+            if not can_view_images:
+                d["media_count"] = 0
+            if not can_view_fields:
+                d["fields"] = {}
+                d["field_sources"] = []
+                d["table_sources"] = []
+                return d
+            fs = d.get("field_sources", [])
+            ts = d.get("table_sources", [])
+            if not can_view_location:
+                fs = [{**s, "locations": []} for s in fs]
+                ts = [
+                    {
+                        **t,
+                        "rows": [
+                            [{**c, "locations": []} for c in row] for row in t.get("rows", [])
+                        ],
+                    }
+                    for t in ts
+                ]
+            if not can_view_confidence:
+                fs = [{k: v for k, v in s.items() if k != "confidence"} for s in fs]
+                ts = [
+                    {
+                        **t,
+                        "rows": [
+                            [{k: v for k, v in c.items() if k != "confidence"} for c in row]
+                            for row in t.get("rows", [])
+                        ],
+                    }
+                    for t in ts
+                ]
+            d["field_sources"] = fs
+            d["table_sources"] = ts
+            return d
 
         cached_info = cache.get(f"media_info_{workitem_id}")
         if cached_info:
-            response_data = cached_info.copy()
-            if not can_view_images:
-                response_data["media_count"] = 0
-            if not can_view_fields:
-                response_data["fields"] = {}
-            return jsonify(response_data)
+            return jsonify(_suppress(cached_info))
 
         domain = get_domain_for_workitem(workitem_id)
         returndata = get_workitemdata_param(workitem_id, domain)
@@ -994,7 +1222,9 @@ def api_get_media_info(workitem_id):
             return jsonify({"error": _("Workitem not found")}), 404
 
         workitemdata, document_id = returndata
-        extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            workitemdata, document_id, domain, with_tables=True
+        )
 
         media_count = len(urls) if urls else 0
 
@@ -1005,17 +1235,13 @@ def api_get_media_info(workitem_id):
             "workitem_id": workitem_id,
             "media_count": media_count,
             "fields": fields,
+            "field_sources": field_sources,
+            "table_sources": table_sources,
         }
 
         cache.set(f"media_info_{workitem_id}", response_data)
 
-        filtered_response = response_data.copy()
-        if not can_view_images:
-            filtered_response["media_count"] = 0
-        if not can_view_fields:
-            filtered_response["fields"] = {}
-
-        return jsonify(filtered_response)
+        return jsonify(_suppress(response_data))
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
@@ -1032,7 +1258,9 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields = get_extensions_urls_fields(workitemdata, document_id, domain)
+            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
+                workitemdata, document_id, domain
+            )
             media_data = {"extensions": extensions, "urls": urls}
             cache.set(f"media_data_{workitem_id}", media_data)
 
@@ -1044,6 +1272,31 @@ def api_get_media_raw(workitem_id, media_index):
 
         target_url = urls[media_index]
         target_extension = extensions[media_index].lower()
+
+        if target_extension == ".pdf":
+            # PDF media is expanded one slot per page (page in the URL fragment).
+            # Rasterise the requested page to JPEG, cached per (workitem, slot).
+            _pdf_cache_key = f"media_raw_pdfpage_{workitem_id}_{media_index}"
+            cached_jpeg = cache.get(_pdf_cache_key)
+            if cached_jpeg is not None:
+                return send_file(
+                    io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False
+                )
+            base_url, _sep, frag = target_url.partition("#")
+            page_index = 0
+            if frag.startswith("page="):
+                try:
+                    page_index = int(frag[len("page=") :])
+                except ValueError:
+                    page_index = 0
+            try:
+                pdf_bytes = pdf_src_bytes(base_url, domain)
+                jpeg_bytes = render_pdf_page_jpeg(pdf_bytes, page_index)
+            except Exception as e:
+                print(f"PDF page render failed: {e}")
+                return _("Failed to render PDF page"), 500
+            cache.set(_pdf_cache_key, jpeg_bytes, timeout=3600)
+            return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
 
         if target_extension == ".tif":
             _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
@@ -1673,6 +1926,106 @@ def remove_tag_from_workitem(workitemid, tag_id):
             conn.close()
 
 
+@require_permission("workitems.import.preparedaudit")
+def prepared_documents():
+    """MS02-only standalone 'prepared documents' register page. Reads a real
+    OFFSET/FETCH page of dbo.PreparedDocuments and resolves a live (non-stored)
+    Octo cross-reference status for the visible PIDs via resolve_ms02_pid_to_wids.
+    Read-only + clear-whole-list for v1."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not ms02_active:
+        raise PermissionDenied(_("This page is only available for the MS02 client."))
+
+    per_page = 40
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+    offset = (page - 1) * per_page
+
+    pid_filter = (request.args.get("pid") or "").strip() or None
+    try:
+        total_items = count_prepared_documents(pid=pid_filter)
+        rows = fetch_prepared_documents_page(offset, per_page, pid=pid_filter)
+    except Exception as e:
+        current_app.logger.error(f"prepared_documents read: {e}")
+        total_items, rows = 0, []
+
+    # Live Octo soft-status for the visible page's PIDs (never stored; degrade to
+    # a dash on None/empty/error -- resolve_ms02_pid_to_wids never raises).
+    octo_status = {}
+    pids = [r["pid"] for r in rows if r["pid"]]
+    if pids:
+        pid_specs = _ms02_pid_specs(_ms02_target_processes())
+        pid_to_wids = (
+            resolve_ms02_pid_to_wids(engine_ms02_docfields_pg, pid_specs, pids)
+            if pid_specs
+            else None
+        )
+        if pid_to_wids:
+            for pid, wids in pid_to_wids.items():
+                if wids:
+                    wid = wids[0]
+                    stage = resolve_octo_wid_stage(CLIENTS["default"].runtime_engine, wid)
+                    octo_status[pid] = {
+                        "in_octo": True,
+                        "wid": wid,
+                        "status": stage["status"] or "",
+                        "current_stage": stage["current_stage"] or "",
+                    }
+
+    total_pages = math.ceil(total_items / per_page) if per_page else 0
+    pagination = {
+        "currentPage": page,
+        "totalPages": total_pages,
+        "totalItems": total_items,
+        "perPage": per_page,
+    }
+    details_view_perm = has_permission("workitems.details.view")
+    details_images_perm = has_permission("workitems.details.view.images")
+    details_audit_perm = has_permission("workitems.details.view.audit")
+    details_fields_perm = has_permission("workitems.details.view.fields")
+    details_set_priority_perm = has_permission("workitems.details.set.priority")
+    details_add_tag_perm = has_permission("workitems.details.add.tag")
+    details_assign_users_perm = has_permission("workitems.details.assign.users")
+    details_add_comment_perm = has_permission("workitems.details.add.comment")
+
+    return render_template(
+        "prepared_documents.html",
+        rows=rows,
+        pagination=pagination,
+        octo_status=octo_status,
+        pid_filter=pid_filter,
+        prepared_import_perm=has_permission("workitems.import.preparedaudit"),
+        ms02_active=ms02_active,
+        pageV=page_visibility(),
+        details_view_perm=details_view_perm,
+        details_images_perm=details_images_perm,
+        details_audit_perm=details_audit_perm,
+        details_fields_perm=details_fields_perm,
+        details_set_priority_perm=details_set_priority_perm,
+        details_add_tag_perm=details_add_tag_perm,
+        details_assign_users_perm=details_assign_users_perm,
+        details_add_comment_perm=details_add_comment_perm,
+    )
+
+
+@require_permission("workitems.import.preparedaudit")
+def clear_prepared_documents_route():
+    """MS02-only: delete every row in the prepared-documents register."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not ms02_active:
+        return jsonify({"error": _("This import is only available for the MS02 client.")}), 400
+    try:
+        deleted = clear_prepared_documents()
+    except Exception as e:
+        current_app.logger.error(f"clear_prepared_documents_route: {e}")
+        return jsonify(
+            {"error": _("Could not clear the prepared documents. Please try again.")}
+        ), 500
+    return jsonify({"deleted": deleted}), 200
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/config/fields", endpoint="api_config_fields", view_func=api_config_fields
@@ -1689,6 +2042,24 @@ def register_routes(app):
         "/import_workitems",
         endpoint="import_workitems",
         view_func=import_workitems,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/import_prepared_audit",
+        endpoint="import_prepared_audit",
+        view_func=import_prepared_audit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/prepared_documents",
+        endpoint="prepared_documents",
+        view_func=prepared_documents,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/prepared_documents/clear",
+        endpoint="clear_prepared_documents_route",
+        view_func=clear_prepared_documents_route,
         methods=["POST"],
     )
     app.add_url_rule(

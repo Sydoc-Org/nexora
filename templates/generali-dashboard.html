@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _("Generali Dashboard - nexora") }}</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/dashboard.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <style>
     .trend-chip {
       display: inline-flex;
@@ -18,20 +18,20 @@
       gap: 0.375rem;
       padding: 0.375rem 0.75rem;
       border-radius: 9999px;
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      color: #4b5563;
+      border: 1px solid var(--nx-border-strong);
+      background: var(--nx-card);
+      color: var(--nx-text-sec);
       font-size: 0.75rem;
       font-weight: 600;
       line-height: 1;
       transition: background-color 0.15s, border-color 0.15s, color 0.15s;
       cursor: pointer;
     }
-    .trend-chip:hover { background: #f9fafb; }
+    .trend-chip:hover { background: var(--nx-alt); }
     .trend-chip[aria-pressed="true"] {
-      background: #eef2ff;
-      border-color: #c7d2fe;
-      color: #4338ca;
+      background: var(--nx-l-indigo);
+      border-color: transparent;
+      color: var(--nx-l-indigo-fg);
     }
     .trend-chip-dot {
       display: inline-block;
@@ -41,81 +41,101 @@
     }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="nx-app">
   {% set active_page = 'generali_dashboard' %} {% include '_header.html' %}
 
-  <main class="container mx-auto px-3 py-4 sm:p-6">
+  <main class="nx-main">
 
     <!-- Page Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{{ _("Generali Dashboard") }}</h2>
-        <p class="text-gray-500 font-medium">{{ _("Dashboard for Generali Document processing") }}</p>
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-chart-line"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Generali Dashboard") }}</h1>
+            <p class="nx-subtitle">{{ _("Dashboard for Generali Document processing") }}</p>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div class="nx-page-head__actions flex flex-wrap">
         <a href="{{ url_for('generali_documents') }}"
-           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-dashboard-documents-link">
+           class="nx-btn nx-btn--primary" data-testid="generali-dashboard-documents-link">
           <i class="fas fa-table-list"></i><span class="hidden sm:inline">{{ _("Document List") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="inline-flex items-center gap-2 bg-white text-gray-600 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-dashboard-reporting-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-dashboard-reporting-link">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>
     </div>
 
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
+    <div class="nx-filter mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
       <div class="w-full sm:w-auto">
-        <label for="filterStartDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From") }}</label>
+        <label for="filterStartDate" class="nx-meta block mb-2">{{ _("From") }}</label>
         <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-dashboard-start-date" />
+               class="nx-input w-full h-10" data-testid="generali-dashboard-start-date" />
       </div>
       <div class="w-full sm:w-auto">
-        <label for="filterEndDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To") }}</label>
+        <label for="filterEndDate" class="nx-meta block mb-2">{{ _("To") }}</label>
         <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" data-testid="generali-dashboard-end-date" />
+               class="nx-input w-full h-10" data-testid="generali-dashboard-end-date" />
       </div>
       <button id="applyDateFilter"
-              class="h-10 w-full sm:w-auto bg-indigo-600 text-white px-5 rounded-xl hover:bg-indigo-700 transition text-sm font-semibold shadow-sm" data-testid="generali-dashboard-apply-filter">
+              class="nx-btn nx-btn--primary h-10 w-full sm:w-auto justify-center" data-testid="generali-dashboard-apply-filter">
         <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
       </button>
       <button id="resetDateFilter"
-              class="h-10 w-full sm:w-auto bg-white text-gray-600 px-4 rounded-xl hover:bg-gray-50 transition text-sm font-semibold border border-gray-200" data-testid="generali-dashboard-reset-filter">
+              class="nx-btn nx-btn--secondary h-10 w-full sm:w-auto justify-center" data-testid="generali-dashboard-reset-filter">
         {{ _("Reset") }}
       </button>
       <div id="statsLoader" class="hidden col-span-2 sm:col-span-1 sm:ml-2 flex items-center">
-        <i class="fas fa-spinner fa-spin text-indigo-500 text-lg"></i>
+        <i class="fas fa-spinner fa-spin text-lg" style="color:var(--nx-accent)"></i>
       </div>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Total Documents") }}</p>
-        <p class="text-2xl sm:text-3xl font-bold text-indigo-600" id="kpi-total">—</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Total Documents") }}</p>
+          <p class="nx-stat__value" id="kpi-total">—</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-file-lines"></i></div>
       </div>
-      <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK1 Pass Rate") }}</p>
-        <p class="text-2xl sm:text-3xl font-bold" id="kpi-nk1">—</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("NK1 Pass Rate") }}</p>
+          <p class="nx-stat__value" id="kpi-nk1">—</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--green"><i class="fas fa-circle-check"></i></div>
       </div>
-      <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK2 Pass Rate") }}</p>
-        <p class="text-2xl sm:text-3xl font-bold" id="kpi-nk2">—</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("NK2 Pass Rate") }}</p>
+          <p class="nx-stat__value" id="kpi-nk2">—</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--green"><i class="fas fa-circle-check"></i></div>
       </div>
-      <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("NK1 & NK2 Pass Rate") }}</p>
-        <p class="text-2xl sm:text-3xl font-bold text-amber-500" id="kpi-nk1_nk2">—</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("NK1 & NK2 Pass Rate") }}</p>
+          <p class="nx-stat__value" id="kpi-nk1_nk2">—</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--amber"><i class="fas fa-shield-halved"></i></div>
       </div>
-      <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Avg Daily Documents") }}</p>
-        <p class="text-2xl sm:text-3xl font-bold text-purple-500" id="kpi-avg">—</p>
+      <div class="nx-card nx-card--pad nx-stat">
+        <div>
+          <p class="nx-stat__label">{{ _("Avg Daily Documents") }}</p>
+          <p class="nx-stat__value" id="kpi-avg">—</p>
+        </div>
+        <div class="nx-stat__chip nx-stat__chip--blue"><i class="fas fa-calendar-day"></i></div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div class="nx-card nx-card--pad">
         <div class="flex items-start justify-between mb-4 flex-wrap gap-2">
-          <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">
-            <i class="fas fa-chart-line mr-2 text-indigo-500"></i>{{ _("Daily Processing Volume") }}
+          <h3 class="nx-meta">
+            <i class="fas fa-chart-line mr-2" style="color:var(--nx-accent)"></i>{{ _("Daily Processing Volume") }}
           </h3>
           <div class="flex items-center gap-2 flex-wrap" id="trendToggles">
             <button type="button" data-series="total" class="trend-chip" aria-pressed="true" data-testid="generali-dashboard-trend-total">
@@ -127,13 +147,13 @@
             <div class="relative" id="kommWrap">
               <button type="button" id="kommBtn" class="trend-chip" aria-pressed="false" aria-haspopup="true" aria-expanded="false" data-testid="generali-dashboard-komm-toggle">
                 {{ _("Kommunikation") }}
-                <span id="kommCount" class="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-700 text-[10px] font-semibold">0</span>
+                <span id="kommCount" class="nx-label nx-label--gray nx-label--nodot ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-semibold">0</span>
                 <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
               </button>
-              <div id="kommMenu" class="hidden absolute right-0 mt-1 z-20 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg p-2">
-                <div class="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
-                  <button type="button" id="kommAll" class="text-[11px] font-semibold text-indigo-600 hover:underline" data-testid="generali-dashboard-komm-all">{{ _("Select all") }}</button>
-                  <button type="button" id="kommNone" class="text-[11px] font-semibold text-gray-500 hover:underline" data-testid="generali-dashboard-komm-none">{{ _("Clear") }}</button>
+              <div id="kommMenu" class="hidden absolute right-0 mt-1 z-20 w-56 max-h-72 overflow-y-auto nx-surface shadow-lg p-2">
+                <div class="flex items-center justify-between px-2 pb-2 mb-1" style="border-bottom:1px solid var(--nx-border)">
+                  <button type="button" id="kommAll" class="text-[11px] font-semibold hover:underline" style="color:var(--nx-accent)" data-testid="generali-dashboard-komm-all">{{ _("Select all") }}</button>
+                  <button type="button" id="kommNone" class="text-[11px] font-semibold hover:underline" style="color:var(--nx-text-sec)" data-testid="generali-dashboard-komm-none">{{ _("Clear") }}</button>
                 </div>
                 <div id="kommItems" class="space-y-0.5 text-sm"></div>
               </div>
@@ -142,9 +162,9 @@
         </div>
         <div class="h-48 sm:h-64"><canvas id="trendChart"></canvas></div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-chart-pie mr-2 text-indigo-500"></i>{{ _("Document Type Distribution") }}
+      <div class="nx-card nx-card--pad">
+        <h3 class="nx-meta mb-4">
+          <i class="fas fa-chart-pie mr-2" style="color:var(--nx-accent)"></i>{{ _("Document Type Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="doctypeChart"></canvas></div>
       </div>
@@ -152,15 +172,15 @@
 
     <!-- Charts Row 2 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-users mr-2 text-indigo-500"></i>{{ _("Recipient Distribution") }}
+      <div class="nx-card nx-card--pad">
+        <h3 class="nx-meta mb-4">
+          <i class="fas fa-users mr-2" style="color:var(--nx-accent)"></i>{{ _("Recipient Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="empfaengerChart"></canvas></div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-shield-check mr-2 text-indigo-500"></i>{{ _("NK1 / NK2 Quality Control") }}
+      <div class="nx-card nx-card--pad">
+        <h3 class="nx-meta mb-4">
+          <i class="fas fa-shield-check mr-2" style="color:var(--nx-accent)"></i>{{ _("NK1 / NK2 Quality Control") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="nkChart"></canvas></div>
       </div>
@@ -168,15 +188,15 @@
 
     <!-- Charts Row 3 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-language mr-2 text-indigo-500"></i>{{ _("Language Distribution") }}
+      <div class="nx-card nx-card--pad">
+        <h3 class="nx-meta mb-4">
+          <i class="fas fa-language mr-2" style="color:var(--nx-accent)"></i>{{ _("Language Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="languageChart"></canvas></div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
-          <i class="fas fa-inbox mr-2 text-indigo-500"></i>{{ _("Entry Channel") }}
+      <div class="nx-card nx-card--pad">
+        <h3 class="nx-meta mb-4">
+          <i class="fas fa-inbox mr-2" style="color:var(--nx-accent)"></i>{{ _("Entry Channel") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="channelChart"></canvas></div>
       </div>

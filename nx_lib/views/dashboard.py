@@ -16,20 +16,81 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from ..config import DB_STATISTICS, OCTO_DOMAIN
-from ..db import engine_nexora_db, engine_octo_db, engine_statistics_db
+from ..config import DB_STATISTICS
+from ..db import engine_ms02_stats_pg, engine_nexora_db, engine_statistics_db
 from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
-    get_params_from_process_list,
 )
 from ..security import page_visibility, require_permission
+from ..workitem_sources import (
+    get_domain_for_workitem,
+    recent_activity_rows,
+    total_backlog_count,
+)
 
 
 def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
+
+
+def _split_stat_configs(configs):
+    """Partition Statconfig rows by serving client. Returns (default_rows, ms02_rows).
+    Rows with a blank/missing ClientCode count as 'default' (back-compat with
+    pre-0024 data)."""
+    default_rows = []
+    ms02_rows = []
+    for r in configs:
+        code = getattr(r, "ClientCode", None) or "default"
+        if code == "ms02":
+            ms02_rows.append(r)
+        else:
+            default_rows.append(r)
+    return default_rows, ms02_rows
+
+
+def _ms02_source(ms02_rows):
+    """Resolve the single MS02 stats source from its Statconfig row(s).
+
+    Returns (table, export_expr, import_expr) or None. MS02 rows all point at the
+    same table (no per-process split), so we dedupe to the first row. TableName is
+    used verbatim (already schema-qualified, e.g. public."DossierStatistik"); the
+    column names are admin-controlled Statconfig values, quoted as Postgres
+    identifiers because they are PascalCase. The old hardcoded
+    'public.batchtracking'/'datuminexport' literals never existed in the MS02 DB."""
+    if not ms02_rows:
+        return None
+    r = ms02_rows[0]
+
+    def q(col):
+        return '"' + str(col).replace('"', '""') + '"'
+
+    return r.TableName, q(r.ExportColumn), q(r.ImportColumn)
+
+
+def _ms02_stat_rows(sql):
+    """Run a read-only query on the MS02 stats engine; return rows, or [] if the
+    engine is unconfigured/unreachable or the query errors. Centralises the
+    connection handling + error swallowing for the dashboard's MS02 branches: a
+    failure here must never break the default-client numbers, so it logs and
+    yields no rows. MS02 Statconfig conditions (additionalCondition) are
+    Postgres-syntax and currently NULL, so they are not applied here.
+    # ponytail: no per-call additionalCondition; add when an MS02 row needs one."""
+    if engine_ms02_stats_pg is None:
+        return []
+    try:
+        mconn = engine_ms02_stats_pg.raw_connection()
+        try:
+            mcur = mconn.cursor()
+            mcur.execute(sql)
+            return mcur.fetchall()
+        finally:
+            mconn.close()
+    except Exception as e:
+        current_app.logger.error(f"ms02 dashboard stats query failed: {e}")
+        return []
 
 
 DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
@@ -283,7 +344,7 @@ def dashboard_processed_over_time():
 
         placeholders = ",".join(["?"] * len(target_processes))
         config_query = f"""
-            SELECT ProcessName, TableName, ExportColumn, additionalCondition
+            SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode
             FROM Statconfig
             WHERE ProcessName IN ({placeholders})
         """
@@ -295,8 +356,10 @@ def dashboard_processed_over_time():
         if not configs:
             return jsonify({"labels": [], "data": []})
 
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             convert = "convert" in str(row.ExportColumn).lower()
             date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -324,8 +387,31 @@ def dashboard_processed_over_time():
             conn.close()
             conn = None
 
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, _imp = ms02_src
+            for d, c in _ms02_stat_rows(
+                f"SELECT {exp}::date AS d, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {exp} >= CURRENT_DATE - 14 "
+                f"GROUP BY {exp}::date"
+            ):
+                counts[d] = counts.get(d, 0) + c
+
+        # Zero-fill the trailing 14-day window so a sparse client (e.g. a freshly
+        # onboarded MS02 with only today's rows) renders a continuous trend line
+        # instead of a single, invisible point — the chart was "showing only the date".
+        today = datetime.now().date()
+        for i in range(15):
+            counts.setdefault(today - timedelta(days=i), 0)
+
         sorted_dates = sorted(counts.keys())
-        return jsonify({"labels": sorted_dates, "data": [counts[d] for d in sorted_dates]})
+        return jsonify(
+            {
+                "labels": [d.isoformat() for d in sorted_dates],
+                "data": [counts[d] for d in sorted_dates],
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch processed_over_time report: {e}")
@@ -367,10 +453,8 @@ def dashboard_kpi_stats():
 
     conn_nex = None
     conn_stat = None
-    conn_octo = None
     cursor_nex = None
     cursor_stat = None
-    cursor_octo = None
 
     try:
         conn_nex = engine_nexora_db.raw_connection()
@@ -378,14 +462,16 @@ def dashboard_kpi_stats():
         placeholders = ",".join(["?"] * len(target_processes))
 
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
 
-        if configs:
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
+        if default_configs:
             sub_queries = []
-            for row in configs:
+            for row in default_configs:
                 col_export = row.ExportColumn
                 col_import = row.ImportColumn
                 condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -411,22 +497,23 @@ def dashboard_kpi_stats():
                     processed_today += row[0] or 0
                     imported_today += row[1] or 0
 
-        conn_octo = engine_octo_db.raw_connection()
-        cursor_octo = conn_octo.cursor()
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, imp = ms02_src
+            mrows = _ms02_stat_rows(
+                f"SELECT "
+                f"COUNT(*) FILTER (WHERE {exp}::date = CURRENT_DATE), "
+                f"COUNT(*) FILTER (WHERE {imp}::date = CURRENT_DATE) "
+                f"FROM {tbl}"
+            )
+            if mrows:
+                processed_today += mrows[0][0] or 0
+                imported_today += mrows[0][1] or 0
 
         if target_processes:
-            p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-            cursor_octo.execute(
-                f"""
-                SELECT COUNT(*) FROM t_WorkItems w
-                LEFT JOIN t_ActivityInstances a on a.id = w.ActivityInstanceID
-                LEFT JOIN t_Processes p on p.id = a.ProcessID
-                LEFT JOIN t_ActivityTypes act on act.id = a.ActivityTypeID
-                WHERE p.Name IN ({p_ph}) AND p.ClientName IN ({c_ph}) AND act.Name = 'C+A';
-            """,
-                p_params,
-            )
-            current_backlog += cursor_octo.fetchone()[0]
+            proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+            cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
+            current_backlog += total_backlog_count(proc_params, cli_params)
 
         return jsonify(
             {
@@ -444,14 +531,10 @@ def dashboard_kpi_stats():
             cursor_nex.close()
         if cursor_stat:
             cursor_stat.close()
-        if cursor_octo:
-            cursor_octo.close()
         if conn_nex:
             conn_nex.close()
         if conn_stat:
             conn_stat.close()
-        if conn_octo:
-            conn_octo.close()
 
 
 @cache.cached(
@@ -486,7 +569,7 @@ def dashboard_hourly_stats():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
@@ -494,8 +577,10 @@ def dashboard_hourly_stats():
         if not configs:
             return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
             sub_queries.append(f"""
                 SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
@@ -518,6 +603,17 @@ def dashboard_hourly_stats():
             cursor_stat.execute(full_query)
             for row in cursor_stat.fetchall():
                 hourly[row.h] = hourly.get(row.h, 0) + row.total
+
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, _imp = ms02_src
+            for h, c in _ms02_stat_rows(
+                f"SELECT EXTRACT(HOUR FROM {exp})::int AS h, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {exp}::date = CURRENT_DATE "
+                f"GROUP BY EXTRACT(HOUR FROM {exp})"
+            ):
+                hourly[int(h)] = hourly.get(int(h), 0) + c
 
         return jsonify(
             {
@@ -572,13 +668,15 @@ def dashboard_avg_processing_time():
         cursor_nex = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cursor_nex.fetchall()
 
+        default_configs, ms02_rows = _split_stat_configs(configs)
+
         sub_queries = []
-        for row in configs:
+        for row in default_configs:
             if not row.ImportColumn:
                 continue
             condition = f" {row.additionalCondition}" if row.additionalCondition else ""
@@ -605,6 +703,21 @@ def dashboard_avg_processing_time():
             row = cursor_stat.fetchone()
             if row and row[0] is not None:
                 avg_values.append(row[0])
+
+        # MS02 contributes one client-level average (export - import seconds),
+        # weighted equally with the default bucket — same mean-of-means the
+        # default path already applies across its processes.
+        ms02_src = _ms02_source(ms02_rows)
+        if ms02_src:
+            tbl, exp, imp = ms02_src
+            mrows = _ms02_stat_rows(
+                f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
+                f"FROM {tbl} "
+                f"WHERE {exp}::date = CURRENT_DATE "
+                f"AND {imp} IS NOT NULL AND {exp} > {imp}"
+            )
+            if mrows and mrows[0][0] is not None:
+                avg_values.append(float(mrows[0][0]))
 
         if not avg_values:
             return jsonify({"avg_minutes": None, "avg_display": "—"})
@@ -1183,7 +1296,8 @@ def build_widget_query(widget, global_filters, allowed_processes):
         placeholders = ",".join(["?"] * len(target_processes))
         cur.execute(
             f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition "
-            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            f"FROM Statconfig WHERE ProcessName IN ({placeholders}) "
+            f"AND ISNULL(ClientCode, 'default') <> 'ms02'",
             target_processes,
         )
         configs = cur.fetchall()
@@ -1414,7 +1528,6 @@ def dashboard_widget_compare():
     key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
 )
 def api_recent_activity():
-    conn = None
     try:
         prefix = "dashboard.filter.process."
         process_name = session.get("process_name_dashboard", "all")
@@ -1436,38 +1549,24 @@ def api_recent_activity():
         if not target_processes:
             return jsonify([])
 
-        conn = engine_octo_db.raw_connection()
-        cursor = conn.cursor()
+        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
         activity_instances_to_ignore = get_activity_instances_to_ignore()
-
-        p_params, p_ph, c_ph = get_params_from_process_list(target_processes)
-        cursor.execute(
-            f"""
-            SELECT TOP 3 twi.ID, twi.ModifiedAt, tp.Name as ProcessName
-            FROM t_WorkItems twi
-            JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-            JOIN t_Processes tp ON tp.ID = tai.ProcessID
-            WHERE twi.Status <> 2
-              AND tp.Name IN ({p_ph})
-              AND tp.ClientName IN ({c_ph})
-              AND tai.ActivityInstanceName not in ({activity_instances_to_ignore})
-            ORDER BY twi.ModifiedAt DESC
-        """,
-            p_params,
+        raw_rows = recent_activity_rows(
+            proc_params, cli_params, activity_instances_to_ignore, top=3
         )
-        raw_rows = list(cursor.fetchall())
-        raw_rows.sort(key=lambda r: r.ModifiedAt, reverse=True)
 
         activity = []
-        for row in raw_rows[:3]:
-            workitemdata, doc_id = get_workitemdata_param(row.ID, OCTO_DOMAIN)
-            _ext, _urls, fields = get_extensions_urls_fields(workitemdata, doc_id, OCTO_DOMAIN)
+        for row in raw_rows:
+            domain = get_domain_for_workitem(row["id"])
+            workitemdata, doc_id = get_workitemdata_param(row["id"], domain)
+            _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
             activity.append(
                 {
-                    "id": row.ID,
-                    "time": row.ModifiedAt.strftime("%H:%M"),
-                    "process": row.ProcessName,
+                    "id": row["id"],
+                    "time": row["modifiedat"].strftime("%H:%M"),
+                    "process": row["process"],
                     "fields": fields,
                 }
             )
@@ -1476,9 +1575,6 @@ def api_recent_activity():
     except Exception as e:
         current_app.logger.error(f"Activity feed error: {e}")
         return jsonify([])
-    finally:
-        if conn:
-            conn.close()
 
 
 def register_routes(app):

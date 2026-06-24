@@ -1,0 +1,1390 @@
+<script>
+// Simple pane behavior (Spec 2). Self-contained IIFE: talks only to the
+// existing REST endpoints plus window.Reporting / window.ReportingTabs.
+// Never touches the Advanced builder's DOM or ReportingViz (the builder's
+// chart singleton); the result view owns a private Chart.js instance.
+(function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var EXPORT_ALLOWED = !!document.getElementById('rsExport');
+
+  // Translated strings (tojson-escaped — several translations carry quotes).
+  var I18N = {
+    today: {{ _("today")|tojson }},
+    yesterday: {{ _("yesterday")|tojson }},
+    daysAgo: {{ _("days ago")|tojson }},
+    weekAgo: {{ _("week ago")|tojson }},
+    weeksAgo: {{ _("weeks ago")|tojson }},
+    nothingHere: {{ _("Nothing here yet.")|tojson }},
+    couldNotLoad: {{ _("Could not load this report.")|tojson }},
+    couldNotRun: {{ _("Could not run this report.")|tojson }},
+    couldNotSave: {{ _("Could not save.")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }},
+    noAccess: {{ _("You don't have access to the data behind this report.")|tojson }},
+    outdated: {{ _("This report is outdated — open it in Advanced to fix it.")|tojson }},
+    noData: {{ _("No data for this report")|tojson }},
+    savedToMine: {{ _("Saved to My reports.")|tojson }},
+    showTable: {{ _("Show table")|tojson }},
+    hideTable: {{ _("Hide table")|tojson }},
+    overTime: {{ _("Over time")|tojson }},
+    justTotal: {{ _("None — just the total")|tojson }},
+    noMeasures: {{ _("No measures are configured yet — ask an administrator to add metrics.")|tojson }},
+    noDateField: {{ _("This source has no date field — showing all data.")|tojson }},
+    per: {{ _("per")|tojson }},
+    by: {{ _("by")|tojson }},
+    thisMonth: {{ _("This month")|tojson }},
+    lastMonth: {{ _("Last month")|tojson }},
+    last3Months: {{ _("Last 3 months")|tojson }},
+    thisYear: {{ _("This year")|tojson }},
+    lastYear: {{ _("Last year")|tojson }},
+    thisQuarter: {{ _("This quarter")|tojson }},
+    lastQuarter: {{ _("Last quarter")|tojson }},
+    allTime: {{ _("All time")|tojson }},
+    custom: {{ _("Custom")|tojson }},
+    aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
+    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }},
+    aiFilters: {{ _("Filters")|tojson }},
+    aiProcesses: {{ _("Processes")|tojson }},
+    aiNoFilters: {{ _("no filters")|tojson }},
+    tokenToday: {{ _("Today")|tojson }},
+    tokenYesterday: {{ _("Yesterday")|tojson }},
+    thisWeek: {{ _("This week")|tojson }},
+    lastWeek: {{ _("Last week")|tojson }},
+    lastNDays: {{ _("Last {n} days")|tojson }},
+    aiThinking: {{ _("Asking the AI…")|tojson }},
+    aiDrafting: {{ _("Drafting your report…")|tojson }},
+    aiChecking: {{ _("Checking the result…")|tojson }},
+    chipApply: {{ _("Apply")|tojson }},
+    allProcesses: {{ _("All processes")|tojson }},
+    noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
+    chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
+    noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
+    noChartThreeDims: {{ _("Charts support up to two breakdowns — the table shows all of them.")|tojson }},
+    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
+    noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
+    showQuery: {{ _("Show query")|tojson }},
+    truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
+    hideQuery: {{ _("Hide query")|tojson }},
+    sqlParamsLabel: {{ _("Parameters")|tojson }},
+    copied: {{ _("Copied")|tojson }}
+  };
+
+  // Wizard category-dimension curation (docprocessing only). Preferred
+  // business dimensions first, noise hidden; table sources are untouched.
+  var DOCPROC_DIM_ORDER = ['docsource', 'doctype', 'forwarding', 'ownernr',
+                           'propertynr', 'registered', 'tenancynr'];
+  var DOCPROC_DIM_HIDE = { processname: 1, bankpk: 1, crdno: 1, docbarcode: 1,
+                           docdate: 1, workitem_id: 1 };
+
+  var state = {
+    reports: [],            // /api/reporting/reports rows (kind!=='sql')
+    sources: null,          // /api/reporting/sources cache
+    metricsBySource: null,  // /api/reporting/metrics cache
+    loaded: false,
+    view: 'library',        // library | wizard | result
+    current: null,          // { def, name, reportId, owned, canEdit, fromWizard }
+    chart: null,            // private Chart.js instance
+    chartData: null,        // prepared labels+datasets for renderChart
+    wiz: null               // wizard state
+  };
+
+  function el(id) { return document.getElementById(id); }
+
+  async function api(url, opts) {
+    opts = opts || {};
+    var res;
+    try {
+      res = await fetch(url, Object.assign(
+        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    } catch (e) {
+      return { ok: false, status: 0, data: null };  // network-level failure
+    }
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { ok: res.ok, status: res.status, data: data };
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function relTime(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return I18N.today;
+    if (days === 1) return I18N.yesterday;
+    if (days < 7) return days + ' ' + I18N.daysAgo;
+    var w = Math.floor(days / 7);
+    return w + ' ' + (w === 1 ? I18N.weekAgo : I18N.weeksAgo);
+  }
+
+  function setView(view) {
+    state.view = view;
+    el('rsLibrary').hidden = view !== 'library';
+    el('rsSearch').hidden = view !== 'library';
+    el('rsNewReport').hidden = view !== 'library';
+    var aiBar = el('rsAiBar');
+    if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
+    el('rsWizard').hidden = view !== 'wizard';
+    el('rsResult').hidden = view !== 'result';
+    if (view !== 'result') destroyChart();
+  }
+
+  function destroyChart() {
+    if (state.chart) { state.chart.destroy(); state.chart = null; }
+  }
+
+  // ---------- Library ----------
+  function card(r) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-card';
+    b.setAttribute('data-testid', 'rs-card');
+    b.innerHTML = '<p class="rs-card-name">' + esc(r.name) + '</p>' +
+      '<p class="rs-card-meta">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</p>';
+    b.addEventListener('click', function () { openReport(r); });
+    return b;
+  }
+
+  function renderLibrary() {
+    var q = (el('rsSearch').value || '').toLowerCase();
+    var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
+    Object.keys(groups).forEach(function (k) { groups[k].innerHTML = ''; });
+    state.reports.forEach(function (r) {
+      if (q && r.name.toLowerCase().indexOf(q) === -1) return;
+      var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
+      groups[g].appendChild(card(r));
+    });
+    Object.keys(groups).forEach(function (k) {
+      if (!groups[k].children.length) {
+        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.nothingHere) + '</p>';
+      }
+    });
+  }
+
+  async function loadLibrary() {
+    var res = await api('/api/reporting/reports');
+    if (!res.ok || !Array.isArray(res.data)) return;
+    // Viewers can't run sql-kind reports (/api/reporting/run rejects them);
+    // they stay fully usable in Advanced.
+    state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
+    renderLibrary();
+  }
+
+  async function openReport(r) {
+    var res = await api('/api/reporting/reports/' + r.id);
+    if (!res.ok || !res.data || !res.data.definition) {
+      showResultError(I18N.couldNotLoad); return;
+    }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    state.current = {
+      def: res.data.definition, name: res.data.name, reportId: r.id,
+      owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false
+    };
+    runCurrent();
+  }
+
+  async function loadMetricsCatalog() {
+    var res = await api('/api/reporting/metrics');
+    if (res.ok && res.data) state.metricsBySource = res.data;
+  }
+
+  // ---------- Result view ----------
+  function showResultError(msg) {
+    hideAiLoading();
+    el('rsRunLoading').hidden = true;
+    if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
+    if (el('rsChips')) el('rsChips').hidden = true;
+    setView('result');
+    el('rsResultTitle').textContent = '';
+    el('rsMsg').hidden = true;
+    el('rsSaveName').hidden = true;
+    el('rsError').textContent = msg;
+    el('rsError').hidden = false;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsChartNote').hidden = true;
+    el('rsChartTools').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = true;
+  }
+
+  function friendlyRunError(status, data) {
+    if (status === 403) return I18N.noAccess;
+    if (status === 400) return I18N.outdated;
+    return (data && data.error) || I18N.couldNotRun;
+  }
+
+  function fmtNumber(v) {
+    if (v == null) return '–';
+    var n = Number(v);
+    return isNaN(n) ? String(v) : n.toLocaleString();
+  }
+
+  function metricLabelFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return '';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return hit ? hit.label : m.metric;
+  }
+
+  function renderTable(columns, rows) {
+    var html = '<table class="reporting-table"><thead><tr>';
+    columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(function (r) {
+      html += '<tr>';
+      r.forEach(function (v) { html += '<td>' + esc(v == null ? '' : v) + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    el('rsTableWrap').innerHTML = html;
+  }
+
+  // Simple owns its OWN Chart.js instance on a private canvas. It must never
+  // call ReportingViz.mountChart: that module is a singleton wired to the
+  // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
+  function chartCardNote(msg) {
+    el('rsChartCanvas').hidden = true;
+    el('rsChartTools').hidden = true;
+    el('rsChartNote').textContent = msg;
+    el('rsChartNote').hidden = false;
+    el('rsChartCard').hidden = false;
+  }
+
+  // Mirrors ReportingViz's palette so Simple pies match Advanced ones.
+  var SIMPLE_PALETTE = [
+    '#4338ca', '#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04',
+    '#dc2626', '#db2777', '#7c3aed', '#0d9488', '#ea580c', '#4f46e5'
+  ];
+
+  function renderChart(type) {
+    var d = state.chartData;
+    if (!d) return;
+    destroyChart();
+    var multi = !!(d && d.multiSeries);
+    if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
+    var stacked = type === 'stacked';
+    var chartJsType = stacked ? 'bar' : type;
+    var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
+    var datasets = d.datasets.map(function (ds) {
+      var out = Object.assign({}, ds);
+      if (!multi && circular) {
+        out.backgroundColor = d.labels.map(function (_, i) {
+          return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
+        });
+        out.borderColor = '#fff';
+      }
+      return out;
+    });
+    state.chart = new Chart(el('rsChartCanvas'), {
+      type: chartJsType,
+      data: { labels: d.labels, datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: false,
+                 scales: (circular) ? {}
+                   : { x: { stacked: stacked }, y: { stacked: stacked } },
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } } }
+    });
+    el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
+    el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
+    el('rsChartCanvas').dataset.series = String(d.datasets.length);
+    Array.prototype.forEach.call(
+      el('rsChartTools').querySelectorAll('button'), function (b) {
+        b.classList.toggle('is-selected', b.dataset.type === type);
+        b.setAttribute('aria-pressed', b.dataset.type === type ? 'true' : 'false');
+      });
+  }
+
+  function mountChart(def, columns, rows) {
+    destroyChart();
+    state.chartData = null;
+    el('rsChartNote').hidden = true;
+    el('rsChartTools').hidden = true;
+    el('rsChartCanvas').hidden = false;
+    var dims = (def.columns || []).length;
+    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
+    if (!window.Chart) { chartCardNote(I18N.noChartLib); return; }
+    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
+    var firstCol = def.columns[0];
+    var isDate = !!firstCol.grain || /date/.test(firstCol.field);
+    // Single-dim only: here rows.length IS the x-point count, so the raw-row
+    // cap is correct. For dims===2 the rows are the (dim1 x dim2) cross-product
+    // (e.g. 12 months x 8 sources = 96 rows) that the pivot below collapses to
+    // far fewer x-points, so two-dim is judged AFTER pivoting by the xOrder>50
+    // guard + 12-series cap (mirrors render_chart_png MAX_X / MAX_SERIES).
+    if (dims === 1 && rows.length > 50) {
+      if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
+      el('rsChartNote').hidden = false;
+      rows = rows.slice(0, 50);
+    }
+    if (dims === 2) {
+      // Only the first metric is pivoted into series — wizard always emits one metric.
+      var metricIdx2 = columns.length - (def.metrics || []).length;
+      var xOrder = [], cell = {}, seriesTot = {};
+      rows.forEach(function (r) {
+        var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
+        var s = String(r[1] == null ? '' : r[1]);
+        var v = Number(r[metricIdx2]) || 0;
+        if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
+        cell[x][s] = (cell[x][s] || 0) + v;
+        seriesTot[s] = (seriesTot[s] || 0) + v;
+      });
+      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      var series = Object.keys(seriesTot).sort(function (a, b) {
+        return seriesTot[b] - seriesTot[a];
+      });
+      if (series.length > 12) {
+        el('rsChartNote').textContent =
+          I18N.chartSeriesCapped.replace('{shown}', '12').replace('{n}', String(series.length));
+        el('rsChartNote').hidden = false;
+        series = series.slice(0, 12);
+      }
+      state.chartData = {
+        labels: xOrder,
+        datasets: series.map(function (s, i) {
+          return {
+            label: s,
+            data: xOrder.map(function (x) { return cell[x][s] || 0; }),
+            borderColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            backgroundColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            tension: .25
+          };
+        }),
+        multiSeries: true
+      };
+      el('rsChartCard').hidden = false;
+      el('rsChartTools').hidden = false;
+      renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+      return;
+    }
+    var metricIdx = columns.length - (def.metrics || []).length;
+    var labels = rows.map(function (r) {
+      var v = String(r[0] == null ? '' : r[0]);
+      // Date values arrive as ISO datetimes — trim to the date part. Category
+      // labels stay intact.
+      return isDate ? v.slice(0, 10) : v;
+    });
+    var datasets = (def.metrics || []).map(function (m, i) {
+      var col = columns[metricIdx + i];
+      return {
+        label: col ? (col.header || m.metric) : m.metric,
+        data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
+        borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
+      };
+    });
+    state.chartData = { labels: labels, datasets: datasets, multiSeries: false };
+    el('rsChartCard').hidden = false;
+    el('rsChartTools').hidden = false;
+    renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+  }
+
+  // One-line transparency note under the title of AI-built reports: the
+  // model's own explanation plus the filters/scope it chose, so a wrong guess
+  // (bad date range, wrong process) is visible instead of silently rendering
+  // an empty table.
+  // Relative-date tokens (nx_lib/reporting/tokens.py) — humanized labels for
+  // chips/summary lines. A token value is {token: '<name>'[, n: <int>]}.
+  var TOKEN_LABELS = {
+    today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
+    this_week: I18N.thisWeek, last_week: I18N.lastWeek,
+    this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear,
+    last_year: I18N.lastYear, last_n_days: I18N.lastNDays
+  };
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+  function tokenLabel(v) {
+    if (!v || typeof v.token !== 'string') return '';
+    var lbl = TOKEN_LABELS[v.token] || v.token;
+    return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
+  }
+
+  // ----- Editable AI chips -----
+  function fieldMetaFor(def, fieldKey) {
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
+  }
+
+  function chipValueLabel(v) {
+    if (isTokenValue(v)) return tokenLabel(v);
+    if (Array.isArray(v)) return v.join(' → ');
+    return v === null || v === undefined ? '' : String(v);
+  }
+
+  function chip(text, onEdit, onRemove) {
+    var c = document.createElement('span');
+    c.className = 'rs-chip';
+    c.setAttribute('data-testid', 'rs-chip');
+    var t = document.createElement('span');
+    t.textContent = text;
+    c.appendChild(t);
+    if (onRemove) {
+      var x = document.createElement('span');
+      x.className = 'rs-chip-x';
+      x.setAttribute('data-testid', 'rs-chip-remove');
+      x.textContent = '×';
+      x.addEventListener('click', function (e) { e.stopPropagation(); onRemove(); });
+      c.appendChild(x);
+    }
+    if (onEdit) c.addEventListener('click', function () { onEdit(c); });
+    return c;
+  }
+
+  function filterChipEditor(cur, f, chipEl) {
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    var meta = fieldMetaFor(cur.def, f.field);
+    var isDateField = !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
+    var preset = null;
+    if (isDateField && typeof TOKEN_LABELS !== 'undefined') {
+      preset = document.createElement('select');
+      preset.setAttribute('data-testid', 'rs-chip-preset');
+      var co = document.createElement('option');
+      co.value = '';
+      co.textContent = I18N.custom;
+      preset.appendChild(co);
+      Object.keys(TOKEN_LABELS).forEach(function (k) {
+        if (k === 'last_n_days') return;
+        var o = document.createElement('option');
+        o.value = k;
+        o.textContent = TOKEN_LABELS[k];
+        preset.appendChild(o);
+      });
+      if (isTokenValue(f.value)) preset.value = f.value.token;
+      box.appendChild(preset);
+    }
+    var input = document.createElement('input');
+    input.className = 'reporting-input';
+    input.setAttribute('data-testid', 'rs-chip-input');
+    input.value = Array.isArray(f.value) ? f.value.join(' → ')
+      : isTokenValue(f.value) ? '' : chipValueLabel(f.value);
+    input.hidden = !!(preset && preset.value);
+    if (preset) {
+      preset.onchange = function () { input.hidden = !!preset.value; };
+    }
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      if (preset && preset.value) {
+        f.op = 'between';
+        f.value = { token: preset.value };
+        runCurrent();
+        return;
+      }
+      var v = input.value.trim();
+      if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
+        var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
+        if (parts.length === 2) { f.op = 'between'; f.value = parts; }
+        else if (parts.length === 1) { f.op = 'eq'; f.value = parts[0]; }
+        // else empty input: leave value unchanged
+      } else {
+        f.value = v;
+      }
+      runCurrent();
+    });
+    box.appendChild(input);
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+    if (!input.hidden) input.focus();
+  }
+
+  async function processChipEditor(cur, chipEl) {
+    await loadSourcesCatalog();
+    if (!chipEl.isConnected) return;
+    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var all = (src && src.processes) || [];
+    if (!all.length) return;
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-procs');
+    var selected = ((cur.def.scope || {}).processes || []);
+    var inputs = all.map(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = p;
+      cb.checked = !selected.length || selected.indexOf(p) !== -1;
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + p));
+      box.appendChild(lbl);
+      return cb;
+    });
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      var picked = inputs.filter(function (c) { return c.checked; })
+                         .map(function (c) { return c.value; });
+      cur.def.scope = cur.def.scope || { clients: [], processes: [] };
+      cur.def.scope.processes = picked.length === all.length ? [] : picked;
+      runCurrent();
+    });
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+  }
+
+  function renderAiChips(cur) {
+    var wrap = el('rsChips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    // Chips are definition-driven — every Simple result (AI, wizard, library)
+    // gets them; edits mutate the in-memory copy only (Save creates a new row).
+    var hasDef = !!(cur && cur.def);
+    wrap.hidden = !hasDef;
+    if (!hasDef) return;
+    var def = cur.def || {};
+    (def.filters || []).forEach(function (f) {
+      var label = f.field + ' ' + f.op + ' ' + chipValueLabel(f.value);
+      wrap.appendChild(chip(
+        label,
+        function (chipEl) { filterChipEditor(cur, f, chipEl); },
+        function () {
+          def.filters.splice(def.filters.indexOf(f), 1);
+          runCurrent();
+        }
+      ));
+    });
+    if (!(def.filters || []).length) {
+      var none = document.createElement('span');
+      none.className = 'rs-chip rs-chip--empty';
+      none.textContent = I18N.aiNoFilters;
+      wrap.appendChild(none);
+    }
+    var procs = (def.scope && def.scope.processes) || [];
+    wrap.appendChild(chip(
+      I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : I18N.allProcesses),
+      function (chipEl) { processChipEditor(cur, chipEl); },
+      null
+    ));
+  }
+
+  // Monotonic run token: a newer runCurrent invalidates every pending older
+  // one, so a slow report's late responses can't render under a newer
+  // report's title (and a double-click renders only once).
+  var runSeq = 0;
+
+  // AI in-flight state: shared by ask + refine. The indicator owns the result
+  // area while waiting; the rotating line is purely cosmetic.
+  var aiBusy = false;
+  var aiLoadingTimer = null;
+  function showAiLoading() {
+    setView('result');
+    el('rsResultTitle').textContent = '';
+    el('rsError').hidden = true;
+    el('rsMsg').hidden = true;
+    el('rsSaveName').hidden = true;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+    el('rsRunLoading').hidden = true;
+    var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
+    var i = 0;
+    el('rsAiLoadingText').textContent = lines[0];
+    el('rsAiLoading').hidden = false;
+    aiLoadingTimer = setInterval(function () {
+      i = (i + 1) % lines.length;
+      el('rsAiLoadingText').textContent = lines[i];
+    }, 3000);
+  }
+  function hideAiLoading() {
+    var box = el('rsAiLoading');
+    if (box) box.hidden = true;
+    if (aiLoadingTimer) { clearInterval(aiLoadingTimer); aiLoadingTimer = null; }
+  }
+
+  async function runCurrent() {
+    var cur = state.current;
+    var seq = ++runSeq;
+    setView('result');
+    el('rsError').hidden = true;
+    el('rsMsg').hidden = true;
+    el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    if (cur.aiExplanation !== undefined) {
+      el('rsMsg').textContent = cur.aiExplanation || '';
+      el('rsMsg').hidden = !cur.aiExplanation;
+    }
+    renderAiChips(cur);
+    var refineBar = el('rsRefineBar');
+    if (refineBar) {
+      refineBar.hidden = false;
+      el('rsRefineInput').value = cur.aiQuestion || '';
+    }
+    var adjustBtn = el('rsAdjustWizard');
+    if (adjustBtn) {
+      adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
+    }
+    el('rsSaveName').hidden = true;
+    el('rsStatCard').hidden = true;
+    el('rsChartCard').hidden = true;
+    el('rsTableToggle').hidden = true;
+    el('rsTableWrap').hidden = true;
+    el('rsRunLoading').hidden = false;
+
+    var def = cur.def;
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    var dims = (def.columns || []).length;
+
+    // Grand total via a zero-column clone: correct for every aggregation
+    // (avg/count_distinct included), unlike a client-side sum of grouped rows.
+    // Skipped for zero-dim definitions — there the main run IS the total.
+    if (hasMetrics && dims) {
+      var totalDef = JSON.parse(JSON.stringify(def));
+      totalDef.columns = [];
+      totalDef.sort = [];
+      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      if (seq !== runSeq) return;
+      if (t.ok && t.data && t.data.rows && t.data.rows.length) {
+        el('rsStatLabel').textContent = metricLabelFor(def);
+        el('rsStatValue').textContent = fmtNumber(t.data.rows[0][0]);
+        el('rsStatCard').hidden = false;
+      }
+    }
+
+    // Breakdown run (or the plain grid run for non-metric definitions).
+    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    if (seq !== runSeq) return;
+    // Hide only after the staleness guard: a slow stale response must never
+    // hide the indicator a newer run just showed.
+    el('rsRunLoading').hidden = true;
+    if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    state.current.sql = res.data.sql || null;
+    state.current.sqlPretty = res.data.sqlPretty || null;
+    state.current.params = res.data.params || [];
+    el('rsSqlView').hidden = true;
+    el('rsShowSql').hidden = !state.current.sql;
+    el('rsShowSql').textContent = I18N.showQuery;
+    var columns = res.data.columns || [], rows = res.data.rows || [];
+    var rdates = res.data.resolvedDates || [];
+    if (rdates.length) {
+      var resolvedTxt = rdates.map(function (d) {
+        return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
+      }).join(' · ');
+      var msg = el('rsMsg');
+      msg.textContent = msg.hidden || !msg.textContent
+        ? resolvedTxt : msg.textContent + ' — ' + resolvedTxt;
+      msg.hidden = false;
+    }
+    if (res.data.truncated && res.data.rowCount) {
+      var tNote = el('rsMsg');
+      var tTxt = I18N.truncatedNote.replace('{n}', String(res.data.rowCount));
+      tNote.textContent = (!tNote.hidden && tNote.textContent)
+        ? tNote.textContent + ' — ' + tTxt : tTxt;
+      tNote.hidden = false;
+    }
+    if (hasMetrics && !dims && rows.length) {
+      el('rsStatLabel').textContent = metricLabelFor(def);
+      el('rsStatValue').textContent = fmtNumber(rows[0][0]);
+      el('rsStatCard').hidden = false;
+      var totMsg = el('rsMsg');
+      totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
+        ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
+      totMsg.hidden = false;
+    }
+    if (!rows.length && el('rsStatCard').hidden) {
+      el('rsTableWrap').innerHTML =
+        '<div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox" aria-hidden="true"></i></div>' +
+        '<p class="nx-empty__title">' + esc(I18N.noData) + '</p></div>';
+      el('rsTableWrap').hidden = false;
+      return;
+    }
+    if (hasMetrics && dims) mountChart(def, columns, rows);
+    renderTable(columns, rows);
+    if (hasMetrics) {
+      el('rsTableToggle').hidden = false;
+      el('rsTableToggle').textContent = I18N.showTable;
+      el('rsTableWrap').hidden = true;
+    } else {
+      el('rsTableWrap').hidden = false;   // plain table reports: grid directly
+    }
+  }
+
+  el('rsTableToggle').addEventListener('click', function () {
+    var w = el('rsTableWrap');
+    w.hidden = !w.hidden;
+    el('rsTableToggle').textContent = w.hidden ? I18N.showTable : I18N.hideTable;
+  });
+
+  el('rsChartTools').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-type]');
+    if (!btn || !state.chartData) return;
+    // 'stacked' is a UI-only virtual type; don't persist it as a chartType since
+    // it maps to 'bar' with stacked scales and is not a valid Chart.js type.
+    if (state.current && state.current.def && btn.dataset.type !== 'stacked') {
+      state.current.def.chartType = btn.dataset.type;
+    }
+    renderChart(btn.dataset.type);
+  });
+
+  el('rsShowSql').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var view = el('rsSqlView');
+    view.hidden = !view.hidden;
+    this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
+    if (!view.hidden) {
+      ReportingSqlFormat.render(el('rsSqlText'), cur.sqlPretty || cur.sql);
+      el('rsSqlParams').textContent = (cur.params || []).length
+        ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
+            return (i + 1) + " = '" + String(p) + "'";
+          }).join(', ')
+        : '';
+    }
+  });
+  el('rsSqlCopy').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.sql) return;
+    var text = cur.sql + '\n-- params: ' + JSON.stringify(cur.params || []);
+    var btn = this;
+    navigator.clipboard.writeText(text).then(function () {
+      var prev = btn.textContent;
+      btn.textContent = I18N.copied;
+      setTimeout(function () { btn.textContent = prev; }, 1200);
+    }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
+  });
+
+  // Save: always a NEW row (inline name input, no window.prompt).
+  el('rsSave').addEventListener('click', async function () {
+    if (!state.current) return;  // error view without a loaded report
+    var nameInput = el('rsSaveName');
+    if (nameInput.hidden) {
+      nameInput.hidden = false;
+      nameInput.value = state.current.name || state.current.def.title || '';
+      nameInput.focus();
+      return;
+    }
+    var name = nameInput.value.trim();
+    if (!name) return;
+    var res = await api('/api/reporting/reports', {
+      method: 'POST',
+      body: JSON.stringify({ name: name, definition: state.current.def })
+    });
+    if (res.ok) {
+      nameInput.hidden = true;
+      el('rsMsg').textContent = I18N.savedToMine;
+      el('rsMsg').hidden = false;
+    } else {
+      el('rsError').textContent = (res.data && res.data.error) || I18N.couldNotSave;
+      el('rsError').hidden = false;
+    }
+  });
+
+  // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
+  // shares mutate shared reports in place; a null id makes Advanced's Save
+  // default to create-a-copy.
+  el('rsAdjustWizard').addEventListener('click', adjustInWizard);
+
+  el('rsOpenAdvanced').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
+    var id = (cur.owned && cur.canEdit) ? cur.reportId : null;
+    window.Reporting.applyDefinition(cur.def, cur.name || cur.def.title, id);
+    window.ReportingTabs.show('advanced');
+  });
+
+  function chartPngDataUrl() {
+    if (!state.chart) return null;
+    var src = el('rsChartCanvas');
+    var c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(src, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  el('rsChartPng').addEventListener('click', function () {
+    var url = chartPngDataUrl();
+    if (!url) return;
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = ((state.current && state.current.name) || 'report') + '-chart.png';
+    a.click();
+  });
+
+  if (EXPORT_ALLOWED) {
+    el('rsExport').addEventListener('click', async function () {
+      if (!state.current) return;  // error view without a loaded report
+      var fmtSel = el('rsExportFormat');
+      var fmt = (fmtSel && fmtSel.value === 'csv') ? 'csv' : 'xlsx';
+      var body = Object.assign({}, state.current.def, { format: fmt });
+      var png = fmt === 'xlsx' ? chartPngDataUrl() : null;
+      if (png) body.chartImage = png;
+      var res;
+      try {
+        res = await fetch('/api/reporting/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify(body)
+        });
+      } catch (e) { res = { ok: false }; }
+      if (!res.ok) {
+        el('rsError').textContent = I18N.couldNotExport;
+        el('rsError').hidden = false;
+        return;
+      }
+      var blob = await res.blob();
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (state.current.name || 'report') + '.' + fmt;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }
+
+  // ---------- Wizard ----------
+  function choiceBtn(label, onpick, selected) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'reporting-simple-choice';
+    if (selected) b.classList.add('is-selected');
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    b.textContent = label;
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(b.parentNode.children, function (s) {
+        s.classList.remove('is-selected');
+        if (s.setAttribute) s.setAttribute('aria-pressed', 'false');
+      });
+      b.classList.add('is-selected');
+      b.setAttribute('aria-pressed', 'true');
+      onpick();
+    });
+    return b;
+  }
+
+  async function loadSourcesCatalog() {
+    if (state.sources) return state.sources;
+    var res = await api('/api/reporting/sources');
+    state.sources = (res.ok && Array.isArray(res.data)) ? res.data : [];
+    return state.sources;
+  }
+
+  async function startWizard() {
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    state.wiz = { measure: null, source: null, breakdowns: [],
+                  scopeProcs: [], range: null, dateField: null, _fp: null };
+    setView('wizard');
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    renderMeasureStep();
+  }
+
+  function renderMeasureStep() {
+    var list = el('rsMeasureList');
+    list.innerHTML = '';
+    var bySource = state.metricsBySource || {};
+    var visible = Object.keys(bySource).filter(function (sid) {
+      return (state.sources || []).some(function (s) { return s.id === sid; });
+    });
+    var multi = visible.length > 1;
+    visible.forEach(function (sid) {
+      var src = state.sources.find(function (s) { return s.id === sid; });
+      (bySource[sid] || []).forEach(function (m) {
+        // Sources without metrics never appear; admins grow the wizard's
+        // reach by adding rows in the metrics registry, zero code change.
+        var label = multi ? (m.label + ' · ' + src.label) : m.label;
+        list.appendChild(choiceBtn(label, function () {
+          state.wiz.measure = m;
+          state.wiz.source = src;   // picking a measure pins the source
+          renderBreakdownStep();
+        }, !!(state.wiz.measure && state.wiz.measure.code === m.code
+              && state.wiz.source && state.wiz.source.id === src.id)));
+      });
+    });
+    if (!list.children.length) {
+      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
+    }
+  }
+
+  function renderBreakdownStep() {
+    el('rsStepBreakdown').hidden = false;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    var list = el('rsBreakdownList');
+    list.innerHTML = '';
+    var w = state.wiz;
+    if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
+
+    var fields = w.source.fields || [];
+    var dateFields = fields.filter(function (f) { return f.grainable; });
+    var catFields = fields.filter(function (f) {
+      return f.type === 'string' && f.filterable && f.field !== 'processname';
+    });
+
+    if (w.source.id === 'docprocessing') {
+      catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
+      catFields.sort(function (a, b) {
+        var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
+        if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
+        if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
+        return (ia - ib) || a.label.localeCompare(b.label);
+      });
+    }
+
+    function isSelected(bd) {
+      if (bd.kind === 'none') return w.breakdowns.length === 0;
+      var i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) return true;
+      }
+      return false;
+    }
+
+    function refreshChips() {
+      var chips = list.querySelectorAll('button[data-bd-kind]');
+      var ci;
+      for (ci = 0; ci < chips.length; ci++) {
+        var btn = chips[ci];
+        var bd = { kind: btn.dataset.bdKind,
+                   field: btn.dataset.bdField ? { field: btn.dataset.bdField } : null };
+        var sel = isSelected(bd);
+        btn.classList.toggle('is-selected', sel);
+        btn.setAttribute('aria-pressed', String(sel));
+      }
+      var hasDate = false;
+      for (ci = 0; ci < w.breakdowns.length; ci++) {
+        if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
+      }
+      el('rsGrainWrap').hidden = !hasDate;
+    }
+
+    function toggleBreakdown(bd) {
+      if (bd.kind === 'none') {
+        w.breakdowns = [];
+        refreshChips();
+        return;
+      }
+      var idx = -1, i;
+      for (i = 0; i < w.breakdowns.length; i++) {
+        var b = w.breakdowns[i];
+        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) {
+          idx = i; break;
+        }
+      }
+      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); return; }
+      if (bd.kind === 'date') {
+        w.breakdowns = w.breakdowns.filter(function (b) { return b.kind !== 'date'; });
+      }
+      if (w.breakdowns.length >= 3) { refreshChips(); return; }
+      w.breakdowns.push(bd);
+      refreshChips();
+    }
+
+    dateFields.forEach(function (f) {
+      var bd = { kind: 'date', field: f };
+      var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'date';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
+    });
+    catFields.slice(0, 12).forEach(function (f) {
+      var bd = { kind: 'category', field: f };
+      var btn = choiceBtn(f.label, function () {
+        toggleBreakdown(bd);
+      }, isSelected(bd));
+      btn.dataset.bdKind = 'category';
+      btn.dataset.bdField = f.field;
+      list.appendChild(btn);
+    });
+    var noneBtn = choiceBtn(I18N.justTotal, function () {
+      toggleBreakdown({ kind: 'none' });
+    }, w.breakdowns.length === 0);
+    noneBtn.dataset.bdKind = 'none';
+    list.appendChild(noneBtn);
+
+    // Wire Continue button
+    var nextBtn = el('rsBreakdownNext');
+    if (nextBtn) {
+      nextBtn.onclick = function () { renderTimeStep(); };
+    }
+
+    // Optional collapsed process picker (docprocessing only). Emits the same
+    // scope serialisation as the Advanced picker; empty/full = all allowed
+    // (the server clamps to grants either way).
+    var scopeWrap = el('rsScopeWrap');
+    var procs = state.wiz.source.processes || [];
+    scopeWrap.hidden = !procs.length;
+    if (procs.length) {
+      var box = el('rsScopeList');
+      box.innerHTML = '';
+      var prior = state.wiz.scopeProcs || [];
+      var updateScopeBadge = function () {
+        var picked = (state.wiz.scopeProcs || []).length;
+        el('rsScopeBadge').textContent =
+          (!picked || picked === procs.length) ? I18N.allProcesses : picked + ' / ' + procs.length;
+      };
+      procs.forEach(function (p) {
+        var lbl = document.createElement('label');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = p;
+        cb.checked = !prior.length || prior.indexOf(p) !== -1;
+        cb.addEventListener('change', function () {
+          state.wiz.scopeProcs = Array.prototype.map.call(
+            box.querySelectorAll('input:checked'), function (c) { return c.value; });
+          updateScopeBadge();
+        });
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(' ' + p));
+        box.appendChild(lbl);
+      });
+      if (!prior.length) state.wiz.scopeProcs = procs.slice();
+      updateScopeBadge();
+    }
+  }
+
+  function isoDate(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function renderTimeStep() {
+    el('rsStepTime').hidden = false;
+    el('rsWizardRun').hidden = false;
+    el('rsTimeCustom').hidden = !Array.isArray(state.wiz.range);
+    var fields = state.wiz.source.fields || [];
+    var dateFields = fields.filter(function (f) { return f.grainable; });
+    var list = el('rsTimeList');
+    // Skipped when the source exposes no date field.
+    if (!dateFields.length) {
+      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noDateField) + '</p>';
+      el('rsTimeFieldWrap').hidden = true;
+      state.wiz.range = null;
+      return;
+    }
+    // Date field defaults to import_date, switchable to export_date.
+    var sel = el('rsTimeField');
+    sel.innerHTML = '';
+    dateFields.forEach(function (f) {
+      var o = document.createElement('option');
+      o.value = f.field; o.textContent = f.label;
+      sel.appendChild(o);
+    });
+    if (state.wiz.dateField
+        && dateFields.some(function (f) { return f.field === state.wiz.dateField; })) {
+      sel.value = state.wiz.dateField;
+    } else if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
+      sel.value = 'import_date';
+    }
+    el('rsTimeFieldWrap').hidden = dateFields.length < 2;
+    state.wiz.dateField = sel.value;
+    sel.onchange = function () { state.wiz.dateField = sel.value; };
+
+    list.innerHTML = '';
+    [['this_week', I18N.thisWeek], ['this_month', I18N.thisMonth],
+     ['last_month', I18N.lastMonth], ['this_quarter', I18N.thisQuarter],
+     ['last_quarter', I18N.lastQuarter], ['last_3_months', I18N.last3Months],
+     ['this_year', I18N.thisYear], ['last_year', I18N.lastYear],
+     ['all_time', I18N.allTime], ['custom', I18N.custom]].forEach(function (p) {
+      list.appendChild(choiceBtn(p[1], function () {
+        el('rsTimeCustom').hidden = p[0] !== 'custom';
+        if (p[0] === 'custom') {
+          if (!state.wiz._fp && window.flatpickr) {
+            state.wiz._fp = flatpickr(el('rsTimeRange'), {
+              mode: 'range', dateFormat: 'Y-m-d',
+              onChange: function (picked) {
+                if (picked.length === 2) {
+                  state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
+                }
+              }
+            });
+          }
+          // Re-selecting Custom keeps whatever range the picker still shows
+          // (display and state must agree); empty picker = no filter yet.
+          var fp = state.wiz._fp;
+          state.wiz.range = (fp && fp.selectedDates && fp.selectedDates.length === 2)
+            ? [isoDate(fp.selectedDates[0]), isoDate(fp.selectedDates[1])]
+            : null;
+        } else {
+          // Preset = relative-date token: resolved server-side on every run.
+          // all_time = no filter.
+          state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
+        }
+      }, state.wiz.range === p[0] ||
+         (state.wiz.range && state.wiz.range.token === p[0]) ||
+         (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||
+         (p[0] === 'all_time' && state.wiz.range === null)));
+    });
+    // Only default to all-time if no prior choice is being restored.
+    if (!state.wiz.range) state.wiz.range = null;
+  }
+
+  // Wizard invariants (validator-enforced server-side): sort fields are among
+  // the selected columns or metric codes; grain only on grainable fields;
+  // metric codes from the registry; the between filter always targets the
+  // RAW date field (the Spec-1 contract), never the bucketed expression.
+  function wizardDefinition() {
+    var w = state.wiz;
+    var columns = [], sort = [], filters = [];
+    var title = w.measure.label;
+    var bds = (w.breakdowns || []).slice();
+    // date first: it becomes the chart axis (X)
+    bds.sort(function (a, b) {
+      return (a.kind === 'date' ? 0 : 1) - (b.kind === 'date' ? 0 : 1);
+    });
+    var grain = el('rsGrain').value || 'month';
+    var titleParts = [];
+    var hasDate = false;
+    bds.slice(0, 3).forEach(function (b) {
+      if (b.kind === 'date') {
+        hasDate = true;
+        columns.push({ field: b.field.field, header: b.field.label, grain: grain });
+        sort.push({ field: b.field.field, dir: 'asc' });
+        titleParts.push(I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase());
+      } else if (b.kind === 'category') {
+        columns.push({ field: b.field.field, header: b.field.label });
+        titleParts.push(b.field.label);
+      }
+    });
+    if (!sort.length && columns.length) {
+      sort.push({ field: w.measure.code, dir: 'desc' });
+    }
+    if (titleParts.length) {
+      if (hasDate && bds.length === 1) {
+        title += ' ' + titleParts.join(' / ');
+      } else {
+        title += ' ' + I18N.by + ' ' + titleParts.join(' / ');
+      }
+    }
+    if (w.range && w.dateField) {
+      filters.push({ field: w.dateField, op: 'between', value: w.range });
+    }
+    var scope = { clients: [], processes: [] };
+    var allProcs = w.source.processes || [];
+    if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
+      scope.processes = w.scopeProcs.slice();
+    }
+    return {
+      schemaVersion: 1, source: w.source.id, visualization: 'table',
+      title: title, subtitle: null,
+      columns: columns,
+      metrics: [{ metric: w.measure.code }],
+      filters: filters, sort: sort, scope: scope, rowLimit: 5000
+    };
+  }
+
+  // Wizard presets that renderTimeStep offers; other tokens (e.g. last_n_days,
+  // last_week) can't be represented in the wizard UI, so such defs don't map.
+  var WIZ_TOKENS = ['this_week', 'this_month', 'last_month', 'this_quarter',
+                    'last_quarter', 'last_3_months', 'this_year', 'last_year'];
+
+  // Inverse of wizardDefinition(): returns {wiz, grain} for wizard-shaped
+  // definitions, or null when the def can't be represented in the wizard
+  // (multiple columns/filters/metrics, exotic ops, client scope).
+  function wizardStateFromDefinition(def) {
+    if (!def || !Array.isArray(def.metrics) || def.metrics.length !== 1) return null;
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var mlist = (state.metricsBySource || {})[def.source] || [];
+    var m = mlist.find(function (x) { return x.code === def.metrics[0].metric; });
+    if (!src || !m) return null;
+    var cols = def.columns || [];
+    if (cols.length > 3) return null;
+    var breakdowns = [], grain = null, dateSeen = false;
+    var ci;
+    for (ci = 0; ci < cols.length; ci++) {
+      var f = (src.fields || []).find(function (x) { return x.field === cols[ci].field; });
+      if (!f) return null;
+      if (cols[ci].grain) {
+        if (!f.grainable || dateSeen) return null;
+        dateSeen = true;
+        breakdowns.push({ kind: 'date', field: f });
+        grain = cols[ci].grain;
+      } else {
+        breakdowns.push({ kind: 'category', field: f });
+      }
+    }
+    var filters = def.filters || [];
+    if (filters.length > 1) return null;
+    var range = null, dateField = null;
+    if (filters.length === 1) {
+      var ft = filters[0];
+      if (ft.op !== 'between') return null;
+      var df = (src.fields || []).find(function (x) {
+        return x.field === ft.field && x.grainable;
+      });
+      if (!df) return null;
+      dateField = ft.field;
+      if (ft.value && ft.value.token) {
+        if (WIZ_TOKENS.indexOf(ft.value.token) === -1) return null;
+        range = { token: ft.value.token };
+      } else if (Array.isArray(ft.value) && ft.value.length === 2) {
+        range = ft.value.slice();
+      } else { return null; }
+    }
+    var scope = def.scope || {};
+    if ((scope.clients || []).length) return null;
+    return { wiz: { measure: m, source: src, breakdowns: breakdowns,
+                    scopeProcs: (scope.processes || []).slice(),
+                    range: range, dateField: dateField, _fp: null },
+             grain: grain };
+  }
+
+  async function adjustInWizard() {
+    var cur = state.current;
+    if (!cur) return;
+    if (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure) {
+      reopenWizard(); return;
+    }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    var mapped = wizardStateFromDefinition(cur.def);
+    if (!mapped) return;
+    state.wiz = mapped.wiz;
+    if (mapped.grain) el('rsGrain').value = mapped.grain;
+    reopenWizard();
+  }
+
+  async function reopenWizard() {
+    if (!state.wiz || !state.wiz.measure) { startWizard(); return; }
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    setView('wizard');
+    renderMeasureStep();
+    renderBreakdownStep();
+    renderTimeStep();
+  }
+
+  el('rsNewReport').addEventListener('click', startWizard);
+  // Back steps one wizard step backwards (picks are preserved in state.wiz);
+  // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
+  el('rsWizardBack').addEventListener('click', function () {
+    if (!el('rsStepTime').hidden) {           // time -> breakdown
+      el('rsStepTime').hidden = true;
+      el('rsWizardRun').hidden = true;
+      return;
+    }
+    if (!el('rsStepBreakdown').hidden) {      // breakdown -> measure
+      el('rsStepBreakdown').hidden = true;
+      return;
+    }
+    setView('library');                       // measure -> out
+  });
+  el('rsWizardRun').addEventListener('click', function () {
+    if (!state.wiz || !state.wiz.measure) return;
+    var def = wizardDefinition();
+    state.current = { def: def, name: def.title, reportId: null,
+                      owned: true, canEdit: true, fromWizard: true,
+                      builtBy: 'wizard' };
+    runCurrent();
+  });
+
+  // ---------- Ask-AI helper ----------
+  var aiBar = el('rsAiBar');  // only in the DOM when ai_enabled
+  if (aiBar) {
+    el('rsAiAsk').addEventListener('click', function () { askAi(); });
+    el('rsAiPrompt').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') askAi();
+    });
+    var refineBtn = el('rsRefine');
+    if (refineBtn) {
+      refineBtn.addEventListener('click', function () {
+        var q = el('rsRefineInput').value.trim();
+        if (q) askAi(q);
+      });
+      el('rsRefineInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          var q = el('rsRefineInput').value.trim();
+          if (q) askAi(q);
+        }
+      });
+    }
+  }
+
+  async function askAi(refineQuestion) {
+    var fromRefine = refineQuestion !== undefined;
+    var q = fromRefine ? refineQuestion : el('rsAiPrompt').value.trim();
+    if (!q || aiBusy) return;
+    var payload = { question: q };
+    var prior = state.current;
+    if (fromRefine && prior && prior.def) {
+      if (prior.aiQuestion) payload.priorQuestion = prior.aiQuestion;
+      payload.priorDefinition = prior.def;
+    }
+    aiBusy = true;
+    el('rsAiAsk').disabled = true;
+    var refineBtn = el('rsRefine');
+    if (refineBtn) refineBtn.disabled = true;
+    showAiLoading();
+    var res = await api('/api/reporting/ai/build', {
+      method: 'POST', body: JSON.stringify(payload)
+    });
+    aiBusy = false;
+    el('rsAiAsk').disabled = false;
+    if (refineBtn) refineBtn.disabled = false;
+    hideAiLoading();
+    if (res.status === 503) {
+      aiBar.hidden = true;
+      aiBar.dataset.gone = '1';
+      setView('library');
+      return;
+    }
+    if (res.status === 429) { showResultError(I18N.aiLimit); return; }
+    if (!res.ok || !res.data || !res.data.valid || !res.data.definition) {
+      var why = (res.data && (res.data.error || res.data.explanation)) || '';
+      if (fromRefine && prior) {
+        // Failed refine: re-render the previous result and surface the error
+        // above it instead of discarding the user's working report.
+        state.current = prior;
+        await runCurrent();
+        el('rsError').textContent = I18N.aiInvalid + (why ? ' (' + why + ')' : '');
+        el('rsError').hidden = false;
+      } else {
+        showResultError(I18N.aiInvalid + (why ? ' (' + why + ')' : ''));
+      }
+      return;
+    }
+    state.current = { def: res.data.definition, name: res.data.definition.title,
+                      reportId: null, owned: true, canEdit: true, fromWizard: true,
+                      aiExplanation: res.data.explanation || '',
+                      aiQuestion: q };
+    runCurrent();
+  }
+
+  // ---------- init ----------
+  function initOnce() {
+    if (state.loaded) return;
+    state.loaded = true;
+    loadMetricsCatalog();
+    loadLibrary();
+  }
+
+  el('rsSearch').addEventListener('input', renderLibrary);
+  function exitToLibrary() { setView('library'); loadLibrary(); }
+
+  // Back on a result returns to the wizard ADJUSTMENT whenever the definition
+  // is wizard-shaped; the X is the explicit way out to the library.
+  el('rsBack').addEventListener('click', function () {
+    var cur = state.current;
+    var adjustable = cur && (
+      (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure)
+      || wizardStateFromDefinition(cur.def));
+    if (adjustable) { adjustInWizard(); return; }
+    exitToLibrary();
+  });
+  el('rsExit').addEventListener('click', exitToLibrary);
+  el('rsWizardClose').addEventListener('click', exitToLibrary);
+
+  document.addEventListener('rp:tabshown', function (e) {
+    if (e.detail.tab === 'simple') initOnce();
+  });
+  if (window.ReportingTabs && window.ReportingTabs.current() === 'simple') initOnce();
+}());
+</script>

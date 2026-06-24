@@ -14,7 +14,18 @@ GO
 IF OBJECT_ID('dbo.fnUserHasPermission', 'FN') IS NOT NULL DROP FUNCTION dbo.fnUserHasPermission;
 GO
 
--- Drop tables in FK-safe order (children first)
+-- Drop tables in FK-safe order (children first).
+-- Reporting tables are dropped here too: dbo.Reports has an FK to dbo.Users, so
+-- it must go before Users or the reset fails on re-run (they are recreated near
+-- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
+-- a clean, fully idempotent reset.
+IF OBJECT_ID('dbo.ReportSchedules', 'U') IS NOT NULL DROP TABLE dbo.ReportSchedules;
+IF OBJECT_ID('dbo.ReportingMetrics', 'U') IS NOT NULL DROP TABLE dbo.ReportingMetrics;
+IF OBJECT_ID('dbo.ReportingSources', 'U') IS NOT NULL DROP TABLE dbo.ReportingSources;
+IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
+IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
+IF OBJECT_ID('dbo.ReportingSqlAudit', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAudit;
+IF OBJECT_ID('dbo.ReportingSqlAck', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAck;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
@@ -144,5 +155,150 @@ BEGIN
     SELECT DISTINCT p.Code
     FROM dbo.Permission p
     WHERE dbo.fnUserHasPermission(@UserID, p.Code) = 1;
+END;
+GO
+
+-- Reporting SQL tables (Phase 2 live-SQL sandbox, mirrors 0006_create_reporting_sql_tables.sql)
+IF OBJECT_ID(N'dbo.ReportingSqlAudit', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingSqlAudit (
+        Id            INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportingSqlAudit PRIMARY KEY,
+        UserID        INT NULL,
+        Username      NVARCHAR(100) NULL,
+        TargetDB      NVARCHAR(50) NOT NULL,
+        SqlText       NVARCHAR(MAX) NOT NULL,
+        RowsReturned  INT NULL,
+        Status        NVARCHAR(16) NOT NULL,
+        DurationMs    INT NULL,
+        CreatedAt     DATETIME2 NOT NULL
+                      CONSTRAINT DF_ReportingSqlAudit_CreatedAt DEFAULT SYSUTCDATETIME()
+    );
+    CREATE INDEX IX_ReportingSqlAudit_User ON dbo.ReportingSqlAudit(UserID, CreatedAt);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.ReportingSqlAck', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingSqlAck (
+        UserID      INT NOT NULL CONSTRAINT PK_ReportingSqlAck PRIMARY KEY,
+        AcceptedAt  DATETIME2 NOT NULL
+                    CONSTRAINT DF_ReportingSqlAck_AcceptedAt DEFAULT SYSUTCDATETIME()
+    );
+END;
+GO
+
+-- Saved per-user report definitions (mirrors 0004_create_reports_table.sql) so
+-- the saved-report list/load/save flow can be exercised in TEST.
+IF OBJECT_ID(N'dbo.Reports', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Reports (
+        ReportID        INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Reports PRIMARY KEY,
+        OwnerUserID     INT NOT NULL,
+        Name            NVARCHAR(200) NOT NULL,
+        DefinitionJSON  NVARCHAR(MAX) NOT NULL,
+        Visibility      NVARCHAR(20) NOT NULL CONSTRAINT DF_Reports_Visibility DEFAULT 'private',
+        CreatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Reports_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Reports_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_Reports_Users FOREIGN KEY (OwnerUserID) REFERENCES dbo.Users(userID),
+        CONSTRAINT CK_Reports_Visibility CHECK (Visibility IN ('private', 'shared'))
+    );
+    CREATE INDEX IX_Reports_Owner ON dbo.Reports(OwnerUserID);
+END;
+GO
+
+-- Scheduled report delivery (mirrors 0012_report_schedules.sql).
+IF OBJECT_ID(N'dbo.ReportSchedules', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportSchedules (
+        ScheduleID   INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportSchedules PRIMARY KEY,
+        ReportID     INT NOT NULL,
+        OwnerUserID  INT NOT NULL,
+        Recipients   NVARCHAR(1000) NOT NULL,
+        Format       NVARCHAR(8) NOT NULL CONSTRAINT DF_ReportSchedules_Format DEFAULT 'xlsx',
+        Frequency    NVARCHAR(10) NOT NULL,
+        Hour         TINYINT NOT NULL CONSTRAINT DF_ReportSchedules_Hour DEFAULT 6,
+        Minute       TINYINT NOT NULL CONSTRAINT DF_ReportSchedules_Minute DEFAULT 0,
+        Weekday      TINYINT NULL,
+        DayOfMonth   TINYINT NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportSchedules_Enabled DEFAULT 1,
+        LastRunAt    DATETIME2 NULL,
+        NextRunAt    DATETIME2 NULL,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportSchedules_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        AlertOp      NVARCHAR(8) NULL,
+        AlertThreshold FLOAT NULL,
+        CONSTRAINT FK_ReportSchedules_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportSchedules_Users FOREIGN KEY (OwnerUserID)
+            REFERENCES dbo.Users(userID),
+        CONSTRAINT CK_ReportSchedules_Format CHECK (Format IN ('xlsx', 'csv')),
+        CONSTRAINT CK_ReportSchedules_Frequency CHECK (Frequency IN ('daily', 'weekly', 'monthly'))
+    );
+    CREATE INDEX IX_ReportSchedules_Due ON dbo.ReportSchedules(Enabled, NextRunAt);
+END;
+GO
+
+-- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
+IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingSources (
+        SourceID     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportingSources PRIMARY KEY,
+        Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingSources_Code UNIQUE,
+        Kind         NVARCHAR(16) NOT NULL,
+        Label        NVARCHAR(120) NOT NULL,
+        Permission   NVARCHAR(128) NOT NULL,
+        Engine       NVARCHAR(32) NULL,
+        Target       NVARCHAR(32) NULL,
+        Provider     NVARCHAR(32) NULL,
+        BaseObject   NVARCHAR(256) NULL,
+        ColumnsJSON  NVARCHAR(MAX) NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportingSources_Enabled DEFAULT 1,
+        SortOrder    INT NOT NULL CONSTRAINT DF_ReportingSources_SortOrder DEFAULT 100,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingSources_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT CK_ReportingSources_Kind CHECK (Kind IN ('curated', 'sql'))
+    );
+END;
+GO
+
+-- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql).
+IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportingMetrics (
+        MetricID     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportingMetrics PRIMARY KEY,
+        Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingMetrics_Code UNIQUE,
+        SourceId     NVARCHAR(64) NOT NULL,
+        Label        NVARCHAR(120) NOT NULL,
+        Aggregation  NVARCHAR(16) NOT NULL,
+        BaseField    NVARCHAR(128) NULL,
+        FilterJson   NVARCHAR(MAX) NULL,
+        Description  NVARCHAR(512) NULL,
+        Format       NVARCHAR(16) NULL,
+        Enabled      BIT NOT NULL CONSTRAINT DF_ReportingMetrics_Enabled DEFAULT 1,
+        SortOrder    INT NOT NULL CONSTRAINT DF_ReportingMetrics_SortOrder DEFAULT 100,
+        CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_CreatedAt DEFAULT SYSUTCDATETIME(),
+        UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_UpdatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT CK_ReportingMetrics_Aggregation
+            CHECK (Aggregation IN ('count','count_distinct','sum','avg','min','max'))
+    );
+END;
+GO
+
+-- Explicit per-user report shares (mirrors 0009_report_sharing.sql).
+IF OBJECT_ID(N'dbo.ReportShares', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportShares (
+        ReportID          INT NOT NULL,
+        SharedWithUserID  INT NOT NULL,
+        CanEdit           BIT NOT NULL CONSTRAINT DF_ReportShares_CanEdit DEFAULT 0,
+        CreatedAt         DATETIME2 NOT NULL
+                          CONSTRAINT DF_ReportShares_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_ReportShares PRIMARY KEY (ReportID, SharedWithUserID),
+        CONSTRAINT FK_ReportShares_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportShares_Users FOREIGN KEY (SharedWithUserID)
+            REFERENCES dbo.Users(userID)
+    );
+    CREATE INDEX IX_ReportShares_User ON dbo.ReportShares(SharedWithUserID);
 END;
 GO

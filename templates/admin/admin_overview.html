@@ -5,23 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("Admin Overview - nexora") }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-tokens.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
-<body class="admin-page">
+<body class="nx-app">
     {% set active_page = 'adminOverview' %}
     {% include '_header.html' %}
     {% import 'admin/_admin_helpers.html' as a %}
 
-    <main>
+    <main class="nx-main">
         {{ a.page_header(
             title=_('Administration'),
-            subtitle=_('Users, organizations, sessions and logs.')
+            subtitle=_('Users, organizations, sessions and logs.'),
+            icon='fa-shield-halved'
         ) }}
 
-        <div class="health-strip">
+        <div class="health-strip nx-rise-2">
 
-            <a href="{{ url_for('admin_sessions_view') }}" class="admin-card admin-card-link health-card" data-testid="admin-overview-health-sessions">
+            <a href="{{ url_for('admin_sessions_view') }}" class="nx-card nx-card--link health-card" data-testid="admin-overview-health-sessions">
                 <div class="health-card-label">{{ _('Active sessions') }}</div>
                 <div class="health-card-value">
                     {% if active_sessions_count is not none %}{{ active_sessions_count }}{% else %}—{% endif %}
@@ -29,7 +30,7 @@
                 <div class="health-card-sub">{{ _('Currently signed in') }}</div>
             </a>
 
-            <div class="admin-card health-card">
+            <div class="nx-card health-card">
                 <div class="health-card-label">{{ _('Failed logins today') }}</div>
                 <div class="health-card-value {% if failed_logins_today and failed_logins_today > 0 %}is-danger{% endif %}">
                     {% if failed_logins_today is not none %}{{ failed_logins_today }}{% else %}—{% endif %}
@@ -37,7 +38,7 @@
                 <div class="health-card-sub">{{ _('Since midnight') }}</div>
             </div>
 
-            <div class="admin-card health-card">
+            <div class="nx-card health-card">
                 <div class="health-card-label">{{ _('Database health') }}</div>
                 <div class="health-db-list" style="margin-top:8px">
                     {% for db in db_health %}
@@ -51,11 +52,11 @@
 
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:32px;">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:32px;" class="nx-rise-3">
 
-            <a href="{{ url_for('admin_access_control') }}" class="admin-card admin-card-link admin-overview-card" data-testid="admin-overview-access-control">
+            <a href="{{ url_for('admin_access_control') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-access-control">
                 <div class="admin-overview-card-top">
-                    <div class="admin-meta">{{ _('Access Control') }}</div>
+                    <div class="nx-meta">{{ _('Access Control') }}</div>
                     <i class="fas fa-id-badge admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number">{{ user_count }}</div>
@@ -63,9 +64,9 @@
                 <p class="admin-overview-card-desc">{{ _('Users, permissions and access profiles') }}</p>
             </a>
 
-            <a href="{{ url_for('admin_organizations_view') }}" class="admin-card admin-card-link admin-overview-card" data-testid="admin-overview-organizations">
+            <a href="{{ url_for('admin_organizations_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-organizations">
                 <div class="admin-overview-card-top">
-                    <div class="admin-meta">{{ _('Organizations') }}</div>
+                    <div class="nx-meta">{{ _('Organizations') }}</div>
                     <i class="fas fa-building admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number">{{ org_count }}</div>
@@ -73,9 +74,9 @@
                 <p class="admin-overview-card-desc">{{ _('Tenant organizations and their codes') }}</p>
             </a>
 
-            <a href="{{ url_for('admin_sessions_view') }}" class="admin-card admin-card-link admin-overview-card" data-testid="admin-overview-sessions">
+            <a href="{{ url_for('admin_sessions_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-sessions">
                 <div class="admin-overview-card-top">
-                    <div class="admin-meta">{{ _('Active Sessions') }}</div>
+                    <div class="nx-meta">{{ _('Active Sessions') }}</div>
                     <i class="fas fa-signal admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Live') }}</div>
@@ -83,9 +84,9 @@
                 <p class="admin-overview-card-desc">{{ _('Users active in the last 30 minutes') }}</p>
             </a>
 
-            <a href="{{ url_for('admin_logs_view') }}" class="admin-card admin-card-link admin-overview-card" data-testid="admin-overview-logs">
+            <a href="{{ url_for('admin_logs_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-logs">
                 <div class="admin-overview-card-top">
-                    <div class="admin-meta">{{ _('System Logs') }}</div>
+                    <div class="nx-meta">{{ _('System Logs') }}</div>
                     <i class="fas fa-clipboard-list admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Audit') }}</div>
@@ -96,17 +97,17 @@
         </div>
 
         <div>
-            <div class="admin-meta" style="margin-bottom:12px">{{ _('Resources') }}</div>
+            <div class="nx-meta" style="margin-bottom:12px">{{ _('Resources') }}</div>
             <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
                 <a href="https://sydocteam.atlassian.net/wiki/spaces/nexora/overview?homepageId=323944774"
                    target="_blank" rel="noopener"
-                   style="color:var(--a-indigo);text-decoration:none" data-testid="admin-overview-docs-link">
+                   style="color:var(--nx-accent);text-decoration:none" data-testid="admin-overview-docs-link">
                     <i class="fas fa-book"></i> &nbsp; {{ _('Nexora documentation') }}
                     <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px"></i>
                 </a>
                 <a href="https://dashboard.ngrok.com/get-started/setup/windows"
                    target="_blank" rel="noopener"
-                   style="color:var(--a-indigo);text-decoration:none" data-testid="admin-overview-ngrok-link">
+                   style="color:var(--nx-accent);text-decoration:none" data-testid="admin-overview-ngrok-link">
                     <i class="fas fa-network-wired"></i> &nbsp; {{ _('ngrok hosting') }}
                     <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px"></i>
                 </a>

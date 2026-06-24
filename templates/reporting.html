@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Reporting - nexora") }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <script>
+    // Resolve the initial tab synchronously (?tab= > localStorage > 'simple')
+    // and enable the no-FOUC builder entrance only when landing on Advanced
+    // with motion allowed (the .rp-anim class pre-hides the builder columns;
+    // js/_reporting_anim_js.html reveals + animates them). Simple uses the
+    // design system's .nx-rise entrance instead.
+    (function () {
+      try {
+        var tab = new URLSearchParams(window.location.search).get('tab')
+          || localStorage.getItem('nx.reporting.tab') || 'simple';
+        window.__rpInitialTab = tab === 'advanced' ? 'advanced' : 'simple';
+        if (window.__rpInitialTab === 'advanced' &&
+            (!window.matchMedia ||
+             !window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+          document.documentElement.classList.add('rp-anim');
+        }
+      } catch (e) { window.__rpInitialTab = 'simple'; }
+    }());
+  </script>
+</head>
+
+<body class="nx-app">
+  {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <div class="nx-page-head nx-rise reporting-page-head">
+    <div class="nx-page-head__main">
+      <div class="nx-page-head__title">
+        <span class="nx-page-icon"><i class="fas fa-chart-column"></i></span>
+        <div>
+          <h1 class="nx-title">{{ _("Reporting") }}<span class="nx-label nx-label--indigo nx-label--nodot" style="vertical-align: middle; margin-inline-start: .5rem;">Beta</span></h1>
+          <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
+        </div>
+      </div>
+    </div>
+    {% if has_permission('reporting.admin.sources') %}
+    <div class="nx-page-head__actions">
+      <a href="{{ url_for('reporting_sources_admin') }}"
+         class="nx-btn nx-btn--secondary" data-testid="reporting-sources-link"
+         title="{{ _('Manage data sources') }}">
+        <i class="fas fa-database"></i><span class="hidden sm:inline">{{ _("Sources") }}</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="nx-tabs reporting-tabs" role="tablist" aria-label="{{ _('Reporting view') }}" data-testid="reporting-tabs">
+    <button id="rpTabSimple" class="nx-tab" role="tab" aria-selected="false"
+            aria-controls="rpPaneSimple" data-testid="reporting-tab-simple">
+      <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("Simple") }}</button>
+    <button id="rpTabAdvanced" class="nx-tab" role="tab" aria-selected="false"
+            aria-controls="rpPaneAdvanced" data-testid="reporting-tab-advanced">
+      <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Advanced") }}</button>
+  </div>
+
+  <div id="rpPaneSimple" role="tabpanel" aria-labelledby="rpTabSimple" hidden>
+    {% include 'js/_reporting_sqlformat_js.html' %}
+    {% include '_reporting_simple.html' %}
+  </div>
+
+  <div id="rpPaneAdvanced" role="tabpanel" aria-labelledby="rpTabAdvanced" hidden>
+  <main class="reporting-main" data-testid="reporting-page">
+    <aside class="reporting-fields" data-testid="reporting-field-panel">
+      <label class="reporting-label">{{ _("Source") }}</label>
+      <select id="rpSource" data-testid="reporting-source-select"></select>
+      <div id="rpScopeWrap" class="reporting-scope" hidden data-testid="reporting-scope">
+        <label class="reporting-label">{{ _("Processes") }}</label>
+        <button type="button" id="rpScopeBtn" class="reporting-scope-btn"
+                aria-controls="rpScopeMenu" aria-expanded="false" data-testid="reporting-scope-btn">
+          <span id="rpScopeSummary">{{ _("All processes") }}</span>
+          <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div id="rpScopeMenu" class="reporting-scope-menu" hidden role="group"
+             aria-label="{{ _('Filter by client and process') }}" data-testid="reporting-scope-menu"></div>
+      </div>
+      <input id="rpFieldSearch" class="reporting-input" placeholder="{{ _('Search fields…') }}" data-testid="reporting-field-search">
+      <ul id="rpFieldList" class="reporting-field-list"></ul>
+    </aside>
+
+    <section class="reporting-results">
+      <div class="reporting-toolbar">
+        <div class="reporting-mode-toggle" role="tablist" aria-label="{{ _('Report mode') }}">
+          <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
+          <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
+          {% if ai_enabled %}
+          <button id="rpModeAi" data-testid="reporting-mode-ai">{{ _("Ask AI") }}</button>
+          {% endif %}
+        </div>
+        <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title"
+               aria-label="{{ _('Report title') }}">
+        <div class="reporting-saved" data-testid="reporting-saved">
+          <select id="rpSavedReports" data-testid="reporting-saved-reports">
+            <option value="">{{ _("Saved reports…") }}</option>
+          </select>
+          <button id="rpLoad" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-load">{{ _("Load") }}</button>
+          <span class="reporting-saved-links">
+            <button id="rpRename" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-rename">{{ _("Rename") }}</button>
+            <button id="rpDelete" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-delete">{{ _("Delete") }}</button>
+            <button id="rpShare" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-share" disabled
+                    title="{{ _('Share the selected report you own') }}">{{ _("Share") }}</button>
+            {% if has_permission('reporting.schedule') %}
+            <button id="rpSchedule" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-schedule" disabled
+                    title="{{ _('Schedule the selected report you own') }}">{{ _("Schedule") }}</button>
+            {% endif %}
+          </span>
+        </div>
+        <div class="reporting-actions">
+          <button id="rpRun" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-run">
+            <i class="fas fa-play" aria-hidden="true"></i>{{ _("Run") }}</button>
+          <button id="rpSave" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-save">{{ _("Save") }}</button>
+          <button id="rpSaveAs" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-save-as">{{ _("Save as") }}</button>
+          <button type="button" id="rpShowSql" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" hidden
+                  data-testid="reporting-show-sql">{{ _("Show query") }}</button>
+          <span class="reporting-actions-sep" aria-hidden="true"></span>
+          <select id="rpExportFormat" class="reporting-export-format" data-testid="reporting-export-format" title="{{ _('Export format') }}">
+            <option value="xlsx">{{ _("Excel") }}</option>
+            <option value="csv">CSV</option>
+          </select>
+          <button id="rpExport" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-export">
+            <i class="fas fa-file-export" aria-hidden="true"></i>{{ _("Export") }}</button>
+        </div>
+      </div>
+      <div id="rpSqlPanel" class="reporting-sql-panel" hidden data-testid="reporting-sql-panel">
+        <div class="reporting-sql-bar">
+          <label class="reporting-label">{{ _("Target") }}</label>
+          <select id="rpSqlTarget" data-testid="reporting-sql-target"></select>
+        </div>
+        <textarea id="rpSqlEditor" class="reporting-sql-editor" spellcheck="false"
+                  placeholder="SELECT TOP (100) * FROM ..." data-testid="reporting-sql-editor"></textarea>
+      </div>
+      {% if ai_enabled %}
+      <div id="rpAiPanel" class="reporting-ai-panel rp-anim-ai" hidden data-testid="reporting-ai-panel">
+        <div class="reporting-ai-submode" data-testid="reporting-ai-submode">
+          <button id="rpAiModeBuild" class="active" data-testid="reporting-ai-mode-build">{{ _("Build a report") }}</button>
+          {% if ai_sql_enabled %}
+          <button id="rpAiModeSql" data-testid="reporting-ai-mode-sql">{{ _("Write SQL") }}</button>
+          {% endif %}
+          <button id="rpAiModeAgent" data-testid="reporting-ai-mode-agent">{{ _("Agent") }}</button>
+        </div>
+        <div class="reporting-ai-bar">
+          <input id="rpAiPrompt" class="reporting-ai-prompt"
+                 placeholder="{{ _('Ask in plain language — e.g. “top 10 processes by volume this month”') }}"
+                 data-testid="reporting-ai-prompt">
+          <button id="rpAiAsk" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary"
+                  data-testid="reporting-ai-ask">{{ _("Ask") }}</button>
+        </div>
+        <p id="rpAiHintBuild" class="reporting-ai-hint">{{ _("The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.") }}</p>
+        <p id="rpAiHintSql" class="reporting-ai-hint" hidden>{{ _("The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.") }}</p>
+        <p id="rpAiHintAgent" class="reporting-ai-hint" hidden>{% if ai_explain_enabled %}{{ _("The agent works step by step, showing each tool it uses. It can run read-only queries and report the actual numbers from the data it fetched.") }}{% else %}{{ _("The agent works step by step, showing each tool it uses to validate and draft — grounded only in the schema you can access. It never sees result data.") }}{% endif %}</p>
+        <div id="rpAiLoading" class="reporting-ai-loading" hidden data-testid="reporting-ai-loading">
+          <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span id="rpAiLoadingText" role="status"></span>
+        </div>
+        <div id="rpAiResult" class="reporting-ai-result" hidden data-testid="reporting-ai-result">
+          <pre id="rpAiSql" class="reporting-ai-sql" data-testid="reporting-ai-sql"></pre>
+          <p id="rpAiExplain" class="reporting-ai-explain"></p>
+          <p id="rpAiInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted SQL did not pass the read-only check — review it before running.") }}</p>
+          <div class="reporting-ai-actions">
+            <button id="rpAiInsert" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-insert">{{ _("Insert into SQL editor") }}</button>
+            <button id="rpAiCopy" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-ai-copy">{{ _("Copy") }}</button>
+          </div>
+        </div>
+        <div id="rpAiDefResult" class="reporting-ai-result" hidden data-testid="reporting-ai-def-result">
+          <p id="rpAiDefSummary" class="reporting-ai-explain" data-testid="reporting-ai-def-summary"></p>
+          <p id="rpAiDefInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted report could not be validated — try rephrasing.") }}</p>
+          <div class="reporting-ai-actions">
+            <button id="rpAiOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-open-builder">{{ _("Open in builder") }}</button>
+            <button id="rpAiMakeChart" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-make-chart">{{ _("Make a chart") }}</button>
+          </div>
+        </div>
+        <div id="rpAiAgentResult" class="reporting-ai-result" hidden data-testid="reporting-ai-agent-result">
+          <div id="rpAiAgentThread" class="reporting-ai-thread" data-testid="reporting-ai-agent-thread"></div>
+          <details id="rpAiAgentTraceWrap" class="reporting-ai-trace-wrap" hidden>
+            <summary class="reporting-ai-trace-summary">{{ _("How the agent worked") }} · <span id="rpAiAgentTurns"></span></summary>
+            <ol id="rpAiAgentTrace" class="reporting-ai-trace" data-testid="reporting-ai-agent-trace"></ol>
+          </details>
+          <p id="rpAiAgentInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The agent stopped before producing a validated result — try rephrasing.") }}</p>
+          <div class="reporting-ai-actions">
+            <button id="rpAiAgentOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-open-builder">{{ _("Open in builder") }}</button>
+            <button id="rpAiAgentInsertSql" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-insert-sql">{{ _("Insert into SQL editor") }}</button>
+          </div>
+        </div>
+        <p id="rpAiError" class="reporting-ai-error" hidden data-testid="reporting-ai-error"></p>
+      </div>
+      {% endif %}
+      <div id="rpViewToggle" class="reporting-view-toggle" hidden data-testid="reporting-view-toggle">
+        <button id="rpViewGrid" class="active" data-testid="reporting-view-grid">{{ _("Grid") }}</button>
+        <button id="rpViewChart" data-testid="reporting-view-chart">{{ _("Chart") }}</button>
+        <button id="rpViewPivot" data-testid="reporting-view-pivot">{{ _("Pivot") }}</button>
+      </div>
+      <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">
+        <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
+          <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
+          <p class="nx-empty__title">{{ _("Build a report to see results") }}</p>
+          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or switch to Ask AI to draft one in plain language.") }}</p>
+        </div>
+      </div>
+      <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
+      <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
+      <div class="nx-card nx-card--pad reporting-sqlview" id="rpSqlView" hidden data-testid="reporting-sql-view">
+        <div class="reporting-sqlview-bar">
+          <span>{{ _("Query sent to the database") }}</span>
+          <button type="button" id="rpSqlViewCopy" class="reporting-link" data-testid="reporting-sql-view-copy">{{ _("Copy") }}</button>
+        </div>
+        <pre id="rpSqlText"></pre>
+        <p id="rpSqlParams" class="reporting-sqlview-params"></p>
+      </div>
+    </section>
+
+    <aside class="reporting-wells" data-testid="reporting-wells">
+      <div class="reporting-well"><h4>{{ _("Metrics") }}</h4>
+        <ul id="rpWellMetrics" data-testid="reporting-well-metrics"></ul>
+        <button id="rpAddMetric" class="reporting-link" data-testid="reporting-add-metric">+ {{ _("Add metric") }}</button>
+        <p id="rpMetricHint" class="reporting-ai-hint" hidden>{{ _("With a metric selected, the Columns above become the grouping.") }}</p>
+      </div>
+      <div class="reporting-well"><h4>{{ _("Columns") }}</h4><ul id="rpWellColumns"></ul></div>
+      <div class="reporting-well"><h4>{{ _("Filters") }}</h4><div id="rpWellFilters"></div>
+        <button id="rpAddFilter" class="reporting-link">+ {{ _("Add filter") }}</button></div>
+      <div class="reporting-well"><h4>{{ _("Sort") }}</h4><div id="rpWellSort"></div>
+        <button id="rpAddSort" class="reporting-link">+ {{ _("Add sort") }}</button></div>
+      <div class="reporting-well"><h4>{{ _("Format") }}</h4>
+        <input id="rpSubtitle" class="reporting-input" placeholder="{{ _('Subtitle') }}"></div>
+    </aside>
+  </main>
+  </div>
+
+  <div id="rpSqlAck" class="reporting-modal" hidden data-testid="reporting-sql-ack">
+    <div class="reporting-modal-box nx-card nx-card--pad">
+      <h3>{{ _("Live SQL — read-only") }}</h3>
+      <p>{{ _("You are about to run read-only SQL against a live reporting database. Queries cannot modify data, and every run is logged. Double-check your query before running.") }}</p>
+      <div class="reporting-modal-actions">
+        <button id="rpSqlAckCancel" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-sql-ack-cancel">{{ _("Cancel") }}</button>
+        <button id="rpSqlAckAccept" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-sql-ack-accept">{{ _("I understand") }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rpShareModal" class="reporting-modal" hidden data-testid="reporting-share-modal">
+    <div class="reporting-modal-box nx-card nx-card--pad">
+      <h3>{{ _("Share report") }}</h3>
+      <div class="reporting-share-vis">
+        <label><input type="radio" name="rpShareVis" value="private" data-testid="reporting-share-private">
+          {{ _("Private — only me") }}</label>
+        <label><input type="radio" name="rpShareVis" value="shared" data-testid="reporting-share-shared">
+          {{ _("Shared with everyone who can use Reporting") }}</label>
+      </div>
+      <h4 class="reporting-share-h">{{ _("Shared with specific people") }}</h4>
+      <ul id="rpShareList" class="reporting-share-list" data-testid="reporting-share-list"></ul>
+      <div class="reporting-share-add">
+        <input id="rpShareUser" class="reporting-input" placeholder="{{ _('Email or username') }}" data-testid="reporting-share-user">
+        <label class="reporting-share-canedit"><input type="checkbox" id="rpShareCanEdit"> {{ _("Can edit") }}</label>
+        <button id="rpShareAdd" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-share-add">{{ _("Add") }}</button>
+      </div>
+      <div class="reporting-modal-actions">
+        <button id="rpShareClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-share-close">{{ _("Close") }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rpScheduleModal" class="reporting-modal" hidden data-testid="reporting-schedule-modal">
+    <div class="reporting-modal-box nx-card nx-card--pad">
+      <h3>{{ _("Schedule report") }}</h3>
+      <ul id="rpScheduleList" class="reporting-share-list" data-testid="reporting-schedule-list"></ul>
+      <div class="reporting-admin-grid">
+        <label>{{ _("Frequency") }}<select id="rpSchedFreq" class="reporting-input">
+          <option value="daily">{{ _("Daily") }}</option>
+          <option value="weekly">{{ _("Weekly") }}</option>
+          <option value="monthly">{{ _("Monthly") }}</option></select></label>
+        <label>{{ _("Time (UTC)") }}<input id="rpSchedTime" class="reporting-input" type="time" value="06:00"></label>
+        <label id="rpSchedWeekdayWrap" hidden>{{ _("Weekday") }}<select id="rpSchedWeekday" class="reporting-input">
+          <option value="0">{{ _("Monday") }}</option><option value="1">{{ _("Tuesday") }}</option>
+          <option value="2">{{ _("Wednesday") }}</option><option value="3">{{ _("Thursday") }}</option>
+          <option value="4">{{ _("Friday") }}</option><option value="5">{{ _("Saturday") }}</option>
+          <option value="6">{{ _("Sunday") }}</option></select></label>
+        <label id="rpSchedDomWrap" hidden>{{ _("Day of month") }}<input id="rpSchedDom" class="reporting-input" type="number" min="1" max="28" value="1"></label>
+        <label>{{ _("Format") }}<select id="rpSchedFormat" class="reporting-input">
+          <option value="xlsx">{{ _("Excel") }}</option><option value="csv">CSV</option></select></label>
+        <label>{{ _("Send") }}<select id="rpSchedAlertOp" class="reporting-input" data-testid="reporting-schedule-alert-op">
+          <option value="">{{ _("Always") }}</option>
+          <option value="gt">{{ _("Only when the total is above…") }}</option>
+          <option value="gte">{{ _("Only when the total is at least…") }}</option>
+          <option value="lt">{{ _("Only when the total is below…") }}</option>
+          <option value="lte">{{ _("Only when the total is at most…") }}</option></select></label>
+        <label id="rpSchedAlertValWrap" hidden>{{ _("Threshold") }}<input id="rpSchedAlertVal" class="reporting-input" type="number" step="any" value="0" data-testid="reporting-schedule-alert-value"></label>
+      </div>
+      <p id="rpSchedAlertHint" class="reporting-sched-alert-hint" hidden>{{ _("The threshold is checked against the report's grand total (or its row count when the report has no measure).") }}</p>
+      <label class="reporting-admin-cols">{{ _("Recipients (comma-separated)") }}
+        <input id="rpSchedRecipients" class="reporting-input" placeholder="a@example.com, b@example.com" data-testid="reporting-schedule-recipients"></label>
+      <div class="reporting-modal-actions">
+        <button id="rpSchedAdd" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-schedule-add">{{ _("Add schedule") }}</button>
+        <button id="rpScheduleClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-schedule-close">{{ _("Close") }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rpNameModal" class="reporting-modal" hidden data-testid="reporting-name-modal">
+    <div class="reporting-modal-box nx-card nx-card--pad">
+      <h3 id="rpNameModalTitle"></h3>
+      <input id="rpNameModalInput" class="reporting-input" data-testid="reporting-name-input">
+      <div class="reporting-modal-actions">
+        <button id="rpNameModalCancel" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-name-cancel">{{ _("Cancel") }}</button>
+        <button id="rpNameModalOk" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary" data-testid="reporting-name-ok">{{ _("Save") }}</button>
+      </div>
+    </div>
+  </div>
+
+  {% include 'js/_reporting_viz_js.html' %}
+  {% include 'js/_reporting_js.html' %}
+  <!-- Motion (motion.dev) — vanilla-JS animation library, pinned + SRI. -->
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/motion.js" integrity="sha384-pEZauOIyg+epFndlKew0sgl5yX3MHgf+30BAvpAlckfutfh4WwijcDbz6xua1VjD" crossorigin="anonymous"></script>
+  {% include 'js/_reporting_anim_js.html' %}
+  {% if ai_enabled %}
+  {% include 'js/_reporting_ai_js.html' %}
+  {% endif %}
+  {# Tabs controller LAST: its initial show() dispatches rp:tabshown, which the
+     Simple pane's IIFE (included inside _reporting_simple.html) listens for. #}
+  {% include 'js/_reporting_tabs_js.html' %}
+</body>
+
+</html>

@@ -14,15 +14,15 @@
     }
 
     const STATUS_META = {
-        'success': { cls: 'bg-emerald-50 text-emerald-700', label: {{ _("Success") | tojson }}, icon: 'fa-check' },
-        'running': { cls: 'bg-amber-50 text-amber-700',     label: {{ _("Running") | tojson }}, icon: 'fa-spinner fa-spin' },
-        'failed':  { cls: 'bg-red-50 text-red-700',         label: {{ _("Failed") | tojson }},  icon: 'fa-xmark' },
+        'success': { tone: 'nx-label--green', label: {{ _("Success") | tojson }}, icon: 'fa-check' },
+        'running': { tone: 'nx-label--amber', label: {{ _("Running") | tojson }}, icon: 'fa-spinner fa-spin' },
+        'failed':  { tone: 'nx-label--red',   label: {{ _("Failed") | tojson }},  icon: 'fa-xmark' },
     };
 
     function makeStatusBadge(st) {
-        const s = STATUS_META[st] || { cls: 'bg-gray-100 text-gray-600', label: st || '—', icon: 'fa-circle-question' };
+        const s = STATUS_META[st] || { tone: 'nx-label--gray', label: st || '—', icon: 'fa-circle-question' };
         const span = document.createElement('span');
-        span.className = `inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${s.cls}`;
+        span.className = `nx-label ${s.tone} nx-label--nodot`;
         const i = document.createElement('i');
         i.className = `fas ${s.icon} text-[10px]`;
         span.appendChild(i);
@@ -43,10 +43,10 @@
         if (value > 0) {
             const span = document.createElement('span');
             const colorMap = {
-                indigo: 'bg-indigo-50 text-indigo-700',
-                amber:  'bg-amber-50 text-amber-700',
+                indigo: 'nx-label--indigo',
+                amber:  'nx-label--amber',
             };
-            span.className = `px-2 py-0.5 text-xs font-semibold rounded-full ${colorMap[color] || colorMap.indigo}`;
+            span.className = `nx-label nx-label--nodot nx-mono ${colorMap[color] || colorMap.indigo}`;
             span.textContent = value.toLocaleString();
             td.appendChild(span);
         } else {
@@ -71,7 +71,7 @@
         const a = formatDate(min);
         const b = formatDate(max);
         const wrap = document.createElement('span');
-        wrap.className = 'text-sm text-gray-700';
+        wrap.className = 'nx-mono text-sm';
         if (a === b) {
             wrap.textContent = a;
         } else {
@@ -95,15 +95,16 @@
 
     function makeRow(r) {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50 transition';
 
-        tr.appendChild(makeTextCell(r.fileName, 'px-4 py-3 text-left text-sm font-semibold text-gray-800 break-all'));
-        tr.appendChild(makeTextCell(formatDateTime(r.startedAt),  'px-4 py-3 text-center whitespace-nowrap text-sm text-gray-700'));
-        tr.appendChild(makeTextCell(formatDateTime(r.finishedAt), 'px-4 py-3 text-center whitespace-nowrap text-xs text-gray-500'));
+        tr.appendChild(makeTextCell(r.fileName, 'px-4 py-3 text-left text-sm font-semibold break-all'));
+        tr.appendChild(makeTextCell(formatDateTime(r.startedAt),  'px-4 py-3 text-center whitespace-nowrap text-sm nx-mono'));
+        const finishedTd = makeTextCell(formatDateTime(r.finishedAt), 'px-4 py-3 text-center whitespace-nowrap text-xs nx-mono');
+        finishedTd.style.color = 'var(--nx-text-sec)';
+        tr.appendChild(finishedTd);
         tr.appendChild(makeScanRangeCell(r.minScanDatum, r.maxScanDatum));
 
         const csvText = (r.csvRowCount !== null && r.csvRowCount !== undefined) ? r.csvRowCount.toLocaleString() : '—';
-        tr.appendChild(makeTextCell(csvText, 'px-4 py-3 text-center whitespace-nowrap text-sm text-gray-700'));
+        tr.appendChild(makeTextCell(csvText, 'px-4 py-3 text-center whitespace-nowrap text-sm nx-mono'));
 
         tr.appendChild(makeCountBadgeCell(r.rowsInserted || 0, 'indigo'));
         tr.appendChild(makeCountBadgeCell(r.rowsUpdated || 0, 'amber'));
@@ -117,8 +118,29 @@
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 8;
-        td.className = 'text-center py-16 text-gray-400 text-sm';
-        td.textContent = message;
+        td.className = 'p-0';
+
+        const empty = document.createElement('div');
+        empty.className = 'nx-empty';
+
+        const art = document.createElement('div');
+        art.className = 'nx-empty__art';
+        const artIcon = document.createElement('i');
+        artIcon.className = 'fas fa-inbox';
+        art.appendChild(artIcon);
+
+        const title = document.createElement('p');
+        title.className = 'nx-empty__title';
+        title.textContent = message;
+
+        const sub = document.createElement('p');
+        sub.className = 'nx-empty__sub';
+        sub.textContent = {{ _("Try adjusting your filters or date range.") | tojson }};
+
+        empty.appendChild(art);
+        empty.appendChild(title);
+        empty.appendChild(sub);
+        td.appendChild(empty);
         tr.appendChild(td);
         tbody.appendChild(tr);
     }
@@ -198,8 +220,8 @@
         const b = document.createElement('button');
         b.disabled = disabled;
         b.className = [
-            'px-3 py-1.5 rounded-lg text-sm font-semibold transition',
-            active   ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50',
+            'nx-btn nx-btn--sm',
+            active   ? 'nx-btn--primary' : 'nx-btn--secondary',
             disabled ? 'opacity-40 cursor-not-allowed' : ''
         ].join(' ');
         if (typeof label === 'string') {

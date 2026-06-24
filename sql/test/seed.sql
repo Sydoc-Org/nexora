@@ -58,6 +58,8 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.details.view.fields', 'View workitem fields'),
     ('workitems.details.view.images', 'View workitem images'),
     ('workitems.details.view.audit', 'View workitem audit history'),
+    ('workitems.details.view.confidence', 'Workitems: view extraction confidence scores in the document viewer'),
+    ('workitems.details.view.source_location', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.view.images)'),
     ('workitems.details.add.comment', 'Add workitem comment'),
     ('workitems.details.add.tag', 'Add workitem tag'),
     ('workitems.details.assign.users', 'Assign workitem users'),
@@ -70,13 +72,27 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.filter.assignedUser', 'Filter workitems by assigned user'),
     ('workitems.filter.documentfields', 'Filter workitems by document fields'),
     ('workitems.import.workitem', 'Import workitems'),
+    ('workitems.import.preparedaudit', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
     ('invoices.view', 'View invoices'),
     ('invoices.download', 'Download invoices'),
     ('invoices.filter.date', 'Filter invoices by date'),
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('chat.view', 'View chat'),
-    ('jd.view', 'View JD Vance page');
+    ('jd.view', 'View JD Vance page'),
+    ('reporting.view', 'Access the Reporting page'),
+    ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
+    ('reporting.export', 'Reporting: export reports to Excel'),
+    ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
+    ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
+    ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
+    ('reporting.semantic.admin', 'Reporting: manage the canonical metrics registry'),
+    ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
+    ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),
+    ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
+    ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
+    ('reporting.ai.sql', 'Reporting: AI may emit live SQL (advanced)'),
+    ('reporting.ai.explain', 'Reporting: see AI explanation on results');
 GO
 
 -- Access profiles
@@ -127,4 +143,31 @@ VALUES
      'noperm@test.local',
      (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'),
      'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en');
+GO
+
+-- Curated 'table' reporting sources (mirrors 0011_seed_generali_workitems_sources.sql)
+-- so the registry/listing can be exercised in TEST. Running them needs the live
+-- Generali/Octopus DBs, so the e2e/integration tests only assert they register.
+IF NOT EXISTS (SELECT 1 FROM dbo.ReportingSources WHERE Code = 'generali_pdqm')
+INSERT INTO dbo.ReportingSources
+    (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
+VALUES (
+    'generali_pdqm', 'curated', 'Generali — PDQM Report',
+    'reporting.source.generali.pdqm', 'generali', 'table', 'dbo.PDQMReport',
+    N'[{"field":"ForDate","label":"Date","type":"date","filterable":true,"sortable":true},
+       {"field":"ParentCategory","label":"Parent category","type":"string","filterable":true,"sortable":true},
+       {"field":"Quantity","label":"Quantity","type":"number","filterable":true,"sortable":true}]',
+    1, 20);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.ReportingSources WHERE Code = 'workitems')
+INSERT INTO dbo.ReportingSources
+    (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
+VALUES (
+    'workitems', 'curated', 'Workitems (Octopus)',
+    'reporting.source.workitems', 'octopus', 'table', 'dbo.t_Documents',
+    N'[{"field":"WorkItemIdentifier","label":"Workitem ID","type":"string","filterable":true,"sortable":true},
+       {"field":"DocumentName","label":"Document name","type":"string","filterable":true,"sortable":true},
+       {"field":"DocumentRevision","label":"Revision","type":"number","filterable":true,"sortable":true}]',
+    1, 30);
 GO
