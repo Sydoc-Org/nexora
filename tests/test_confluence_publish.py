@@ -95,6 +95,10 @@ def _converted(stage: Path, staged_rel: str) -> str:
 
 @pytest.fixture(scope="session")
 def converted_corpus(tmp_path_factory):
+    # md2conf is isolated in requirements-confluence.txt (its requests>=2.33 pin
+    # conflicts with the runtime pin), so it is absent from the main venv/CI.
+    # These golden-invariant tests only run where the Confluence deps are installed.
+    pytest.importorskip("md2conf", reason="needs md2conf (requirements-confluence.txt)")
     stage = tmp_path_factory.mktemp("stage")
     cp.stage_docs(REPO_ROOT, stage)
     cp.convert_local(stage)
@@ -283,6 +287,7 @@ class TestSpaceLookup:
 
 class TestMainDryRunWithoutCreds:
     def test_dry_run_local_only_when_no_env_file(self, tmp_path, capsys):
+        pytest.importorskip("md2conf", reason="dry-run runs local md2conf conversion")
         rc = cp.main(
             [
                 "--dry-run",
