@@ -34,3 +34,14 @@ def test_detail_panel_exposes_loader_and_source_helpers(user_client, workitems_a
 def test_detail_panel_exposes_lightbox_attach(user_client, workitems_all_perms):
     resp = user_client.get("/workitems")
     assert b"attachLightbox" in resp.data
+
+
+def test_detail_panel_readonly_branch_present(user_client, workitems_all_perms):
+    """The shared partial carries a read-only branch that omits write controls and a
+    writable branch that includes them; render() switches on readOnly. Asserted on the
+    rendered partial source (the panel is built client-side)."""
+    resp = user_client.get("/workitems")
+    body = resp.data
+    assert b"buildReadonlyCommentsMarkup" in body
+    assert b"buildCollaborationMarkup" in body
+    assert b"readOnly" in body
