@@ -29,3 +29,8 @@ def test_detail_panel_exposes_loader_and_source_helpers(user_client, workitems_a
         b"get_media_info",
     ):
         assert marker in resp.data
+
+
+def test_detail_panel_exposes_lightbox_attach(user_client, workitems_all_perms):
+    resp = user_client.get("/workitems")
+    assert b"attachLightbox" in resp.data
