@@ -1902,6 +1902,15 @@ def prepared_documents():
         "totalItems": total_items,
         "perPage": per_page,
     }
+    details_view_perm = has_permission("workitems.details.view")
+    details_images_perm = has_permission("workitems.details.view.images")
+    details_audit_perm = has_permission("workitems.details.view.audit")
+    details_fields_perm = has_permission("workitems.details.view.fields")
+    details_set_priority_perm = has_permission("workitems.details.set.priority")
+    details_add_tag_perm = has_permission("workitems.details.add.tag")
+    details_assign_users_perm = has_permission("workitems.details.assign.users")
+    details_add_comment_perm = has_permission("workitems.details.add.comment")
+
     return render_template(
         "prepared_documents.html",
         rows=rows,
@@ -1910,6 +1919,14 @@ def prepared_documents():
         prepared_import_perm=has_permission("workitems.import.preparedaudit"),
         ms02_active=ms02_active,
         pageV=page_visibility(),
+        details_view_perm=details_view_perm,
+        details_images_perm=details_images_perm,
+        details_audit_perm=details_audit_perm,
+        details_fields_perm=details_fields_perm,
+        details_set_priority_perm=details_set_priority_perm,
+        details_add_tag_perm=details_add_tag_perm,
+        details_assign_users_perm=details_assign_users_perm,
+        details_add_comment_perm=details_add_comment_perm,
     )
 
 

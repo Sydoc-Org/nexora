@@ -570,3 +570,46 @@ def test_prepared_documents_clear_deletes_when_ms02_active(
     resp = user_client.post("/prepared_documents/clear")
     assert resp.status_code == 200
     assert resp.get_json()["deleted"] == 3
+
+
+def test_prepared_documents_preview_button_requires_details_view(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b'data-testid="prepared-docs-preview"' in resp.data
+    assert b'data-wid="42"' in resp.data
+    assert b"NexoraWorkitemDetail" in resp.data
+
+    monkeypatch.setattr(wv, "has_permission", lambda code: code != "workitems.details.view")
+    resp2 = user_client.get("/prepared_documents")
+    assert resp2.status_code == 200
+    assert b'data-testid="prepared-docs-preview"' not in resp2.data

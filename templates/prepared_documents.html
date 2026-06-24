@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workitems_overview.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/source-highlight.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
 </head>
 
@@ -105,10 +106,18 @@
               <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
                 {% set st = octo_status.get(r.pid) %}
                 {% if st and st.in_octo %}
-                  <a href="{{ url_for('workitems_overview') }}?search={{ st.wid }}"
-                     class="text-indigo-600 underline" data-testid="prepared-docs-octo-link">
-                    <i class="fas fa-up-right-from-square mr-1"></i>{{ _("In Octo") }}
-                  </a>
+                  <div class="flex items-center justify-center gap-3">
+                    {% if details_view_perm %}
+                    <button type="button" class="text-indigo-600 underline"
+                            data-testid="prepared-docs-preview" data-wid="{{ st.wid }}" data-pid="{{ r.pid }}">
+                      <i class="fas fa-eye mr-1"></i>{{ _("Preview") }}
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('workitems_overview') }}?search={{ st.wid }}"
+                       class="text-indigo-600 underline" data-testid="prepared-docs-octo-link">
+                      <i class="fas fa-up-right-from-square mr-1"></i>{{ _("Open in Workitems") }}
+                    </a>
+                  </div>
                 {% else %}
                   <span class="text-gray-300">—</span>
                 {% endif %}
@@ -142,6 +151,72 @@
     </div>
   </main>
 
+  {% if details_view_perm %}
+  <!-- Read-only workitem preview modal (MS02). Hidden until a Preview click. -->
+  <div id="pdocPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4"
+       data-testid="prepared-docs-preview-modal">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-800">{{ _("Workitem preview") }}</h2>
+        <button type="button" id="pdocPreviewClose" class="pdoc-preview-close text-gray-400 hover:text-gray-700"
+                aria-label="{{ _('Close') }}" title="{{ _('Close') }}" data-testid="prepared-docs-preview-close">
+          <i class="fas fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <div id="pdocPreviewBody" class="p-2" data-testid="prepared-docs-preview-body"></div>
+    </div>
+  </div>
+
+  <datalist id="taglist"></datalist>
+
+  <!-- Source-highlight lightbox shell for the preview panel (own pdocPreview* ids). -->
+  <div id="pdocPreviewLightbox" class="modal">
+    <button type="button" class="modal-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
+      <i class="fas fa-xmark" aria-hidden="true"></i>
+    </button>
+    <div class="src-modal-body">
+      <div class="src-modal-page">
+        <button type="button" id="pdocPreviewHlToggle" class="src-hl-toggle" hidden
+                title="{{ _('Show where extracted values were found on the document') }}">
+          <i class="fas fa-magnifying-glass-location"></i>
+          <span id="pdocPreviewHlToggleLabel">{{ _('Show sources') }}</span>
+        </button>
+        <img class="modal-content" id="pdocPreviewImage">
+        <div id="pdocPreviewHlLayer"></div>
+        <a class="modal-prev">&#10094;</a>
+        <a class="modal-next">&#10095;</a>
+      </div>
+      <aside id="pdocPreviewReviewPanel" class="src-modal-values" hidden aria-label="{{ _('Extracted values') }}">
+        <h3 class="src-modal-values-title">{{ _('Extracted values') }}</h3>
+        <div id="pdocPreviewReviewPanelBody"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Source-highlight confidence helpers + an empty fieldConfig the shared panel reads.
+    window.srcConfClass = function (conf) {
+      if (typeof conf !== 'number' || isNaN(conf)) return '';
+      if (conf >= 0.9) return 'src-conf-high';
+      if (conf >= 0.7) return 'src-conf-med';
+      return 'src-conf-low';
+    };
+    window.srcConfPct = function (conf) {
+      if (typeof conf !== 'number' || isNaN(conf)) return '';
+      return Math.round(conf * 100) + '%';
+    };
+    window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
+    window.mentionableUsers = window.mentionableUsers || [];
+    window.__pdocPreviewPerms = {
+      images: {{ 'true' if details_images_perm else 'false' }},
+      audit:  {{ 'true' if details_audit_perm else 'false' }},
+      fields: {{ 'true' if details_fields_perm else 'false' }},
+      setPriority: false, addTag: false, assignUsers: false, addComment: false,
+    };
+  </script>
+
+  {% include 'js/_workitem_detail_panel_js.html' %}
+  {% endif %}
   {% include 'js/_prepared_documents_js.html' %}
 </body>
 
