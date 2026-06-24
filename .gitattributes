@@ -14,6 +14,11 @@
 # full-range scan rejects them. Pin to LF.
 *.html                text eol=lf
 *.js                  text eol=lf
+# Migrations: db-migrate.py checksums raw file bytes, so a CRLF-vs-LF checkout
+# difference (autocrlf on Windows runners) makes an already-applied migration
+# look "edited" and aborts the deploy. Pin LF so the bytes are identical on
+# every machine. See scripts/db-migrate.py --rebless for fixing existing drift.
+*.sql                 text eol=lf
 scripts/git-hooks/*   text eol=lf
 .git/hooks/*          text eol=lf
 # Docs and message catalogs: the mixed-line-ending pre-commit hook enforces LF,
