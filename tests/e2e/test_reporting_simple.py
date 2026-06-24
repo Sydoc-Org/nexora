@@ -168,6 +168,38 @@ def _stub_ai_build(page, definition=None, delay_s=0.0):
     page.route("**/api/reporting/ai/build", handler)
 
 
+def _stub_run_ok(page, capture=None):
+    """Stub /api/reporting/run with a deterministic success.
+
+    AI-flow tests fire an async runCurrent() whose real /api/reporting/run can
+    error intermittently on the test DB (stale NEXORA_TEST state). The error
+    path, showResultError(), hides the chips/refine bar mid-test, racing later
+    clicks. Stubbing the response keeps the result UI up regardless of the
+    backend. Pass `capture` (a list) to record each run payload for assertions.
+    """
+
+    def _handler(route):
+        if capture is not None:
+            capture.append(route.request.post_data_json)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+
+
 def test_ai_ask_shows_loading_then_result(nexora_server, page):
     """Loading indicator appears while AI request is in-flight and hides once
     the result is ready.  We verify appearance by injecting a JS latch that
@@ -193,6 +225,7 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
     }""")
 
     _stub_ai_build(page, delay_s=0.8)
+    _stub_run_ok(page)  # async runCurrent() run must not error and tear down the result
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
 
@@ -289,6 +322,9 @@ def test_refine_sends_prior_context_and_replaces_result(nexora_server, page):
         route.fulfill(status=200, content_type="application/json", body=body)
 
     page.route("**/api/reporting/ai/build", handler)
+    # Both the ask and the refine fire an async runCurrent(); a real run error
+    # would hide the refine bar (showResultError) before the refine click below.
+    _stub_run_ok(page)
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
     expect(page.get_by_test_id("rs-refine-bar")).to_be_visible()
@@ -308,33 +344,11 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     _stub_ai_build(page)
-
-    # Capture every run payload AND stub a deterministic success. "Ask AI" below
-    # kicks off an async runCurrent() that fires a real /api/reporting/run; if
-    # that run errors on the test backend, showResultError() hides rs-chips,
-    # racing the chip click below (chips visible at assert time, gone by click).
-    # Stubbing the response keeps the chips up regardless of the backend.
+    # "Ask AI" fires an async runCurrent() -> real /api/reporting/run; a backend
+    # error there hits showResultError(), hiding rs-chips mid-test. Stub it (and
+    # capture run payloads) so the chips stay up regardless of the backend.
     run_payloads = []
-
-    def _capture_run(route):
-        run_payloads.append(route.request.post_data_json)
-        route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {
-                    "columns": [{"field": "processname", "header": "Process"}],
-                    "rows": [["acme.inv"]],
-                    "truncated": False,
-                    "rowCount": 1,
-                    "sql": None,
-                    "params": [],
-                    "resolvedDates": [],
-                }
-            ),
-        )
-
-    page.route("**/api/reporting/run", _capture_run)
+    _stub_run_ok(page, capture=run_payloads)
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
     chips = page.get_by_test_id("rs-chips")
