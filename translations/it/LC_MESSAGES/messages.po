@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-23 19:02+0200\n"
+"POT-Creation-Date: 2026-06-24 10:13+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -51,9 +51,9 @@ msgid "Organization already exists."
 msgstr "L'organizzazione esiste già."
 
 #: nx_lib/views/admin.py:204 nx_lib/views/admin.py:705
-#: nx_lib/views/workitems.py:1514 nx_lib/views/workitems.py:1565
-#: nx_lib/views/workitems.py:1607 nx_lib/views/workitems.py:1818
-#: nx_lib/views/workitems.py:1850
+#: nx_lib/views/workitems.py:1543 nx_lib/views/workitems.py:1594
+#: nx_lib/views/workitems.py:1636 nx_lib/views/workitems.py:1847
+#: nx_lib/views/workitems.py:1879
 msgid "An unexpected error occurred."
 msgstr "Si è verificato un errore imprevisto."
 
@@ -119,16 +119,16 @@ msgstr "Impossibile recuperare le sessioni"
 #: nx_lib/views/dashboard.py:810 nx_lib/views/dashboard.py:886
 #: nx_lib/views/dashboard.py:908 nx_lib/views/dashboard.py:959
 #: nx_lib/views/dashboard.py:1427 nx_lib/views/dashboard.py:1471
-#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:494
-#: nx_lib/views/workitems.py:1073 nx_lib/views/workitems.py:1085
-#: nx_lib/views/workitems.py:1328 nx_lib/views/workitems.py:1371
-#: nx_lib/views/workitems.py:1462 nx_lib/views/workitems.py:1524
-#: nx_lib/views/workitems.py:1575 nx_lib/views/workitems.py:1617
-#: nx_lib/views/workitems.py:1768 nx_lib/views/workitems.py:1828
+#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:523
+#: nx_lib/views/workitems.py:1102 nx_lib/views/workitems.py:1114
+#: nx_lib/views/workitems.py:1357 nx_lib/views/workitems.py:1400
+#: nx_lib/views/workitems.py:1491 nx_lib/views/workitems.py:1553
+#: nx_lib/views/workitems.py:1604 nx_lib/views/workitems.py:1646
+#: nx_lib/views/workitems.py:1797 nx_lib/views/workitems.py:1857
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
-#: nx_lib/views/admin.py:1283 nx_lib/views/workitems.py:1361
+#: nx_lib/views/admin.py:1283 nx_lib/views/workitems.py:1390
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
@@ -644,154 +644,154 @@ msgstr "Impossibile aggiornare la metrica"
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
-#: nx_lib/views/workitems.py:619
+#: nx_lib/views/workitems.py:648
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
 
-#: nx_lib/views/workitems.py:963 nx_lib/views/workitems.py:1034
+#: nx_lib/views/workitems.py:992 nx_lib/views/workitems.py:1063
 msgid "No file part in the request."
 msgstr "Nessuna parte di file nella richiesta."
 
-#: nx_lib/views/workitems.py:970 nx_lib/views/workitems.py:1037
+#: nx_lib/views/workitems.py:999 nx_lib/views/workitems.py:1066
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: nx_lib/views/workitems.py:974
+#: nx_lib/views/workitems.py:1003
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: nx_lib/views/workitems.py:986
+#: nx_lib/views/workitems.py:1015
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: nx_lib/views/workitems.py:1001
+#: nx_lib/views/workitems.py:1030
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: nx_lib/views/workitems.py:1006
+#: nx_lib/views/workitems.py:1035
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: nx_lib/views/workitems.py:1008
+#: nx_lib/views/workitems.py:1037
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: nx_lib/views/workitems.py:1031 nx_lib/views/workitems.py:1921
+#: nx_lib/views/workitems.py:1060 nx_lib/views/workitems.py:1969
 msgid "This import is only available for the MS02 client."
 msgstr "Questa importazione è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1041
+#: nx_lib/views/workitems.py:1070
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Tipo di file non valido. Si prega di caricare un file Excel valido "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1049
+#: nx_lib/views/workitems.py:1078
 msgid "The Excel file has no usable rows."
 msgstr "Il file Excel non contiene righe utilizzabili."
 
-#: nx_lib/views/workitems.py:1066
+#: nx_lib/views/workitems.py:1095
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossibile salvare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1080
+#: nx_lib/views/workitems.py:1109
 msgid "Could not fetch workitem data"
 msgstr "Impossibile recuperare i dati del workitem"
 
-#: nx_lib/views/workitems.py:1151 nx_lib/views/workitems.py:1187
+#: nx_lib/views/workitems.py:1180 nx_lib/views/workitems.py:1216
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: nx_lib/views/workitems.py:1176 nx_lib/views/workitems.py:1269
+#: nx_lib/views/workitems.py:1205 nx_lib/views/workitems.py:1298
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: nx_lib/views/workitems.py:1200
+#: nx_lib/views/workitems.py:1229
 msgid "Media index out of bounds"
 msgstr "Indice del media fuori dai limiti"
 
-#: nx_lib/views/workitems.py:1226
+#: nx_lib/views/workitems.py:1255
 msgid "Failed to render PDF page"
 msgstr "Rendering della pagina PDF non riuscito"
 
-#: nx_lib/views/workitems.py:1253
+#: nx_lib/views/workitems.py:1282
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF non riuscita"
 
-#: nx_lib/views/workitems.py:1318
+#: nx_lib/views/workitems.py:1347
 msgid "Failed to fetch audit history"
 msgstr "Recupero della cronologia di audit non riuscito"
 
-#: nx_lib/views/workitems.py:1320
+#: nx_lib/views/workitems.py:1349
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/workitems.py:1418
+#: nx_lib/views/workitems.py:1447
 msgid "No data found for this workitem."
 msgstr "Nessun dato trovato per questo workitem."
 
-#: nx_lib/views/workitems.py:1452
+#: nx_lib/views/workitems.py:1481
 msgid "Could not fetch interactions"
 msgstr "Impossibile recuperare le interazioni"
 
-#: nx_lib/views/workitems.py:1467
+#: nx_lib/views/workitems.py:1496
 msgid "Comment cannot be empty."
 msgstr "Il commento non può essere vuoto."
 
-#: nx_lib/views/workitems.py:1511
+#: nx_lib/views/workitems.py:1540
 msgid "Comment added."
 msgstr "Commento aggiunto."
 
-#: nx_lib/views/workitems.py:1529
+#: nx_lib/views/workitems.py:1558
 msgid "Invalid assignment."
 msgstr "Assegnazione non valida."
 
-#: nx_lib/views/workitems.py:1558
+#: nx_lib/views/workitems.py:1587
 msgid "assigned you on workitem"
 msgstr "ti ha assegnato a un workitem"
 
-#: nx_lib/views/workitems.py:1562
+#: nx_lib/views/workitems.py:1591
 msgid "Assignment updated."
 msgstr "Assegnazione aggiornata."
 
-#: nx_lib/views/workitems.py:1580
+#: nx_lib/views/workitems.py:1609
 msgid "Invalid priority level."
 msgstr "Livello di priorità non valido."
 
-#: nx_lib/views/workitems.py:1604
+#: nx_lib/views/workitems.py:1633
 msgid "Priority updated."
 msgstr "Priorità aggiornata."
 
-#: nx_lib/views/workitems.py:1637
+#: nx_lib/views/workitems.py:1666
 msgid "Could not fetch tags"
 msgstr "Impossibile recuperare i tag"
 
-#: nx_lib/views/workitems.py:1775
+#: nx_lib/views/workitems.py:1804
 msgid "Tag name cannot be empty."
 msgstr "Il nome del tag non può essere vuoto."
 
-#: nx_lib/views/workitems.py:1799
+#: nx_lib/views/workitems.py:1828
 msgid "Workitem already has this tag."
 msgstr "Il workitem ha già questo tag."
 
-#: nx_lib/views/workitems.py:1811
+#: nx_lib/views/workitems.py:1840
 msgid "Tag added successfully."
 msgstr "Tag aggiunto con successo."
 
-#: nx_lib/views/workitems.py:1843
+#: nx_lib/views/workitems.py:1872
 msgid "Tag association not found."
 msgstr "Associazione del tag non trovata."
 
-#: nx_lib/views/workitems.py:1847
+#: nx_lib/views/workitems.py:1876
 msgid "Tag removed successfully."
 msgstr "Tag rimosso con successo."
 
-#: nx_lib/views/workitems.py:1866
+#: nx_lib/views/workitems.py:1895
 msgid "This page is only available for the MS02 client."
 msgstr "Questa pagina è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1927
+#: nx_lib/views/workitems.py:1975
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossibile cancellare i documenti preparati. Riprova."
 
@@ -895,7 +895,7 @@ msgstr "Attiva/disattiva modalità scura"
 msgid "Dark Mode"
 msgstr "Modalità scura"
 
-#: templates/_header.html:200 templates/js/_workitems_overview_js.html:290
+#: templates/_header.html:200 templates/js/_workitem_detail_panel_js.html:228
 #: templates/profile.html:42 templates/profile.html:117
 msgid "Profile Picture"
 msgstr "Foto profilo"
@@ -1367,7 +1367,7 @@ msgstr "Volume di elaborazione giornaliero"
 #: templates/js/_reporting_viz_js.html:410
 #: templates/js/_reporting_viz_js.html:472
 #: templates/js/_reporting_viz_js.html:528
-#: templates/js/_reporting_viz_js.html:530 templates/prepared_documents.html:44
+#: templates/js/_reporting_viz_js.html:530 templates/prepared_documents.html:49
 #: templates/workitems_overview.html:65
 msgid "Total"
 msgstr "Totale"
@@ -2167,7 +2167,7 @@ msgstr ""
 "Il nostro sistema automatizzato gestisce ogni fase con precisione e "
 "sicurezza. Segua in tempo reale l'elaborazione di un documento."
 
-#: templates/hero.html:134 templates/js/_workitems_overview_js.html:1135
+#: templates/hero.html:134 templates/js/_workitems_overview_js.html:494
 #: templates/workitems_overview.html:318
 msgid "Import"
 msgstr "Importazione"
@@ -2396,68 +2396,100 @@ msgstr "Accedi"
 msgid "Expected to end at"
 msgstr "Fine prevista alle"
 
-#: templates/prepared_documents.html:7 templates/prepared_documents.html:37
+#: templates/prepared_documents.html:7 templates/prepared_documents.html:38
 msgid "Prepared Documents"
 msgstr "Documenti preparati"
 
-#: templates/prepared_documents.html:38
+#: templates/prepared_documents.html:39
 msgid "Intake register of collected and prepared documents"
 msgstr "Registro di entrata dei documenti raccolti e preparati"
 
-#: templates/prepared_documents.html:53
-msgid "Upload Excel"
-msgstr "Importa Excel"
+#: templates/prepared_documents.html:46
+msgid "Show all"
+msgstr "Mostra tutto"
 
-#: templates/prepared_documents.html:57
-msgid "Clear list"
-msgstr "Svuota lista"
-
-#: templates/prepared_documents.html:74
+#: templates/prepared_documents.html:46 templates/prepared_documents.html:79
 msgid "PID"
 msgstr "Numeri di personale"
 
-#: templates/prepared_documents.html:77
+#: templates/prepared_documents.html:58
+msgid "Upload Excel"
+msgstr "Importa Excel"
+
+#: templates/prepared_documents.html:62
+msgid "Clear list"
+msgstr "Svuota lista"
+
+#: templates/prepared_documents.html:82
 msgid "Collected"
 msgstr "Raccolto"
 
-#: templates/prepared_documents.html:80
+#: templates/prepared_documents.html:85
 msgid "Collected by"
 msgstr "Raccolto da"
 
-#: templates/prepared_documents.html:83
+#: templates/prepared_documents.html:88
 msgid "Prepared"
 msgstr "Preparato"
 
-#: templates/prepared_documents.html:86
+#: templates/prepared_documents.html:91
 msgid "Prepared by"
 msgstr "Preparato da"
 
-#: templates/prepared_documents.html:89
+#: templates/prepared_documents.html:94
 msgid "Octo status"
 msgstr "Stato Octo"
 
-#: templates/prepared_documents.html:110
-msgid "In Octo"
-msgstr "In Octo"
+#: templates/prepared_documents.html:117
+msgid "Preview"
+msgstr "Anteprima"
 
-#: templates/prepared_documents.html:120
+#: templates/prepared_documents.html:122
+msgid "Open in Workitems"
+msgstr "Apri in Workitems"
+
+#: templates/prepared_documents.html:133
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr "Nessun documento preparato ancora. Carica un file Excel per iniziare."
 
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:229
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1856
-#: templates/prepared_documents.html:134
+#: templates/js/_workitems_overview_js.html:1221
+#: templates/prepared_documents.html:147
 msgid "Previous"
 msgstr "Precedente"
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:230
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1862
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:140
+#: templates/js/_workitems_overview_js.html:1227
+#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:153
 msgid "Next"
 msgstr "Successivo"
+
+#: templates/prepared_documents.html:164
+msgid "Workitem preview"
+msgstr "Anteprima workitem"
+
+#: templates/admin/logs.html:140 templates/prepared_documents.html:166
+#: templates/prepared_documents.html:178 templates/reporting.html:268
+#: templates/reporting.html:304 templates/workitems_overview.html:562
+msgid "Close"
+msgstr "Chiudi"
+
+#: templates/prepared_documents.html:184 templates/workitems_overview.html:568
+msgid "Show where extracted values were found on the document"
+msgstr "Mostra dove sono stati trovati i valori estratti nel documento"
+
+#: templates/js/_workitem_detail_panel_js.html:651
+#: templates/prepared_documents.html:186 templates/workitems_overview.html:571
+msgid "Show sources"
+msgstr "Mostra origini"
+
+#: templates/prepared_documents.html:193 templates/prepared_documents.html:194
+#: templates/workitems_overview.html:579 templates/workitems_overview.html:580
+msgid "Extracted values"
+msgstr "Valori estratti"
 
 #: templates/profile.html:7
 msgid "Profile settings - nexora"
@@ -2879,11 +2911,6 @@ msgstr "Può modificare"
 msgid "Add"
 msgstr "Aggiungi"
 
-#: templates/admin/logs.html:140 templates/reporting.html:268
-#: templates/reporting.html:304 templates/workitems_overview.html:562
-msgid "Close"
-msgstr "Chiudi"
-
 #: templates/reporting.html:275
 msgid "Schedule report"
 msgstr "Pianifica report"
@@ -3170,17 +3197,17 @@ msgstr "Priorità"
 msgid "All Priorities"
 msgstr "Tutte le priorità"
 
-#: templates/js/_workitems_overview_js.html:492
+#: templates/js/_workitem_detail_panel_js.html:24
 #: templates/workitems_overview.html:170
 msgid "High"
 msgstr "Alta"
 
-#: templates/js/_workitems_overview_js.html:491
+#: templates/js/_workitem_detail_panel_js.html:24
 #: templates/workitems_overview.html:171
 msgid "Medium"
 msgstr "Media"
 
-#: templates/js/_workitems_overview_js.html:490
+#: templates/js/_workitem_detail_panel_js.html:24
 #: templates/workitems_overview.html:172
 msgid "Low"
 msgstr "Bassa"
@@ -3221,7 +3248,7 @@ msgstr "Ultimo movimento il"
 msgid "Tag"
 msgstr "Tag"
 
-#: templates/js/_workitems_overview_js.html:1590
+#: templates/js/_workitems_overview_js.html:949
 #: templates/workitems_overview.html:398
 msgid "selected"
 msgstr "selezionato"
@@ -3246,7 +3273,7 @@ msgstr "Scegli un processo..."
 msgid "Please select a valid process."
 msgstr "Seleziona un processo valido."
 
-#: templates/js/_workitems_overview_js.html:1139
+#: templates/js/_workitems_overview_js.html:498
 #: templates/workitems_overview.html:457
 msgid "Import File"
 msgstr "Importa file"
@@ -3320,19 +3347,6 @@ msgid ""
 msgstr ""
 "Tutti i workitem corrispondenti ai filtri attuali verranno esportati (non"
 " solo la pagina corrente)."
-
-#: templates/workitems_overview.html:568
-msgid "Show where extracted values were found on the document"
-msgstr "Mostra dove sono stati trovati i valori estratti nel documento"
-
-#: templates/js/_workitems_overview_js.html:2088
-#: templates/workitems_overview.html:571
-msgid "Show sources"
-msgstr "Mostra origini"
-
-#: templates/workitems_overview.html:579 templates/workitems_overview.html:580
-msgid "Extracted values"
-msgstr "Valori estratti"
 
 #: templates/admin/access_control.html:6
 msgid "Access Control - nexora"
@@ -3483,8 +3497,8 @@ msgid "Filter permissions..."
 msgstr "Filtra permessi..."
 
 #: templates/admin/access_control.html:338 templates/admin/user_detail.html:147
-#: templates/js/_workitems_overview_js.html:489
-#: templates/js/_workitems_overview_js.html:501
+#: templates/js/_workitem_detail_panel_js.html:24
+#: templates/js/_workitem_detail_panel_js.html:29
 msgid "None"
 msgstr "Nessuno"
 
@@ -4044,7 +4058,7 @@ msgstr "Nessun record trovato."
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1703
+#: templates/js/_workitems_overview_js.html:1063
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Prova a modificare i filtri o a reimpostare la ricerca."
 
@@ -4117,7 +4131,7 @@ msgstr "Documenti"
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:1575
+#: templates/js/_workitems_overview_js.html:934
 msgid "Failed to load data. Please try again."
 msgstr "Impossibile caricare i dati. Riprova."
 
@@ -4360,7 +4374,9 @@ msgstr "%(total)s righe importate (%(new)s nuove, %(updated)s aggiornate)."
 
 #: templates/js/_prepared_documents_js.html:57
 msgid "Clear the entire prepared-documents list? This cannot be undone."
-msgstr "Cancellare l'intera lista dei documenti preparati? Questa operazione non può essere annullata."
+msgstr ""
+"Cancellare l'intera lista dei documenti preparati? Questa operazione non "
+"può essere annullata."
 
 #: templates/js/_prepared_documents_js.html:67
 #: templates/js/_prepared_documents_js.html:73
@@ -4827,198 +4843,204 @@ msgstr "Righe"
 msgid "Values"
 msgstr "Valori"
 
-#: templates/js/_workitems_overview_js.html:165
-msgid "Restricted"
-msgstr "Limitato"
+#: templates/js/_workitem_detail_panel_js.html:18
+#: templates/js/_workitem_detail_panel_js.html:58
+msgid "Loading comments..."
+msgstr "Caricamento commenti..."
 
-#: templates/js/_workitems_overview_js.html:176
-msgid "No history available for this item"
-msgstr "Nessuna cronologia disponibile per questo elemento"
+#: templates/js/_workitem_detail_panel_js.html:22
+msgid "Set Priority:"
+msgstr "Imposta priorità:"
 
-#: templates/js/_workitems_overview_js.html:214
-msgid "Could not load history"
-msgstr "Impossibile caricare la cronologia"
+#: templates/js/_workitem_detail_panel_js.html:28
+msgid "Assigned to:"
+msgstr "Assegnato a:"
 
-#: templates/js/_workitems_overview_js.html:283
-msgid "No comments yet."
-msgstr "Nessun commento ancora."
+#: templates/js/_workitem_detail_panel_js.html:32
+#: templates/js/_workitem_detail_panel_js.html:61
+msgid "Tags:"
+msgstr "Tag:"
 
-#: templates/js/_workitems_overview_js.html:304
-msgid "Could not load comments."
-msgstr "Impossibile caricare i commenti."
+#: templates/js/_workitem_detail_panel_js.html:34
+msgid "Add a tag..."
+msgstr "Aggiungi un tag..."
 
-#: templates/js/_workitems_overview_js.html:377
-msgid "Load more"
-msgstr "Carica altri"
+#: templates/js/_workitem_detail_panel_js.html:42
+msgid "Add Comment:"
+msgstr "Aggiungi commento:"
 
-#: templates/js/_workitems_overview_js.html:429
+#: templates/js/_workitem_detail_panel_js.html:43
+msgid "Add a comment... Tag with @username"
+msgstr "Aggiungi un commento... Tagga con @nomeutente"
+
+#: templates/js/_workitem_detail_panel_js.html:44
+msgid "Post Comment"
+msgstr "Pubblica commento"
+
+#: templates/js/_workitem_detail_panel_js.html:69
 msgid "Click toggle button again to load media"
 msgstr "Clicca di nuovo il pulsante di attivazione per caricare i media"
 
-#: templates/js/_workitems_overview_js.html:436
+#: templates/js/_workitem_detail_panel_js.html:70
 msgid "Media preview restricted"
 msgstr "Anteprima media limitata"
 
-#: templates/js/_workitems_overview_js.html:443
-msgid "History"
-msgstr "Cronologia"
-
-#: templates/js/_workitems_overview_js.html:447
+#: templates/js/_workitem_detail_panel_js.html:72
 msgid "Loading history..."
 msgstr "Caricamento cronologia..."
 
-#: templates/js/_workitems_overview_js.html:451
+#: templates/js/_workitem_detail_panel_js.html:73
 msgid "Audit history restricted"
 msgstr "Cronologia di audit limitata"
 
-#: templates/js/_workitems_overview_js.html:459
+#: templates/js/_workitem_detail_panel_js.html:75
+msgid "Loading details..."
+msgstr "Caricamento dettagli..."
+
+#: templates/js/_workitem_detail_panel_js.html:76
+msgid "Document fields restricted"
+msgstr "Campi documento limitati"
+
+#: templates/js/_workitem_detail_panel_js.html:95
+msgid "History"
+msgstr "Cronologia"
+
+#: templates/js/_workitem_detail_panel_js.html:100
 #: templates/js/archive/_tour_js.html:152
 msgid "Document Details"
 msgstr "Dettagli documento"
 
-#: templates/js/_workitems_overview_js.html:463
-msgid "Loading details..."
-msgstr "Caricamento dettagli..."
-
-#: templates/js/_workitems_overview_js.html:467
-msgid "Document fields restricted"
-msgstr "Campi documento limitati"
-
-#: templates/js/_workitems_overview_js.html:474
+#: templates/js/_workitem_detail_panel_js.html:105
 msgid "Collaboration"
 msgstr "Collaborazione"
 
-#: templates/js/_workitems_overview_js.html:479
-msgid "Loading comments..."
-msgstr "Caricamento commenti..."
+#: templates/js/_workitem_detail_panel_js.html:128
+msgid "Restricted"
+msgstr "Limitato"
 
-#: templates/js/_workitems_overview_js.html:485
-msgid "Set Priority:"
-msgstr "Imposta priorità:"
+#: templates/js/_workitem_detail_panel_js.html:139
+msgid "No history available for this item"
+msgstr "Nessuna cronologia disponibile per questo elemento"
 
-#: templates/js/_workitems_overview_js.html:497
-msgid "Assigned to:"
-msgstr "Assegnato a:"
+#: templates/js/_workitem_detail_panel_js.html:177
+msgid "Could not load history"
+msgstr "Impossibile caricare la cronologia"
 
-#: templates/js/_workitems_overview_js.html:506
-msgid "Tags:"
-msgstr "Tag:"
+#: templates/js/_workitem_detail_panel_js.html:221
+msgid "No comments yet."
+msgstr "Nessun commento ancora."
 
-#: templates/js/_workitems_overview_js.html:509
-msgid "Add a tag..."
-msgstr "Aggiungi un tag..."
+#: templates/js/_workitem_detail_panel_js.html:242
+msgid "Could not load comments."
+msgstr "Impossibile caricare i commenti."
 
-#: templates/js/_workitems_overview_js.html:526
-msgid "Add Comment:"
-msgstr "Aggiungi commento:"
+#: templates/js/_workitem_detail_panel_js.html:315
+msgid "Load more"
+msgstr "Carica altri"
 
-#: templates/js/_workitems_overview_js.html:529
-msgid "Add a comment... Tag with @username"
-msgstr "Aggiungi un commento... Tagga con @nomeutente"
-
-#: templates/js/_workitems_overview_js.html:533
-msgid "Post Comment"
-msgstr "Pubblica commento"
-
-#: templates/js/_workitems_overview_js.html:600
-msgid "Checking for media..."
-msgstr "Verifica media in corso..."
-
-#: templates/js/_workitems_overview_js.html:637
-msgid "No additional details found."
-msgstr "Nessun dettaglio aggiuntivo trovato."
-
-#: templates/js/_workitems_overview_js.html:642
-msgid "No media found for this workitem."
-msgstr "Nessun media trovato per questo Workitem."
-
-#: templates/js/_workitems_overview_js.html:655
-msgid "Could not load media."
-msgstr "Impossibile caricare i media."
-
-#: templates/js/_workitems_overview_js.html:716
-#: templates/js/_workitems_overview_js.html:757
+#: templates/js/_workitem_detail_panel_js.html:369
+#: templates/js/_workitem_detail_panel_js.html:406
 msgid "Click to locate on the document"
 msgstr "Fai clic per individuare nel documento"
 
-#: templates/js/_workitems_overview_js.html:755
+#: templates/js/_workitem_detail_panel_js.html:404
 msgid "no source location"
 msgstr "nessuna posizione di origine"
 
-#: templates/js/_workitems_overview_js.html:760
+#: templates/js/_workitem_detail_panel_js.html:409
 msgid "Extraction confidence"
 msgstr "Affidabilità di estrazione"
 
-#: templates/js/_workitems_overview_js.html:844
+#: templates/js/_workitem_detail_panel_js.html:490
 msgid "Media"
 msgstr "Media"
 
-#: templates/js/_workitems_overview_js.html:844
+#: templates/js/_workitem_detail_panel_js.html:490
 msgid "for workitem "
 msgstr "per il Workitem "
 
-#: templates/js/_workitems_overview_js.html:867
+#: templates/js/_workitem_detail_panel_js.html:513
 msgid "Failed to load image "
 msgstr "Impossibile caricare l'immagine "
 
-#: templates/js/_workitems_overview_js.html:987
-#: templates/js/_workitems_overview_js.html:1717
+#: templates/js/_workitem_detail_panel_js.html:524
+msgid "Checking for media..."
+msgstr "Verifica media in corso..."
+
+#: templates/js/_workitem_detail_panel_js.html:546
+msgid "No additional details found."
+msgstr "Nessun dettaglio aggiuntivo trovato."
+
+#: templates/js/_workitem_detail_panel_js.html:551
+msgid "No media found for this workitem."
+msgstr "Nessun media trovato per questo Workitem."
+
+#: templates/js/_workitem_detail_panel_js.html:562
+msgid "Could not load media."
+msgstr "Impossibile caricare i media."
+
+#: templates/js/_workitem_detail_panel_js.html:591
+msgid "In register"
+msgstr "Nel registro"
+
+#: templates/js/_workitem_detail_panel_js.html:651
+msgid "Hide sources"
+msgstr "Nascondi origini"
+
+#: templates/js/_workitems_overview_js.html:345
+#: templates/js/_workitems_overview_js.html:1077
 msgid "High Priority"
 msgstr "Priorità alta"
 
-#: templates/js/_workitems_overview_js.html:988
-#: templates/js/_workitems_overview_js.html:1718
+#: templates/js/_workitems_overview_js.html:346
+#: templates/js/_workitems_overview_js.html:1078
 msgid "Medium Priority"
 msgstr "Priorità media"
 
-#: templates/js/_workitems_overview_js.html:989
-#: templates/js/_workitems_overview_js.html:1719
+#: templates/js/_workitems_overview_js.html:347
+#: templates/js/_workitems_overview_js.html:1079
 msgid "Low Priority"
 msgstr "Priorità bassa"
 
-#: templates/js/_workitems_overview_js.html:1021
+#: templates/js/_workitems_overview_js.html:379
 msgid "Please select valid PDF files."
 msgstr "Seleziona file PDF validi."
 
-#: templates/js/_workitems_overview_js.html:1034
+#: templates/js/_workitems_overview_js.html:392
 msgid "files selected"
 msgstr "file selezionati"
 
-#: templates/js/_workitems_overview_js.html:1220
+#: templates/js/_workitems_overview_js.html:579
 msgid "No fields available"
 msgstr "Nessun campo disponibile"
 
-#: templates/js/_workitems_overview_js.html:1501
+#: templates/js/_workitems_overview_js.html:860
 msgid "primary"
 msgstr "principale"
 
-#: templates/js/_workitems_overview_js.html:1503
+#: templates/js/_workitems_overview_js.html:862
 msgid "Some workitems are temporarily unavailable:"
 msgstr "Alcuni workitem sono temporaneamente non disponibili:"
 
-#: templates/js/_workitems_overview_js.html:1550
+#: templates/js/_workitems_overview_js.html:909
 msgid "Loading workitems..."
 msgstr "Caricamento Workitems..."
 
-#: templates/js/_workitems_overview_js.html:1618
+#: templates/js/_workitems_overview_js.html:977
 msgid "selected workitems will be exported"
 msgstr "Workitems selezionati verranno esportati"
 
-#: templates/js/_workitems_overview_js.html:1619
+#: templates/js/_workitems_overview_js.html:978
 msgid "All workitems matching current filters will be exported"
 msgstr "Tutti i Workitems corrispondenti ai filtri attuali verranno esportati"
 
-#: templates/js/_workitems_overview_js.html:1684
+#: templates/js/_workitems_overview_js.html:1043
 msgid "Export failed. Please try again."
 msgstr "Esportazione fallita. Riprova."
 
-#: templates/js/_workitems_overview_js.html:1702
+#: templates/js/_workitems_overview_js.html:1062
 msgid "No workitems found"
 msgstr "Nessun Workitem trovato"
-
-#: templates/js/_workitems_overview_js.html:2088
-msgid "Hide sources"
-msgstr "Nascondi origini"
 
 #: templates/js/admin/_access_control_js.html:33
 msgid "No Profile"
@@ -5739,4 +5761,7 @@ msgstr ""
 
 #~ msgid "No match"
 #~ msgstr "Nessuna corrispondenza"
+
+#~ msgid "In Octo"
+#~ msgstr "In Octo"
 

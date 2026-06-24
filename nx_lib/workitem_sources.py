@@ -695,6 +695,61 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
             conn.close()
 
 
+def resolve_ms02_wids_to_pids(engine, specs, wids):
+    """Inverse of resolve_ms02_pid_to_wids: map workitem ids -> their PID (col_pid)
+    value, columnar. Used by the reverse 'In register' chip to learn each visible
+    workitem's PID. Reuses the _MS02_IDENT guard + _as_workitem_ids.
+
+    None (engine/specs/wids absent or error) -> no mapping; {} -> none matched;
+    {wid: pid} otherwise. First PID seen per wid wins. Never raises."""
+    if engine is None or not specs or not wids:
+        return None
+    ids = []
+    for w in wids:
+        try:
+            ids.append(int(w))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return None
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        result: dict[int, str] = {}
+        for table, id_col, pid_col, time_filter in specs:
+            if not (table and id_col and pid_col):
+                continue
+            if not (_MS02_IDENT.match(id_col) and _MS02_IDENT.match(pid_col)):
+                current_app.logger.error(
+                    f"resolve_ms02_wids_to_pids: unsafe identifier {(id_col, pid_col)}"
+                )
+                continue
+            sql = (
+                f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
+                f" FROM {table}"
+                f' WHERE "{id_col}" = ANY(%s)'
+            )
+            if time_filter:
+                sql += f" AND {time_filter}"
+            cur.execute(sql, [ids])
+            for wid_raw, pid_raw in cur.fetchall():
+                wids_parsed = _as_workitem_ids([(wid_raw,)])
+                if not wids_parsed:
+                    continue
+                wid = next(iter(wids_parsed))
+                pid_str = str(pid_raw) if pid_raw is not None else None
+                if pid_str and wid not in result:
+                    result[wid] = pid_str
+        return result
+    except Exception as e:
+        current_app.logger.error(f"resolve_ms02_wids_to_pids: {e}")
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def _pgmarks(seq):
     return ", ".join(["%s"] * len(seq))
 

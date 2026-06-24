@@ -139,3 +139,56 @@ def test_clear_deletes_all(monkeypatch):
     sql_used = cur.execute.call_args.args[0]
     assert "DELETE" in sql_used.upper()
     conn.commit.assert_called_once()
+
+
+def test_pids_in_register_empty_input_no_db(monkeypatch):
+    class _Boom:
+        def raw_connection(self):
+            raise AssertionError("should not connect")
+
+    monkeypatch.setattr(pd, "engine_nexora_db", _Boom())
+    assert pd.pids_in_register([]) == set()
+
+
+def test_pids_in_register_returns_matched_set(monkeypatch):
+    cur = MagicMock()
+    cur.fetchall.return_value = [("100",), ("222",)]
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    result = pd.pids_in_register(["100", "200", "222"])
+    assert result == {"100", "222"}
+    sql_used = cur.execute.call_args.args[0]
+    assert "PreparedDocuments" in sql_used
+    assert sql_used.count("?") == 3  # one placeholder per input pid (parameterized)
+    assert cur.execute.call_args.args[1] == ["100", "200", "222"]
+
+
+def test_pids_in_register_never_raises(app, monkeypatch):
+    cur = MagicMock()
+    cur.execute.side_effect = Exception("boom")
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    with app.app_context():
+        assert pd.pids_in_register(["1"]) == set()
+
+
+def test_count_with_pid_adds_where(monkeypatch):
+    cur = MagicMock()
+    cur.fetchone.return_value = (1,)
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    assert pd.count_prepared_documents(pid="100") == 1
+    sql_used = cur.execute.call_args.args[0]
+    assert "WHERE PID = ?" in sql_used
+    assert cur.execute.call_args.args[1] == ["100"]
+
+
+def test_fetch_page_with_pid_filters(monkeypatch):
+    cur = MagicMock()
+    cur.fetchall.return_value = [(1, "100", True, "A", False, "", 7, None, None)]
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    rows = pd.fetch_prepared_documents_page(0, 40, pid="100")
+    assert rows[0]["pid"] == "100"
+    sql_used = cur.execute.call_args.args[0]
+    assert "WHERE PID = ?" in sql_used

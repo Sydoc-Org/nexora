@@ -1,0 +1,883 @@
+<script>
+    (function () {
+      const API_PREFIX = window.API_PREFIX
+        || (window.location.href.includes("nexora") ? "/nexora/" : "/");
+      const csrfToken = document.getElementById("csrfToken")?.value || "";
+
+      window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
+      window.mentionableUsers = window.mentionableUsers || [];
+
+      function buildCollaborationMarkup(workitemid, perms) {
+        const prioDis = perms.setPriority ? '' : 'disabled';
+        const assignDis = perms.assignUsers ? '' : 'disabled';
+        const tagDis = perms.addTag ? '' : 'disabled';
+        const commentDis = perms.addComment ? '' : 'disabled';
+        return `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col">
+              <div id="comments-container-${workitemid}" class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60"><p class="text-gray-500 italic">{{ _("Loading comments...") }}</p></div>
+            </div>
+            <div id="collaboration-tools-${workitemid}" class="flex flex-col">
+              <div class="mb-4">
+                <label for="priority-select-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
+                <select id="priority-select-${workitemid}" data-workitemid="${workitemid}" ${prioDis} class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-priority-${workitemid}">
+                  <option value="0">{{ _("None") }}</option><option value="1">{{ _("Low") }}</option><option value="2">{{ _("Medium") }}</option><option value="3">{{ _("High") }}</option>
+                </select>
+              </div>
+              <div class="mb-4">
+                <label for="assign-select-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
+                <select id="assign-select-${workitemid}" data-workitemid="${workitemid}" ${assignDis} class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-assign-${workitemid}"><option value="None">{{ _("None") }}</option></select>
+              </div>
+              <div class="mb-4">
+                <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
+                <div class="flex items-center gap-2">
+                  <input type="text" id="tag-input-${workitemid}" list="taglist" ${tagDis} class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}" data-testid="workitems-tag-input-${workitemid}">
+                  <input type="color" id="tag-color-${workitemid}" ${tagDis} class="h-10 w-12 p-1 border rounded-md" value="#6B7280" data-testid="workitems-tag-color-${workitemid}">
+                  <button type="button" ${tagDis} class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition" data-workitemid="${workitemid}" data-testid="workitems-add-tag-${workitemid}"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="tags-container-${workitemid}" class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]"></div>
+              </div>
+              <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitemid}">
+                <form class="comment-form" data-workitemid="${workitemid}" data-testid="workitems-comment-form-${workitemid}">
+                  <label for="comment-text-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
+                  <textarea name="commentText" id="comment-text-${workitemid}" ${commentDis} class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required autocomplete="off" data-testid="workitems-comment-text-${workitemid}"></textarea>
+                  <button type="submit" ${commentDis} class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-testid="workitems-comment-submit-${workitemid}">{{ _("Post Comment") }}</button>
+                </form>
+                <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function buildReadonlyCommentsMarkup(workitemid) {
+        // Read-only: comments are read content (kept); the priority/assign selectors,
+        // the tag input and the comment form are OMITTED entirely (decision 5).
+        return `
+          <div class="grid grid-cols-1 gap-6">
+            <div class="flex flex-col">
+              <div id="comments-container-${workitemid}" class="flex-grow space-y-3 overflow-y-auto p-2 bg-gray-50 rounded"><p class="text-gray-500 italic">{{ _("Loading comments...") }}</p></div>
+            </div>
+            <div class="flex flex-col">
+              <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
+              <div id="tags-container-${workitemid}" class="flex flex-wrap items-center gap-2 mt-2 p-2 bg-gray-50 rounded min-h-[40px]"></div>
+            </div>
+          </div>`;
+      }
+
+      function buildPanelMarkup(workitemid, status, currentStage, perms, readOnly) {
+        const imagesBlock = perms.images
+          ? `<div id="image-container-${workitemid}" class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white"><p class="text-gray-500 text-center px-2">{{ _("Click toggle button again to load media") }}</p></div>`
+          : `<div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50"><div class="text-center"><i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i><p class="text-gray-500">{{ _("Media preview restricted") }}</p></div></div>`;
+        const historyBlock = perms.audit
+          ? `<div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2"><p class="text-gray-500 italic">{{ _("Loading history...") }}</p></div>`
+          : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p></div>`;
+        const fieldsBlock = perms.fields
+          ? `<div id="fields-container-${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">{{ _("Loading details...") }}</p></div>`
+          : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p></div>`;
+        const collaboration = readOnly ? buildReadonlyCommentsMarkup(workitemid) : buildCollaborationMarkup(workitemid, perms);
+        return `
+          <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+            <div id="detail-panel-header-${workitemid}" class="detail-panel-header"></div>
+            <div id="timeline-container-${workitemid}" class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100" data-current-stage="${currentStage}" data-status="${status}">
+              <div class="relative flex justify-between items-center">
+                <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+                <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+                <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p></div>
+                <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-gears text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p></div>
+                <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-shield-halved text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p></div>
+                <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-paper-plane text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div class="flex flex-col gap-6 h-[50rem]">
+                ${imagesBlock}
+                <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
+                  <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('History') }}</h4>
+                  ${historyBlock}
+                </div>
+              </div>
+              <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
+                <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Document Details') }}</h4>
+                ${fieldsBlock}
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
+              ${collaboration}
+            </div>
+          </div>`;
+      }
+
+      async function loadHistory(workitemId) {
+            const historyContainer = document.getElementById(`history-container-${workitemId}`);
+            if (!historyContainer) {
+                console.error(`History container not found for workitem ID: ${workitemId}`);
+                return;
+            }
+
+            if (historyContainer.dataset.loaded === 'true') {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+                if (response.status === 403) {
+                     historyContainer.innerHTML = `<p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Restricted") }}</p>`;
+                     return;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const historyData = await response.json();
+
+                historyContainer.innerHTML = '';
+
+                if (historyData.length === 0) {
+                    historyContainer.innerHTML = `<p class="text-gray-500">{{ _("No history available for this item") }}</p>`;
+                } else {
+                    const timeline = document.createElement('div');
+                    timeline.className = 'border-l-2 border-indigo-200 ml-2';
+
+                    historyData.forEach(item => {
+                        const eventElement = document.createElement('div');
+                        eventElement.className = 'relative mb-4 pl-6';
+
+                        const dot = document.createElement('div');
+                        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
+                        eventElement.appendChild(dot);
+
+                        const eventText = document.createElement('p');
+                        eventText.className = 'text-sm text-gray-800';
+                        eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+                        eventElement.appendChild(eventText);
+
+                        const detailsText = document.createElement('p');
+                        detailsText.className = 'text-xs text-gray-500 mt-1';
+                        const eventDate = new Date(item.DateTime);
+                        const formattedDate = eventDate.toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        detailsText.textContent = formattedDate;
+                        eventElement.appendChild(detailsText);
+
+                        timeline.appendChild(eventElement);
+                    });
+                    historyContainer.appendChild(timeline);
+                }
+                historyContainer.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
+            }
+        }
+
+      function renderTagsInDetails(workitemId, tags) {
+            const container = document.getElementById(`tags-container-${workitemId}`);
+            if (!container) return;
+            container.innerHTML = tags.map(tag => `
+                <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
+                    ${tag.name}
+                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}" data-testid="workitems-remove-tag-${tag.id}">
+                        <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+      async function loadCollaborationData(workitemId, mentionableUsers) {
+          mentionableUsers = mentionableUsers || [];
+          const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
+          const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
+          const assignSelector = document.getElementById(`assign-select-${workitemId}`);
+          const tagsContainer = document.getElementById(`tags-container-${workitemId}`);
+          if (assignSelector) {
+            mentionableUsers.forEach(user => {
+                let option = document.createElement('option');
+                option.text = user.fullname;
+                option.value = user.userID;
+                assignSelector.add(option);
+            });
+          }
+          if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
+          try {
+              const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`, {headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+              }});
+              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+              const data = await response.json();
+              if (prioritySelector) prioritySelector.value = data.priority;
+              if (assignSelector) assignSelector.value = data.assigneduserid;
+              if (tagsContainer) renderTagsInDetails(workitemId, data.tags);
+              commentsContainer.innerHTML = '';
+              if (data.comments.length === 0) {
+                  commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
+              } else {
+                  data.comments.forEach(comment => {
+                      const commentEl = document.createElement('div');
+                      commentEl.className = 'flex items-start gap-2.5';
+                      const commentDate = new Date(comment.Timestamp).toLocaleString();
+                      commentEl.innerHTML = `
+                          <img class="w-8 h-8 rounded-full" src=${comment.userIcon} alt=" {{ _('Profile Picture') }}">
+                          <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
+                              <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                  <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
+                                  <span class="text-sm font-normal text-gray-500">${commentDate}</span>
+                              </div>
+                              <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+\.\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
+                          </div>`;
+                      commentsContainer.appendChild(commentEl);
+                  });
+              }
+              commentsContainer.dataset.loaded = 'true';
+          } catch (error) {
+              console.error('Failed to load collaboration data:', error);
+              commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
+          }
+      }
+
+      function renderWorkitemTimeline(container) {
+            if (!container || container.dataset.rendered === 'true') return;
+
+            const currentStage = container.dataset.currentStage;
+            const status = container.dataset.status;
+            const progressLine = container.querySelector('.progress-line');
+            const stepElements = container.querySelectorAll('.process-step');
+
+            const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
+            const stageIndex = stages.indexOf(currentStage);
+            const scaleFactors = {
+                0: 0,
+                1: 0.3334,
+                2: 0.6667,
+                3: 1
+            };
+
+            const progressValues = {
+                0: '0%',
+                1: '33%',
+                2: '66%',
+                3: '100%'
+            };
+
+            stepElements.forEach(step => {
+                step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
+                step.querySelector('.step-label').classList.remove('active', 'completed');
+            });
+
+            if (status === 'Done') {
+                stepElements.forEach(step => {
+                    step.querySelector('.step-icon-wrapper').classList.add('completed');
+                    step.querySelector('.step-label').classList.add('completed');
+                });
+                progressLine.style.transform = `scaleX(1)`;
+            } else if (stageIndex !== -1) {
+                for (let i = 0; i < stageIndex; i++) {
+                    stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
+                    stepElements[i].querySelector('.step-label').classList.add('completed');
+                }
+                stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
+                stepElements[stageIndex].querySelector('.step-label').classList.add('active');
+                progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
+            } else {
+                progressLine.style.transform = `scaleX(0)`;
+            }
+
+            container.dataset.rendered = 'true';
+        }
+
+      function loadImagesInBatch(container, workitemid, totalImages) {
+            const existingBtn = container.querySelector('.load-more-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+
+            const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
+            const batchSize = 7;
+            const endIndex = Math.min(loadedCount + batchSize, totalImages);
+
+            for (let i = loadedCount; i < endIndex; i++) {
+                loadImage(container, workitemid, i);
+            }
+
+            container.dataset.loadedCount = endIndex;
+
+            if (endIndex < totalImages) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition';
+                loadMoreBtn.textContent = `{{ _("Load more") }} (${endIndex} / ${totalImages})`;
+                loadMoreBtn.dataset.workitemid = workitemid;
+                loadMoreBtn.dataset.totalImages = totalImages;
+                container.appendChild(loadMoreBtn);
+            }
+        }
+
+      // Escape values interpolated into innerHTML. Field/cell values + column
+      // names are extracted document content (attacker-influenceable via a crafted
+      // document), so they must never be injected raw. (Box .title is set via the
+      // DOM property, which is already safe.)
+      function srcEsc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+      // A table cell is "just another source": flatten line-item cells to the
+      // same {key,label,value,locations,confidence,kind} shape the overlay draws.
+      // key encodes table/row/cell so a grid cell click can pulse exactly its box.
+      function tableCellSources(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            const out = [];
+            tables.forEach((t, ti) => (t.rows || []).forEach((row, ri) => row.forEach((c, ci) => {
+                out.push({
+                    key: `t${ti}r${ri}c${ci}`, label: c.col, value: c.value,
+                    locations: c.locations || [], confidence: c.confidence, kind: 'cell',
+                });
+            })));
+            return out;
+        }
+
+      function allSources(workitemid) {
+            const fields = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+            return fields.concat(tableCellSources(workitemid));
+        }
+
+      function renderTableGrids(workitemid) {
+            const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            let html = '';
+            tables.forEach((t, ti) => {
+                const cols = (t.columns && t.columns.length) ? t.columns : [];
+                const title = t.title ? `<div class="src-table-title">${srcEsc(t.title)}</div>` : '';
+                const head = cols.map(c => `<th>${srcEsc(c)}</th>`).join('');
+                const body = (t.rows || []).map((row, ri) => {
+                    const byCol = {};
+                    row.forEach((c, ci) => { byCol[c.col] = { c, ci }; });
+                    const tds = cols.map(col => {
+                        const entry = byCol[col];
+                        if (!entry) return '<td class="src-table-cell"></td>';
+                        const { c, ci } = entry;
+                        const hasLoc = !!(c.locations && c.locations.length);
+                        const page = hasLoc ? c.locations[0].page : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const cls = 'src-table-cell' + (hasLoc ? ' src-cell-loc' : '');
+                        const val = srcEsc(c.value);
+                        return `<td class="${cls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>${val}</td>`;
+                    }).join('');
+                    return `<tr>${tds}</tr>`;
+                }).join('');
+                html += `<div class="src-table-grid">${title}`
+                    + `<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`;
+            });
+            return html;
+        }
+
+      function buildSourceDetailsHtml(workitemid) {
+            const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
+            // Suppress the "no source location" badge when the user lacks the
+            // source-location perm (the backend strips locations from everything,
+            // so it's a permission state, not missing data).
+            const locVisible = !(window.__srcLocVisibleByWorkitem
+                && window.__srcLocVisibleByWorkitem[workitemid] === false);
+            let html = '';
+            if (Object.keys(fields).length > 0) {
+                const srcByKey = {};
+                (window.__srcByWorkitem && window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
+                let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+                for (const key in fields) {
+                    if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                        const labelKey = key.toLowerCase();
+                        const label = (window.fieldConfig.labels || {})[labelKey] || key;
+                        const src = srcByKey[key];
+                        const hasLoc = !!(src && src.locations && src.locations.length);
+                        const page = hasLoc ? src.locations[0].page : '';
+                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                            + (hasLoc ? ' is-locatable' : '');
+                        const badge = (locVisible && src && !hasLoc)
+                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        const confCls = src ? window.srcConfClass(src.confidence) : '';
+                        const confBadge = confCls
+                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(src.confidence)}</span>`
+                            : '';
+                        fieldsHtml += `
+                            <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
+                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
+                            </div>`;
+                    }
+                }
+                fieldsHtml += '</dl>';
+                html += fieldsHtml;
+            }
+            // Line-item tables render below the scalar fields (a table can exist with
+            // no scalar fields, so this is independent).
+            html += renderTableGrids(workitemid);
+            return html;
+        }
+
+      function renderThumbOverlay(wrap, imgEl, workitemid, page) {
+            const old = wrap.querySelector('.src-hl-layer-thumb');
+            if (old) old.remove();
+            if (localStorage.getItem('srcHlOn') !== '1') return;
+            const srcs = allSources(workitemid);
+            const natW = imgEl.naturalWidth, natH = imgEl.naturalHeight;
+            const w = imgEl.clientWidth, h = imgEl.clientHeight;
+            if (!natW || !natH || !w || !h) return;
+            const scale = Math.min(w / natW, h / natH);
+            const offX = (w - natW * scale) / 2, offY = (h - natH * scale) / 2;
+            const layer = document.createElement('div');
+            layer.className = 'src-hl-layer-thumb';
+            srcs.forEach(s => (s.locations || []).forEach(loc => {
+                if (loc.page !== page) return;
+                const b = document.createElement('div');
+                const confCls = window.srcConfClass(s.confidence);
+                b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '')
+                    + (s.kind === 'cell' ? ' src-hl-box--cell' : '');
+                b.style.left = (offX + loc.rect.left * scale) + 'px';
+                b.style.top = (offY + loc.rect.top * scale) + 'px';
+                b.style.width = (loc.rect.width * scale) + 'px';
+                b.style.height = (loc.rect.height * scale) + 'px';
+                layer.appendChild(b);
+            }));
+            wrap.appendChild(layer);
+        }
+
+      function refreshThumbOverlays() {
+            document.querySelectorAll('.src-thumb').forEach(wrap => {
+                const img = wrap.querySelector('img.workitem-image');
+                if (img) {
+                    renderThumbOverlay(wrap, img, wrap.dataset.workitemid,
+                                       parseInt(wrap.dataset.page || '0', 10));
+                }
+            });
+        }
+
+      async function loadImage(container, workitemid, index) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
+
+            const loadMoreButton = container.querySelector('.load-more-btn');
+            if (loadMoreButton) {
+                container.insertBefore(placeholder, loadMoreButton);
+            } else {
+                container.appendChild(placeholder);
+            }
+            try {
+                const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
+                const response = await fetch(apiUrl, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                const imageBlob = await response.blob();
+                const imageUrl = URL.createObjectURL(imageBlob);
+
+                const imgElement = document.createElement('img');
+                imgElement.src = imageUrl;
+                imgElement.alt = `{{ _("Media") }} ${index + 1} {{ _("for workitem ") }}${workitemid}`;
+                // object-contain (not cover) shows the whole page so source boxes map correctly.
+                imgElement.className = 'w-40 h-40 object-contain rounded shadow-lg workitem-image cursor-pointer bg-gray-50';
+
+                const thumbWrap = document.createElement('div');
+                thumbWrap.className = 'src-thumb';
+                thumbWrap.dataset.workitemid = String(workitemid);
+                thumbWrap.dataset.page = String(index);
+                thumbWrap.appendChild(imgElement);
+
+                imgElement.onload = () => {
+                    placeholder.replaceWith(thumbWrap);
+                    renderThumbOverlay(thumbWrap, imgElement, String(workitemid), index);
+                };
+
+                imgElement.onerror = () => {
+                    URL.revokeObjectURL(imageUrl);
+                    throw new Error('Image could not be loaded into element.');
+                }
+
+
+            } catch (error) {
+                console.error(`Error loading image index ${index}:`, error);
+                placeholder.innerHTML = `<div class="text-center text-xs text-red-600 p-2">{{ _("Failed to load image ") }}${index + 1}</div>`;
+                placeholder.classList.remove('animate-pulse', 'bg-gray-200');
+                placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
+            }
+        }
+
+      async function loadDetailData(workitemid, perms) {
+        const imageContainer = document.getElementById(`image-container-${workitemid}`);
+        const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+        if (perms && perms.audit !== false) loadHistory(workitemid);
+        if (!(imageContainer && imageContainer.dataset.loaded !== 'true') && !fieldsContainer) return;
+        if (imageContainer) imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
+        try {
+          const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`, {headers: {
+            'Content-Type': 'application/json', 'X-CSRFToken': csrfToken
+          }});
+          if (!infoResponse.ok) {
+            if (infoResponse.status === 403) throw new Error("Restricted");
+            throw new Error('Could not fetch media information.');
+          }
+          const mediaInfo = await infoResponse.json();
+          const imageCount = mediaInfo.media_count || 0;
+          const fields = mediaInfo.fields || {};
+          window.__srcByWorkitem = window.__srcByWorkitem || {};
+          window.__srcByWorkitem[workitemid] = mediaInfo.field_sources || [];
+          window.__tableByWorkitem = window.__tableByWorkitem || {};
+          window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
+          window.__srcLocVisibleByWorkitem = window.__srcLocVisibleByWorkitem || {};
+          window.__srcLocVisibleByWorkitem[workitemid] = mediaInfo.source_location_visible !== false;
+          if (fieldsContainer) {
+            window.__fieldsByWorkitem = window.__fieldsByWorkitem || {};
+            window.__fieldsByWorkitem[workitemid] = fields;
+            fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid)
+              || `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
+          }
+          if (imageContainer) {
+            imageContainer.dataset.loaded = 'true';
+            if (imageCount === 0) {
+              imageContainer.innerHTML = `<p class="text-gray-500">{{ _("No media found for this workitem.") }}</p>`;
+            } else {
+              imageContainer.innerHTML = '';
+              imageContainer.classList.remove('justify-center', 'items-center');
+              imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+              imageContainer.dataset.loadedCount = '0';
+              loadImagesInBatch(imageContainer, workitemid, imageCount);
+            }
+          }
+        } catch (error) {
+          if (imageContainer) {
+            imageContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load media.") }}</p>`;
+            imageContainer.dataset.loaded = 'true';
+          }
+        }
+      }
+
+      window.NexoraWorkitemDetail = window.NexoraWorkitemDetail || {};
+      window.NexoraWorkitemDetail._buildPanelMarkup = buildPanelMarkup;
+      window.NexoraWorkitemDetail.render = function (workitemId, containerEl, opts) {
+        const { readOnly = false, perms = {} } = opts || {};
+        if (!containerEl) return;
+        const wid = String(workitemId);
+        const status = containerEl.dataset.status || (opts && opts.status) || '';
+        const currentStage = containerEl.dataset.currentStage || (opts && opts.currentStage) || '';
+        containerEl.innerHTML = buildPanelMarkup(wid, status, currentStage, perms, readOnly);
+        renderWorkitemTimeline(containerEl.querySelector('[id^="timeline-container-"]'));
+        _renderHeaderChip(wid, opts);            // filled in Task 3.4; no-op until then
+        loadDetailData(wid, perms);
+        loadCollaborationData(wid, readOnly ? [] : (window.mentionableUsers || []));
+        return wid;
+      };
+      const _PREPARED_DOCS_URL = API_PREFIX + "prepared_documents";
+      function _renderHeaderChip(workitemId, opts) {
+        const pid = opts && opts.inRegisterPid;
+        if (!pid) return;
+        const host = document.getElementById(`detail-panel-header-${workitemId}`);
+        if (!host) return;
+        const url = `${_PREPARED_DOCS_URL}?pid=${encodeURIComponent(pid)}`;
+        host.innerHTML = `<a href="${url}" class="nx-label nx-label--blue inline-flex items-center gap-1"
+          data-testid="workitem-in-register"><i class="fas fa-clipboard-list"></i>{{ _("In register") }}</a>`;
+      }
+
+      window.NexoraWorkitemDetail.attachLightbox = function (cfg) {
+        // --- closure-local state per instance ---
+        let currentImages = [];
+        let currentIndex = 0;
+
+        // --- resolve shell elements from the explicit id-map ---
+        const modal = document.getElementById(cfg.modal);
+        const modalImg = document.getElementById(cfg.image);
+        const srcHlLayer = document.getElementById(cfg.hlLayer);
+        const srcHlToggle = document.getElementById(cfg.hlToggle);
+        const srcHlToggleLabel = document.getElementById(cfg.hlToggleLabel);
+
+        // No-op when the shell is absent (e.g. partial rendered without the modal markup).
+        if (!modal) return { openForWorkitem() {}, close() {} };
+
+        // --- modal-scoped button lookups (prevents collision with other .modal-close elements) ---
+        const closeBtn = modal.querySelector('.modal-close');
+        const prevBtn = modal.querySelector('.modal-prev');
+        const nextBtn = modal.querySelector('.modal-next');
+
+        // ---- Source highlighting (read-only: show where values were found) ----
+        const srcHl = {
+            on: localStorage.getItem('srcHlOn') === '1',
+            workitemid: null,
+            pendingPulse: null,
+        };
+
+        // Safety net: keep the overlay locked to the image's box if it changes size
+        // after the initial draw for any reason other than the open zoom (e.g. the
+        // values panel reflowing, late image decode, viewport resize). Skipped while a
+        // zoom animation is mid-flight -- that frame is handled by drawOverlayWhenStable
+        // once the animation finishes, so boxes never flash out of register.
+        if (window.ResizeObserver && modalImg) {
+            new ResizeObserver(() => {
+                if (!modal || modal.style.display !== 'flex') return;
+                const animating = modalImg.getAnimations && modalImg.getAnimations().length;
+                if (!animating) renderModalOverlay();
+            }).observe(modalImg);
+        }
+
+        function currentSources() {
+            return window.allSources(srcHl.workitemid);
+        }
+
+        function hasAnyLocation() {
+            return currentSources().some(s => (s.locations || []).length > 0);
+        }
+
+        function renderModalOverlay(pulseKey) {
+            if (!srcHlLayer || !modalImg) return;
+            srcHlLayer.innerHTML = '';
+            // Only offer the toggle when this document actually has locations.
+            if (srcHlToggle) {
+                srcHlToggle.hidden = !hasAnyLocation();
+                srcHlToggle.classList.toggle('is-on', srcHl.on);
+                if (srcHlToggleLabel) {
+                    srcHlToggleLabel.textContent = srcHl.on
+                        ? '{{ _("Hide sources") }}' : '{{ _("Show sources") }}';
+                }
+            }
+            if (!srcHl.on && !pulseKey) return;
+            const natW = modalImg.naturalWidth, natH = modalImg.naturalHeight;
+            if (!natW || !natH) return;  // image not decoded yet
+            // Measure the image's LAYOUT box (offset*), NOT getBoundingClientRect().
+            // getBoundingClientRect() returns the *visual* (post-transform) rect, so
+            // reading it while the lightbox zoom animation (scale 0.5 -> 1) is mid-flight
+            // pinned the overlay to a shrunken frame that was never updated once the zoom
+            // settled -> boxes stranded in blank space, and "jumping" on hide/show because
+            // the re-render then measured the settled rect. offset* is transform-immune,
+            // so the overlay always maps to the final displayed page. The layer is
+            // position:absolute inside #imageModal, so offsetLeft/Top share its space.
+            const w = modalImg.offsetWidth, h = modalImg.offsetHeight;
+            if (!w || !h) return;  // not laid out yet
+            srcHlLayer.style.left = modalImg.offsetLeft + 'px';
+            srcHlLayer.style.top = modalImg.offsetTop + 'px';
+            srcHlLayer.style.width = w + 'px';
+            srcHlLayer.style.height = h + 'px';
+            currentSources().forEach(src => {
+                (src.locations || []).forEach(loc => {
+                    if (loc.page !== currentIndex) return;
+                    const confCls = window.srcConfClass(src.confidence);
+                    const box = document.createElement('div');
+                    box.className = 'src-hl-box'
+                        + (confCls ? ' ' + confCls : '')
+                        + (src.kind === 'cell' ? ' src-hl-box--cell' : '')
+                        + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
+                    box.style.left = (loc.rect.left / natW * w) + 'px';
+                    box.style.top = (loc.rect.top / natH * h) + 'px';
+                    box.style.width = (loc.rect.width / natW * w) + 'px';
+                    box.style.height = (loc.rect.height / natH * h) + 'px';
+                    const confPct = window.srcConfPct(src.confidence);
+                    box.title = src.label + ': ' + (src.value == null ? '' : src.value)
+                        + (confPct ? ' (' + confPct + ')' : '');
+                    srcHlLayer.appendChild(box);
+                });
+            });
+        }
+
+        function setSrcHl(on) {
+            srcHl.on = on;
+            localStorage.setItem('srcHlOn', on ? '1' : '0');
+            renderModalOverlay();
+            window.refreshThumbOverlays();
+        }
+
+        // A value/cell was clicked to locate it -> make sure source boxes are on so
+        // the user sees them in context. The toggle flips to "Hide sources" on the
+        // next renderModalOverlay (driven by showImage). No-op if already on.
+        function ensureSourcesOn() {
+            if (srcHl.on) return;
+            srcHl.on = true;
+            localStorage.setItem('srcHlOn', '1');
+            window.refreshThumbOverlays();
+        }
+
+        // Open the lightbox for a specific workitem + page (used by click-to-locate
+        // and the thumbnail click handler). pulseKey flashes one field's box.
+        function openModalForWorkitem(workitemid, index, pulseKey) {
+            const ic = document.getElementById('image-container-' + workitemid);
+            if (!ic) return;
+            const allImages = Array.from(ic.querySelectorAll('.workitem-image'));
+            if (!allImages.length) return;
+            currentImages = allImages.map(img => img.src);
+            srcHl.workitemid = String(workitemid);
+            srcHl.pendingPulse = pulseKey || null;
+            if (pulseKey) ensureSourcesOn();   // located via a value click -> show boxes
+            renderReviewPanel(String(workitemid));
+            modal.style.display = 'flex';
+            showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
+        }
+
+        // Fill the in-lightbox review panel (right pane) with the workitem's extracted
+        // values, reusing the exact same rows as the inline panel. Hidden (image goes
+        // full-width) when the document has no extracted values.
+        function renderReviewPanel(workitemid) {
+            const panel = document.getElementById(cfg.reviewPanel);
+            const body = document.getElementById(cfg.reviewPanelBody);
+            if (!panel || !body) return;
+            const html = window.buildSourceDetailsHtml(workitemid);
+            body.innerHTML = html;
+            panel.hidden = !html;
+        }
+
+        // Render the overlay only once the displayed page is geometrically SETTLED:
+        // (1) the image bitmap is decoded (so its layout box reflects the real page
+        // aspect) and (2) the open-zoom animation (scale 0.5 -> 1) has finished. The
+        // overlay layer is a SIBLING of the image, so it never inherits that zoom
+        // transform -- drawing mid-animation strands the boxes off the still-scaling
+        // page (boxes already visible but in the wrong place), and they only snapped
+        // into register on a later hide/show that re-rendered against the settled
+        // image. Waiting for each running animation's `finished` promise makes the
+        // boxes appear already aligned. With no animation running (e.g. reopening the
+        // same lightbox, or prev/next navigation) it renders immediately.
+        function drawOverlayWhenStable(pulse) {
+            const render = () => requestAnimationFrame(() => renderModalOverlay(pulse));
+            const afterDecode = () => {
+                const anims = modalImg.getAnimations ? modalImg.getAnimations() : [];
+                if (anims.length) Promise.allSettled(anims.map(a => a.finished)).then(render);
+                else render();
+            };
+            if (modalImg.complete && modalImg.naturalWidth) afterDecode();
+            else modalImg.addEventListener('load', afterDecode, { once: true });
+        }
+
+        function showImage(index) {
+            if (index >= 0 && index < currentImages.length) {
+                modalImg.src = currentImages[index];
+                currentIndex = index;
+                prevBtn.style.display = index > 0 ? 'block' : 'none';
+                nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
+                const pulse = srcHl.pendingPulse;
+                srcHl.pendingPulse = null;
+                drawOverlayWhenStable(pulse);
+            }
+        }
+
+        // renderThumbOverlay / refreshThumbOverlays are defined at module scope
+        // (near loadImage) so loadImage's onload handler can reach them.
+
+        const closeModal = () => {
+            modal.style.display = "none";
+            currentImages = [];
+            currentIndex = 0;
+            if (srcHlLayer) srcHlLayer.innerHTML = '';
+        };
+
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('workitem-image')) {
+                const imageContainer = event.target.closest('[id^="image-container-"]');
+                if (!imageContainer) return;
+                const workitemid = imageContainer.id.replace('image-container-', '');
+                const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
+                const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
+                if (clickedIndex !== -1) {
+                    openModalForWorkitem(workitemid, clickedIndex, null);
+                }
+            }
+        });
+
+        // Click a field value with a known location -> open the page + pulse its box.
+        document.addEventListener('click', (event) => {
+            const row = event.target.closest('.src-field-row.is-locatable');
+            if (!row) return;
+            const fc = row.closest('[id^="fields-container-"]');
+            if (!fc) return;
+            const workitemid = fc.id.replace('fields-container-', '');
+            openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
+        });
+
+        // Click a located line-item cell -> open its page + pulse its cell box.
+        document.addEventListener('click', (event) => {
+            const td = event.target.closest('td.src-cell-loc');
+            if (!td) return;
+            const fc = td.closest('[id^="fields-container-"]');
+            if (!fc) return;
+            const workitemid = fc.id.replace('fields-container-', '');
+            openModalForWorkitem(workitemid, parseInt(td.dataset.page || '0', 10), td.dataset.key);
+        });
+
+        // Click a value/cell in the in-lightbox review panel -> the modal is already
+        // open, so just navigate to that field's page and pulse its box.
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById(cfg.reviewPanel);
+            if (!panel) return;
+            const row = event.target.closest('.src-field-row.is-locatable, td.src-cell-loc');
+            if (!row || !panel.contains(row)) return;
+            ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
+            srcHl.pendingPulse = row.dataset.key;
+            showImage(parseInt(row.dataset.page || '0', 10));
+        });
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (modal) modal.addEventListener('click', (event) => {
+            // Close when clicking the backdrop or the empty letterbox area around the
+            // page (but not the image, the values panel, the nav arrows or the toggle).
+            if (event.target === modal || event.target.classList.contains('src-modal-page')) {
+                closeModal();
+            }
+        });
+
+        if (prevBtn) prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showImage(currentIndex - 1);
+        });
+
+        if (nextBtn) nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showImage(currentIndex + 1);
+        });
+
+        if (srcHlToggle) srcHlToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setSrcHl(!srcHl.on);
+        });
+        window.addEventListener('resize', () => {
+            if (modal.style.display === 'flex') renderModalOverlay();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (modal.style.display === "flex") {
+                if (event.key === 'Escape') {
+                    closeModal();
+                } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    showImage(currentIndex - 1);
+                } else if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    showImage(currentIndex + 1);
+                }
+            }
+        });
+
+        return { openForWorkitem: openModalForWorkitem, close: closeModal };
+      };
+
+      Object.assign(window.NexoraWorkitemDetail, {
+        loadDetailData, loadHistory, loadCollaborationData, renderWorkitemTimeline,
+        renderTagsInDetails, loadImage, loadImagesInBatch, buildSourceDetailsHtml,
+        renderTableGrids, tableCellSources, allSources, srcEsc, renderThumbOverlay,
+        refreshThumbOverlays,
+      });
+      window.srcEsc = srcEsc; window.tableCellSources = tableCellSources;
+      window.allSources = allSources; window.renderTableGrids = renderTableGrids;
+      window.buildSourceDetailsHtml = buildSourceDetailsHtml;
+      window.renderThumbOverlay = renderThumbOverlay; window.refreshThumbOverlays = refreshThumbOverlays;
+      window.loadImage = loadImage; window.loadImagesInBatch = loadImagesInBatch;
+      window.loadHistory = loadHistory; window.loadCollaborationData = loadCollaborationData;
+      window.renderWorkitemTimeline = renderWorkitemTimeline; window.renderTagsInDetails = renderTagsInDetails;
+    })();
+  </script>

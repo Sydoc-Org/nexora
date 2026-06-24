@@ -62,6 +62,14 @@ def test_workitems_overview_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_workitems_overview_uses_shared_detail_panel(user_client, workitems_all_perms):
+    """The workitems page wires the shared renderer."""
+    resp = user_client.get("/workitems")
+    # 200 or 500-fallback possible in CI; the partial markers live in template body.
+    if resp.status_code == 200:
+        assert b"NexoraWorkitemDetail.render" in resp.data
+
+
 # ============================ API: config/data ===============================
 
 
@@ -476,11 +484,11 @@ def test_prepared_documents_page_renders_when_ms02_active(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit: [
+        lambda offset, limit, pid=None: [
             {
                 "id": 1,
                 "pid": "100",
@@ -513,11 +521,11 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit: [
+        lambda offset, limit, pid=None: [
             {
                 "id": 1,
                 "pid": "100",
@@ -562,3 +570,209 @@ def test_prepared_documents_clear_deletes_when_ms02_active(
     resp = user_client.post("/prepared_documents/clear")
     assert resp.status_code == 200
     assert resp.get_json()["deleted"] == 3
+
+
+def test_prepared_documents_preview_button_requires_details_view(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b'data-testid="prepared-docs-preview"' in resp.data
+    assert b'data-wid="42"' in resp.data
+    assert b"NexoraWorkitemDetail" in resp.data
+
+    monkeypatch.setattr(wv, "has_permission", lambda code: code != "workitems.details.view")
+    resp2 = user_client.get("/prepared_documents")
+    assert resp2.status_code == 200
+    assert b'data-testid="prepared-docs-preview"' not in resp2.data
+
+
+def test_prepared_documents_modal_wires_shared_renderer(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 0)
+    monkeypatch.setattr(wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b"NexoraWorkitemDetail.render" in resp.data
+    assert b"attachLightbox" in resp.data
+    assert b"api/config/fields" in resp.data
+
+
+def test_prepared_documents_preview_present_when_media_degrades(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Octo resolve returning None still renders the page with the modal shell (image
+    degradation is client-side; the panel must not be gated on media)."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b'data-testid="prepared-docs-preview-modal"' in resp.data
+
+
+def test_prepared_documents_pid_filter_passes_through(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv, "count_prepared_documents", lambda pid=None: (seen.__setitem__("count_pid", pid) or 1)
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: (
+            seen.__setitem__("fetch_pid", pid)
+            or [
+                {
+                    "id": 1,
+                    "pid": "100",
+                    "collected": True,
+                    "collected_by": "A",
+                    "prepared": False,
+                    "prepared_by": "",
+                    "uploaded_by": 7,
+                    "uploaded_at": None,
+                    "updated_at": None,
+                }
+            ]
+        ),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+    resp = user_client.get("/prepared_documents?pid=100")
+    assert resp.status_code == 200
+    assert seen.get("count_pid") == "100"
+    assert seen.get("fetch_pid") == "100"
+    assert b'data-testid="prepared-docs-show-all"' in resp.data
+
+
+def test_stamp_in_register_marks_rows(monkeypatch):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100", 43: "200"})
+    monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
+    rows = [{"workitemid": 42}, {"workitemid": 43}]
+    wv._stamp_in_register(rows)
+    assert rows[0]["pid"] == "100" and rows[0]["in_register"] is True
+    assert rows[1]["pid"] == "200" and rows[1]["in_register"] is False
+
+
+def test_stamp_in_register_noop_when_not_ms02(monkeypatch):
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+    rows = [{"workitemid": 42}]
+    wv._stamp_in_register(rows)
+    assert "pid" not in rows[0] and "in_register" not in rows[0]
+
+
+def test_api_workitems_carries_pid_in_register(user_client, workitems_all_perms, monkeypatch):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(
+        wv,
+        "fetch_merged_page",
+        lambda filt, off, lim: (
+            [
+                {
+                    "workitemid": 42,
+                    "status": "Ready",
+                    "current_stage": "Import",
+                    "priority": 0,
+                    "tags": [],
+                    "modifiedat": None,
+                }
+            ],
+            1,
+            [],
+        ),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100"})
+    monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
+    resp = user_client.get("/api/workitems")
+    assert resp.status_code in (200, 500)  # 500 only if upstream filter parsing trips in CI
+    if resp.status_code == 200:
+        wi = resp.get_json()["workitems"][0]
+        assert wi["pid"] == "100"
+        assert wi["in_register"] is True

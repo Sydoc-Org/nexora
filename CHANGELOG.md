@@ -47,6 +47,18 @@ Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/ve
   short-circuit. Superseded by the persistent `dbo.PreparedDocuments` register.
 
 ### Added
+- **Prepared Documents ⇄ Workitem detail cross-linking (MS02).** The register's
+  Octo-Status cell gains a read-only **Preview** modal mirroring the full Workitems
+  detail panel (page images + source highlighting + extracted fields + audit + tags +
+  comments) beside the renamed "Open in Workitems" link; write controls are hidden in
+  the preview. A reverse **"In register"** chip on the Workitems detail panel links to
+  `prepared_documents?pid=<pid>`, and the register accepts an exact `?pid=` filter (with
+  a "Show all" reset). Internally the detail panel was extracted into a shared partial
+  `templates/js/_workitem_detail_panel_js.html`
+  (`window.NexoraWorkitemDetail.render(wid, container, {readOnly, perms, inRegisterPid})`
+  + `attachLightbox(idMap)`) consumed by both the Workitems row-expand and the register
+  modal; the Workitems page behaviour is unchanged. New helpers `pids_in_register()` and
+  `resolve_ms02_wids_to_pids()`. MS02-only; read-only; no new permission, no new migration.
 - **MS02 on the remaining two dashboard charts.** The "documents per hour" and "average processing time" charts now include MS02 alongside the default client (the processed/imported KPIs and "processed over time" already did). Both read the MS02 table + date columns from the `'ms02'` `Statconfig` row (`public."DossierStatistik"`): hourly buckets by `EXTRACT(HOUR FROM DatumInTempExport)`; avg-processing-time by `EXTRACT(EPOCH FROM (DatumInTempExport - ImportDate))`, contributing one client-level average weighted equally with the default bucket (the same mean-of-means the default path already applies across its processes). All four MS02 stat branches now share one `_ms02_stat_rows` helper for connection handling + error swallowing, and read their source from `Statconfig` rather than hardcoding a table name.
 - **PDF page rendering in the workitem viewer.** Document media delivered as PDF
   (e.g. MS02 `MobScn` pages) now renders as page thumbnails + lightbox images
