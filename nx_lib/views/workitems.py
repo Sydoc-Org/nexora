@@ -72,6 +72,7 @@ from ..workitem_sources import (
     resolve_ms02_docfield_ids,
     resolve_ms02_pid_to_wids,
     resolve_ms02_wids_to_pids,
+    resolve_octo_wid_stage,
     single_workitem_tags,
 )
 
@@ -1928,7 +1929,14 @@ def prepared_documents():
         if pid_to_wids:
             for pid, wids in pid_to_wids.items():
                 if wids:
-                    octo_status[pid] = {"in_octo": True, "wid": wids[0]}
+                    wid = wids[0]
+                    stage = resolve_octo_wid_stage(CLIENTS["default"].runtime_engine, wid)
+                    octo_status[pid] = {
+                        "in_octo": True,
+                        "wid": wid,
+                        "status": stage["status"] or "",
+                        "current_stage": stage["current_stage"] or "",
+                    }
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
     pagination = {

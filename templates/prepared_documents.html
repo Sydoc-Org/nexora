@@ -113,7 +113,9 @@
                   <div class="flex items-center justify-center gap-3">
                     {% if details_view_perm %}
                     <button type="button" class="text-indigo-600 underline"
-                            data-testid="prepared-docs-preview" data-wid="{{ st.wid }}" data-pid="{{ r.pid }}">
+                            data-testid="prepared-docs-preview"
+                            data-wid="{{ st.wid }}" data-pid="{{ r.pid }}"
+                            data-status="{{ st.status }}" data-current-stage="{{ st.current_stage }}">
                       <i class="fas fa-eye mr-1"></i>{{ _("Preview") }}
                     </button>
                     {% endif %}

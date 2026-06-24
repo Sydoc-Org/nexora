@@ -859,3 +859,43 @@ def test_api_workitems_carries_pid_in_register(user_client, workitems_all_perms,
         wi = resp.get_json()["workitems"][0]
         assert wi["pid"] == "100"
         assert wi["in_register"] is True
+
+
+def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_perms, monkeypatch):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    monkeypatch.setattr(
+        wv,
+        "resolve_octo_wid_stage",
+        lambda e, w: {"status": "In Progress", "current_stage": "Validation"},
+    )
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert b'data-wid="42"' in resp.data
+    assert b'data-status="In Progress"' in resp.data
+    assert b'data-current-stage="Validation"' in resp.data
