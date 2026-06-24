@@ -729,3 +729,40 @@ def test_resolve_ms02_wids_to_pids_none_contract(app):
         assert resolve_ms02_wids_to_pids(None, [("t", "ID", "PID", None)], [1]) is None
         assert resolve_ms02_wids_to_pids(MagicMock(), [], [1]) is None
         assert resolve_ms02_wids_to_pids(MagicMock(), [("t", "ID", "PID", None)], []) is None
+
+
+def test_resolve_octo_wid_stage_returns_none_without_engine(app):
+    with app.app_context():
+        assert ws.resolve_octo_wid_stage(None, 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_degrades_to_none_on_error(app):
+    class Boom:
+        def raw_connection(self):
+            raise RuntimeError("octo down")
+
+    with app.app_context():
+        assert ws.resolve_octo_wid_stage(Boom(), 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_maps_status_and_stage(app):
+    from unittest.mock import MagicMock
+
+    row = MagicMock(Status="In Progress", CurrentStage="Validation")
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = row
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context():
+        assert ws.resolve_octo_wid_stage(eng, 42) == {
+            "status": "In Progress",
+            "current_stage": "Validation",
+        }
