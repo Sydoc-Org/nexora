@@ -18,3 +18,14 @@ def test_detail_panel_partial_present_on_workitems(user_client, workitems_all_pe
     # the 'expect fail' run fail loudly and a later regression fail loudly too.
     resp = user_client.get("/workitems")
     assert b"NexoraWorkitemDetail" in resp.data
+
+
+def test_detail_panel_exposes_loader_and_source_helpers(user_client, workitems_all_perms):
+    resp = user_client.get("/workitems")
+    for marker in (
+        b"loadDetailData",
+        b"buildSourceDetailsHtml",
+        b"function allSources",
+        b"get_media_info",
+    ):
+        assert marker in resp.data
