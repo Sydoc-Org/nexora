@@ -1,3 +1,7 @@
+> **⏩ Newer same-date handoff:** a later 2026-06-24 session wrote a follow-up plan —
+> `docs/superpowers/handoffs/2026-06-24-prepared-docs-preview-fixes-plan.md` (three preview/register
+> polish fixes, **not yet executed**). If you're resuming the newest work, target that file.
+
 # Handoff — Prepared Documents ⇄ Workitem Preview (EXECUTION COMPLETE, merged)
 
 **Date:** 2026-06-24 · **Built on branch:** `plan/prepared-docs-workitem-preview` (worktree) → **merged `--no-ff` into `feature/2.5.63`** · **commit-only (remote)** · worktree removed + branch deleted at end of session
