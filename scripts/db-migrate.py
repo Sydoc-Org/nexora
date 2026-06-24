@@ -37,6 +37,7 @@ contacting the DB. Same env var also disables the pre-commit check.
 """
 
 import argparse
+import functools
 import hashlib
 import importlib.util
 import os
@@ -135,16 +136,38 @@ def file_checksum(p: Path) -> bytes:
     return hashlib.sha256(p.read_bytes()).digest()
 
 
+@functools.lru_cache(maxsize=8)
+def _sqlcmd_uses_f(exe: str) -> bool:
+    """Whether this sqlcmd build accepts the classic ``-f <codepage>`` flag.
+
+    Classic ODBC sqlcmd needs ``-f 65001`` to read the UTF-8 migration files;
+    without it non-ASCII text is read in the host OEM/ANSI codepage and corrupted
+    on INSERT (this is how ``0011`` got a mojibake label). go-sqlcmd (the Go
+    rewrite, installed at ``C:\\Program Files\\SqlCmd``) does NOT support ``-f``
+    (it errors "'f': Unknown Option") and reads input as UTF-8 by default, so the
+    flag must be omitted there.
+
+    Probe ``--version``: classic sqlcmd does not understand it and prints
+    "Sqlcmd: Error: ...", go-sqlcmd prints its version. Default to classic (keep
+    ``-f``) on any uncertainty -- omitting it wrongly silently corrupts non-ASCII
+    text, whereas keeping it wrongly fails loudly.
+    """
+    try:
+        r = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=10)
+        return "error" in (r.stdout + r.stderr).lower()
+    except Exception:
+        return True
+
+
 def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> list[str]:
     """Build the sqlcmd argv for one migration file.
 
-    ``-f 65001`` forces the UTF-8 codepage for both the input file and sqlcmd's
-    output. Migration files are UTF-8; without this, sqlcmd reads them in the
-    host's OEM/ANSI codepage and silently corrupts any non-ASCII text on INSERT
-    (this is how ``0011`` stored a mojibake source label). apply_one decodes the
-    captured output as UTF-8 to match.
+    ``-f 65001`` (classic sqlcmd only -- see _sqlcmd_uses_f) forces the UTF-8
+    codepage so non-ASCII migration text is not corrupted on INSERT. go-sqlcmd
+    reads UTF-8 by default and rejects ``-f``, so it is omitted there. apply_one
+    decodes the captured output as UTF-8 to match.
     """
-    return [
+    args = [
         sqlcmd_exe,
         "-S",
         f"{server},1433",
@@ -156,14 +179,17 @@ def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig:
         pwd,
         "-i",
         str(mig),
-        "-f",
-        "65001",  # UTF-8 in/out so non-ASCII migration text is not corrupted
+    ]
+    if _sqlcmd_uses_f(sqlcmd_exe):
+        args += ["-f", "65001"]  # UTF-8 in/out so non-ASCII migration text is not corrupted
+    args += [
         "-b",  # exit non-zero on SQL errors
         "-X",
         "1",  # disable interactive commands (ED, !!, etc.)
         "-r",
         "1",  # all error messages -> stderr
     ]
+    return args
 
 
 def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> None:
