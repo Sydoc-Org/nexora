@@ -1,3 +1,7 @@
+> ➡️ **SUPERSEDED — this plan has been executed.** See the execution handoff:
+> `docs/superpowers/handoffs/2026-06-24-prepared-docs-preview-fixes-execution-complete.md`
+> (all 4 tasks committed `69b2085..e493d25`, final review READY TO MERGE).
+
 # Handoff — Prepared Documents Preview & Register Polish (PLAN ONLY, not executed)
 
 **Date:** 2026-06-24 · **Branch:** `feature/2.5.63` · **149 commits unpushed** · **commit-only (remote)** · no dedicated plan worktree
