@@ -313,11 +313,21 @@ def test_import_prepared_audit_rejects_non_xlsx(user_client, workitems_all_perms
     assert "MS02" in (resp.get_json() or {}).get("error", "")
 
 
-def test_prepared_docs_link_renders_only_for_target_process(
+def _prepared_docs_link_tag(html):
+    """Return the opening <a ...> tag of the register link, or None if absent.
+    The tag spans several lines, so match across newlines up to the closing >."""
+    import re
+
+    m = re.search(r'<a[^>]*data-testid="prepared-docs-link"[^>]*>', html)
+    return m.group(0) if m else None
+
+
+def test_prepared_docs_link_visible_for_target_process(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """The Workitems toolbar shows the register link ONLY when the selected
-    process is an MS02 prepared-docs target process (locked decision)."""
+    """The toolbar link is rendered and NOT hidden when the selected process is
+    an MS02 prepared-docs target, and the qualifying-process list is embedded so
+    the client JS can toggle it live when the process dropdown changes."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
     from nx_lib.clients import CLIENTS
@@ -325,14 +335,10 @@ def test_prepared_docs_link_renders_only_for_target_process(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
-    # The _reload_user_permissions before_request hook overwrites session["permissions"]
-    # from the DB on every request. Patch load_permissions_for_user so the hook
-    # writes back a list that includes the process permission we need.
-    # _reload_user_permissions (before_request hook) calls load_permissions_for_user
-    # and overwrites session["permissions"] on every request. Patching it here is
-    # the real mechanism that puts workitems.filter.process.sydoc.05_PDBS into
-    # allowed_processes — no session seed needed.
+    monkeypatch.setattr(wv, "_ms02_prepared_docs_processes", lambda: ["sydoc.05_PDBS"])
+    # _reload_user_permissions (before_request) overwrites session["permissions"]
+    # from the DB each request via load_permissions_for_user; patch it so
+    # allowed_processes contains the target and process_name survives the reset.
     monkeypatch.setattr(
         hooks,
         "load_permissions_for_user",
@@ -343,15 +349,20 @@ def test_prepared_docs_link_renders_only_for_target_process(
         ],
     )
 
-    # Selected = the target process -> link present.
     resp = user_client.get("/workitems?prcfW=sydoc.05_PDBS")
     assert resp.status_code == 200
-    assert b"prepared-docs-link" in resp.data
-    assert b"/prepared_documents" in resp.data
+    tag = _prepared_docs_link_tag(resp.data.decode())
+    assert tag is not None, "register link should be rendered"
+    assert "hidden" not in tag, "link must be visible for the matching process"
+    assert "/prepared_documents" in tag
+    assert "sydoc.05_PDBS" in tag, "qualifying-process list must be embedded for the JS toggle"
 
 
-def test_prepared_docs_link_hidden_on_all_processes(user_client, workitems_all_perms, monkeypatch):
-    """'All Processes' (and any non-PDBS process) hide the register link."""
+def test_prepared_docs_link_rendered_but_hidden_off_target(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """On 'All Processes' (and any non-PDBS process) the link stays in the DOM
+    (so the JS can reveal it live without a reload) but carries the hidden class."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
     from nx_lib.clients import CLIENTS
@@ -359,9 +370,7 @@ def test_prepared_docs_link_hidden_on_all_processes(user_client, workitems_all_p
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
-    # Patch load_permissions_for_user so the before_request hook is self-contained
-    # and does not hit the real test DB.
+    monkeypatch.setattr(wv, "_ms02_prepared_docs_processes", lambda: ["sydoc.05_PDBS"])
     monkeypatch.setattr(
         hooks,
         "load_permissions_for_user",
@@ -374,7 +383,9 @@ def test_prepared_docs_link_hidden_on_all_processes(user_client, workitems_all_p
 
     resp = user_client.get("/workitems")  # defaults to prcfW=all
     assert resp.status_code == 200
-    assert b"prepared-docs-link" not in resp.data
+    tag = _prepared_docs_link_tag(resp.data.decode())
+    assert tag is not None, "link should still be in the DOM for the JS toggle"
+    assert "hidden" in tag, "link must be hidden until a PDBS process is selected"
 
 
 def test_import_prepared_audit_upserts_when_ms02_active(

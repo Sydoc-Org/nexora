@@ -514,6 +514,21 @@ async function uploadBatchFiles(files, processName) {
             const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
             fetchAndUpdateWorkitems(_initPage);
 
+            // Prepared-documents link: rendered server-side (perm + MS02 active),
+            // but its PDBS-process gating must update live as the process dropdown
+            // changes -- the dropdown updates the page via AJAX with no full reload,
+            // so a server-only {% raw %}{% if %}{% endraw %} would only refresh on F5.
+            const _updatePreparedDocsLink = () => {
+                const link = document.querySelector('[data-testid="prepared-docs-link"]');
+                if (!link) return;
+                let procs = [];
+                try { procs = JSON.parse(link.dataset.pdocProcesses || '[]'); } catch (e) { procs = []; }
+                const sel = document.getElementById('prcfW')?.value || 'all';
+                link.classList.toggle('hidden', !procs.includes(sel));
+            };
+            document.getElementById('prcfW')?.addEventListener('change', _updatePreparedDocsLink);
+            _updatePreparedDocsLink();
+
             // Prevent full-page form submit fallback
             document.getElementById('filterForm')?.addEventListener('submit', e => e.preventDefault());
 

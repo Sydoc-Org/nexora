@@ -237,6 +237,35 @@ def _ms02_pid_specs(target_processes):
             conn.close()
 
 
+def _ms02_prepared_docs_processes():
+    """The MS02 processes for which the Prepared Documents register is relevant:
+    the 'ms02' SearchConfig rows that carry a col_pid mapping (single source of
+    truth, NEVER a hardcoded process key -- currently just ['sydoc.05_PDBS']).
+    The Workitems toolbar link is gated to these processes. Returns [] when
+    unseeded or on error so the caller degrades to hiding the link."""
+    col = f"col_{_MS02_PID_SEARCH_FIELD}"
+    if col not in get_valid_search_columns():
+        return []
+    conn = None
+    cur = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT DISTINCT ProcessName FROM SearchConfig "
+            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' AND ProcessName IS NOT NULL"
+        )
+        return [r[0] for r in cur.fetchall() if r[0]]
+    except Exception as e:
+        current_app.logger.error(f"_ms02_prepared_docs_processes: {e}")
+        return []
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 def _stamp_in_register(rows):
     """MS02-only, in place: stamp row['pid'] + row['in_register'] onto each visible
     workitem row. Resolves the page's wids -> PIDs (resolve_ms02_wids_to_pids) and
@@ -944,9 +973,15 @@ def workitems_overview():
         prepared_import_perm = has_permission("workitems.import.preparedaudit")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
 
-        prepared_docs_process_match = (
-            ms02_active and prepared_import_perm and process_name in _ms02_target_processes()
+        # The Prepared Documents toolbar link is rendered whenever the user holds
+        # the perm + MS02 is active, but is shown only for the PDBS prepared-docs
+        # processes. The process dropdown updates the page via AJAX (no full
+        # reload), so JS toggles the link live from ms02_pdoc_processes when the
+        # dropdown changes; prepared_docs_process_match is just the initial state.
+        ms02_pdoc_processes = (
+            _ms02_prepared_docs_processes() if (ms02_active and prepared_import_perm) else []
         )
+        prepared_docs_process_match = process_name in ms02_pdoc_processes
 
         portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
@@ -984,6 +1019,7 @@ def workitems_overview():
             prepared_import_perm=prepared_import_perm,
             ms02_active=ms02_active,
             prepared_docs_process_match=prepared_docs_process_match,
+            ms02_pdoc_processes=ms02_pdoc_processes,
         )
     except Exception:
         return render_template("500.html")
