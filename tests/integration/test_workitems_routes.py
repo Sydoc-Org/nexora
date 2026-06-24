@@ -671,3 +671,46 @@ def test_prepared_documents_preview_present_when_media_degrades(
     resp = user_client.get("/prepared_documents")
     assert resp.status_code == 200
     assert b'data-testid="prepared-docs-preview-modal"' in resp.data
+
+
+def test_prepared_documents_pid_filter_passes_through(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv, "count_prepared_documents", lambda pid=None: (seen.__setitem__("count_pid", pid) or 1)
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: (
+            seen.__setitem__("fetch_pid", pid)
+            or [
+                {
+                    "id": 1,
+                    "pid": "100",
+                    "collected": True,
+                    "collected_by": "A",
+                    "prepared": False,
+                    "prepared_by": "",
+                    "uploaded_by": 7,
+                    "uploaded_at": None,
+                    "updated_at": None,
+                }
+            ]
+        ),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+    resp = user_client.get("/prepared_documents?pid=100")
+    assert resp.status_code == 200
+    assert seen.get("count_pid") == "100"
+    assert seen.get("fetch_pid") == "100"
+    assert b'data-testid="prepared-docs-show-all"' in resp.data

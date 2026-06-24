@@ -41,6 +41,10 @@
         </div>
       </div>
       <div class="nx-page-head__actions">
+        {% if pid_filter %}
+        <a href="{{ url_for('prepared_documents') }}" class="nx-btn nx-btn--secondary"
+           data-testid="prepared-docs-show-all">{{ _("Show all") }} ({{ _("PID") }} {{ pid_filter }})</a>
+        {% endif %}
         <div class="nx-count-pill">
           <span class="nx-count-pill__label">{{ _("Total") }}</span>
           <span class="nx-count-pill__value">{{ pagination.totalItems }}</span>

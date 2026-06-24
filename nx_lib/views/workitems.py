@@ -1872,9 +1872,10 @@ def prepared_documents():
         page = 1
     offset = (page - 1) * per_page
 
+    pid_filter = (request.args.get("pid") or "").strip() or None
     try:
-        total_items = count_prepared_documents()
-        rows = fetch_prepared_documents_page(offset, per_page)
+        total_items = count_prepared_documents(pid=pid_filter)
+        rows = fetch_prepared_documents_page(offset, per_page, pid=pid_filter)
     except Exception as e:
         current_app.logger.error(f"prepared_documents read: {e}")
         total_items, rows = 0, []
@@ -1916,6 +1917,7 @@ def prepared_documents():
         rows=rows,
         pagination=pagination,
         octo_status=octo_status,
+        pid_filter=pid_filter,
         prepared_import_perm=has_permission("workitems.import.preparedaudit"),
         ms02_active=ms02_active,
         pageV=page_visibility(),
