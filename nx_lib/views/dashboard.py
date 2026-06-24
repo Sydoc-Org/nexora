@@ -398,8 +398,20 @@ def dashboard_processed_over_time():
             ):
                 counts[d] = counts.get(d, 0) + c
 
+        # Zero-fill the trailing 14-day window so a sparse client (e.g. a freshly
+        # onboarded MS02 with only today's rows) renders a continuous trend line
+        # instead of a single, invisible point — the chart was "showing only the date".
+        today = datetime.now().date()
+        for i in range(15):
+            counts.setdefault(today - timedelta(days=i), 0)
+
         sorted_dates = sorted(counts.keys())
-        return jsonify({"labels": sorted_dates, "data": [counts[d] for d in sorted_dates]})
+        return jsonify(
+            {
+                "labels": [d.isoformat() for d in sorted_dates],
+                "data": [counts[d] for d in sorted_dates],
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch processed_over_time report: {e}")
