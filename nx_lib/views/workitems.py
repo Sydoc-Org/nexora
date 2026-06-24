@@ -48,6 +48,7 @@ from ..prepared_documents import (
     clear_prepared_documents,
     count_prepared_documents,
     fetch_prepared_documents_page,
+    pids_in_register,
     upsert_prepared_documents,
 )
 from ..process_helpers import (
@@ -70,6 +71,7 @@ from ..workitem_sources import (
     parse_prepared_xlsx,
     resolve_ms02_docfield_ids,
     resolve_ms02_pid_to_wids,
+    resolve_ms02_wids_to_pids,
     single_workitem_tags,
 )
 
@@ -232,6 +234,32 @@ def _ms02_pid_specs(target_processes):
             cur.close()
         if conn:
             conn.close()
+
+
+def _stamp_in_register(rows):
+    """MS02-only, in place: stamp row['pid'] + row['in_register'] onto each visible
+    workitem row. Resolves the page's wids -> PIDs (resolve_ms02_wids_to_pids) and
+    intersects with the register (pids_in_register). Guarded so the default client /
+    CI path is byte-for-byte unchanged; never raises into the request."""
+    ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
+    if not (ms02_active and rows):
+        return
+    try:
+        pid_specs = _ms02_pid_specs(_ms02_target_processes())
+        wid_to_pid = (
+            resolve_ms02_wids_to_pids(
+                engine_ms02_docfields_pg, pid_specs, [r["workitemid"] for r in rows]
+            )
+            if pid_specs
+            else None
+        ) or {}
+        registered = pids_in_register(list(wid_to_pid.values())) if wid_to_pid else set()
+        for r in rows:
+            pid = wid_to_pid.get(r["workitemid"])
+            r["pid"] = pid or ""
+            r["in_register"] = bool(pid and pid in registered)
+    except Exception as e:
+        current_app.logger.error(f"_stamp_in_register: {e}")
 
 
 def _get_workitems_data(args, export_all=False):
@@ -470,6 +498,7 @@ def _get_workitems_data(args, export_all=False):
         ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
+    _stamp_in_register(rows)
     workitems_list = rows
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0

@@ -699,3 +699,33 @@ def test_resolve_ms02_pid_to_wids_empty_dict_on_no_match(app):
             ["NOTFOUND"],
         )
     assert result == {}
+
+
+def test_resolve_ms02_wids_to_pids_maps_first_pid(app):
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_wids_to_pids
+
+    cur = MagicMock()
+    cur.fetchall.return_value = [(42, "100"), (43, "222"), (42, "999")]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    with app.app_context():
+        result = resolve_ms02_wids_to_pids(
+            engine, [("DossierStatistik", "WorkItemID", "DossierNummer", None)], [42, 43]
+        )
+    assert result[42] == "100"  # first pid per wid wins
+    assert result[43] == "222"
+
+
+def test_resolve_ms02_wids_to_pids_none_contract(app):
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_wids_to_pids
+
+    with app.app_context():
+        assert resolve_ms02_wids_to_pids(None, [("t", "ID", "PID", None)], [1]) is None
+        assert resolve_ms02_wids_to_pids(MagicMock(), [], [1]) is None
+        assert resolve_ms02_wids_to_pids(MagicMock(), [("t", "ID", "PID", None)], []) is None

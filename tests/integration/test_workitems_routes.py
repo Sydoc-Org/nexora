@@ -714,3 +714,28 @@ def test_prepared_documents_pid_filter_passes_through(
     assert seen.get("count_pid") == "100"
     assert seen.get("fetch_pid") == "100"
     assert b'data-testid="prepared-docs-show-all"' in resp.data
+
+
+def test_stamp_in_register_marks_rows(monkeypatch):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100", 43: "200"})
+    monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
+    rows = [{"workitemid": 42}, {"workitemid": 43}]
+    wv._stamp_in_register(rows)
+    assert rows[0]["pid"] == "100" and rows[0]["in_register"] is True
+    assert rows[1]["pid"] == "200" and rows[1]["in_register"] is False
+
+
+def test_stamp_in_register_noop_when_not_ms02(monkeypatch):
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+    rows = [{"workitemid": 42}]
+    wv._stamp_in_register(rows)
+    assert "pid" not in rows[0] and "in_register" not in rows[0]
