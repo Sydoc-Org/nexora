@@ -47,6 +47,7 @@ ruvector.db
 .swarm/
 .claude-flow/
 .superpowers/
+!.superpowers/sdd/
 .playwright-mcp/
 .claude/memory.db
 .claude/cache/
