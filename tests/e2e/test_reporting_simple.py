@@ -3,6 +3,7 @@
 import json
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 
@@ -1412,6 +1413,7 @@ def test_advanced_ai_ask_shows_loading(nexora_server, page):
     page.screenshot(path="var/screenshots/reporting_advanced_ai_loading.png")
 
 
+@pytest.mark.flaky_e2e
 def test_simple_export_csv(nexora_server, page):
     """The Simple export control downloads CSV when the format select says so."""
     _login(page, nexora_server)

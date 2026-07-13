@@ -95,7 +95,6 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           D:\sydoc\tools\py\python.exe -m pytest tests `
-            --reruns 2 --only-rerun flaky_e2e `
             -p no:cacheprovider `
             -o junit_logging=all
 

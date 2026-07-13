@@ -33,7 +33,7 @@ def load_permissions_for_user(user_id):
 
 def has_permission(code: str) -> bool:
     perms = set(session.get("permissions", []))
-    return code in perms
+    return code.lower() in {p.lower() for p in perms}
 
 
 def require_permission(code):

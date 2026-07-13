@@ -10,6 +10,7 @@ CREATE TABLE [dbo].[Permission](
 	[PermissionID] [int] IDENTITY(1,1) NOT NULL,
 	[Code] [sysname] NOT NULL,
 	[Description] [nvarchar](200) NOT NULL,
+	[SortingCode] [nvarchar](50) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[PermissionID] ASC

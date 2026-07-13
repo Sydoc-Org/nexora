@@ -6,7 +6,50 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
+Work toward 2.5.64.
+
+### Added
+
+- `scripts/new-process.py` — interactive dev-side helper that assembles a new
+  `dbo.Statconfig` row (process name, stat table, export/import/workitem columns,
+  client code) when onboarding a new Octo process. Prints the INSERT for review;
+  the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
+  excluded from the prod deploy mirror.
+
+### Fixed
+
+- Dashboard statistics: the two PDBS deletion-marker activity instances
+  (`Deletion Marker PDBS Parent Batch Deletion`, `Deletion Marker PDBS Deckblatt`
+  on `sydoc.05_PDBS`) no longer pollute the stats — they are seeded into
+  `dbo.ActivityInstancesToIgnore` by migration `0032` (idempotent `NOT EXISTS`
+  inserts, so environments where the rows were already added by hand are safe).
+- Admin: camelCase-named access profiles (e.g. `pdbsUser`) were unassignable
+  in the admin UI even for holders of the grant permission, because the
+  hand-inserted permission code (`admin.assign.user.accessprofile.pdbsUser`)
+  didn't match the lowercased code the app checks — the profile was silently
+  filtered out of every assignable-profiles dropdown. `has_permission()`
+  (`nx_lib/security.py`) is now case-insensitive, and migration `0034`
+  normalizes the stray row to lowercase.
+- Admin: the permission add/edit APIs and the user-all-permissions API
+  returned 500 on every environment — they referenced `dbo.Permission.SortingCode`,
+  a column that never existed until migration `0034` added it.
+- **Security:** `admin_add_user` now enforces the
+  `admin.assign.user.accessprofile.<profile>` permission the same way user
+  editing already did. Previously any `admin.create.user` holder could create
+  a user with any access profile (including `enterpriseAdmin`) via a direct
+  API request, bypassing the add-user dropdown's filtered list.
+- Testing: the flaky-E2E retry net never actually retried anything — the
+  pre-push and CI gates passed `--only-rerun flaky_e2e`, but that flag is an
+  error-text regex (no traceback contains "flaky_e2e"), so a single browser
+  race failed the whole gate. Retries are now armed in `tests/e2e/conftest.py`
+  for every E2E test by directory (40+ tests had also drifted out of the net
+  by missing the marker); the broken CLI flags are removed from
+  `.pre-commit-config.yaml`, `deploy.yml`, `README.md`, and
+  `scripts/git-hooks/pre-push`. Unit/integration tests still get zero retries.
+
+## [2.5.63] - 2026-06-24
+
+Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 
 ### Changed
 

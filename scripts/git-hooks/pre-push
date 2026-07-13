@@ -41,4 +41,4 @@ else
 fi
 
 echo "[pre-push] Running pytest..."
-exec "$PY" -m pytest tests -q --reruns 2 --only-rerun flaky_e2e
+exec "$PY" -m pytest tests -q

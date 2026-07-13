@@ -23,14 +23,22 @@ E2E_RERUNS_DELAY = 1
 
 
 def pytest_collection_modifyitems(config, items):
-    """Apply pytest-rerunfailures reruns to every flaky_e2e-marked test.
+    """Apply pytest-rerunfailures reruns to every E2E test.
 
-    The flaky_e2e marker was previously decorative (no --reruns in addopts).
-    Scoping reruns here keeps them confined to E2E tests so unit/integration
-    failures still fail fast and loud.
+    Scoped by directory, not by the flaky_e2e marker: E2E flakes come from
+    real timing (network-idle waits, TOTP roll-over, server warm-up), which
+    affects every browser test, and 40+ tests had silently drifted out of the
+    net because their authors forgot the decorator. Unit/integration tests
+    are untouched and still fail fast and loud. The flaky_e2e marker remains
+    registered as documentation only.
+
+    (The gates' old ``--reruns 2 --only-rerun flaky_e2e`` CLI flags never
+    retried anything: --only-rerun is an error-text regex, and no traceback
+    ever contains the string "flaky_e2e".)
     """
+    e2e_dir = Path(__file__).parent
     for item in items:
-        if item.get_closest_marker("flaky_e2e"):
+        if e2e_dir in item.path.parents:
             item.add_marker(pytest.mark.flaky(reruns=E2E_RERUNS, reruns_delay=E2E_RERUNS_DELAY))
 
 
