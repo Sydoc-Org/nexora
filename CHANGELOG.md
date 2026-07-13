@@ -10,6 +10,11 @@ Work toward 2.5.64.
 
 ### Added
 
+- **Validation User** doc-field and a permission-gated doc-field mechanism:
+  fields flagged `IsSensitive` in `dbo.Search_Field_Labels` are hidden (name and
+  value) from users without `workitems.filter.documentfields.sensitive` across
+  the search dropdown, the values autocomplete API, search filtering, the detail
+  panel, and CSV export (migration `0035`).
 - `scripts/new-process.py` — interactive dev-side helper that assembles a new
   `dbo.Statconfig` row (process name, stat table, export/import/workitem columns,
   client code) when onboarding a new Octo process. Prints the INSERT for review;
