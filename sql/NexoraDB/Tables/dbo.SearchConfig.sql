@@ -51,6 +51,7 @@ CREATE TABLE [dbo].[SearchConfig](
 	[col_pid] [nvarchar](100) NULL,
 	[col_dossierpositioninbatch] [nvarchar](100) NULL,
 	[col_pagecount] [nvarchar](100) NULL,
+	[col_validationuser] [nvarchar](100) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ProcessName] ASC
