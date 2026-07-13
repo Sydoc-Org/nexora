@@ -54,7 +54,8 @@ GO
 CREATE TABLE dbo.Permission (
     PermissionID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Code SYSNAME NOT NULL UNIQUE,
-    Description NVARCHAR(200) NOT NULL
+    Description NVARCHAR(200) NOT NULL,
+    SortingCode nvarchar(50) NULL
 );
 GO
 
