@@ -269,6 +269,8 @@ def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeyp
     """
     from sqlalchemy import text
 
+    from nx_lib.db import engine_nexora_db
+
     monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
     username = f"task5-allow-{uuid.uuid4().hex[:8]}@test.local"
     user_id = None
@@ -291,8 +293,38 @@ def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeyp
         ).scalar()
         assert user_id is not None
     finally:
+        # NOTE: cleanup deliberately does NOT go through admin_client.delete(...)
+        # or db_conn, even though the general convention for this file is to
+        # clean up via the app's own delete routes:
+        #   - admin_delete_user (nx_lib/views/admin.py) deletes from `tags`,
+        #     `workitem_metadata`, `notifications`, etc. BEFORE it ever reaches
+        #     `DELETE FROM users`. None of those tables exist in the minimal
+        #     NEXORA_TEST schema (sql/test/schema.sql) — see the module
+        #     docstring's "Tables ABSENT" list and
+        #     test_admin_delete_user_missing_returns_404_or_500, which already
+        #     tolerates the resulting 500. So the route raises on its first
+        #     statement, is caught by a broad except, returns 500, and never
+        #     deletes the Users row — calling it here would silently no-op.
+        #   - db_conn's writes are rolled back at end-of-test (see its fixture
+        #     docstring in tests/conftest.py), so a DELETE issued through it
+        #     would never actually persist either.
+        # A direct delete on a separate, explicitly-committed connection — the
+        # same approach used to clear the RED-phase leftover row (see
+        # task-5-report.md) — is the only way that actually removes the row.
         if user_id is not None:
-            admin_client.delete(f"/admin/users/delete/{user_id}")
+            conn = engine_nexora_db.raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("DELETE FROM Users WHERE userID = ?", [user_id])
+                conn.commit()
+                cur.close()
+            finally:
+                conn.close()
+
+            remaining = db_conn.execute(
+                text("SELECT COUNT(*) FROM Users WHERE userID = :uid"), {"uid": user_id}
+            ).scalar()
+            assert remaining == 0
 
 
 def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
