@@ -1,10 +1,12 @@
 <script>
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   let editingId = null;
   let sources = [];
 
   async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
     opts = opts || {};
     const res = await fetch(url, Object.assign(
       { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));

@@ -27,6 +27,10 @@ BAD_PATTERNS = [
     re.compile(r"location\.href\s*=\s*['\"`]/(?!/)"),
     # literal href/src/action attributes with a root-relative value
     re.compile(r"""\b(?:href|src|action)=["']/(?!/)"""),
+    # Direct fetch of a root-relative literal.
+    re.compile(r"""\bfetch\(\s*['\"`]/(?!/)"""),
+    # A bare-"/" API_PREFIX fallback silently breaks under the PROD prefix.
+    re.compile(r"""window\.API_PREFIX\s*\|\|\s*["']/["']"""),
 ]
 
 

@@ -1,6 +1,7 @@
 <script>
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   const state = {
     source: null, fields: [], columns: [], filters: [], sort: [],
     // Process scope. `allProcesses` is the caller's allowed '<client>.<process>'
@@ -34,6 +35,7 @@
   var CUSTOM_DATES_LABEL = {{ _("Custom dates…")|tojson }};
 
   async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
     opts = opts || {};
     const res = await fetch(url, Object.assign(
       { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } },
