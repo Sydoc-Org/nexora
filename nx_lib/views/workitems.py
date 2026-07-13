@@ -177,6 +177,93 @@ def get_valid_search_columns():
             conn.close()
 
 
+def _norm_field_token(s):
+    """Normalize a field name for cross-namespace matching: lowercase, strip
+    everything but [a-z0-9] so 'Validation User' / 'validation_user' /
+    'ValidationUser' all collapse to the same token."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def strip_sensitive_fields(fields, blocked_tokens):
+    """Copy of an Octo extraction ``fields`` dict (or any name->value mapping)
+    with entries whose normalized key is blocked removed. Empty blocked set =>
+    plain copy (never mutates the input, which may be a cached object)."""
+    if not blocked_tokens:
+        return dict(fields)
+    return {k: v for k, v in fields.items() if _norm_field_token(k) not in blocked_tokens}
+
+
+def drop_sensitive_options(search_options, blocked_keys):
+    """Copy of the api_config_fields {proc: [{'value','label'}, ...]} map with
+    options whose value (a doc-field FieldKey) is blocked removed."""
+    if not blocked_keys:
+        return dict(search_options)
+    return {
+        proc: [f for f in fields if (f.get("value") or "").lower() not in blocked_keys]
+        for proc, fields in search_options.items()
+    }
+
+
+@cache.cached(timeout=3600, key_prefix="sensitive_field_keys")
+def get_sensitive_field_keys():
+    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels.
+    Empty set on any error (fail-open with log, like the other DB helpers)."""
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
+        return {r[0].lower() for r in cur.fetchall() if r[0]}
+    except Exception as e:
+        current_app.logger.error(f"get_sensitive_field_keys: {e}")
+        return set()
+    finally:
+        if conn:
+            conn.close()
+
+
+@cache.cached(timeout=3600, key_prefix="sensitive_field_tokens")
+def get_sensitive_field_tokens():
+    """Normalized name-tokens (FieldKey + all four language labels) of sensitive
+    fields, for matching against Octo extraction field names shown in the detail
+    panel / CSV export. Empty set on any error (fail-open with log)."""
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
+            "FROM Search_Field_Labels WHERE IsSensitive = 1"
+        )
+        tokens = set()
+        for row in cur.fetchall():
+            for val in row:
+                t = _norm_field_token(val)
+                if t:
+                    tokens.add(t)
+        return tokens
+    except Exception as e:
+        current_app.logger.error(f"get_sensitive_field_tokens: {e}")
+        return set()
+    finally:
+        if conn:
+            conn.close()
+
+
+def sensitive_blocked_keys():
+    """FieldKeys the CURRENT user may not use (empty if they hold the perm)."""
+    if has_permission("workitems.filter.documentfields.sensitive"):
+        return set()
+    return get_sensitive_field_keys()
+
+
+def sensitive_blocked_tokens():
+    """Octo name-tokens the CURRENT user may not see (empty if they hold perm)."""
+    if has_permission("workitems.filter.documentfields.sensitive"):
+        return set()
+    return get_sensitive_field_tokens()
+
+
 # The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
 # EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
 _MS02_PID_SEARCH_FIELD = "pid"
