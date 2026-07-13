@@ -202,6 +202,166 @@ def test_api_workitems_docfield_mixed_processes_tolerated(user_client, workitems
     assert resp.status_code in (200, 500)
 
 
+class _SqlLogCursor:
+    """Minimal DB-API cursor stub: records executed SQL text and always
+    returns no rows. Lets the doc-field pre-fetch blocks in
+    _get_workitems_data run to completion without touching a real (in this
+    plan's dev environment, unreachable) SQL Server, so the test can assert
+    on *whether a query was even attempted* for a given docfield."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def execute(self, sql, params=None):
+        self._log.append(sql)
+        return self
+
+    def fetchall(self):
+        return []
+
+    def fetchone(self):
+        return None
+
+    def close(self):
+        pass
+
+
+class _SqlLogConn:
+    def __init__(self, log):
+        self._log = log
+
+    def cursor(self):
+        return _SqlLogCursor(self._log)
+
+    def close(self):
+        pass
+
+
+class _SqlLogEngine:
+    """Stand-in for engine_nexora_db / engine_statistics_db: only
+    .raw_connection() is touched by _get_workitems_data's doc-field
+    pre-fetch blocks."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def raw_connection(self):
+        return _SqlLogConn(self._log)
+
+
+def test_get_workitems_data_skips_sensitive_docfield_search(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Regression for the two doc-field search-filtering blocks in
+    _get_workitems_data (default/StatisticsDB path + MS02/Postgres path, both
+    gated in commit ae83bcb via `if docfield in blocked_docfields: continue`).
+    A sensitive docfield/docvalue pair must contribute NO SQL constraint --
+    neither block may even build/execute its SearchConfig lookup query -- when
+    the caller lacks workitems.filter.documentfields.sensitive, and the
+    resulting WorkitemFilter must carry no docfield constraint at all."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    # allowed_processes (and therefore whether either pre-fetch block is even
+    # entered) is read directly off session['permissions'], not via
+    # has_permission(). _reload_user_permissions (before_request) reloads that
+    # list from the DB on every request, so it must be patched at the source
+    # (same seam as test_prepared_docs_link_visible_for_target_process) rather
+    # than set via session_transaction, which would just be clobbered.
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    # Force entry into the MS02 block too (engine_ms02_docfields_pg is None in
+    # CI/this dev env absent MS02_DOCFIELDS_DB_* env vars).
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("resolve_ms02_docfield_ids must not run for a blocked docfield")
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _must_not_run)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert not [q for q in sql_log if "col_validationuser" in q], sql_log
+    assert captured["filt"].docfield_ids is None
+    assert captured["filt"].ms02_docfield_ids is None
+
+
+def test_get_workitems_data_queries_nonsensitive_docfield_search(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Control for the sibling skip test above: with the SAME field but no
+    sensitivity block in play (get_sensitive_field_keys empty + full
+    has_permission), both doc-field pre-fetch blocks DO attempt their
+    SearchConfig lookup -- proving the sibling test's absence of SQL is
+    genuinely caused by the sensitive-field skip, not by the fakes
+    themselves suppressing all queries regardless of gating."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    default_queries = [
+        q for q in sql_log if "col_validationuser" in q and "ClientCode = 'default'" in q
+    ]
+    ms02_queries = [q for q in sql_log if "col_validationuser" in q and "ClientCode = 'ms02'" in q]
+    assert default_queries, sql_log
+    assert ms02_queries, sql_log
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403

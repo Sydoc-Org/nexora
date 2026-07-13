@@ -1914,7 +1914,8 @@ def api_workitems_page_init():
         if perm.startswith(prefix)
     }
     current_lang = str(get_locale())
-    _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     field_config = cache.get(_fields_key)
     if field_config is None:
         lang_column_map = {
@@ -1962,6 +1963,10 @@ def api_workitems_page_init():
         finally:
             if conn:
                 conn.close()
+        blocked = sensitive_blocked_keys()
+        if blocked:
+            search_options = drop_sensitive_options(search_options, blocked)
+            db_labels_map = {k: v for k, v in db_labels_map.items() if k.lower() not in blocked}
         field_config = {"search_options": search_options, "labels": db_labels_map}
         cache.set(_fields_key, field_config, timeout=3600)
 
