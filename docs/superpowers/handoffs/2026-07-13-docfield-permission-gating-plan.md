@@ -1,3 +1,7 @@
+> **Newer same-date handoff exists** (dashboard-bugfix planning session):
+> `2026-07-13-dashboard-chart-recent-validations-404-plan.md`. **This file remains the resume point
+> for the docfield-permission-gating execution** — its work is unaffected.
+
 # Handoff — Permission-gated doc-fields (Validation User) — PLAN written, ready to execute
 
 **Date:** 2026-07-13 (late afternoon) · **Branch:** `feature/2.5.64` · **+3 unpushed at handoff-write time** (pr115 handoff `1995473`, plan `cd73a8a`, this handoff) · **commit-only (remote session — owner pushes)**
