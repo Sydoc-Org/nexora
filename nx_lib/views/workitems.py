@@ -439,6 +439,7 @@ def _get_workitems_data(args, export_all=False):
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
+        blocked_docfields = sensitive_blocked_keys()
 
         conn_nex = None
         cursor_nex = None
@@ -455,6 +456,9 @@ def _get_workitems_data(args, export_all=False):
 
                 target_config_col = f"col_{docfield}"
                 if target_config_col not in valid_db_columns:
+                    continue
+
+                if docfield in blocked_docfields:
                     continue
 
                 placeholders = ",".join(["?"] * len(target_processes))
@@ -545,6 +549,7 @@ def _get_workitems_data(args, export_all=False):
         and engine_ms02_docfields_pg is not None
     ):
         valid_db_columns = get_valid_search_columns()
+        blocked_docfields = sensitive_blocked_keys()
         conn_nex2 = None
         cursor_nex2 = None
         try:
@@ -560,6 +565,9 @@ def _get_workitems_data(args, export_all=False):
                 # Whitelist the column name (same guard the default path uses)
                 # before interpolating it -- blocks injection via `docfield`.
                 if target_config_col not in valid_db_columns:
+                    continue
+
+                if docfield in blocked_docfields:
                     continue
                 placeholders = ",".join(["?"] * len(target_processes))
                 cursor_nex2.execute(
@@ -655,6 +663,8 @@ def api_docfield_values():
     # below (the same guard the workitems search path uses) -- `field` is a raw
     # request arg, so without this it is a SQL-injection vector against NexoraDB.
     if target_col_name not in get_valid_search_columns():
+        return jsonify([])
+    if field in sensitive_blocked_keys():
         return jsonify([])
     conn = None
     cur = None

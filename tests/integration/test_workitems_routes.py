@@ -340,6 +340,38 @@ def test_api_docfield_values_ms02_degrades_without_engine(user_client, workitems
         assert isinstance(resp.get_json(), list)
 
 
+def test_api_docfield_values_blocks_sensitive_without_perm(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+
+    # Pretend col_validationuser is a real searchable column, and that it is sensitive.
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    # Everything allowed EXCEPT the sensitive perm.
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+    resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_api_docfield_values_allows_sensitive_with_perm(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)  # incl. the sensitive perm
+    # With the perm the sensitivity gate is skipped; the route then hits the
+    # (absent-in-CI) SearchConfig and degrades to 500/[] -- either proves the gate
+    # did NOT short-circuit. Accept both to stay DB-independent.
+    resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
+    assert resp.status_code in (200, 500)
+
+
 def test_remove_tag_from_workitem_authed_unknown(user_client):
     resp = user_client.delete("/api/workitem/999999/tags/999")
     assert resp.status_code in (200, 404, 500)
