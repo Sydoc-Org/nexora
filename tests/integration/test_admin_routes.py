@@ -29,6 +29,8 @@ Sections:
 - /api/admin/permissions/*  CRUD
 """
 
+import uuid
+
 import pytest
 
 
@@ -196,8 +198,17 @@ def test_admin_add_user_missing_fields_returns_400(admin_client, admin_all_perms
     assert resp.status_code == 400
 
 
-def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms):
-    """Re-add user@test.local → IntegrityError 409."""
+def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms, monkeypatch):
+    """Re-add user@test.local → IntegrityError 409.
+
+    admin_all_perms only patches nx_lib.security.has_permission (reached by the
+    @require_permission decorator's dynamic lookup); it does NOT reach the
+    inline admin.assign.user.accessprofile.* gate added to admin_add_user,
+    which resolves nx_lib.views.admin.has_permission (bound at import time).
+    Patch that binding too so this test keeps exercising the duplicate-409
+    path instead of newly dying on the 403 gate.
+    """
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
     resp = admin_client.post(
         "/admin/users/add",
         json={
@@ -210,6 +221,78 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
         },
     )
     assert resp.status_code in (200, 409, 500)
+
+
+def test_admin_add_user_without_assign_permission_returns_403(admin_client, monkeypatch, db_conn):
+    """admin.create.user alone must not be enough to assign an access profile.
+
+    The @require_permission("admin.create.user") decorator resolves the REAL
+    nx_lib.security.has_permission at call time — TestAdmin (admin@test.local)
+    is seeded with every permission, so that check still passes. Only the
+    inline admin.assign.user.accessprofile.<profile> gate is denied here, by
+    patching the nx_lib.views.admin module-level binding (the one the inline
+    call inside admin_add_user actually resolves — patching
+    nx_lib.security.has_permission would NOT reach it).
+    """
+    from sqlalchemy import text
+
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission",
+        lambda code: not code.startswith("admin.assign.user.accessprofile."),
+    )
+    username = "task5-deny@test.local"
+    resp = admin_client.post(
+        "/admin/users/add",
+        json={
+            "username": username,
+            "password": "X",
+            "fullname": "Y",
+            "email": username,
+            "organization": "Test Organization",
+            "accessprofile": "TestUser",
+        },
+    )
+    assert resp.status_code == 403
+
+    count = db_conn.execute(
+        text("SELECT COUNT(*) FROM Users WHERE username = :u"), {"u": username}
+    ).scalar()
+    assert count == 0
+
+
+def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeypatch, db_conn):
+    """Holding the assign-permission (in addition to admin.create.user) allows creation.
+
+    Deliberately does NOT use admin_all_perms — that fixture patches
+    nx_lib.security.has_permission, which the inline gate in admin_add_user
+    (bound as nx_lib.views.admin.has_permission at import time) cannot see.
+    """
+    from sqlalchemy import text
+
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    username = f"task5-allow-{uuid.uuid4().hex[:8]}@test.local"
+    user_id = None
+    try:
+        resp = admin_client.post(
+            "/admin/users/add",
+            json={
+                "username": username,
+                "password": "X",
+                "fullname": "Y",
+                "email": username,
+                "organization": "Test Organization",
+                "accessprofile": "TestUser",
+            },
+        )
+        assert resp.status_code == 200
+
+        user_id = db_conn.execute(
+            text("SELECT userID FROM Users WHERE username = :u"), {"u": username}
+        ).scalar()
+        assert user_id is not None
+    finally:
+        if user_id is not None:
+            admin_client.delete(f"/admin/users/delete/{user_id}")
 
 
 def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):

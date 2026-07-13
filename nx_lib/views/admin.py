@@ -679,6 +679,14 @@ def admin_add_user():
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
 
+    if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
+        current_app.logger.error(
+            "assign-permission denied: profile=%r username=%r",
+            str(accessprofile)[:100],
+            str(username)[:100],
+        )
+        return jsonify({"success": False, "message": _("Permission Denied for this action.")}), 403
+
     hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     conn = None
