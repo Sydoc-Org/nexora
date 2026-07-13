@@ -215,6 +215,18 @@ def test_export_workitems_csv_with_perms(user_client, workitems_all_perms):
         assert "text/csv" in resp.headers.get("Content-Type", "")
 
 
+def test_strip_export_fields_removes_sensitive_columns():
+    from nx_lib.views.workitems import _strip_export_fields
+
+    details_map = {
+        1: {"fields": {"Validation User": "alice", "Amount": "50"}, "history": [], "images": []},
+        2: {"fields": {"Amount": "9"}, "history": [], "images": []},
+    }
+    _strip_export_fields(details_map, {"validationuser"})
+    assert details_map[1]["fields"] == {"Amount": "50"}
+    assert details_map[2]["fields"] == {"Amount": "9"}
+
+
 def test_import_workitems_gated(noperm_client):
     resp = noperm_client.post("/import_workitems", json={})
     assert resp.status_code == 403

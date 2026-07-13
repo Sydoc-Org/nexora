@@ -285,6 +285,16 @@ def strip_sensitive_from_detail(data, blocked_tokens):
     return d
 
 
+def _strip_export_fields(details_map, blocked_tokens):
+    """In-place: drop sensitive field entries from every detail's fields dict
+    before CSV headers/rows are built. No-op when blocked_tokens is empty."""
+    if not blocked_tokens:
+        return
+    for detail in details_map.values():
+        if detail.get("fields"):
+            detail["fields"] = strip_sensitive_fields(detail["fields"], blocked_tokens)
+
+
 # The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
 # EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
 _MS02_PID_SEARCH_FIELD = "pid"
@@ -961,6 +971,9 @@ def export_workitems_csv():
                     wid = futures[future]
                     _app.logger.error(f"Export: future error for {wid}: {e}")
                     details_map[wid] = {"fields": {}, "history": [], "images": []}
+
+    if include_fields:
+        _strip_export_fields(details_map, sensitive_blocked_tokens())
 
     all_field_keys = []
     if include_fields:
