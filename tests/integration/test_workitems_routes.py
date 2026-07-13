@@ -88,6 +88,24 @@ def test_api_config_fields_authed(user_client):
     assert "labels" in body
 
 
+def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
+    import nx_lib.views.workitems as wv
+    from nx_lib.views.workitems import cache
+
+    cache.clear()
+    # Without the sensitive perm the response is filtered + cached under _s0.
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    r0 = user_client.get("/api/config/fields")
+    assert r0.status_code == 200
+    # With the perm the cache key differs (_s1) -> not served the _s0 entry.
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    r1 = user_client.get("/api/config/fields")
+    assert r1.status_code == 200
+
+
 def test_api_docfield_values_gated(noperm_client):
     resp = noperm_client.get("/api/docfield_values")
     assert resp.status_code == 403

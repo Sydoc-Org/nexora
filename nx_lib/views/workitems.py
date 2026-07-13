@@ -92,7 +92,8 @@ def api_config_fields():
     }
 
     current_lang = str(get_locale())
-    _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
@@ -155,6 +156,10 @@ def api_config_fields():
         if conn:
             conn.close()
 
+    blocked = sensitive_blocked_keys()
+    if blocked:
+        search_options = drop_sensitive_options(search_options, blocked)
+        db_labels_map = {k: v for k, v in db_labels_map.items() if k.lower() not in blocked}
     result = {"search_options": search_options, "labels": db_labels_map}
     cache.set(_cache_key, result, timeout=3600)
     return jsonify(result)
