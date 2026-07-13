@@ -1,6 +1,7 @@
-> **Newer same-date handoff exists** (dashboard-bugfix planning session):
-> `2026-07-13-dashboard-chart-recent-validations-404-plan.md`. **This file remains the resume point
-> for the docfield-permission-gating execution** — its work is unaffected.
+> **Superseded same-day:** execution finished — the resume point is now
+> `2026-07-13-docfield-permission-gating-execution-complete.md` (7/8 tasks done, Task 8 blocked on
+> owner-only VPN/DB access). A separate, unrelated dashboard-bugfix planning session also touched
+> this branch same-day: `2026-07-13-dashboard-chart-recent-validations-404-plan.md`.
 
 # Handoff — Permission-gated doc-fields (Validation User) — PLAN written, ready to execute
 
