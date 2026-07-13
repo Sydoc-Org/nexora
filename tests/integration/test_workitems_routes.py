@@ -89,10 +89,38 @@ def test_api_config_fields_authed(user_client):
 
 
 def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
+    """The route's cache key embeds the sensitive-perm state as a `_s0`/`_s1`
+    suffix (see api_config_fields: `f"config_fields_{...}_s{int(_sees_sensitive)}"`)
+    so a permissioned user's cached response can never be served to a
+    permissionless one. search_options is always empty in this test DB (no
+    SearchConfig/Search_Field_Labels tables), so we can't assert on response
+    *body* differences — instead assert directly against
+    nx_lib.views.workitems.cache that each perm state populates its own,
+    distinct, still-present cache entry.
+    """
     import nx_lib.views.workitems as wv
     from nx_lib.views.workitems import cache
 
     cache.clear()
+
+    # Pin the locale so the key's language segment is deterministic, and read
+    # the session's real permissions the same way the route does, so the key's
+    # allowed_processes segment matches exactly without hardcoding/guessing
+    # what the seeded test user has.
+    with user_client.session_transaction() as sess:
+        sess["locale"] = "en"
+        perms = sess.get("permissions", [])
+    prefix = "workitems.filter.process."
+    allowed_processes = {
+        (perm.split(".")[-2] + "." + perm.split(".")[-1])
+        for perm in perms
+        if perm.startswith(prefix)
+    }
+    key_base = f"config_fields_{'_'.join(sorted(allowed_processes))}_en_s"
+    key_s0 = key_base + "0"
+    key_s1 = key_base + "1"
+    assert key_s0 != key_s1
+
     # Without the sensitive perm the response is filtered + cached under _s0.
     monkeypatch.setattr(
         wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
@@ -100,10 +128,21 @@ def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     r0 = user_client.get("/api/config/fields")
     assert r0.status_code == 200
+    cached_s0 = cache.get(key_s0)
+    assert cached_s0 is not None, f"expected a cache entry under {key_s0!r}"
+    assert cache.get(key_s1) is None, "the _s1 entry must not exist yet"
+
     # With the perm the cache key differs (_s1) -> not served the _s0 entry.
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     r1 = user_client.get("/api/config/fields")
     assert r1.status_code == 200
+    cached_s1 = cache.get(key_s1)
+    assert cached_s1 is not None, f"expected a cache entry under {key_s1!r}"
+
+    # Both perm states landed in genuinely distinct, still-present cache
+    # entries: the permissioned request never reused or clobbered the
+    # permissionless slot.
+    assert cache.get(key_s0) == cached_s0
 
 
 def test_api_docfield_values_gated(noperm_client):
