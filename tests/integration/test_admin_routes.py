@@ -394,7 +394,7 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
 
     add_resp = admin_client.post(
         "/api/admin/permissions/add",
-        json={"code": "test.roundtrip.perm", "description": "d", "sortingCode": "Z9"},
+        json={"code": "Test.RoundTrip.Perm", "description": "d", "sortingCode": "Z9"},
     )
     assert add_resp.status_code == 200
     perm_id = add_resp.get_json()["permissionId"]
@@ -404,7 +404,7 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
         edit_resp = admin_client.post(
             f"/api/admin/permissions/edit/{perm_id}",
             json={
-                "code": "test.roundtrip.perm",
+                "code": "Test.RoundTrip.Perm",
                 "description": "d-updated",
                 "sortingCode": "Z9",
             },
@@ -415,7 +415,7 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
             text("SELECT Code, SortingCode, Description FROM Permission WHERE PermissionID = :pid"),
             {"pid": perm_id},
         ).one()
-        assert row.Code == "test.roundtrip.perm"
+        assert row.Code == "Test.RoundTrip.Perm"
         assert row.SortingCode == "Z9"
         assert row.Description == "d-updated"
     finally:
