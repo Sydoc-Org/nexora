@@ -267,6 +267,22 @@ def test_enforce_maintenance_lockout_bypass_perm_passes(app):
         assert _enforce_maintenance_lockout() is None
 
 
+def test_enforce_maintenance_lockout_bypass_perm_passes_mixed_case(app):
+    """Routed through has_permission() (Task 3), so a mixed-case permission
+    string stored in the session (e.g. from a differently-cased DB seed)
+    still grants the bypass instead of forcing the user out."""
+    with (
+        app.test_request_context("/dashboard"),
+        patch.object(
+            hooks_mod,
+            "_get_blocking_maintenance",
+            return_value={"id": 1, "title": "x"},
+        ),
+    ):
+        session["permissions"] = ["Admin.Maintenance.Bypass"]
+        assert _enforce_maintenance_lockout() is None
+
+
 def test_enforce_maintenance_lockout_mid_login_bypass(app):
     with (
         app.test_request_context("/dashboard"),

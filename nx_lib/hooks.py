@@ -120,7 +120,7 @@ def _enforce_maintenance_lockout():
     if not blocking:
         return
     # Established session
-    if "admin.maintenance.bypass" in (session.get("permissions") or []):
+    if has_permission("admin.maintenance.bypass"):
         return
     # Mid-login flow (after bcrypt success, before perms are loaded into session)
     pending_uid = session.get("pre_2fa_userid") or session.get("pre_auth_userid")
