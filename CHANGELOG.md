@@ -38,6 +38,14 @@ Work toward 2.5.64.
   editing already did. Previously any `admin.create.user` holder could create
   a user with any access profile (including `enterpriseAdmin`) via a direct
   API request, bypassing the add-user dropdown's filtered list.
+- Testing: the flaky-E2E retry net never actually retried anything — the
+  pre-push and CI gates passed `--only-rerun flaky_e2e`, but that flag is an
+  error-text regex (no traceback contains "flaky_e2e"), so a single browser
+  race failed the whole gate. Retries are now armed in `tests/e2e/conftest.py`
+  for every E2E test by directory (40+ tests had also drifted out of the net
+  by missing the marker); the broken CLI flags are removed from
+  `.pre-commit-config.yaml`, `deploy.yml`, `README.md`, and
+  `scripts/git-hooks/pre-push`. Unit/integration tests still get zero retries.
 
 ## [2.5.63] - 2026-06-24
 

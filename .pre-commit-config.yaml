@@ -79,7 +79,11 @@ repos:
 
       - id: pytest-pre-push
         name: Test suite (pre-push gate)
-        entry: python -m pytest tests --reruns 2 --only-rerun flaky_e2e
+        # E2E retries are armed by tests/e2e/conftest.py (pytest.mark.flaky),
+        # not CLI flags: --only-rerun is an error-text regex, and
+        # "--only-rerun flaky_e2e" never matched anything, so no test was
+        # ever actually retried.
+        entry: python -m pytest tests
         language: system
         pass_filenames: false
         stages: [pre-push]

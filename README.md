@@ -17,8 +17,10 @@ For setup details — what bootstrap does and how to do each step by hand if it 
 ## Running tests
 
 ```powershell
-python -m pytest tests -v --reruns 2 --only-rerun flaky_e2e
+python -m pytest tests -v
 ```
+
+E2E browser tests are automatically retried up to twice on failure (armed in `tests/e2e/conftest.py`); unit and integration tests fail fast with no retries.
 
 The pre-push hook runs the same command on every `git push`. Bypass with `--no-verify` (CI still gates deploy).
 
