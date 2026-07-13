@@ -6,7 +6,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Work toward 2.5.63 (version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`).
+Work toward 2.5.64.
+
+### Added
+
+- `scripts/new-process.py` — interactive dev-side helper that assembles a new
+  `dbo.Statconfig` row (process name, stat table, export/import/workitem columns,
+  client code) when onboarding a new Octo process. Prints the INSERT for review;
+  the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
+  excluded from the prod deploy mirror.
+
+### Fixed
+
+- Dashboard statistics: the two PDBS deletion-marker activity instances
+  (`Deletion Marker PDBS Parent Batch Deletion`, `Deletion Marker PDBS Deckblatt`
+  on `sydoc.05_PDBS`) no longer pollute the stats — they are seeded into
+  `dbo.ActivityInstancesToIgnore` by migration `0032` (idempotent `NOT EXISTS`
+  inserts, so environments where the rows were already added by hand are safe).
+
+## [2.5.63] - 2026-06-24
+
+Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 
 ### Changed
 

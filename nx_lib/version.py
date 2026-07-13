@@ -6,4 +6,4 @@ sync with ``pyproject.toml`` ``[project].version`` — ``tests/unit/test_version
 enforces that they match.
 """
 
-__version__ = "2.5.63"
+__version__ = "2.5.64"
