@@ -23,6 +23,21 @@ Work toward 2.5.64.
   on `sydoc.05_PDBS`) no longer pollute the stats — they are seeded into
   `dbo.ActivityInstancesToIgnore` by migration `0032` (idempotent `NOT EXISTS`
   inserts, so environments where the rows were already added by hand are safe).
+- Admin: camelCase-named access profiles (e.g. `pdbsUser`) were unassignable
+  in the admin UI even for holders of the grant permission, because the
+  hand-inserted permission code (`admin.assign.user.accessprofile.pdbsUser`)
+  didn't match the lowercased code the app checks — the profile was silently
+  filtered out of every assignable-profiles dropdown. `has_permission()`
+  (`nx_lib/security.py`) is now case-insensitive, and migration `0034`
+  normalizes the stray row to lowercase.
+- Admin: the permission add/edit APIs and the user-all-permissions API
+  returned 500 on every environment — they referenced `dbo.Permission.SortingCode`,
+  a column that never existed until migration `0034` added it.
+- **Security:** `admin_add_user` now enforces the
+  `admin.assign.user.accessprofile.<profile>` permission the same way user
+  editing already did. Previously any `admin.create.user` holder could create
+  a user with any access profile (including `enterpriseAdmin`) via a direct
+  API request, bypassing the add-user dropdown's filtered list.
 
 ## [2.5.63] - 2026-06-24
 
