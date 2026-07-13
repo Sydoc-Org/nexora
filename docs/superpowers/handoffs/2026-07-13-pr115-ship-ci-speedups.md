@@ -1,3 +1,5 @@
+> ➡️ **NEWER same-date handoff:** `2026-07-13-docfield-permission-gating-plan.md` (doc-field permission-gating plan written, ready for `/execute-plan`). Resume from that one unless you specifically want this session's context.
+
 # Handoff — PR #115 shipped to PROD + CI/gate speedups + Confluence cred hunt (parked)
 
 **Date:** 2026-07-13 (afternoon) · **Branch:** `feature/2.5.64` · **0 ahead of origin at handoff-write time (handoff commit will be +1, unpushed)** · session was local (push + PR were explicitly authorized and done)
