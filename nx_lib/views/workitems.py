@@ -269,6 +269,22 @@ def sensitive_blocked_tokens():
     return get_sensitive_field_tokens()
 
 
+def strip_sensitive_from_detail(data, blocked_tokens):
+    """Copy of a get_media_info payload with sensitive extraction fields removed:
+    the ``fields`` dict AND the ``field_sources`` list (so the highlight overlay
+    can't leak the value/location either). Empty blocked set => plain copy."""
+    if not blocked_tokens:
+        return data
+    d = dict(data)
+    d["fields"] = strip_sensitive_fields(d.get("fields", {}) or {}, blocked_tokens)
+    d["field_sources"] = [
+        s
+        for s in (d.get("field_sources") or [])
+        if _norm_field_token(s.get("key", "")) not in blocked_tokens
+    ]
+    return d
+
+
 # The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
 # EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
 _MS02_PID_SEARCH_FIELD = "pid"
@@ -1285,6 +1301,9 @@ def api_get_media_info(workitem_id):
                 d["field_sources"] = []
                 d["table_sources"] = []
                 return d
+            blocked_sensitive = sensitive_blocked_tokens()
+            if blocked_sensitive:
+                d = strip_sensitive_from_detail(d, blocked_sensitive)
             fs = d.get("field_sources", [])
             ts = d.get("table_sources", [])
             if not can_view_location:

@@ -248,6 +248,23 @@ def test_api_get_media_info_authed_unknown_id(user_client):
     assert resp.status_code in (200, 401, 403, 404, 500)
 
 
+def test_strip_sensitive_from_detail_removes_fields_and_sources():
+    from nx_lib.views.workitems import strip_sensitive_from_detail
+
+    data = {
+        "fields": {"Validation User": "alice", "Amount": "50"},
+        "field_sources": [
+            {"key": "Validation User", "value": "alice", "locations": []},
+            {"key": "Amount", "value": "50", "locations": []},
+        ],
+        "table_sources": [],
+    }
+    out = strip_sensitive_from_detail(data, {"validationuser"})
+    assert out["fields"] == {"Amount": "50"}
+    assert [s["key"] for s in out["field_sources"]] == ["Amount"]
+    assert data["fields"] == {"Validation User": "alice", "Amount": "50"}  # untouched
+
+
 def test_api_get_media_raw_gated(noperm_client):
     resp = noperm_client.get("/api/get_media_raw/1/0")
     assert resp.status_code == 403
