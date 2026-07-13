@@ -2,12 +2,31 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Inert-file changes skip the whole pipeline: docs/, *.md and .claude/
+    # are all excluded from the robocopy mirror, so there is nothing to test
+    # or deploy. Mixed pushes (code + docs) still run everything.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - ".claude/**"
+      - ".claudeignore"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - ".claude/**"
+      - ".claudeignore"
 
 jobs:
   test:
     runs-on: self-hosted
+    # A newer push/PR-update supersedes a still-running test job — cancel it.
+    # Never applied to the deploy job: cancelling mid-robocopy would leave
+    # PROD half-mirrored.
+    concurrency:
+      group: test-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
@@ -88,15 +107,33 @@ jobs:
         shell: powershell
         run: .\scripts\test-db-reset.ps1
 
-      - name: Run pytest
+      # Two tiers, cheap first: default collection order is alphabetical, so
+      # `pytest tests` used to run the 10-minute e2e suite BEFORE unit tests —
+      # a trivial unit failure surfaced last. Fast tier covers everything
+      # except tests/e2e (including root-level test files).
+      - name: Run unit + integration tests
         shell: powershell
         env:
           ENVIRONMENT: TEST
         run: |
           $ErrorActionPreference = 'Stop'
-          D:\sydoc\tools\py\python.exe -m pytest tests `
+          D:\sydoc\tools\py\python.exe -m pytest tests --ignore=tests/e2e `
             -p no:cacheprovider `
-            -o junit_logging=all
+            -o junit_logging=all `
+            --junitxml=var/test-results/junit-fast.xml `
+            --html=var/test-results/report-fast.html
+
+      - name: Run E2E tests
+        shell: powershell
+        env:
+          ENVIRONMENT: TEST
+        run: |
+          $ErrorActionPreference = 'Stop'
+          D:\sydoc\tools\py\python.exe -m pytest tests/e2e `
+            -p no:cacheprovider `
+            -o junit_logging=all `
+            --junitxml=var/test-results/junit-e2e.xml `
+            --html=var/test-results/report-e2e.html
 
       - name: Upload test results
         if: always()
@@ -110,6 +147,10 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
+    # Deploys queue, never cancel — see the test job's concurrency note.
+    concurrency:
+      group: prod-deploy
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 

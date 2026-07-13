@@ -16,6 +16,17 @@ Work toward 2.5.64.
   the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
   excluded from the prod deploy mirror.
 
+### Changed
+
+- CI/deploy pipeline speedups (`deploy.yml`, `.pre-commit-config.yaml`):
+  docs-only pushes (`docs/**`, `**.md`, `.claude/**`) no longer trigger the
+  pipeline at all (those paths are excluded from the prod mirror anyway); a
+  newer push cancels a superseded in-progress **test** job (deploys still
+  queue and are never cancelled); and the suite now runs in two tiers — unit +
+  integration first, e2e browsers second — in both CI and the local pre-push
+  gate, so a cheap failure surfaces in ~2 minutes instead of after the
+  10-minute browser tier (default alphabetical collection ran e2e *first*).
+
 ### Fixed
 
 - Dashboard statistics: the two PDBS deletion-marker activity instances
