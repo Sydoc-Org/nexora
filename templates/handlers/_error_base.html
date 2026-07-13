@@ -20,7 +20,7 @@
     <div class="container mx-auto px-6 pt-8 pb-12 max-w-6xl">
 
         <div class="brand-bar">
-            <a href="/" class="brand-mark" data-testid="error-{{ error_code }}-brand-home">
+            <a href="{{ url_for('index') }}" class="brand-mark" data-testid="error-{{ error_code }}-brand-home">
                 <span class="brand-name">nexora</span>
                 <span class="brand-sub">powered by sydoc</span>
             </a>
@@ -67,7 +67,7 @@
                         </svg>
                         <span>{{ _('Go back') }}</span>
                     </a>
-                    <a href="/" class="btn-cosmic btn-cosmic-primary" data-testid="error-{{ error_code }}-home">
+                    <a href="{{ url_for('index') }}" class="btn-cosmic btn-cosmic-primary" data-testid="error-{{ error_code }}-home">
                         <span>{{ _('Take me home') }}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
