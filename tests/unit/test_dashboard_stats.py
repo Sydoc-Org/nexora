@@ -7,7 +7,12 @@ date columns from those rows, quoting the PascalCase Postgres identifiers).
 """
 
 import types
+from datetime import date
+from unittest.mock import MagicMock
 
+from flask import session
+
+import nx_lib.views.dashboard as dv
 from nx_lib.views.dashboard import _ms02_source, _split_stat_configs
 
 
@@ -105,3 +110,102 @@ def test_ms02_source_escapes_embedded_quote():
     r = _row("ms02", "a", "public.t", 'we"ird', "ImportDate")
     _table, exp, _imp = _ms02_source([r])
     assert exp == '"we""ird"'
+
+
+# ------------------- per-leg isolation (default T-SQL leg) ------------------- #
+# The existing _row helper deliberately lacks additionalCondition; the route
+# reads it, so config-row fakes for route-level tests need their own shape.
+
+
+def _cfg_row(client, name, table, exp, imp, cond=None):
+    return types.SimpleNamespace(
+        ClientCode=client,
+        ProcessName=name,
+        TableName=table,
+        ExportColumn=exp,
+        ImportColumn=imp,
+        additionalCondition=cond,
+    )
+
+
+def _engine_returning(rows):
+    """Fake engine: raw_connection().cursor().fetchall() -> rows."""
+    cur = MagicMock()
+    cur.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+def _dead_engine(msg="StatisticsDB down"):
+    eng = MagicMock()
+    eng.raw_connection.side_effect = RuntimeError(msg)
+    return eng
+
+
+_PERMS = [
+    "dashboard.filter.process.sydoc.Alpha",
+    "dashboard.filter.process.sydoc.05_PDBS",
+]
+
+_CONFIGS = [
+    _cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate"),
+    _cfg_row(
+        "ms02", "sydoc.05_PDBS", 'public."DossierStatistik"', "DatumInTempExport", "ImportDate"
+    ),
+]
+
+
+def test_default_stat_rows_returns_rows(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(1,)]))
+    with app.app_context():
+        assert dv._default_stat_rows("SELECT 1") == [(1,)]
+
+
+def test_default_stat_rows_swallows_and_logs_errors(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    with app.app_context():
+        assert dv._default_stat_rows("SELECT 1") == []
+
+
+def test_processed_over_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    today = date.today()
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(today, 7)])
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990001
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert max(body["data"]) == 7  # the healthy MS02 leg still renders
+
+
+def test_processed_over_time_default_leg_survives_dead_ms02(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "engine_statistics_db",
+        _engine_returning([types.SimpleNamespace(d=today, total_count=5)]),
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])  # PG leg's existing degrade contract
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990002
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert max(resp.get_json()["data"]) == 5

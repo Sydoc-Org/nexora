@@ -93,6 +93,25 @@ def _ms02_stat_rows(sql):
         return []
 
 
+def _default_stat_rows(sql):
+    """Run a read-only query on the default StatisticsDB engine; return rows,
+    or [] if the server is unreachable or the query errors (e.g. a stale
+    Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
+    the T-SQL leg: a default-leg failure must never blank the MS02 numbers —
+    log and yield no rows so each leg degrades independently."""
+    try:
+        conn = engine_statistics_db.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        current_app.logger.error(f"default dashboard stats query failed: {e}")
+        return []
+
+
 DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
 DASHBOARD_DATE_PRESETS = {"today", "yesterday", "last_7d", "last_30d", "this_month", "custom"}
 DASHBOARD_WIDGET_TYPES = {"kpi", "timeseries", "categorical"}
@@ -352,6 +371,7 @@ def dashboard_processed_over_time():
         configs = cursor.fetchall()
         cursor.close()
         conn.close()
+        conn = None
 
         if not configs:
             return jsonify({"labels": [], "data": []})
@@ -378,14 +398,8 @@ def dashboard_processed_over_time():
                 GROUP BY d
                 ORDER BY d
             """
-            conn = engine_statistics_db.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute(full_query)
-            for row in cursor.fetchall():
+            for row in _default_stat_rows(full_query):
                 counts[row.d] = counts.get(row.d, 0) + row.total_count
-            cursor.close()
-            conn.close()
-            conn = None
 
         ms02_src = _ms02_source(ms02_rows)
         if ms02_src:
