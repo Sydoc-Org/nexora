@@ -940,3 +940,41 @@ No commit; evidence only. INT has a real Statistics DB, so the default leg rende
 - The pre-push gate runs the full two-tier suite incl. Playwright e2e; if e2e fails oddly, reset stale TEST state with `python scripts/test_db_reset.py` first (owner runs the push).
 - **PROD diagnosis discipline:** the Task 3 probes are the entire authorized surface — read-only SMB log read + read-only SELECTs. No writes, no restarts, no config edits, no secret values in output, commits, or the plan appendix.
 - **Bug 2 may be multi-cause** (e.g. one stale Statconfig row AND transient connectivity): the decision table is per-row/per-evidence — branch B for the bad rows can coexist with owner action O2. The unconditional Tasks 4–6 make every combination non-catastrophic.
+
+## Diagnosis result (2026-07-13)
+
+Task 3 was executed read-only from the dev box in this worktree, time-boxed to ~30 minutes. Summary: **this dev box currently has no path to the corporate network/VPN**, so none of the three probes (SMB log read, PROD DB probe, INT DB probe) could reach their targets. This matches the session's already-known TEST/NEXORA_TEST-DB-unreachable pattern. No PROD state was read, modified, or inferred beyond "unreachable from here."
+
+**1. App.log read (SMB, read-only, tail-bounded)** — UNREACHABLE.
+
+- `Test-Connection -ComputerName SYAPP01` returned nothing; `Resolve-DnsName SYAPP01` failed outright:
+  `DNS ERROR: SYAPP01 : Der DNS-Name ist nicht vorhanden.` ("the DNS name does not exist")
+- `Get-Item '\\SYAPP01\D$\sydoc\nexora\var\logs\system\app.log'` failed fast (no hang) with `ItemNotFoundException`.
+- Conclusion: this is name-resolution/network failure for the SYAPP01 host itself, not a permissions or path problem — consistent with the box being off-VPN. No app.log content was obtained; no error lines/timestamps to record.
+
+**2. PROD probe** (`diag_statconfig.py PROD`, run from `C:\dev\nexora\.venv\Scripts\python.exe`, script written to the session scratchpad outside the repo, never committed) — connection FAILED, fast (well under the 5s timeout, no hang):
+
+```
+[PROD] server=PRDSQL01 nexora=nexora stats=SYDOC_Statistik
+StatisticsDB connect: FAIL OperationalError: ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server existiert nicht oder Zugriff verweigert. (17) (SQLDriverConnect); [08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]ConnectionOpen (Connect()). (53)')
+```
+
+The script then raised (unhandled) on the subsequent NexoraDB connection attempt for the Statconfig read — same DBNETLIB error, so **no Statconfig rows were obtained** and no per-row chart sub-query probes ran.
+
+**3. INT probe** (same script, `INT` arg) — connection FAILED identically, fast, same error class:
+
+```
+[INT] server=INTSQL01 nexora=nexora stats=SYDOC_Statistik
+StatisticsDB connect: FAIL OperationalError: ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server existiert nicht oder Zugriff verweigert. (17) (SQLDriverConnect); [08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]ConnectionOpen (Connect()). (53)')
+```
+
+**Statconfig row table:** not obtained (both DB probes failed before any query executed).
+
+**Verdicts per decision-tree row:**
+
+- Step-0 connect: FAILs on both PROD and INT, identically, with a DBNETLIB "server does not exist or access denied" error — this is the literal Branch-A trigger text pattern (`Login failed` / `Unable to connect` family). **However**, per the brief's own qualifier ("if the dev-box probe succeeds but app.log shows connection errors, the break is SYAPP01-side") inverted: here the dev-box probe itself fails identically against BOTH PROD and INT, and SMB/DNS resolution to SYAPP01 also fails outright. That combination points at **this dev box having no network path to the corporate LAN/VPN at all**, not at a PROD-specific credential or firewall problem — INT would be expected to work fine for the app if only PROD's StatisticsDB login were broken, but INT fails the same way.
+- Step-1 (Statconfig read) and Step-2 (per-row chart sub-query): not reached on either environment — no evidence for/against Branch B, C, D, or E could be gathered.
+
+**Chosen branch: connectivity unknown from this box — inconclusive, hand to owner.** Closest formal mapping is **Branch A** in spirit (a connectivity/creds-shaped failure), but the evidence does not actually discriminate PROD-specific StatisticsDB creds/firewall (true Branch A) from a whole-box network/VPN outage, because INT failed identically and even plain DNS resolution of SYAPP01 failed. This is exactly the scenario the task brief pre-authorized as a legitimate, non-blocking outcome. **Owner action needed:** re-run `diag_statconfig.py PROD` (scratchpad copy, not committed) and the `Get-Content`/`Select-String` app.log command from a box that is verifiably on the corporate VPN/LAN (e.g. from SYAPP01 itself, or a dev box with confirmed VPN connectivity) to actually discriminate Branch A vs. B vs. C vs. D vs. E. No code change is safe to make against Bug 2's PROD-specific root cause until that re-run happens; Tasks 4–6 (the unconditional isolation/hardening work) are unaffected and can proceed independently as planned.
+
+**Confirmations:** no credential values (UID/PWD) were printed, logged, or committed at any point — only server hostnames (`PRDSQL01`, `INTSQL01`), DB names (`nexora`, `SYDOC_Statistik`), and ODBC error text (which contains no secret material) were surfaced. The probe script lives only at the session scratchpad path outside `C:\dev\nexora` and was never staged or committed. No PROD or INT state was written, no service was restarted, no config was changed.
