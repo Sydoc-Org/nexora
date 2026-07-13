@@ -42,6 +42,35 @@ def test_has_permission_returns_false_when_no_permissions_in_session():
         assert has_permission("admin.view") is False
 
 
+def test_has_permission_matches_when_session_code_has_mixed_case():
+    # Live INT data pre-fix: Permission.Code stored as
+    # "admin.assign.user.accessprofile.pdbsUser" (mixed case), while the app
+    # checks the all-lowercase code — must match despite the case mismatch.
+    with patch(
+        "nx_lib.security.session",
+        {"permissions": ["admin.assign.user.accessprofile.pdbsUser"]},
+    ):
+        assert has_permission("admin.assign.user.accessprofile.pdbsuser") is True
+
+
+def test_has_permission_matches_when_checked_code_has_mixed_case():
+    # Reverse direction: session holds the lowercase code, caller checks with
+    # different casing.
+    with patch(
+        "nx_lib.security.session",
+        {"permissions": ["admin.assign.user.accessprofile.pdbsuser"]},
+    ):
+        assert has_permission("admin.assign.user.accessprofile.PDBSUSER") is True
+
+
+def test_has_permission_returns_false_for_genuinely_absent_code():
+    with patch(
+        "nx_lib.security.session",
+        {"permissions": ["admin.assign.user.accessprofile.pdbsUser"]},
+    ):
+        assert has_permission("admin.assign.user.accessprofile.someOtherRole") is False
+
+
 # ---------------------------------------------------------------------------
 # PermissionDenied
 # ---------------------------------------------------------------------------
