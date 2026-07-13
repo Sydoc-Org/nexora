@@ -354,27 +354,70 @@ def test_api_admin_permission_users_seeded(admin_client, admin_all_perms, db_con
 
 
 def test_api_admin_user_all_permissions(admin_client, admin_all_perms, db_conn):
+    """Permission.SortingCode exists (Task 1) so this no longer 500s."""
     from sqlalchemy import text
 
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'admin@test.local'")
     ).scalar()
     resp = admin_client.get(f"/api/admin/users/{uid}/all_permissions")
-    assert resp.status_code in (200, 500)
+    assert resp.status_code == 200
 
 
 def test_api_admin_permission_add_missing_body(admin_client, admin_all_perms):
     resp = admin_client.post("/api/admin/permissions/add", json={})
-    assert resp.status_code in (200, 400, 500)
+    assert resp.status_code == 400
 
 
 def test_api_admin_permission_edit_unknown(admin_client, admin_all_perms):
+    """PermissionID 999999 doesn't exist -> UPDATE affects 0 rows -> 404."""
     resp = admin_client.post(
         "/api/admin/permissions/edit/999999", json={"code": "x.y", "description": "d"}
     )
-    assert resp.status_code in (200, 404, 500)
+    assert resp.status_code == 404
 
 
 def test_api_admin_permission_delete_unknown(admin_client, admin_all_perms):
+    """PermissionID 999999 doesn't exist -> DELETE affects 0 rows -> 404."""
     resp = admin_client.delete("/api/admin/permissions/delete/999999")
-    assert resp.status_code in (200, 404, 500)
+    assert resp.status_code == 404
+
+
+def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_conn):
+    """Add -> edit -> verify Code/SortingCode round-trip with case preserved -> delete.
+
+    Exercises the SortingCode column end-to-end (Task 1 added it to Permission;
+    this proves add/edit persist it correctly and that Code/SortingCode are
+    never lowercased, since *.filter.process.* codes elsewhere are case-significant).
+    """
+    from sqlalchemy import text
+
+    add_resp = admin_client.post(
+        "/api/admin/permissions/add",
+        json={"code": "test.roundtrip.perm", "description": "d", "sortingCode": "Z9"},
+    )
+    assert add_resp.status_code == 200
+    perm_id = add_resp.get_json()["permissionId"]
+    assert perm_id
+
+    try:
+        edit_resp = admin_client.post(
+            f"/api/admin/permissions/edit/{perm_id}",
+            json={
+                "code": "test.roundtrip.perm",
+                "description": "d-updated",
+                "sortingCode": "Z9",
+            },
+        )
+        assert edit_resp.status_code == 200
+
+        row = db_conn.execute(
+            text("SELECT Code, SortingCode, Description FROM Permission WHERE PermissionID = :pid"),
+            {"pid": perm_id},
+        ).one()
+        assert row.Code == "test.roundtrip.perm"
+        assert row.SortingCode == "Z9"
+        assert row.Description == "d-updated"
+    finally:
+        del_resp = admin_client.delete(f"/api/admin/permissions/delete/{perm_id}")
+        assert del_resp.status_code == 200
