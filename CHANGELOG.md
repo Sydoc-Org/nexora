@@ -38,6 +38,13 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Workitems: a doc-field search on a field with no `SearchConfig` mapping for one
+  of the two workitem sources let that source run **unconstrained** instead of
+  contributing zero rows — e.g. searching the (default-only) Validation User field
+  on a mixed-process view flooded the results with every MS02 workitem, and a
+  field mapped only for ms02 would mirror-bleed all SQL Server workitems. A source
+  with no mapping for a searched field now gets an empty allow-set (zero rows);
+  broken-config and DB-error cases keep the tolerant no-constraint behavior.
 - Dashboard statistics: the two PDBS deletion-marker activity instances
   (`Deletion Marker PDBS Parent Batch Deletion`, `Deletion Marker PDBS Deckblatt`
   on `sydoc.05_PDBS`) no longer pollute the stats — they are seeded into

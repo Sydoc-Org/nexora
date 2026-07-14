@@ -498,7 +498,12 @@ def _get_workitems_data(args, export_all=False):
                 configs = cursor_nex.execute(query, target_processes).fetchall()
 
                 if not configs:
-                    continue
+                    # Field unmapped for every targeted default process -> this
+                    # source cannot match the filter -> force zero rows. None
+                    # here would let the SQL Server source run unconstrained
+                    # and bleed unfiltered rows into a cross-source search.
+                    docfield_ids = set()
+                    break
 
                 id_parts = []
                 id_params = []
@@ -607,8 +612,18 @@ def _get_workitems_data(args, export_all=False):
                 # Each ms02 row maps this docfield to a COLUMN in a wide statistik
                 # table (col_<field> = the column name); build one columnar spec
                 # per row (rows for this docfield are OR'd in the resolver).
+                config_rows = cursor_nex2.fetchall()
+                if not config_rows:
+                    # Field unmapped for every targeted ms02 process -> this
+                    # source cannot match the filter -> force zero MS02 rows
+                    # (mirrors the default leg above). None here let the
+                    # Postgres source run unconstrained and flood a cross-
+                    # source doc-field search with every MS02 workitem.
+                    ms02_docfield_ids = set()
+                    pairs = []
+                    break
                 specs = []
-                for r in cursor_nex2.fetchall():
+                for r in config_rows:
                     table_name, alias, join_cond, time_filter, field_col = r
                     if not (table_name and field_col):
                         continue
@@ -617,7 +632,7 @@ def _get_workitems_data(args, export_all=False):
                         continue
                     specs.append((table_name, id_col, field_col, time_filter))
                 if not specs:
-                    continue  # no MS02 mapping for this docfield -> no constraint
+                    continue  # mapping rows exist but unusable -> tolerant no-constraint
                 pairs.append((specs, docvalue))
             if pairs:
                 ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
