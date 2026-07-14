@@ -15,7 +15,14 @@ session, same afternoon — its worktree was merged into this branch as `5cfebe8
   every MS02 workitem. Root-caused and fixed this session as `837b875` — a doc-field with no
   `SearchConfig` mapping for a source left that source's allow-set `None` (= unconstrained) instead
   of `set()` (= zero rows). Both pre-resolution legs fixed, regression-tested, verified against the
-  real INT MS02 DB (2157 rows → 0).
+  real INT MS02 DB (2157 rows → 0), **and live-verified end-to-end** on the INT dev server
+  (`/dev/login/ben.streich` → `/api/workitems?prcfW=all&docfield=validationuser&docvalue=…`):
+  no-match value → total 0 (was 2159 all-MS02 pre-fix); temporary leg instrumentation confirmed
+  `ms02_docfield_ids=set()`. **Beware stale dev-server processes when re-verifying** — a leftover
+  pre-fix python process was still squatting on :8000 and initially faked a "fix didn't work"
+  result; `nx --restart` + checking which PID owns the port resolved it. (A real-value search
+  returns total 0 on INT only because all 39 compass `ValUserA` matches are older than the
+  config's 6-month `TimeFilter` — correct behavior; fresh PROD data will surface.)
 - **This fix is committed but NOT on `main` yet** — owner said "I'll put that on main later".
 - A **parallel session** executed the reporting Process-breakdown plan on this same branch during
   this session (commits `e2f027d`…`f476959` + merge `5cfebe8`); see its own handoff for that work.
