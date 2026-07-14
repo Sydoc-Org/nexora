@@ -466,9 +466,7 @@ def dashboard_kpi_stats():
     current_backlog = 0
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
 
     try:
         conn_nex = engine_nexora_db.raw_connection()
@@ -503,13 +501,10 @@ def dashboard_kpi_stats():
                     SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
                     FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 """
-                conn_stat = engine_statistics_db.raw_connection()
-                cursor_stat = conn_stat.cursor()
-                cursor_stat.execute(full_stat_query)
-                row = cursor_stat.fetchone()
-                if row:
-                    processed_today += row[0] or 0
-                    imported_today += row[1] or 0
+                srows = _default_stat_rows(full_stat_query)
+                if srows:
+                    processed_today += srows[0][0] or 0
+                    imported_today += srows[0][1] or 0
 
         ms02_src = _ms02_source(ms02_rows)
         if ms02_src:
@@ -543,12 +538,8 @@ def dashboard_kpi_stats():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 @cache.cached(
@@ -575,9 +566,7 @@ def dashboard_hourly_stats():
         return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
     try:
         conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
@@ -612,10 +601,7 @@ def dashboard_hourly_stats():
                 GROUP BY h
                 ORDER BY h
             """
-            conn_stat = engine_statistics_db.raw_connection()
-            cursor_stat = conn_stat.cursor()
-            cursor_stat.execute(full_query)
-            for row in cursor_stat.fetchall():
+            for row in _default_stat_rows(full_query):
                 hourly[row.h] = hourly.get(row.h, 0) + row.total
 
         ms02_src = _ms02_source(ms02_rows)
@@ -642,12 +628,8 @@ def dashboard_hourly_stats():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 @cache.cached(
@@ -674,9 +656,7 @@ def dashboard_avg_processing_time():
         return jsonify({"avg_minutes": None, "avg_display": "—"})
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
     try:
         conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
@@ -711,12 +691,9 @@ def dashboard_avg_processing_time():
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 WHERE avg_sec IS NOT NULL
             """
-            conn_stat = engine_statistics_db.raw_connection()
-            cursor_stat = conn_stat.cursor()
-            cursor_stat.execute(full_query)
-            row = cursor_stat.fetchone()
-            if row and row[0] is not None:
-                avg_values.append(row[0])
+            srows = _default_stat_rows(full_query)
+            if srows and srows[0][0] is not None:
+                avg_values.append(srows[0][0])
 
         # MS02 contributes one client-level average (export - import seconds),
         # weighted equally with the default bucket — same mean-of-means the
@@ -754,12 +731,8 @@ def dashboard_avg_processing_time():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 # ----------------------------- dashboard page + filter ----------------------------- #

@@ -209,3 +209,57 @@ def test_processed_over_time_default_leg_survives_dead_ms02(app, monkeypatch):
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
     assert max(resp.get_json()["data"]) == 5
+
+
+def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
+    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 3)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990003
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+
+
+def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(9, 4)])
+
+    with app.test_request_context("/api/dashboard/hourly_stats"):
+        session["username"] = "u"
+        session["userid"] = 990004
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_hourly_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert body["data"][9] == 4
+    assert sum(body["data"]) == 4
+
+
+def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(120.0,)])
+
+    with app.test_request_context("/api/dashboard/avg_processing_time"):
+        session["username"] = "u"
+        session["userid"] = 990005
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_avg_processing_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json()["avg_display"] == "2min"
