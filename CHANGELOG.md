@@ -24,14 +24,6 @@ Work toward 2.5.64.
   client code) when onboarding a new Octo process. Prints the INSERT for review;
   the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
   excluded from the prod deploy mirror.
-- Reporting: the Simple-tab wizard's "Break it down by…" step now offers a
-  **Process** dimension — one value per Octo process (per client in this
-  deployment), placed first in the curated list. Previously the dimension was
-  hidden as noise; the label is DB-localized via `dbo.Search_Field_Labels`
-  (migration `0037`). The wizard's category-chip cap rises from 12 to 16 for
-  every source (the docprocessing list was exactly saturated at 12; table
-  sources with 13–16 string columns now show chips that were previously
-  truncated).
 
 ### Changed
 
