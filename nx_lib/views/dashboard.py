@@ -36,6 +36,15 @@ def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
 
 
+def _cacheable_response(rv):
+    """response_filter for @cache.cached on the four legacy KPI endpoints:
+    never pin an error response — a transient 500 would otherwise be served
+    for the full TTL per user+filter, stretching outages and confusing
+    diagnosis."""
+    status = rv[1] if isinstance(rv, tuple) and len(rv) == 2 else getattr(rv, "status_code", 200)
+    return status < 400
+
+
 def _split_stat_configs(configs):
     """Partition Statconfig rows by serving client. Returns (default_rows, ms02_rows).
     Rows with a blank/missing ClientCode count as 'default' (back-compat with
@@ -335,7 +344,7 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
-@cache.cached(timeout=300, key_prefix=make_cache_key)
+@cache.cached(timeout=300, key_prefix=make_cache_key, response_filter=_cacheable_response)
 def dashboard_processed_over_time():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -443,6 +452,7 @@ def dashboard_processed_over_time():
 @cache.cached(
     timeout=60,
     key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
     if "username" not in session:
@@ -550,6 +560,7 @@ def dashboard_kpi_stats():
 @cache.cached(
     timeout=120,
     key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
     if "username" not in session:
@@ -640,6 +651,7 @@ def dashboard_hourly_stats():
 @cache.cached(
     timeout=300,
     key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
     if "username" not in session:

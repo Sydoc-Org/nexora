@@ -148,6 +148,10 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
                 }});
+            if (!response.ok) {
+                console.error("processed_over_time HTTP", response.status);
+                return;
+            }
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
 

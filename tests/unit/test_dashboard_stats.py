@@ -300,3 +300,11 @@ def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatc
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
     assert resp.get_json()["avg_display"] == "2min"
+
+
+def test_cacheable_response_rejects_error_statuses():
+    ok_resp = types.SimpleNamespace(status_code=200)
+    assert dv._cacheable_response(ok_resp)
+    assert dv._cacheable_response((ok_resp, 200))
+    assert not dv._cacheable_response(("body", 500))
+    assert not dv._cacheable_response(("body", 401))
