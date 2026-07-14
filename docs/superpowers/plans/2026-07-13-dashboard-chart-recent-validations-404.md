@@ -941,40 +941,61 @@ No commit; evidence only. INT has a real Statistics DB, so the default leg rende
 - **PROD diagnosis discipline:** the Task 3 probes are the entire authorized surface — read-only SMB log read + read-only SELECTs. No writes, no restarts, no config edits, no secret values in output, commits, or the plan appendix.
 - **Bug 2 may be multi-cause** (e.g. one stale Statconfig row AND transient connectivity): the decision table is per-row/per-evidence — branch B for the bad rows can coexist with owner action O2. The unconditional Tasks 4–6 make every combination non-catastrophic.
 
-## Diagnosis result (2026-07-13)
+## Diagnosis result (2026-07-13, redone 2026-07-14)
 
-Task 3 was executed read-only from the dev box in this worktree, time-boxed to ~30 minutes. Summary: **this dev box currently has no path to the corporate network/VPN**, so none of the three probes (SMB log read, PROD DB probe, INT DB probe) could reach their targets. This matches the session's already-known TEST/NEXORA_TEST-DB-unreachable pattern. No PROD state was read, modified, or inferred beyond "unreachable from here."
+**Correction note:** Task 3 was first attempted on 2026-07-13 evening and recorded as inconclusive — this dev box had no path to the corporate VPN/LAN at that time (SYAPP01 DNS failed to resolve; PROD and INT SQL both failed identically at connect-time). That attempt's evidence (DBNETLIB "server does not exist" on both environments) is superseded below, not deleted from history — it is preserved verbatim in git history at commit `87a4bad`. Connectivity has since been restored (`SYAPP01.dom.local` now resolves via DNS to `192.168.40.7`, and `tests/integration/test_dashboard_routes.py`'s real-DB-dependent tests pass 22/22). Task 3 was redone on 2026-07-14 with a working path to both PROD and INT, and reached a **conclusive** result — a real, reproducible root cause, though it does not map cleanly onto any single branch A–E (see below).
 
-**1. App.log read (SMB, read-only, tail-bounded)** — UNREACHABLE.
+**1. App.log read** (SMB, read-only, tail-bounded, last 5000 lines) — SUCCEEDED.
 
-- `Test-Connection -ComputerName SYAPP01` returned nothing; `Resolve-DnsName SYAPP01` failed outright:
-  `DNS ERROR: SYAPP01 : Der DNS-Name ist nicht vorhanden.` ("the DNS name does not exist")
-- `Get-Item '\\SYAPP01\D$\sydoc\nexora\var\logs\system\app.log'` failed fast (no hang) with `ItemNotFoundException`.
-- Conclusion: this is name-resolution/network failure for the SYAPP01 host itself, not a permissions or path problem — consistent with the box being off-VPN. No app.log content was obtained; no error lines/timestamps to record.
+- `Failed to fetch processed_over_time report:` — **83 matches**, spanning 2026-06-30 14:11 through **2026-07-13 16:08** (i.e. still occurring on the day of the redo, hours before this probe ran). Every single occurrence has the identical exception text:
+  ```
+  2026-07-13 16:08:13,354 [ERROR] nx_lib dashboard:417 Failed to fetch processed_over_time report: '<' not supported between instances of 'datetime.date' and 'str'
+  ```
+  This is a Python `TypeError` from a mixed-type comparison, not a SQL error and not a connection/timeout error.
+- `Failed to fetch kpi_stats report:`, `Failed to fetch hourly_stats:`, `Failed to fetch avg_processing_time:` — **0 matches** in the tail. The three sibling endpoints are NOT failing on PROD.
+- `ms02 dashboard stats query failed:` — **37 matches**, but all confined to a single window **2026-07-01 07:40–10:21** (13 days before the redo, none since). Every occurrence is the identical message: `connection to server at "mobscn-pg-db.postgres.database.azure.com" (20.250.24.11), port 5432 failed: Connection timed out (0x0000274C/10060)`. This is a separate, already-resolved, transient Azure Postgres outage — old and sporadic, matching Branch E's shape for that leg specifically, but unrelated to the ongoing `processed_over_time` failure and not actionable now (self-resolved 13 days ago).
 
-**2. PROD probe** (`diag_statconfig.py PROD`, run from `C:\dev\nexora\.venv\Scripts\python.exe`, script written to the session scratchpad outside the repo, never committed) — connection FAILED, fast (well under the 5s timeout, no hang):
+**2. PROD probe** (`diag_statconfig.py PROD`, run via `C:\dev\nexora\.venv\Scripts\python.exe`, script kept in the session scratchpad outside the repo, never committed) — StatisticsDB connect **OK**. 6 Statconfig rows read (server=`PRDSQL01`, stats db=`SYDOC_Statistik`; no credential values printed):
 
+| ProcessName | TableName | ExportColumn | ClientCode | Step-2 result | `d` python type | MAX(ExportColumn) |
+|---|---|---|---|---|---|---|
+| privera.02_Posteingang | dbo.PriveraPosteingang | exportdatetime_dt | default | OK, 10 buckets, 5437 rows/14d | `str` | 2026-07-13 16:25:24 |
+| privera.02_InitialScan | dbo.PriveraInitialUndNeuzugaenge | Export | default | OK, 0 buckets (no rows in window) | — | 2026-06-20 (stale for this one process only) |
+| privera.03_Invoice_New | dbo.PriveraInvoice | ExportDate | default | OK, 10 buckets, 10388 rows/14d | `str` | 2026-07-13 16:31:03 |
+| elektromaterial.02_Invoice | dbo.EM_Invoice | ExportEM_dt | default | OK, 11 buckets, 6165 rows/14d | `str` | 2026-07-14 07:57:17 |
+| sydoc.05_PDBS | public."DossierStatistik" | DatumInTempExport | ms02 | (Postgres leg, not probed here) | — | — |
+| compass.01_Invoice_SAP | dbo.Compass_Invoice | UploadDatetime | default | OK, 11 buckets, 4804 rows/14d | `str` | 2026-07-14 08:05:48 |
+
+Every default-leg row's SQL runs cleanly (no `Invalid object/column name`, no syntax error) and every table has **fresh** data (`MAX(ExportColumn)` within hours of the probe). **The critical finding:** the probe's own `CAST(... AS DATE)` sub-queries come back through pyodbc as Python **`str`** values, not `datetime.date` — confirmed for every default-leg process with data. This matches `nx_lib/db.py`'s `get_db_url`, which uses the legacy `DRIVER={SQL Server}` ODBC driver alias (not `ODBC Driver 17/18`); that legacy driver is known to return SQL Server `DATE`-typed columns as strings via pyodbc rather than native `datetime.date` objects. The probe's UNION+sort reproduction step (mirroring the route's own dict-merge) sorted fine standalone here, because in isolation all default-leg keys are homogeneously `str` — the real app additionally merges in genuine `datetime.date` Python objects from two other sources (see root cause below), which the probe script (by design, mirroring only the default leg per the brief) does not include.
+
+**Root cause, confirmed by direct code read + a byte-identical local reproduction:** in `nx_lib/views/dashboard.py` `dashboard_processed_over_time` (current worktree code, i.e. already past this plan's Task 4–6 per-leg isolation fixes):
+```python
+for row in _default_stat_rows(full_query):
+    counts[row.d] = counts.get(row.d, 0) + row.total_count   # row.d is a str (legacy pyodbc driver)
+...
+today = datetime.now().date()
+for i in range(15):
+    counts.setdefault(today - timedelta(days=i), 0)          # always inserts real datetime.date keys
+...
+sorted_dates = sorted(counts.keys())                          # str + datetime.date keys mixed -> TypeError
 ```
-[PROD] server=PRDSQL01 nexora=nexora stats=SYDOC_Statistik
-StatisticsDB connect: FAIL OperationalError: ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server existiert nicht oder Zugriff verweigert. (17) (SQLDriverConnect); [08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]ConnectionOpen (Connect()). (53)')
+The MS02/Postgres leg (`_ms02_stat_rows`, via psycopg2) contributes genuine `datetime.date` keys too (Postgres native `date` type), compounding the same mismatch whenever "All Processes" includes `sydoc.05_PDBS`. Reproduced the *exact* error text locally:
 ```
-
-The script then raised (unhandled) on the subsequent NexoraDB connection attempt for the Statconfig read — same DBNETLIB error, so **no Statconfig rows were obtained** and no per-row chart sub-query probes ran.
-
-**3. INT probe** (same script, `INT` arg) — connection FAILED identically, fast, same error class:
-
+>>> sorted({'2026-06-30': 5, datetime.date(2026,7,13): 0}.keys())
+TypeError("'<' not supported between instances of 'datetime.date' and 'str'")
 ```
-[INT] server=INTSQL01 nexora=nexora stats=SYDOC_Statistik
-StatisticsDB connect: FAIL OperationalError: ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server existiert nicht oder Zugriff verweigert. (17) (SQLDriverConnect); [08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]ConnectionOpen (Connect()). (53)')
-```
+This is a **deterministic, 100%-reproducible bug**, not transient: the zero-fill loop (added to fix a prior "single invisible point" issue) unconditionally inserts real `date` objects into the same dict as the default leg's `str`-typed SQL results, so the endpoint 500s on *every* request that selects any process other than the MS02-only `sydoc.05_PDBS` (which never contributes a default-leg `str` key) — this is exactly the "only PDBS works" symptom described in the plan's Bug 2 geometry section. Confirmed the three sibling endpoints (`dashboard_kpi_stats`, `dashboard_hourly_stats`, `dashboard_avg_processing_time`) do **not** share this defect: `kpi_stats` and `avg_processing_time` only aggregate numeric `SUM`/`AVG` values (no date-object dict keys), and `hourly_stats` keys its dict by `DATEPART(hour, ...)` (an int, unaffected by the driver's DATE-type quirk) with an explicit `int(h)` cast on the MS02 side — consistent with 0 app.log matches for those three patterns.
 
-**Statconfig row table:** not obtained (both DB probes failed before any query executed).
+**3. INT probe** (same script, `INT` arg) — StatisticsDB connect **OK** (server=`INTSQL01`, stats db=`SYDOC_Statistik`), Statconfig rows structurally identical to PROD (same 6 processes/tables/columns; `sydoc.05_PDBS`'s `ExportColumn` differs — `ExportDate` on INT vs `DatumInTempExport` on PROD, both valid per-environment values). **Every default-leg row returned 0 rows in the 14-day window** — INT's StatisticsDB data is months stale (`MAX(ExportColumn)` values from 2025-07 through 2026-02, none recent). This means INT **never exercises the type-mismatch trigger at all** (no default-leg rows ⇒ no `str` keys ⇒ nothing to collide with the zero-fill's `datetime.date` keys), which explains why this bug was never caught via INT/dev testing. Separately confirmed the existing unit test `test_processed_over_time_default_leg_survives_dead_ms02` (`tests/unit/test_dashboard_stats.py`) mocks the default leg's row as `types.SimpleNamespace(d=today, ...)` — a real `datetime.date`, not the `str` pyodbc actually returns on PROD — so the mock never modeled this either. No migration is implicated: this is a code defect, not a data defect, so INT vs. PROD Statconfig content is irrelevant to the fix.
 
 **Verdicts per decision-tree row:**
 
-- Step-0 connect: FAILs on both PROD and INT, identically, with a DBNETLIB "server does not exist or access denied" error — this is the literal Branch-A trigger text pattern (`Login failed` / `Unable to connect` family). **However**, per the brief's own qualifier ("if the dev-box probe succeeds but app.log shows connection errors, the break is SYAPP01-side") inverted: here the dev-box probe itself fails identically against BOTH PROD and INT, and SMB/DNS resolution to SYAPP01 also fails outright. That combination points at **this dev box having no network path to the corporate LAN/VPN at all**, not at a PROD-specific credential or firewall problem — INT would be expected to work fine for the app if only PROD's StatisticsDB login were broken, but INT fails the same way.
-- Step-1 (Statconfig read) and Step-2 (per-row chart sub-query): not reached on either environment — no evidence for/against Branch B, C, D, or E could be gathered.
+- Step-0 connect: OK on both PROD and INT. **Not Branch A.**
+- Step-1/Step-2: every Statconfig row resolves and every sub-query executes without SQL error on both environments. No dead/stale-pointing rows, no missing rows, no malformed `additionalCondition` (all start with `AND`/blank as required). **Not Branch B.**
+- No SQL syntax error at any point — the SQL succeeds every time; the failure is a pure-Python `TypeError` raised *after* successful SQL execution, when merging/sorting results. **Not literally Branch C**, though the remediation shape (reproduce-first code fix + unit test) is the same as C's prescribed action.
+- StatisticsDB is actively being fed on PROD (`MAX(ExportColumn)` within hours); rows in the 14-day window are non-zero for 4 of 5 default processes (the 5th, `privera.02_InitialScan`, is legitimately quiet — its own `MAX` is 2026-06-20, an upstream-volume fact unrelated to the bug). **Not Branch D.**
+- The failure is not transient and not a caching artifact — it is 100% deterministic on every request that includes any default-leg process, reproduced 83 times over two weeks with byte-identical exception text, and independently reproduced locally in isolation from any PROD/network state. **Not Branch E** (Branch E's fix, `response_filter`/Task 6, does not touch this: pinning aside, the *underlying* request would still 500 every time).
 
-**Chosen branch: connectivity unknown from this box — inconclusive, hand to owner.** Closest formal mapping is **Branch A** in spirit (a connectivity/creds-shaped failure), but the evidence does not actually discriminate PROD-specific StatisticsDB creds/firewall (true Branch A) from a whole-box network/VPN outage, because INT failed identically and even plain DNS resolution of SYAPP01 failed. This is exactly the scenario the task brief pre-authorized as a legitimate, non-blocking outcome. **Owner action needed:** re-run `diag_statconfig.py PROD` (scratchpad copy, not committed) and the `Get-Content`/`Select-String` app.log command from a box that is verifiably on the corporate VPN/LAN (e.g. from SYAPP01 itself, or a dev box with confirmed VPN connectivity) to actually discriminate Branch A vs. B vs. C vs. D vs. E. No code change is safe to make against Bug 2's PROD-specific root cause until that re-run happens; Tasks 4–6 (the unconditional isolation/hardening work) are unaffected and can proceed independently as planned.
+**Chosen branch: none of A–E cleanly fits — this is a genuine, conclusively-diagnosed sixth case: a Python `str`/`datetime.date` type-coercion bug in `dashboard_processed_over_time`'s zero-fill + sort logic, triggered by the legacy `DRIVER={SQL Server}` pyodbc driver returning `DATE`-typed T-SQL columns as `str`.** This is fully conclusive (not "inconclusive, hand to owner" — root cause, trigger condition, and blast radius are all confirmed with live PROD/INT evidence plus a local byte-identical repro), but it needs new remediation work not yet scoped by this plan's existing Task 7/8 slots (Task 7 assumes bad Statconfig *data*; Task 8 assumes a SQL *syntax* error against a legitimate value — neither applies; Tasks 4–6, already committed on this branch at `e0b2c37`/`32d1e7b`, do NOT fix this, since both legs' SQL already succeeds independently and the collision happens strictly after both legs return). **Recommended next action (for the owner/next planning pass, not executed here — out of Task 3's read-only diagnosis scope):** add a task to `dashboard_processed_over_time` that normalizes all date keys to one canonical Python type (e.g. coerce any `str` `row.d` via `datetime.strptime(row.d, "%Y-%m-%d").date()` before merging, or normalize every source — default leg, MS02 leg, and the zero-fill — to ISO-format string keys and only parse back to `date` for `.isoformat()` output) before the union dict is built or sorted, plus a reproduce-first unit test that mocks `_default_stat_rows` returning `str`-typed `d` values (as PROD actually does) merged with the real `date`-typed zero-fill, asserting no 500. This is independent of and unblocked by branch-B/C/D/E owner actions; the MS02 Postgres 37-match blip (2026-07-01, self-resolved) needs no action.
 
 **Confirmations:** no credential values (UID/PWD) were printed, logged, or committed at any point — only server hostnames (`PRDSQL01`, `INTSQL01`), DB names (`nexora`, `SYDOC_Statistik`), and ODBC error text (which contains no secret material) were surfaced. The probe script lives only at the session scratchpad path outside `C:\dev\nexora` and was never staged or committed. No PROD or INT state was written, no service was restarted, no config was changed.
