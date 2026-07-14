@@ -211,6 +211,7 @@
     el('rsTableWrap').hidden = true;
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = true;
+    el('rsDrillHint').hidden = true;
   }
 
   function friendlyRunError(status, data) {
@@ -233,8 +234,82 @@
     return hit ? hit.label : m.metric;
   }
 
+  // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
+  // whether a drilled-into set of rows is a strict "contributing to this
+  // number" count (distinct aggregations) vs. an exact breakdown.
+  function metricAggFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return '';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return hit ? hit.aggregation : '';
+  }
+
+  // ----- Drill-through (Simple: chart clicks + table rows) -----
+  // Maps a definition's leading columns (dimensions come first in the result
+  // row) to ReportingDrill's {field, grain, value} shape.
+  function clickedFor(rowValues) {
+    return ((state.current && state.current.def && state.current.def.columns) || [])
+      .map(function (c, i) {
+        return { field: c.field, grain: c.grain || null, value: rowValues[i] };
+      });
+  }
+
+  function openDrill(clicked) {
+    var cur = state.current;
+    if (!cur || !cur.def) return;
+    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    if (!src) return;
+    var header = clicked.map(function (c) {
+      var f = (src.fields || []).find(function (x) { return x.field === c.field; });
+      var v = (c.value === null || c.value === undefined || c.value === '')
+        ? ReportingDrill.I18N.nullLabel : String(c.value).slice(0, 60);
+      return ((f && f.label) || c.field) + ' = ' + v;
+    }).join(' · ');
+    var isDistinct = /distinct/i.test(String(metricAggFor(cur.def) || ''));
+    ReportingDrill.open({
+      definition: cur.def, fields: src.fields || [],
+      clicked: clicked, header: header, isDistinct: isDistinct
+    });
+  }
+
+  // index/datasetIndex are Chart.js element coordinates from onClick. Drill
+  // only engages for aggregate results (a definition with at least one metric
+  // and at least one dimension) — raw-row grids never reach mountChart/here.
+  function drillFromChart(index, datasetIndex) {
+    var cur = state.current;
+    if (!cur || !cur.def) return;
+    if (!(cur.def.metrics || []).length) return;
+    var dims = cur.def.columns || [];
+    if (!dims.length) return;
+    var cd = state.chartData || {};
+    var clicked = [{
+      field: dims[0].field, grain: dims[0].grain || null,
+      value: (cd.rawX || cd.labels || [])[index]
+    }];
+    if (cd.multiSeries && dims.length > 1) {
+      clicked.push({
+        field: dims[1].field, grain: null,
+        value: (cd.rawSeries || [])[datasetIndex]
+      });
+    }
+    openDrill(clicked);
+  }
+
   function renderTable(columns, rows) {
-    var html = '<table class="reporting-table"><thead><tr>';
+    var cur = state.current;
+    var def = (cur && cur.def) || {};
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    var dims = (def.columns || []).length;
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    // Drillable only for aggregate results (metric + dimension) whose leading
+    // columns resolve to a valid drill definition — probed once with the
+    // first row rather than assumed, so e.g. non-filterable dimensions don't
+    // get a false affordance.
+    var drillable = !!(hasMetrics && dims && src && rows.length &&
+      ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(rows[0])));
+    var html = '<table class="reporting-table' + (drillable ? ' reporting-drill-clickable' : '') +
+      '"><thead><tr>';
     columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
     html += '</tr></thead><tbody>';
     rows.forEach(function (r) {
@@ -244,6 +319,18 @@
     });
     html += '</tbody></table>';
     el('rsTableWrap').innerHTML = html;
+    if (drillable) {
+      Array.prototype.forEach.call(
+        el('rsTableWrap').querySelectorAll('tbody tr'), function (tr, i) {
+          var rowValues = rows[i];
+          tr.tabIndex = 0;
+          tr.addEventListener('click', function () { openDrill(clickedFor(rowValues)); });
+          tr.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') openDrill(clickedFor(rowValues));
+          });
+        });
+    }
+    el('rsDrillHint').hidden = !drillable;
   }
 
   // Simple owns its OWN Chart.js instance on a private canvas. It must never
@@ -288,7 +375,14 @@
       options: { responsive: true, maintainAspectRatio: false,
                  scales: (circular) ? {}
                    : { x: { stacked: stacked }, y: { stacked: stacked } },
-                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } } }
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } },
+                 onClick: function (evt) {
+                   var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+                   if (els.length) drillFromChart(els[0].index, els[0].datasetIndex);
+                 },
+                 onHover: function (evt, els) {
+                   evt.native.target.style.cursor = els.length ? 'pointer' : 'default';
+                 } }
     });
     el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
     el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
@@ -348,6 +442,10 @@
       }
       state.chartData = {
         labels: xOrder,
+        // Raw click values for drill-through: the pivot above already
+        // stringifies x/series keys ('' means NULL), so labels === raw here.
+        rawX: xOrder,
+        rawSeries: series,
         datasets: series.map(function (s, i) {
           return {
             label: s,
@@ -371,6 +469,9 @@
       // labels stay intact.
       return isDate ? v.slice(0, 10) : v;
     });
+    // Raw click values for drill-through, same order as labels/rows (labels
+    // are display strings — e.g. date-trimmed — so NULL/full values live here).
+    var rawX = rows.map(function (r) { return r[0]; });
     var datasets = (def.metrics || []).map(function (m, i) {
       var col = columns[metricIdx + i];
       return {
@@ -379,7 +480,7 @@
         borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
       };
     });
-    state.chartData = { labels: labels, datasets: datasets, multiSeries: false };
+    state.chartData = { labels: labels, rawX: rawX, datasets: datasets, multiSeries: false };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
     renderChart(def.chartType || (isDate ? 'line' : 'bar'));
@@ -590,6 +691,7 @@
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = true;
+    el('rsDrillHint').hidden = true;
     var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
     var i = 0;
     el('rsAiLoadingText').textContent = lines[0];
@@ -608,6 +710,12 @@
   async function runCurrent() {
     var cur = state.current;
     var seq = ++runSeq;
+    // Fire-and-forget: every runCurrent() caller except askAi already awaits
+    // loadSourcesCatalog() first, but Ask-AI results need it too for the drill
+    // affordance (openDrill/renderTable read state.sources). Idempotent — a
+    // cache hit resolves immediately, and drill just stays unavailable until
+    // this settles on a cold Ask-AI-first session.
+    loadSourcesCatalog();
     setView('result');
     el('rsError').hidden = true;
     el('rsMsg').hidden = true;
@@ -632,6 +740,7 @@
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = false;
+    el('rsDrillHint').hidden = true;
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
