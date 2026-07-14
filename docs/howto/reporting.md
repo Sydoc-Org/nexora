@@ -31,11 +31,13 @@ custom-header, save/load, and Excel-export support.
     picks pre-selected. **Back** steps back through wizard steps preserving picks;
     **✕** (on both the wizard header and the result bar) exits straight to the
     library without discarding anything already saved.
-    The category list is curated for the Document Processing source — preferred
-    business dimensions (Document Source, Document Type, Forwarding, Owner no.,
-    Property No., Registered, Tenancy no.) come first and technical noise (process
-    name, Bank PK, creditor no., barcode, document date, workitem id) is hidden;
-    other sources list their catalog fields unfiltered. The **"Limit to specific
+    The category list is curated for the Document Processing source — **Process**
+    leads (one value per Octo process; in this deployment each process corresponds
+    to a client, so it delivers per-client numbers), then the preferred business
+    dimensions (Document Source, Document Type, Forwarding, Owner no., Property
+    No., Registered, Tenancy no.), and technical noise (Bank PK, creditor no.,
+    barcode, document date, workitem id) is hidden; other sources list their
+    catalog fields unfiltered (up to 16 category chips per source). The **"Limit to specific
     processes"** control is a prominent bordered row with a live selection badge
     ("All processes" or "n / m").
   - **Ask AI** — one input to Surface A; a valid draft renders straight to the

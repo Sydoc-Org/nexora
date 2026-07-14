@@ -373,6 +373,60 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
     assert ms02_queries, sql_log
 
 
+def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Cross-source bleed regression: a searched doc-field with NO SearchConfig
+    mapping for a source must force that source to ZERO rows (empty allow-set),
+    not run unconstrained (None). Observed on PROD: validationuser was mapped
+    only for a 'default' process, and the unconstrained MS02 leg returned every
+    PDBS workitem. Here neither leg finds a mapping row, so BOTH allow-sets
+    must come out as set() -- and the MS02 resolver must never run."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("resolve_ms02_docfield_ids must not run without mapping rows")
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _must_not_run)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].docfield_ids == set()
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403

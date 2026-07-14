@@ -1,3 +1,8 @@
+> **⏩ Superseded as the latest 2026-07-14 handoff:** the newest session state is
+> `2026-07-14-reporting-breakdown-by-process-plan.md` (Process-breakdown plan, ready for
+> `/execute-plan`). This file remains valid for the drill-through work it describes — its Next
+> step #1 (live browser verification) is still owner-owed.
+
 # Handoff — Reporting drill-through (Tasks 2–8) execution complete
 
 **Date:** 2026-07-14 (late morning) · **Branch:** `feature/2.5.64` (worktree branch

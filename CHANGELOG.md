@@ -24,6 +24,14 @@ Work toward 2.5.64.
   client code) when onboarding a new Octo process. Prints the INSERT for review;
   the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
   excluded from the prod deploy mirror.
+- Reporting: the Simple-tab wizard's "Break it down by…" step now offers a
+  **Process** dimension — one value per Octo process (per client in this
+  deployment), placed first in the curated list. Previously the dimension was
+  hidden as noise; the label is DB-localized via `dbo.Search_Field_Labels`
+  (migration `0037`). The wizard's category-chip cap rises from 12 to 16 for
+  every source (the docprocessing list was exactly saturated at 12; table
+  sources with 13–16 string columns now show chips that were previously
+  truncated).
 
 ### Changed
 
@@ -38,6 +46,13 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Workitems: a doc-field search on a field with no `SearchConfig` mapping for one
+  of the two workitem sources let that source run **unconstrained** instead of
+  contributing zero rows — e.g. searching the (default-only) Validation User field
+  on a mixed-process view flooded the results with every MS02 workitem, and a
+  field mapped only for ms02 would mirror-bleed all SQL Server workitems. A source
+  with no mapping for a searched field now gets an empty allow-set (zero rows);
+  broken-config and DB-error cases keep the tolerant no-constraint behavior.
 - Dashboard statistics: the two PDBS deletion-marker activity instances
   (`Deletion Marker PDBS Parent Batch Deletion`, `Deletion Marker PDBS Deckblatt`
   on `sydoc.05_PDBS`) no longer pollute the stats — they are seeded into
