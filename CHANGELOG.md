@@ -32,6 +32,14 @@ Work toward 2.5.64.
   every source (the docprocessing list was exactly saturated at 12; table
   sources with 13–16 string columns now show chips that were previously
   truncated).
+- External API v1 for machine-to-machine clients: `GET /api/v1/stats/today`
+  returns the dashboard's "imported today" / "processed today" KPI numbers
+  as JSON, scoped per API key. Auth is `Authorization: Bearer <key>` against
+  `dbo.ApiKeys` (migration `0038`; only the SHA-256 hash is stored; disabled
+  keys answer like unknown ones), new decorator `require_api_key`
+  (`nx_lib/api_auth.py`), 60/min rate limit checked before auth, JSON error
+  handlers for `/api/v1` paths, key issuance via dev-side
+  `scripts/new-api-key.py`. See `docs/howto/external-api.md`.
 
 ### Changed
 
