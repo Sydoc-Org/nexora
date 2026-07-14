@@ -82,7 +82,7 @@ from ..reporting.sources import (
     code_sources,
     merge_sources,
 )
-from ..reporting.sqlformat import format_sql
+from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
     build_generic_query,
@@ -1004,6 +1004,7 @@ def api_run():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run exec error: {e}")
         return jsonify({"error": _("Could not run report")}), 500
+    pretty = format_sql(sql)
     payload = {
         "columns": [
             {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
@@ -1012,7 +1013,8 @@ def api_run():
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
         "sql": sql,
-        "sqlPretty": format_sql(sql),
+        "sqlPretty": pretty,
+        "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves
