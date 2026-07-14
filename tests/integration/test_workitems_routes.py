@@ -88,34 +88,41 @@ def test_api_config_fields_authed(user_client):
     assert "labels" in body
 
 
+class _FakeCache:
+    """Minimal cache.get/set stand-in, isolated from the real process-wide
+    Flask-Caching SimpleCache instance. A full pytest run showed the shared
+    cache is not reliably empty at this test's start even after cache.clear()
+    (some other test in the suite repopulates or retains an entry under the
+    same key), so this test substitutes its own throwaway store instead of
+    depending on that instance's isolation."""
+
+    def __init__(self):
+        self.store = {}
+
+    def get(self, key):
+        return self.store.get(key)
+
+    def set(self, key, value, timeout=None):
+        self.store[key] = value
+
+
 def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
     """The route's cache key embeds the sensitive-perm state as a `_s0`/`_s1`
     suffix (see api_config_fields: `f"config_fields_{...}_s{int(_sees_sensitive)}"`)
     so a permissioned user's cached response can never be served to a
     permissionless one. search_options is always empty in this test DB (no
     SearchConfig/Search_Field_Labels tables), so we can't assert on response
-    *body* differences — instead spy on nx_lib.views.workitems.cache.set to
-    discover the actual key each perm state writes under (rather than
-    predicting it from a separate session read, which is fragile under a
-    real NEXORA_TEST DB where `session["permissions"]`'s `allowed_processes`
-    segment isn't guaranteed identical between a pre-request read and the
-    _reload_user_permissions before_request hook's own fresh DB fetch).
+    *body* differences — instead swap in a throwaway fake cache (see
+    _FakeCache) and inspect what it collects, discovering the actual keys
+    each perm state writes under rather than predicting them.
     """
     import nx_lib.views.workitems as wv
-    from nx_lib.views.workitems import cache
 
-    cache.clear()
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+
     with user_client.session_transaction() as sess:
         sess["locale"] = "en"
-
-    set_calls = []
-    orig_set = cache.set
-
-    def _spy_set(key, value, *args, **kwargs):
-        set_calls.append(key)
-        return orig_set(key, value, *args, **kwargs)
-
-    monkeypatch.setattr(cache, "set", _spy_set)
 
     # Without the sensitive perm the response is filtered + cached under _s0.
     monkeypatch.setattr(
@@ -124,27 +131,29 @@ def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     r0 = user_client.get("/api/config/fields")
     assert r0.status_code == 200
-    assert len(set_calls) == 1, f"expected exactly one cache.set call, got {set_calls!r}"
-    key_s0 = set_calls[0]
+    assert (
+        len(fake_cache.store) == 1
+    ), f"expected exactly one cached entry, got {fake_cache.store!r}"
+    key_s0 = next(iter(fake_cache.store))
     assert key_s0.endswith("_s0")
-    cached_s0 = cache.get(key_s0)
+    cached_s0 = fake_cache.store[key_s0]
     assert cached_s0 is not None, f"expected a cache entry under {key_s0!r}"
 
     # With the perm the cache key differs (_s1) -> not served the _s0 entry.
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     r1 = user_client.get("/api/config/fields")
     assert r1.status_code == 200
-    assert len(set_calls) == 2, f"expected a second cache.set call, got {set_calls!r}"
-    key_s1 = set_calls[1]
+    assert len(fake_cache.store) == 2, f"expected a second cached entry, got {fake_cache.store!r}"
+    key_s1 = next(k for k in fake_cache.store if k != key_s0)
     assert key_s1.endswith("_s1")
     assert key_s1 != key_s0
-    cached_s1 = cache.get(key_s1)
+    cached_s1 = fake_cache.store[key_s1]
     assert cached_s1 is not None, f"expected a cache entry under {key_s1!r}"
 
     # Both perm states landed in genuinely distinct, still-present cache
     # entries: the permissioned request never reused or clobbered the
     # permissionless slot.
-    assert cache.get(key_s0) == cached_s0
+    assert fake_cache.store[key_s0] == cached_s0
 
 
 def test_api_docfield_values_gated(noperm_client):

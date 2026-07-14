@@ -4,6 +4,7 @@
 window.ReportingDrill = (function () {
   'use strict';
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   var I18N = {
     title: {{ _("Rows behind this number")|tojson }},
     distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
@@ -111,7 +112,7 @@ window.ReportingDrill = (function () {
         var cell = v == null ? '<span class="reporting-drill-null">' + esc(I18N.nullLabel) + '</span>'
                              : esc(String(v).slice(0, 200));
         if (i === wiIdx && v != null) {
-          cell = '<a href="/workitems?search=' + encodeURIComponent(String(v)) +
+          cell = '<a href="' + API_PREFIX + 'workitems?search=' + encodeURIComponent(String(v)) +
                  '" target="_blank" rel="noopener">' + esc(String(v)) + '</a>';
         }
         return '<td>' + cell + '</td>';
@@ -138,7 +139,7 @@ window.ReportingDrill = (function () {
     el('rdNote').textContent = '';
     el('rdPanel').hidden = false;
     el('rdBackdrop').hidden = false;
-    fetch('/api/reporting/run', {
+    fetch(API_PREFIX + 'api/reporting/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify(dd)
@@ -168,7 +169,7 @@ window.ReportingDrill = (function () {
     var body = Object.assign({}, current.definition, { format: format });
     var res;
     try {
-      res = await fetch('/api/reporting/export', {
+      res = await fetch(API_PREFIX + 'api/reporting/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
         body: JSON.stringify(body)
