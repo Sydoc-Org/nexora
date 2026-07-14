@@ -32,6 +32,12 @@ Work toward 2.5.64.
   every source (the docprocessing list was exactly saturated at 12; table
   sources with 13–16 string columns now show chips that were previously
   truncated).
+- Reporting: smarter UX — group-specific call-to-action empty states in the Simple
+  library, an explanatory notice (instead of silent removal) when the AI assistant
+  is unavailable, in-page toasts replacing every `window.alert` on the Advanced tab,
+  a designed "No rows matched" empty state, a real loading indicator in the
+  drill-through drawer, a full-scan hint while the wizard's "All time" range is
+  selected, and copy feedback on the AI SQL draft.
 
 ### Changed
 
@@ -43,6 +49,12 @@ Work toward 2.5.64.
   integration first, e2e browsers second — in both CI and the local pre-push
   gate, so a cheap failure surfaces in ~2 minutes instead of after the
   10-minute browser tier (default alphabetical collection ran e2e *first*).
+- Reporting: the Show-query panels (Simple and Advanced) now display the executed
+  SQL with parameter values inlined as literals and **Copy** copies that runnable
+  statement; the separate "Parameters: 1 = …" footer is gone. Execution is
+  unchanged and stays fully parameterized. Visual polish across the page: unified
+  24px gutters, dark-mode SQL syntax colors, tokenised hint/warning colors,
+  Show-query panel chrome.
 
 ### Fixed
 
@@ -104,6 +116,12 @@ Work toward 2.5.64.
   process (83 confirmed PROD `app.log` occurrences over two weeks). `sydoc.05_PDBS` is
   MS02-only, so it never hit the mixed-type path — the only process that ever rendered. Fixed
   by normalizing the default leg's date to `datetime.date` at the merge point.
+- Reporting: no more English fragments in localized UIs — reporting API errors are
+  translated at the boundary (raw engine text demoted to a debug-only `detail`
+  field), filter chips and the Advanced op dropdown show localized operator labels
+  and catalog field names instead of raw codes, fallback report titles ("Report",
+  "Untitled report", "SQL report", "AI report", drill exports) and the Beta badge
+  are localized, and result numbers format with the app locale.
 
 ## [2.5.63] - 2026-06-24
 
