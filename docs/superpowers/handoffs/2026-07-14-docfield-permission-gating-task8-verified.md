@@ -1,3 +1,7 @@
+> **Addendum (same day, later):** Owner action 2 is also done now — see the bottom of this
+> file. Both owner-only data actions from the plan are complete; only permission grants +
+> PROD rollout + push remain.
+
 # Handoff — Permission-gated doc-fields (Validation User) — ALL 8 TASKS DONE, live-verified
 
 **Date:** 2026-07-14 (morning) · **Branch:** `feature/2.5.64` · **commit-only (remote session — owner pushes)** · no plan worktree
@@ -23,9 +27,10 @@
   "Vat Amount"; the unpermissioned user's identical dropdown skips straight past — same
   process, same list, only the permission differs.
 - **Values API and CSV/detail-panel surfaces returned empty for both users** — verified
-  this is real-data absence, not a bug (see Gotchas). Owner action 2 (confirming the Octo
-  extraction name) is still outstanding and is the reason the panel/CSV gates have nothing
-  observable to strip yet on live data.
+  this is real-data absence, not a bug (see Gotchas). *(Update: Owner action 2 was completed
+  later the same day — see the Addendum at the bottom. The panel/CSV gates still have
+  nothing live to observe only because no document has been through Octo validation yet,
+  not because anything is unmapped.)*
 
 ## What was done this session (no commits — verification only)
 
@@ -108,13 +113,12 @@ app.
 
 1. ~~Map the field to its real source column~~ **DONE** (owner did this before this session:
    `col_validationuser = 'ValUserA'` on `compass.01_Invoice_SAP`/`default`).
-2. **Confirm/wire the Octo extraction name** so the detail-panel/CSV token-match actually
-   catches it — see Gotchas above. This is the only remaining functional gap, and it's an
-   Octo-configuration action, not a code change.
+2. ~~Confirm/wire the Octo extraction name~~ **DONE** (migration `0036`, same day — see
+   Addendum at the bottom).
 3. **Grant the permission** to the right non-admin profiles via the admin UI (currently
    only `enterpriseAdmin`/`globalAdmin` have it, via `0035`'s auto-grant).
-4. **PROD rollout** — `0035` reaches PROD automatically on the next deploy to `main`, or
-   immediately via `python scripts/db-migrate.py --env PROD`.
+4. **PROD rollout** — `0035` AND `0036` reach PROD automatically on the next deploy to
+   `main`, or immediately via `python scripts/db-migrate.py --env PROD`.
 5. **Review + push `feature/2.5.64`** (full pre-push gate incl. Playwright e2e).
 
 ## Untracked / left for owner
@@ -137,3 +141,41 @@ nx --doctor                              # confirms DB/VPN state at time of read
 Nothing to resume for this plan — it's complete. If the `var/handoff-pending` flag points
 elsewhere (it currently points to the unrelated `reporting-drill-through` plan), that's
 correct; this file is for the historical record, not an active resume point.
+
+## Addendum: Owner action 2 done too (same day, migration 0036)
+
+The user supplied the missing piece right after this handoff was written: Octo's raw
+extraction index field is named `ValUser`, and it needed a row in `dbo.IndexFieldMappings`
+— a **separate table** from `SearchConfig`/`Search_Field_Labels`, consumed by
+`nx_lib/octo.py`'s `get_index_field_mappings()`/`get_extensions_urls_fields()` to translate
+Octo's raw `IndexFields[].Name` into the key that lands in the `fields` dict the detail
+panel/CSV/sensitivity-strip all key off. Checked the table first: no existing `ValUser` row;
+established convention is PascalCase `TargetKey` (`CrdName`, `DocBarcode`,
+`TargetSystemFileName`). Added migration `0036`
+(`sql/_migrations/NexoraDB/0036_index_field_mapping_validation_user.sql`):
+`INSERT INTO IndexFieldMappings (SourceFieldName, TargetKey) VALUES ('ValUser',
+'ValidationUser')`, idempotent (`NOT EXISTS` guard) — `ValidationUser` normalizes via
+`_norm_field_token` to `validationuser`, the exact sensitive `FieldKey` seeded by migration
+`0035`. Committed `1bd0135`, applied to INT cleanly (no schema drift — this is a data-only
+insert into an existing table, same pattern as `0035`'s `Permission` row).
+
+Restarted the dev server again (clears the 1-hour `index_field_mappings` SimpleCache and any
+stale per-workitem `media_info_{wid}` cache entries so the new mapping takes effect
+immediately). Recreated the throwaway `test.task8.noperm` user, then scanned **all 40**
+`compass.01_Invoice_SAP` workitems on the first page via `/api/get_media_info/<wid>` as
+`ben.streich` — zero errors (the mapping loads and is consumed correctly by every request),
+but **none of the 40 currently have a live `ValUser` value from Octo**. Every one is at
+`current_stage: "Validation"` — i.e. none has actually been validated yet, and "Validation
+User" is almost certainly an audit field Octo only populates once a human completes that
+step. This is not a gap in the mapping or the gating code: `strip_sensitive_from_detail`
+was already unit-tested in Task 5 against a literal `"Validation User"`/`ValidationUser` key
+and correctly strips it; the migration is now live and loads without error; there is simply
+no real document yet whose Octo extraction has actually produced this field. Did **not**
+fabricate fake Octo data to force an artificial end-to-end demo. Deleted the throwaway user
+again afterward — confirmed 0 remaining rows.
+
+**Net effect: both owner-only data actions (1 and 2) from the original plan are now done.**
+The only genuinely-live end-to-end proof still pending is the panel/CSV surfaces
+specifically, and that will happen automatically the first time a real
+`compass.01_Invoice_SAP` document gets validated in Octo — no further action needed on the
+code or config side.
