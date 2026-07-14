@@ -1,3 +1,7 @@
+> **Superseded same-day:** the newer handoff is
+> `2026-07-13-pr115-ship-ci-speedups.md` (PR #115 merged + deployed, CI speedups, Confluence cred
+> hunt). Resume from that one.
+
 # Handoff — pdbsUser Access-Profile Assignment Fix (EXECUTED — ready to merge)
 
 **Date:** 2026-07-13 · **Branch:** `feature/2.5.64` · **9 commits ahead of origin** · **commit-only (remote)** · no plan worktree

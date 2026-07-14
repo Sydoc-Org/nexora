@@ -92,7 +92,8 @@ def api_config_fields():
     }
 
     current_lang = str(get_locale())
-    _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
@@ -155,6 +156,10 @@ def api_config_fields():
         if conn:
             conn.close()
 
+    blocked = sensitive_blocked_keys()
+    if blocked:
+        search_options = drop_sensitive_options(search_options, blocked)
+        db_labels_map = {k: v for k, v in db_labels_map.items() if k.lower() not in blocked}
     result = {"search_options": search_options, "labels": db_labels_map}
     cache.set(_cache_key, result, timeout=3600)
     return jsonify(result)
@@ -175,6 +180,119 @@ def get_valid_search_columns():
     finally:
         if conn:
             conn.close()
+
+
+def _norm_field_token(s):
+    """Normalize a field name for cross-namespace matching: lowercase, strip
+    everything but [a-z0-9] so 'Validation User' / 'validation_user' /
+    'ValidationUser' all collapse to the same token."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def strip_sensitive_fields(fields, blocked_tokens):
+    """Copy of an Octo extraction ``fields`` dict (or any name->value mapping)
+    with entries whose normalized key is blocked removed. Empty blocked set =>
+    plain copy (never mutates the input, which may be a cached object)."""
+    if not blocked_tokens:
+        return dict(fields)
+    return {k: v for k, v in fields.items() if _norm_field_token(k) not in blocked_tokens}
+
+
+def drop_sensitive_options(search_options, blocked_keys):
+    """Copy of the api_config_fields {proc: [{'value','label'}, ...]} map with
+    options whose value (a doc-field FieldKey) is blocked removed."""
+    if not blocked_keys:
+        return dict(search_options)
+    return {
+        proc: [f for f in fields if (f.get("value") or "").lower() not in blocked_keys]
+        for proc, fields in search_options.items()
+    }
+
+
+@cache.cached(timeout=3600, key_prefix="sensitive_field_keys")
+def get_sensitive_field_keys():
+    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels.
+    Empty set on any error (fail-open with log, like the other DB helpers)."""
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
+        return {r[0].lower() for r in cur.fetchall() if r[0]}
+    except Exception as e:
+        current_app.logger.error(f"get_sensitive_field_keys: {e}")
+        return set()
+    finally:
+        if conn:
+            conn.close()
+
+
+@cache.cached(timeout=3600, key_prefix="sensitive_field_tokens")
+def get_sensitive_field_tokens():
+    """Normalized name-tokens (FieldKey + all four language labels) of sensitive
+    fields, for matching against Octo extraction field names shown in the detail
+    panel / CSV export. Empty set on any error (fail-open with log)."""
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
+            "FROM Search_Field_Labels WHERE IsSensitive = 1"
+        )
+        tokens = set()
+        for row in cur.fetchall():
+            for val in row:
+                t = _norm_field_token(val)
+                if t:
+                    tokens.add(t)
+        return tokens
+    except Exception as e:
+        current_app.logger.error(f"get_sensitive_field_tokens: {e}")
+        return set()
+    finally:
+        if conn:
+            conn.close()
+
+
+def sensitive_blocked_keys():
+    """FieldKeys the CURRENT user may not use (empty if they hold the perm)."""
+    if has_permission("workitems.filter.documentfields.sensitive"):
+        return set()
+    return get_sensitive_field_keys()
+
+
+def sensitive_blocked_tokens():
+    """Octo name-tokens the CURRENT user may not see (empty if they hold perm)."""
+    if has_permission("workitems.filter.documentfields.sensitive"):
+        return set()
+    return get_sensitive_field_tokens()
+
+
+def strip_sensitive_from_detail(data, blocked_tokens):
+    """Copy of a get_media_info payload with sensitive extraction fields removed:
+    the ``fields`` dict AND the ``field_sources`` list (so the highlight overlay
+    can't leak the value/location either). Empty blocked set => plain copy."""
+    if not blocked_tokens:
+        return data
+    d = dict(data)
+    d["fields"] = strip_sensitive_fields(d.get("fields", {}) or {}, blocked_tokens)
+    d["field_sources"] = [
+        s
+        for s in (d.get("field_sources") or [])
+        if _norm_field_token(s.get("key", "")) not in blocked_tokens
+    ]
+    return d
+
+
+def _strip_export_fields(details_map, blocked_tokens):
+    """In-place: drop sensitive field entries from every detail's fields dict
+    before CSV headers/rows are built. No-op when blocked_tokens is empty."""
+    if not blocked_tokens:
+        return
+    for detail in details_map.values():
+        if detail.get("fields"):
+            detail["fields"] = strip_sensitive_fields(detail["fields"], blocked_tokens)
 
 
 # The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
@@ -347,6 +465,7 @@ def _get_workitems_data(args, export_all=False):
 
     if has_permission("workitems.filter.documentfields") and target_processes:
         valid_db_columns = get_valid_search_columns()
+        blocked_docfields = sensitive_blocked_keys()
 
         conn_nex = None
         cursor_nex = None
@@ -363,6 +482,9 @@ def _get_workitems_data(args, export_all=False):
 
                 target_config_col = f"col_{docfield}"
                 if target_config_col not in valid_db_columns:
+                    continue
+
+                if docfield in blocked_docfields:
                     continue
 
                 placeholders = ",".join(["?"] * len(target_processes))
@@ -453,6 +575,7 @@ def _get_workitems_data(args, export_all=False):
         and engine_ms02_docfields_pg is not None
     ):
         valid_db_columns = get_valid_search_columns()
+        blocked_docfields = sensitive_blocked_keys()
         conn_nex2 = None
         cursor_nex2 = None
         try:
@@ -468,6 +591,9 @@ def _get_workitems_data(args, export_all=False):
                 # Whitelist the column name (same guard the default path uses)
                 # before interpolating it -- blocks injection via `docfield`.
                 if target_config_col not in valid_db_columns:
+                    continue
+
+                if docfield in blocked_docfields:
                     continue
                 placeholders = ",".join(["?"] * len(target_processes))
                 cursor_nex2.execute(
@@ -563,6 +689,8 @@ def api_docfield_values():
     # below (the same guard the workitems search path uses) -- `field` is a raw
     # request arg, so without this it is a SQL-injection vector against NexoraDB.
     if target_col_name not in get_valid_search_columns():
+        return jsonify([])
+    if field in sensitive_blocked_keys():
         return jsonify([])
     conn = None
     cur = None
@@ -843,6 +971,9 @@ def export_workitems_csv():
                     wid = futures[future]
                     _app.logger.error(f"Export: future error for {wid}: {e}")
                     details_map[wid] = {"fields": {}, "history": [], "images": []}
+
+    if include_fields:
+        _strip_export_fields(details_map, sensitive_blocked_tokens())
 
     all_field_keys = []
     if include_fields:
@@ -1183,6 +1314,9 @@ def api_get_media_info(workitem_id):
                 d["field_sources"] = []
                 d["table_sources"] = []
                 return d
+            blocked_sensitive = sensitive_blocked_tokens()
+            if blocked_sensitive:
+                d = strip_sensitive_from_detail(d, blocked_sensitive)
             fs = d.get("field_sources", [])
             ts = d.get("table_sources", [])
             if not can_view_location:
@@ -1780,7 +1914,8 @@ def api_workitems_page_init():
         if perm.startswith(prefix)
     }
     current_lang = str(get_locale())
-    _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}"
+    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     field_config = cache.get(_fields_key)
     if field_config is None:
         lang_column_map = {
@@ -1828,6 +1963,10 @@ def api_workitems_page_init():
         finally:
             if conn:
                 conn.close()
+        blocked = sensitive_blocked_keys()
+        if blocked:
+            search_options = drop_sensitive_options(search_options, blocked)
+            db_labels_map = {k: v for k, v in db_labels_map.items() if k.lower() not in blocked}
         field_config = {"search_options": search_options, "labels": db_labels_map}
         cache.set(_fields_key, field_config, timeout=3600)
 

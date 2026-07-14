@@ -7,7 +7,12 @@ date columns from those rows, quoting the PascalCase Postgres identifiers).
 """
 
 import types
+from datetime import date, timedelta
+from unittest.mock import MagicMock
 
+from flask import session
+
+import nx_lib.views.dashboard as dv
 from nx_lib.views.dashboard import _ms02_source, _split_stat_configs
 
 
@@ -105,3 +110,201 @@ def test_ms02_source_escapes_embedded_quote():
     r = _row("ms02", "a", "public.t", 'we"ird', "ImportDate")
     _table, exp, _imp = _ms02_source([r])
     assert exp == '"we""ird"'
+
+
+# ------------------- per-leg isolation (default T-SQL leg) ------------------- #
+# The existing _row helper deliberately lacks additionalCondition; the route
+# reads it, so config-row fakes for route-level tests need their own shape.
+
+
+def _cfg_row(client, name, table, exp, imp, cond=None):
+    return types.SimpleNamespace(
+        ClientCode=client,
+        ProcessName=name,
+        TableName=table,
+        ExportColumn=exp,
+        ImportColumn=imp,
+        additionalCondition=cond,
+    )
+
+
+def _engine_returning(rows):
+    """Fake engine: raw_connection().cursor().fetchall() -> rows."""
+    cur = MagicMock()
+    cur.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+def _dead_engine(msg="StatisticsDB down"):
+    eng = MagicMock()
+    eng.raw_connection.side_effect = RuntimeError(msg)
+    return eng
+
+
+_PERMS = [
+    "dashboard.filter.process.sydoc.Alpha",
+    "dashboard.filter.process.sydoc.05_PDBS",
+]
+
+_CONFIGS = [
+    _cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate"),
+    _cfg_row(
+        "ms02", "sydoc.05_PDBS", 'public."DossierStatistik"', "DatumInTempExport", "ImportDate"
+    ),
+]
+
+
+def test_default_stat_rows_returns_rows(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(1,)]))
+    with app.app_context():
+        assert dv._default_stat_rows("SELECT 1") == [(1,)]
+
+
+def test_default_stat_rows_swallows_and_logs_errors(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    with app.app_context():
+        assert dv._default_stat_rows("SELECT 1") == []
+
+
+def test_processed_over_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    today = date.today()
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(today, 7)])
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990001
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert max(body["data"]) == 7  # the healthy MS02 leg still renders
+
+
+def test_processed_over_time_default_leg_survives_dead_ms02(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "engine_statistics_db",
+        _engine_returning([types.SimpleNamespace(d=today, total_count=5)]),
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])  # PG leg's existing degrade contract
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990002
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert max(resp.get_json()["data"]) == 5
+
+
+def test_processed_over_time_survives_str_typed_default_leg_date(app, monkeypatch):
+    # PROD's legacy `DRIVER={SQL Server}` pyodbc driver returns SQL Server DATE
+    # columns as Python `str` (not `datetime.date`) — confirmed via live PROD
+    # diagnosis, see docs/superpowers/plans/
+    # 2026-07-13-dashboard-chart-recent-validations-404.md ("Diagnosis result
+    # (2026-07-13, redone 2026-07-14)"). The route's zero-fill loop and the MS02
+    # leg both contribute real `datetime.date` keys to the same `counts` dict, so
+    # `sorted(counts.keys())` mixed `str` and `datetime.date` and raised
+    # `TypeError: '<' not supported between instances of 'datetime.date' and
+    # 'str'` on every request touching a default-leg process (83 PROD app.log
+    # occurrences over two weeks).
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    today = date.today()
+    str_date = today.isoformat()  # what the legacy driver actually returns
+    monkeypatch.setattr(
+        dv,
+        "engine_statistics_db",
+        _engine_returning([types.SimpleNamespace(d=str_date, total_count=5)]),
+    )
+    yesterday = today - timedelta(days=1)
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(yesterday, 3)])
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990006
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert body["labels"] == sorted(body["labels"])  # sort must not raise
+    assert body["data"][body["labels"].index(today.isoformat())] == 5
+    assert body["data"][body["labels"].index(yesterday.isoformat())] == 3
+
+
+def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
+    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 3)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990003
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+
+
+def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(9, 4)])
+
+    with app.test_request_context("/api/dashboard/hourly_stats"):
+        session["username"] = "u"
+        session["userid"] = 990004
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_hourly_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert body["data"][9] == 4
+    assert sum(body["data"]) == 4
+
+
+def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(120.0,)])
+
+    with app.test_request_context("/api/dashboard/avg_processing_time"):
+        session["username"] = "u"
+        session["userid"] = 990005
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_avg_processing_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json()["avg_display"] == "2min"
+
+
+def test_cacheable_response_rejects_error_statuses():
+    ok_resp = types.SimpleNamespace(status_code=200)
+    assert dv._cacheable_response(ok_resp)
+    assert dv._cacheable_response((ok_resp, 200))
+    assert not dv._cacheable_response(("body", 500))
+    assert not dv._cacheable_response(("body", 401))

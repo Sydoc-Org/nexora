@@ -1,6 +1,7 @@
 <script>
 (function () {
   "use strict";
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   var modeAi = document.getElementById("rpModeAi");
   var panel = document.getElementById("rpAiPanel");
   if (!modeAi || !panel) return;
@@ -126,7 +127,7 @@
     askBtn.disabled = true;
     errorEl.hidden = true;
     showAiLoading(AI_LINES);
-    fetch("/api/reporting/ai/build", {
+    fetch(API_PREFIX + "api/reporting/ai/build", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
       body: JSON.stringify({ question: question })
@@ -156,7 +157,7 @@
     askBtn.disabled = true;
     errorEl.hidden = true;
     showAiLoading(AI_LINES);
-    fetch("/api/reporting/ai/ask", {
+    fetch(API_PREFIX + "api/reporting/ai/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
       body: JSON.stringify({ question: question })
@@ -236,7 +237,7 @@
     askBtn.disabled = true;
     errorEl.hidden = true;
     showAiLoading(AGENT_LINES);
-    fetch("/api/reporting/ai/agent", {
+    fetch(API_PREFIX + "api/reporting/ai/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
       body: JSON.stringify({

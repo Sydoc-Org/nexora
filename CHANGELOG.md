@@ -10,11 +10,31 @@ Work toward 2.5.64.
 
 ### Added
 
+- Reporting: drill-through — click a chart element or aggregate row to see the underlying
+  document rows in a slide-over panel, with workitem links and CSV/XLSX export.
+- Reporting: `is_null` filters now match rows from processes that don't expose the field
+  (consistent with how those rows are projected into "(null)" groups).
+- **Validation User** doc-field and a permission-gated doc-field mechanism:
+  fields flagged `IsSensitive` in `dbo.Search_Field_Labels` are hidden (name and
+  value) from users without `workitems.filter.documentfields.sensitive` across
+  the search dropdown, the values autocomplete API, search filtering, the detail
+  panel, and CSV export (migration `0035`).
 - `scripts/new-process.py` — interactive dev-side helper that assembles a new
   `dbo.Statconfig` row (process name, stat table, export/import/workitem columns,
   client code) when onboarding a new Octo process. Prints the INSERT for review;
   the actual DB write is still commented out (WIP). Dev-only: `scripts/` is
   excluded from the prod deploy mirror.
+
+### Changed
+
+- CI/deploy pipeline speedups (`deploy.yml`, `.pre-commit-config.yaml`):
+  docs-only pushes (`docs/**`, `**.md`, `.claude/**`) no longer trigger the
+  pipeline at all (those paths are excluded from the prod mirror anyway); a
+  newer push cancels a superseded in-progress **test** job (deploys still
+  queue and are never cancelled); and the suite now runs in two tiers — unit +
+  integration first, e2e browsers second — in both CI and the local pre-push
+  gate, so a cheap failure surfaces in ~2 minutes instead of after the
+  10-minute browser tier (default alphabetical collection ran e2e *first*).
 
 ### Fixed
 
@@ -46,6 +66,29 @@ Work toward 2.5.64.
   by missing the marker); the broken CLI flags are removed from
   `.pre-commit-config.yaml`, `deploy.yml`, `README.md`, and
   `scripts/git-hooks/pre-push`. Unit/integration tests still get zero retries.
+- Dashboard: clicking a Recent Validations card on PROD landed on the IIS root site's 404
+  page — the card's onclick built a root-relative `/workitems?search=<id>` URL that escaped
+  the `/nexora` prefix. Fixed via the page's `API_PREFIX` idiom; the error pages' two "home"
+  links now use `url_for('index')`. The same sweep fixed latent prefix escapes in the four
+  reporting `api()` helpers, the reporting AI/export fetches, and the prepared-documents
+  partial (`window.API_PREFIX` was never assigned). A new template-lint test
+  (`tests/unit/test_template_url_prefix.py`) permanently forbids root-relative URLs in
+  templates.
+- Dashboard: a failing StatisticsDB (T-SQL) leg 500'd all four legacy KPI/chart endpoints —
+  including the healthy MS02/Postgres numbers and the backlog count — which blanked the
+  "Documents Processed over time" chart (and KPI cards) for every non-PDBS process on PROD
+  while PDBS kept working. The default leg is now isolated like the MS02 leg already was
+  (`_default_stat_rows`): each leg logs and degrades to zero rows. Error responses are no
+  longer pinned in the per-user response cache, and the chart updater skips non-OK payloads.
+- Dashboard: the actual root cause of the "chart blanks except for PDBS" symptom was a
+  `TypeError` in `dashboard_processed_over_time`, not just the leg 500s above — the default
+  T-SQL leg's legacy `DRIVER={SQL Server}` pyodbc driver returns date columns as `str`, while
+  the MS02/Postgres leg and the zero-fill loop use real `datetime.date`; merging both into one
+  `counts` dict and calling `sorted(counts.keys())` raised `TypeError: '<' not supported
+  between instances of 'datetime.date' and 'str'` on every request touching a non-MS02
+  process (83 confirmed PROD `app.log` occurrences over two weeks). `sydoc.05_PDBS` is
+  MS02-only, so it never hit the mixed-type path — the only process that ever rendered. Fixed
+  by normalizing the default leg's date to `datetime.date` at the merge point.
 
 ## [2.5.63] - 2026-06-24
 

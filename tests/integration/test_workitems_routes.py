@@ -88,6 +88,74 @@ def test_api_config_fields_authed(user_client):
     assert "labels" in body
 
 
+class _FakeCache:
+    """Minimal cache.get/set stand-in, isolated from the real process-wide
+    Flask-Caching SimpleCache instance. A full pytest run showed the shared
+    cache is not reliably empty at this test's start even after cache.clear()
+    (some other test in the suite repopulates or retains an entry under the
+    same key), so this test substitutes its own throwaway store instead of
+    depending on that instance's isolation."""
+
+    def __init__(self):
+        self.store = {}
+
+    def get(self, key):
+        return self.store.get(key)
+
+    def set(self, key, value, timeout=None):
+        self.store[key] = value
+
+
+def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
+    """The route's cache key embeds the sensitive-perm state as a `_s0`/`_s1`
+    suffix (see api_config_fields: `f"config_fields_{...}_s{int(_sees_sensitive)}"`)
+    so a permissioned user's cached response can never be served to a
+    permissionless one. search_options is always empty in this test DB (no
+    SearchConfig/Search_Field_Labels tables), so we can't assert on response
+    *body* differences — instead swap in a throwaway fake cache (see
+    _FakeCache) and inspect what it collects, discovering the actual keys
+    each perm state writes under rather than predicting them.
+    """
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+
+    with user_client.session_transaction() as sess:
+        sess["locale"] = "en"
+
+    # Without the sensitive perm the response is filtered + cached under _s0.
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    r0 = user_client.get("/api/config/fields")
+    assert r0.status_code == 200
+    assert (
+        len(fake_cache.store) == 1
+    ), f"expected exactly one cached entry, got {fake_cache.store!r}"
+    key_s0 = next(iter(fake_cache.store))
+    assert key_s0.endswith("_s0")
+    cached_s0 = fake_cache.store[key_s0]
+    assert cached_s0 is not None, f"expected a cache entry under {key_s0!r}"
+
+    # With the perm the cache key differs (_s1) -> not served the _s0 entry.
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    r1 = user_client.get("/api/config/fields")
+    assert r1.status_code == 200
+    assert len(fake_cache.store) == 2, f"expected a second cached entry, got {fake_cache.store!r}"
+    key_s1 = next(k for k in fake_cache.store if k != key_s0)
+    assert key_s1.endswith("_s1")
+    assert key_s1 != key_s0
+    cached_s1 = fake_cache.store[key_s1]
+    assert cached_s1 is not None, f"expected a cache entry under {key_s1!r}"
+
+    # Both perm states landed in genuinely distinct, still-present cache
+    # entries: the permissioned request never reused or clobbered the
+    # permissionless slot.
+    assert fake_cache.store[key_s0] == cached_s0
+
+
 def test_api_docfield_values_gated(noperm_client):
     resp = noperm_client.get("/api/docfield_values")
     assert resp.status_code == 403
@@ -145,6 +213,166 @@ def test_api_workitems_docfield_mixed_processes_tolerated(user_client, workitems
     assert resp.status_code in (200, 500)
 
 
+class _SqlLogCursor:
+    """Minimal DB-API cursor stub: records executed SQL text and always
+    returns no rows. Lets the doc-field pre-fetch blocks in
+    _get_workitems_data run to completion without touching a real (in this
+    plan's dev environment, unreachable) SQL Server, so the test can assert
+    on *whether a query was even attempted* for a given docfield."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def execute(self, sql, params=None):
+        self._log.append(sql)
+        return self
+
+    def fetchall(self):
+        return []
+
+    def fetchone(self):
+        return None
+
+    def close(self):
+        pass
+
+
+class _SqlLogConn:
+    def __init__(self, log):
+        self._log = log
+
+    def cursor(self):
+        return _SqlLogCursor(self._log)
+
+    def close(self):
+        pass
+
+
+class _SqlLogEngine:
+    """Stand-in for engine_nexora_db / engine_statistics_db: only
+    .raw_connection() is touched by _get_workitems_data's doc-field
+    pre-fetch blocks."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def raw_connection(self):
+        return _SqlLogConn(self._log)
+
+
+def test_get_workitems_data_skips_sensitive_docfield_search(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Regression for the two doc-field search-filtering blocks in
+    _get_workitems_data (default/StatisticsDB path + MS02/Postgres path, both
+    gated in commit ae83bcb via `if docfield in blocked_docfields: continue`).
+    A sensitive docfield/docvalue pair must contribute NO SQL constraint --
+    neither block may even build/execute its SearchConfig lookup query -- when
+    the caller lacks workitems.filter.documentfields.sensitive, and the
+    resulting WorkitemFilter must carry no docfield constraint at all."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    # allowed_processes (and therefore whether either pre-fetch block is even
+    # entered) is read directly off session['permissions'], not via
+    # has_permission(). _reload_user_permissions (before_request) reloads that
+    # list from the DB on every request, so it must be patched at the source
+    # (same seam as test_prepared_docs_link_visible_for_target_process) rather
+    # than set via session_transaction, which would just be clobbered.
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    # Force entry into the MS02 block too (engine_ms02_docfields_pg is None in
+    # CI/this dev env absent MS02_DOCFIELDS_DB_* env vars).
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("resolve_ms02_docfield_ids must not run for a blocked docfield")
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _must_not_run)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert not [q for q in sql_log if "col_validationuser" in q], sql_log
+    assert captured["filt"].docfield_ids is None
+    assert captured["filt"].ms02_docfield_ids is None
+
+
+def test_get_workitems_data_queries_nonsensitive_docfield_search(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Control for the sibling skip test above: with the SAME field but no
+    sensitivity block in play (get_sensitive_field_keys empty + full
+    has_permission), both doc-field pre-fetch blocks DO attempt their
+    SearchConfig lookup -- proving the sibling test's absence of SQL is
+    genuinely caused by the sensitive-field skip, not by the fakes
+    themselves suppressing all queries regardless of gating."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    default_queries = [
+        q for q in sql_log if "col_validationuser" in q and "ClientCode = 'default'" in q
+    ]
+    ms02_queries = [q for q in sql_log if "col_validationuser" in q and "ClientCode = 'ms02'" in q]
+    assert default_queries, sql_log
+    assert ms02_queries, sql_log
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403
@@ -156,6 +384,18 @@ def test_export_workitems_csv_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 500)
     if resp.status_code == 200:
         assert "text/csv" in resp.headers.get("Content-Type", "")
+
+
+def test_strip_export_fields_removes_sensitive_columns():
+    from nx_lib.views.workitems import _strip_export_fields
+
+    details_map = {
+        1: {"fields": {"Validation User": "alice", "Amount": "50"}, "history": [], "images": []},
+        2: {"fields": {"Amount": "9"}, "history": [], "images": []},
+    }
+    _strip_export_fields(details_map, {"validationuser"})
+    assert details_map[1]["fields"] == {"Amount": "50"}
+    assert details_map[2]["fields"] == {"Amount": "9"}
 
 
 def test_import_workitems_gated(noperm_client):
@@ -189,6 +429,23 @@ def test_api_get_media_info_authed_unknown_id(user_client):
     would attempt OctoDB lookup and 500/404."""
     resp = user_client.get("/api/get_media_info/999999")
     assert resp.status_code in (200, 401, 403, 404, 500)
+
+
+def test_strip_sensitive_from_detail_removes_fields_and_sources():
+    from nx_lib.views.workitems import strip_sensitive_from_detail
+
+    data = {
+        "fields": {"Validation User": "alice", "Amount": "50"},
+        "field_sources": [
+            {"key": "Validation User", "value": "alice", "locations": []},
+            {"key": "Amount", "value": "50", "locations": []},
+        ],
+        "table_sources": [],
+    }
+    out = strip_sensitive_from_detail(data, {"validationuser"})
+    assert out["fields"] == {"Amount": "50"}
+    assert [s["key"] for s in out["field_sources"]] == ["Amount"]
+    assert data["fields"] == {"Validation User": "alice", "Amount": "50"}  # untouched
 
 
 def test_api_get_media_raw_gated(noperm_client):
@@ -281,6 +538,38 @@ def test_api_docfield_values_ms02_degrades_without_engine(user_client, workitems
     assert resp.status_code in (200, 401, 500)
     if resp.status_code == 200:
         assert isinstance(resp.get_json(), list)
+
+
+def test_api_docfield_values_blocks_sensitive_without_perm(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+
+    # Pretend col_validationuser is a real searchable column, and that it is sensitive.
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    # Everything allowed EXCEPT the sensitive perm.
+    monkeypatch.setattr(
+        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+    resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_api_docfield_values_allows_sensitive_with_perm(
+    user_client, workitems_all_perms, monkeypatch
+):
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)  # incl. the sensitive perm
+    # With the perm the sensitivity gate is skipped; the route then hits the
+    # (absent-in-CI) SearchConfig and degrades to 500/[] -- either proves the gate
+    # did NOT short-circuit. Accept both to stay DB-independent.
+    resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
+    assert resp.status_code in (200, 500)
 
 
 def test_remove_tag_from_workitem_authed_unknown(user_client):

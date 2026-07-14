@@ -36,6 +36,15 @@ def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
 
 
+def _cacheable_response(rv):
+    """response_filter for @cache.cached on the four legacy KPI endpoints:
+    never pin an error response — a transient 500 would otherwise be served
+    for the full TTL per user+filter, stretching outages and confusing
+    diagnosis."""
+    status = rv[1] if isinstance(rv, tuple) and len(rv) == 2 else getattr(rv, "status_code", 200)
+    return status < 400
+
+
 def _split_stat_configs(configs):
     """Partition Statconfig rows by serving client. Returns (default_rows, ms02_rows).
     Rows with a blank/missing ClientCode count as 'default' (back-compat with
@@ -90,6 +99,25 @@ def _ms02_stat_rows(sql):
             mconn.close()
     except Exception as e:
         current_app.logger.error(f"ms02 dashboard stats query failed: {e}")
+        return []
+
+
+def _default_stat_rows(sql):
+    """Run a read-only query on the default StatisticsDB engine; return rows,
+    or [] if the server is unreachable or the query errors (e.g. a stale
+    Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
+    the T-SQL leg: a default-leg failure must never blank the MS02 numbers —
+    log and yield no rows so each leg degrades independently."""
+    try:
+        conn = engine_statistics_db.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+        finally:
+            conn.close()
+    except Exception as e:
+        current_app.logger.error(f"default dashboard stats query failed: {e}")
         return []
 
 
@@ -316,7 +344,7 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
-@cache.cached(timeout=300, key_prefix=make_cache_key)
+@cache.cached(timeout=300, key_prefix=make_cache_key, response_filter=_cacheable_response)
 def dashboard_processed_over_time():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -352,6 +380,7 @@ def dashboard_processed_over_time():
         configs = cursor.fetchall()
         cursor.close()
         conn.close()
+        conn = None
 
         if not configs:
             return jsonify({"labels": [], "data": []})
@@ -378,14 +407,13 @@ def dashboard_processed_over_time():
                 GROUP BY d
                 ORDER BY d
             """
-            conn = engine_statistics_db.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute(full_query)
-            for row in cursor.fetchall():
-                counts[row.d] = counts.get(row.d, 0) + row.total_count
-            cursor.close()
-            conn.close()
-            conn = None
+            for row in _default_stat_rows(full_query):
+                # The legacy `DRIVER={SQL Server}` pyodbc driver returns SQL Server
+                # DATE columns as `str`, not `datetime.date` (confirmed on PROD);
+                # normalize here so this leg's keys match the MS02/zero-fill legs'
+                # native `date` keys before they share the `counts` dict.
+                d = row.d if isinstance(row.d, date) else date.fromisoformat(str(row.d)[:10])
+                counts[d] = counts.get(d, 0) + row.total_count
 
         ms02_src = _ms02_source(ms02_rows)
         if ms02_src:
@@ -424,6 +452,7 @@ def dashboard_processed_over_time():
 @cache.cached(
     timeout=60,
     key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
     if "username" not in session:
@@ -452,9 +481,7 @@ def dashboard_kpi_stats():
     current_backlog = 0
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
 
     try:
         conn_nex = engine_nexora_db.raw_connection()
@@ -489,13 +516,10 @@ def dashboard_kpi_stats():
                     SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
                     FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 """
-                conn_stat = engine_statistics_db.raw_connection()
-                cursor_stat = conn_stat.cursor()
-                cursor_stat.execute(full_stat_query)
-                row = cursor_stat.fetchone()
-                if row:
-                    processed_today += row[0] or 0
-                    imported_today += row[1] or 0
+                srows = _default_stat_rows(full_stat_query)
+                if srows:
+                    processed_today += srows[0][0] or 0
+                    imported_today += srows[0][1] or 0
 
         ms02_src = _ms02_source(ms02_rows)
         if ms02_src:
@@ -529,17 +553,14 @@ def dashboard_kpi_stats():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 @cache.cached(
     timeout=120,
     key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
     if "username" not in session:
@@ -561,9 +582,7 @@ def dashboard_hourly_stats():
         return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
     try:
         conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
@@ -598,10 +617,7 @@ def dashboard_hourly_stats():
                 GROUP BY h
                 ORDER BY h
             """
-            conn_stat = engine_statistics_db.raw_connection()
-            cursor_stat = conn_stat.cursor()
-            cursor_stat.execute(full_query)
-            for row in cursor_stat.fetchall():
+            for row in _default_stat_rows(full_query):
                 hourly[row.h] = hourly.get(row.h, 0) + row.total
 
         ms02_src = _ms02_source(ms02_rows)
@@ -628,17 +644,14 @@ def dashboard_hourly_stats():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 @cache.cached(
     timeout=300,
     key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
     if "username" not in session:
@@ -660,9 +673,7 @@ def dashboard_avg_processing_time():
         return jsonify({"avg_minutes": None, "avg_display": "—"})
 
     conn_nex = None
-    conn_stat = None
     cursor_nex = None
-    cursor_stat = None
     try:
         conn_nex = engine_nexora_db.raw_connection()
         cursor_nex = conn_nex.cursor()
@@ -697,12 +708,9 @@ def dashboard_avg_processing_time():
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
                 WHERE avg_sec IS NOT NULL
             """
-            conn_stat = engine_statistics_db.raw_connection()
-            cursor_stat = conn_stat.cursor()
-            cursor_stat.execute(full_query)
-            row = cursor_stat.fetchone()
-            if row and row[0] is not None:
-                avg_values.append(row[0])
+            srows = _default_stat_rows(full_query)
+            if srows and srows[0][0] is not None:
+                avg_values.append(srows[0][0])
 
         # MS02 contributes one client-level average (export - import seconds),
         # weighted equally with the default bucket — same mean-of-means the
@@ -740,12 +748,8 @@ def dashboard_avg_processing_time():
     finally:
         if cursor_nex:
             cursor_nex.close()
-        if cursor_stat:
-            cursor_stat.close()
         if conn_nex:
             conn_nex.close()
-        if conn_stat:
-            conn_stat.close()
 
 
 # ----------------------------- dashboard page + filter ----------------------------- #
