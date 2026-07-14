@@ -65,7 +65,6 @@
     showQuery: {{ _("Show query")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
-    sqlParamsLabel: {{ _("Parameters")|tojson }},
     copied: {{ _("Copied")|tojson }}
   };
 
@@ -775,6 +774,7 @@
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
+    state.current.sqlDisplay = res.data.sqlDisplay || null;
     state.current.params = res.data.params || [];
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = !state.current.sql;
@@ -848,18 +848,15 @@
     view.hidden = !view.hidden;
     this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
     if (!view.hidden) {
-      ReportingSqlFormat.render(el('rsSqlText'), cur.sqlPretty || cur.sql);
-      el('rsSqlParams').textContent = (cur.params || []).length
-        ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
-            return (i + 1) + " = '" + String(p) + "'";
-          }).join(', ')
-        : '';
+      // sqlDisplay = pretty SQL with the parameter literals inlined
+      // server-side (display + copy only; execution stays parameterized).
+      ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
     }
   });
   el('rsSqlCopy').addEventListener('click', function () {
     var cur = state.current;
     if (!cur || !cur.sql) return;
-    var text = cur.sql + '\n-- params: ' + JSON.stringify(cur.params || []);
+    var text = ReportingSqlFormat.copyText(cur);
     var btn = this;
     navigator.clipboard.writeText(text).then(function () {
       var prev = btn.textContent;

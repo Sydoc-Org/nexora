@@ -393,7 +393,6 @@
   var I18N_RUNNING = {{ _("Running your report…")|tojson }};
   var I18N_SHOW_QUERY = {{ _("Show query")|tojson }};
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
-  var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
   var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
 
@@ -478,6 +477,7 @@
     var sqlView = document.getElementById('rpSqlView');
     state._lastSql = data.sql || null;
     state._lastSqlPretty = data.sqlPretty || null;
+    state._lastSqlDisplay = data.sqlDisplay || null;
     state._lastParams = data.params || [];
     if (sqlBtn) {
       sqlBtn.hidden = !state._lastSql;
@@ -1499,13 +1499,13 @@
       view.hidden = !view.hidden;
       this.textContent = view.hidden ? I18N_SHOW_QUERY : I18N_HIDE_QUERY;
       if (!view.hidden) {
+        // sqlDisplay = pretty SQL with the parameter literals inlined
+        // server-side (display + copy only; execution stays parameterized).
         ReportingSqlFormat.render(document.getElementById('rpSqlText'),
-          state._lastSqlPretty || state._lastSql);
-        document.getElementById('rpSqlParams').textContent = (state._lastParams || []).length
-          ? I18N_SQL_PARAMS + ': ' + state._lastParams.map(function (p, i) {
-              return (i + 1) + " = '" + String(p) + "'";
-            }).join(', ')
-          : '';
+          ReportingSqlFormat.displayText({
+            sql: state._lastSql, sqlPretty: state._lastSqlPretty,
+            sqlDisplay: state._lastSqlDisplay, params: state._lastParams
+          }));
       }
     });
   }
@@ -1513,7 +1513,10 @@
   if (rpSqlViewCopyBtn) {
     rpSqlViewCopyBtn.addEventListener('click', function () {
       if (!state._lastSql) return;
-      var text = state._lastSql + '\n-- params: ' + JSON.stringify(state._lastParams || []);
+      var text = ReportingSqlFormat.copyText({
+        sql: state._lastSql, sqlDisplay: state._lastSqlDisplay,
+        params: state._lastParams
+      });
       var btn = this;
       navigator.clipboard.writeText(text).then(function () {
         var prev = btn.textContent;

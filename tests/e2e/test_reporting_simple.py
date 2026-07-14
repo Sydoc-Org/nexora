@@ -1829,3 +1829,78 @@ def test_wizard_caps_category_chips_at_16(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Cap count stub").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
+
+
+def test_sqlformat_display_and_copy_policy(nexora_server, page):
+    """displayText prefers the inlined sqlDisplay; copyText returns runnable
+    SQL when inlined and falls back to raw + params comment otherwise. One
+    window seam serves BOTH tabs' Show-query panels."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    res = {
+        "sql": "SELECT ?",
+        "sqlPretty": "SELECT\n  ?",
+        "sqlDisplay": "SELECT\n  'x'",
+        "params": ["x"],
+    }
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", res) == "SELECT\n  'x'"
+    assert page.evaluate("(r) => ReportingSqlFormat.copyText(r)", res) == "SELECT\n  'x'"
+    fb = {"sql": "SELECT ?", "sqlPretty": "SELECT\n  ?", "sqlDisplay": None, "params": ["x"]}
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", fb) == "SELECT\n  ?"
+    assert (
+        page.evaluate("(r) => ReportingSqlFormat.copyText(r)", fb) == 'SELECT ?\n-- params: ["x"]'
+    )
+
+
+def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, page):
+    """D-params: the panel shows literals instead of ?, the params footer is
+    gone from the DOM, and Copy writes the runnable inlined statement."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    raw = (
+        "SELECT TOP (100) [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= ? AND [d] < ? GROUP BY [d]"
+    )
+    inlined = (
+        "SELECT TOP 100 [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= '2026-07-01' AND [d] < '2026-08-01' GROUP BY [d]"
+    )
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": raw,
+                    "sqlPretty": raw,
+                    "sqlDisplay": inlined,
+                    "params": ["2026-07-01", "2026-08-01"],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    show = page.get_by_test_id("rs-show-sql")
+    expect(show).to_be_visible()
+    # Capture clipboard writes without clipboard-read permissions.
+    page.evaluate(
+        "() => { window.__copied = null;"
+        " navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; }"
+    )
+    show.click()
+    expect(page.locator("#rsSqlText")).to_contain_text("'2026-07-01'")
+    assert page.locator("#rsSqlText span.sql-param").count() == 0  # no bare ? shown
+    assert page.locator("#rsSqlParams").count() == 0  # footer element gone
+    page.get_by_test_id("rs-sql-copy").click()
+    assert page.evaluate("() => window.__copied") == inlined
