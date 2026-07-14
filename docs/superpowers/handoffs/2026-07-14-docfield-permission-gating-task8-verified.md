@@ -1,6 +1,7 @@
-> **Addendum (same day, later):** Owner action 2 is also done now — see the bottom of this
-> file. Both owner-only data actions from the plan are complete; only permission grants +
-> PROD rollout + push remain.
+> **Superseded same day:** session closed out — see
+> `2026-07-14-docfield-permission-gating-session-close.md`. Addendum below (Owner action 2 +
+> the migration 0036 SQL_SYNC_SKIP bug/fix) is still accurate and worth reading, but that
+> file is the current resume point.
 
 # Handoff — Permission-gated doc-fields (Validation User) — ALL 8 TASKS DONE, live-verified
 
