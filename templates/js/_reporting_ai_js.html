@@ -58,6 +58,8 @@
   var aiLoadingEl = document.getElementById("rpAiLoading");
   var aiLoadingTextEl = document.getElementById("rpAiLoadingText");
   var aiLoadingTimer = null;
+  var I18N_AI_REPORT = {{ _("AI report")|tojson }};
+  var I18N_AI_COPIED = {{ _("Copied")|tojson }};
   var AI_LINES = [
     {{ _("Asking the AI…")|tojson }},
     {{ _("Drafting your report…")|tojson }},
@@ -337,12 +339,17 @@
   });
 
   if (copyBtn) copyBtn.addEventListener("click", function () {
-    if (navigator.clipboard && lastSql) navigator.clipboard.writeText(lastSql);
+    if (!navigator.clipboard || !lastSql) return;
+    navigator.clipboard.writeText(lastSql).then(function () {
+      var prev = copyBtn.textContent;
+      copyBtn.textContent = I18N_AI_COPIED;
+      setTimeout(function () { copyBtn.textContent = prev; }, 1200);
+    }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
   if (openBuilderBtn) openBuilderBtn.addEventListener("click", function () {
     if (!lastDef || !window.Reporting || !window.Reporting.applyDefinition) return;
-    window.Reporting.applyDefinition(lastDef, lastDef.title || "AI report", null);
+    window.Reporting.applyDefinition(lastDef, lastDef.title || I18N_AI_REPORT, null);
     panel.hidden = true;
     modeAi.classList.remove("active");
   });
@@ -356,7 +363,7 @@
 
   if (agentOpenBuilderBtn) agentOpenBuilderBtn.addEventListener("click", function () {
     if (!lastAgentDef || !window.Reporting || !window.Reporting.applyDefinition) return;
-    window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || "AI report", null);
+    window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || I18N_AI_REPORT, null);
     panel.hidden = true;
     modeAi.classList.remove("active");
   });

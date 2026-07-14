@@ -10,6 +10,7 @@ window.ReportingDrill = (function () {
     distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — export to get all.")|tojson }},
     nullLabel: {{ _("(empty)")|tojson }},
+    exportName: {{ _("Detail rows")|tojson }},
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
     close: {{ _("Close")|tojson }},
     couldNotExport: {{ _("Could not export this report.")|tojson }}
@@ -75,7 +76,7 @@ window.ReportingDrill = (function () {
     var dd = {
       schemaVersion: 1,
       source: def.source,
-      title: def.title || 'drill',
+      title: def.title || I18N.exportName,
       visualization: 'table',
       columns: cols.map(function (fd) { return { field: fd }; }),
       filters: filters,
@@ -182,7 +183,7 @@ window.ReportingDrill = (function () {
     var blob = await res.blob();
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = (current.definition.title || 'drill') + '.' + format;
+    a.download = (current.definition.title || I18N.exportName) + '.' + format;
     a.click();
     URL.revokeObjectURL(a.href);
   }

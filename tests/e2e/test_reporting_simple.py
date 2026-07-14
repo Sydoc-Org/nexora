@@ -354,8 +354,10 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     page.get_by_test_id("rs-ai-ask").click()
     chips = page.get_by_test_id("rs-chips")
     expect(chips).to_be_visible()
-    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}]
-    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname eq acme.inv")
+    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}].
+    # eq renders as '='; the field key stays raw here because the TEST env's
+    # docprocessing catalog is empty (no Statistics DB), so no label resolves.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname = acme.inv")
 
     # Edit the filter value in place; the run payload must carry the new value.
     chips.get_by_test_id("rs-chip").first.click()
@@ -369,6 +371,45 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     # Remove the filter chip entirely -> "no filters" placeholder renders.
     chips.get_by_test_id("rs-chip-remove").first.click()
     expect(chips).to_contain_text("no filters")
+
+
+def test_chip_labels_resolve_field_and_op(nexora_server, page):
+    """Chips show the catalog field label and a symbol op, not raw codes."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "docprocessing",
+                        "label": "Document processing",
+                        "kind": "curated",
+                        "processes": ["acme.inv"],
+                        "fields": [
+                            {
+                                "field": "processname",
+                                "label": "Process",
+                                "type": "string",
+                                "grainable": False,
+                                "filterable": True,
+                            }
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    _stub_ai_build(page)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+    chips = page.get_by_test_id("rs-chips")
+    # First paint may show the raw key; the catalog-resolve re-render fixes it.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("Process = acme.inv")
 
 
 def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):

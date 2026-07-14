@@ -43,7 +43,7 @@
     ));
     if (!res.ok) {
       const body = await res.json().catch(function () { return {}; });
-      throw new Error(body.error || res.statusText);
+      throw new Error(body.error || (I18N_REQUEST_FAILED + ' (HTTP ' + res.status + ')'));
     }
     return res;
   }
@@ -251,7 +251,7 @@
       schemaVersion: 1,
       source: state.source,
       visualization: 'table',
-      title: document.getElementById('rpTitle').value || 'Untitled report',
+      title: document.getElementById('rpTitle').value || I18N_UNTITLED,
       subtitle: document.getElementById('rpSubtitle').value || null,
       columns: state.columns.map(function (c) {
         var col = { field: c.field, header: c.header || c.label, agg: null };
@@ -278,7 +278,7 @@
 
   function reportTitle() {
     return document.getElementById('rpTitle').value
-      || (state.mode === 'sql' ? 'SQL report' : 'Report');
+      || (state.mode === 'sql' ? I18N_SQL_REPORT : I18N_REPORT);
   }
 
   function exportFormat() {
@@ -391,6 +391,23 @@
   }
 
   var I18N_RUNNING = {{ _("Running your report…")|tojson }};
+  var I18N_REQUEST_FAILED = {{ _("The request failed")|tojson }};
+  var I18N_REPORT = {{ _("Report")|tojson }};
+  var I18N_UNTITLED = {{ _("Untitled report")|tojson }};
+  var I18N_SQL_REPORT = {{ _("SQL report")|tojson }};
+  var I18N_AI_REPORT = {{ _("AI report")|tojson }};
+  // Filter-op labels — mirrored in _reporting_simple_js.html's OP_LABELS with
+  // the same msgids, so the two maps can never translate apart.
+  var OP_LABELS = {
+    eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
+    between: {{ _("between")|tojson }},
+    'in': {{ _("is one of")|tojson }},
+    not_in: {{ _("is not one of")|tojson }},
+    contains: {{ _("contains")|tojson }},
+    starts_with: {{ _("starts with")|tojson }},
+    is_null: {{ _("is empty")|tojson }},
+    is_not_null: {{ _("is not empty")|tojson }}
+  };
   var I18N_SHOW_QUERY = {{ _("Show query")|tojson }};
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
@@ -669,7 +686,7 @@
     var b = sqlBody();
     return {
       kind: 'sql', target: b.target, sql: b.sql,
-      title: document.getElementById('rpTitle').value || 'SQL report',
+      title: document.getElementById('rpTitle').value || I18N_SQL_REPORT,
     };
   }
 
@@ -697,7 +714,7 @@
       });
       return;
     }
-    var newName = document.getElementById('rpTitle').value || state.currentReportName || 'Report';
+    var newName = document.getElementById('rpTitle').value || state.currentReportName || I18N_REPORT;
     api('/api/reporting/reports/' + state.currentReportId, {
       method: 'PUT',
       body: JSON.stringify({ name: newName, definition: def }),
@@ -904,8 +921,8 @@
       ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte', 'lt', 'lte',
         'is_null', 'is_not_null'].forEach(function (o) {
         var opt = document.createElement('option');
-        opt.value = o;
-        opt.textContent = o;
+        opt.value = o;                        // payload contract: raw op code
+        opt.textContent = OP_LABELS[o] || o;  // label localizes, value doesn't
         op.appendChild(opt);
       });
       op.value = tokenActive ? 'eq' : f.op;
@@ -1180,7 +1197,7 @@
 
   // Open an AI definition in the builder, run it, then show it as the hinted chart.
   function applyDefinitionAndChart(def, hint) {
-    applyDefinition(def, def.title || 'AI report', null);
+    applyDefinition(def, def.title || I18N_AI_REPORT, null);
     // Clear any prior result so a failed run (run() swallows errors) can't leave
     // stale data that the guard below would chart against.
     state.lastResult = null;
