@@ -121,6 +121,93 @@ def _default_stat_rows(sql):
         return []
 
 
+def compute_today_stats(target_processes):
+    """Session-free 'today' KPI computation shared by the dashboard KPI card
+    (dashboard_kpi_stats) and the external API v1 (nx_lib/views/api_external.py).
+
+    target_processes: NON-EMPTY list of full Statconfig ProcessName values
+    (e.g. 'sydoc.05_PDBS'); both callers guard the empty case. Returns
+    (imported_today, processed_today): imported = import-date-column is today,
+    processed = export-date-column is today. Long-standing dashboard semantics
+    inherited verbatim: the default T-SQL leg counts export-today only among
+    rows whose import date is also today (its WHERE clause), while the MS02
+    leg counts export-today unconditionally. 'Today' is server-local --
+    GETDATE() on the T-SQL leg, CURRENT_DATE on the MS02 Postgres leg.
+
+    The Statconfig read (NexoraDB) RAISES on failure -- callers own the error
+    surface (the dashboard's except->500 stays uncached via
+    _cacheable_response; the API returns a JSON 500). The two stat-row legs
+    keep their swallow-and-degrade contract (_default_stat_rows /
+    _ms02_stat_rows return [] on failure), so a dead Statistics DB still
+    yields the healthy leg's numbers. Deliberately NOT cached here -- the
+    dashboard view's @cache.cached (session-keyed) stays on the view.
+    Deliberately lives in THIS module: it must resolve engine_nexora_db /
+    engine_statistics_db / _ms02_stat_rows as nx_lib.views.dashboard
+    attributes, which the existing tests monkeypatch.
+    """
+    processed_today = 0
+    imported_today = 0
+
+    conn_nex = None
+    cursor_nex = None
+    try:
+        conn_nex = engine_nexora_db.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cursor_nex.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        configs = cursor_nex.fetchall()
+    finally:
+        if cursor_nex:
+            cursor_nex.close()
+        if conn_nex:
+            conn_nex.close()
+
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    if default_configs:
+        sub_queries = []
+        for row in default_configs:
+            col_export = row.ExportColumn
+            col_import = row.ImportColumn
+            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            sub_queries.append(f"""
+                SELECT
+                    SUM(CASE WHEN CAST({col_export} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
+                    SUM(CASE WHEN CAST({col_import} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
+                FROM [{DB_STATISTICS}].{row.TableName}
+                WHERE CAST({col_import} as date) = cast(GETDATE() as date)
+                {condition}
+            """)
+
+        if sub_queries:
+            full_stat_query = f"""
+                SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
+                FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            """
+            srows = _default_stat_rows(full_stat_query)
+            if srows:
+                processed_today += srows[0][0] or 0
+                imported_today += srows[0][1] or 0
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        mrows = _ms02_stat_rows(
+            f"SELECT "
+            f"COUNT(*) FILTER (WHERE {exp}::date = CURRENT_DATE), "
+            f"COUNT(*) FILTER (WHERE {imp}::date = CURRENT_DATE) "
+            f"FROM {tbl}"
+        )
+        if mrows:
+            processed_today += mrows[0][0] or 0
+            imported_today += mrows[0][1] or 0
+
+    return imported_today, processed_today
+
+
 DASHBOARD_LAYOUT_SCHEMA_VERSION = 1
 DASHBOARD_DATE_PRESETS = {"today", "yesterday", "last_7d", "last_30d", "this_month", "custom"}
 DASHBOARD_WIDGET_TYPES = {"kpi", "timeseries", "categorical"}
@@ -476,64 +563,10 @@ def dashboard_kpi_stats():
             {"processed_today": 0, "processed_week": 0, "current_backlog": 0, "imported_today": 0}
         )
 
-    processed_today = 0
-    imported_today = 0
-    current_backlog = 0
-
-    conn_nex = None
-    cursor_nex = None
-
     try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
+        imported_today, processed_today = compute_today_stats(target_processes)
 
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
-
-        default_configs, ms02_rows = _split_stat_configs(configs)
-
-        if default_configs:
-            sub_queries = []
-            for row in default_configs:
-                col_export = row.ExportColumn
-                col_import = row.ImportColumn
-                condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-                sub_queries.append(f"""
-                    SELECT
-                        SUM(CASE WHEN CAST({col_export} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
-                        SUM(CASE WHEN CAST({col_import} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
-                    FROM [{DB_STATISTICS}].{row.TableName}
-                    WHERE CAST({col_import} as date) = cast(GETDATE() as date)
-                    {condition}
-                """)
-
-            if sub_queries:
-                full_stat_query = f"""
-                    SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
-                    FROM ({' UNION ALL '.join(sub_queries)}) as combined
-                """
-                srows = _default_stat_rows(full_stat_query)
-                if srows:
-                    processed_today += srows[0][0] or 0
-                    imported_today += srows[0][1] or 0
-
-        ms02_src = _ms02_source(ms02_rows)
-        if ms02_src:
-            tbl, exp, imp = ms02_src
-            mrows = _ms02_stat_rows(
-                f"SELECT "
-                f"COUNT(*) FILTER (WHERE {exp}::date = CURRENT_DATE), "
-                f"COUNT(*) FILTER (WHERE {imp}::date = CURRENT_DATE) "
-                f"FROM {tbl}"
-            )
-            if mrows:
-                processed_today += mrows[0][0] or 0
-                imported_today += mrows[0][1] or 0
-
+        current_backlog = 0
         if target_processes:
             proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
             cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
@@ -550,11 +583,6 @@ def dashboard_kpi_stats():
     except Exception as e:
         current_app.logger.error(f"Failed to fetch kpi_stats report: {e}")
         return jsonify({"error": str(e)}), 500
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
 
 
 @cache.cached(
