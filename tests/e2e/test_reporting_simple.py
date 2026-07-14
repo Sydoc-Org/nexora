@@ -1688,3 +1688,144 @@ def test_advanced_sql_sandbox_not_drillable(nexora_server, page):
     assert "reporting-drill-clickable" not in (table.get_attribute("class") or "")
     table.locator("tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
+
+
+# ---------------------------------------------------------------------------
+# Per-process (per-client) breakdown chip -- docprocessing wizard curation.
+# TEST env has no Statistics DB, so the docprocessing catalog is stubbed
+# (same pattern as _stub_catalogs; the id MUST be 'docprocessing' so the
+# wizard's DOCPROC_DIM_ORDER/DOCPROC_DIM_HIDE curation branch fires).
+# ---------------------------------------------------------------------------
+
+DOCPROC_WIZ_FIELDS = [
+    {
+        "field": "import_date",
+        "label": "Import date",
+        "type": "date",
+        "grainable": True,
+        "filterable": True,
+    },
+] + [
+    {"field": f, "label": lbl, "type": "string", "grainable": False, "filterable": True}
+    for f, lbl in [
+        ("processname", "Process"),
+        ("docsource", "Document Source"),
+        ("doctype", "Document Type"),
+        ("forwarding", "Forwarding"),
+        ("ownernr", "Owner no."),
+        ("propertynr", "Property No."),
+        ("registered", "Registered"),
+        ("tenancynr", "Tenancy no."),
+        ("archiveboxno", "Archive-box No."),
+        ("branch", "Branch"),
+        ("client", "Client"),
+        ("confidentiality", "Confidentiality"),
+        ("crdname", "Creditor Name"),
+        ("bankpk", "Bank PK"),  # DOCPROC_DIM_HIDE noise -- must stay hidden
+        ("workitem_id", "Workitem ID"),  # DOCPROC_DIM_HIDE noise -- must stay hidden
+    ]
+]
+DOCPROC_WIZ_SOURCES = [
+    {
+        "id": "docprocessing",
+        "label": "Document processing",
+        "kind": "curated",
+        "processes": ["acme.inv", "acme.hr"],
+        "fields": DOCPROC_WIZ_FIELDS,
+    }
+]
+DOCPROC_WIZ_METRICS = {
+    "docprocessing": [{"code": "doc_count", "label": "Docproc count stub", "aggregation": "count"}]
+}
+
+# 20 string fields: pins the category-chip cap (16) for generic sources.
+CAP_WIZ_SOURCES = [
+    {
+        "id": "cap_src",
+        "label": "Cap source",
+        "kind": "curated",
+        "processes": [],
+        "fields": [
+            {
+                "field": "f%02d" % i,
+                "label": "Field %02d" % i,
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            }
+            for i in range(20)
+        ],
+    }
+]
+CAP_WIZ_METRICS = {
+    "cap_src": [{"code": "cap_count", "label": "Cap count stub", "aggregation": "count"}]
+}
+
+
+def _stub_wiz_catalogs(page, sources, metrics):
+    # MUST be registered before page.goto (catalogs are fetched at page load).
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(sources)),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(metrics)),
+    )
+
+
+def test_wizard_docprocessing_offers_process_breakdown(nexora_server, page):
+    """The per-process chip is offered FIRST and noise curation still applies."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    proc = bklist.locator('[data-bd-field="processname"]')
+    expect(proc).to_be_visible()
+    expect(proc).to_have_text("Process")  # label straight from the catalog entry
+    # First CATEGORY chip (date chips render before category chips).
+    first_cat = bklist.locator('[data-bd-kind="category"]').first
+    assert first_cat.get_attribute("data-bd-field") == "processname"
+    # All 13 candidates render (the 12 previously-visible business chips plus
+    # Process): nothing is silently evicted by the cap, noise stays hidden.
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(13)
+    expect(bklist.locator('[data-bd-field="crdname"]')).to_be_visible()
+    expect(bklist.locator('[data-bd-field="bankpk"]')).to_have_count(0)
+    expect(bklist.locator('[data-bd-field="workitem_id"]')).to_have_count(0)
+
+
+def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server, page):
+    """Selecting the Process chip emits columns=[{field:'processname',...}] in the run."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="processname"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    run = page.get_by_test_id("rs-wizard-run")  # renderTimeStep() unhides it; All time default
+    expect(run).to_be_visible()
+    run.click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    # runCurrent() also fires the zero-column grand-total clone; assert on the
+    # payload that carries columns.
+    with_cols = [p for p in captured if p.get("columns")]
+    assert with_cols, f"no run payload carried columns: {captured}"
+    assert with_cols[0]["columns"][0]["field"] == "processname"
+
+
+def test_wizard_caps_category_chips_at_16(nexora_server, page):
+    """The category-chip cap is 16 for EVERY source (raised from 12 with
+    headroom, so the saturated docprocessing list absorbs the Process chip
+    and the next doc-field addition cannot silently vanish again)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, CAP_WIZ_SOURCES, CAP_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Cap count stub").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
