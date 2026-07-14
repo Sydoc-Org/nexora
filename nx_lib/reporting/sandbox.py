@@ -59,9 +59,10 @@ _QUERY_ROOTS = (exp.Select, exp.Union, exp.Intersect, exp.Except, exp.Subquery)
 class SqlSandboxError(ValueError):
     """Raised when SQL fails sandbox validation. `.rule` names the failed layer."""
 
-    def __init__(self, rule, message):
+    def __init__(self, rule, message, token=None):
         super().__init__(message)
         self.rule = rule
+        self.token = token  # dynamic part (keyword/construct) for the i18n boundary
 
 
 def _strip_comments(sql):
@@ -80,7 +81,8 @@ def validate_select(sql):
     scan = _strip_comments(sql)
     m = _BLOCKED_RE.search(scan)
     if m:
-        raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {m.group(0).strip()}")
+        kw = m.group(0).strip()
+        raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {kw}", token=kw)
 
     try:
         statements = [s for s in sqlglot.parse(sql, dialect="tsql") if s is not None]
@@ -95,7 +97,8 @@ def validate_select(sql):
 
     forbidden = next(root.find_all(*_FORBIDDEN_NODES), None)
     if forbidden is not None:
-        raise SqlSandboxError("forbidden_node", f"disallowed construct: {type(forbidden).__name__}")
+        name = type(forbidden).__name__
+        raise SqlSandboxError("forbidden_node", f"disallowed construct: {name}", token=name)
     return sql
 
 

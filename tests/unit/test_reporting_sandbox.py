@@ -72,3 +72,13 @@ def test_wrap_with_cap_shape():
 
 def test_wrap_with_cap_coerces_int():
     assert "TOP (10)" in wrap_with_cap("SELECT 1", "10")
+
+
+def test_sandbox_error_token_carries_dynamic_part():
+    # The view boundary translates rule-keyed messages; the dynamic bit
+    # (keyword/construct name) must ride on the exception, not be regexed
+    # back out of the English message.
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select("SELECT 1; DROP TABLE x")
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "DROP"
