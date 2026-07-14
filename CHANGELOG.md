@@ -35,6 +35,12 @@ Work toward 2.5.64.
 
 ### Changed
 
+- AI-workflow slimming (token cost): the MS02 multi-source detail moved from
+  `CLAUDE.md` into `docs/design/ms02-multisource.md` (short summary + pointer
+  remains); the GitNexus guidance in `CLAUDE.md` is now advisory instead of
+  mandatory-per-edit; `/write-plan` plans single-session by default (the
+  7-agent workflow is behind a `--deep` flag); `/execute-plan` batches
+  spec/quality reviews per plan phase instead of two reviews per task.
 - CI/deploy pipeline speedups (`deploy.yml`, `.pre-commit-config.yaml`):
   docs-only pushes (`docs/**`, `**.md`, `.claude/**`) no longer trigger the
   pipeline at all (those paths are excluded from the prod mirror anyway); a

@@ -1,6 +1,6 @@
 ---
-description: Multi-agent planning run on Fable agents (explore → dual drafts → adversarial review → merge) — write the plan to docs/superpowers/plans/, commit (no push), then chain into /handoff-session-state
-argument-hint: "<feature description / plan request, e.g. 'reporting drill-through filters'>"
+description: Write a nexora implementation plan (single Fable session by default; --deep runs the multi-agent explore → dual drafts → adversarial review → merge workflow) — write to docs/superpowers/plans/, commit (no push), then chain into /handoff-session-state
+argument-hint: "<feature description, e.g. 'reporting drill-through filters'> [--deep]"
 ---
 
 Write a comprehensive nexora implementation plan for: `$ARGUMENTS`. Run **fully autonomously** — front-load any genuinely blocking questions *before* starting the workflow (use `AskUserQuestion`, one batch), then run to completion without mid-flow checkpoints. If `$ARGUMENTS` is empty, ask for the feature description and stop.
@@ -8,6 +8,7 @@ Write a comprehensive nexora implementation plan for: `$ARGUMENTS`. Run **fully 
 ## 1. Preflight
 
 - `git branch --show-current` — if on `main`, **stop**: the plan gets committed, and `main` is read-only under nexora git policy (even with explicit permission). Tell the user to switch to a feature branch first and do nothing else.
+- Check `$ARGUMENTS` for a `--deep` flag; strip it before deriving the slug. `--deep` selects the multi-agent workflow in step 2 (use it for big or risky features); without it, plan single-session.
 - Get today's date: `Get-Date -Format yyyy-MM-dd`. Derive `<slug>` (kebab-case, 3–6 words) from `$ARGUMENTS`. Target file: `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`. If that file already exists, pick a more specific slug.
 - Read the **two most recent plans** in `docs/superpowers/plans/` — they are the format exemplars.
 - Locate and **read** the `superpowers:writing-plans` skill's `SKILL.md` (Glob for it under the plugin/skills directories). Do **not** invoke it via the Skill tool — you need its content as input for the draft agents, not its interactive process.
@@ -70,7 +71,27 @@ doc (step 6) must include them so `/execute-plan` knows where to resume.
 
 **If neither condition is true**, proceed in the current directory — no worktree needed.
 
-## 2. Run the planning Workflow (Fable, multi-agent)
+## 2. Produce the plan content
+
+**Default (no `--deep`): plan in this session — no subagents, no Workflow.** Work the same three
+exploration lenses yourself, then draft and self-red-team:
+
+- *Code recon* — map every file/route/template/JS-partial/symbol the feature touches (GitNexus or
+  Grep/Read). Anchor points as **function names + quoted code snippets**, never line numbers.
+- *Precedent* — find the closest existing nexora feature(s) and the pattern to copy (route +
+  template + `templates/js/_*_js.html` partial + permission + tests).
+- *Chore sweep* — SQL migration yes/no, permission codes + `page_visibility()`, i18n (de/fr/it),
+  `CHANGELOG.md`, docs, deploy excludes, e2e constraints, conflicts with in-flight plans/handoffs
+  in `docs/superpowers/`.
+
+Write ONE draft plan, then red-team it yourself **against the live repo** (Grep/Read to verify —
+fabricated paths/symbols, wrong anchors, tasks bigger than 2–5 min, missing test-first steps,
+missing chores, scope creep vs YAGNI, untestable acceptance criteria). Fix what you find, then go
+to step 3.
+
+**With `--deep`** (big/risky features only): run the multi-agent Workflow below instead.
+
+### 2-deep. Run the planning Workflow (Fable, multi-agent)
 
 Use the **Workflow tool**: author the orchestration script now, then run it. Contract — non-negotiable:
 
@@ -127,7 +148,7 @@ If the Workflow tool is unavailable in this session, fall back to dispatching th
 
 ## 3. Write the plan file
 
-Write the merge agent's output to `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`, conforming to nexora plan conventions (compare against the exemplars from step 1):
+Write the final plan (your red-teamed draft in default mode; the merge agent's output in `--deep` mode) to `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`, conforming to nexora plan conventions (compare against the exemplars from step 1):
 
 - Title `# <Feature> — Implementation Plan`, then this exact header on the next line:
 
@@ -154,8 +175,8 @@ For **every** file path named in the final plan: confirm it exists (or is explic
   ```
   docs(plans): add <slug> implementation plan
 
-  Multi-agent planning run (explore, dual drafts, adversarial review, merge)
-  for: <one-line feature summary>. All file/symbol anchors verified against
+  Planning run (explore, draft, red-team; multi-agent when --deep) for:
+  <one-line feature summary>. All file/symbol anchors verified against
   the live repo; sequencing vs in-flight plans noted in the plan header.
 
   Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
