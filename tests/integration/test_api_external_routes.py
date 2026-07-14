@@ -174,3 +174,19 @@ def test_rate_limit_429_for_unauthenticated_requests(client):
     for _ in range(60):
         assert client.get(URL).status_code == 401
     assert client.get(URL).status_code == 429
+
+
+# --------------------------- JSON error handlers --------------------------- #
+
+
+def test_unknown_api_v1_path_returns_json_404(client):
+    resp = client.get("/api/v1/definitely/not/a/route")
+    assert resp.status_code == 404
+    assert resp.is_json
+    assert resp.get_json() == {"error": "Not found"}
+
+
+def test_non_api_404_still_renders_html(client):
+    resp = client.get("/definitely-not-a-page")
+    assert resp.status_code == 404
+    assert "text/html" in resp.content_type
