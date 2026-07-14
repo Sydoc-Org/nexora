@@ -17,6 +17,7 @@
       <button id="rsAiAsk" class="nx-btn nx-btn--secondary" data-testid="rs-ai-ask">
         <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Ask AI") }}</button>
     </div>
+    <p class="reporting-simple-hint" id="rsAiGone" hidden data-testid="rs-ai-gone">{{ _("The AI assistant is unavailable right now — you can still build reports with “New report”.") }}</p>
     {% endif %}
     <input id="rsSearch" class="reporting-input reporting-simple-search"
            placeholder="{{ _('Search reports…') }}" data-testid="rs-search">

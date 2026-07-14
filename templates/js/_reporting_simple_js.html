@@ -15,7 +15,9 @@
     daysAgo: {{ _("days ago")|tojson }},
     weekAgo: {{ _("week ago")|tojson }},
     weeksAgo: {{ _("weeks ago")|tojson }},
-    nothingHere: {{ _("Nothing here yet.")|tojson }},
+    emptyMine: {{ _("You haven't saved any reports yet — click “New report” to build your first one.")|tojson }},
+    emptyShared: {{ _("No reports have been shared with everyone yet.")|tojson }},
+    emptyDirect: {{ _("No reports have been shared with you yet.")|tojson }},
     couldNotLoad: {{ _("Could not load this report.")|tojson }},
     couldNotRun: {{ _("Could not run this report.")|tojson }},
     couldNotSave: {{ _("Could not save.")|tojson }},
@@ -136,6 +138,8 @@
     el('rsNewReport').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
     if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
+    var aiGone = el('rsAiGone');
+    if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
     if (view !== 'result') destroyChart();
@@ -166,9 +170,10 @@
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       groups[g].appendChild(card(r));
     });
+    var groupEmptyText = { mine: I18N.emptyMine, shared: I18N.emptyShared, direct: I18N.emptyDirect };
     Object.keys(groups).forEach(function (k) {
       if (!groups[k].children.length) {
-        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.nothingHere) + '</p>';
+        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(groupEmptyText[k]) + '</p>';
       }
     });
   }
@@ -1473,6 +1478,8 @@
     if (res.status === 503) {
       aiBar.hidden = true;
       aiBar.dataset.gone = '1';
+      var gone = el('rsAiGone');
+      if (gone) gone.hidden = false;
       setView('library');
       return;
     }

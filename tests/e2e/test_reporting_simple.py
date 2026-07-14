@@ -1945,3 +1945,41 @@ def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, pa
     assert page.locator("#rsSqlParams").count() == 0  # footer element gone
     page.get_by_test_id("rs-sql-copy").click()
     assert page.evaluate("() => window.__copied") == inlined
+
+
+def test_library_empty_groups_show_calls_to_action(nexora_server, page):
+    """Empty library groups explain the next step instead of a dead end."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(status=200, content_type="application/json", body="[]"),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-group-mine")).to_contain_text(
+        "You haven't saved any reports yet"
+    )
+    expect(page.get_by_test_id("rs-group-shared")).to_contain_text(
+        "No reports have been shared with everyone yet."
+    )
+    expect(page.get_by_test_id("rs-group-direct")).to_contain_text(
+        "No reports have been shared with you yet."
+    )
+
+
+def test_ai_unavailable_shows_notice_not_silent_vanish(nexora_server, page):
+    """A 503 from the AI hides the bar AND tells the user why (previously the
+    bar just disappeared, eating the typed question without a word)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.route(
+        "**/api/reporting/ai/build",
+        lambda r: r.fulfill(
+            status=503, content_type="application/json", body='{"error": "AI is not configured"}'
+        ),
+    )
+    page.get_by_test_id("rs-ai-prompt").fill("anything")
+    page.get_by_test_id("rs-ai-ask").click()
+    expect(page.get_by_test_id("rs-ai-bar")).to_be_hidden()
+    notice = page.get_by_test_id("rs-ai-gone")
+    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("AI assistant is unavailable")
