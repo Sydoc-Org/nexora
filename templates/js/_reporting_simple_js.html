@@ -235,10 +235,14 @@
     return (data && data.error) || I18N.couldNotRun;
   }
 
+  var APP_LANG = document.documentElement.lang || undefined;
   function fmtNumber(v) {
     if (v == null) return '–';
     var n = Number(v);
-    return isNaN(n) ? String(v) : n.toLocaleString();
+    // App locale (html lang attr), not browser locale — a German UI shows
+    // 1'234/1.234 shapes consistently regardless of the OS language. An
+    // empty lang attr degrades to the browser locale (undefined arg).
+    return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
   }
 
   function metricLabelFor(def) {
@@ -1213,6 +1217,7 @@
       list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noDateField) + '</p>';
       el('rsTimeFieldWrap').hidden = true;
       state.wiz.range = null;
+      el('rsAllTimeHint').hidden = true;
       return;
     }
     // Date field defaults to import_date, switchable to export_date.
@@ -1263,6 +1268,7 @@
           // all_time = no filter.
           state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
+        el('rsAllTimeHint').hidden = state.wiz.range !== null;
       }, state.wiz.range === p[0] ||
          (state.wiz.range && state.wiz.range.token === p[0]) ||
          (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||
@@ -1270,6 +1276,7 @@
     });
     // Only default to all-time if no prior choice is being restored.
     if (!state.wiz.range) state.wiz.range = null;
+    el('rsAllTimeHint').hidden = state.wiz.range !== null;
   }
 
   // Wizard invariants (validator-enforced server-side): sort fields are among

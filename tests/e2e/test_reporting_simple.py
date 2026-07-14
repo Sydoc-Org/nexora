@@ -2037,3 +2037,21 @@ def test_advanced_save_shows_toast_not_alert(nexora_server, page):
                 page.request.delete(
                     f"{nexora_server}/api/reporting/reports/{r['id']}", headers=headers
                 )
+
+
+def test_wizard_alltime_hint_toggles(nexora_server, page):
+    """The default All-time choice warns about full-history scans; picking a
+    bounded range hides the hint, coming back shows it again."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    hint = page.get_by_test_id("rs-alltime-hint")
+    expect(hint).to_be_visible()  # All time is the default selection
+    page.get_by_test_id("rs-time-list").get_by_text("This year", exact=True).click()
+    expect(hint).to_be_hidden()
+    page.get_by_test_id("rs-time-list").get_by_text("All time", exact=True).click()
+    expect(hint).to_be_visible()

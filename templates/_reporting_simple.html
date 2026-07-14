@@ -70,6 +70,7 @@
       <div id="rsTimeCustom" hidden>
         <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
       </div>
+      <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
       <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
         <select id="rsTimeField" class="reporting-input"></select></label>
       <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
