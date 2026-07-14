@@ -505,9 +505,19 @@
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
     if (!data.rows.length) {
-      var empty = document.createElement('p');
-      empty.className = 'reporting-empty';
-      empty.textContent = '{{ _("No rows.") }}';
+      var empty = document.createElement('div');
+      empty.className = 'nx-empty reporting-empty';
+      empty.setAttribute('data-testid', 'reporting-no-rows');
+      var art = document.createElement('div');
+      art.className = 'nx-empty__art';
+      art.innerHTML = '<i class="fas fa-inbox" aria-hidden="true"></i>';
+      var t = document.createElement('p');
+      t.className = 'nx-empty__title';
+      t.textContent = {{ _("No rows matched")|tojson }};
+      var s = document.createElement('p');
+      s.className = 'nx-empty__sub';
+      s.textContent = {{ _("Widen the time range or remove a filter, then run again.")|tojson }};
+      empty.appendChild(art); empty.appendChild(t); empty.appendChild(s);
       wrap.appendChild(empty);
       return;
     }
@@ -573,6 +583,20 @@
     // doesn't collapse into the grid's narrow first track. Table mode restores
     // the 3-column builder layout.
     document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
+  }
+
+  // In-page toast — replaces window.alert for non-blocking feedback (browser
+  // alerts were the last unstyled chrome on the page). window.confirm() stays
+  // native: it needs a blocking answer.
+  function toast(msg, isError) {
+    var t = document.createElement('div');
+    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
+    t.setAttribute('role', 'status');
+    t.setAttribute('data-testid', 'reporting-toast');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
   }
 
   function showError(msg) {
@@ -709,8 +733,8 @@
             state.currentReportOwned = true;
             state.currentReportCanEdit = true;
             loadReports();
-            window.alert('{{ _("Saved") }}');
-          }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+            toast('{{ _("Saved") }}');
+          }).catch(function (e) { toast('{{ _("Save failed") }}: ' + e.message, true); });
       });
       return;
     }
@@ -721,8 +745,8 @@
     }).then(function () {
       state.currentReportName = newName;
       loadReports();
-      window.alert('{{ _("Saved") }}');
-    }).catch(function (e) { window.alert('{{ _("Save failed") }}: ' + e.message); });
+      toast('{{ _("Saved") }}');
+    }).catch(function (e) { toast('{{ _("Save failed") }}: ' + e.message, true); });
   }
 
   function save(asNew) {
@@ -745,7 +769,7 @@
         .then(function (res) { return res.blob(); })
         .then(function (blob) {
           downloadBlob(blob, (document.getElementById('rpTitle').value || 'report') + ext);
-        }).catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+        }).catch(function (e) { toast('{{ _("Export failed") }}: ' + e.message, true); });
     };
     if (state.mode === 'sql') { ackThen(run); } else { run(); }
   }
@@ -753,7 +777,7 @@
   // Export the client-computed pivot matrix via the grid-export endpoint.
   function exportPivot() {
     var ex = ReportingViz.getPivotExport();
-    if (!ex || !ex.rows.length) { window.alert('{{ _("Nothing to export.") }}'); return; }
+    if (!ex || !ex.rows.length) { toast('{{ _("Nothing to export.") }}'); return; }
     var fmt = exportFormat();
     var ext = fmt === 'csv' ? '.csv' : '.xlsx';
     var title = document.getElementById('rpTitle').value || 'pivot';
@@ -767,14 +791,14 @@
       body: JSON.stringify(gridBody),
     }).then(function (res) { return res.blob(); })
       .then(function (blob) { downloadBlob(blob, title + ext); })
-      .catch(function (e) { window.alert('{{ _("Export failed") }}: ' + e.message); });
+      .catch(function (e) { toast('{{ _("Export failed") }}: ' + e.message, true); });
   }
 
   // Export what's on screen: chart -> PNG, pivot -> matrix, grid -> raw rows.
   function exportCurrent() {
     if (state.view === 'chart') {
       var fn = (document.getElementById('rpTitle').value || 'chart') + '.png';
-      if (!ReportingViz.exportChartPng(fn)) { window.alert('{{ _("Nothing to export.") }}'); }
+      if (!ReportingViz.exportChartPng(fn)) { toast('{{ _("Nothing to export.") }}'); }
       return;
     }
     if (state.view === 'pivot') { exportPivot(); return; }
@@ -1238,7 +1262,7 @@
             body: JSON.stringify({ name: name, definition: data.definition }),
           });
         }).then(function () { loadReports(); })
-        .catch(function (e) { window.alert('{{ _("Rename failed") }}: ' + e.message); });
+        .catch(function (e) { toast('{{ _("Rename failed") }}: ' + e.message, true); });
     });
   }
 
@@ -1254,7 +1278,7 @@
           state.currentReportName = null;
         }
         loadReports();
-      }).catch(function (e) { window.alert('{{ _("Delete failed") }}: ' + e.message); });
+      }).catch(function (e) { toast('{{ _("Delete failed") }}: ' + e.message, true); });
   }
 
   // ---- Sharing ----
@@ -1270,7 +1294,7 @@
       .then(function (data) {
         renderShareState(data);
         document.getElementById('rpShareModal').hidden = false;
-      }).catch(function (e) { window.alert(e.message); });
+      }).catch(function (e) { toast(e.message, true); });
   }
 
   function renderShareState(data) {
@@ -1314,7 +1338,7 @@
     api('/api/reporting/reports/' + shareReportId + '/shares/' + userId, { method: 'DELETE' })
       .then(function (res) { return res.json(); })
       .then(function (data) { renderShareState(data); loadReports(); })
-      .catch(function (e) { window.alert(e.message); });
+      .catch(function (e) { toast(e.message, true); });
   }
 
   document.getElementById('rpShare').addEventListener('click', openShare);
@@ -1329,13 +1353,13 @@
       .then(function () {
         document.getElementById('rpShareUser').value = '';
         document.getElementById('rpShareCanEdit').checked = false;
-      }).catch(function (e) { window.alert(e.message); });
+      }).catch(function (e) { toast(e.message, true); });
   });
   Array.prototype.forEach.call(
     document.querySelectorAll('input[name="rpShareVis"]'),
     function (r) {
       r.addEventListener('change', function () {
-        if (r.checked) postShare({ visibility: r.value }).catch(function (e) { window.alert(e.message); });
+        if (r.checked) postShare({ visibility: r.value }).catch(function (e) { toast(e.message, true); });
       });
     }
   );
@@ -1374,7 +1398,7 @@
   function loadSchedules() {
     api('/api/reporting/reports/' + scheduleReportId + '/schedules')
       .then(function (res) { return res.json(); })
-      .then(renderSchedules).catch(function (e) { window.alert(e.message); });
+      .then(renderSchedules).catch(function (e) { toast(e.message, true); });
   }
 
   function renderSchedules(list) {
@@ -1439,18 +1463,18 @@
     }).then(function () {
       document.getElementById('rpSchedRecipients').value = '';
       loadSchedules();
-    }).catch(function (e) { window.alert(e.message); });
+    }).catch(function (e) { toast(e.message, true); });
   }
 
   function deleteSchedule(id) {
     api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + id, { method: 'DELETE' })
-      .then(loadSchedules).catch(function (e) { window.alert(e.message); });
+      .then(loadSchedules).catch(function (e) { toast(e.message, true); });
   }
 
   // Flip Enabled via the (previously UI-less) PUT update endpoint. PUT is
   // full-replace and recomputes NextRunAt, so re-enabling re-anchors the next
-  // run. The window.alert matches the file's current idiom (menu row 8 sweeps
-  // them all later).
+  // run. Feedback goes through the in-page toast (the 2026-07 polish swept
+  // the window.alert idiom away).
   function setScheduleEnabled(s, enabled) {
     var body = {
       frequency: s.frequency, hour: s.hour, minute: s.minute,
@@ -1461,7 +1485,7 @@
     if (s.alertOp) { body.alertOp = s.alertOp; body.alertThreshold = s.alertThreshold; }
     api('/api/reporting/reports/' + scheduleReportId + '/schedules/' + s.id, {
       method: 'PUT', body: JSON.stringify(body),
-    }).then(loadSchedules).catch(function (e) { window.alert(e.message); });
+    }).then(loadSchedules).catch(function (e) { toast(e.message, true); });
   }
 
   var rpSchedule = document.getElementById('rpSchedule');

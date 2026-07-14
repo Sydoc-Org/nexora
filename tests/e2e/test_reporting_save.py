@@ -54,7 +54,7 @@ def test_save_overwrites_loaded_report_in_place(nexora_server, page):
     page.locator('[data-testid="reporting-load"]').click()
     expect(page.locator('[data-testid="reporting-sql-editor"]')).to_have_value("SELECT 1 AS one")
 
-    # The "Saved" alert auto-accepts; Save must issue a PUT (overwrite in place).
+    # Legacy guard (Saved is a toast now, no dialog fires); Save must issue a PUT.
     page.on("dialog", lambda d: d.accept())
     page.fill('[data-testid="reporting-title"]', "InPlace Updated")
     with page.expect_response(
@@ -88,7 +88,7 @@ def test_save_as_uses_name_modal(nexora_server, page):
     page.locator('[data-testid="reporting-mode-sql"]').click()
     page.locator('[data-testid="reporting-sql-editor"]').fill("SELECT 1 AS x")
 
-    # The "Saved" alert fires after the POST completes; accept it automatically.
+    # Legacy guard (Saved is a toast now, no dialog fires after the POST).
     page.on("dialog", lambda d: d.accept())
 
     # Click Save as (no loaded report → same as save-as)

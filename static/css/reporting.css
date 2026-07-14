@@ -1113,3 +1113,15 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 
 /* --- Page-head Beta badge (was an inline style on the h1 span) --- */
 .reporting-beta { vertical-align: middle; margin-inline-start: .5rem; }
+
+/* --- Toast (Advanced tab: replaces window.alert) --- */
+.reporting-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: 8px;
+  padding: 10px 16px; font-size: 13px; z-index: 100; /* above the drill drawer */
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+  transition: opacity .3s ease;
+}
+.reporting-toast--error { border-color: var(--nx-danger); }
+.reporting-toast.is-gone { opacity: 0; }

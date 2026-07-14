@@ -1983,3 +1983,57 @@ def test_ai_unavailable_shows_notice_not_silent_vanish(nexora_server, page):
     notice = page.get_by_test_id("rs-ai-gone")
     expect(notice).to_be_visible()
     expect(notice).to_contain_text("AI assistant is unavailable")
+
+
+def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
+    """A zero-row Advanced run renders the nx-empty pattern, not a bare 'No rows.'"""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "n", "header": "N"}],
+                    "rows": [],
+                    "rowCount": 0,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.get_by_test_id("reporting-run").click()
+    empty = page.get_by_test_id("reporting-no-rows")
+    expect(empty).to_be_visible()
+    expect(empty).to_contain_text("No rows matched")
+
+
+def test_advanced_save_shows_toast_not_alert(nexora_server, page):
+    """Saving surfaces an in-page toast; no browser alert dialog fires."""
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    page.request.post(f"{nexora_server}/api/reporting/sql/ack", headers=headers, data={})
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.locator('[data-testid="reporting-mode-sql"]').click()
+    page.locator('[data-testid="reporting-sql-editor"]').fill("SELECT 1 AS x")
+    dialogs = []
+    page.on("dialog", lambda d: (dialogs.append(d.type), d.accept()))
+    page.locator('[data-testid="reporting-save-as"]').click()
+    page.get_by_test_id("reporting-name-input").fill("toast-save-e2e")
+    page.get_by_test_id("reporting-name-ok").click()
+    try:
+        expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+        expect(page.get_by_test_id("reporting-toast")).to_contain_text("Saved")
+        assert dialogs == []  # window.alert is gone from the save path
+    finally:
+        reports = page.request.get(f"{nexora_server}/api/reporting/reports").json()
+        for r in reports:
+            if r.get("name") == "toast-save-e2e":
+                page.request.delete(
+                    f"{nexora_server}/api/reporting/reports/{r['id']}", headers=headers
+                )

@@ -11,6 +11,7 @@ window.ReportingDrill = (function () {
     truncatedNote: {{ _("Showing the first {n} rows — export to get all.")|tojson }},
     nullLabel: {{ _("(empty)")|tojson }},
     exportName: {{ _("Detail rows")|tojson }},
+    loading: {{ _("Loading the rows…")|tojson }},
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
     close: {{ _("Close")|tojson }},
     couldNotExport: {{ _("Could not export this report.")|tojson }}
@@ -136,7 +137,9 @@ window.ReportingDrill = (function () {
                                                     // the race once current is reassigned
     el('rdTitle').textContent = opts.header || I18N.title;
     el('rdSubtitle').textContent = I18N.title;
-    el('rdBody').innerHTML = '<p class="reporting-drill-note">…</p>';
+    el('rdBody').innerHTML =
+      '<div class="reporting-ai-loading"><span class="reporting-ai-dots" aria-hidden="true">' +
+      '<i></i><i></i><i></i></span><span role="status">' + esc(I18N.loading) + '</span></div>';
     el('rdNote').textContent = '';
     el('rdPanel').hidden = false;
     el('rdBackdrop').hidden = false;
