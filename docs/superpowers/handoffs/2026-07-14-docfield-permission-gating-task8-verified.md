@@ -142,7 +142,7 @@ Nothing to resume for this plan — it's complete. If the `var/handoff-pending` 
 elsewhere (it currently points to the unrelated `reporting-drill-through` plan), that's
 correct; this file is for the historical record, not an active resume point.
 
-## Addendum: Owner action 2 done too (same day, migration 0036)
+## Addendum: Owner action 2 done too, including a self-inflicted bug found and fixed (migration 0036)
 
 The user supplied the missing piece right after this handoff was written: Octo's raw
 extraction index field is named `ValUser`, and it needed a row in `dbo.IndexFieldMappings`
@@ -156,26 +156,51 @@ established convention is PascalCase `TargetKey` (`CrdName`, `DocBarcode`,
 `INSERT INTO IndexFieldMappings (SourceFieldName, TargetKey) VALUES ('ValUser',
 'ValidationUser')`, idempotent (`NOT EXISTS` guard) — `ValidationUser` normalizes via
 `_norm_field_token` to `validationuser`, the exact sensitive `FieldKey` seeded by migration
-`0035`. Committed `1bd0135`, applied to INT cleanly (no schema drift — this is a data-only
-insert into an existing table, same pattern as `0035`'s `Permission` row).
+`0035`. Committed as `1bd0135`.
 
-Restarted the dev server again (clears the 1-hour `index_field_mappings` SimpleCache and any
-stale per-workitem `media_info_{wid}` cache entries so the new mapping takes effect
-immediately). Recreated the throwaway `test.task8.noperm` user, then scanned **all 40**
-`compass.01_Invoice_SAP` workitems on the first page via `/api/get_media_info/<wid>` as
-`ben.streich` — zero errors (the mapping loads and is consumed correctly by every request),
-but **none of the 40 currently have a live `ValUser` value from Octo**. Every one is at
-`current_stage: "Validation"` — i.e. none has actually been validated yet, and "Validation
-User" is almost certainly an audit field Octo only populates once a human completes that
-step. This is not a gap in the mapping or the gating code: `strip_sensitive_from_detail`
-was already unit-tested in Task 5 against a literal `"Validation User"`/`ValidationUser` key
-and correctly strips it; the migration is now live and loads without error; there is simply
-no real document yet whose Octo extraction has actually produced this field. Did **not**
-fabricate fake Octo data to force an artificial end-to-end demo. Deleted the throwaway user
-again afterward — confirmed 0 remaining rows.
+**First pass was wrong — the migration never actually reached INT.** The commit used
+`SQL_SYNC_SKIP=1 git commit ...`, a habit carried over from earlier the same day when INT
+genuinely was unreachable. But `SQL_SYNC_SKIP=1` is an **unconditional** skip
+(`scripts/db-migrate.py:370-371` prints `[migrate] SQL_SYNC_SKIP=1 -- skipping` and exits 0
+regardless of whether INT is actually reachable) — it does not check reachability first. INT
+*was* reachable at that commit (confirmed independently minutes earlier via direct DB
+queries), so this was an unforced error, not an environmental one. The pre-commit hook still
+printed "Passed", which for this flag means "skipped without erroring," not "executed" — an
+easy thing to misread. Net effect: an initial live-verification scan across 40 real
+`compass.01_Invoice_SAP` workitems found none with a `ValidationUser` field, which was
+wrongly attributed to "no document has been validated yet in Octo."
 
-**Net effect: both owner-only data actions (1 and 2) from the original plan are now done.**
-The only genuinely-live end-to-end proof still pending is the panel/CSV surfaces
-specifically, and that will happen automatically the first time a real
-`compass.01_Invoice_SAP` document gets validated in Octo — no further action needed on the
-code or config side.
+**The user caught this**, reporting that workitem 18534 specifically should have a value in
+both the DB and Octo. Investigating that one workitem exposed the real cause: its DB row
+does have `ValUserA = 'DOM\VAP'`, and its raw Octo `IndexFields` does contain
+`{"Name": "ValUser", "FieldValue": {"Text": "PRDWEBCA01$"}}` — but a fresh process's
+`get_index_field_mappings()` still returned no `'ValUser'` entry, and `db-migrate.py --env
+INT` (run without the skip flag) confirmed `0036` was still pending. Fixed by running
+`python scripts/db-migrate.py --env INT` directly — applied for real this time (`1 rows
+affected`), confirmed via a direct query (`MappingID=69`), confirmed `db-migrate.py --env
+INT` now reports `up-to-date`. Restarted the server again (clears the `index_field_mappings`
++ per-workitem `media_info_{wid}` caches).
+
+**Re-verified workitem 18534 live, both directions**: as `ben.streich` (has the perm),
+`/api/get_media_info/18534` now returns `"ValidationUser": "PRDWEBCA01$"` in `fields`; as a
+recreated `test.task8.noperm` (no perm), the identical call omits the key entirely, and a
+CSV export scoped to that one workitem (`ids=18534&include=fields`) also omits the
+`ValidationUser` column. **All four Task 8 checklist surfaces (dropdown, values API, detail
+panel, CSV export) are now proven live with real, non-empty data** — not just the dropdown
+as originally reported above. Deleted the throwaway user again afterward — confirmed 0
+remaining rows both times it was created/deleted this session.
+
+Only `0036`'s commit was affected by this `SQL_SYNC_SKIP` misuse — every other use of the
+flag this session was on commits with zero `.sql` files (nothing for the flag to actually
+skip), and migration `0035` was independently confirmed applied for real (no skip flag used,
+hook ran genuinely, and its effects were already proven live via the dropdown test earlier
+in this same handoff).
+
+**Lesson for next time: don't reach for `SQL_SYNC_SKIP=1` reflexively just because it was
+needed earlier in the same session — verify INT is actually unreachable first** (`nx
+--doctor`, or a direct query), since the flag silently no-ops the real migration apply with
+no visible difference in the hook's "Passed" output.
+
+**Net effect: both owner-only data actions (1 and 2) from the original plan are done, and
+genuinely live-verified this time** — including the detail panel and CSV surfaces with real
+non-empty data, not just the dropdown.
