@@ -69,11 +69,13 @@
     copied: {{ _("Copied")|tojson }}
   };
 
-  // Wizard category-dimension curation (docprocessing only). Preferred
-  // business dimensions first, noise hidden; table sources are untouched.
-  var DOCPROC_DIM_ORDER = ['docsource', 'doctype', 'forwarding', 'ownernr',
-                           'propertynr', 'registered', 'tenancynr'];
-  var DOCPROC_DIM_HIDE = { processname: 1, bankpk: 1, crdno: 1, docbarcode: 1,
+  // Wizard category-dimension curation (docprocessing only). Process first
+  // (each Octo process = an actual client, so this is the per-client
+  // breakdown), then the preferred business dimensions; noise hidden;
+  // table sources are untouched.
+  var DOCPROC_DIM_ORDER = ['processname', 'docsource', 'doctype', 'forwarding',
+                           'ownernr', 'propertynr', 'registered', 'tenancynr'];
+  var DOCPROC_DIM_HIDE = { bankpk: 1, crdno: 1, docbarcode: 1,
                            docdate: 1, workitem_id: 1 };
 
   var state = {
@@ -1034,7 +1036,7 @@
     var fields = w.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var catFields = fields.filter(function (f) {
-      return f.type === 'string' && f.filterable && f.field !== 'processname';
+      return f.type === 'string' && f.filterable;
     });
 
     if (w.source.id === 'docprocessing') {
@@ -1106,7 +1108,12 @@
       btn.dataset.bdField = f.field;
       list.appendChild(btn);
     });
-    catFields.slice(0, 12).forEach(function (f) {
+    // Cap 16 = headroom over docprocessing's current 13 candidates (the 12
+    // previously-visible chips + Process). An exactly-saturated cap silently
+    // evicts the newest chip -- that trap is why this was raised from 12.
+    // Keep slack when adding doc-fields; the cap is pinned by
+    // test_wizard_caps_category_chips_at_16.
+    catFields.slice(0, 16).forEach(function (f) {
       var bd = { kind: 'category', field: f };
       var btn = choiceBtn(f.label, function () {
         toggleBreakdown(bd);
