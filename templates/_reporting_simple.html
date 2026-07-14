@@ -146,7 +146,7 @@
     <p class="reporting-simple-hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
         <div class="reporting-sqlview-bar">
-          <span>{{ _("Query sent to the database") }}</span>
+          <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>
           <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
         </div>
         <pre id="rsSqlText"></pre>

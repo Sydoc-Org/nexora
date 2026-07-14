@@ -41,7 +41,7 @@
       <div class="nx-page-head__title">
         <span class="nx-page-icon"><i class="fas fa-chart-column"></i></span>
         <div>
-          <h1 class="nx-title">{{ _("Reporting") }}<span class="nx-label nx-label--indigo nx-label--nodot" style="vertical-align: middle; margin-inline-start: .5rem;">Beta</span></h1>
+          <h1 class="nx-title">{{ _("Reporting") }}<span class="nx-label nx-label--indigo nx-label--nodot reporting-beta">{{ _("Beta") }}</span></h1>
           <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
         </div>
       </div>
@@ -244,7 +244,7 @@
       <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rpSqlView" hidden data-testid="reporting-sql-view">
         <div class="reporting-sqlview-bar">
-          <span>{{ _("Query sent to the database") }}</span>
+          <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>
           <button type="button" id="rpSqlViewCopy" class="reporting-link" data-testid="reporting-sql-view-copy">{{ _("Copy") }}</button>
         </div>
         <pre id="rpSqlText"></pre>
