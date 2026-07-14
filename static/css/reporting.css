@@ -1061,3 +1061,45 @@ body.nx-app {
 
 /* --- Truncation note (T6) --- */
 .reporting-truncated-note { margin: 0 0 8px; font-size: 12px; color: #b45309; }
+
+/* --- Drill-through drawer (slide-over from the right; shared by Simple and
+   Advanced). Tokenised to match the nexora-ui harmonization above. Behaviour
+   (open/close/fetch) is wired in Task 3; this is the shell only. --- */
+.reporting-drill-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 60;
+}
+.reporting-drill-backdrop[hidden] { display: none; }
+.reporting-drill-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  width: 45vw; min-width: 420px; max-width: 720px;
+  display: flex; flex-direction: column;
+  background: var(--nx-card); color: var(--nx-text);
+  border-left: 1px solid var(--nx-border);
+  box-shadow: var(--nx-shadow-pop);
+}
+.reporting-drill-panel[hidden] { display: none; }
+.reporting-drill-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 16px; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-drill-head h3 { margin: 0; font-size: 15px; color: var(--nx-text); }
+.reporting-drill-subtitle { margin: 4px 0 0; font-size: 12px; color: var(--nx-text-meta); }
+.reporting-drill-body { flex: 1; overflow: auto; padding: 0 16px; }
+.reporting-drill-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.reporting-drill-body th,
+.reporting-drill-body td {
+  padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
+  text-align: left; white-space: nowrap;
+}
+.reporting-drill-body th { background: var(--nx-alt); color: var(--nx-text); }
+.reporting-drill-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; border-top: 1px solid var(--nx-border);
+}
+.reporting-drill-note { margin: 0; font-size: 12px; color: var(--nx-text-meta); }
+.reporting-drill-null { color: var(--nx-text-meta); font-style: italic; }
+.reporting-drill-clickable tbody tr { cursor: pointer; }
+.reporting-drill-clickable tbody tr:hover { background: var(--nx-accent-tint); }
+@media (max-width: 900px) {
+  .reporting-drill-panel { width: 100vw; min-width: 0; }
+}
