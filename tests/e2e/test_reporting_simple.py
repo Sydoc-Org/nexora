@@ -1461,3 +1461,110 @@ def test_simple_export_csv(nexora_server, page):
             }""",
             ids,
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 6: drill-through — pure-transform pins + drawer e2e
+# ---------------------------------------------------------------------------
+
+
+def test_drill_transform_category_eq(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    dd = page.evaluate("""() => ReportingDrill.buildDrillDefinition(
+        {source: 's1', columns: [{field: 'doctype'}],
+         filters: [{field: 'status', op: 'eq', value: 'ok'}]},
+        [{field: 'doctype', filterable: true}, {field: 'status', filterable: true}],
+        [{field: 'doctype', value: 'invoice'}])""")
+    assert dd["rowLimit"] == 100
+    assert {"field": "doctype", "op": "eq", "value": "invoice"} in dd["filters"]
+    assert {"field": "status", "op": "eq", "value": "ok"} in dd["filters"]
+    assert "metrics" not in dd or not dd["metrics"]
+
+
+def test_drill_transform_month_grain_bounds(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    dd = page.evaluate("""() => ReportingDrill.buildDrillDefinition(
+        {source: 's1', columns: [{field: 'exportdate', grain: 'month'}], filters: []},
+        [{field: 'exportdate', filterable: true, grainable: true}],
+        [{field: 'exportdate', grain: 'month', value: '2026-04-01'}])""")
+    assert {"field": "exportdate", "op": "gte", "value": "2026-04-01"} in dd["filters"]
+    assert {"field": "exportdate", "op": "lt", "value": "2026-05-01"} in dd["filters"]
+
+
+def test_drill_transform_null_group_uses_is_null(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    dd = page.evaluate("""() => ReportingDrill.buildDrillDefinition(
+        {source: 's1', columns: [{field: 'doctype'}], filters: []},
+        [{field: 'doctype', filterable: true}],
+        [{field: 'doctype', value: null}])""")
+    assert {"field": "doctype", "op": "is_null"} in dd["filters"]
+
+
+def test_drill_transform_unfilterable_dim_returns_null(nexora_server, page):
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    dd = page.evaluate("""() => ReportingDrill.buildDrillDefinition(
+        {source: 's1', columns: [{field: 'doctype'}], filters: []},
+        [{field: 'doctype', filterable: false}],
+        [{field: 'doctype', value: 'x'}])""")
+    assert dd is None
+
+
+def test_drill_row_opens_panel(nexora_server, page):
+    """Clicking an aggregate result row opens the drill drawer with rows."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_drill', kind: 'curated', label: 'Wizard Drill',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 33});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_drill_count', sourceId: 'wiz_drill', label: 'Wizard drill count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # Same wizard-walk pattern as test_wizard_category_breakdown_to_result_cards
+        # (measure -> category breakdown -> Continue -> Show result), then click an
+        # aggregate row to open the drill drawer.
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Wizard drill count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        # Table is hidden behind the toggle when there are metrics; reveal it
+        # (same pattern as test_wizard_two_breakdowns).
+        page.get_by_test_id("rs-table-toggle").click()
+        page.locator("#rsTableWrap tbody tr").first.click()
+        panel = page.get_by_test_id("reporting-drill-panel")
+        expect(panel).to_be_visible()
+        expect(panel.locator("tbody tr").first).to_be_visible()
+        page.keyboard.press("Escape")
+        expect(panel).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
