@@ -1,3 +1,7 @@
+> **Superseded next-day:** Task 8 is now done too — see
+> `2026-07-14-docfield-permission-gating-task8-verified.md` (DB/VPN access came back, owner
+> mapped the field, dropdown gate proven live with a screenshot). This plan is fully complete.
+
 # Handoff — Permission-gated doc-fields (Validation User) — EXECUTED, 7/8 tasks (Task 8 blocked, owner-only)
 
 **Date:** 2026-07-13 (evening) · **Branch:** `feature/2.5.64` · **commit-only (remote session — owner pushes)** · no plan worktree
