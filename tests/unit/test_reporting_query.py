@@ -239,6 +239,38 @@ def test_docprocessing_aggregate_wraps_union():
     assert "UNION ALL" in sql
 
 
+def test_docprocessing_aggregate_groups_by_processname():
+    # Pins the contract the Simple wizard's new per-process chip relies on:
+    # processname is synthesized as a parameterized constant per UNION-ALL
+    # subquery and grouped in the aggregate wrapper. Characterization test --
+    # the backend supports this today (Advanced tab exercises it in prod);
+    # only processname *filter* tests existed before.
+    rd = _rd(
+        columns=[{"field": "processname"}],
+        filters=[],
+        sort=[{"field": "doc_count", "dir": "desc"}],
+    )
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert sql.startswith("SELECT TOP (100) [processname], COUNT(*) AS [doc_count] FROM (")
+    assert sql.rstrip().endswith("GROUP BY [processname] ORDER BY [doc_count] DESC")
+    assert sql.count("? AS [processname]") == 2  # one bound constant per subquery
+    assert params == ["acme.inv", "acme.hr"]
+
+
+def test_docprocessing_aggregate_processname_as_second_dim():
+    # Two-breakdown wizard shape: category axis + processname colored series.
+    rd = _rd(columns=[{"field": "doctype"}, {"field": "processname"}], filters=[], sort=[])
+    resolved = [{"code": "doc_count", "aggregation": "count", "base_field": None}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=50, resolved_metrics=resolved
+    )
+    assert "GROUP BY [doctype], [processname]" in sql
+    assert params == ["acme.inv", "acme.hr"]
+
+
 def test_docprocessing_aggregate_projects_base_field_into_union():
     from nx_lib.reporting.query import build_table_query
 
