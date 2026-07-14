@@ -66,6 +66,38 @@
       <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Advanced") }}</button>
   </div>
 
+  {# Drill-through drawer: shared by Simple and Advanced. Markup lives here (a
+     page-level sibling, not inside either pane) so it can slide over whichever
+     tab is active. Behaviour (open/close/fetch) is wired in Task 3; the
+     ReportingDrill module below must exist before _reporting_simple_js.html
+     (included inside _reporting_simple.html) and _reporting_js.html wire their
+     click handlers. #}
+  <div id="rdBackdrop" class="reporting-drill-backdrop" hidden></div>
+  <aside id="rdPanel" class="reporting-drill-panel" hidden role="dialog"
+         aria-labelledby="rdTitle" data-testid="reporting-drill-panel">
+    <div class="reporting-drill-head">
+      <div>
+        <h3 id="rdTitle"></h3>
+        <p id="rdSubtitle" class="reporting-drill-subtitle"></p>
+      </div>
+      <button type="button" id="rdClose" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm"
+              aria-label="{{ _('Close') }}" data-testid="reporting-drill-close">&#10005;</button>
+    </div>
+    <div id="rdBody" class="reporting-drill-body"></div>
+    <div class="reporting-drill-foot">
+      <p id="rdNote" class="reporting-drill-note"></p>
+      {% if has_permission('reporting.export') %}
+      <span>
+        <button type="button" id="rdExportCsv" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm"
+                data-testid="reporting-drill-export-csv">CSV</button>
+        <button type="button" id="rdExportXlsx" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm"
+                data-testid="reporting-drill-export-xlsx">XLSX</button>
+      </span>
+      {% endif %}
+    </div>
+  </aside>
+  {% include "js/_reporting_drill_js.html" %}
+
   <div id="rpPaneSimple" role="tabpanel" aria-labelledby="rpTabSimple" hidden>
     {% include 'js/_reporting_sqlformat_js.html' %}
     {% include '_reporting_simple.html' %}

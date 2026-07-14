@@ -16,6 +16,14 @@
   var lastChartCanvas = null;
   var lastPivotExport = null;
   var lastChartColumns = null;
+  // Drill-through support: the column index currently mapped to the chart's
+  // X axis, and the (post-aggregation, post-truncation) label list actually
+  // rendered — the caller has no other way to learn which raw value a given
+  // Chart.js element index corresponds to. Kept module-tab-agnostic: this
+  // module never looks at a report "definition", it just exposes what it
+  // drew so a caller (Simple or Advanced) can map it back to one.
+  var lastChartXIndex = null;
+  var lastChartLabels = null;
 
   function toNum(v) {
     if (v === null || v === undefined || v === '') return null;
@@ -83,9 +91,16 @@
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   }
 
-  function mountChart(container, columns, rows) {
+  // opts: {onElementClick?: function(index, datasetIndex)} — a caller-supplied
+  // hook fired from Chart.js onClick. Kept as a plain option rather than a
+  // reference to Advanced-pane state, so this module stays usable from either
+  // tab (mirrors how mountChart never reaches into report-definition state).
+  function mountChart(container, columns, rows, opts) {
     destroyChart();
     lastChartCanvas = null;
+    lastChartXIndex = null;
+    lastChartLabels = null;
+    opts = opts || {};
     container.innerHTML = '';
     if (typeof Chart === 'undefined') {
       container.textContent = '{{ _("Charting library unavailable.") }}';
@@ -170,6 +185,11 @@
       }
       var labels = pairs.map(function (p) { return p.k; });
       var data = pairs.map(function (p) { return p.v; });
+      // Raw click values for drill-through: labels are already the raw
+      // per-category stringified values (no date-trimming here, unlike
+      // Simple), so labels[index] === the value a click at that index maps to.
+      lastChartXIndex = xi;
+      lastChartLabels = labels;
       var single = (type === 'bar' || type === 'line');
       var colors = labels.map(function (_, i) { return PALETTE[i % PALETTE.length]; });
       var ds = {
@@ -189,7 +209,14 @@
           maintainAspectRatio: false,
           // White background so an exported PNG isn't transparent.
           plugins: { legend: { display: !single } },
-          scales: single ? { y: { beginAtZero: true } } : {}
+          scales: single ? { y: { beginAtZero: true } } : {},
+          onClick: opts.onElementClick ? function (evt) {
+            var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+            if (els.length) opts.onElementClick(els[0].index, els[0].datasetIndex);
+          } : undefined,
+          onHover: opts.onElementClick ? function (evt, elsH) {
+            evt.native.target.style.cursor = elsH.length ? 'pointer' : 'default';
+          } : undefined
         }
       });
       note.textContent = truncated
@@ -594,6 +621,20 @@
 
   function getPivotExport() { return lastPivotExport; }
 
+  // Drill-through helpers: which result column is currently the chart's X
+  // axis, and the raw value a given (post-truncation) label index stands
+  // for. A caller combines these with its own report-definition state to
+  // decide whether/how to drill — this module has no opinion on that.
+  function getChartXField() {
+    if (!lastChartColumns || lastChartXIndex == null) return null;
+    var c = lastChartColumns[lastChartXIndex];
+    return c ? c.field : null;
+  }
+  function getChartLabelAt(index) {
+    return (lastChartLabels && index >= 0 && index < lastChartLabels.length)
+      ? lastChartLabels[index] : undefined;
+  }
+
   window.ReportingViz = {
     mountChart: mountChart,
     mountPivot: mountPivot,
@@ -601,7 +642,9 @@
     exportChartPng: exportChartPng,
     chartPngDataUrl: chartPngDataUrl,
     getPivotExport: getPivotExport,
-    applyChartHint: applyChartHint
+    applyChartHint: applyChartHint,
+    getChartXField: getChartXField,
+    getChartLabelAt: getChartLabelAt
   };
 }());
 </script>

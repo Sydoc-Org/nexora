@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-24 10:13+0200\n"
+"POT-Creation-Date: 2026-07-14 09:48+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -50,10 +50,10 @@ msgstr "Organisation erfolgreich erstellt."
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin.py:204 nx_lib/views/admin.py:705
-#: nx_lib/views/workitems.py:1543 nx_lib/views/workitems.py:1594
-#: nx_lib/views/workitems.py:1636 nx_lib/views/workitems.py:1847
-#: nx_lib/views/workitems.py:1879
+#: nx_lib/views/admin.py:204 nx_lib/views/admin.py:713
+#: nx_lib/views/workitems.py:1719 nx_lib/views/workitems.py:1770
+#: nx_lib/views/workitems.py:1812 nx_lib/views/workitems.py:2028
+#: nx_lib/views/workitems.py:2060
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
@@ -62,7 +62,7 @@ msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
 #: nx_lib/views/admin.py:231 nx_lib/views/admin.py:255
-#: nx_lib/views/admin.py:761 nx_lib/views/admin.py:992
+#: nx_lib/views/admin.py:769 nx_lib/views/admin.py:1000
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
@@ -74,94 +74,94 @@ msgstr "Organisation nicht gefunden."
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:700 templates/js/admin/_access_control_js.html:542
-msgid "User created successfully."
-msgstr "Benutzer erfolgreich erstellt."
-
-#: nx_lib/views/admin.py:702
-msgid "Username or email already exists."
-msgstr "Benutzername oder E-Mail existiert bereits."
-
-#: nx_lib/views/admin.py:733
+#: nx_lib/views/admin.py:688 nx_lib/views/admin.py:741
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: nx_lib/views/admin.py:758
+#: nx_lib/views/admin.py:708 templates/js/admin/_access_control_js.html:542
+msgid "User created successfully."
+msgstr "Benutzer erfolgreich erstellt."
+
+#: nx_lib/views/admin.py:710
+msgid "Username or email already exists."
+msgstr "Benutzername oder E-Mail existiert bereits."
+
+#: nx_lib/views/admin.py:766
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:947
+#: nx_lib/views/admin.py:955
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:987
+#: nx_lib/views/admin.py:995
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:989
+#: nx_lib/views/admin.py:997
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1100
+#: nx_lib/views/admin.py:1108
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1143
+#: nx_lib/views/admin.py:1151
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1240 nx_lib/views/admin.py:1550
-#: nx_lib/views/admin.py:1592 nx_lib/views/admin.py:1637
-#: nx_lib/views/admin.py:1676 nx_lib/views/admin.py:1714
-#: nx_lib/views/admin.py:1747 nx_lib/views/chat.py:47
-#: nx_lib/views/dashboard.py:322 nx_lib/views/dashboard.py:418
-#: nx_lib/views/dashboard.py:534 nx_lib/views/dashboard.py:633
-#: nx_lib/views/dashboard.py:810 nx_lib/views/dashboard.py:886
-#: nx_lib/views/dashboard.py:908 nx_lib/views/dashboard.py:959
-#: nx_lib/views/dashboard.py:1427 nx_lib/views/dashboard.py:1471
-#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:523
-#: nx_lib/views/workitems.py:1102 nx_lib/views/workitems.py:1114
-#: nx_lib/views/workitems.py:1357 nx_lib/views/workitems.py:1400
-#: nx_lib/views/workitems.py:1491 nx_lib/views/workitems.py:1553
-#: nx_lib/views/workitems.py:1604 nx_lib/views/workitems.py:1646
-#: nx_lib/views/workitems.py:1797 nx_lib/views/workitems.py:1857
+#: nx_lib/views/admin.py:1248 nx_lib/views/admin.py:1558
+#: nx_lib/views/admin.py:1600 nx_lib/views/admin.py:1645
+#: nx_lib/views/admin.py:1684 nx_lib/views/admin.py:1722
+#: nx_lib/views/admin.py:1755 nx_lib/views/chat.py:47
+#: nx_lib/views/dashboard.py:322 nx_lib/views/dashboard.py:430
+#: nx_lib/views/dashboard.py:546 nx_lib/views/dashboard.py:645
+#: nx_lib/views/dashboard.py:822 nx_lib/views/dashboard.py:898
+#: nx_lib/views/dashboard.py:920 nx_lib/views/dashboard.py:971
+#: nx_lib/views/dashboard.py:1439 nx_lib/views/dashboard.py:1483
+#: nx_lib/views/invoices.py:232 nx_lib/views/workitems.py:679
+#: nx_lib/views/workitems.py:1275 nx_lib/views/workitems.py:1287
+#: nx_lib/views/workitems.py:1533 nx_lib/views/workitems.py:1576
+#: nx_lib/views/workitems.py:1667 nx_lib/views/workitems.py:1729
+#: nx_lib/views/workitems.py:1780 nx_lib/views/workitems.py:1822
+#: nx_lib/views/workitems.py:1978 nx_lib/views/workitems.py:2038
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1283 nx_lib/views/workitems.py:1390
+#: nx_lib/views/admin.py:1291 nx_lib/views/workitems.py:1566
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1329
+#: nx_lib/views/admin.py:1337
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:1357
+#: nx_lib/views/admin.py:1365
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:1536
+#: nx_lib/views/admin.py:1544
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1601 nx_lib/views/admin.py:1731
-#: nx_lib/views/admin.py:1773
+#: nx_lib/views/admin.py:1609 nx_lib/views/admin.py:1739
+#: nx_lib/views/admin.py:1781
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:1682 nx_lib/views/admin.py:1720
+#: nx_lib/views/admin.py:1690 nx_lib/views/admin.py:1728
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:1697
+#: nx_lib/views/admin.py:1705
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:1733
+#: nx_lib/views/admin.py:1741
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1766
+#: nx_lib/views/admin.py:1774
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -170,7 +170,7 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:1775
+#: nx_lib/views/admin.py:1783
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -295,46 +295,46 @@ msgstr "Verarbeitete Dokumente im Zeitverlauf"
 msgid "Top doctypes today"
 msgstr "Top-Dokumenttypen heute"
 
-#: nx_lib/views/dashboard.py:877
+#: nx_lib/views/dashboard.py:889
 msgid "Could not fetch field metadata"
 msgstr "Feld-Metadaten konnten nicht abgerufen werden"
 
-#: nx_lib/views/dashboard.py:899
+#: nx_lib/views/dashboard.py:911
 msgid "Could not load layout"
 msgstr "Layout konnte nicht geladen werden"
 
-#: nx_lib/views/dashboard.py:918 nx_lib/views/reporting.py:992
+#: nx_lib/views/dashboard.py:930 nx_lib/views/reporting.py:992
 #: nx_lib/views/reporting.py:1031 nx_lib/views/reporting.py:1090
 #: nx_lib/views/reporting.py:1218 nx_lib/views/reporting.py:1395
 #: nx_lib/views/reporting.py:1586 nx_lib/views/reporting.py:1639
 msgid "Invalid JSON body"
 msgstr "Ungültiger JSON-Body"
 
-#: nx_lib/views/dashboard.py:950
+#: nx_lib/views/dashboard.py:962
 msgid "Could not save layout"
 msgstr "Layout konnte nicht gespeichert werden"
 
-#: nx_lib/views/dashboard.py:970
+#: nx_lib/views/dashboard.py:982
 msgid "Could not reset layout"
 msgstr "Layout konnte nicht zurückgesetzt werden"
 
-#: nx_lib/views/dashboard.py:1439 nx_lib/views/dashboard.py:1476
+#: nx_lib/views/dashboard.py:1451 nx_lib/views/dashboard.py:1488
 msgid "Invalid widget"
 msgstr "Ungültiges Widget"
 
-#: nx_lib/views/dashboard.py:1455
+#: nx_lib/views/dashboard.py:1467
 msgid "Could not build query"
 msgstr "Abfrage konnte nicht erstellt werden"
 
-#: nx_lib/views/dashboard.py:1461 nx_lib/views/reporting.py:1051
+#: nx_lib/views/dashboard.py:1473 nx_lib/views/reporting.py:1051
 msgid "Could not run query"
 msgstr "Abfrage konnte nicht ausgeführt werden"
 
-#: nx_lib/views/dashboard.py:1503
+#: nx_lib/views/dashboard.py:1515
 msgid "Previous period"
 msgstr "Vorheriger Zeitraum"
 
-#: nx_lib/views/dashboard.py:1506
+#: nx_lib/views/dashboard.py:1518
 msgid "Could not build comparison"
 msgstr "Vergleich konnte nicht erstellt werden"
 
@@ -650,156 +650,156 @@ msgstr "Metrik konnte nicht aktualisiert werden"
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
-#: nx_lib/views/workitems.py:648
+#: nx_lib/views/workitems.py:806
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:992 nx_lib/views/workitems.py:1063
+#: nx_lib/views/workitems.py:1165 nx_lib/views/workitems.py:1236
 msgid "No file part in the request."
 msgstr "Kein Dateiteil in der Anfrage."
 
-#: nx_lib/views/workitems.py:999 nx_lib/views/workitems.py:1066
+#: nx_lib/views/workitems.py:1172 nx_lib/views/workitems.py:1239
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: nx_lib/views/workitems.py:1003
+#: nx_lib/views/workitems.py:1176
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: nx_lib/views/workitems.py:1015
+#: nx_lib/views/workitems.py:1188
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, in diesen Prozess zu importieren."
 
-#: nx_lib/views/workitems.py:1030
+#: nx_lib/views/workitems.py:1203
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: nx_lib/views/workitems.py:1035
+#: nx_lib/views/workitems.py:1208
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: nx_lib/views/workitems.py:1037
+#: nx_lib/views/workitems.py:1210
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 
-#: nx_lib/views/workitems.py:1060 nx_lib/views/workitems.py:1969
+#: nx_lib/views/workitems.py:1233 nx_lib/views/workitems.py:2157
 msgid "This import is only available for the MS02 client."
 msgstr "Dieser Import ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:1070
+#: nx_lib/views/workitems.py:1243
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Ungültiger Dateityp. Bitte laden Sie eine gültige Excel-Datei (.xlsx) "
 "hoch."
 
-#: nx_lib/views/workitems.py:1078
+#: nx_lib/views/workitems.py:1251
 msgid "The Excel file has no usable rows."
 msgstr "Die Excel-Datei enthält keine verwertbaren Zeilen."
 
-#: nx_lib/views/workitems.py:1095
+#: nx_lib/views/workitems.py:1268
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gespeichert werden. Bitte "
 "versuchen Sie es erneut."
 
-#: nx_lib/views/workitems.py:1109
+#: nx_lib/views/workitems.py:1282
 msgid "Could not fetch workitem data"
 msgstr "Workitem-Daten konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1180 nx_lib/views/workitems.py:1216
+#: nx_lib/views/workitems.py:1356 nx_lib/views/workitems.py:1392
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: nx_lib/views/workitems.py:1205 nx_lib/views/workitems.py:1298
+#: nx_lib/views/workitems.py:1381 nx_lib/views/workitems.py:1474
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: nx_lib/views/workitems.py:1229
+#: nx_lib/views/workitems.py:1405
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: nx_lib/views/workitems.py:1255
+#: nx_lib/views/workitems.py:1431
 msgid "Failed to render PDF page"
 msgstr "PDF-Seite konnte nicht gerendert werden"
 
-#: nx_lib/views/workitems.py:1282
+#: nx_lib/views/workitems.py:1458
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:1347
+#: nx_lib/views/workitems.py:1523
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1349
+#: nx_lib/views/workitems.py:1525
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: nx_lib/views/workitems.py:1447
+#: nx_lib/views/workitems.py:1623
 msgid "No data found for this workitem."
 msgstr "Keine Daten für dieses Workitem gefunden."
 
-#: nx_lib/views/workitems.py:1481
+#: nx_lib/views/workitems.py:1657
 msgid "Could not fetch interactions"
 msgstr "Interaktionen konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1496
+#: nx_lib/views/workitems.py:1672
 msgid "Comment cannot be empty."
 msgstr "Kommentar darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1540
+#: nx_lib/views/workitems.py:1716
 msgid "Comment added."
 msgstr "Kommentar hinzugefügt."
 
-#: nx_lib/views/workitems.py:1558
+#: nx_lib/views/workitems.py:1734
 msgid "Invalid assignment."
 msgstr "Ungültige Zuweisung."
 
-#: nx_lib/views/workitems.py:1587
+#: nx_lib/views/workitems.py:1763
 msgid "assigned you on workitem"
 msgstr "hat Sie einem Workitem zugewiesen"
 
-#: nx_lib/views/workitems.py:1591
+#: nx_lib/views/workitems.py:1767
 msgid "Assignment updated."
 msgstr "Zuweisung aktualisiert."
 
-#: nx_lib/views/workitems.py:1609
+#: nx_lib/views/workitems.py:1785
 msgid "Invalid priority level."
 msgstr "Ungültige Prioritätsstufe."
 
-#: nx_lib/views/workitems.py:1633
+#: nx_lib/views/workitems.py:1809
 msgid "Priority updated."
 msgstr "Priorität aktualisiert."
 
-#: nx_lib/views/workitems.py:1666
+#: nx_lib/views/workitems.py:1842
 msgid "Could not fetch tags"
 msgstr "Tags konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1804
+#: nx_lib/views/workitems.py:1985
 msgid "Tag name cannot be empty."
 msgstr "Tag-Name darf nicht leer sein."
 
-#: nx_lib/views/workitems.py:1828
+#: nx_lib/views/workitems.py:2009
 msgid "Workitem already has this tag."
 msgstr "Workitem hat dieses Tag bereits."
 
-#: nx_lib/views/workitems.py:1840
+#: nx_lib/views/workitems.py:2021
 msgid "Tag added successfully."
 msgstr "Tag erfolgreich hinzugefügt."
 
-#: nx_lib/views/workitems.py:1872
+#: nx_lib/views/workitems.py:2053
 msgid "Tag association not found."
 msgstr "Tag-Zuordnung nicht gefunden."
 
-#: nx_lib/views/workitems.py:1876
+#: nx_lib/views/workitems.py:2057
 msgid "Tag removed successfully."
 msgstr "Tag erfolgreich entfernt."
 
-#: nx_lib/views/workitems.py:1895
+#: nx_lib/views/workitems.py:2076
 msgid "This page is only available for the MS02 client."
 msgstr "Diese Seite ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:1975
+#: nx_lib/views/workitems.py:2163
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gelöscht werden. Bitte "
@@ -959,7 +959,7 @@ msgstr "Neuer Bericht"
 msgid "Ask AI — e.g. “documents per month this year”"
 msgstr "KI fragen — z. B. «Dokumente pro Monat dieses Jahr»"
 
-#: templates/_reporting_simple.html:18 templates/reporting.html:99
+#: templates/_reporting_simple.html:18 templates/reporting.html:131
 msgid "Ask AI"
 msgstr "KI fragen"
 
@@ -971,11 +971,11 @@ msgstr "Berichte durchsuchen…"
 msgid "Library"
 msgstr "Bibliothek"
 
-#: templates/_reporting_simple.html:28 templates/js/_reporting_js.html:1000
+#: templates/_reporting_simple.html:28 templates/js/_reporting_js.html:1104
 msgid "My reports"
 msgstr "Meine Berichte"
 
-#: templates/_reporting_simple.html:30 templates/js/_reporting_js.html:1006
+#: templates/_reporting_simple.html:30 templates/js/_reporting_js.html:1110
 msgid "Shared with me"
 msgstr "Mit mir geteilt"
 
@@ -1056,7 +1056,7 @@ msgstr "Datumsfeld"
 msgid "Show result"
 msgstr "Ergebnis anzeigen"
 
-#: templates/_reporting_simple.html:85 templates/js/_reporting_js.html:581
+#: templates/_reporting_simple.html:85 templates/js/_reporting_js.html:681
 msgid "Report name"
 msgstr "Berichtsname"
 
@@ -1070,8 +1070,8 @@ msgstr "Im Assistenten anpassen"
 #: templates/generali_baseservices.html:275 templates/generali_pdqm.html:350
 #: templates/generali_projectmanagement.html:261
 #: templates/generali_reporting.html:322
-#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:123
-#: templates/reporting.html:315 templates/reporting_metrics.html:72
+#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:155
+#: templates/reporting.html:347 templates/reporting_metrics.html:72
 #: templates/reporting_sources.html:82
 msgid "Save"
 msgstr "Speichern"
@@ -1080,21 +1080,21 @@ msgstr "Speichern"
 msgid "Open in Advanced"
 msgstr "In Erweitert öffnen"
 
-#: templates/_reporting_simple.html:91 templates/reporting.html:128
+#: templates/_reporting_simple.html:91 templates/reporting.html:160
 msgid "Export format"
 msgstr "Exportformat"
 
-#: templates/_reporting_simple.html:92 templates/reporting.html:129
-#: templates/reporting.html:290
+#: templates/_reporting_simple.html:92 templates/reporting.html:161
+#: templates/reporting.html:322
 msgid "Excel"
 msgstr "Excel"
 
-#: templates/_reporting_simple.html:95 templates/reporting.html:133
+#: templates/_reporting_simple.html:95 templates/reporting.html:165
 msgid "Export"
 msgstr "Exportieren"
 
-#: templates/_reporting_simple.html:98 templates/js/_reporting_js.html:387
-#: templates/js/_reporting_simple_js.html:64 templates/reporting.html:126
+#: templates/_reporting_simple.html:98 templates/js/_reporting_js.html:392
+#: templates/js/_reporting_simple_js.html:64 templates/reporting.html:158
 msgid "Show query"
 msgstr "SQL anzeigen"
 
@@ -1106,7 +1106,7 @@ msgstr "Ihre Frage verfeinern…"
 msgid "Refine"
 msgstr "Verfeinern"
 
-#: templates/_reporting_simple.html:118 templates/js/_reporting_js.html:386
+#: templates/_reporting_simple.html:118 templates/js/_reporting_js.html:391
 msgid "Running your report…"
 msgstr "Ihr Bericht wird ausgeführt…"
 
@@ -1139,12 +1139,18 @@ msgstr "Ringdiagramm"
 msgid "Show table"
 msgstr "Tabelle anzeigen"
 
-#: templates/_reporting_simple.html:148 templates/reporting.html:215
+#: templates/_reporting_simple.html:146
+msgid "Click a row or chart element to see the documents behind it."
+msgstr ""
+"Klicken Sie auf eine Zeile oder ein Diagrammelement, um die zugehörigen"
+" Dokumente anzuzeigen."
+
+#: templates/_reporting_simple.html:149 templates/reporting.html:247
 msgid "Query sent to the database"
 msgstr "An die Datenbank gesendete Abfrage"
 
-#: templates/_reporting_simple.html:149 templates/admin/logs.html:134
-#: templates/reporting.html:173 templates/reporting.html:216
+#: templates/_reporting_simple.html:150 templates/admin/logs.html:134
+#: templates/reporting.html:205 templates/reporting.html:248
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1192,7 +1198,7 @@ msgstr "Tipp: Geben Sie \"/workitemid\" ein, um ein Workitem zu referenzieren"
 msgid "Type a message or /<workitemid>..."
 msgstr "Nachricht eingeben oder /<workitemid>..."
 
-#: templates/chat.html:65 templates/reporting.html:291
+#: templates/chat.html:65 templates/reporting.html:323
 msgid "Send"
 msgstr "Senden"
 
@@ -1225,9 +1231,9 @@ msgstr "Keine weiteren Benutzer verfügbar."
 #: templates/generali_projectmanagement.html:257
 #: templates/generali_projectmanagement.html:282
 #: templates/generali_reporting.html:231 templates/generali_reporting.html:318
-#: templates/generali_reporting.html:343 templates/reporting.html:245
-#: templates/reporting.html:314 templates/workitems_overview.html:453
-#: templates/workitems_overview.html:549
+#: templates/generali_reporting.html:343 templates/reporting.html:277
+#: templates/reporting.html:346 templates/workitems_overview.html:455
+#: templates/workitems_overview.html:551
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1372,10 +1378,10 @@ msgstr "Tägliches Verarbeitungsvolumen"
 
 #: templates/generali-dashboard.html:142 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
-#: templates/js/_reporting_viz_js.html:410
-#: templates/js/_reporting_viz_js.html:472
-#: templates/js/_reporting_viz_js.html:528
-#: templates/js/_reporting_viz_js.html:530 templates/prepared_documents.html:49
+#: templates/js/_reporting_viz_js.html:437
+#: templates/js/_reporting_viz_js.html:499
+#: templates/js/_reporting_viz_js.html:555
+#: templates/js/_reporting_viz_js.html:557 templates/prepared_documents.html:49
 #: templates/workitems_overview.html:65
 msgid "Total"
 msgstr "Gesamt"
@@ -1389,7 +1395,7 @@ msgstr "Erwartet"
 msgid "Kommunikation"
 msgstr "Kommunikation"
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:342
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:344
 msgid "Select all"
 msgstr "Alle auswählen"
 
@@ -1499,8 +1505,8 @@ msgstr "Übergeordnete Kategorie"
 #: templates/js/_generali_pdqm_js.html:366
 #: templates/js/_generali_pdqm_js.html:375
 #: templates/js/_generali_pdqm_js.html:387
-#: templates/js/_reporting_viz_js.html:492
-#: templates/js/_reporting_viz_js.html:494
+#: templates/js/_reporting_viz_js.html:519
+#: templates/js/_reporting_viz_js.html:521
 msgid "All"
 msgstr "Alle"
 
@@ -1606,7 +1612,7 @@ msgstr "Aktionen"
 #: templates/generali_documents.html:278
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:412
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:414
 msgid "Showing"
 msgstr "Anzeige"
 
@@ -1617,7 +1623,7 @@ msgstr "Anzeige"
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:99
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:414
+#: templates/workitems_overview.html:416
 msgid "of"
 msgstr "von"
 
@@ -1626,7 +1632,7 @@ msgstr "von"
 #: templates/generali_documents.html:282
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:416
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:418
 msgid "results"
 msgstr "Ergebnissen"
 
@@ -1715,7 +1721,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/admin/_access_control_js.html:639
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:111
+#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:143
 msgid "Delete"
 msgstr "Löschen"
 
@@ -1742,7 +1748,7 @@ msgstr "Eintrag hinzufügen"
 #: templates/generali_monthreport.html:121
 #: templates/generali_projectmanagement.html:192
 #: templates/generali_reporting.html:73 templates/generali_reporting.html:160
-#: templates/js/_reporting_viz_js.html:138
+#: templates/js/_reporting_viz_js.html:153
 msgid "Category"
 msgstr "Kategorie"
 
@@ -1828,7 +1834,7 @@ msgid "Advanced"
 msgstr "Erweitert"
 
 #: templates/generali_documents.html:227
-#: templates/js/_reporting_viz_js.html:137
+#: templates/js/_reporting_viz_js.html:152
 msgid "Type"
 msgstr "Typ"
 
@@ -1853,7 +1859,7 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:79
 #: templates/invoices.html:124 templates/workitems_overview.html:122
-#: templates/workitems_overview.html:356
+#: templates/workitems_overview.html:358
 msgid "Status"
 msgstr "Status"
 
@@ -2176,7 +2182,7 @@ msgstr ""
 "Unser automatisiertes System verarbeitet jeden Schritt präzise und "
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:134 templates/js/_workitems_overview_js.html:494
+#: templates/hero.html:134 templates/js/_workitems_overview_js.html:495
 #: templates/workitems_overview.html:318
 msgid "Import"
 msgstr "Import"
@@ -2371,8 +2377,8 @@ msgstr "Alle Status"
 
 # Phase 3 — command palette, saved presets, CSV export
 #: templates/admin/logs.html:21 templates/invoices.html:100
-#: templates/workitems_overview.html:311 templates/workitems_overview.html:402
-#: templates/workitems_overview.html:555
+#: templates/workitems_overview.html:311 templates/workitems_overview.html:404
+#: templates/workitems_overview.html:557
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
@@ -2454,15 +2460,15 @@ msgstr "Vorbereitet durch"
 msgid "Octo status"
 msgstr "Octo-Status"
 
-#: templates/prepared_documents.html:117
+#: templates/prepared_documents.html:119
 msgid "Preview"
 msgstr "Vorschau"
 
-#: templates/prepared_documents.html:122
+#: templates/prepared_documents.html:124
 msgid "Open in Workitems"
 msgstr "In Workitems öffnen"
 
-#: templates/prepared_documents.html:133
+#: templates/prepared_documents.html:135
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 "Noch keine vorbereiteten Dokumente. Laden Sie eine Excel-Datei hoch, um "
@@ -2470,40 +2476,41 @@ msgstr ""
 
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:229
 #: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:1221
-#: templates/prepared_documents.html:147
+#: templates/js/_workitems_overview_js.html:1238
+#: templates/prepared_documents.html:149
 msgid "Previous"
 msgstr "Vorherige"
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:230
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1227
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:153
+#: templates/js/_workitems_overview_js.html:1244
+#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:155
 msgid "Next"
 msgstr "Nächste"
 
-#: templates/prepared_documents.html:164
+#: templates/prepared_documents.html:166
 msgid "Workitem preview"
 msgstr "Workitem-Vorschau"
 
-#: templates/admin/logs.html:140 templates/prepared_documents.html:166
-#: templates/prepared_documents.html:178 templates/reporting.html:268
-#: templates/reporting.html:304 templates/workitems_overview.html:562
+#: templates/admin/logs.html:140 templates/js/_reporting_drill_js.html:13
+#: templates/prepared_documents.html:168 templates/prepared_documents.html:180
+#: templates/reporting.html:84 templates/reporting.html:300
+#: templates/reporting.html:336 templates/workitems_overview.html:564
 msgid "Close"
 msgstr "Schließen"
 
-#: templates/prepared_documents.html:184 templates/workitems_overview.html:568
+#: templates/prepared_documents.html:186 templates/workitems_overview.html:570
 msgid "Show where extracted values were found on the document"
 msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
 
 #: templates/js/_workitem_detail_panel_js.html:651
-#: templates/prepared_documents.html:186 templates/workitems_overview.html:571
+#: templates/prepared_documents.html:188 templates/workitems_overview.html:573
 msgid "Show sources"
 msgstr "Quellen anzeigen"
 
-#: templates/prepared_documents.html:193 templates/prepared_documents.html:194
-#: templates/workitems_overview.html:579 templates/workitems_overview.html:580
+#: templates/prepared_documents.html:195 templates/prepared_documents.html:196
+#: templates/workitems_overview.html:581 templates/workitems_overview.html:582
 msgid "Extracted values"
 msgstr "Extrahierte Werte"
 
@@ -2636,115 +2643,115 @@ msgid "Simple"
 msgstr "Einfach"
 
 #: templates/admin/user_detail.html:115
-#: templates/js/admin/_access_control_js.html:715 templates/reporting.html:77
+#: templates/js/admin/_access_control_js.html:715 templates/reporting.html:109
 #: templates/reporting_metrics.html:39 templates/reporting_metrics.html:51
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/js/_reporting_simple_js.html:46 templates/reporting.html:80
+#: templates/js/_reporting_simple_js.html:46 templates/reporting.html:112
 msgid "Processes"
 msgstr "Prozesse"
 
 #: templates/js/_reporting_js.html:208 templates/js/_reporting_js.html:235
-#: templates/js/_reporting_simple_js.html:57 templates/reporting.html:83
+#: templates/js/_reporting_simple_js.html:57 templates/reporting.html:115
 msgid "All processes"
 msgstr "Alle Prozesse"
 
-#: templates/reporting.html:87
+#: templates/reporting.html:119
 msgid "Filter by client and process"
 msgstr "Nach Kunde und Prozess filtern"
 
-#: templates/reporting.html:89
+#: templates/reporting.html:121
 msgid "Search fields…"
 msgstr "Felder suchen…"
 
-#: templates/reporting.html:95
+#: templates/reporting.html:127
 msgid "Report mode"
 msgstr "Berichtsmodus"
 
-#: templates/reporting.html:96
+#: templates/reporting.html:128
 msgid "Table"
 msgstr "Tabelle"
 
-#: templates/reporting.html:97
+#: templates/reporting.html:129
 msgid "Requires the reporting.sql.run permission"
 msgstr "Erfordert die Berechtigung reporting.sql.run"
 
-#: templates/reporting.html:97
+#: templates/reporting.html:129
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/reporting.html:102
+#: templates/reporting.html:134
 msgid "Untitled report"
 msgstr "Unbenannter Bericht"
 
-#: templates/reporting.html:103
+#: templates/reporting.html:135
 msgid "Report title"
 msgstr "Berichtstitel"
 
-#: templates/js/_reporting_js.html:983 templates/reporting.html:106
+#: templates/js/_reporting_js.html:1087 templates/reporting.html:138
 msgid "Saved reports…"
 msgstr "Gespeicherte Berichte…"
 
-#: templates/reporting.html:108
+#: templates/reporting.html:140
 msgid "Load"
 msgstr "Laden"
 
-#: templates/reporting.html:110
+#: templates/reporting.html:142
 msgid "Rename"
 msgstr "Umbenennen"
 
-#: templates/reporting.html:113
+#: templates/reporting.html:145
 msgid "Share the selected report you own"
 msgstr "Den ausgewählten eigenen Bericht teilen"
 
-#: templates/reporting.html:113
+#: templates/reporting.html:145
 msgid "Share"
 msgstr "Teilen"
 
-#: templates/reporting.html:116
+#: templates/reporting.html:148
 msgid "Schedule the selected report you own"
 msgstr "Den ausgewählten eigenen Bericht planen"
 
-#: templates/reporting.html:116
+#: templates/reporting.html:148
 msgid "Schedule"
 msgstr "Planen"
 
-#: templates/reporting.html:122
+#: templates/reporting.html:154
 msgid "Run"
 msgstr "Ausführen"
 
-#: templates/reporting.html:124
+#: templates/reporting.html:156
 msgid "Save as"
 msgstr "Speichern unter"
 
-#: templates/reporting.html:138
+#: templates/reporting.html:170
 msgid "Target"
 msgstr "Ziel"
 
-#: templates/reporting.html:147
+#: templates/reporting.html:179
 msgid "Build a report"
 msgstr "Bericht erstellen"
 
-#: templates/reporting.html:149
+#: templates/reporting.html:181
 msgid "Write SQL"
 msgstr "SQL schreiben"
 
-#: templates/reporting.html:151
+#: templates/reporting.html:183
 msgid "Agent"
 msgstr "Agent"
 
-#: templates/reporting.html:155
+#: templates/reporting.html:187
 msgid "Ask in plain language — e.g. “top 10 processes by volume this month”"
 msgstr ""
 "Stellen Sie Ihre Frage in normaler Sprache — z. B. „Top 10 Prozesse nach "
 "Volumen diesen Monat”"
 
-#: templates/js/_reporting_ai_js.html:107 templates/reporting.html:158
+#: templates/js/_reporting_ai_js.html:107 templates/reporting.html:190
 msgid "Ask"
 msgstr "Fragen"
 
-#: templates/reporting.html:160
+#: templates/reporting.html:192
 msgid ""
 "The assistant drafts a report definition from the sources you can access "
 "— it never sees result data. Review it, then open it in the builder and "
@@ -2754,7 +2761,7 @@ msgstr ""
 " zugreifen können — er sieht niemals Ergebnisdaten. Überprüfen Sie ihn, "
 "öffnen Sie ihn im Builder und führen Sie ihn selbst aus."
 
-#: templates/reporting.html:161
+#: templates/reporting.html:193
 msgid ""
 "The assistant drafts read-only SQL from the database schema. It never "
 "sees result data. Review the SQL, then run it yourself."
@@ -2763,7 +2770,7 @@ msgstr ""
 " sieht niemals Ergebnisdaten. Überprüfen Sie das SQL und führen Sie es "
 "dann selbst aus."
 
-#: templates/reporting.html:162
+#: templates/reporting.html:194
 msgid ""
 "The agent works step by step, showing each tool it uses. It can run read-"
 "only queries and report the actual numbers from the data it fetched."
@@ -2772,7 +2779,7 @@ msgstr ""
 "Werkzeug. Er kann schreibgeschützte Abfragen ausführen und die "
 "tatsächlichen Zahlen aus den abgerufenen Daten melden."
 
-#: templates/reporting.html:162
+#: templates/reporting.html:194
 msgid ""
 "The agent works step by step, showing each tool it uses to validate and "
 "draft — grounded only in the schema you can access. It never sees result "
@@ -2782,7 +2789,7 @@ msgstr ""
 "Werkzeug zur Validierung und Entwurfserstellung — nur auf Basis des "
 "Schemas, auf das Sie zugreifen können. Er sieht niemals Ergebnisdaten."
 
-#: templates/reporting.html:170
+#: templates/reporting.html:202
 msgid ""
 "⚠ The drafted SQL did not pass the read-only check — review it before "
 "running."
@@ -2790,51 +2797,51 @@ msgstr ""
 "⚠ Das entworfene SQL hat die Schreibschutzprüfung nicht bestanden — bitte"
 " überprüfen Sie es vor der Ausführung."
 
-#: templates/reporting.html:172 templates/reporting.html:193
+#: templates/reporting.html:204 templates/reporting.html:225
 msgid "Insert into SQL editor"
 msgstr "In SQL-Editor einfügen"
 
-#: templates/reporting.html:178
+#: templates/reporting.html:210
 msgid "⚠ The drafted report could not be validated — try rephrasing."
 msgstr ""
 "⚠ Der entworfene Bericht konnte nicht validiert werden — bitte "
 "umformulieren."
 
-#: templates/reporting.html:180 templates/reporting.html:192
+#: templates/reporting.html:212 templates/reporting.html:224
 msgid "Open in builder"
 msgstr "Im Builder öffnen"
 
-#: templates/reporting.html:181
+#: templates/reporting.html:213
 msgid "Make a chart"
 msgstr "Diagramm erstellen"
 
-#: templates/reporting.html:187
+#: templates/reporting.html:219
 msgid "How the agent worked"
 msgstr "So ist der Agent vorgegangen"
 
-#: templates/reporting.html:190
+#: templates/reporting.html:222
 msgid "⚠ The agent stopped before producing a validated result — try rephrasing."
 msgstr ""
 "⚠ Der Agent hat angehalten, bevor ein validiertes Ergebnis vorlag – bitte"
 " formulieren Sie die Frage um."
 
-#: templates/reporting.html:200
+#: templates/reporting.html:232
 msgid "Grid"
 msgstr "Tabelle"
 
-#: templates/reporting.html:201
+#: templates/reporting.html:233
 msgid "Chart"
 msgstr "Diagramm"
 
-#: templates/reporting.html:202
+#: templates/reporting.html:234
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/reporting.html:207
+#: templates/reporting.html:239
 msgid "Build a report to see results"
 msgstr "Erstellen Sie einen Bericht, um Ergebnisse zu sehen"
 
-#: templates/reporting.html:208
+#: templates/reporting.html:240
 msgid ""
 "Choose a source on the left, add columns and filters, then press Run — or"
 " switch to Ask AI to draft one in plain language."
@@ -2843,53 +2850,53 @@ msgstr ""
 "drücken Sie dann Ausführen — oder wechseln Sie zu KI fragen, um einen "
 "Entwurf in einfacher Sprache zu erstellen."
 
-#: templates/reporting.html:224
+#: templates/reporting.html:256
 msgid "Metrics"
 msgstr "Metriken"
 
-#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:226
+#: templates/js/_reporting_metrics_js.html:105 templates/reporting.html:258
 #: templates/reporting_metrics.html:48
 msgid "Add metric"
 msgstr "Metrik hinzufügen"
 
-#: templates/reporting.html:227
+#: templates/reporting.html:259
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr "Wenn eine Metrik ausgewählt ist, werden die Spalten oben zur Gruppierung."
 
-#: templates/js/_reporting_viz_js.html:574 templates/reporting.html:229
+#: templates/js/_reporting_viz_js.html:601 templates/reporting.html:261
 msgid "Columns"
 msgstr "Spalten"
 
-#: templates/js/_reporting_simple_js.html:45 templates/reporting.html:230
+#: templates/js/_reporting_simple_js.html:45 templates/reporting.html:262
 msgid "Filters"
 msgstr "Filter"
 
-#: templates/reporting.html:231 templates/workitems_overview.html:280
+#: templates/reporting.html:263 templates/workitems_overview.html:280
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
-#: templates/reporting.html:232
+#: templates/reporting.html:264
 msgid "Sort"
 msgstr "Sortierung"
 
-#: templates/reporting.html:233
+#: templates/reporting.html:265
 msgid "Add sort"
 msgstr "Sortierung hinzufügen"
 
-#: templates/reporting.html:234 templates/reporting.html:289
+#: templates/reporting.html:266 templates/reporting.html:321
 #: templates/reporting_metrics.html:62
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:235
+#: templates/reporting.html:267
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: templates/reporting.html:242
+#: templates/reporting.html:274
 msgid "Live SQL — read-only"
 msgstr "Live-SQL — schreibgeschützt"
 
-#: templates/reporting.html:243
+#: templates/reporting.html:275
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -2899,123 +2906,123 @@ msgstr ""
 "auszuführen. Abfragen können keine Daten ändern, und jede Ausführung wird"
 " protokolliert. Überprüfen Sie Ihre Abfrage vor dem Ausführen sorgfältig."
 
-#: templates/reporting.html:246
+#: templates/reporting.html:278
 msgid "I understand"
 msgstr "Ich verstehe"
 
-#: templates/reporting.html:253
+#: templates/reporting.html:285
 msgid "Share report"
 msgstr "Bericht teilen"
 
-#: templates/reporting.html:256
+#: templates/reporting.html:288
 msgid "Private — only me"
 msgstr "Privat — nur ich"
 
-#: templates/reporting.html:258
+#: templates/reporting.html:290
 msgid "Shared with everyone who can use Reporting"
 msgstr "Mit allen geteilt, die Reporting nutzen können"
 
-#: templates/reporting.html:260
+#: templates/reporting.html:292
 msgid "Shared with specific people"
 msgstr "Mit bestimmten Personen geteilt"
 
-#: templates/reporting.html:263
+#: templates/reporting.html:295
 msgid "Email or username"
 msgstr "E-Mail oder Benutzername"
 
-#: templates/reporting.html:264
+#: templates/reporting.html:296
 msgid "Can edit"
 msgstr "Kann bearbeiten"
 
-#: templates/reporting.html:265
+#: templates/reporting.html:297
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: templates/reporting.html:275
+#: templates/reporting.html:307
 msgid "Schedule report"
 msgstr "Bericht planen"
 
-#: templates/reporting.html:278
+#: templates/reporting.html:310
 msgid "Frequency"
 msgstr "Häufigkeit"
 
-#: templates/js/_reporting_js.html:1223 templates/reporting.html:279
+#: templates/js/_reporting_js.html:1327 templates/reporting.html:311
 msgid "Daily"
 msgstr "Täglich"
 
-#: templates/js/_reporting_js.html:1223 templates/reporting.html:280
+#: templates/js/_reporting_js.html:1327 templates/reporting.html:312
 msgid "Weekly"
 msgstr "Wöchentlich"
 
-#: templates/js/_reporting_js.html:1223 templates/reporting.html:281
+#: templates/js/_reporting_js.html:1327 templates/reporting.html:313
 msgid "Monthly"
 msgstr "Monatlich"
 
-#: templates/reporting.html:282
+#: templates/reporting.html:314
 msgid "Time (UTC)"
 msgstr "Zeit (UTC)"
 
-#: templates/reporting.html:283
+#: templates/reporting.html:315
 msgid "Weekday"
 msgstr "Wochentag"
 
-#: templates/reporting.html:284
+#: templates/reporting.html:316
 msgid "Monday"
 msgstr "Montag"
 
-#: templates/reporting.html:284
+#: templates/reporting.html:316
 msgid "Tuesday"
 msgstr "Dienstag"
 
-#: templates/reporting.html:285
+#: templates/reporting.html:317
 msgid "Wednesday"
 msgstr "Mittwoch"
 
-#: templates/reporting.html:285
+#: templates/reporting.html:317
 msgid "Thursday"
 msgstr "Donnerstag"
 
-#: templates/reporting.html:286
+#: templates/reporting.html:318
 msgid "Friday"
 msgstr "Freitag"
 
-#: templates/reporting.html:286
+#: templates/reporting.html:318
 msgid "Saturday"
 msgstr "Samstag"
 
-#: templates/reporting.html:287
+#: templates/reporting.html:319
 msgid "Sunday"
 msgstr "Sonntag"
 
-#: templates/reporting.html:288
+#: templates/reporting.html:320
 msgid "Day of month"
 msgstr "Tag des Monats"
 
-#: templates/reporting.html:292
+#: templates/reporting.html:324
 msgid "Always"
 msgstr "Immer"
 
-#: templates/reporting.html:293
+#: templates/reporting.html:325
 msgid "Only when the total is above…"
 msgstr "Nur wenn die Gesamtzahl über … liegt"
 
-#: templates/reporting.html:294
+#: templates/reporting.html:326
 msgid "Only when the total is at least…"
 msgstr "Nur wenn die Gesamtzahl mindestens … beträgt"
 
-#: templates/reporting.html:295
+#: templates/reporting.html:327
 msgid "Only when the total is below…"
 msgstr "Nur wenn die Gesamtzahl unter … liegt"
 
-#: templates/reporting.html:296
+#: templates/reporting.html:328
 msgid "Only when the total is at most…"
 msgstr "Nur wenn die Gesamtzahl höchstens … beträgt"
 
-#: templates/reporting.html:297
+#: templates/reporting.html:329
 msgid "Threshold"
 msgstr "Schwellenwert"
 
-#: templates/reporting.html:299
+#: templates/reporting.html:331
 msgid ""
 "The threshold is checked against the report's grand total (or its row "
 "count when the report has no measure)."
@@ -3023,11 +3030,11 @@ msgstr ""
 "Der Schwellenwert wird mit dem Gesamtergebnis des Berichts verglichen "
 "(oder der Zeilenanzahl, wenn der Bericht kein Maß enthält)."
 
-#: templates/reporting.html:300
+#: templates/reporting.html:332
 msgid "Recipients (comma-separated)"
 msgstr "Empfänger (kommagetrennt)"
 
-#: templates/reporting.html:303
+#: templates/reporting.html:335
 msgid "Add schedule"
 msgstr "Zeitplan hinzufügen"
 
@@ -3201,7 +3208,7 @@ msgstr "Workitems-Übersicht"
 msgid "List of all workitems"
 msgstr "Liste aller Workitems"
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:348
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:350
 msgid "Workitem"
 msgstr "Workitem"
 
@@ -3209,7 +3216,7 @@ msgstr "Workitem"
 msgid "All statuses"
 msgstr "Alle Status"
 
-#: templates/workitems_overview.html:164 templates/workitems_overview.html:371
+#: templates/workitems_overview.html:164 templates/workitems_overview.html:373
 msgid "Priority"
 msgstr "Priorität"
 
@@ -3256,79 +3263,79 @@ msgstr "Feld suchen…"
 msgid "Type to search…"
 msgstr "Zum Suchen tippen…"
 
-#: templates/workitems_overview.html:324
+#: templates/workitems_overview.html:326
 msgid "Prepared documents"
 msgstr "Vorbereitete Dokumente"
 
-#: templates/workitems_overview.html:364
+#: templates/workitems_overview.html:366
 msgid "Last movement at"
 msgstr "Letzte Bewegung am"
 
-#: templates/workitems_overview.html:376
+#: templates/workitems_overview.html:378
 msgid "Tag"
 msgstr "Tag"
 
-#: templates/js/_workitems_overview_js.html:949
-#: templates/workitems_overview.html:398
+#: templates/js/_workitems_overview_js.html:966
+#: templates/workitems_overview.html:400
 msgid "selected"
 msgstr "ausgewählt"
 
-#: templates/workitems_overview.html:406
+#: templates/workitems_overview.html:408
 msgid "Deselect"
 msgstr "Auswahl aufheben"
 
-#: templates/workitems_overview.html:427
+#: templates/workitems_overview.html:429
 msgid "Batch Import"
 msgstr "Massenimport"
 
-#: templates/workitems_overview.html:433
+#: templates/workitems_overview.html:435
 msgid "Destination Process"
 msgstr "Zielprozess"
 
-#: templates/workitems_overview.html:438
+#: templates/workitems_overview.html:440
 msgid "Choose a process..."
 msgstr "Prozess auswählen..."
 
-#: templates/workitems_overview.html:447
+#: templates/workitems_overview.html:449
 msgid "Please select a valid process."
 msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 
-#: templates/js/_workitems_overview_js.html:498
-#: templates/workitems_overview.html:457
+#: templates/js/_workitems_overview_js.html:499
+#: templates/workitems_overview.html:459
 msgid "Import File"
 msgstr "Datei importieren"
 
-#: templates/workitems_overview.html:469
+#: templates/workitems_overview.html:471
 msgid "Export Workitems"
 msgstr "Workitems exportieren"
 
-#: templates/workitems_overview.html:480
+#: templates/workitems_overview.html:482
 msgid "Always included"
 msgstr "Immer enthalten"
 
-#: templates/workitems_overview.html:483
+#: templates/workitems_overview.html:485
 msgid "Workitem ID, Status, Stage, Last Movement, Priority, Tags"
 msgstr "Workitem-ID, Status, Stufe, Letzte Bewegung, Priorität, Tags"
 
-#: templates/workitems_overview.html:489
+#: templates/workitems_overview.html:491
 msgid "Optional extras"
 msgstr "Optionale Extras"
 
-#: templates/workitems_overview.html:494
+#: templates/workitems_overview.html:496
 msgid "Document fields"
 msgstr ""
 "Dokument-\n"
 "felder"
 
-#: templates/workitems_overview.html:495
+#: templates/workitems_overview.html:497
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr "Indexfelder — nur für Auswahlen von bis zu 10 Workitems verfügbar"
 
-#: templates/workitems_overview.html:501
+#: templates/workitems_overview.html:503
 msgid "Audit history"
 msgstr "Prüfhistorie"
 
-#: templates/workitems_overview.html:502
+#: templates/workitems_overview.html:504
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
@@ -3336,11 +3343,11 @@ msgstr ""
 "Vollständige Zeitleiste aller Phasen — nur für Auswahlen von bis zu 10 "
 "Workitems verfügbar"
 
-#: templates/workitems_overview.html:508
+#: templates/workitems_overview.html:510
 msgid "Images as base64"
 msgstr "Bilder als Base64"
 
-#: templates/workitems_overview.html:509
+#: templates/workitems_overview.html:511
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
@@ -3348,7 +3355,7 @@ msgstr ""
 "Bis zu 5 Bilder pro Workitem — nur für Auswahlen von bis zu 10 Workitems "
 "verfügbar"
 
-#: templates/workitems_overview.html:513
+#: templates/workitems_overview.html:515
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
@@ -3356,11 +3363,11 @@ msgstr ""
 "Verwenden Sie dieses PowerShell-Skript, um Bilder aus der exportierten "
 "CSV-Datei zu extrahieren. Erfordert Ausführungsrichtlinie."
 
-#: templates/workitems_overview.html:513
+#: templates/workitems_overview.html:515
 msgid "or higher."
 msgstr "oder höher."
 
-#: templates/workitems_overview.html:542
+#: templates/workitems_overview.html:544
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
@@ -4076,7 +4083,7 @@ msgstr "Keine Einträge gefunden."
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1063
+#: templates/js/_workitems_overview_js.html:1080
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
@@ -4149,7 +4156,7 @@ msgstr "Dokumente"
 
 #: templates/js/_generali_documents_js.html:62
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:934
+#: templates/js/_workitems_overview_js.html:951
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
 
@@ -4495,6 +4502,36 @@ msgstr "Zeilen"
 msgid "steps"
 msgstr "Schritte"
 
+#: templates/js/_reporting_drill_js.html:8
+msgid "Rows behind this number"
+msgstr "Zeilen hinter dieser Zahl"
+
+#: templates/js/_reporting_drill_js.html:9
+msgid "Rows contributing to this number — the distinct count may be smaller."
+msgstr ""
+"Zeilen, die zu dieser Zahl beitragen – die Anzahl eindeutiger Werte kann"
+" kleiner sein."
+
+#: templates/js/_reporting_drill_js.html:10
+#, python-brace-format
+msgid "Showing the first {n} rows — export to get all."
+msgstr ""
+"Es werden die ersten {n} Zeilen angezeigt – exportieren Sie, um alle zu"
+" erhalten."
+
+#: templates/js/_reporting_drill_js.html:11
+msgid "(empty)"
+msgstr "(leer)"
+
+#: templates/js/_reporting_drill_js.html:12
+msgid "Could not load the rows behind this number."
+msgstr "Die Zeilen hinter dieser Zahl konnten nicht geladen werden."
+
+#: templates/js/_reporting_drill_js.html:14
+#: templates/js/_reporting_simple_js.html:21
+msgid "Could not export this report."
+msgstr "Bericht konnte nicht exportiert werden."
+
 #: templates/js/_reporting_js.html:22 templates/js/_reporting_simple_js.html:49
 msgid "Yesterday"
 msgstr "Gestern"
@@ -4543,22 +4580,22 @@ msgstr "Letzte N Tage"
 msgid "Custom dates…"
 msgstr "Benutzerdefinierte Daten…"
 
-#: templates/js/_reporting_js.html:388
+#: templates/js/_reporting_js.html:393
 #: templates/js/_reporting_simple_js.html:66
 msgid "Hide query"
 msgstr "SQL ausblenden"
 
-#: templates/js/_reporting_js.html:389
+#: templates/js/_reporting_js.html:394
 #: templates/js/_reporting_simple_js.html:67
 msgid "Parameters"
 msgstr "Parameter"
 
-#: templates/js/_reporting_js.html:390
+#: templates/js/_reporting_js.html:395
 #: templates/js/_reporting_simple_js.html:68
 msgid "Copied"
 msgstr "Kopiert"
 
-#: templates/js/_reporting_js.html:391
+#: templates/js/_reporting_js.html:396
 #: templates/js/_reporting_simple_js.html:65
 #, python-brace-format
 msgid ""
@@ -4568,89 +4605,89 @@ msgstr ""
 "Es werden die ersten {n} Zeilen angezeigt – schränken Sie die Filter oder"
 " den Zeitraum ein, um weitere zu sehen."
 
-#: templates/js/_reporting_js.html:413
+#: templates/js/_reporting_js.html:491
 msgid "No rows."
 msgstr "Keine Zeilen."
 
-#: templates/js/_reporting_js.html:593 templates/js/_reporting_js.html:605
+#: templates/js/_reporting_js.html:693 templates/js/_reporting_js.html:705
 #: templates/js/_reporting_metrics_js.html:134
 #: templates/js/_reporting_sources_js.html:110
 msgid "Saved"
 msgstr "Gespeichert"
 
-#: templates/js/_reporting_js.html:594 templates/js/_reporting_js.html:606
+#: templates/js/_reporting_js.html:694 templates/js/_reporting_js.html:706
 msgid "Save failed"
 msgstr "Speichern fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:629 templates/js/_reporting_js.html:651
+#: templates/js/_reporting_js.html:729 templates/js/_reporting_js.html:751
 msgid "Export failed"
 msgstr "Export fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:637 templates/js/_reporting_js.html:658
+#: templates/js/_reporting_js.html:737 templates/js/_reporting_js.html:758
 msgid "Nothing to export."
 msgstr "Nichts zu exportieren."
 
-#: templates/js/_reporting_js.html:711
+#: templates/js/_reporting_js.html:811
 msgid "Could not load sources"
 msgstr "Quellen konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:914
+#: templates/js/_reporting_js.html:1018
 msgid "Could not load metrics"
 msgstr "Metriken konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:990
+#: templates/js/_reporting_js.html:1094
 msgid "shared"
 msgstr "geteilt"
 
-#: templates/js/_reporting_js.html:1013
+#: templates/js/_reporting_js.html:1117
 msgid "Could not load saved reports"
 msgstr "Gespeicherte Berichte konnten nicht geladen werden"
 
-#: templates/js/_reporting_js.html:1108
+#: templates/js/_reporting_js.html:1212
 msgid "New name"
 msgstr "Neuer Name"
 
-#: templates/js/_reporting_js.html:1118
+#: templates/js/_reporting_js.html:1222
 msgid "Rename failed"
 msgstr "Umbenennen fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:1126
+#: templates/js/_reporting_js.html:1230
 msgid "Delete this saved report?"
 msgstr "Diesen gespeicherten Bericht löschen?"
 
-#: templates/js/_reporting_js.html:1134
+#: templates/js/_reporting_js.html:1238
 msgid "Delete failed"
 msgstr "Löschen fehlgeschlagen"
 
-#: templates/js/_reporting_js.html:1165
+#: templates/js/_reporting_js.html:1269
 msgid "can edit"
 msgstr "kann bearbeiten"
 
-#: templates/js/_reporting_js.html:1170 templates/js/_reporting_js.html:1289
+#: templates/js/_reporting_js.html:1274 templates/js/_reporting_js.html:1393
 msgid "Remove"
 msgstr "Entfernen"
 
-#: templates/js/_reporting_js.html:1178
+#: templates/js/_reporting_js.html:1282
 msgid "Not shared with anyone yet."
 msgstr "Noch mit niemandem geteilt."
 
-#: templates/js/_reporting_js.html:1263
+#: templates/js/_reporting_js.html:1367
 msgid "No schedules yet."
 msgstr "Noch keine Zeitpläne."
 
-#: templates/js/_reporting_js.html:1272
+#: templates/js/_reporting_js.html:1376
 msgid "only when total"
 msgstr "nur wenn Gesamt"
 
-#: templates/js/_reporting_js.html:1274
+#: templates/js/_reporting_js.html:1378
 msgid "disabled"
 msgstr "deaktiviert"
 
-#: templates/js/_reporting_js.html:1283
+#: templates/js/_reporting_js.html:1387
 msgid "Disable"
 msgstr "Deaktivieren"
 
-#: templates/js/_reporting_js.html:1283
+#: templates/js/_reporting_js.html:1387
 msgid "Enable"
 msgstr "Aktivieren"
 
@@ -4693,10 +4730,6 @@ msgstr "Bericht konnte nicht ausgeführt werden."
 #: templates/js/_reporting_simple_js.html:20
 msgid "Could not save."
 msgstr "Speichern fehlgeschlagen."
-
-#: templates/js/_reporting_simple_js.html:21
-msgid "Could not export this report."
-msgstr "Bericht konnte nicht exportiert werden."
 
 #: templates/js/_reporting_simple_js.html:22
 msgid "You don't have access to the data behind this report."
@@ -4818,55 +4851,55 @@ msgstr "Diese Quelle löschen?"
 msgid "Edit source"
 msgstr "Quelle bearbeiten"
 
-#: templates/js/_reporting_viz_js.html:91
+#: templates/js/_reporting_viz_js.html:106
 msgid "Charting library unavailable."
 msgstr "Diagrammbibliothek nicht verfügbar."
 
-#: templates/js/_reporting_viz_js.html:95
+#: templates/js/_reporting_viz_js.html:110
 msgid "No data to chart."
 msgstr "Keine Daten zum Darstellen."
 
-#: templates/js/_reporting_viz_js.html:124
+#: templates/js/_reporting_viz_js.html:139
 msgid "Bar"
 msgstr "Balken"
 
-#: templates/js/_reporting_viz_js.html:125
+#: templates/js/_reporting_viz_js.html:140
 msgid "Line"
 msgstr "Linie"
 
-#: templates/js/_reporting_viz_js.html:126
+#: templates/js/_reporting_viz_js.html:141
 msgid "Pie"
 msgstr "Kreis"
 
-#: templates/js/_reporting_viz_js.html:127
+#: templates/js/_reporting_viz_js.html:142
 msgid "Doughnut"
 msgstr "Ring"
 
-#: templates/js/_reporting_viz_js.html:139
+#: templates/js/_reporting_viz_js.html:154
 msgid "Value"
 msgstr "Wert"
 
-#: templates/js/_reporting_viz_js.html:196
+#: templates/js/_reporting_viz_js.html:223
 msgid "Showing the top 50 categories by value."
 msgstr "Es werden die 50 wertgrößten Kategorien angezeigt."
 
-#: templates/js/_reporting_viz_js.html:258
+#: templates/js/_reporting_viz_js.html:285
 msgid "No data to pivot."
 msgstr "Keine Daten für die Pivot-Tabelle."
 
-#: templates/js/_reporting_viz_js.html:374
+#: templates/js/_reporting_viz_js.html:401
 msgid "Drag a field into Values to build a pivot."
 msgstr "Ziehen Sie ein Feld in „Werte“, um eine Pivot-Tabelle zu erstellen."
 
-#: templates/js/_reporting_viz_js.html:572
+#: templates/js/_reporting_viz_js.html:599
 msgid "Fields"
 msgstr "Felder"
 
-#: templates/js/_reporting_viz_js.html:573
+#: templates/js/_reporting_viz_js.html:600
 msgid "Rows"
 msgstr "Zeilen"
 
-#: templates/js/_reporting_viz_js.html:575
+#: templates/js/_reporting_viz_js.html:602
 msgid "Values"
 msgstr "Werte"
 
@@ -5015,17 +5048,17 @@ msgid "Hide sources"
 msgstr "Quellen ausblenden"
 
 #: templates/js/_workitems_overview_js.html:345
-#: templates/js/_workitems_overview_js.html:1077
+#: templates/js/_workitems_overview_js.html:1094
 msgid "High Priority"
 msgstr "Hohe Priorität"
 
 #: templates/js/_workitems_overview_js.html:346
-#: templates/js/_workitems_overview_js.html:1078
+#: templates/js/_workitems_overview_js.html:1095
 msgid "Medium Priority"
 msgstr "Mittlere Priorität"
 
 #: templates/js/_workitems_overview_js.html:347
-#: templates/js/_workitems_overview_js.html:1079
+#: templates/js/_workitems_overview_js.html:1096
 msgid "Low Priority"
 msgstr "Niedrige Priorität"
 
@@ -5037,35 +5070,35 @@ msgstr "Bitte wählen Sie gültige PDF-Dateien aus."
 msgid "files selected"
 msgstr "Dateien ausgewählt"
 
-#: templates/js/_workitems_overview_js.html:579
+#: templates/js/_workitems_overview_js.html:596
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overview_js.html:860
+#: templates/js/_workitems_overview_js.html:877
 msgid "primary"
 msgstr "primär"
 
-#: templates/js/_workitems_overview_js.html:862
+#: templates/js/_workitems_overview_js.html:879
 msgid "Some workitems are temporarily unavailable:"
 msgstr "Einige Workitems sind vorübergehend nicht verfügbar:"
 
-#: templates/js/_workitems_overview_js.html:909
+#: templates/js/_workitems_overview_js.html:926
 msgid "Loading workitems..."
 msgstr "Workitems werden geladen..."
 
-#: templates/js/_workitems_overview_js.html:977
+#: templates/js/_workitems_overview_js.html:994
 msgid "selected workitems will be exported"
 msgstr "ausgewählte Workitems werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:978
+#: templates/js/_workitems_overview_js.html:995
 msgid "All workitems matching current filters will be exported"
 msgstr "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1043
+#: templates/js/_workitems_overview_js.html:1060
 msgid "Export failed. Please try again."
 msgstr "Export fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: templates/js/_workitems_overview_js.html:1062
+#: templates/js/_workitems_overview_js.html:1079
 msgid "No workitems found"
 msgstr "Keine Workitems gefunden"
 

@@ -9,7 +9,7 @@
     // selected subset. Serialised to scope.clients/processes by buildScope().
     allProcesses: [], selProcesses: [],
     mode: 'table', sqlSource: null, sqlSources: [], sourcesById: {},
-    lastResult: null, view: 'grid', currentReportId: null, currentReportName: null,
+    lastResult: null, lastDef: null, view: 'grid', currentReportId: null, currentReportName: null,
     currentReportOwned: true, currentReportCanEdit: true,
     // Semantic metrics: cached full map {sourceId: [{code,label,...}]} (null until
     // fetched), the per-source available list, and the selected metric codes.
@@ -374,8 +374,13 @@
       });
     if (!state.lastResult) return;
     if (view === 'chart' && !state._chartMounted) {
+      // onElementClick is omitted entirely (not just a no-op) when the result
+      // isn't drill-eligible (see canDrill) — Advanced's chart can plot ANY
+      // grid, aggregate or not, so a raw non-aggregate chart must not show a
+      // pointer cursor that leads nowhere.
+      var chartOpts = canDrill(state.lastDef) ? { onElementClick: drillFromChart } : {};
       ReportingViz.mountChart(document.getElementById('rpChart'),
-        state.lastResult.columns, state.lastResult.rows);
+        state.lastResult.columns, state.lastResult.rows, chartOpts);
       state._chartMounted = true;
     }
     if (view === 'pivot' && !state._pivotMounted) {
@@ -391,6 +396,79 @@
   var I18N_SQL_PARAMS = {{ _("Parameters")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
   var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
+
+  // ----- Drill-through (Advanced: chart clicks + grid rows) -----
+  // Mirrors _reporting_simple_js.html's metricAggFor/clickedFor/openDrill/
+  // drillFromChart, adapted to the Advanced builder's state shape: the
+  // definition that produced the currently-shown result lives in
+  // state.lastDef (captured at request time by run()/runSql(), rather than a
+  // "current report" object), and the source field catalog is state.sourcesById
+  // (keyed by source id, populated by loadSources()).
+
+  // Per-plan gate: aggregate curated results only (>=1 metric, >=1 dimension,
+  // never a SQL-sandbox definition, which carries no `source` to transform).
+  // Used both to decide whether the chart gets a click handler at all (so a
+  // plain, non-aggregate grid charted ad hoc never shows a misleading
+  // pointer cursor) and to gate the grid-row affordance below.
+  function canDrill(def) {
+    return !!(def && def.kind !== 'sql' && (def.metrics || []).length && (def.columns || []).length);
+  }
+
+  // The metric's aggregation (sum/avg/count/count_distinct/…) — decides
+  // whether a drilled-into set of rows is a "contributing to this number"
+  // count (distinct aggregations) vs. an exact breakdown.
+  function metricAggFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return '';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return hit ? hit.aggregation : '';
+  }
+
+  // Maps a definition's leading columns (dimensions come first in the result
+  // row) to ReportingDrill's {field, grain, value} shape.
+  function clickedFor(def, rowValues) {
+    return ((def && def.columns) || []).map(function (c, i) {
+      return { field: c.field, grain: c.grain || null, value: rowValues[i] };
+    });
+  }
+
+  function openDrill(clicked) {
+    var def = state.lastDef;
+    if (!def || !def.source) return;
+    var src = state.sourcesById[def.source];
+    if (!src) return;
+    var header = clicked.map(function (c) {
+      var f = (src.fields || []).find(function (x) { return x.field === c.field; });
+      var v = (c.value === null || c.value === undefined || c.value === '')
+        ? ReportingDrill.I18N.nullLabel : String(c.value).slice(0, 60);
+      return ((f && f.label) || c.field) + ' = ' + v;
+    }).join(' · ');
+    var isDistinct = /distinct/i.test(String(metricAggFor(def) || ''));
+    ReportingDrill.open({
+      definition: def, fields: src.fields || [],
+      clicked: clicked, header: header, isDistinct: isDistinct
+    });
+  }
+
+  // index/datasetIndex are Chart.js element coordinates from ReportingViz's
+  // onElementClick callback. Unlike Simple's fixed definition-driven chart,
+  // Advanced's chart lets the user pick ANY result column as the X axis
+  // (ReportingViz.getChartXField), so a click only drills when that column is
+  // actually one of the definition's dimensions — picking a metric column as
+  // X is a no-op here rather than a false drill.
+  function drillFromChart(index, datasetIndex) {
+    var def = state.lastDef;
+    if (!canDrill(def)) return;
+    var dims = def.columns || [];
+    var xField = window.ReportingViz && ReportingViz.getChartXField && ReportingViz.getChartXField();
+    if (!xField) return;
+    var dimCol = dims.find(function (d) { return d.field === xField; });
+    if (!dimCol) return;
+    var rawVal = ReportingViz.getChartLabelAt(index);
+    if (rawVal === undefined) return;
+    openDrill([{ field: dimCol.field, grain: dimCol.grain || null, value: rawVal }]);
+  }
 
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
@@ -423,8 +501,16 @@
       wrap.appendChild(note);
     }
 
+    // Drillable only for aggregate results (see canDrill) whose leading
+    // columns resolve to a valid drill definition — probed once with the
+    // first row, same gating as Simple's renderTable.
+    var def = state.lastDef || {};
+    var src = state.sourcesById[def.source];
+    var drillable = !!(canDrill(def) && src &&
+      ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(def, data.rows[0])));
+
     var table = document.createElement('table');
-    table.className = 'reporting-table';
+    table.className = 'reporting-table' + (drillable ? ' reporting-drill-clickable' : '');
 
     var thead = document.createElement('thead');
     var headRow = document.createElement('tr');
@@ -444,6 +530,13 @@
         td.textContent = (v == null ? '' : String(v));
         tr.appendChild(td);
       });
+      if (drillable) {
+        tr.tabIndex = 0;
+        tr.addEventListener('click', function () { openDrill(clickedFor(def, r)); });
+        tr.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') openDrill(clickedFor(def, r));
+        });
+      }
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -560,7 +653,14 @@
       showRunLoading();
       api('/api/reporting/sql/run', { method: 'POST', body: JSON.stringify(sqlBody()) })
         .then(function (res) { return res.json(); })
-        .then(function (data) { endRunLoading(); renderResults(data); })
+        .then(function (data) {
+          endRunLoading();
+          // SQL-sandbox results carry no definition to transform into a drill
+          // — kind: 'sql' alone is enough for renderResults/drillFromChart's
+          // guards to disable the affordance entirely.
+          state.lastDef = { kind: 'sql' };
+          renderResults(data);
+        })
         .catch(function (e) { endRunLoading(); showError(e.message); });
     });
   }
@@ -716,9 +816,13 @@
 
   function run() {
     showRunLoading();
-    return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(buildDefinition()) })
+    // Captured here (not recomputed from live builder state in renderResults)
+    // so drill-through always transforms the definition that actually
+    // produced the rows on screen, even if the builder is edited afterwards.
+    var def = buildDefinition();
+    return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) })
       .then(function (res) { return res.json(); })
-      .then(function (data) { endRunLoading(); renderResults(data); })
+      .then(function (data) { endRunLoading(); state.lastDef = def; renderResults(data); })
       .catch(function (e) { endRunLoading(); showError(e.message); });
   }
 

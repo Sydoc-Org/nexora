@@ -10,6 +10,10 @@ Work toward 2.5.64.
 
 ### Added
 
+- Reporting: drill-through — click a chart element or aggregate row to see the underlying
+  document rows in a slide-over panel, with workitem links and CSV/XLSX export.
+- Reporting: `is_null` filters now match rows from processes that don't expose the field
+  (consistent with how those rows are projected into "(null)" groups).
 - **Validation User** doc-field and a permission-gated doc-field mechanism:
   fields flagged `IsSensitive` in `dbo.Search_Field_Labels` are hidden (name and
   value) from users without `workitems.filter.documentfields.sensitive` across

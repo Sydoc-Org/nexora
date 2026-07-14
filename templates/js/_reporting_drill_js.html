@@ -1,0 +1,214 @@
+<script>
+/* Drill-through: click an aggregate number, see the rows behind it.
+   Shared by the Simple and Advanced panes. */
+window.ReportingDrill = (function () {
+  'use strict';
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var I18N = {
+    title: {{ _("Rows behind this number")|tojson }},
+    distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
+    truncatedNote: {{ _("Showing the first {n} rows — export to get all.")|tojson }},
+    nullLabel: {{ _("(empty)")|tojson }},
+    loadError: {{ _("Could not load the rows behind this number.")|tojson }},
+    close: {{ _("Close")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }}
+  };
+
+  var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
+
+  function addGrainUpper(startStr, grain) {
+    var s = String(startStr).slice(0, 10);
+    var p = s.split('-');
+    if (p.length !== 3) return null;
+    var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    if (isNaN(d.getTime())) return null;
+    if (grain === 'day') d.setUTCDate(d.getUTCDate() + 1);
+    else if (grain === 'week') d.setUTCDate(d.getUTCDate() + 7);
+    else if (grain === 'month') d.setUTCMonth(d.getUTCMonth() + 1);
+    else if (grain === 'quarter') d.setUTCMonth(d.getUTCMonth() + 3);
+    else if (grain === 'year') d.setUTCFullYear(d.getUTCFullYear() + 1);
+    else return null;
+    return d.toISOString().slice(0, 10);
+  }
+
+  /* def: the definition that produced the current aggregate result.
+     fields: the source catalog's field list ({field,label,grainable,filterable}).
+     clicked: [{field, grain?, value}] — one entry per definition column, in order.
+     Returns a raw-row drill definition, or null when drilling is not possible. */
+  function buildDrillDefinition(def, fields, clicked) {
+    if (!def || !def.source || !clicked || !clicked.length) return null;
+    var byField = {};
+    (fields || []).forEach(function (f) { byField[f.field] = f; });
+    for (var i = 0; i < clicked.length; i++) {
+      var cf = byField[clicked[i].field];
+      if (!cf || cf.filterable === false) return null;
+    }
+    var filters = (def.filters || []).map(function (x) {
+      return JSON.parse(JSON.stringify(x));
+    });
+    clicked.forEach(function (c) {
+      if (c.grain) {
+        var upper = addGrainUpper(c.value, c.grain);
+        if (!upper) return;
+        filters.push({ field: c.field, op: 'gte', value: String(c.value).slice(0, 10) });
+        filters.push({ field: c.field, op: 'lt', value: upper });
+      } else if (c.value === null || c.value === undefined || c.value === '') {
+        filters.push({ field: c.field, op: 'is_null' });
+      } else {
+        filters.push({ field: c.field, op: 'eq', value: c.value });
+      }
+    });
+    var cols = [];
+    SMART_FIELDS.concat(clicked.map(function (c) { return c.field; }))
+      .forEach(function (fd) {
+        if (byField[fd] && cols.indexOf(fd) === -1 && cols.length < 8) cols.push(fd);
+      });
+    var hasSmart = SMART_FIELDS.some(function (fd) { return !!byField[fd]; });
+    if (!hasSmart) {           // generic table source: top up with leading columns
+      for (var j = 0; j < (fields || []).length && cols.length < 6; j++) {
+        if (cols.indexOf(fields[j].field) === -1) cols.push(fields[j].field);
+      }
+    }
+    if (!cols.length) return null;
+    var sortField = cols.indexOf('export_date') !== -1 ? 'export_date' : cols[0];
+    var dd = {
+      schemaVersion: 1,
+      source: def.source,
+      title: def.title || 'drill',
+      visualization: 'table',
+      columns: cols.map(function (fd) { return { field: fd }; }),
+      filters: filters,
+      sort: [{ field: sortField, dir: sortField === 'export_date' ? 'desc' : 'asc' }],
+      rowLimit: 100
+    };
+    if (def.scope) dd.scope = JSON.parse(JSON.stringify(def.scope));
+    return dd;
+  }
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  var current = null;   // {definition} of the open drill, for export
+
+  function close() {
+    el('rdPanel').hidden = true;
+    el('rdBackdrop').hidden = true;
+    current = null;
+  }
+
+  function renderRows(columns, rows, truncated, isDistinct) {
+    var head = '<tr>' + columns.map(function (c) {
+      return '<th>' + esc(c.header || c.field) + '</th>';
+    }).join('') + '</tr>';
+    var wiIdx = -1;
+    columns.forEach(function (c, i) { if (c.field === 'workitem_id') wiIdx = i; });
+    var body = rows.map(function (r) {
+      return '<tr>' + r.map(function (v, i) {
+        var cell = v == null ? '<span class="reporting-drill-null">' + esc(I18N.nullLabel) + '</span>'
+                             : esc(String(v).slice(0, 200));
+        if (i === wiIdx && v != null) {
+          cell = '<a href="/workitems?search=' + encodeURIComponent(String(v)) +
+                 '" target="_blank" rel="noopener">' + esc(String(v)) + '</a>';
+        }
+        return '<td>' + cell + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    el('rdBody').innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    var notes = [];
+    if (isDistinct) notes.push(I18N.distinctNote);
+    if (truncated) notes.push(I18N.truncatedNote.replace('{n}', String(rows.length)));
+    el('rdNote').textContent = notes.join(' ');
+  }
+
+  /* opts: {definition, fields, clicked, header, isDistinct} */
+  function open(opts) {
+    var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
+    if (!dd) return;
+    current = { definition: dd };
+    var token = current;                          // guards against a stale response
+                                                    // from an earlier open() call winning
+                                                    // the race once current is reassigned
+    el('rdTitle').textContent = opts.header || I18N.title;
+    el('rdSubtitle').textContent = I18N.title;
+    el('rdBody').innerHTML = '<p class="reporting-drill-note">…</p>';
+    el('rdNote').textContent = '';
+    el('rdPanel').hidden = false;
+    el('rdBackdrop').hidden = false;
+    fetch('/api/reporting/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(dd)
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      if (current !== token) return;               // closed, or superseded by a later open()
+      if (!r.ok) {
+        el('rdBody').innerHTML = '<p class="reporting-drill-note">' +
+          esc((r.data && r.data.error) || I18N.loadError) + '</p>';
+        return;
+      }
+      renderRows(r.data.columns || [], r.data.rows || [], !!r.data.truncated,
+                 !!opts.isDistinct);
+    }).catch(function () {
+      if (current === token) {
+        el('rdBody').innerHTML = '<p class="reporting-drill-note">' + esc(I18N.loadError) + '</p>';
+      }
+    });
+  }
+
+  /* Mirrors the rsExport click listener in _reporting_simple_js.html: same
+     endpoint, same body shape, same blob/anchor download idiom — just swaps
+     in the drill definition and the caller's chosen format. */
+  async function exportDrill(format) {
+    if (!current) return;
+    var body = Object.assign({}, current.definition, { format: format });
+    var res;
+    try {
+      res = await fetch('/api/reporting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(body)
+      });
+    } catch (e) { res = { ok: false }; }
+    if (!res.ok) {
+      el('rdNote').textContent = I18N.couldNotExport;
+      return;
+    }
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (current.definition.title || 'drill') + '.' + format;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function wire() {
+    el('rdClose').addEventListener('click', close);
+    el('rdBackdrop').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !el('rdPanel').hidden) close();
+    });
+    if (el('rdExportCsv')) {
+      el('rdExportCsv').addEventListener('click', function () { exportDrill('csv'); });
+      el('rdExportXlsx').addEventListener('click', function () { exportDrill('xlsx'); });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wire);
+  } else {
+    wire();
+  }
+
+  return {
+    buildDrillDefinition: buildDrillDefinition,
+    addGrainUpper: addGrainUpper,
+    open: open,
+    close: close,
+    I18N: I18N
+  };
+})();
+</script>

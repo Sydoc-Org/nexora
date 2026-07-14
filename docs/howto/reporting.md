@@ -232,6 +232,49 @@ The viz code lives in `templates/js/_reporting_viz_js.html` (exposes
 `window.ReportingViz`); it operates purely on the `{columns, rows}` the grid is
 showing.
 
+### Drill-through
+
+For **aggregate** results (a report with at least one metric and at least one
+dimension, curated source — not live SQL), clicking a chart element or an
+aggregate-table/grid row opens a slide-over drawer showing the underlying
+document rows for that data point. Available on both the Simple and Advanced
+tabs:
+
+- **Clickable:** chart bars/points/segments, and rows of the Simple result
+  table or the Advanced grid *when the result is an aggregate* (metric +
+  dimension present). A cursor/hover affordance (and, on Simple, a hint line)
+  only appears when a row or chart is actually drillable.
+- **Not clickable:** raw-row table results (no metric), the big-number
+  summary card, pivot-matrix cells, and SQL-sandbox results (a live-SQL
+  definition carries no source/columns to transform into a drill query).
+- The drawer re-runs the same curated source through `/api/reporting/run`
+  with a synthesized raw-row definition — filters echo the clicked
+  dimension value(s) (an exact date range for a grained date click, `eq` for
+  a category, `is_null` for a null/"(empty)" group) plus any filters and row
+  scope already on the parent report. This means drill rows obey the exact
+  same grants, source permissions, and process scope as the report that
+  produced them — there is no new trust surface.
+- **Columns shown:** for sources that expose the smart-set fields
+  (`workitem_id`, `processname`, `import_date`, `export_date`), those four
+  come first, followed by the clicked breakdown field(s). Generic sources
+  without the smart fields instead top up with up to ~6 leading catalog
+  columns. `workitem_id` values render as a link into `/workitems`.
+- **Row cap:** the drawer displays up to **100 rows** and shows a truncation
+  note when more exist; use the drawer's **CSV** / **XLSX** export buttons
+  (same `/api/reporting/export` endpoint used elsewhere) to get the full set.
+- **Distinct-count caveat:** when the clicked number came from a
+  `count_distinct` (or similar distinct) aggregation, the drawer shows a note
+  that the rows displayed are those *contributing* to the number — the row
+  count can exceed the distinct count because the same distinct value may
+  appear on multiple rows.
+
+Shared code lives in `templates/js/_reporting_drill_js.html`
+(`window.ReportingDrill` — `buildDrillDefinition`, drawer open/close/render,
+export), wired into `templates/js/_reporting_simple_js.html` (Simple: chart
+`onClick`/`onHover` + result-row clicks) and `templates/js/_reporting_js.html`
+(Advanced: chart `onElementClick` + grid-row clicks), with drawer markup/CSS
+in `templates/reporting.html` and `static/css/reporting.css`.
+
 ### Export (Excel / CSV, and what you see)
 
 Pick the format (**Excel** or **CSV**) next to the **Export** button. The Simple
