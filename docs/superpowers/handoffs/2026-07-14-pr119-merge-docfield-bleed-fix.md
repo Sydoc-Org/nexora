@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** the session pointer now targets
+> `2026-07-14-external-api-v1-today-stats-plan.md` (external API v1 plan written, awaiting
+> `/execute-plan`). This file's content remains valid for the PR #119 / doc-field work.
+
 # Handoff — PR #119 shipped to PROD + doc-field cross-source bleed fix
 
 **Date:** 2026-07-14 (afternoon) · **Branch:** `feature/2.5.64` (main clone `C:\dev\nexora`) ·
