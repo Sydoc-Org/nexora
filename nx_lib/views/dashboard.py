@@ -399,7 +399,12 @@ def dashboard_processed_over_time():
                 ORDER BY d
             """
             for row in _default_stat_rows(full_query):
-                counts[row.d] = counts.get(row.d, 0) + row.total_count
+                # The legacy `DRIVER={SQL Server}` pyodbc driver returns SQL Server
+                # DATE columns as `str`, not `datetime.date` (confirmed on PROD);
+                # normalize here so this leg's keys match the MS02/zero-fill legs'
+                # native `date` keys before they share the `counts` dict.
+                d = row.d if isinstance(row.d, date) else date.fromisoformat(str(row.d)[:10])
+                counts[d] = counts.get(d, 0) + row.total_count
 
         ms02_src = _ms02_source(ms02_rows)
         if ms02_src:

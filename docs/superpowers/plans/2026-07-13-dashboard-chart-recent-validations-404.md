@@ -653,6 +653,48 @@ card for every non-PDBS scope. All three now route their default T-SQL
 leg through _default_stat_rows and degrade per leg."
 ```
 
+## Task 5.5 — Bug 2: fix str/datetime.date type mismatch in processed_over_time
+
+Inserted between Task 5 and Task 6 after Task 3's redo (2026-07-14, connectivity
+restored) reached a conclusive root cause — see `## Diagnosis result (2026-07-13,
+redone 2026-07-14)` below and `.superpowers/sdd/task-3-redo-report.md`. Summary:
+PROD's legacy `DRIVER={SQL Server}` pyodbc driver (see `nx_lib/db.py`) returns SQL
+Server `DATE` columns as Python `str`, not `datetime.date`. `dashboard_processed_over_time`
+built a single `counts` dict keyed by date from three sources — the default T-SQL
+leg (`str` keys from `_default_stat_rows`), the MS02/Postgres leg (native `date`
+keys via psycopg2), and a zero-fill loop (`today - timedelta(days=i)`, always real
+`date` objects) — then called `sorted(counts.keys())`. Mixing `str` and
+`datetime.date` keys raised `TypeError: '<' not supported between instances of
+'datetime.date' and 'str'` on every request that included any default-leg process
+(83 confirmed PROD `app.log` occurrences over two weeks, 2026-06-30 through
+2026-07-13). This is the actual cause of the reported "chart blanks except for
+PDBS" symptom — `sydoc.05_PDBS` is MS02-only, so it never contributes a `str` key
+and was the only process that ever rendered. The three sibling endpoints
+(`dashboard_kpi_stats`, `dashboard_hourly_stats`, `dashboard_avg_processing_time`)
+don't build date-keyed dicts and are unaffected.
+
+**Fix:** normalize `row.d` to a `datetime.date` at the point the default leg's
+rows are consumed in `dashboard_processed_over_time` (not inside the shared
+`_default_stat_rows` helper), handling both the observed `str` case and a
+already-`date` case defensively:
+
+```python
+d = row.d if isinstance(row.d, date) else date.fromisoformat(str(row.d)[:10])
+counts[d] = counts.get(d, 0) + row.total_count
+```
+
+`date` was already imported at the top of `nx_lib/views/dashboard.py`
+(`from datetime import date, datetime, timedelta`), so no new import was needed.
+
+**Test:** added `test_processed_over_time_survives_str_typed_default_leg_date` to
+`tests/unit/test_dashboard_stats.py`, mocking the default leg's row with a
+string-typed `d` (`today.isoformat()`) alongside an MS02 leg row with a real
+`date` for `yesterday`, and asserting the route returns 200 with both dates
+present and correctly counted (not the previous 500). Confirmed RED first — the
+test reproduced the exact `TypeError` text before the fix, caught by the route's
+existing broad exception handler (500). After the fix, `tests/unit/test_dashboard_stats.py`
++ `tests/integration/test_dashboard_routes.py` run 41/41 green.
+
 ## Task 6 — Never cache error responses + front-end non-OK guard
 
 **Files:** Modify `nx_lib/views/dashboard.py`, `templates/js/_dashboard_js.html`, `tests/unit/test_dashboard_stats.py`, `tests/integration/test_dashboard_routes.py`.

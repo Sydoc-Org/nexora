@@ -7,7 +7,7 @@ date columns from those rows, quoting the PascalCase Postgres identifiers).
 """
 
 import types
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import MagicMock
 
 from flask import session
@@ -209,6 +209,43 @@ def test_processed_over_time_default_leg_survives_dead_ms02(app, monkeypatch):
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
     assert max(resp.get_json()["data"]) == 5
+
+
+def test_processed_over_time_survives_str_typed_default_leg_date(app, monkeypatch):
+    # PROD's legacy `DRIVER={SQL Server}` pyodbc driver returns SQL Server DATE
+    # columns as Python `str` (not `datetime.date`) — confirmed via live PROD
+    # diagnosis, see docs/superpowers/plans/
+    # 2026-07-13-dashboard-chart-recent-validations-404.md ("Diagnosis result
+    # (2026-07-13, redone 2026-07-14)"). The route's zero-fill loop and the MS02
+    # leg both contribute real `datetime.date` keys to the same `counts` dict, so
+    # `sorted(counts.keys())` mixed `str` and `datetime.date` and raised
+    # `TypeError: '<' not supported between instances of 'datetime.date' and
+    # 'str'` on every request touching a default-leg process (83 PROD app.log
+    # occurrences over two weeks).
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    today = date.today()
+    str_date = today.isoformat()  # what the legacy driver actually returns
+    monkeypatch.setattr(
+        dv,
+        "engine_statistics_db",
+        _engine_returning([types.SimpleNamespace(d=str_date, total_count=5)]),
+    )
+    yesterday = today - timedelta(days=1)
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(yesterday, 3)])
+
+    with app.test_request_context("/api/dashboard/processed_over_time"):
+        session["username"] = "u"
+        session["userid"] = 990006
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_processed_over_time.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    body = resp.get_json()
+    assert body["labels"] == sorted(body["labels"])  # sort must not raise
+    assert body["data"][body["labels"].index(today.isoformat())] == 5
+    assert body["data"][body["labels"].index(yesterday.isoformat())] == 3
 
 
 def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypatch):
