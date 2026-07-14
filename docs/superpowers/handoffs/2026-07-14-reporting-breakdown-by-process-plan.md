@@ -1,3 +1,7 @@
+> **⏩ Superseded as the latest 2026-07-14 handoff:** the newest session state is
+> `2026-07-14-reporting-breakdown-by-process-execution-complete.md` (all 6 tasks executed,
+> live-verified on INT, final review clean). This file remains valid for the plan it describes.
+
 # Handoff — Reporting "Break down by Process" plan written (ready to execute)
 
 **Date:** 2026-07-14 (midday) · **Branch:** `plan/reporting-breakdown-by-process` (worktree
