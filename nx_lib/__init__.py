@@ -52,6 +52,7 @@ def create_app():
     # — every url_for(...) call in templates continues to resolve unchanged.
     from .views import (
         admin,
+        api_external,
         auth,
         chat,
         core,
@@ -75,6 +76,7 @@ def create_app():
     notifications.register_routes(app)
     invoices.register_routes(app)
     chat.register_routes(app)
+    api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
     if cfg.IS_PROD:
         from .middleware import PrefixMiddleware
