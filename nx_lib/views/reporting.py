@@ -59,7 +59,7 @@ from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
-from ..reporting.sandbox import SqlSandboxError, validate_select, wrap_with_cap
+from ..reporting.sandbox import MAX_SQL_LEN, SqlSandboxError, validate_select, wrap_with_cap
 from ..reporting.schedule import compute_next_run, utcnow, validate_schedule
 from ..reporting.schema import (
     ReportDefinitionError,
@@ -82,7 +82,7 @@ from ..reporting.sources import (
     code_sources,
     merge_sources,
 )
-from ..reporting.sqlformat import format_sql
+from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
     build_generic_query,
@@ -995,7 +995,9 @@ def api_run():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
     except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run prepare error: {e}")
         return jsonify({"error": _("Could not build report")}), 500
@@ -1004,6 +1006,7 @@ def api_run():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run exec error: {e}")
         return jsonify({"error": _("Could not run report")}), 500
+    pretty = format_sql(sql)
     payload = {
         "columns": [
             {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
@@ -1012,7 +1015,8 @@ def api_run():
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
         "sql": sql,
-        "sqlPretty": format_sql(sql),
+        "sqlPretty": pretty,
+        "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves
@@ -1021,6 +1025,26 @@ def api_run():
     if resolved_dates:
         payload["resolvedDates"] = resolved_dates
     return jsonify(payload)
+
+
+def _sandbox_error_message(e):
+    """Translated user-facing message for a SqlSandboxError, keyed by rule.
+
+    The raw English message stays in the response's `detail` field; dynamic
+    bits (keyword / construct name) arrive via e.token. Unknown rules fall
+    back to the raw message rather than hiding information.
+    """
+    token = getattr(e, "token", None) or ""
+    messages = {
+        "empty": _("SQL is required."),
+        "too_long": _("The SQL exceeds {n} characters.").format(n=MAX_SQL_LEN),
+        "blocked_keyword": _("Disallowed keyword: {kw}").format(kw=token),
+        "parse": _("The SQL could not be parsed."),
+        "multi_statement": _("Exactly one statement is allowed."),
+        "not_select": _("Only SELECT / WITH / set operations are allowed."),
+        "forbidden_node": _("Disallowed construct: {kw}").format(kw=token),
+    }
+    return messages.get(e.rule, str(e))
 
 
 @require_permission("reporting.sql.run")
@@ -1041,9 +1065,9 @@ def api_sql_run():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this SQL target")}), 403
     except SqlSandboxError as e:
-        return jsonify({"error": str(e), "rule": e.rule}), 400
+        return jsonify({"error": _sandbox_error_message(e), "rule": e.rule, "detail": str(e)}), 400
     except ReportDefinitionError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": _("Invalid SQL request."), "detail": str(e)}), 400
     except RuntimeError:
         return jsonify({"error": _("SQL source is not configured")}), 503
     except Exception as e:
@@ -1601,16 +1625,18 @@ def api_export():
         except PermissionError:
             return jsonify({"error": _("Not authorized for this SQL target")}), 403
         except SqlSandboxError as e:
-            return jsonify({"error": str(e), "rule": e.rule}), 400
+            return jsonify(
+                {"error": _sandbox_error_message(e), "rule": e.rule, "detail": str(e)}
+            ), 400
         except ReportDefinitionError as e:
-            return jsonify({"error": str(e)}), 400
+            return jsonify({"error": _("Invalid SQL request."), "detail": str(e)}), 400
         except RuntimeError:
             return jsonify({"error": _("SQL source is not configured")}), 503
         except Exception as e:
             current_app.logger.error(f"/api/reporting/export sql error: {e}")
             return jsonify({"error": _("Could not export query")}), 500
         return _serialize_export(
-            columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png
+            columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
         )
     try:
         columns, sql, params, engine = _prepare_run(rd)
@@ -1618,11 +1644,15 @@ def api_export():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
     except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
-    return _serialize_export(columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png)
+    return _serialize_export(
+        columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
+    )
 
 
 @require_permission("reporting.export")
@@ -1652,7 +1682,7 @@ def api_export_grid():
     rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:MAX_ROW_LIMIT]]
     fmt = _resolve_export_format(payload.get("format"))
     return _serialize_export(
-        columns, rows, payload.get("title") or "Report", fmt, chart_png=chart_png
+        columns, rows, payload.get("title") or _("Report"), fmt, chart_png=chart_png
     )
 
 

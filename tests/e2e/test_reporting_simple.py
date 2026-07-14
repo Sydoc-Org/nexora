@@ -354,8 +354,10 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     page.get_by_test_id("rs-ai-ask").click()
     chips = page.get_by_test_id("rs-chips")
     expect(chips).to_be_visible()
-    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}]
-    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname eq acme.inv")
+    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}].
+    # eq renders as '='; the field key stays raw here because the TEST env's
+    # docprocessing catalog is empty (no Statistics DB), so no label resolves.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname = acme.inv")
 
     # Edit the filter value in place; the run payload must carry the new value.
     chips.get_by_test_id("rs-chip").first.click()
@@ -369,6 +371,45 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     # Remove the filter chip entirely -> "no filters" placeholder renders.
     chips.get_by_test_id("rs-chip-remove").first.click()
     expect(chips).to_contain_text("no filters")
+
+
+def test_chip_labels_resolve_field_and_op(nexora_server, page):
+    """Chips show the catalog field label and a symbol op, not raw codes."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "docprocessing",
+                        "label": "Document processing",
+                        "kind": "curated",
+                        "processes": ["acme.inv"],
+                        "fields": [
+                            {
+                                "field": "processname",
+                                "label": "Process",
+                                "type": "string",
+                                "grainable": False,
+                                "filterable": True,
+                            }
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    _stub_ai_build(page)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+    chips = page.get_by_test_id("rs-chips")
+    # First paint may show the raw key; the catalog-resolve re-render fixes it.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("Process = acme.inv")
 
 
 def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
@@ -1829,3 +1870,188 @@ def test_wizard_caps_category_chips_at_16(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Cap count stub").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
+
+
+def test_sqlformat_display_and_copy_policy(nexora_server, page):
+    """displayText prefers the inlined sqlDisplay; copyText returns runnable
+    SQL when inlined and falls back to raw + params comment otherwise. One
+    window seam serves BOTH tabs' Show-query panels."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    res = {
+        "sql": "SELECT ?",
+        "sqlPretty": "SELECT\n  ?",
+        "sqlDisplay": "SELECT\n  'x'",
+        "params": ["x"],
+    }
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", res) == "SELECT\n  'x'"
+    assert page.evaluate("(r) => ReportingSqlFormat.copyText(r)", res) == "SELECT\n  'x'"
+    fb = {"sql": "SELECT ?", "sqlPretty": "SELECT\n  ?", "sqlDisplay": None, "params": ["x"]}
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", fb) == "SELECT\n  ?"
+    assert (
+        page.evaluate("(r) => ReportingSqlFormat.copyText(r)", fb) == 'SELECT ?\n-- params: ["x"]'
+    )
+
+
+def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, page):
+    """D-params: the panel shows literals instead of ?, the params footer is
+    gone from the DOM, and Copy writes the runnable inlined statement."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    raw = (
+        "SELECT TOP (100) [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= ? AND [d] < ? GROUP BY [d]"
+    )
+    inlined = (
+        "SELECT TOP 100 [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= '2026-07-01' AND [d] < '2026-08-01' GROUP BY [d]"
+    )
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": raw,
+                    "sqlPretty": raw,
+                    "sqlDisplay": inlined,
+                    "params": ["2026-07-01", "2026-08-01"],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    show = page.get_by_test_id("rs-show-sql")
+    expect(show).to_be_visible()
+    # Capture clipboard writes without clipboard-read permissions.
+    page.evaluate(
+        "() => { window.__copied = null;"
+        " navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; }"
+    )
+    show.click()
+    expect(page.locator("#rsSqlText")).to_contain_text("'2026-07-01'")
+    assert page.locator("#rsSqlText span.sql-param").count() == 0  # no bare ? shown
+    assert page.locator("#rsSqlParams").count() == 0  # footer element gone
+    page.get_by_test_id("rs-sql-copy").click()
+    assert page.evaluate("() => window.__copied") == inlined
+
+
+def test_library_empty_groups_show_calls_to_action(nexora_server, page):
+    """Empty library groups explain the next step instead of a dead end."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(status=200, content_type="application/json", body="[]"),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-group-mine")).to_contain_text(
+        "You haven't saved any reports yet"
+    )
+    expect(page.get_by_test_id("rs-group-shared")).to_contain_text(
+        "No reports have been shared with everyone yet."
+    )
+    expect(page.get_by_test_id("rs-group-direct")).to_contain_text(
+        "No reports have been shared with you yet."
+    )
+
+
+def test_ai_unavailable_shows_notice_not_silent_vanish(nexora_server, page):
+    """A 503 from the AI hides the bar AND tells the user why (previously the
+    bar just disappeared, eating the typed question without a word)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.route(
+        "**/api/reporting/ai/build",
+        lambda r: r.fulfill(
+            status=503, content_type="application/json", body='{"error": "AI is not configured"}'
+        ),
+    )
+    page.get_by_test_id("rs-ai-prompt").fill("anything")
+    page.get_by_test_id("rs-ai-ask").click()
+    expect(page.get_by_test_id("rs-ai-bar")).to_be_hidden()
+    notice = page.get_by_test_id("rs-ai-gone")
+    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("AI assistant is unavailable")
+
+
+def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
+    """A zero-row Advanced run renders the nx-empty pattern, not a bare 'No rows.'"""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "n", "header": "N"}],
+                    "rows": [],
+                    "rowCount": 0,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.get_by_test_id("reporting-run").click()
+    empty = page.get_by_test_id("reporting-no-rows")
+    expect(empty).to_be_visible()
+    expect(empty).to_contain_text("No rows matched")
+
+
+def test_advanced_save_shows_toast_not_alert(nexora_server, page):
+    """Saving surfaces an in-page toast; no browser alert dialog fires."""
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    page.request.post(f"{nexora_server}/api/reporting/sql/ack", headers=headers, data={})
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.locator('[data-testid="reporting-mode-sql"]').click()
+    page.locator('[data-testid="reporting-sql-editor"]').fill("SELECT 1 AS x")
+    dialogs = []
+    page.on("dialog", lambda d: (dialogs.append(d.type), d.accept()))
+    page.locator('[data-testid="reporting-save-as"]').click()
+    page.get_by_test_id("reporting-name-input").fill("toast-save-e2e")
+    page.get_by_test_id("reporting-name-ok").click()
+    try:
+        expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+        expect(page.get_by_test_id("reporting-toast")).to_contain_text("Saved")
+        assert dialogs == []  # window.alert is gone from the save path
+    finally:
+        reports = page.request.get(f"{nexora_server}/api/reporting/reports").json()
+        for r in reports:
+            if r.get("name") == "toast-save-e2e":
+                page.request.delete(
+                    f"{nexora_server}/api/reporting/reports/{r['id']}", headers=headers
+                )
+
+
+def test_wizard_alltime_hint_toggles(nexora_server, page):
+    """The default All-time choice warns about full-history scans; picking a
+    bounded range hides the hint, coming back shows it again."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    hint = page.get_by_test_id("rs-alltime-hint")
+    expect(hint).to_be_visible()  # All time is the default selection
+    page.get_by_test_id("rs-time-list").get_by_text("This year", exact=True).click()
+    expect(hint).to_be_hidden()
+    page.get_by_test_id("rs-time-list").get_by_text("All time", exact=True).click()
+    expect(hint).to_be_visible()

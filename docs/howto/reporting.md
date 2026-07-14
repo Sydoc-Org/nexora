@@ -54,8 +54,10 @@ custom-header, save/load, and Excel-export support.
     chart library unavailable). A **chart-PNG download** button in the chart toolbar saves
     the current chart as an image. A **Show query** toggle (collapsed by default,
     re-collapsed on every run) reveals the executed SQL — pretty-printed server-side
-    (sqlglot) and syntax-highlighted — plus its bind parameters (visible to anyone who
-    can run reports; the Copy button copies the raw executed statement). While a report
+    (sqlglot), syntax-highlighted, and with the bind-parameter values inlined as
+    literals, so the statement reads (and copies) as runnable SQL. Execution itself
+    stays fully parameterized; the Copy button copies the inlined statement (visible
+    to anyone who can run reports). While a report
     runs, both tabs show a pulsing in-flight indicator (the Advanced **Run** button locks
     until the response lands), and the Advanced Ask-AI surfaces show the same indicator
     with rotating status lines.

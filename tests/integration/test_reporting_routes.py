@@ -758,6 +758,38 @@ def test_run_response_includes_pretty_sql(admin_client):
     assert body["sqlPretty"].count("?") == 2  # placeholders preserved
 
 
+def test_run_response_includes_inlined_display_sql(admin_client):
+    """/run echoes sqlDisplay — the pretty SQL with parameter literals inlined
+    (display/copy only; sql+params stay authoritative for execution)."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = (
+        "SELECT TOP (100) [a] AS [a], COUNT(*) AS [n] FROM "
+        "(SELECT [A] AS [a] FROM [dbo].[T] WHERE [D] >= ? AND [D] < ?) t "
+        "GROUP BY [a] ORDER BY [n] DESC"
+    )
+    fake_params = ["2026-07-01", "2026-08-01"]
+    fake_rows = [["x", 1]]
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, fake_params, None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json={"source": "x"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["sql"] == fake_sql  # raw untouched
+    assert body["params"] == fake_params  # still echoed
+    assert "?" not in body["sqlDisplay"]
+    assert "'2026-07-01'" in body["sqlDisplay"]
+    assert "'2026-08-01'" in body["sqlDisplay"]
+    assert "\n" in body["sqlDisplay"]  # pretty-printed
+
+
 _TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
@@ -850,3 +882,52 @@ def test_shared_report_visible_to_non_owner(admin_client):
             cur.execute("DELETE FROM dbo.Reports WHERE ReportID = ?", (rid,))
             conn.commit()
         conn.close()
+
+
+# --- Error boundary: translated `error`, raw-English `detail` ---
+
+
+def test_run_validation_error_is_translated_with_detail(admin_client):
+    """A 400 from /run carries a gettext boundary message; the raw builder
+    text moves to `detail` (devtools-only, never rendered on the page)."""
+    from nx_lib.reporting.schema import ReportDefinitionError
+
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=ReportDefinitionError("at least one column is required"),
+        ),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+    ):
+        resp = admin_client.post("/api/reporting/run", json={"source": "x"})
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["detail"] == "at least one column is required"
+    assert body["error"] != body["detail"]
+    assert "column" not in body["error"]  # raw builder text no longer leaks
+
+
+def test_sql_run_sandbox_error_is_translated_with_rule_and_detail(admin_client):
+    from nx_lib.reporting.sandbox import SqlSandboxError
+
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._has_acked", return_value=True),
+        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch(
+            "nx_lib.views.reporting._run_sql",
+            side_effect=SqlSandboxError(
+                "not_select", "only SELECT / WITH / set-operations are allowed"
+            ),
+        ),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["rule"] == "not_select"
+    assert body["detail"] == "only SELECT / WITH / set-operations are allowed"
+    assert body["error"] != body["detail"]

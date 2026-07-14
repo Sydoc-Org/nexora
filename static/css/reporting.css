@@ -1,8 +1,13 @@
+/* Single source of truth — the harmonization and redesign layers used to
+   re-declare gap/padding/font/align below; consolidated 2026-07 with the
+   values that already won the cascade. */
 .reporting-main {
   display: grid;
   grid-template-columns: 260px 1fr 300px;
-  gap: 16px;
-  padding: 20px;
+  gap: 20px;
+  padding: 20px 24px 32px;
+  align-items: start;
+  font-family: var(--nx-font);
 }
 
 .reporting-fields,
@@ -489,14 +494,12 @@ body.nx-app {
   font-family: var(--nx-font);
 }
 
-.reporting-main { font-family: var(--nx-font); }
-
 /* Branded page header — sits above the builder grid (a sibling, not a grid
    child) so its right-aligned actions stay on-screen even when the builder
-   grid overflows horizontally. Left padding matches the grid's 20px so the
+   grid overflows horizontally. Left padding matches the grid's 24px so the
    title lines up with the Source panel; the grid's own padding-top supplies
    the gap below. */
-.reporting-page-head { padding: 20px 20px 0; margin-bottom: 0; }
+.reporting-page-head { padding: 20px 24px 0; margin-bottom: 0; }
 
 /* Panels / surfaces */
 .reporting-fields,
@@ -709,11 +712,6 @@ body.nx-app {
 
 /* Top-align the three columns so the side cards hug their content
    instead of stretching to the tall results card. */
-.reporting-main {
-  gap: 20px;
-  padding: 20px 24px 32px;
-  align-items: start;
-}
 .reporting-fields,
 .reporting-wells { align-self: start; }
 .reporting-results { padding: 18px 20px; min-height: 70vh; }
@@ -1045,9 +1043,9 @@ body.nx-app {
 
 /* --- Show query panel (T7) --- */
 .reporting-sqlview { margin-top: 12px; }
-.reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
-.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px; max-height: 240px; overflow: auto; margin: 0; }
-.reporting-sqlview-params { font-size: 12px; color: var(--nx-text-meta); margin: 6px 0 0; }
+.reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid var(--nx-border); margin-bottom: 10px; }
+.reporting-sqlview-bar span i { color: var(--nx-text-meta); margin-inline-end: 6px; font-size: 12px; }
+.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; margin: 0; }
 
 /* SQL token highlighting (Show-query panels + AI SQL draft) */
 .reporting-sqlview pre .sql-kw, .reporting-ai-sql .sql-kw { color: #cf222e; font-weight: 600; }
@@ -1057,10 +1055,19 @@ body.nx-app {
 .reporting-sqlview pre .sql-param, .reporting-ai-sql .sql-param { color: #8250df; font-weight: 600; }
 .reporting-sqlview pre .sql-comment, .reporting-ai-sql .sql-comment { color: #6e7781; font-style: italic; }
 
-.reporting-sched-alert-hint { margin: 4px 0 8px; font-size: 12px; color: #6b7280; }
+/* Dark theme: GitHub-dark syntax palette (the light values above are
+   GitHub-light and unreadable on --nx-sunken dark). */
+html.dark .reporting-sqlview pre .sql-kw, html.dark .reporting-ai-sql .sql-kw { color: #ff7b72; }
+html.dark .reporting-sqlview pre .sql-string, html.dark .reporting-ai-sql .sql-string { color: #a5d6ff; }
+html.dark .reporting-sqlview pre .sql-number, html.dark .reporting-ai-sql .sql-number { color: #79c0ff; }
+html.dark .reporting-sqlview pre .sql-ident, html.dark .reporting-ai-sql .sql-ident { color: #ffa657; }
+html.dark .reporting-sqlview pre .sql-param, html.dark .reporting-ai-sql .sql-param { color: #d2a8ff; }
+html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-comment { color: #8b949e; }
+
+.reporting-sched-alert-hint { margin: 4px 0 8px; font-size: 12px; color: var(--nx-text-meta); }
 
 /* --- Truncation note (T6) --- */
-.reporting-truncated-note { margin: 0 0 8px; font-size: 12px; color: #b45309; }
+.reporting-truncated-note { margin: 0 0 8px; font-size: 12px; color: var(--nx-warning); }
 
 /* --- Drill-through drawer (slide-over from the right; shared by Simple and
    Advanced). Tokenised to match the nexora-ui harmonization above. Behaviour
@@ -1103,3 +1110,18 @@ body.nx-app {
 @media (max-width: 900px) {
   .reporting-drill-panel { width: 100vw; min-width: 0; }
 }
+
+/* --- Page-head Beta badge (was an inline style on the h1 span) --- */
+.reporting-beta { vertical-align: middle; margin-inline-start: .5rem; }
+
+/* --- Toast (Advanced tab: replaces window.alert) --- */
+.reporting-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: 8px;
+  padding: 10px 16px; font-size: 13px; z-index: 100; /* above the drill drawer */
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+  transition: opacity .3s ease;
+}
+.reporting-toast--error { border-color: var(--nx-danger); }
+.reporting-toast.is-gone { opacity: 0; }

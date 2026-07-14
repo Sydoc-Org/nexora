@@ -15,7 +15,9 @@
     daysAgo: {{ _("days ago")|tojson }},
     weekAgo: {{ _("week ago")|tojson }},
     weeksAgo: {{ _("weeks ago")|tojson }},
-    nothingHere: {{ _("Nothing here yet.")|tojson }},
+    emptyMine: {{ _("You haven't saved any reports yet — click “New report” to build your first one.")|tojson }},
+    emptyShared: {{ _("No reports have been shared with everyone yet.")|tojson }},
+    emptyDirect: {{ _("No reports have been shared with you yet.")|tojson }},
     couldNotLoad: {{ _("Could not load this report.")|tojson }},
     couldNotRun: {{ _("Could not run this report.")|tojson }},
     couldNotSave: {{ _("Could not save.")|tojson }},
@@ -65,7 +67,13 @@
     showQuery: {{ _("Show query")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
-    sqlParamsLabel: {{ _("Parameters")|tojson }},
+    opBetween: {{ _("between")|tojson }},
+    opIn: {{ _("is one of")|tojson }},
+    opNotIn: {{ _("is not one of")|tojson }},
+    opContains: {{ _("contains")|tojson }},
+    opStartsWith: {{ _("starts with")|tojson }},
+    opIsEmpty: {{ _("is empty")|tojson }},
+    opIsNotEmpty: {{ _("is not empty")|tojson }},
     copied: {{ _("Copied")|tojson }}
   };
 
@@ -130,6 +138,8 @@
     el('rsNewReport').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
     if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
+    var aiGone = el('rsAiGone');
+    if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
     if (view !== 'result') destroyChart();
@@ -160,9 +170,10 @@
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       groups[g].appendChild(card(r));
     });
+    var groupEmptyText = { mine: I18N.emptyMine, shared: I18N.emptyShared, direct: I18N.emptyDirect };
     Object.keys(groups).forEach(function (k) {
       if (!groups[k].children.length) {
-        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.nothingHere) + '</p>';
+        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(groupEmptyText[k]) + '</p>';
       }
     });
   }
@@ -224,10 +235,14 @@
     return (data && data.error) || I18N.couldNotRun;
   }
 
+  var APP_LANG = document.documentElement.lang || undefined;
   function fmtNumber(v) {
     if (v == null) return '–';
     var n = Number(v);
-    return isNaN(n) ? String(v) : n.toLocaleString();
+    // App locale (html lang attr), not browser locale — a German UI shows
+    // 1'234/1.234 shapes consistently regardless of the OS language. An
+    // empty lang attr degrades to the browser locale (undefined arg).
+    return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
   }
 
   function metricLabelFor(def) {
@@ -525,6 +540,15 @@
     return v === null || v === undefined ? '' : String(v);
   }
 
+  // Filter-op labels for chips — mirrored in _reporting_js.html's OP_LABELS
+  // with the same msgids, so the two maps can never translate apart.
+  var OP_LABELS = {
+    eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
+    between: I18N.opBetween, 'in': I18N.opIn, not_in: I18N.opNotIn,
+    contains: I18N.opContains, starts_with: I18N.opStartsWith,
+    is_null: I18N.opIsEmpty, is_not_null: I18N.opIsNotEmpty
+  };
+
   function chip(text, onEdit, onRemove) {
     var c = document.createElement('span');
     c.className = 'rs-chip';
@@ -651,7 +675,11 @@
     if (!hasDef) return;
     var def = cur.def || {};
     (def.filters || []).forEach(function (f) {
-      var label = f.field + ' ' + f.op + ' ' + chipValueLabel(f.value);
+      var meta = fieldMetaFor(def, f.field);
+      var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
+      var vl = chipValueLabel(f.value);
+      if (vl) parts.push(vl);        // is_null/is_not_null carry no value
+      var label = parts.join(' ');
       wrap.appendChild(chip(
         label,
         function (chipEl) { filterChipEditor(cur, f, chipEl); },
@@ -719,7 +747,12 @@
     // affordance (openDrill/renderTable read state.sources). Idempotent — a
     // cache hit resolves immediately, and drill just stays unavailable until
     // this settles on a cold Ask-AI-first session.
-    loadSourcesCatalog();
+    loadSourcesCatalog().then(function () {
+      // Chip labels resolve field keys against the catalog — re-render once it
+      // lands (the first paint may fall back to raw keys on a cold session).
+      // The seq guard keeps a stale resolve from repainting a newer result.
+      if (seq === runSeq && state.current === cur) renderAiChips(cur);
+    });
     setView('result');
     el('rsError').hidden = true;
     el('rsMsg').hidden = true;
@@ -775,6 +808,7 @@
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
+    state.current.sqlDisplay = res.data.sqlDisplay || null;
     state.current.params = res.data.params || [];
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = !state.current.sql;
@@ -848,18 +882,15 @@
     view.hidden = !view.hidden;
     this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
     if (!view.hidden) {
-      ReportingSqlFormat.render(el('rsSqlText'), cur.sqlPretty || cur.sql);
-      el('rsSqlParams').textContent = (cur.params || []).length
-        ? I18N.sqlParamsLabel + ': ' + cur.params.map(function (p, i) {
-            return (i + 1) + " = '" + String(p) + "'";
-          }).join(', ')
-        : '';
+      // sqlDisplay = pretty SQL with the parameter literals inlined
+      // server-side (display + copy only; execution stays parameterized).
+      ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
     }
   });
   el('rsSqlCopy').addEventListener('click', function () {
     var cur = state.current;
     if (!cur || !cur.sql) return;
-    var text = cur.sql + '\n-- params: ' + JSON.stringify(cur.params || []);
+    var text = ReportingSqlFormat.copyText(cur);
     var btn = this;
     navigator.clipboard.writeText(text).then(function () {
       var prev = btn.textContent;
@@ -1186,6 +1217,7 @@
       list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noDateField) + '</p>';
       el('rsTimeFieldWrap').hidden = true;
       state.wiz.range = null;
+      el('rsAllTimeHint').hidden = true;
       return;
     }
     // Date field defaults to import_date, switchable to export_date.
@@ -1236,6 +1268,7 @@
           // all_time = no filter.
           state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
+        el('rsAllTimeHint').hidden = state.wiz.range !== null;
       }, state.wiz.range === p[0] ||
          (state.wiz.range && state.wiz.range.token === p[0]) ||
          (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||
@@ -1243,6 +1276,7 @@
     });
     // Only default to all-time if no prior choice is being restored.
     if (!state.wiz.range) state.wiz.range = null;
+    el('rsAllTimeHint').hidden = state.wiz.range !== null;
   }
 
   // Wizard invariants (validator-enforced server-side): sort fields are among
@@ -1451,6 +1485,8 @@
     if (res.status === 503) {
       aiBar.hidden = true;
       aiBar.dataset.gone = '1';
+      var gone = el('rsAiGone');
+      if (gone) gone.hidden = false;
       setView('library');
       return;
     }

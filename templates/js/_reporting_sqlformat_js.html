@@ -47,6 +47,22 @@ window.ReportingSqlFormat = (function () {
     preEl.innerHTML = toHtml(sql);
   }
 
-  return { toHtml: toHtml, render: render };
+  /* Panel/copy content policy — shared by the Simple and Advanced Show-query
+     panels and the e2e seam tests. display = inlined literals when the server
+     could inline (sqlDisplay), else the pretty placeholder form. copy = the
+     runnable inlined statement, else the raw executed SQL plus a -- params:
+     JSON comment (legacy fallback for the rare uninlinable case). */
+  function displayText(res) {
+    if (!res) return '';
+    return res.sqlDisplay || res.sqlPretty || res.sql || '';
+  }
+
+  function copyText(res) {
+    if (!res) return '';
+    if (res.sqlDisplay) return res.sqlDisplay;
+    return (res.sql || '') + '\n-- params: ' + JSON.stringify(res.params || []);
+  }
+
+  return { toHtml: toHtml, render: render, displayText: displayText, copyText: copyText };
 })();
 </script>

@@ -17,6 +17,7 @@
       <button id="rsAiAsk" class="nx-btn nx-btn--secondary" data-testid="rs-ai-ask">
         <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Ask AI") }}</button>
     </div>
+    <p class="reporting-simple-hint" id="rsAiGone" hidden data-testid="rs-ai-gone">{{ _("The AI assistant is unavailable right now — you can still build reports with “New report”.") }}</p>
     {% endif %}
     <input id="rsSearch" class="reporting-input reporting-simple-search"
            placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
@@ -69,6 +70,7 @@
       <div id="rsTimeCustom" hidden>
         <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
       </div>
+      <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
       <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
         <select id="rsTimeField" class="reporting-input"></select></label>
       <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
@@ -146,11 +148,10 @@
     <p class="reporting-simple-hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
         <div class="reporting-sqlview-bar">
-          <span>{{ _("Query sent to the database") }}</span>
+          <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>
           <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
         </div>
         <pre id="rsSqlText"></pre>
-        <p id="rsSqlParams" class="reporting-sqlview-params"></p>
       </div>
   </div>
 </section>
