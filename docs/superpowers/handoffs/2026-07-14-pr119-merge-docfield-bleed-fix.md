@@ -1,3 +1,6 @@
+> **Newer same-date handoff:** `2026-07-14-reporting-flagship-ui-polish-plan.md` (reporting
+> flagship polish plan — written, committed, awaiting `/execute-plan` in its worktree).
+
 # Handoff — PR #119 shipped to PROD + doc-field cross-source bleed fix
 
 **Date:** 2026-07-14 (afternoon) · **Branch:** `feature/2.5.64` (main clone `C:\dev\nexora`) ·
