@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** the session pointer now targets
+> `2026-07-14-pr119-merge-docfield-bleed-fix.md` (PR #119 shipped + doc-field bleed fix). This
+> file's content remains valid for the Process-breakdown work.
+
 # Handoff — Reporting "Break down by Process" execution complete
 
 **Date:** 2026-07-14 (afternoon) · **Branch:** `plan/reporting-breakdown-by-process` (worktree
