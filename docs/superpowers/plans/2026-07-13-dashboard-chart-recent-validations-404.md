@@ -653,6 +653,48 @@ card for every non-PDBS scope. All three now route their default T-SQL
 leg through _default_stat_rows and degrade per leg."
 ```
 
+## Task 5.5 — Bug 2: fix str/datetime.date type mismatch in processed_over_time
+
+Inserted between Task 5 and Task 6 after Task 3's redo (2026-07-14, connectivity
+restored) reached a conclusive root cause — see `## Diagnosis result (2026-07-13,
+redone 2026-07-14)` below and `.superpowers/sdd/task-3-redo-report.md`. Summary:
+PROD's legacy `DRIVER={SQL Server}` pyodbc driver (see `nx_lib/db.py`) returns SQL
+Server `DATE` columns as Python `str`, not `datetime.date`. `dashboard_processed_over_time`
+built a single `counts` dict keyed by date from three sources — the default T-SQL
+leg (`str` keys from `_default_stat_rows`), the MS02/Postgres leg (native `date`
+keys via psycopg2), and a zero-fill loop (`today - timedelta(days=i)`, always real
+`date` objects) — then called `sorted(counts.keys())`. Mixing `str` and
+`datetime.date` keys raised `TypeError: '<' not supported between instances of
+'datetime.date' and 'str'` on every request that included any default-leg process
+(83 confirmed PROD `app.log` occurrences over two weeks, 2026-06-30 through
+2026-07-13). This is the actual cause of the reported "chart blanks except for
+PDBS" symptom — `sydoc.05_PDBS` is MS02-only, so it never contributes a `str` key
+and was the only process that ever rendered. The three sibling endpoints
+(`dashboard_kpi_stats`, `dashboard_hourly_stats`, `dashboard_avg_processing_time`)
+don't build date-keyed dicts and are unaffected.
+
+**Fix:** normalize `row.d` to a `datetime.date` at the point the default leg's
+rows are consumed in `dashboard_processed_over_time` (not inside the shared
+`_default_stat_rows` helper), handling both the observed `str` case and a
+already-`date` case defensively:
+
+```python
+d = row.d if isinstance(row.d, date) else date.fromisoformat(str(row.d)[:10])
+counts[d] = counts.get(d, 0) + row.total_count
+```
+
+`date` was already imported at the top of `nx_lib/views/dashboard.py`
+(`from datetime import date, datetime, timedelta`), so no new import was needed.
+
+**Test:** added `test_processed_over_time_survives_str_typed_default_leg_date` to
+`tests/unit/test_dashboard_stats.py`, mocking the default leg's row with a
+string-typed `d` (`today.isoformat()`) alongside an MS02 leg row with a real
+`date` for `yesterday`, and asserting the route returns 200 with both dates
+present and correctly counted (not the previous 500). Confirmed RED first — the
+test reproduced the exact `TypeError` text before the fix, caught by the route's
+existing broad exception handler (500). After the fix, `tests/unit/test_dashboard_stats.py`
++ `tests/integration/test_dashboard_routes.py` run 41/41 green.
+
 ## Task 6 — Never cache error responses + front-end non-OK guard
 
 **Files:** Modify `nx_lib/views/dashboard.py`, `templates/js/_dashboard_js.html`, `tests/unit/test_dashboard_stats.py`, `tests/integration/test_dashboard_routes.py`.
@@ -940,3 +982,62 @@ No commit; evidence only. INT has a real Statistics DB, so the default leg rende
 - The pre-push gate runs the full two-tier suite incl. Playwright e2e; if e2e fails oddly, reset stale TEST state with `python scripts/test_db_reset.py` first (owner runs the push).
 - **PROD diagnosis discipline:** the Task 3 probes are the entire authorized surface — read-only SMB log read + read-only SELECTs. No writes, no restarts, no config edits, no secret values in output, commits, or the plan appendix.
 - **Bug 2 may be multi-cause** (e.g. one stale Statconfig row AND transient connectivity): the decision table is per-row/per-evidence — branch B for the bad rows can coexist with owner action O2. The unconditional Tasks 4–6 make every combination non-catastrophic.
+
+## Diagnosis result (2026-07-13, redone 2026-07-14)
+
+**Correction note:** Task 3 was first attempted on 2026-07-13 evening and recorded as inconclusive — this dev box had no path to the corporate VPN/LAN at that time (SYAPP01 DNS failed to resolve; PROD and INT SQL both failed identically at connect-time). That attempt's evidence (DBNETLIB "server does not exist" on both environments) is superseded below, not deleted from history — it is preserved verbatim in git history at commit `87a4bad`. Connectivity has since been restored (`SYAPP01.dom.local` now resolves via DNS to `192.168.40.7`, and `tests/integration/test_dashboard_routes.py`'s real-DB-dependent tests pass 22/22). Task 3 was redone on 2026-07-14 with a working path to both PROD and INT, and reached a **conclusive** result — a real, reproducible root cause, though it does not map cleanly onto any single branch A–E (see below).
+
+**1. App.log read** (SMB, read-only, tail-bounded, last 5000 lines) — SUCCEEDED.
+
+- `Failed to fetch processed_over_time report:` — **83 matches**, spanning 2026-06-30 14:11 through **2026-07-13 16:08** (i.e. still occurring on the day of the redo, hours before this probe ran). Every single occurrence has the identical exception text:
+  ```
+  2026-07-13 16:08:13,354 [ERROR] nx_lib dashboard:417 Failed to fetch processed_over_time report: '<' not supported between instances of 'datetime.date' and 'str'
+  ```
+  This is a Python `TypeError` from a mixed-type comparison, not a SQL error and not a connection/timeout error.
+- `Failed to fetch kpi_stats report:`, `Failed to fetch hourly_stats:`, `Failed to fetch avg_processing_time:` — **0 matches** in the tail. The three sibling endpoints are NOT failing on PROD.
+- `ms02 dashboard stats query failed:` — **37 matches**, but all confined to a single window **2026-07-01 07:40–10:21** (13 days before the redo, none since). Every occurrence is the identical message: `connection to server at "mobscn-pg-db.postgres.database.azure.com" (20.250.24.11), port 5432 failed: Connection timed out (0x0000274C/10060)`. This is a separate, already-resolved, transient Azure Postgres outage — old and sporadic, matching Branch E's shape for that leg specifically, but unrelated to the ongoing `processed_over_time` failure and not actionable now (self-resolved 13 days ago).
+
+**2. PROD probe** (`diag_statconfig.py PROD`, run via `C:\dev\nexora\.venv\Scripts\python.exe`, script kept in the session scratchpad outside the repo, never committed) — StatisticsDB connect **OK**. 6 Statconfig rows read (server=`PRDSQL01`, stats db=`SYDOC_Statistik`; no credential values printed):
+
+| ProcessName | TableName | ExportColumn | ClientCode | Step-2 result | `d` python type | MAX(ExportColumn) |
+|---|---|---|---|---|---|---|
+| privera.02_Posteingang | dbo.PriveraPosteingang | exportdatetime_dt | default | OK, 10 buckets, 5437 rows/14d | `str` | 2026-07-13 16:25:24 |
+| privera.02_InitialScan | dbo.PriveraInitialUndNeuzugaenge | Export | default | OK, 0 buckets (no rows in window) | — | 2026-06-20 (stale for this one process only) |
+| privera.03_Invoice_New | dbo.PriveraInvoice | ExportDate | default | OK, 10 buckets, 10388 rows/14d | `str` | 2026-07-13 16:31:03 |
+| elektromaterial.02_Invoice | dbo.EM_Invoice | ExportEM_dt | default | OK, 11 buckets, 6165 rows/14d | `str` | 2026-07-14 07:57:17 |
+| sydoc.05_PDBS | public."DossierStatistik" | DatumInTempExport | ms02 | (Postgres leg, not probed here) | — | — |
+| compass.01_Invoice_SAP | dbo.Compass_Invoice | UploadDatetime | default | OK, 11 buckets, 4804 rows/14d | `str` | 2026-07-14 08:05:48 |
+
+Every default-leg row's SQL runs cleanly (no `Invalid object/column name`, no syntax error) and every table has **fresh** data (`MAX(ExportColumn)` within hours of the probe). **The critical finding:** the probe's own `CAST(... AS DATE)` sub-queries come back through pyodbc as Python **`str`** values, not `datetime.date` — confirmed for every default-leg process with data. This matches `nx_lib/db.py`'s `get_db_url`, which uses the legacy `DRIVER={SQL Server}` ODBC driver alias (not `ODBC Driver 17/18`); that legacy driver is known to return SQL Server `DATE`-typed columns as strings via pyodbc rather than native `datetime.date` objects. The probe's UNION+sort reproduction step (mirroring the route's own dict-merge) sorted fine standalone here, because in isolation all default-leg keys are homogeneously `str` — the real app additionally merges in genuine `datetime.date` Python objects from two other sources (see root cause below), which the probe script (by design, mirroring only the default leg per the brief) does not include.
+
+**Root cause, confirmed by direct code read + a byte-identical local reproduction:** in `nx_lib/views/dashboard.py` `dashboard_processed_over_time` (current worktree code, i.e. already past this plan's Task 4–6 per-leg isolation fixes):
+```python
+for row in _default_stat_rows(full_query):
+    counts[row.d] = counts.get(row.d, 0) + row.total_count   # row.d is a str (legacy pyodbc driver)
+...
+today = datetime.now().date()
+for i in range(15):
+    counts.setdefault(today - timedelta(days=i), 0)          # always inserts real datetime.date keys
+...
+sorted_dates = sorted(counts.keys())                          # str + datetime.date keys mixed -> TypeError
+```
+The MS02/Postgres leg (`_ms02_stat_rows`, via psycopg2) contributes genuine `datetime.date` keys too (Postgres native `date` type), compounding the same mismatch whenever "All Processes" includes `sydoc.05_PDBS`. Reproduced the *exact* error text locally:
+```
+>>> sorted({'2026-06-30': 5, datetime.date(2026,7,13): 0}.keys())
+TypeError("'<' not supported between instances of 'datetime.date' and 'str'")
+```
+This is a **deterministic, 100%-reproducible bug**, not transient: the zero-fill loop (added to fix a prior "single invisible point" issue) unconditionally inserts real `date` objects into the same dict as the default leg's `str`-typed SQL results, so the endpoint 500s on *every* request that selects any process other than the MS02-only `sydoc.05_PDBS` (which never contributes a default-leg `str` key) — this is exactly the "only PDBS works" symptom described in the plan's Bug 2 geometry section. Confirmed the three sibling endpoints (`dashboard_kpi_stats`, `dashboard_hourly_stats`, `dashboard_avg_processing_time`) do **not** share this defect: `kpi_stats` and `avg_processing_time` only aggregate numeric `SUM`/`AVG` values (no date-object dict keys), and `hourly_stats` keys its dict by `DATEPART(hour, ...)` (an int, unaffected by the driver's DATE-type quirk) with an explicit `int(h)` cast on the MS02 side — consistent with 0 app.log matches for those three patterns.
+
+**3. INT probe** (same script, `INT` arg) — StatisticsDB connect **OK** (server=`INTSQL01`, stats db=`SYDOC_Statistik`), Statconfig rows structurally identical to PROD (same 6 processes/tables/columns; `sydoc.05_PDBS`'s `ExportColumn` differs — `ExportDate` on INT vs `DatumInTempExport` on PROD, both valid per-environment values). **Every default-leg row returned 0 rows in the 14-day window** — INT's StatisticsDB data is months stale (`MAX(ExportColumn)` values from 2025-07 through 2026-02, none recent). This means INT **never exercises the type-mismatch trigger at all** (no default-leg rows ⇒ no `str` keys ⇒ nothing to collide with the zero-fill's `datetime.date` keys), which explains why this bug was never caught via INT/dev testing. Separately confirmed the existing unit test `test_processed_over_time_default_leg_survives_dead_ms02` (`tests/unit/test_dashboard_stats.py`) mocks the default leg's row as `types.SimpleNamespace(d=today, ...)` — a real `datetime.date`, not the `str` pyodbc actually returns on PROD — so the mock never modeled this either. No migration is implicated: this is a code defect, not a data defect, so INT vs. PROD Statconfig content is irrelevant to the fix.
+
+**Verdicts per decision-tree row:**
+
+- Step-0 connect: OK on both PROD and INT. **Not Branch A.**
+- Step-1/Step-2: every Statconfig row resolves and every sub-query executes without SQL error on both environments. No dead/stale-pointing rows, no missing rows, no malformed `additionalCondition` (all start with `AND`/blank as required). **Not Branch B.**
+- No SQL syntax error at any point — the SQL succeeds every time; the failure is a pure-Python `TypeError` raised *after* successful SQL execution, when merging/sorting results. **Not literally Branch C**, though the remediation shape (reproduce-first code fix + unit test) is the same as C's prescribed action.
+- StatisticsDB is actively being fed on PROD (`MAX(ExportColumn)` within hours); rows in the 14-day window are non-zero for 4 of 5 default processes (the 5th, `privera.02_InitialScan`, is legitimately quiet — its own `MAX` is 2026-06-20, an upstream-volume fact unrelated to the bug). **Not Branch D.**
+- The failure is not transient and not a caching artifact — it is 100% deterministic on every request that includes any default-leg process, reproduced 83 times over two weeks with byte-identical exception text, and independently reproduced locally in isolation from any PROD/network state. **Not Branch E** (Branch E's fix, `response_filter`/Task 6, does not touch this: pinning aside, the *underlying* request would still 500 every time).
+
+**Chosen branch: none of A–E cleanly fits — this is a genuine, conclusively-diagnosed sixth case: a Python `str`/`datetime.date` type-coercion bug in `dashboard_processed_over_time`'s zero-fill + sort logic, triggered by the legacy `DRIVER={SQL Server}` pyodbc driver returning `DATE`-typed T-SQL columns as `str`.** This is fully conclusive (not "inconclusive, hand to owner" — root cause, trigger condition, and blast radius are all confirmed with live PROD/INT evidence plus a local byte-identical repro), but it needs new remediation work not yet scoped by this plan's existing Task 7/8 slots (Task 7 assumes bad Statconfig *data*; Task 8 assumes a SQL *syntax* error against a legitimate value — neither applies; Tasks 4–6, already committed on this branch at `e0b2c37`/`32d1e7b`, do NOT fix this, since both legs' SQL already succeeds independently and the collision happens strictly after both legs return). **Recommended next action (for the owner/next planning pass, not executed here — out of Task 3's read-only diagnosis scope):** add a task to `dashboard_processed_over_time` that normalizes all date keys to one canonical Python type (e.g. coerce any `str` `row.d` via `datetime.strptime(row.d, "%Y-%m-%d").date()` before merging, or normalize every source — default leg, MS02 leg, and the zero-fill — to ISO-format string keys and only parse back to `date` for `.isoformat()` output) before the union dict is built or sorted, plus a reproduce-first unit test that mocks `_default_stat_rows` returning `str`-typed `d` values (as PROD actually does) merged with the real `date`-typed zero-fill, asserting no 500. This is independent of and unblocked by branch-B/C/D/E owner actions; the MS02 Postgres 37-match blip (2026-07-01, self-resolved) needs no action.
+
+**Confirmations:** no credential values (UID/PWD) were printed, logged, or committed at any point — only server hostnames (`PRDSQL01`, `INTSQL01`), DB names (`nexora`, `SYDOC_Statistik`), and ODBC error text (which contains no secret material) were surfaced. The probe script lives only at the session scratchpad path outside `C:\dev\nexora` and was never staged or committed. No PROD or INT state was written, no service was restarted, no config was changed.

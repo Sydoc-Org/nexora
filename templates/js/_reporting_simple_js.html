@@ -5,6 +5,7 @@
 // chart singleton); the result view owns a private Chart.js instance.
 (function () {
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   var EXPORT_ALLOWED = !!document.getElementById('rsExport');
 
   // Translated strings (tojson-escaped — several translations carry quotes).
@@ -90,6 +91,7 @@
   function el(id) { return document.getElementById(id); }
 
   async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
     opts = opts || {};
     var res;
     try {
@@ -825,7 +827,7 @@
       if (png) body.chartImage = png;
       var res;
       try {
-        res = await fetch('/api/reporting/export', {
+        res = await fetch(API_PREFIX + 'api/reporting/export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
           body: JSON.stringify(body)

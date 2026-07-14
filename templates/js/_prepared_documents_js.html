@@ -1,6 +1,6 @@
 <script>
   (function () {
-    const API_PREFIX = window.API_PREFIX || "/";
+    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const csrfToken = document.getElementById("csrfToken")?.value || "";
 
     const fileInput = document.getElementById("preparedDocsFile");

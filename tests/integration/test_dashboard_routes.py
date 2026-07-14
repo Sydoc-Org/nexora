@@ -30,6 +30,12 @@ Routes covered:
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
+from unittest.mock import MagicMock
+
+import nx_lib.hooks
+import nx_lib.views.dashboard as dv
+from nx_lib.extensions import cache
+
 
 def test_dashboard_anonymous_redirects_to_login(client):
     resp = client.get("/dashboard", follow_redirects=False)
@@ -194,3 +200,47 @@ def test_recent_activity_authed_returns_empty_list(user_client):
     resp = user_client.get("/api/dashboard/recent_activity")
     assert resp.status_code == 200
     assert resp.get_json() == []
+
+
+# --------------------- error responses must not be cached ------------------- #
+# TEST has no Statistics DB, so engines are mocked on the VIEW module (it
+# does `from ..db import ...` at load time). Session permissions are
+# rewritten every request by _reload_user_permissions (nx_lib/hooks.py), so
+# we patch nx_lib.hooks.load_permissions_for_user (precedent:
+# tests/integration/test_workitems_routes.py). SimpleCache is process-global
+# and the app fixture is session-scoped -> cache.clear() first, always.
+
+
+class _BoomEngine:
+    def raw_connection(self):
+        raise RuntimeError("nexora db hiccup")
+
+
+def _fake_nexora_engine(rows):
+    cur = MagicMock()
+    cur.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+def test_processed_over_time_error_response_is_not_cached(user_client, monkeypatch):
+    """A transient 500 (Statconfig read on NexoraDB fails) must not be pinned
+    in the 300s response cache: the next request re-executes the view."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
+    )
+
+    monkeypatch.setattr(dv, "engine_nexora_db", _BoomEngine())
+    resp = user_client.get("/api/dashboard/processed_over_time")
+    assert resp.status_code == 500
+
+    monkeypatch.setattr(dv, "engine_nexora_db", _fake_nexora_engine([]))
+    resp2 = user_client.get("/api/dashboard/processed_over_time")
+    assert resp2.status_code == 200
+    assert resp2.get_json() == {"labels": [], "data": []}
