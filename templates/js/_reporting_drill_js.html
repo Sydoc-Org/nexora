@@ -10,7 +10,8 @@ window.ReportingDrill = (function () {
     truncatedNote: {{ _("Showing the first {n} rows — export to get all.")|tojson }},
     nullLabel: {{ _("(empty)")|tojson }},
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
-    close: {{ _("Close")|tojson }}
+    close: {{ _("Close")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }}
   };
 
   var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
@@ -84,11 +85,126 @@ window.ReportingDrill = (function () {
     return dd;
   }
 
-  // ---- drawer rendering (open/close/fetch) is added in Task 3 ----
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  var current = null;   // {definition} of the open drill, for export
+
+  function close() {
+    el('rdPanel').hidden = true;
+    el('rdBackdrop').hidden = true;
+    current = null;
+  }
+
+  function renderRows(columns, rows, truncated, isDistinct) {
+    var head = '<tr>' + columns.map(function (c) {
+      return '<th>' + esc(c.header || c.field) + '</th>';
+    }).join('') + '</tr>';
+    var wiIdx = -1;
+    columns.forEach(function (c, i) { if (c.field === 'workitem_id') wiIdx = i; });
+    var body = rows.map(function (r) {
+      return '<tr>' + r.map(function (v, i) {
+        var cell = v == null ? '<span class="reporting-drill-null">' + esc(I18N.nullLabel) + '</span>'
+                             : esc(String(v).slice(0, 200));
+        if (i === wiIdx && v != null) {
+          cell = '<a href="/workitems?search=' + encodeURIComponent(String(v)) +
+                 '" target="_blank" rel="noopener">' + esc(String(v)) + '</a>';
+        }
+        return '<td>' + cell + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    el('rdBody').innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    var notes = [];
+    if (isDistinct) notes.push(I18N.distinctNote);
+    if (truncated) notes.push(I18N.truncatedNote.replace('{n}', String(rows.length)));
+    el('rdNote').textContent = notes.join(' ');
+  }
+
+  /* opts: {definition, fields, clicked, header, isDistinct} */
+  function open(opts) {
+    var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
+    if (!dd) return;
+    current = { definition: dd };
+    el('rdTitle').textContent = opts.header || I18N.title;
+    el('rdSubtitle').textContent = I18N.title;
+    el('rdBody').innerHTML = '<p class="reporting-drill-note">…</p>';
+    el('rdNote').textContent = '';
+    el('rdPanel').hidden = false;
+    el('rdBackdrop').hidden = false;
+    fetch('/api/reporting/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(dd)
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (r) {
+      if (!current) return;                       // closed while loading
+      if (!r.ok) {
+        el('rdBody').innerHTML = '<p class="reporting-drill-note">' +
+          esc((r.data && r.data.error) || I18N.loadError) + '</p>';
+        return;
+      }
+      renderRows(r.data.columns || [], r.data.rows || [], !!r.data.truncated,
+                 !!opts.isDistinct);
+    }).catch(function () {
+      if (current) {
+        el('rdBody').innerHTML = '<p class="reporting-drill-note">' + esc(I18N.loadError) + '</p>';
+      }
+    });
+  }
+
+  /* Mirrors the rsExport click listener in _reporting_simple_js.html: same
+     endpoint, same body shape, same blob/anchor download idiom — just swaps
+     in the drill definition and the caller's chosen format. */
+  async function exportDrill(format) {
+    if (!current) return;
+    var body = Object.assign({}, current.definition, { format: format });
+    var res;
+    try {
+      res = await fetch('/api/reporting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(body)
+      });
+    } catch (e) { res = { ok: false }; }
+    if (!res.ok) {
+      el('rdNote').textContent = I18N.couldNotExport;
+      return;
+    }
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (current.definition.title || 'drill') + '.' + format;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function wire() {
+    el('rdClose').addEventListener('click', close);
+    el('rdBackdrop').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !el('rdPanel').hidden) close();
+    });
+    if (el('rdExportCsv')) {
+      el('rdExportCsv').addEventListener('click', function () { exportDrill('csv'); });
+      el('rdExportXlsx').addEventListener('click', function () { exportDrill('xlsx'); });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wire);
+  } else {
+    wire();
+  }
 
   return {
     buildDrillDefinition: buildDrillDefinition,
     addGrainUpper: addGrainUpper,
+    open: open,
+    close: close,
     I18N: I18N
   };
 })();
