@@ -177,30 +177,18 @@ def _log_every_request(response):
 
 
 def _page_not_found(e):
-    # The external machine-to-machine API (/api/v1) gets JSON error bodies
-    # (same idiom as the session-revoked/maintenance hooks above). Gated on
-    # /api/v1 -- NOT /api/ -- so the legacy internal /api/* surfaces keep
-    # their current HTML behavior.
-    if request.path.startswith("/api/v1"):
-        return jsonify({"error": "Not found"}), 404
     return render_template("handlers/404.html"), 404
 
 
 def _internal_error(e):
-    if request.path.startswith("/api/v1"):
-        return jsonify({"error": "Internal server error"}), 500
     return render_template("handlers/500.html"), 500
 
 
 def _forbidden_page(e):
-    if request.path.startswith("/api/v1"):
-        return jsonify({"error": "Forbidden"}), 403
     return render_template("handlers/403.html"), 403
 
 
 def _handle_permission_denied(e):
-    if request.path.startswith("/api/v1"):
-        return jsonify({"error": "Forbidden"}), 403
     return render_template("handlers/403.html"), 403
 
 

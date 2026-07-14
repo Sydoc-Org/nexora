@@ -495,34 +495,3 @@ def test_init_app_registers_context_processors(app):
     proc_names = {p.__name__ for p in procs}
     assert "_inject_current_lang" in proc_names
     assert "_utility_processor" in proc_names
-
-
-# ---------- error handlers: /api/v1 JSON branch ----------
-
-
-def test_page_not_found_api_v1_returns_json(app):
-    with app.test_request_context("/api/v1/nope"):
-        body, status = _page_not_found(MagicMock())
-        assert status == 404
-        assert body.get_json() == {"error": "Not found"}
-
-
-def test_internal_error_api_v1_returns_json(app):
-    with app.test_request_context("/api/v1/stats/today"):
-        body, status = _internal_error(MagicMock())
-        assert status == 500
-        assert body.get_json() == {"error": "Internal server error"}
-
-
-def test_forbidden_api_v1_returns_json(app):
-    with app.test_request_context("/api/v1/stats/today"):
-        body, status = _forbidden_page(MagicMock())
-        assert status == 403
-        assert body.get_json() == {"error": "Forbidden"}
-
-
-def test_permission_denied_api_v1_returns_json(app):
-    with app.test_request_context("/api/v1/stats/today"):
-        body, status = _handle_permission_denied(PermissionDenied())
-        assert status == 403
-        assert body.get_json() == {"error": "Forbidden"}
