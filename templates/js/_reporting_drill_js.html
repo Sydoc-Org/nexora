@@ -129,6 +129,9 @@ window.ReportingDrill = (function () {
     var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
     if (!dd) return;
     current = { definition: dd };
+    var token = current;                          // guards against a stale response
+                                                    // from an earlier open() call winning
+                                                    // the race once current is reassigned
     el('rdTitle').textContent = opts.header || I18N.title;
     el('rdSubtitle').textContent = I18N.title;
     el('rdBody').innerHTML = '<p class="reporting-drill-note">…</p>';
@@ -142,7 +145,7 @@ window.ReportingDrill = (function () {
     }).then(function (res) {
       return res.json().then(function (data) { return { ok: res.ok, data: data }; });
     }).then(function (r) {
-      if (!current) return;                       // closed while loading
+      if (current !== token) return;               // closed, or superseded by a later open()
       if (!r.ok) {
         el('rdBody').innerHTML = '<p class="reporting-drill-note">' +
           esc((r.data && r.data.error) || I18N.loadError) + '</p>';
@@ -151,7 +154,7 @@ window.ReportingDrill = (function () {
       renderRows(r.data.columns || [], r.data.rows || [], !!r.data.truncated,
                  !!opts.isDistinct);
     }).catch(function () {
-      if (current) {
+      if (current === token) {
         el('rdBody').innerHTML = '<p class="reporting-drill-note">' + esc(I18N.loadError) + '</p>';
       }
     });
