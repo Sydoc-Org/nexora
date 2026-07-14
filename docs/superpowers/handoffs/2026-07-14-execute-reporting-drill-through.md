@@ -1,3 +1,7 @@
+> **Superseded same-day:** see
+> `docs/superpowers/handoffs/2026-07-14-reporting-drill-through-execution-complete.md` —
+> `/execute-plan` ran this handoff's directive to completion (Tasks 2–8 done, merged).
+
 # Handoff — Next: execute the reporting drill-through plan (Tasks 2–8)
 
 **Date:** 2026-07-14 (morning) · **Branch:** `feature/2.5.64` (ahead 17, unpushed) · **commit-only (remote session — owner pushes)** · no plan worktree for this work yet
