@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** the session pointer now targets
+> `2026-07-14-external-api-v1-today-stats-execution-complete.md` (all 8 tasks implemented, tested,
+> and live-verified on INT). This file's content remains valid for the plan-writing session itself.
+
 # Handoff — External API v1 ("today" stats) plan written
 
 **Date:** 2026-07-14 (evening) · **Branch:** `plan/external-api-v1-today-stats` (worktree
