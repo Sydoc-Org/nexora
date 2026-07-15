@@ -10,6 +10,34 @@ custom-header, save/load, and Excel-export support.
 `/reporting` opens as two tabs (one route, two client-side panes;
 `templates/js/_reporting_tabs_js.html` is the controller):
 
+### Editorial Ledger identity
+
+The page carries its own visual identity, distinct from the rest of the app: a
+serif masthead title and section headings on a cool-neutral canvas, mono
+(tabular) numerals for KPI figures, table cells, and metadata, and a single
+2px ink rule topping the chart block. It's a restyle in place — every
+`.reporting-*` class and every `id`/`name`/`data-testid` is unchanged, so
+existing e2e selectors keep working. Three elements ride on it, shared by
+both tabs:
+
+- **KPI stat band** above the results — total, bucket count, and average per
+  bucket, computed client-side from the rows already returned (no extra
+  query); hidden for zero-row or non-numeric results, with no "vs prior
+  period" delta in v1 (deferred — it would need a second query).
+- **Timing badge** in the masthead — "N rows · M ms", the row count from the
+  run response and the elapsed time measured client-side around the fetch;
+  appears after the first successful run.
+- **Persistent query footer** — a one-line peek of the inlined `sqlDisplay`
+  SQL under the results; click it to expand the existing Show-query panel.
+  Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade fallback
+  keeps working).
+
+Single-series bar/line charts render in ink-navy with a brand-indigo accent
+on the peak value; multi-series charts keep the existing categorical
+palette. Dark mode gets a minimal adaptation of each new element rather than
+a separately designed "ink edition". Full design spec:
+`docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
+
 - **Simple** — the default; built for report *viewers* and non-data-science
   stakeholders. It is purely a presentation layer over the existing REST
   endpoints (`templates/_reporting_simple.html` +
@@ -32,7 +60,8 @@ custom-header, save/load, and Excel-export support.
     **✕** (on both the wizard header and the result bar) exits straight to the
     library without discarding anything already saved.
     Measures and category/date chips whose field only *some* processes provide
-    carry an **"n/m" coverage badge** (tooltip names the providing processes —
+    carry an **"n/m" coverage badge** (styled in the ledger's mono ink-navy
+    treatment; tooltip names the providing processes —
     documents from the others land in the empty-value bucket, and a partial
     measure counts only its providers' documents). The chip list follows the
     **"Limit to specific processes"** picker like the Advanced tab's field
@@ -860,3 +889,6 @@ live schema grounding and scheduled-report delivery.
 - `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).
+- `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md` —
+  "Editorial Ledger" visual identity design spec (masthead, KPI band, timing
+  badge, query footer, single-series chart colors).

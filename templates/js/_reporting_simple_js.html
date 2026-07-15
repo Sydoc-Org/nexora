@@ -76,7 +76,11 @@
     opIsNotEmpty: {{ _("is not empty")|tojson }},
     copied: {{ _("Copied")|tojson }},
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
-    measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }}
+    measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
+    timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }},
+    kpiTotal: {{ _("Total")|tojson }},
+    kpiBuckets: {{ _("Buckets")|tojson }},
+    kpiAvg: {{ _("Avg per bucket")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -247,6 +251,64 @@
     return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
   }
 
+  // Masthead timing badge, shared with _reporting_js.html's own showTiming
+  // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
+  // the first successful run in either pane.
+  function showTiming(rows, elapsedMs) {
+    var badge = document.getElementById('reportingTiming');
+    if (!badge) return;
+    badge.textContent = I18N.timingBadge
+      .replace('{rows}', String(rows == null ? 0 : rows))
+      .replace('{ms}', String(Math.round(elapsedMs)));
+    badge.hidden = false;
+  }
+
+  // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
+  // null/empty so blank dimension cells never misclassify as numeric — used
+  // to tag result-table cells reporting-ledger-num (mono/tabular-nums/
+  // right-aligned) at render time, mirrored in _reporting_js.html.
+  function isNumericCell(v) {
+    if (v == null || v === '') return false;
+    var n = Number(v);
+    return !isNaN(n) && isFinite(n);
+  }
+
+  // KPI stat band (L7 locked decision): total/buckets/avg computed
+  // client-side from the rows the pane already has — no second query. The
+  // first numeric column after the definition's dimension columns is
+  // treated as the measure (every row's value must be finite); hidden when
+  // there are no rows or no such column. Mirrored in _reporting_js.html's
+  // own computeKpiBand/renderKpiBand for the Advanced grid.
+  function computeKpiBand(dims, rows) {
+    if (!rows.length) return null;
+    var idx = -1;
+    for (var i = dims; i < rows[0].length; i++) {
+      if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
+    }
+    if (idx === -1) return null;
+    var total = 0;
+    rows.forEach(function (r) { total += Number(r[idx]); });
+    var buckets = rows.length;
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+  }
+
+  function kpiBlock(testid, caption, value) {
+    return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
+      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span></div>';
+  }
+
+  function renderKpiBand(dims, rows) {
+    var band = el('rsKpiBand');
+    var kpi = computeKpiBand(dims, rows);
+    if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
+    band.innerHTML =
+      kpiBlock('rs-kpi-total', I18N.kpiTotal, kpi.total) +
+      kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
+      kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg);
+    band.hidden = false;
+  }
+
   function metricLabelFor(def) {
     var m = (def.metrics && def.metrics[0]) || null;
     if (!m) return '';
@@ -335,7 +397,10 @@
     html += '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr>';
-      r.forEach(function (v) { html += '<td>' + esc(v == null ? '' : v) + '</td>'; });
+      r.forEach(function (v) {
+        var numCls = isNumericCell(v) ? ' class="reporting-ledger-num"' : '';
+        html += '<td' + numCls + '>' + esc(v == null ? '' : v) + '</td>';
+      });
       html += '</tr>';
     });
     html += '</tbody></table>';
@@ -380,6 +445,16 @@
     var stacked = type === 'stacked';
     var chartJsType = stacked ? 'bar' : type;
     var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
+    // Single-series bar/line get the ink-navy treatment (peak bucket accented
+    // in indigo for bars); stacked, pie/doughnut and multi-series charts keep
+    // their existing palette.
+    var singleSeries = d.datasets.length === 1 && !stacked &&
+      (chartJsType === 'bar' || chartJsType === 'line');
+    var maxIdx = 0;
+    if (singleSeries && chartJsType === 'bar') {
+      var vals0 = d.datasets[0].data;
+      for (var mi = 1; mi < vals0.length; mi++) { if (vals0[mi] > vals0[maxIdx]) maxIdx = mi; }
+    }
     var datasets = d.datasets.map(function (ds) {
       var out = Object.assign({}, ds);
       if (!multi && circular) {
@@ -387,6 +462,20 @@
           return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
         });
         out.borderColor = '#fff';
+      } else if (singleSeries) {
+        // Ink-navy (#312e81) sits at ~1.3:1 contrast against the dark
+        // --nx-card canvas (#1e293b) — effectively invisible. Lift to the
+        // #818cf8 family (the existing --nx-accent dark token) only for
+        // dark mode; light mode keeps the locked ink-navy/indigo-peak spec.
+        var isDark = document.documentElement.classList.contains('dark');
+        var rlNavy = isDark ? '#818cf8' : '#312e81';
+        var rlPeak = isDark ? '#c7d2fe' : '#4f46e5';
+        if (chartJsType === 'bar') {
+          out.backgroundColor = ds.data.map(function (v, i) { return i === maxIdx ? rlPeak : rlNavy; });
+        } else {
+          out.backgroundColor = isDark ? 'rgba(129,140,248,.18)' : 'rgba(49,46,129,.12)';
+        }
+        out.borderColor = rlNavy;
       }
       return out;
     });
@@ -794,10 +883,15 @@
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = false;
     el('rsDrillHint').hidden = true;
+    el('rsKpiBand').hidden = true;
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
+    // Timing badge: measures the full round-trip (both the optional grand-total
+    // call below and the main run), from just before the first request fires
+    // to the moment the main run's response lands.
+    var runT0 = performance.now();
 
     // Grand total via a zero-column clone: correct for every aggregation
     // (avg/count_distinct included), unlike a client-side sum of grouped rows.
@@ -822,6 +916,7 @@
     // hide the indicator a newer run just showed.
     el('rsRunLoading').hidden = true;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    showTiming(res.data.rowCount, performance.now() - runT0);
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
     state.current.sqlDisplay = res.data.sqlDisplay || null;
@@ -829,7 +924,15 @@
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = !state.current.sql;
     el('rsShowSql').textContent = I18N.showQuery;
+    var peek = el('rsSqlPeek');
+    if (state.current.sqlDisplay) {
+      peek.textContent = state.current.sqlDisplay.split('\n')[0] + '…';
+      peek.hidden = false;
+    } else {
+      peek.hidden = true;
+    }
     var columns = res.data.columns || [], rows = res.data.rows || [];
+    renderKpiBand(dims, rows);
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {
       var resolvedTxt = rdates.map(function (d) {
@@ -907,6 +1010,11 @@
       // server-side (display + copy only; execution stays parameterized).
       ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
     }
+  });
+  el('rsSqlPeek').addEventListener('click', function () {
+    // Same reveal path as the Show-query button — no duplicated panel-fill
+    // logic (L9): the peek footer just delegates the click.
+    el('rsShowSql').click();
   });
   el('rsSqlCopy').addEventListener('click', function () {
     var cur = state.current;

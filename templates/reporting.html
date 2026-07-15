@@ -33,7 +33,7 @@
   </script>
 </head>
 
-<body class="nx-app">
+<body class="nx-app reporting-ledger">
   {% set active_page = 'reporting' %} {% include '_header.html' %}
 
   <div class="nx-page-head nx-rise reporting-page-head">
@@ -45,6 +45,7 @@
           <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
         </div>
       </div>
+      <span id="reportingTiming" class="reporting-ledger-timing" hidden data-testid="reporting-timing"></span>
     </div>
     {% if has_permission('reporting.admin.sources') %}
     <div class="nx-page-head__actions">
@@ -233,6 +234,7 @@
         <button id="rpViewChart" data-testid="reporting-view-chart">{{ _("Chart") }}</button>
         <button id="rpViewPivot" data-testid="reporting-view-pivot">{{ _("Pivot") }}</button>
       </div>
+      <div id="rpKpiBand" class="reporting-ledger-kpis" hidden data-testid="reporting-kpi-band"></div>
       <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">
         <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
           <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
@@ -241,6 +243,7 @@
         </div>
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
+      <button type="button" id="rpSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="reporting-sql-peek"></button>
       <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rpSqlView" hidden data-testid="reporting-sql-view">
         <div class="reporting-sqlview-bar">

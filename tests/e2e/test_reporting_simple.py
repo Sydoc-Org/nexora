@@ -131,6 +131,144 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         )
 
 
+def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
+    """After a Simple wizard run, the masthead timing badge becomes visible
+    and reports "<rows> rows · <ms> ms" for the round-trip."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'timing_users', kind: 'curated', label: 'Timing Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 13});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'timing_user_count', sourceId: 'timing_users', label: 'Timing user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        badge = page.get_by_test_id("reporting-timing")
+        _stub_run_ok(page)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Timing user count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        expect(badge).to_be_visible()
+        expect(badge).to_have_text(re.compile(r"\d+ rows · \d+ ms"))
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
+    """After a Simple wizard run whose result has a numeric measure column,
+    the KPI band renders client-computed total/buckets/avg for the rows
+    already on screen (no second query)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'kpi_users', kind: 'curated', label: 'KPI Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 22});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'kpi_user_count', sourceId: 'kpi_users', label: 'KPI user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+
+        # /api/reporting/run is hit twice per wizard run: once with an empty
+        # columns array for the grand-total stat card, once with the real
+        # breakdown. Only the breakdown response carries the numeric measure
+        # column the KPI band needs, so branch on that to keep both calls
+        # deterministic.
+        def handler(route):
+            body = route.request.post_data_json or {}
+            if body.get("columns"):
+                payload = {
+                    "columns": [
+                        {"field": "username", "header": "Username"},
+                        {"field": "kpi_user_count", "header": "KPI user count"},
+                    ],
+                    "rows": [["alice", 4], ["bob", 5], ["carol", 3]],
+                    "truncated": False,
+                    "rowCount": 3,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            else:
+                payload = {
+                    "columns": [{"field": "kpi_user_count", "header": "KPI user count"}],
+                    "rows": [[12]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+        page.route("**/api/reporting/run", handler)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("KPI user count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        band = page.get_by_test_id("rs-kpi-band")
+        expect(band).to_be_visible()
+        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3
+        expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
+        expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
+        expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 STUB_AI_DEFINITION = {
     "schemaVersion": 1,
     "source": "docprocessing",
@@ -2331,3 +2469,48 @@ def test_three_breakdowns_nonadditive_shows_table(nexora_server, page):
     expect(page.get_by_test_id("rs-table-toggle")).to_be_hidden()
     page.locator("#rsTableWrap tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+
+
+def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
+    """Task 6: a persistent one-line query footer sits under the results,
+    showing the first line of the inlined sqlDisplay. Clicking it opens the
+    same Show-query panel as the rs-show-sql button (same reveal path)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    sql_display = "SELECT [d] AS [d], COUNT(*) AS [n]\nFROM [dbo].[T]\nGROUP BY [d]"
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] GROUP BY [d]",
+                    "sqlPretty": sql_display,
+                    "sqlDisplay": sql_display,
+                    "params": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    peek = page.get_by_test_id("rs-sql-peek")
+    expect(peek).to_be_visible()
+    expect(peek).to_have_text("SELECT [d] AS [d], COUNT(*) AS [n]…")
+
+    sql_view = page.get_by_test_id("rs-sql-view")
+    expect(sql_view).to_be_hidden()
+    peek.click()
+    expect(sql_view).to_be_visible()
+    expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
