@@ -109,7 +109,8 @@ function Show-Help {
     Write-Host ""
     Write-Host "  Commands:" -ForegroundColor Gray
     Write-Host "    -u, --up              Start nexora"
-    Write-Host "    -d, --down            Stop nexora"
+    Write-Host "    -d, --down            Stop nexora (port 8000 instance)"
+    Write-Host "    --down-all            Stop ALL nexora instances (any port)"
     Write-Host "    -r, --restart         Restart nexora"
     Write-Host "    -s, --status          Show running status (PID, env, port) + in-flight autopilot issue"
     Write-Host "    -l, --logs            Stream live logs  " -NoNewline
@@ -133,8 +134,8 @@ function Show-Help {
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
     Write-Host "    --body:<text>              Issue body for --queue  " -NoNewline
     Write-Host "(defaults to the title)" -ForegroundColor Gray
-    Write-Host "    --no-conflict              Use port 8001  " -NoNewline
-    Write-Host "(run alongside another instance on 8000, e.g. Claude's)" -ForegroundColor Gray
+    Write-Host "    --no-conflict              Use the first free port from 8001 up  " -NoNewline
+    Write-Host "(run alongside any already-running instances)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
@@ -149,7 +150,8 @@ function Show-Help {
     Write-Host "    nx -u -b                             start and open browser"
     Write-Host "    nx -b:/admin/users                   open browser to /admin/users"
     Write-Host "    nx -u -b:/admin --loginas:username   start, log in as username, navigate to /admin"
-    Write-Host "    nx -u -b --no-conflict               start a second instance on 8001 (8000 untouched)"
+    Write-Host "    nx -u -b --no-conflict               start an extra instance on the next free port"
+    Write-Host "    nx --down-all                        stop every nexora instance"
     Write-Host "    nx --routes                          list all Flask routes"
     Write-Host "    nx --routes:admin                    list routes matching regex /admin/i"
     Write-Host "    nx --routes:^/api                    list routes whose path starts with /api"
@@ -252,6 +254,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--restart' { $action = 'restart' }
         '-d'        { $action = 'stop'    }
         '--down'    { $action = 'stop'    }
+        '--down-all' { $action = 'stop-all' }
         '-l'        { $action = 'logs'    }
         '--logs'    { $action = 'logs'    }
         '-s'        { $action = 'status'  }
@@ -277,11 +280,18 @@ if ($unknown.Count -gt 0) {
 
 if ($loginAs) { $browser = $true }
 
-# --no-conflict: fixed alternate port (deterministic so later -d/-s find the same
-# instance) + suffixed log/state files so the two instances never clash.
-# ponytail: fixed 8001, no free-port scan — scan would break stop/status lookup.
-$Port = if ($noConflict) { 8001 } else { 8000 }
+# --no-conflict: first free port from 8001 upward + suffixed log/state files so
+# instances never clash. Dynamic port means -d/-s can't target such an instance
+# afterwards — that's what --down-all is for.
+$Port = 8000
 if ($noConflict) {
+    if ($action -notin @('start', 'restart')) {
+        Write-Fail "--no-conflict only applies to -u / --up or -r / --restart (use --down-all to stop extra instances)"
+        exit 1
+    }
+    $used = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort)
+    $Port = 8001
+    while ($used -contains $Port) { $Port++ }
     $StderrLog    = "$LogDir\app_stderr.$Port.log"
     $StdoutLog    = "$LogDir\app_stdout.$Port.log"
     $EnvStateFile = "$LogDir\current_env.$Port"
@@ -337,6 +347,24 @@ function Stop-App {
     } else {
         Write-Warn "Nothing to stop — nexora is not running"
     }
+}
+
+function Stop-AllApps {
+    # Kill every nexora instance regardless of port: match python processes
+    # running nx_main.py rather than scanning ports (works for dynamic
+    # --no-conflict ports and instances started outside nx).
+    $procs = @(Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction SilentlyContinue |
+               Where-Object { $_.CommandLine -like '*nx_main.py*' })
+    if ($procs.Count -eq 0) {
+        Write-Warn "Nothing to stop — no nexora instance is running"
+        return
+    }
+    foreach ($proc in $procs) {
+        Write-Info "Stopping PID $($proc.ProcessId)..."
+        Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -Path "$LogDir\current_env*" -ErrorAction SilentlyContinue
+    Write-Ok "Stopped $($procs.Count) instance(s)"
 }
 
 function Start-App {
@@ -591,6 +619,7 @@ switch ($action) {
         Open-Browser
     }
     'stop'     { Stop-App }
+    'stop-all' { Stop-AllApps }
     'maindir'  {
         # NOTE: when invoked as `nx -md` via the profile function, that wrapper
         # intercepts this flag and runs Set-Location in the caller's scope.

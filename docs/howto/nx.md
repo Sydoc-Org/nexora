@@ -44,7 +44,8 @@ directly — only `-md` won't move your shell.
 | Command | Does |
 |---|---|
 | `-u`, `--up` | Start nexora (INT by default) |
-| `-d`, `--down` | Stop the running instance |
+| `-d`, `--down` | Stop the port-8000 instance |
+| `--down-all` | Stop **all** nexora instances, whatever port they run on (matches `nx_main.py` processes, so it also catches instances started outside `nx`) |
 | `-r`, `--restart` | Stop then start |
 | `-s`, `--status` | Show running status (PID, env, port) + any in-flight autopilot build |
 | `-l`, `--logs` | Stream live logs (requires a running instance) |
@@ -65,7 +66,7 @@ With no command, `nx` defaults to `--status` (or opens the browser if `-b` /
 | `--loginas:<username>` | Open the browser logged in as an INT user *(implies `-b`)* |
 | `--env` | Print the current env (running instance's env, else `.env` default) |
 | `--env:<int\|staging>` | Switch env file *(only with `-u` / `-r` / `--routes`; `prod` is rejected)* |
-| `--no-conflict` | Target port **8001** instead of 8000, with separate log/state files — start, stop, status and browser all scope to the 8001 instance, so a second nexora can run without touching one already on 8000 (e.g. one a Claude session is testing against) |
+| `--no-conflict` | Start on the **first free port from 8001 up**, with separate log/state files — an extra nexora runs without touching anything already listening (e.g. an instance a Claude session is testing against). Only valid with `-u` / `-r`; since the port is dynamic, stop extra instances with `--down-all` |
 | `--fast` | Skip external-service checks + schema drift *(only with `--doctor`)* |
 | `--fix` | Auto-repair fixable warnings *(only with `--doctor`)* |
 
@@ -89,8 +90,8 @@ nx --doctor --fast                   # skip externals + drift (fast, offline-fri
 nx --doctor --fix                    # auto-repair fixable findings
 nx --env                             # show current env
 nx -u --env:staging                  # start against STAGING
-nx -u -b --no-conflict               # second instance on 8001 (8000 untouched)
-nx -d --no-conflict                  # stop only the 8001 instance
+nx -u -b --no-conflict               # extra instance on the next free port (8000 untouched)
+nx --down-all                        # stop every nexora instance (any port)
 nx -r --verbose                      # restart and stream logs
 nx -l                                # tail live logs (Ctrl+C stops watching; app keeps running)
 nx -md                               # cd into C:\dev\nexora
@@ -180,11 +181,14 @@ least one check fails — so `nx --doctor` is usable as a CI/pre-flight gate.
 
 ## Notes
 
-- nexora always binds **port 8000**; `nx` identifies the instance by that
+- nexora binds **port 8000** by default; `nx` identifies the instance by that
   listening port, so starting it outside `nx` still shows up in `status` (env
-  may read `?` if `nx` didn't write the env-state file).
+  may read `?` if `nx` didn't write the env-state file). `--no-conflict`
+  instances get whatever free port the scan picked; only `--down-all` can
+  target them afterwards.
 - `nx -u` writes the chosen env to `var/logs/system/current_env`; stdout/stderr
-  go to `app_stdout.log` / `app_stderr.log` in the same folder (rotated at 10 MB).
+  go to `app_stdout.log` / `app_stderr.log` in the same folder (rotated at 10 MB;
+  `--no-conflict` instances use port-suffixed variants like `app_stderr.<port>.log`).
 - `prod` is intentionally **not** a valid `--env:` target from the CLI.
 - The route lister resolves each endpoint to `file:line` via `inspect.unwrap`,
   so decorators like `@require_permission` don't mask the real view location.
