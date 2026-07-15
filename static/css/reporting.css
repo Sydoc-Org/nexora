@@ -1153,7 +1153,7 @@ html.dark body.reporting-ledger {
 
 /* Canvas + masthead: white band over the cool-neutral page canvas,
    hairline rule where the card chrome used to be. */
-body.reporting-ledger { background: var(--rl-canvas); }
+body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .reporting-page-head {
   background: var(--rl-band);
   border-bottom: 1px solid var(--rl-hairline);
