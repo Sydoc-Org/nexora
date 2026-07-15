@@ -1872,6 +1872,102 @@ def test_wizard_caps_category_chips_at_16(nexora_server, page):
     expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
 
 
+# ---------------------------------------------------------------------------
+# Process-coverage marking: chips/measures whose field only some processes
+# provide get an "n/m" badge; the chip list follows the scope picker like the
+# Advanced tab's field list. Fields WITHOUT a `processes` tag are universal
+# (table sources; also why the older wizard stubs above are unaffected).
+# ---------------------------------------------------------------------------
+
+COV_WIZ_SOURCES = [
+    {
+        "id": "docprocessing",
+        "label": "Document processing",
+        "kind": "curated",
+        "processes": ["acme.inv", "acme.hr"],
+        "fields": [
+            {
+                "field": "import_date",
+                "label": "Import date",
+                "type": "date",
+                "grainable": True,
+                "filterable": True,
+                "processes": ["acme.inv", "acme.hr"],
+            },
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+                "processes": ["acme.inv", "acme.hr"],
+            },
+            {
+                "field": "propertynr",
+                "label": "Property No.",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+                "processes": ["acme.inv"],
+            },
+        ],
+    }
+]
+COV_WIZ_METRICS = {
+    "docprocessing": [
+        {
+            "code": "doc_count",
+            "label": "Cov count stub",
+            "aggregation": "count",
+            "baseField": None,
+            "format": "int",
+        },
+    ]
+}
+
+
+def test_wizard_chip_coverage_badge(nexora_server, page):
+    """A chip whose field only some selected processes provide shows an n/m
+    badge and a tooltip naming the providers; full-coverage chips stay plain."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, COV_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    prop = bklist.locator('[data-bd-field="propertynr"]')
+    expect(prop.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
+    assert "acme.inv" in prop.get_attribute("title")
+    expect(bklist.locator('[data-bd-field="doctype"] .reporting-simple-chip-cov')).to_have_count(0)
+    expect(
+        bklist.locator('[data-bd-field="import_date"] .reporting-simple-chip-cov')
+    ).to_have_count(0)
+
+
+def test_wizard_scope_filters_chips_and_prunes_selection(nexora_server, page):
+    """Unticking the only process that provides a field hides its chip and
+    drops it from the selected breakdowns (Advanced-tab parity); re-ticking
+    brings the chip back (unselected)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, COV_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    bklist.locator('[data-bd-field="propertynr"]').click()
+    expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_class(
+        re.compile(r"\bis-selected\b")
+    )
+    page.locator("#rsScopeWrap summary").click()
+    page.get_by_test_id("rs-scope-list").locator('input[value="acme.inv"]').uncheck()
+    expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_count(0)
+    expect(bklist.locator('[data-bd-field="doctype"]')).to_be_visible()
+    page.get_by_test_id("rs-scope-list").locator('input[value="acme.inv"]').check()
+    prop = bklist.locator('[data-bd-field="propertynr"]')
+    expect(prop).to_be_visible()
+    expect(prop).not_to_have_class(re.compile(r"\bis-selected\b"))
+
+
 def test_sqlformat_display_and_copy_policy(nexora_server, page):
     """displayText prefers the inlined sqlDisplay; copyText returns runnable
     SQL when inlined and falls back to raw + params comment otherwise. One
@@ -2055,3 +2151,45 @@ def test_wizard_alltime_hint_toggles(nexora_server, page):
     expect(hint).to_be_hidden()
     page.get_by_test_id("rs-time-list").get_by_text("All time", exact=True).click()
     expect(hint).to_be_visible()
+
+
+def test_wizard_measure_coverage_badge_and_unrunnable_hidden(nexora_server, page):
+    """A sum measure over a partially-covered base field gets the n/m badge;
+    a metric whose base field no allowed process provides is not offered at
+    all (it could never run); count metrics stay plain."""
+    metrics = {
+        "docprocessing": [
+            {
+                "code": "doc_count",
+                "label": "Cov count stub",
+                "aggregation": "count",
+                "baseField": None,
+                "format": "int",
+            },
+            {
+                "code": "page_sum",
+                "label": "Pages stub",
+                "aggregation": "sum",
+                "baseField": "propertynr",
+                "format": "int",
+            },
+            {
+                "code": "ghost_sum",
+                "label": "Ghost stub",
+                "aggregation": "sum",
+                "baseField": "ghostfield",
+                "format": "int",
+            },
+        ]
+    }
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, metrics)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    mlist = page.get_by_test_id("rs-measure-list")
+    pages_btn = mlist.locator("button", has_text="Pages stub")
+    expect(pages_btn.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
+    assert "acme.inv" in pages_btn.get_attribute("title")
+    count_btn = mlist.locator("button", has_text="Cov count stub")
+    expect(count_btn.locator(".reporting-simple-chip-cov")).to_have_count(0)
+    expect(mlist.get_by_text("Ghost stub")).to_have_count(0)

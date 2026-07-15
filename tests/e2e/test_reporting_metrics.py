@@ -25,11 +25,17 @@ def test_metrics_admin_add_and_list(nexora_server, page):
     page.fill('[data-testid="rpm-code"]', "e2e_metric")
     page.select_option('[data-testid="rpm-source"]', index=0)
     page.fill('[data-testid="rpm-label"]', "E2E Metric")
+    page.fill('[data-testid="rpm-label-de"]', "E2E Metrik")
     # 'count' needs no base field (the form disables it for count).
     page.select_option("#rpmAggregation", "count")
     page.locator('[data-testid="rpm-save"]').click()
     expect(page.locator('[data-testid="rpm-msg"]')).to_contain_text("Saved")
     expect(page.locator('[data-testid="reporting-metrics-rows"]')).to_contain_text("e2e_metric")
+    # The German label round-trips through save -> list -> edit form.
+    page.locator('[data-testid="reporting-metrics-rows"] tr', has_text="e2e_metric").get_by_text(
+        "Edit"
+    ).click()
+    expect(page.locator('[data-testid="rpm-label-de"]')).to_have_value("E2E Metrik")
     page.screenshot(path="var/screenshots/reporting_metrics_admin.png")
 
     # Clean up the registered row so it doesn't leak into other e2e runs.

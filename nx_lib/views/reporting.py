@@ -195,8 +195,9 @@ def _load_db_metrics():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT Code, SourceId, Label, Aggregation, BaseField, Description, "
-            "Format, Enabled, SortOrder FROM dbo.ReportingMetrics WHERE Enabled = 1"
+            "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder "
+            "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
         for r in cur.fetchall():
@@ -204,6 +205,9 @@ def _load_db_metrics():
                 "code": r.Code,
                 "source_id": r.SourceId,
                 "label": r.Label,
+                "label_de": r.GermanLabel,
+                "label_fr": r.FrenchLabel,
+                "label_it": r.ItalianLabel,
                 "aggregation": r.Aggregation,
                 "base_field": r.BaseField,
                 "description": r.Description,
@@ -216,6 +220,20 @@ def _load_db_metrics():
         return {}
     finally:
         conn.close()
+
+
+_METRIC_LABEL_ATTRS = {"de": "label_de", "fr": "label_fr", "it": "label_it"}
+
+
+def _metric_label(m):
+    """Locale-aware metric label with English fallback (mirrors the
+    Search_Field_Labels convention: a missing translation falls back to Label).
+
+    Request-context only (reads get_locale()); non-request callers — the AI
+    catalogs and the scheduler's _metrics_for_source — keep using m['label'].
+    """
+    attr = _METRIC_LABEL_ATTRS.get(str(get_locale()))
+    return (m.get(attr) if attr else None) or m["label"]
 
 
 def _metrics_for_source(source_id):
@@ -2274,6 +2292,9 @@ def _metric_insert_params(p):
         p["code"].strip(),
         p["sourceId"].strip(),
         p["label"].strip(),
+        (p.get("labelDe") or "").strip() or None,
+        (p.get("labelFr") or "").strip() or None,
+        (p.get("labelIt") or "").strip() or None,
         p["aggregation"].strip(),
         (p.get("baseField") or "").strip() or None,
         p.get("format") or None,
@@ -2417,9 +2438,9 @@ def api_admin_metrics_list():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT MetricID, Code, SourceId, Label, Aggregation, BaseField, "
-            "Description, Format, Enabled, SortOrder FROM dbo.ReportingMetrics "
-            "ORDER BY SortOrder, Label"
+            "SELECT MetricID, Code, SourceId, Label, GermanLabel, FrenchLabel, "
+            "ItalianLabel, Aggregation, BaseField, Description, Format, Enabled, "
+            "SortOrder FROM dbo.ReportingMetrics ORDER BY SortOrder, Label"
         )
         rows = [
             {
@@ -2427,6 +2448,9 @@ def api_admin_metrics_list():
                 "code": r.Code,
                 "sourceId": r.SourceId,
                 "label": r.Label,
+                "labelDe": r.GermanLabel,
+                "labelFr": r.FrenchLabel,
+                "labelIt": r.ItalianLabel,
                 "aggregation": r.Aggregation,
                 "baseField": r.BaseField,
                 "description": r.Description,
@@ -2457,8 +2481,9 @@ def api_admin_metrics_create():
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO dbo.ReportingMetrics "
-            "(Code, SourceId, Label, Aggregation, BaseField, Format, Enabled, SortOrder) "
-            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "(Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
+            "Aggregation, BaseField, Format, Enabled, SortOrder) "
+            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             _metric_insert_params(p),
         )
         new_id = cur.fetchone()[0]
@@ -2483,9 +2508,9 @@ def api_admin_metrics_update(metric_id):
         cur = conn.cursor()
         params = (*_metric_insert_params(p), metric_id)
         cur.execute(
-            "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, Aggregation=?, "
-            "BaseField=?, Format=?, Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() "
-            "WHERE MetricID=?",
+            "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, GermanLabel=?, "
+            "FrenchLabel=?, ItalianLabel=?, Aggregation=?, BaseField=?, Format=?, "
+            "Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() WHERE MetricID=?",
             params,
         )
         affected = cur.rowcount
@@ -2538,7 +2563,7 @@ def api_metrics():
         out.setdefault(sid, []).append(
             {
                 "code": m["code"],
-                "label": m["label"],
+                "label": _metric_label(m),
                 "aggregation": m["aggregation"],
                 "baseField": m["base_field"],
                 "format": m["format"],

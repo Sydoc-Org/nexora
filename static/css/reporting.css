@@ -1125,3 +1125,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 }
 .reporting-toast--error { border-color: var(--nx-danger); }
 .reporting-toast.is-gone { opacity: 0; }
+
+/* Process-coverage badge on wizard chips/measure cards: "n/m" processes
+   provide this field (tooltip on the chip names them). */
+.reporting-simple-chip-cov { margin-left: 6px; font-size: 11px; font-weight: 600; background: var(--nx-accent-tint); color: var(--nx-accent); border-radius: 999px; padding: 1px 7px; }

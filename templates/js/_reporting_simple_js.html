@@ -74,7 +74,9 @@
     opStartsWith: {{ _("starts with")|tojson }},
     opIsEmpty: {{ _("is empty")|tojson }},
     opIsNotEmpty: {{ _("is not empty")|tojson }},
-    copied: {{ _("Copied")|tojson }}
+    copied: {{ _("Copied")|tojson }},
+    chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
+    measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -1041,13 +1043,32 @@
       (bySource[sid] || []).forEach(function (m) {
         // Sources without metrics never appear; admins grow the wizard's
         // reach by adding rows in the metrics registry, zero code change.
+        var srcProcs = src.processes || [];
+        var fld = m.baseField
+          ? (src.fields || []).find(function (f) { return f.field === m.baseField; })
+          : null;
+        // A metric whose base field no allowed process provides can never run
+        // for this user (resolve_metrics 400s) — don't offer it.
+        if (m.baseField && !fld) return;
         var label = multi ? (m.label + ' · ' + src.label) : m.label;
-        list.appendChild(choiceBtn(label, function () {
+        var btn = choiceBtn(label, function () {
           state.wiz.measure = m;
           state.wiz.source = src;   // picking a measure pins the source
           renderBreakdownStep();
         }, !!(state.wiz.measure && state.wiz.measure.code === m.code
-              && state.wiz.source && state.wiz.source.id === src.id)));
+              && state.wiz.source && state.wiz.source.id === src.id));
+        // Partial coverage (vs ALL allowed processes — no scope exists yet at
+        // this step): same badge as the breakdown chips.
+        if (fld && fld.processes && fld.processes.length && srcProcs.length
+            && fld.processes.length < srcProcs.length) {
+          var cov = document.createElement('span');
+          cov.className = 'reporting-simple-chip-cov';
+          cov.textContent = fld.processes.length + '/' + srcProcs.length;
+          btn.appendChild(cov);
+          btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
+            .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
+        }
+        list.appendChild(btn);
       });
     });
     if (!list.children.length) {
@@ -1059,26 +1080,9 @@
     el('rsStepBreakdown').hidden = false;
     el('rsStepTime').hidden = true;
     el('rsWizardRun').hidden = true;
-    var list = el('rsBreakdownList');
-    list.innerHTML = '';
     var w = state.wiz;
     if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
-
-    var fields = w.source.fields || [];
-    var dateFields = fields.filter(function (f) { return f.grainable; });
-    var catFields = fields.filter(function (f) {
-      return f.type === 'string' && f.filterable;
-    });
-
-    if (w.source.id === 'docprocessing') {
-      catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
-      catFields.sort(function (a, b) {
-        var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
-        if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
-        if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
-        return (ia - ib) || a.label.localeCompare(b.label);
-      });
-    }
+    var allProcs = w.source.processes || [];
 
     function isSelected(bd) {
       if (bd.kind === 'none') return w.breakdowns.length === 0;
@@ -1091,7 +1095,7 @@
     }
 
     function refreshChips() {
-      var chips = list.querySelectorAll('button[data-bd-kind]');
+      var chips = el('rsBreakdownList').querySelectorAll('button[data-bd-kind]');
       var ci;
       for (ci = 0; ci < chips.length; ci++) {
         var btn = chips[ci];
@@ -1130,34 +1134,92 @@
       refreshChips();
     }
 
-    dateFields.forEach(function (f) {
-      var bd = { kind: 'date', field: f };
-      var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
-        toggleBreakdown(bd);
-      }, isSelected(bd));
-      btn.dataset.bdKind = 'date';
-      btn.dataset.bdField = f.field;
-      list.appendChild(btn);
-    });
-    // Cap 16 = headroom over docprocessing's current 13 candidates (the 12
-    // previously-visible chips + Process). An exactly-saturated cap silently
-    // evicts the newest chip -- that trap is why this was raised from 12.
-    // Keep slack when adding doc-fields; the cap is pinned by
-    // test_wizard_caps_category_chips_at_16.
-    catFields.slice(0, 16).forEach(function (f) {
-      var bd = { kind: 'category', field: f };
-      var btn = choiceBtn(f.label, function () {
-        toggleBreakdown(bd);
-      }, isSelected(bd));
-      btn.dataset.bdKind = 'category';
-      btn.dataset.bdField = f.field;
-      list.appendChild(btn);
-    });
-    var noneBtn = choiceBtn(I18N.justTotal, function () {
-      toggleBreakdown({ kind: 'none' });
-    }, w.breakdowns.length === 0);
-    noneBtn.dataset.bdKind = 'none';
-    list.appendChild(noneBtn);
+    // --- process coverage (docprocessing) --------------------------------
+    // Mirrors the Advanced tab's isFieldAvailable(): a field with no
+    // `processes` tag (table sources) is universal. The effective scope is
+    // the picker selection; empty selection = all allowed (the same
+    // convention the definition serializer uses).
+    function scopeSel() {
+      return (w.scopeProcs && w.scopeProcs.length) ? w.scopeProcs : allProcs;
+    }
+    function coveredBy(f) {
+      if (!allProcs.length || !f.processes || !f.processes.length) return null;
+      var sel = scopeSel();
+      return f.processes.filter(function (p) { return sel.indexOf(p) !== -1; });
+    }
+    function inScope(f) {
+      var cov = coveredBy(f);
+      return cov === null || cov.length > 0;
+    }
+    function applyCoverageBadge(btn, f) {
+      var cov = coveredBy(f);
+      if (cov === null || cov.length >= scopeSel().length) return;
+      var b = document.createElement('span');
+      b.className = 'reporting-simple-chip-cov';
+      b.textContent = cov.length + '/' + scopeSel().length;
+      btn.appendChild(b);
+      btn.title = I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
+        + '\n' + cov.join('\n');
+    }
+
+    // The chip list is re-rendered whenever the process scope changes: a chip
+    // whose field no selected process provides is hidden and its selection
+    // pruned (the query would only produce NULL groups for it).
+    function renderChipList() {
+      var list = el('rsBreakdownList');
+      list.innerHTML = '';
+      var fields = w.source.fields || [];
+      var dateFields = fields.filter(function (f) { return f.grainable; }).filter(inScope);
+      var catFields = fields.filter(function (f) {
+        return f.type === 'string' && f.filterable;
+      }).filter(inScope);
+
+      if (w.source.id === 'docprocessing') {
+        catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
+        catFields.sort(function (a, b) {
+          var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
+          if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
+          if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
+          return (ia - ib) || a.label.localeCompare(b.label);
+        });
+      }
+
+      // Scope narrowing can strand a selected breakdown on a hidden field.
+      w.breakdowns = w.breakdowns.filter(function (b) { return !b.field || inScope(b.field); });
+
+      dateFields.forEach(function (f) {
+        var bd = { kind: 'date', field: f };
+        var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+          toggleBreakdown(bd);
+        }, isSelected(bd));
+        btn.dataset.bdKind = 'date';
+        btn.dataset.bdField = f.field;
+        applyCoverageBadge(btn, f);
+        list.appendChild(btn);
+      });
+      // Cap 16 = headroom over docprocessing's current 13 candidates (the 12
+      // previously-visible chips + Process). An exactly-saturated cap silently
+      // evicts the newest chip -- that trap is why this was raised from 12.
+      // Keep slack when adding doc-fields; the cap is pinned by
+      // test_wizard_caps_category_chips_at_16.
+      catFields.slice(0, 16).forEach(function (f) {
+        var bd = { kind: 'category', field: f };
+        var btn = choiceBtn(f.label, function () {
+          toggleBreakdown(bd);
+        }, isSelected(bd));
+        btn.dataset.bdKind = 'category';
+        btn.dataset.bdField = f.field;
+        applyCoverageBadge(btn, f);
+        list.appendChild(btn);
+      });
+      var noneBtn = choiceBtn(I18N.justTotal, function () {
+        toggleBreakdown({ kind: 'none' });
+      }, w.breakdowns.length === 0);
+      noneBtn.dataset.bdKind = 'none';
+      list.appendChild(noneBtn);
+    }
+
+    renderChipList();
 
     // Wire Continue button
     var nextBtn = el('rsBreakdownNext');
@@ -1189,6 +1251,7 @@
           state.wiz.scopeProcs = Array.prototype.map.call(
             box.querySelectorAll('input:checked'), function (c) { return c.value; });
           updateScopeBadge();
+          renderChipList();
         });
         lbl.appendChild(cb);
         lbl.appendChild(document.createTextNode(' ' + p));
