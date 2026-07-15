@@ -1061,6 +1061,7 @@ def _sandbox_error_message(e):
         "multi_statement": _("Exactly one statement is allowed."),
         "not_select": _("Only SELECT / WITH / set operations are allowed."),
         "forbidden_node": _("Disallowed construct: {kw}").format(kw=token),
+        "tsql_limit": _("T-SQL does not support LIMIT — use TOP (n) instead."),
     }
     return messages.get(e.rule, str(e))
 
@@ -1476,26 +1477,24 @@ def api_ai_agent():
     # are bound ONLY with reporting.ai.explain_data (Phase 3e data-egress grant) AND
     # reporting.sql.run (the live-SQL gate). Without explain_data the loop stays
     # schema-only: no result rows ever reach the model.
-    # The client sends the active builder source so the data tools can be gated on
-    # whether run_sql can actually reach it. A curated table-provider source (e.g.
-    # Generali on GeneraliDB) has no RO SQL target, so binding run_sql for it only
-    # makes the model loop on "invalid object name" — bind build_definition instead.
+    # The client sends the active builder source only as prompt grounding. It is a
+    # UI default, not the question's subject: a curated table-provider source (e.g.
+    # Generali on GeneraliDB) has no RO SQL target, but the grounding marks such
+    # sources builder-only and the system prompt steers run_sql away from them —
+    # the data tools stay bound so questions about run_sql-able sources still get
+    # real numbers even while the builder happens to sit on a curated source.
     active_source = None
     source_id = (body.get("source") or "").strip()
     if source_id:
         active_source = _get_effective_source(source_id)
-    source_blocks_run_sql = bool(
+    source_is_builder_only = bool(
         active_source
         and active_source.get("kind") == "curated"
         and (active_source.get("provider") or "docprocessing") != "docprocessing"
     )
 
     has_sql = has_permission("reporting.ai.sql")
-    explain = (
-        has_permission("reporting.ai.explain_data")
-        and has_permission("reporting.sql.run")
-        and not source_blocks_run_sql
-    )
+    explain = has_permission("reporting.ai.explain_data") and has_permission("reporting.sql.run")
     tool_names = {"build_definition"}
     if has_sql:
         tool_names.add("validate_sql")
@@ -1527,9 +1526,12 @@ def api_ai_agent():
     if active_source:
         grounding += (
             f'\n\nThe user\'s selected source is "{active_source.get("label")}" '
-            f'(id {active_source.get("id")}); "this source" in the question means it.'
+            f'(id {active_source.get("id")}); "this source" in the question means it. '
+            "It is only a UI default — when the question neither says \"this source\" "
+            "nor names it, choose the best-fitting source from the catalog instead "
+            "(for counting/aggregation questions, one that lists metrics)."
         )
-        if source_blocks_run_sql:
+        if source_is_builder_only:
             grounding += (
                 " It is builder-only — answer it with build_definition; run_sql cannot " "reach it."
             )

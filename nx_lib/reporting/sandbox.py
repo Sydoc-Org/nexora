@@ -38,6 +38,12 @@ _BLOCKED_WORDS = (
 )
 _BLOCKED_RE = re.compile(r"\b(" + "|".join(_BLOCKED_WORDS) + r")\b", re.IGNORECASE)
 
+# LIMIT parses under sqlglot's lenient tsql dialect into the SAME AST node as
+# TOP, so it passes the AST gate but fails on the real SQL Server. Textual check
+# is the only reliable reject. ponytail: matches a bare column alias named
+# "limit" too — bracket-quote it ([limit]) in the unlikely case you need one.
+_TSQL_LIMIT_RE = re.compile(r"(?<![\[\.\w])LIMIT\b", re.IGNORECASE)
+
 # Any of these appearing anywhere in the parsed tree is a hard reject.
 _FORBIDDEN_NODES = (
     exp.Insert,
@@ -83,6 +89,12 @@ def validate_select(sql):
     if m:
         kw = m.group(0).strip()
         raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {kw}", token=kw)
+    if _TSQL_LIMIT_RE.search(scan):
+        raise SqlSandboxError(
+            "tsql_limit",
+            "T-SQL does not support LIMIT — use TOP (n) instead",
+            token="LIMIT",
+        )
 
     try:
         statements = [s for s in sqlglot.parse(sql, dialect="tsql") if s is not None]

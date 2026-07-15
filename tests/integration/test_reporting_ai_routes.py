@@ -588,11 +588,12 @@ def test_ai_agent_explain_data_inert_without_sql_run(user_client):
     assert "run_sql" not in captured["tools"]
 
 
-def test_ai_agent_skips_data_tools_for_builder_only_source(user_client):
+def test_ai_agent_keeps_data_tools_but_flags_builder_only_source(user_client):
     """A builder-only curated source (table provider, e.g. Generali on GeneraliDB)
-    is unreachable by run_sql, so the data tools are NOT bound even with
-    explain_data + sql.run — the model must use build_definition instead of looping
-    on run_sql 'invalid object name' errors against a source run_sql can't reach."""
+    is unreachable by run_sql — but it is only the builder's UI default, not the
+    question's subject. The data tools stay bound (explain_data + sql.run) so a
+    question about a run_sql-able source still gets real numbers; the grounding
+    marks the selected source builder-only to steer run_sql away from it."""
     captured = {}
 
     def fake_make_step(**kwargs):
@@ -601,6 +602,7 @@ def test_ai_agent_skips_data_tools_for_builder_only_source(user_client):
 
     def fake_loop(initial, *, registry, agent_step, **kw):
         captured["run_sql_bound"] = registry._run_sql is not None
+        captured["initial"] = initial
         return _agentic_result()
 
     with ExitStack() as es:
@@ -629,10 +631,10 @@ def test_ai_agent_skips_data_tools_for_builder_only_source(user_client):
             "/api/reporting/ai/agent", json={"question": "how many?", "source": "gen_pdqm"}
         )
     assert resp.status_code == 200
-    assert resp.get_json()["explainData"] is False
-    assert "run_sql" not in captured["tools"]
-    assert "compute_stats" not in captured["tools"]
-    assert captured["run_sql_bound"] is False
+    assert resp.get_json()["explainData"] is True
+    assert {"run_sql", "compute_stats"} <= set(captured["tools"])
+    assert captured["run_sql_bound"] is True
+    assert "builder-only" in captured["initial"]
 
 
 def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):

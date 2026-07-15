@@ -459,14 +459,20 @@ def ask(
 # model here — narration over rows is Phase 3e (gated reporting.ai.explain_data).
 # ---------------------------------------------------------------------------
 
-DEFAULT_MAX_TURNS = 6
+# 10 turns: with the data tools bound a full run is commonly build_definition
+# (1-2 self-repairs) -> validate_sql -> run_sql -> final answer; 6 clipped the
+# answer off exactly when the agent was doing its job.
+DEFAULT_MAX_TURNS = 10
 
 _AGENT_SYSTEM = (
     "You are a careful analyst for an internal reporting tool. Use the provided "
     "TOOLS to answer the question, grounded ONLY in the data SOURCES/SCHEMA given "
     "— never invent fields, tables, or sources. Prefer build_definition for any "
     "report the builder can express (it validates against the source field "
-    "catalog). If validate_sql is available, draft ONE read-only SELECT and "
+    "catalog). Pick the source whose fields fit the question best: for any "
+    "counting/summing/averaging question use a source that lists metrics — a "
+    'source marked "metrics: none" cannot aggregate at all. '
+    "If validate_sql is available, draft ONE read-only SELECT and "
     "validate it before presenting. When a tool returns an error, fix your input "
     "and try again — but after 2 failed attempts on the same tool stop calling it "
     "and write your final answer explaining what you could and could not do. "
@@ -514,6 +520,10 @@ _AGENT_EXPLAIN_SUFFIX = (
     "for a source marked 'builder-only' — answer those with build_definition instead. "
     "If a builder-only source needs a calculation build_definition cannot express, say "
     "so plainly rather than retrying run_sql."
+    " When the question asks for concrete values (how many, which had the most, "
+    "top N) about data run_sql can reach, a successful build_definition does NOT "
+    "answer it — go on to validate_sql and run_sql and report the actual numbers; "
+    "stop only once run_sql has returned the data."
 )
 
 

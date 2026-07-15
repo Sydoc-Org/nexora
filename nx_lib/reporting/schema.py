@@ -105,13 +105,26 @@ def validate_report_definition(
         grain = c.get("grain")
         if grain is not None:
             if c.get("field") not in grainable_fields:
-                raise ReportDefinitionError(f"field not grainable: {c.get('field')!r}")
+                raise ReportDefinitionError(
+                    f"field not grainable: {c.get('field')!r} — only date fields "
+                    f"accept a grain (grainable: {sorted(grainable_fields)})"
+                )
             if grain not in GRAINS:
                 raise ReportDefinitionError(f"unknown grain: {grain!r}")
 
-    for f in rd.get("filters") or []:
+    filters = rd.get("filters") or []
+    if not isinstance(filters, list):
+        # The most common AI mistake: a map keyed by field name instead of a list.
+        raise ReportDefinitionError(
+            "filters must be a LIST of filter objects, e.g. "
+            '[{"field": "export_date", "op": "between", '
+            '"value": ["2026-01-01", "2026-03-31"]}] — not a map keyed by field'
+        )
+    for f in filters:
         if not isinstance(f, dict):
-            raise ReportDefinitionError("filter must be an object")
+            raise ReportDefinitionError(
+                "each filter must be an object " '{"field": "<key>", "op": "<op>", "value": <v>}'
+            )
         if f.get("field") not in filterable_fields:
             raise ReportDefinitionError(f"field not filterable: {f.get('field')!r}")
         op = f.get("op")

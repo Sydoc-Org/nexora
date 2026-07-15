@@ -76,7 +76,11 @@ def validate_token_value(value):
     token = value.get("token")
     if token not in RELATIVE_DATE_TOKENS:
         allowed = ", ".join(sorted(RELATIVE_DATE_TOKENS))
-        return f"unknown relative-date token: {token!r} (allowed: {allowed})"
+        return (
+            f"unknown relative-date token: {token!r} (allowed: {allowed}); "
+            "tokens are only for relative ranges — for explicit dates pass "
+            'literal ISO strings, e.g. "value": ["2026-06-01", "2026-06-30"]'
+        )
     extra = set(value) - {"token", "n"}
     if extra:
         return f"unexpected keys in relative-date value: {sorted(extra)}"
