@@ -1511,10 +1511,35 @@
       String(d.getDate()).padStart(2, '0');
   }
 
+  // Lazily creates the Custom-range flatpickr on rsTimeRange (shared by the
+  // Custom choiceBtn handler and the restore-from-definition path below), so
+  // the mode/format/onChange options exist in exactly one place.
+  function ensureRangePicker() {
+    if (!state.wiz._fp && window.flatpickr) {
+      state.wiz._fp = flatpickr(el('rsTimeRange'), {
+        mode: 'range', dateFormat: 'Y-m-d',
+        onChange: function (picked) {
+          if (picked.length === 2) {
+            state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
+          }
+        }
+      });
+    }
+    return state.wiz._fp;
+  }
+
   function renderTimeStep() {
     el('rsStepTime').hidden = false;
     el('rsWizardRun').hidden = false;
     el('rsTimeCustom').hidden = !Array.isArray(state.wiz.range);
+    // A restored definition's literal range (adjustInWizard) must be visible
+    // in the picker, not just applied silently on Show result — seed it here
+    // (display = state, no change event) rather than waiting for the user to
+    // click Custom themselves.
+    if (Array.isArray(state.wiz.range) && window.flatpickr) {
+      ensureRangePicker();
+      if (state.wiz._fp) state.wiz._fp.setDate(state.wiz.range, false);
+    }
     var fields = state.wiz.source.fields || [];
     var dateFields = fields.filter(function (f) { return f.grainable; });
     var list = el('rsTimeList');
@@ -1553,16 +1578,7 @@
       list.appendChild(choiceBtn(p[1], function () {
         el('rsTimeCustom').hidden = p[0] !== 'custom';
         if (p[0] === 'custom') {
-          if (!state.wiz._fp && window.flatpickr) {
-            state.wiz._fp = flatpickr(el('rsTimeRange'), {
-              mode: 'range', dateFormat: 'Y-m-d',
-              onChange: function (picked) {
-                if (picked.length === 2) {
-                  state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
-                }
-              }
-            });
-          }
+          ensureRangePicker();
           // Re-selecting Custom keeps whatever range the picker still shows
           // (display and state must agree); empty picker = no filter yet.
           var fp = state.wiz._fp;

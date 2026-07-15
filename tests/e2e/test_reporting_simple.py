@@ -1627,6 +1627,78 @@ def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
     expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
 
 
+def test_adjust_in_wizard_prefills_custom_range(nexora_server, page):
+    """A definition with a literal between range must have its custom range
+    visible in the flatpickr the moment adjustInWizard opens the wizard --
+    not just applied silently on the next Show result while the picker looks
+    empty."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "stub_src",
+        "visualization": "table",
+        "title": "e2e custom range report",
+        "columns": [{"field": "doctype"}],
+        "metrics": [{"metric": "stub_count"}],
+        "filters": [
+            {"field": "import_date", "op": "between", "value": ["2026-01-01", "2026-03-31"]}
+        ],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library list + catalogs fetch as soon
+    # as the Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-custom-range", "e2e custom range report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    _stub_catalogs(page)
+    _stub_run_ok(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e custom range report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    page.get_by_test_id("rs-adjust-wizard").click()
+    expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+    range_input = page.locator("#rsTimeRange")
+    expect(range_input).to_be_visible()
+    expect(range_input).to_have_value(re.compile("2026-01-01"))
+
+
 def test_wizard_back_steps_back_not_exit(nexora_server, page):
     """Back walks time -> breakdown -> measure -> library, preserving picks."""
     _login(page, nexora_server)
