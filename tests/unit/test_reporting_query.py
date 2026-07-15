@@ -562,3 +562,40 @@ def test_eq_filter_still_drops_process_lacking_the_field():
     sql, _params = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
     assert "[dbo].[StatA]" in sql
     assert "StatB" not in sql
+
+
+def test_sum_metric_base_projected_with_try_cast():
+    # Doc-extraction stat columns are varchar: SUM over the raw column would
+    # implicit-convert and fail on the first non-numeric cell. sum/avg bases
+    # are therefore projected as TRY_CAST(col AS float) per subquery (bad
+    # cells become NULL, which SUM/AVG ignore).
+    rd = _rd(columns=[{"field": "doctype"}], filters=[], sort=[])
+    resolved = [{"code": "page_count", "aggregation": "sum", "base_field": "pages"}]
+    sql, params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST(PageCount AS float) AS [pages]" in sql  # acme.inv maps it
+    assert "NULL AS [pages]" in sql  # acme.hr doesn't
+    assert "SUM([pages]) AS [page_count]" in sql
+    assert "GROUP BY [doctype]" in sql
+
+
+def test_avg_metric_base_projected_with_try_cast():
+    rd = _rd(columns=[], filters=[], sort=[])
+    resolved = [{"code": "avg_pages", "aggregation": "avg", "base_field": "pages"}]
+    sql, _params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST(PageCount AS float) AS [pages]" in sql
+    assert "AVG([pages]) AS [avg_pages]" in sql
+
+
+def test_count_distinct_base_is_not_cast():
+    # Only sum/avg need numbers; count_distinct/min/max keep the raw column.
+    rd = _rd(columns=[{"field": "doctype"}], filters=[], sort=[])
+    resolved = [{"code": "d_status", "aggregation": "count_distinct", "base_field": "status"}]
+    sql, _params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST" not in sql
+    assert "COUNT(DISTINCT [status]) AS [d_status]" in sql

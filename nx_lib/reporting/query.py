@@ -217,6 +217,19 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     # fields (deduped, order-stable). For the row path this is just `columns`.
     projected_fields = list(dict.fromkeys(columns + metric_base_fields))
 
+    # SUM/AVG bases are projected as TRY_CAST(col AS float): the doc-extraction
+    # stat columns are varchar, and a raw SUM would implicit-convert and fail on
+    # the first non-numeric cell — TRY_CAST yields NULL there and SUM/AVG ignore
+    # NULLs. T-SQL only, which is fine: this builder targets the SQL Server
+    # statistics engine (table sources aggregate typed columns in table_query).
+    # ponytail: float is exact for page counts (< 2^53); switch to
+    # decimal(18,2) when money metrics arrive.
+    numeric_bases = {
+        m["base_field"]
+        for m in (resolved_metrics or [])
+        if m.get("base_field") and m["aggregation"] in ("sum", "avg")
+    }
+
     # Validate that every requested column field is known across all maps.
     # "processname" is a synthetic field always available; others must appear
     # in at least one process's field_col_map so we don't silently project NULL
@@ -266,7 +279,9 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
                 params.append(cfg["process"])
             else:
                 actual = proj_resolved.get(field)
-                if actual:
+                if actual and field in numeric_bases:
+                    select_exprs.append(f"TRY_CAST({actual} AS float) AS [{field}]")
+                elif actual:
                     select_exprs.append(f"{actual} AS [{field}]")
                 else:
                     select_exprs.append(f"NULL AS [{field}]")
