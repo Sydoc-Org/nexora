@@ -263,7 +263,7 @@ BEGIN
 END;
 GO
 
--- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql).
+-- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql + 0039 label columns).
 IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ReportingMetrics (
@@ -271,6 +271,9 @@ BEGIN
         Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingMetrics_Code UNIQUE,
         SourceId     NVARCHAR(64) NOT NULL,
         Label        NVARCHAR(120) NOT NULL,
+        GermanLabel  NVARCHAR(120) NULL,
+        FrenchLabel  NVARCHAR(120) NULL,
+        ItalianLabel NVARCHAR(120) NULL,
         Aggregation  NVARCHAR(16) NOT NULL,
         BaseField    NVARCHAR(128) NULL,
         FilterJson   NVARCHAR(MAX) NULL,
