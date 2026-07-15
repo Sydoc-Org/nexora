@@ -6,6 +6,7 @@ succeeds with an artifact.
 """
 
 import json
+import time
 
 from playwright.sync_api import expect
 
@@ -30,8 +31,10 @@ def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
 
 
-def _stub_agent(page, body):
+def _stub_agent(page, body, delay_s=0.0):
     def handler(route):
+        if delay_s:
+            time.sleep(delay_s)
         route.fulfill(status=200, content_type="application/json", body=json.dumps(body))
 
     page.route("**/api/reporting/ai/agent", handler)
@@ -77,11 +80,33 @@ def test_agent_retry_shown_on_max_turns_then_hidden_after_success(nexora_server,
         "sql": None,
     }
     page.unroute("**/api/reporting/ai/agent")
-    _stub_agent(page, success_payload)
+    # Delay fulfillment so there is a real in-flight window: the retry button
+    # must be disabled while the request is pending (double-fire guard).
+    _stub_agent(page, success_payload, delay_s=0.8)
+
+    # Observe the disabled flip from INSIDE the page (same idiom as
+    # __runLoadingWasSeen in test_reporting_simple.py): the blocking route
+    # handler stalls the sync Playwright protocol, so an expect() poll can
+    # never see the transient in-flight state from outside.
+    page.evaluate("""() => {
+        window.__retryWasDisabled = false;
+        const el = document.getElementById('rpAiAgentRetry');
+        if (!el) return;
+        if (el.disabled) { window.__retryWasDisabled = true; return; }
+        const obs = new MutationObserver(() => {
+            if (el.disabled) { window.__retryWasDisabled = true; obs.disconnect(); }
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['disabled'] });
+    }""")
 
     retry_btn.click()
 
     expect(page.get_by_test_id("reporting-ai-retry")).to_be_hidden()
+    assert page.evaluate(
+        "() => window.__retryWasDisabled"
+    ), "retry button was never disabled while the request was in flight"
+    # After the response lands it is re-enabled (and hidden by the success path).
+    expect(retry_btn).to_be_enabled()
     # Both turns carry the identical question text.
     turns = thread.locator(".reporting-ai-turn")
     expect(turns).to_have_count(2)

@@ -240,6 +240,7 @@
 
   function askAgent(question) {
     askBtn.disabled = true;
+    if (agentRetryBtn) agentRetryBtn.disabled = true;
     errorEl.hidden = true;
     showAiLoading(AGENT_LINES);
     fetch(API_PREFIX + "api/reporting/ai/agent", {
@@ -254,6 +255,7 @@
       return r.json().then(function (data) { return { ok: r.ok, data: data }; });
     }).then(function (res) {
       askBtn.disabled = false;
+      if (agentRetryBtn) agentRetryBtn.disabled = false;
       hideAiLoading();
       if (!res.ok) {
         errorEl.textContent = (res.data && res.data.error) || '{{ _("Error") }}';
@@ -277,6 +279,7 @@
       askBtn.textContent = '{{ _("Ask follow-up") }}';
     }).catch(function () {
       askBtn.disabled = false;
+      if (agentRetryBtn) agentRetryBtn.disabled = false;
       hideAiLoading();
       errorEl.textContent = '{{ _("Network error") }}'; errorEl.hidden = false;
     });
