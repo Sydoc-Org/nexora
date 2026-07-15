@@ -25,6 +25,7 @@
     noAccess: {{ _("You don't have access to the data behind this report.")|tojson }},
     outdated: {{ _("This report is outdated — open it in Advanced to fix it.")|tojson }},
     noData: {{ _("No data for this report")|tojson }},
+    noDataHint: {{ _("Widen the time range or remove a filter.")|tojson }},
     savedToMine: {{ _("Saved to My reports.")|tojson }},
     showTable: {{ _("Show table")|tojson }},
     hideTable: {{ _("Hide table")|tojson }},
@@ -1072,10 +1073,11 @@
         ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
       totMsg.hidden = false;
     }
-    if (!rows.length && el('rsStatCard').hidden) {
+    if (!rows.length) {
       el('rsTableWrap').innerHTML =
         '<div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox" aria-hidden="true"></i></div>' +
-        '<p class="nx-empty__title">' + esc(I18N.noData) + '</p></div>';
+        '<p class="nx-empty__title">' + esc(I18N.noData) + '</p>' +
+        '<p class="nx-empty__hint">' + esc(I18N.noDataHint) + '</p></div>';
       el('rsTableWrap').hidden = false;
       return;
     }

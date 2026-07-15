@@ -2356,6 +2356,54 @@ def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
     expect(empty).to_contain_text("No rows matched")
 
 
+def test_zero_rows_shows_empty_state_hint(nexora_server, page):
+    """A successful zero-row Simple-pane run always shows the no-data empty
+    state plus a hint — even though the zero-column grand-total call succeeds
+    and leaves the stat card visible (previously the empty state only showed
+    when el('rsStatCard') was hidden, so a visible zero stat card produced a
+    bare header-only grid instead)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+
+    def handler(route):
+        body = route.request.post_data_json or {}
+        is_total_call = not body.get("columns")
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "import_date", "header": "Import date"},
+                        {"field": "doc_count", "header": "doc_count"},
+                    ],
+                    "rows": [[0]] if is_total_call else [],
+                    "rowCount": 0,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_text("Doc type", exact=True).click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    empty = page.locator("#rsTableWrap .nx-empty")
+    expect(empty).to_be_visible()
+    expect(empty).to_contain_text("No data for this report")
+    expect(empty).to_contain_text("Widen the time range or remove a filter.")
+    # Zero rows must never render as a bare header-only grid alongside/instead
+    # of the empty state.
+    expect(page.locator("#rsTableWrap table")).to_have_count(0)
+
+
 def test_advanced_save_shows_toast_not_alert(nexora_server, page):
     """Saving surfaces an in-page toast; no browser alert dialog fires."""
     _login(page, nexora_server)
