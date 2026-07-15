@@ -75,3 +75,26 @@ def test_unknown_tool_errors():
     reg = ToolRegistry()
     out = reg.call("frobnicate", {})
     assert out["ok"] is False
+
+
+def test_run_sql_odbc_error_is_humanized_by_generic_choke_point():
+    # Task 6: ToolRegistry.call's generic except (the choke point every tool
+    # handler funnels through) must humanize a raw pyodbc/ODBC error the same
+    # way sandbox.humanize_sql_error does — no driver noise reaching the model
+    # or the tool trace, and a teaching hint for known codes.
+    odbc_text = (
+        "('42000', '[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "The ORDER BY clause is invalid in views, inline functions, derived "
+        "tables, subqueries, and common table expressions, unless TOP, OFFSET "
+        "or FOR XML is also specified. (1033) (SQLExecDirectW)')"
+    )
+
+    def boom(target, sql):
+        raise RuntimeError(odbc_text)
+
+    reg = ToolRegistry(run_sql=boom)
+    out = reg.call("run_sql", {"target": "statistics", "sql": "SELECT 1"})
+    assert out["ok"] is False
+    assert "SQLExecDirectW" not in out["error"]
+    assert "[Microsoft]" not in out["error"]
+    assert "Hint:" in out["error"]

@@ -11,7 +11,7 @@ the route because they need request scope (permissions, RO engines, catalogs).
 import contextlib
 import json
 
-from .sandbox import SqlSandboxError, validate_select
+from .sandbox import SqlSandboxError, humanize_sql_error, validate_select
 from .schema import FILTER_OPS, GRAINS, REPORT_SCHEMA_VERSION
 from .stats import StatsError, compute_stats
 
@@ -187,7 +187,7 @@ class ToolRegistry:
                 return {"ok": False, "error": f"unknown tool: {name}"}
             return handler(args or {})
         except Exception as e:  # never let a tool break the loop
-            return {"ok": False, "error": str(e) or e.__class__.__name__}
+            return {"ok": False, "error": humanize_sql_error(str(e) or e.__class__.__name__)}
 
     def _tool_validate_sql(self, args):
         try:

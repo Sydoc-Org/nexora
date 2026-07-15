@@ -71,6 +71,54 @@ class SqlSandboxError(ValueError):
         self.token = token  # dynamic part (keyword/construct) for the i18n boundary
 
 
+# pyodbc surfaces driver failures as a stringified (sqlstate, message) tuple,
+# e.g. ('42000', "[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]The
+# ORDER BY clause is invalid ... (1033) (SQLExecDirectW)") — unreadable noise
+# for both the model and the UI trace. humanize_sql_error() below strips the
+# tuple wrapper, the leading "[..][..]" driver-identity brackets, and the
+# trailing "(NNNN) (SQLExecDirectW)" code+call suffix, then appends a teaching
+# hint for known SQL Server error codes. Messages that don't look ODBC-shaped
+# pass through unchanged.
+_ODBC_TUPLE_RE = re.compile(r"^\(\s*'[^']*'\s*,\s*(['\"])(?P<msg>.*)\1\s*\)\s*$", re.DOTALL)
+_ODBC_LEADING_BRACKETS_RE = re.compile(r"^(?:\[[^\[\]]*\]\s*)+")
+_ODBC_TRAILING_CALL_RE = re.compile(r"\s*\(SQL\w*\)\s*$")
+_ODBC_TRAILING_CODE_RE = re.compile(r"\s*\((\d+)\)\s*$")
+
+# Mapping v1: SQL Server error code -> teaching hint. Unmapped codes are still
+# cleaned of driver noise, just without a Hint: line.
+_SQL_ERROR_HINTS = {
+    "1033": (
+        "ORDER BY inside a derived table needs TOP or OFFSET — or move "
+        "ORDER BY to the outer SELECT."
+    ),
+}
+
+
+def humanize_sql_error(msg):
+    """Strip pyodbc/ODBC driver noise from `msg` and append a teaching hint.
+
+    Pure and English-only — this text feeds the model as well as the UI tool
+    trace, so it must stay deterministic; never gettext it. Non-ODBC-shaped
+    messages (validation errors, tool errors) are returned unchanged.
+    """
+    if not isinstance(msg, str) or not msg:
+        return msg
+    text = msg.strip()
+    tuple_match = _ODBC_TUPLE_RE.match(text)
+    if tuple_match:
+        text = tuple_match.group("msg")
+    unbracketed = _ODBC_LEADING_BRACKETS_RE.sub("", text)
+    if unbracketed == text and tuple_match is None:
+        return msg  # no ODBC markers at all -> pass through verbatim
+    text = _ODBC_TRAILING_CALL_RE.sub("", unbracketed)
+    code_match = _ODBC_TRAILING_CODE_RE.search(text)
+    text = _ODBC_TRAILING_CODE_RE.sub("", text).strip()
+    hint = _SQL_ERROR_HINTS.get(code_match.group(1)) if code_match else None
+    if hint:
+        text = f"{text}\nHint: {hint}"
+    return text
+
+
 def _strip_comments(sql):
     no_block = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
     return re.sub(r"--[^\n]*", " ", no_block)

@@ -1071,6 +1071,49 @@ def test_run_sql_unknown_target_error_lists_allowed_targets():
     assert "octopus" in msg and "statistics" in msg
 
 
+def test_ai_agent_tool_trace_error_is_humanized(user_client):
+    """Task 6: a raw pyodbc/ODBC failure from the bound run_sql runner must reach
+    the tool trace (and hence the model + UI) humanized — no driver noise, plus
+    the teaching hint for known SQL Server error codes (1033)."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    odbc_text = (
+        "('42000', '[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "The ORDER BY clause is invalid in views, inline functions, derived "
+        "tables, subqueries, and common table expressions, unless TOP, OFFSET "
+        "or FOR XML is also specified. (1033) (SQLExecDirectW)')"
+    )
+
+    turns = iter(
+        [
+            AssistantTurn(
+                text="",
+                tool_calls=[
+                    {"id": "t1", "name": "run_sql", "args": {"target": "statistics", "sql": "S"}}
+                ],
+            ),
+            AssistantTurn(text="Could not run the query."),
+        ]
+    )
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+    assert resp.status_code == 200
+    trace = resp.get_json()["toolTrace"]
+    run_sql_result = next(t["result"] for t in trace if t["name"] == "run_sql")
+    assert run_sql_result["ok"] is False
+    assert "SQLExecDirectW" not in run_sql_result["error"]
+    assert "[Microsoft]" not in run_sql_result["error"]
+    assert "Hint:" in run_sql_result["error"]
+
+
 def test_agent_grounding_names_run_sql_targets(user_client):
     from types import SimpleNamespace
 

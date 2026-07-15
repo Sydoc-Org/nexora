@@ -931,3 +931,29 @@ def test_sql_run_sandbox_error_is_translated_with_rule_and_detail(admin_client):
     assert body["rule"] == "not_select"
     assert body["detail"] == "only SELECT / WITH / set-operations are allowed"
     assert body["error"] != body["detail"]
+
+
+def test_sql_run_generic_500_detail_is_humanized(admin_client):
+    # Task 6: the generic 500 (a raw driver exception, not a SqlSandboxError)
+    # carries a humanized `detail` — no ODBC/pyodbc noise reaching the client.
+    odbc_text = (
+        "('42000', '[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "The ORDER BY clause is invalid in views, inline functions, derived "
+        "tables, subqueries, and common table expressions, unless TOP, OFFSET "
+        "or FOR XML is also specified. (1033) (SQLExecDirectW)')"
+    )
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._has_acked", return_value=True),
+        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 500
+    body = resp.get_json()
+    assert "SQLExecDirectW" not in body["detail"]
+    assert "[Microsoft]" not in body["detail"]
+    assert "Hint:" in body["detail"]

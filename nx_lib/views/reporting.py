@@ -59,7 +59,13 @@ from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
-from ..reporting.sandbox import MAX_SQL_LEN, SqlSandboxError, validate_select, wrap_with_cap
+from ..reporting.sandbox import (
+    MAX_SQL_LEN,
+    SqlSandboxError,
+    humanize_sql_error,
+    validate_select,
+    wrap_with_cap,
+)
 from ..reporting.schedule import compute_next_run, utcnow, validate_schedule
 from ..reporting.schema import (
     ReportDefinitionError,
@@ -1094,7 +1100,9 @@ def api_sql_run():
         return jsonify({"error": _("SQL source is not configured")}), 503
     except Exception as e:
         current_app.logger.error(f"/api/reporting/sql/run exec error: {e}")
-        return jsonify({"error": _("Could not run query")}), 500
+        return jsonify(
+            {"error": _("Could not run query"), "detail": humanize_sql_error(str(e))}
+        ), 500
     return jsonify(
         {
             "columns": columns,
