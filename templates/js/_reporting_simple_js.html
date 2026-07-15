@@ -247,6 +247,16 @@
     return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
   }
 
+  // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
+  // null/empty so blank dimension cells never misclassify as numeric — used
+  // to tag result-table cells reporting-ledger-num (mono/tabular-nums/
+  // right-aligned) at render time, mirrored in _reporting_js.html.
+  function isNumericCell(v) {
+    if (v == null || v === '') return false;
+    var n = Number(v);
+    return !isNaN(n) && isFinite(n);
+  }
+
   function metricLabelFor(def) {
     var m = (def.metrics && def.metrics[0]) || null;
     if (!m) return '';
@@ -335,7 +345,10 @@
     html += '</tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr>';
-      r.forEach(function (v) { html += '<td>' + esc(v == null ? '' : v) + '</td>'; });
+      r.forEach(function (v) {
+        var numCls = isNumericCell(v) ? ' class="reporting-ledger-num"' : '';
+        html += '<td' + numCls + '>' + esc(v == null ? '' : v) + '</td>';
+      });
       html += '</tr>';
     });
     html += '</tbody></table>';

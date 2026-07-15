@@ -1161,3 +1161,42 @@ body.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .nx-title {
   font-family: Georgia, 'Charter', 'Times New Roman', serif;
 }
+
+/* Data typography: numeric cells are tagged reporting-ledger-num at render
+   time in both panes' table builders (renderTable in
+   _reporting_simple_js.html, renderResults in _reporting_js.html — both key
+   off the same Number(v)/isNaN check as fmtNumber). */
+.reporting-ledger-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Hairline ledger table: 1px --rl-hairline row rules and a flat, muted
+   uppercase tracked-cap header replace the calmer card-table borders
+   (.reporting-table-wrap above) while the ledger skin is active. No zebra
+   striping — rows stay flat, separated only by the hairline. */
+.reporting-ledger .reporting-table-wrap .reporting-table th,
+.reporting-ledger .reporting-table-wrap .reporting-table td {
+  border: none;
+  border-bottom: 1px solid var(--rl-hairline);
+  background: transparent;
+}
+.reporting-ledger .reporting-table-wrap .reporting-table thead th {
+  border-bottom: 1px solid var(--rl-ink);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
+.reporting-ledger .reporting-table-wrap .reporting-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.reporting-ledger-caption {
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
