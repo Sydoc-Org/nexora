@@ -48,9 +48,11 @@
   var agentInvalid = document.getElementById("rpAiAgentInvalid");
   var agentOpenBuilderBtn = document.getElementById("rpAiAgentOpenBuilder");
   var agentInsertSqlBtn = document.getElementById("rpAiAgentInsertSql");
+  var agentRetryBtn = document.getElementById("rpAiAgentRetry");
   var agentThread = [];          // [{q, a}] — drives the conversation + follow-up context
   var lastAgentDef = null;
   var lastAgentSql = "";
+  var lastAgentQuestion = "";
 
   // In-flight indicator shared by all three surfaces. Rotating lines mirror
   // the Simple pane's component; the agent surface gets a "takes a minute"
@@ -106,6 +108,7 @@
     if (defResult) defResult.hidden = true;
     if (agentResult) agentResult.hidden = !(s === "agent" && agentThread.length);
     if (errorEl) errorEl.hidden = true;
+    if (agentRetryBtn) agentRetryBtn.hidden = true;
     if (askBtn) askBtn.textContent = (s === "agent" && agentThread.length)
       ? '{{ _("Ask follow-up") }}' : '{{ _("Ask") }}';
   }
@@ -257,6 +260,7 @@
         errorEl.hidden = false; agentResult.hidden = true; return;
       }
       var d = res.data;
+      lastAgentQuestion = question;
       agentThread.push({ q: question, a: d.answer || "" });
       renderAgentThread();
       renderAgentTrace(d.toolTrace, d.turns);
@@ -266,6 +270,8 @@
       if (agentInsertSqlBtn) agentInsertSqlBtn.hidden = !(lastAgentSql && sqlEditor);
       if (agentInvalid)
         agentInvalid.hidden = !!(d.answer && (lastAgentDef || lastAgentSql));
+      if (agentRetryBtn)
+        agentRetryBtn.hidden = !(d.stoppedReason !== "final" || !(lastAgentDef || lastAgentSql));
       agentResult.hidden = false;
       promptEl.value = "";
       askBtn.textContent = '{{ _("Ask follow-up") }}';
@@ -366,6 +372,11 @@
     window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || I18N_AI_REPORT, null);
     panel.hidden = true;
     modeAi.classList.remove("active");
+  });
+
+  if (agentRetryBtn) agentRetryBtn.addEventListener("click", function () {
+    if (!lastAgentQuestion) return;
+    askAgent(lastAgentQuestion);
   });
 
   if (agentInsertSqlBtn) agentInsertSqlBtn.addEventListener("click", function () {
