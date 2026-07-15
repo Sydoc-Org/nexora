@@ -204,7 +204,8 @@
     if (!state.metricsBySource) await loadMetricsCatalog();
     state.current = {
       def: res.data.definition, name: res.data.name, reportId: r.id,
-      owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false
+      owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
+      origin: 'library'
     };
     runCurrent();
   }
@@ -1739,7 +1740,7 @@
     var def = wizardDefinition();
     state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,
-                      builtBy: 'wizard' };
+                      builtBy: 'wizard', origin: 'wizard' };
     runCurrent();
   });
 
@@ -1813,7 +1814,7 @@
     state.current = { def: res.data.definition, name: res.data.definition.title,
                       reportId: null, owned: true, canEdit: true, fromWizard: true,
                       aiExplanation: res.data.explanation || '',
-                      aiQuestion: q };
+                      aiQuestion: q, origin: 'ask' };
     runCurrent();
   }
 
@@ -1828,14 +1829,13 @@
   el('rsSearch').addEventListener('input', renderLibrary);
   function exitToLibrary() { setView('library'); loadLibrary(); }
 
-  // Back on a result returns to the wizard ADJUSTMENT whenever the definition
-  // is wizard-shaped; the X is the explicit way out to the library.
+  // Back on a result returns to the result's origin: a wizard-built (or
+  // wizard-reopened) result goes back into the wizard adjustment; a
+  // library-opened or Ask-AI result goes back to the library. The X is
+  // always the explicit way out to the library, regardless of origin.
   el('rsBack').addEventListener('click', function () {
     var cur = state.current;
-    var adjustable = cur && (
-      (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure)
-      || wizardStateFromDefinition(cur.def));
-    if (adjustable) { adjustInWizard(); return; }
+    if (cur && cur.origin === 'wizard') { adjustInWizard(); return; }
     exitToLibrary();
   });
   el('rsExit').addEventListener('click', exitToLibrary);

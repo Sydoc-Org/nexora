@@ -1112,6 +1112,87 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         )
 
 
+def test_back_from_library_report_returns_to_library(nexora_server, page):
+    """Back on a library-opened result returns to the library -- even when the
+    definition happens to be wizard-shaped (single metric, <=3 columns). Back
+    must key off where the result was opened from (its origin), not guess
+    from the definition's shape (that guess is what test_result_back_
+    returns_to_wizard's wizard-built case still legitimately relies on)."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "stub_src",
+        "visualization": "table",
+        "title": "e2e origin lib report",
+        "columns": [{"field": "doctype"}],
+        "metrics": [{"metric": "stub_count"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library list + catalogs fetch as soon
+    # as the Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-origin-lib", "e2e origin lib report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_SOURCES)
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_METRICS)
+        ),
+    )
+    _stub_run_ok(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e origin lib report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    page.get_by_test_id("rs-back").click()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
+    expect(page.get_by_test_id("rs-group-mine")).to_be_visible()
+    expect(page.get_by_test_id("rs-wizard")).to_be_hidden()
+
+
 def test_wizard_two_breakdowns(nexora_server, page):
     """Two category breakdowns produce a 3-column grouped result."""
     _login(page, nexora_server)
