@@ -46,18 +46,6 @@ Work toward 2.5.64.
   a designed "No rows matched" empty state, a real loading indicator in the
   drill-through drawer, a full-scan hint while the wizard's "All time" range is
   selected, and copy feedback on the AI SQL draft.
-- Reporting: **Pages processed** (`page_count`) metric — `SUM` over the
-  `pagecount` doc field (migration `0039`); the query builder now `TRY_CAST`s
-  `sum`/`avg` metric bases to float so varchar stat columns aggregate safely.
-- Reporting: metric labels are localized — `dbo.ReportingMetrics` gains
-  German/French/Italian label columns (migration `0039`, admin form updated);
-  `/api/reporting/metrics` serves the session locale's label with English
-  fallback.
-- Reporting: the Simple wizard marks **process coverage** — measures and
-  breakdown chips whose field only some processes provide show an "n/m" badge
-  with a tooltip naming the providers; the chip list follows the process-scope
-  picker (zero-coverage chips hide, stranded selections prune), and metrics
-  whose base field no allowed process provides are not offered.
 
 ### Changed
 

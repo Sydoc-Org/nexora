@@ -30,9 +30,6 @@ CREATE TABLE [dbo].[ReportingMetrics](
 	[SortOrder] [int] NOT NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
-	[GermanLabel] [nvarchar](120) NULL,
-	[FrenchLabel] [nvarchar](120) NULL,
-	[ItalianLabel] [nvarchar](120) NULL,
  CONSTRAINT [PK_ReportingMetrics] PRIMARY KEY CLUSTERED 
 (
 	[MetricID] ASC

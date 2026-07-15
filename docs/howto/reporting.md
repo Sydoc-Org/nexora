@@ -31,14 +31,6 @@ custom-header, save/load, and Excel-export support.
     picks pre-selected. **Back** steps back through wizard steps preserving picks;
     **✕** (on both the wizard header and the result bar) exits straight to the
     library without discarding anything already saved.
-    Measures and category/date chips whose field only *some* processes provide
-    carry an **"n/m" coverage badge** (tooltip names the providing processes —
-    documents from the others land in the empty-value bucket, and a partial
-    measure counts only its providers' documents). The chip list follows the
-    **"Limit to specific processes"** picker like the Advanced tab's field
-    list: chips with zero coverage under the picked scope hide, and stranded
-    selections are pruned. A metric whose base field no allowed process
-    provides is not offered at all.
     The category list is curated for the Document Processing source — **Process**
     leads (one value per Octo process; in this deployment each process corresponds
     to a client, so it delivers per-client numbers), then the preferred business
@@ -475,18 +467,9 @@ definition's `metrics` list), a `SourceId` (which source it aggregates), a
 `Label`, an `Aggregation` (`count`, `count_distinct`, `sum`, `avg`, `min`,
 `max`), and a `BaseField` (a whitelisted column of that source — required for
 every aggregation except `count`). `Format` (`int`/`decimal`/`percent`) is a
-display hint; `Enabled` and `SortOrder` control visibility/ordering. Labels are
-DB-driven i18n: `Label` (English) plus nullable `GermanLabel`/`FrenchLabel`/
-`ItalianLabel` (migration `0039`; NULL falls back to `Label`, the
-`Search_Field_Labels` convention) — `/api/reporting/metrics` serves the session
-locale's label, while the AI catalogs deliberately keep the English `Label` for
-prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
-(a `count` over the docprocessing source); migration `0039` adds **`page_count`**
-("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). For `sum`/`avg`
-metrics the docprocessing query builder projects the base field as
-`TRY_CAST(<col> AS float)` per UNION-ALL subquery — the stat columns are
-varchar, so non-numeric cells become NULL and drop out of the aggregate instead
-of erroring; only processes with the mapped `col_*` contribute.
+display hint; `Enabled` and `SortOrder` control visibility/ordering. Migration
+`0017` seeds a worked example, `doc_count` (a `count` over the docprocessing
+source).
 
 In the builder, the **Metrics well** (top of the wells column) lets a user add
 canonical metrics for the selected source; once at least one is picked, the
