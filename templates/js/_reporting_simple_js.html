@@ -1043,13 +1043,32 @@
       (bySource[sid] || []).forEach(function (m) {
         // Sources without metrics never appear; admins grow the wizard's
         // reach by adding rows in the metrics registry, zero code change.
+        var srcProcs = src.processes || [];
+        var fld = m.baseField
+          ? (src.fields || []).find(function (f) { return f.field === m.baseField; })
+          : null;
+        // A metric whose base field no allowed process provides can never run
+        // for this user (resolve_metrics 400s) — don't offer it.
+        if (m.baseField && !fld) return;
         var label = multi ? (m.label + ' · ' + src.label) : m.label;
-        list.appendChild(choiceBtn(label, function () {
+        var btn = choiceBtn(label, function () {
           state.wiz.measure = m;
           state.wiz.source = src;   // picking a measure pins the source
           renderBreakdownStep();
         }, !!(state.wiz.measure && state.wiz.measure.code === m.code
-              && state.wiz.source && state.wiz.source.id === src.id)));
+              && state.wiz.source && state.wiz.source.id === src.id));
+        // Partial coverage (vs ALL allowed processes — no scope exists yet at
+        // this step): same badge as the breakdown chips.
+        if (fld && fld.processes && fld.processes.length && srcProcs.length
+            && fld.processes.length < srcProcs.length) {
+          var cov = document.createElement('span');
+          cov.className = 'reporting-simple-chip-cov';
+          cov.textContent = fld.processes.length + '/' + srcProcs.length;
+          btn.appendChild(cov);
+          btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
+            .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
+        }
+        list.appendChild(btn);
       });
     });
     if (!list.children.length) {

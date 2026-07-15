@@ -2151,3 +2151,45 @@ def test_wizard_alltime_hint_toggles(nexora_server, page):
     expect(hint).to_be_hidden()
     page.get_by_test_id("rs-time-list").get_by_text("All time", exact=True).click()
     expect(hint).to_be_visible()
+
+
+def test_wizard_measure_coverage_badge_and_unrunnable_hidden(nexora_server, page):
+    """A sum measure over a partially-covered base field gets the n/m badge;
+    a metric whose base field no allowed process provides is not offered at
+    all (it could never run); count metrics stay plain."""
+    metrics = {
+        "docprocessing": [
+            {
+                "code": "doc_count",
+                "label": "Cov count stub",
+                "aggregation": "count",
+                "baseField": None,
+                "format": "int",
+            },
+            {
+                "code": "page_sum",
+                "label": "Pages stub",
+                "aggregation": "sum",
+                "baseField": "propertynr",
+                "format": "int",
+            },
+            {
+                "code": "ghost_sum",
+                "label": "Ghost stub",
+                "aggregation": "sum",
+                "baseField": "ghostfield",
+                "format": "int",
+            },
+        ]
+    }
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, metrics)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    mlist = page.get_by_test_id("rs-measure-list")
+    pages_btn = mlist.locator("button", has_text="Pages stub")
+    expect(pages_btn.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
+    assert "acme.inv" in pages_btn.get_attribute("title")
+    count_btn = mlist.locator("button", has_text="Cov count stub")
+    expect(count_btn.locator(".reporting-simple-chip-cov")).to_have_count(0)
+    expect(mlist.get_by_text("Ghost stub")).to_have_count(0)
