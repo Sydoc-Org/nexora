@@ -10,6 +10,9 @@ Work toward 2.5.64.
 
 ### Added
 
+- `nx --no-conflict` — target port 8001 with separate log/state files, so a second
+  nexora instance can start/stop/status alongside one already running on 8000
+  (e.g. one a Claude session is testing against) without interrupting it.
 - Reporting: drill-through — click a chart element or aggregate row to see the underlying
   document rows in a slide-over panel, with workitem links and CSV/XLSX export.
 - Reporting: `is_null` filters now match rows from processes that don't expose the field

@@ -65,6 +65,7 @@ With no command, `nx` defaults to `--status` (or opens the browser if `-b` /
 | `--loginas:<username>` | Open the browser logged in as an INT user *(implies `-b`)* |
 | `--env` | Print the current env (running instance's env, else `.env` default) |
 | `--env:<int\|staging>` | Switch env file *(only with `-u` / `-r` / `--routes`; `prod` is rejected)* |
+| `--no-conflict` | Target port **8001** instead of 8000, with separate log/state files — start, stop, status and browser all scope to the 8001 instance, so a second nexora can run without touching one already on 8000 (e.g. one a Claude session is testing against) |
 | `--fast` | Skip external-service checks + schema drift *(only with `--doctor`)* |
 | `--fix` | Auto-repair fixable warnings *(only with `--doctor`)* |
 
@@ -88,6 +89,8 @@ nx --doctor --fast                   # skip externals + drift (fast, offline-fri
 nx --doctor --fix                    # auto-repair fixable findings
 nx --env                             # show current env
 nx -u --env:staging                  # start against STAGING
+nx -u -b --no-conflict               # second instance on 8001 (8000 untouched)
+nx -d --no-conflict                  # stop only the 8001 instance
 nx -r --verbose                      # restart and stream logs
 nx -l                                # tail live logs (Ctrl+C stops watching; app keeps running)
 nx -md                               # cd into C:\dev\nexora

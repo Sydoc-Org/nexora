@@ -133,6 +133,8 @@ function Show-Help {
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
     Write-Host "    --body:<text>              Issue body for --queue  " -NoNewline
     Write-Host "(defaults to the title)" -ForegroundColor Gray
+    Write-Host "    --no-conflict              Use port 8001  " -NoNewline
+    Write-Host "(run alongside another instance on 8000, e.g. Claude's)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
@@ -147,6 +149,7 @@ function Show-Help {
     Write-Host "    nx -u -b                             start and open browser"
     Write-Host "    nx -b:/admin/users                   open browser to /admin/users"
     Write-Host "    nx -u -b:/admin --loginas:username   start, log in as username, navigate to /admin"
+    Write-Host "    nx -u -b --no-conflict               start a second instance on 8001 (8000 untouched)"
     Write-Host "    nx --routes                          list all Flask routes"
     Write-Host "    nx --routes:admin                    list routes matching regex /admin/i"
     Write-Host "    nx --routes:^/api                    list routes whose path starts with /api"
@@ -179,6 +182,7 @@ $doctorFast    = $false
 $doctorFix     = $false
 $queueTitle    = $null
 $queueBody     = $null
+$noConflict    = $false
 $unknown       = @()
 
 for ($i = 0; $i -lt $args.Count; $i++) {
@@ -236,6 +240,11 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $queueBody = $Matches[1]
         continue
     }
+    # --no-conflict  run on port 8001 so an instance on 8000 (e.g. Claude's) is untouched
+    if ($arg -match '^--no-conflict$') {
+        $noConflict = $true
+        continue
+    }
     switch -Exact ($arg.ToLower()) {
         '-u'        { $action = 'start'   }
         '--up'      { $action = 'start'   }
@@ -267,6 +276,16 @@ if ($unknown.Count -gt 0) {
 }
 
 if ($loginAs) { $browser = $true }
+
+# --no-conflict: fixed alternate port (deterministic so later -d/-s find the same
+# instance) + suffixed log/state files so the two instances never clash.
+# ponytail: fixed 8001, no free-port scan — scan would break stop/status lookup.
+$Port = if ($noConflict) { 8001 } else { 8000 }
+if ($noConflict) {
+    $StderrLog    = "$LogDir\app_stderr.$Port.log"
+    $StdoutLog    = "$LogDir\app_stdout.$Port.log"
+    $EnvStateFile = "$LogDir\current_env.$Port"
+}
 
 if (-not $action) { $action = if ($browser) { 'browser' } else { 'status' } }
 
@@ -302,7 +321,7 @@ if ($envOverride) {
 
 # ── core functions ────────────────────────────────────────────────────────────
 function Find-AppProcess {
-    $conn = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
+    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
             Select-Object -First 1
     if ($conn) { Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue }
 }
@@ -327,10 +346,12 @@ function Start-App {
         return $null
     }
     $envValue = if ($envOverride) { $envOverride } else { "INT" }
-    Write-Info "Starting nexora ($envValue)..."
-    $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    Write-Info "Starting nexora ($envValue, port $Port)..."
+    $prev     = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    $prevPort = [System.Environment]::GetEnvironmentVariable("FLASK_RUN_PORT")
     try {
-        $env:ENVIRONMENT = $envValue
+        $env:ENVIRONMENT    = $envValue
+        $env:FLASK_RUN_PORT = "$Port"
         foreach ($f in $StdoutLog, $StderrLog) { if ((Test-Path $f) -and (Get-Item $f).Length -gt 10MB) { Move-Item -Force $f "$f.1" } }
         $p = Start-Process -FilePath $Python `
                  -ArgumentList "`"$AppPy`"" `
@@ -345,6 +366,8 @@ function Start-App {
     } finally {
         if ($null -eq $prev) { Remove-Item Env:ENVIRONMENT -ErrorAction SilentlyContinue }
         else                  { $env:ENVIRONMENT = $prev }
+        if ($null -eq $prevPort) { Remove-Item Env:FLASK_RUN_PORT -ErrorAction SilentlyContinue }
+        else                      { $env:FLASK_RUN_PORT = $prevPort }
     }
 }
 
@@ -383,7 +406,7 @@ function Wait-ForStartup {
         }
         try {
             $tcp = [System.Net.Sockets.TcpClient]::new()
-            $tcp.Connect('127.0.0.1', 8000)
+            $tcp.Connect('127.0.0.1', $Port)
             $tcp.Close()
             return 'ready'
         } catch { }
@@ -401,7 +424,7 @@ function Show-StartupError {
 }
 
 function Open-Browser {
-    $base = "http://127.0.0.1:8000"
+    $base = "http://127.0.0.1:$Port"
     $path = ""
     if ($browserRoute) {
         $path = $browserRoute.Trim()
@@ -590,7 +613,7 @@ switch ($action) {
             $envName = if (Test-Path $EnvStateFile) {
                 (Get-Content $EnvStateFile -Raw).Trim()
             } else { '?' }
-            Write-Ok "Running  (PID $($p.Id)  ·  env $envName  ·  port 8000)"
+            Write-Ok "Running  (PID $($p.Id)  ·  env $envName  ·  port $Port)"
         } else {
             Write-Warn "Not running  — use -u / --up to start"
         }
