@@ -903,6 +903,13 @@
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = !state.current.sql;
     el('rsShowSql').textContent = I18N.showQuery;
+    var peek = el('rsSqlPeek');
+    if (state.current.sqlDisplay) {
+      peek.textContent = state.current.sqlDisplay.split('\n')[0] + '…';
+      peek.hidden = false;
+    } else {
+      peek.hidden = true;
+    }
     var columns = res.data.columns || [], rows = res.data.rows || [];
     renderKpiBand(dims, rows);
     var rdates = res.data.resolvedDates || [];
@@ -977,6 +984,11 @@
       // server-side (display + copy only; execution stays parameterized).
       ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
     }
+  });
+  el('rsSqlPeek').addEventListener('click', function () {
+    // Same reveal path as the Show-query button — no duplicated panel-fill
+    // logic (L9): the peek footer just delegates the click.
+    el('rsShowSql').click();
   });
   el('rsSqlCopy').addEventListener('click', function () {
     var cur = state.current;

@@ -1239,3 +1239,33 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   font-weight: 600;
   color: var(--rl-ink);
 }
+
+/* Persistent query footer (Task 6, L9): one always-rendered element per pane
+   (#rsSqlPeek, #rpSqlPeek) under the results, showing the first line of
+   sqlDisplay. Hidden whenever sqlDisplay is absent (inliner degrade path).
+   Clicking it delegates to the existing Show-query reveal handler — this
+   button owns no panel-fill logic of its own. */
+.reporting-ledger-sqlpeek {
+  display: block;
+  width: 100%;
+  margin-top: .5rem;
+  padding: .5rem .1rem;
+  border: none;
+  border-top: 1px solid var(--rl-hairline);
+  background: var(--rl-band);
+  color: var(--nx-text-meta);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .75rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.reporting-ledger-sqlpeek:hover {
+  color: var(--rl-ink);
+}
+.reporting-ledger-sqlpeek:focus-visible {
+  outline: 2px solid var(--rl-navy);
+  outline-offset: -2px;
+}

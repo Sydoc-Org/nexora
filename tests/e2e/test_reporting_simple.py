@@ -2331,3 +2331,48 @@ def test_wizard_measure_coverage_badge_and_unrunnable_hidden(nexora_server, page
     count_btn = mlist.locator("button", has_text="Cov count stub")
     expect(count_btn.locator(".reporting-simple-chip-cov")).to_have_count(0)
     expect(mlist.get_by_text("Ghost stub")).to_have_count(0)
+
+
+def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
+    """Task 6: a persistent one-line query footer sits under the results,
+    showing the first line of the inlined sqlDisplay. Clicking it opens the
+    same Show-query panel as the rs-show-sql button (same reveal path)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    sql_display = "SELECT [d] AS [d], COUNT(*) AS [n]\nFROM [dbo].[T]\nGROUP BY [d]"
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] GROUP BY [d]",
+                    "sqlPretty": sql_display,
+                    "sqlDisplay": sql_display,
+                    "params": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    peek = page.get_by_test_id("rs-sql-peek")
+    expect(peek).to_be_visible()
+    expect(peek).to_have_text("SELECT [d] AS [d], COUNT(*) AS [n]…")
+
+    sql_view = page.get_by_test_id("rs-sql-view")
+    expect(sql_view).to_be_hidden()
+    peek.click()
+    expect(sql_view).to_be_visible()
+    expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")

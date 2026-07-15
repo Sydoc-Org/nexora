@@ -572,6 +572,15 @@
       sqlBtn.textContent = I18N_SHOW_QUERY;
     }
     if (sqlView) sqlView.hidden = true;
+    var sqlPeek = document.getElementById('rpSqlPeek');
+    if (sqlPeek) {
+      if (state._lastSqlDisplay) {
+        sqlPeek.textContent = state._lastSqlDisplay.split('\n')[0] + '…';
+        sqlPeek.hidden = false;
+      } else {
+        sqlPeek.hidden = true;
+      }
+    }
     resetViews(!!(data.rows && data.rows.length));
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
@@ -1638,6 +1647,14 @@
             sqlDisplay: state._lastSqlDisplay, params: state._lastParams
           }));
       }
+    });
+  }
+  var rpSqlPeekBtn = document.getElementById('rpSqlPeek');
+  if (rpSqlPeekBtn) {
+    rpSqlPeekBtn.addEventListener('click', function () {
+      // Same reveal path as the Show-query button — no duplicated
+      // panel-fill logic (L9): the peek footer just delegates the click.
+      if (rpShowSqlBtn) rpShowSqlBtn.click();
     });
   }
   var rpSqlViewCopyBtn = document.getElementById('rpSqlViewCopy');
