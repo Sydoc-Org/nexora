@@ -47,7 +47,7 @@ ruvector.db
 .swarm/
 .claude-flow/
 .superpowers/
-!.superpowers/sdd/
+!**/.superpowers/sdd/
 .playwright-mcp/
 .claude/memory.db
 .claude/cache/
@@ -68,5 +68,7 @@ translations/*/LC_MESSAGES/*.mo
 
 # ── Runtime data (logs, sessions, screenshots, public uploads) ──
 var/
+!var/handoff-pending
+!var/screenshots/
 static/uploads/
 /logs/
