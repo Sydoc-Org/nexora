@@ -66,64 +66,91 @@ def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, 
     """A 400 from /api/reporting/run must show the server's error + detail
     (a stale saved report's actual problem), keep the report title visible,
     offer an Open-in-Advanced escape hatch, and disable Save/Export until a
-    successful run replaces the error state."""
+    successful run replaces the error state. Opening a DIFFERENT report that
+    then succeeds must clear the escape-hatch button — it must never float
+    above a successful result."""
     _login(page, nexora_server)
-    report_row = {
-        "id": "e2e-400-report",
-        "name": "e2e 400 report",
-        "ownerName": "Admin",
-        "updatedAt": "2026-07-01T00:00:00Z",
-        "visibility": "private",
-        "owned": True,
-        "kind": "table",
-    }
-    definition = {
-        "schemaVersion": 1,
-        "source": "docprocessing",
-        "visualization": "table",
-        "title": "e2e 400 report",
-        "columns": [{"field": "processname"}],
-        "filters": [],
-        "sort": [],
-        "scope": {"clients": [], "processes": []},
-        "rowLimit": 100,
-    }
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    def _definition(title):
+        return {
+            "schemaVersion": 1,
+            "source": "docprocessing",
+            "visualization": "table",
+            "title": title,
+            "columns": [{"field": "processname"}],
+            "filters": [],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 100,
+        }
+
     # Register stubs BEFORE goto — the library load fires as soon as the
     # Simple pane mounts.
     page.route(
         "**/api/reporting/reports",
         lambda r: r.fulfill(
-            status=200, content_type="application/json", body=json.dumps([report_row])
-        ),
-    )
-    page.route(
-        "**/api/reporting/reports/*",
-        lambda r: r.fulfill(
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {
-                    "name": report_row["name"],
-                    "definition": definition,
-                    "owned": True,
-                    "canEdit": True,
-                }
+                [_row("e2e-400-report", "e2e 400 report"), _row("e2e-ok-report", "e2e ok report")]
             ),
         ),
     )
-    page.route(
-        "**/api/reporting/run",
-        lambda r: r.fulfill(
-            status=400,
+
+    def _report_detail(route):
+        name = "e2e ok report" if route.request.url.endswith("e2e-ok-report") else "e2e 400 report"
+        route.fulfill(
+            status=200,
             content_type="application/json",
             body=json.dumps(
-                {
-                    "error": "This report definition is invalid or outdated.",
-                    "detail": "unknown metric: 'workitem_count'",
-                }
+                {"name": name, "definition": _definition(name), "owned": True, "canEdit": True}
             ),
-        ),
-    )
+        )
+
+    page.route("**/api/reporting/reports/*", _report_detail)
+
+    def _run(route):
+        body = route.request.post_data_json or {}
+        if body.get("title") == "e2e 400 report":
+            route.fulfill(
+                status=400,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "error": "This report definition is invalid or outdated.",
+                        "detail": "unknown metric: 'workitem_count'",
+                    }
+                ),
+            )
+        else:
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "columns": [{"field": "processname", "header": "Process"}],
+                        "rows": [["acme.inv"]],
+                        "truncated": False,
+                        "rowCount": 1,
+                        "sql": None,
+                        "params": [],
+                        "resolvedDates": [],
+                    }
+                ),
+            )
+
+    page.route("**/api/reporting/run", _run)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-group-mine").get_by_text("e2e 400 report").click()
 
@@ -132,6 +159,17 @@ def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, 
     expect(page.get_by_test_id("rs-error-open-advanced")).to_be_visible()
     expect(page.get_by_test_id("rs-save")).to_be_disabled()
     expect(page.get_by_test_id("rs-export")).to_be_disabled()
+
+    # Error -> success: opening a different report that runs fine must clear
+    # the stale escape hatch along with the error text.
+    page.get_by_test_id("rs-exit").click()
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e ok report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e ok report")
+    expect(page.get_by_test_id("rs-table")).to_be_visible()
+    expect(page.get_by_test_id("rs-error")).to_be_hidden()
+    expect(page.get_by_test_id("rs-error-open-advanced")).to_have_count(0)
+    expect(page.get_by_test_id("rs-save")).to_be_enabled()
+    expect(page.get_by_test_id("rs-export")).to_be_enabled()
 
 
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):

@@ -922,6 +922,7 @@
     setView('result');
     el('rsResultTitle').textContent = '';
     el('rsError').hidden = true;
+    renderErrorOpenAdvanced(false);
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
@@ -965,6 +966,7 @@
     });
     setView('result');
     el('rsError').hidden = true;
+    renderErrorOpenAdvanced(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     if (cur.aiExplanation !== undefined) {
