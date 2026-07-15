@@ -1269,3 +1269,60 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   outline: 2px solid var(--rl-navy);
   outline-offset: -2px;
 }
+
+/* Task 7: Simple library tiles flatten to hairline-separated ledger rows —
+   card chrome (border/radius/shadow) is dropped in favor of a bottom
+   hairline; report names take the serif masthead face, the owner/updated
+   line goes mono to read as a ledger metadata stamp. */
+.reporting-ledger .reporting-simple-card {
+  border: none;
+  border-bottom: 1px solid var(--rl-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 10px 2px;
+}
+.reporting-ledger .reporting-simple-card:hover {
+  border-color: var(--rl-hairline);
+  background: var(--rl-band);
+  box-shadow: none;
+}
+.reporting-ledger .reporting-simple-card .rs-card-name {
+  font-family: Georgia, 'Charter', 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 15px;
+}
+.reporting-ledger .reporting-simple-card .rs-card-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+/* Task 7: Wizard step headings ("1. What do you want to measure?" etc.) take
+   the same uppercase tracked-caption treatment as .reporting-ledger-caption
+   (kept as inlined properties rather than the shared class since the
+   headings' markup — templates/_reporting_simple.html — stays untouched).
+   Scoped to .reporting-simple-step so the Library section headers, which
+   reuse the same .reporting-simple-h class outside the wizard, are
+   unaffected. */
+.reporting-ledger .reporting-simple-step .reporting-simple-h {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
+
+/* Task 7: Process-coverage "n/m" badge (base rule above, ~L1131) goes mono
+   ink-navy on a hairline pill under the ledger skin instead of the stock
+   accent-tint chip, on both the measure-step chips (renderMeasureStep) and
+   the breakdown-step chips (renderBreakdownStep) — same class, no JS change. */
+.reporting-ledger .reporting-simple-chip-cov {
+  background: transparent;
+  color: var(--rl-navy);
+  border: 1px solid var(--rl-hairline);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Task 7: 2px ink rule over the chart block, Simple and Advanced panes. */
+.reporting-ledger .reporting-simple-chartcard { border-top: 2px solid var(--rl-ink); }
+.reporting-ledger .reporting-viz { border-top: 2px solid var(--rl-ink); }
