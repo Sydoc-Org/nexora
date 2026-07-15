@@ -1200,3 +1200,19 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   text-transform: uppercase;
   color: var(--nx-text-meta);
 }
+
+/* Timing badge ("N rows · M ms"): sits inside .nx-page-head__main, right of
+   the title block, regardless of whether the permission-gated
+   .nx-page-head__actions block (Sources link) renders. __main is switched to
+   a flex row here so margin-left:auto pushes the badge to its right edge. */
+.reporting-ledger .nx-page-head__main {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+}
+.reporting-ledger-timing {
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .75rem;
+  color: var(--nx-text-meta);
+}

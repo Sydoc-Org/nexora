@@ -391,6 +391,7 @@
   }
 
   var I18N_RUNNING = {{ _("Running your report…")|tojson }};
+  var I18N_TIMING = {{ _("{rows} rows · {ms} ms")|tojson }};
   var I18N_REQUEST_FAILED = {{ _("The request failed")|tojson }};
   var I18N_REPORT = {{ _("Report")|tojson }};
   var I18N_UNTITLED = {{ _("Untitled report")|tojson }};
@@ -650,6 +651,18 @@
     document.getElementById('rpRun').disabled = false;
   }
 
+  // Masthead timing badge, shared with _reporting_simple_js.html's own
+  // showTiming (same #reportingTiming element, same "N rows · M ms" shape).
+  // Hidden until the first successful run in either pane.
+  function showTiming(rows, elapsedMs) {
+    var badge = document.getElementById('reportingTiming');
+    if (!badge) return;
+    badge.textContent = I18N_TIMING
+      .replace('{rows}', String(rows == null ? 0 : rows))
+      .replace('{ms}', String(Math.round(elapsedMs)));
+    badge.hidden = false;
+  }
+
   // Modal replacement for window.prompt: resolves the trimmed name, or null
   // on cancel/empty.
   function promptName(title, initial) {
@@ -872,9 +885,15 @@
     // so drill-through always transforms the definition that actually
     // produced the rows on screen, even if the builder is edited afterwards.
     var def = buildDefinition();
+    var runT0 = performance.now();
     return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) })
       .then(function (res) { return res.json(); })
-      .then(function (data) { endRunLoading(); state.lastDef = def; renderResults(data); })
+      .then(function (data) {
+        endRunLoading();
+        state.lastDef = def;
+        renderResults(data);
+        showTiming(data.rowCount, performance.now() - runT0);
+      })
       .catch(function (e) { endRunLoading(); showError(e.message); });
   }
 

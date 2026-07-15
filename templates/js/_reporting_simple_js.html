@@ -76,7 +76,8 @@
     opIsNotEmpty: {{ _("is not empty")|tojson }},
     copied: {{ _("Copied")|tojson }},
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
-    measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }}
+    measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
+    timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -245,6 +246,18 @@
     // 1'234/1.234 shapes consistently regardless of the OS language. An
     // empty lang attr degrades to the browser locale (undefined arg).
     return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
+  }
+
+  // Masthead timing badge, shared with _reporting_js.html's own showTiming
+  // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
+  // the first successful run in either pane.
+  function showTiming(rows, elapsedMs) {
+    var badge = document.getElementById('reportingTiming');
+    if (!badge) return;
+    badge.textContent = I18N.timingBadge
+      .replace('{rows}', String(rows == null ? 0 : rows))
+      .replace('{ms}', String(Math.round(elapsedMs)));
+    badge.hidden = false;
   }
 
   // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
@@ -814,6 +827,10 @@
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
+    // Timing badge: measures the full round-trip (both the optional grand-total
+    // call below and the main run), from just before the first request fires
+    // to the moment the main run's response lands.
+    var runT0 = performance.now();
 
     // Grand total via a zero-column clone: correct for every aggregation
     // (avg/count_distinct included), unlike a client-side sum of grouped rows.
@@ -838,6 +855,7 @@
     // hide the indicator a newer run just showed.
     el('rsRunLoading').hidden = true;
     if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    showTiming(res.data.rowCount, performance.now() - runT0);
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
     state.current.sqlDisplay = res.data.sqlDisplay || null;

@@ -131,6 +131,56 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         )
 
 
+def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
+    """After a Simple wizard run, the masthead timing badge becomes visible
+    and reports "<rows> rows · <ms> ms" for the round-trip."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'timing_users', kind: 'curated', label: 'Timing Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 13});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'timing_user_count', sourceId: 'timing_users', label: 'Timing user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        badge = page.get_by_test_id("reporting-timing")
+        _stub_run_ok(page)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Timing user count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        expect(badge).to_be_visible()
+        expect(badge).to_have_text(re.compile(r"\d+ rows · \d+ ms"))
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 STUB_AI_DEFINITION = {
     "schemaVersion": 1,
     "source": "docprocessing",
