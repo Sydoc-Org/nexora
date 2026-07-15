@@ -2245,48 +2245,89 @@ THREE_DIM_METRICS = {
 }
 
 
-def test_three_breakdowns_show_table_and_drill(nexora_server, page):
-    """A 3-breakdown aggregate renders no chart — the table must be visible
-    without a toggle click, and its rows must still open the drill drawer."""
-    _login(page, nexora_server)
-    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
+THREE_DIM_RUN_BODY = json.dumps(
+    {
+        "columns": [
+            {"field": "doctype", "header": "Document Type"},
+            {"field": "docsource", "header": "Document Source"},
+            {"field": "propertynr", "header": "Property No."},
+            {"field": "doc_count", "header": "doc_count"},
+        ],
+        # Two propertynr values under the same (doctype, docsource) pair — the
+        # chart pivot must collapse them into one 7+3=10 series point.
+        "rows": [["Invoice", "Mail", "P-1", 7], ["Invoice", "Mail", "P-2", 3]],
+        "truncated": False,
+        "rowCount": 2,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [],
+    }
+)
+
+
+def _walk_three_breakdowns(nexora_server, page, measure_label):
     page.route(
         "**/api/reporting/run",
         lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {
-                    "columns": [
-                        {"field": "doctype", "header": "Document Type"},
-                        {"field": "docsource", "header": "Document Source"},
-                        {"field": "propertynr", "header": "Property No."},
-                        {"field": "doc_count", "header": "doc_count"},
-                    ],
-                    "rows": [["Invoice", "Mail", "P-1", 7], ["Order", "Scan", "P-2", 3]],
-                    "truncated": False,
-                    "rowCount": 2,
-                    "sql": None,
-                    "params": [],
-                    "resolvedDates": [],
-                }
-            ),
+            status=200, content_type="application/json", body=THREE_DIM_RUN_BODY
         ),
     )
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
-    page.get_by_test_id("rs-measure-list").get_by_text("Count stub").click()
+    page.get_by_test_id("rs-measure-list").get_by_text(measure_label).click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     for fld in ("doctype", "docsource", "propertynr"):
         bklist.locator(f'[data-bd-field="{fld}"]').click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
     expect(page.get_by_test_id("rs-result")).to_be_visible()
-    # No chart at three dims — the note explains why...
+
+
+def test_three_breakdowns_chart_first_two_and_drill(nexora_server, page):
+    """An additive (count/sum) metric with three breakdowns charts the first
+    two — the pivot collapses the third — with a note saying the table shows
+    all of them; the table stays reachable via the toggle and rows drill."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
+    _walk_three_breakdowns(nexora_server, page, "Count stub")
+    # Chart rendered (first two dims), with the collapsed-third note.
+    expect(page.locator("#rsChartCanvas")).to_be_visible()
     expect(page.locator("#rsChartNote")).to_be_visible()
-    # ...and the table is immediately visible (the fix), toggle hidden.
+    # The pivot collapsed the two propertynr rows into one series point (10).
+    total = page.evaluate(
+        "() => window.Chart && (() => {"
+        "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
+        "  return c ? c.data.datasets[0].data.reduce((a, b) => a + b, 0) : null;"
+        "})()"
+    )
+    assert total == 10
+    # Charted result: table behind the toggle as usual; rows still drill.
+    page.get_by_test_id("rs-table-toggle").click()
+    page.locator("#rsTableWrap tbody tr").first.click()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+
+
+def test_three_breakdowns_nonadditive_shows_table(nexora_server, page):
+    """A non-additive metric (avg) cannot collapse a third breakdown into the
+    pivot — no chart renders, and the table must be visible immediately (not
+    behind the Show-table toggle) so the result and drill stay reachable."""
+    metrics = {
+        "docprocessing": [
+            {
+                "code": "avg_prop",
+                "label": "Avg stub",
+                "aggregation": "avg",
+                "baseField": "propertynr",
+                "format": "int",
+            },
+        ]
+    }
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, metrics)
+    _walk_three_breakdowns(nexora_server, page, "Avg stub")
+    expect(page.locator("#rsChartCanvas")).to_be_hidden()
+    expect(page.locator("#rsChartNote")).to_be_visible()
     expect(page.locator("#rsTableWrap table")).to_be_visible()
     expect(page.get_by_test_id("rs-table-toggle")).to_be_hidden()
-    # Drill-through stays reachable: clicking a row opens the drawer.
     page.locator("#rsTableWrap tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()

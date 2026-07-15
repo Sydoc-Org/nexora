@@ -89,10 +89,14 @@ Work toward 2.5.64.
 
 ### Fixed
 
-- Reporting: a result with three breakdowns (where the chart caps at two
-  dimensions and shows a note instead) no longer hides the table behind the
-  "Show table" toggle — the table renders immediately, keeping the result
-  and its row-level drill-through reachable.
+- Reporting: three-breakdown results chart again — the first two breakdowns
+  become axis + colored series (the third collapses into the pivot; exact for
+  additive count/sum metrics), with a note pointing at the table for all
+  three. Non-additive metrics (avg/min/max/distinct) keep the note-only card,
+  and whenever no chart renders the table now shows immediately instead of
+  hiding behind the "Show table" toggle — previously a three-breakdown
+  result was an empty chart card with the data and its row-level
+  drill-through both invisible.
 
 - Workitems: a doc-field search on a field with no `SearchConfig` mapping for one
   of the two workitem sources let that source run **unconstrained** instead of

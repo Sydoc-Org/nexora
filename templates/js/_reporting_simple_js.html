@@ -425,7 +425,14 @@
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
     if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
-    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return false; }
+    // Three breakdowns: chart the first two (axis + colored series — the
+    // wizard's stated semantics), letting the pivot's accumulation collapse
+    // the third. That is exact only for additive aggregations (count/sum);
+    // for avg/min/max/count_distinct a sum of partial aggregates lies, so
+    // those keep the note-only card (the table below shows all three).
+    if (dims >= 3 && !/^(count|sum)$/.test(String(metricAggFor(def) || ''))) {
+      chartCardNote(I18N.noChartThreeDims); return false;
+    }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     // Single-dim only: here rows.length IS the x-point count, so the raw-row
@@ -439,7 +446,7 @@
       el('rsChartNote').hidden = false;
       rows = rows.slice(0, 50);
     }
-    if (dims === 2) {
+    if (dims >= 2) {
       // Only the first metric is pivoted into series — wizard always emits one metric.
       var metricIdx2 = columns.length - (def.metrics || []).length;
       var xOrder = [], cell = {}, seriesTot = {};
@@ -460,6 +467,12 @@
           I18N.chartSeriesCapped.replace('{shown}', '12').replace('{n}', String(series.length));
         el('rsChartNote').hidden = false;
         series = series.slice(0, 12);
+      }
+      // Third+ breakdowns are collapsed into the pivot — say so (the existing
+      // msgid still reads true: the chart carries two, the table all of them).
+      if (dims >= 3) {
+        el('rsChartNote').textContent = I18N.noChartThreeDims;
+        el('rsChartNote').hidden = false;
       }
       state.chartData = {
         labels: xOrder,
