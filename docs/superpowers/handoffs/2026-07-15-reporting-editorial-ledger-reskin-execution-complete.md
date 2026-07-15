@@ -1,3 +1,6 @@
+> **Superseded same-day:** the newest handoff is
+> `2026-07-15-reporting-logic-fixes-and-pin-plan.md` — resume from that one.
+
 # Handoff — reporting "Editorial Ledger" reskin: 11/12 tasks done, Task 12 blocked on VPN/DNS
 
 **Date:** 2026-07-15 · **Branch:** `feature/2.5.64` (worktree `plan/reporting-editorial-ledger-reskin`
