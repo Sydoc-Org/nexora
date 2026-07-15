@@ -181,6 +181,94 @@ def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
         )
 
 
+def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
+    """After a Simple wizard run whose result has a numeric measure column,
+    the KPI band renders client-computed total/buckets/avg for the rows
+    already on screen (no second query)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'kpi_users', kind: 'curated', label: 'KPI Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 22});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'kpi_user_count', sourceId: 'kpi_users', label: 'KPI user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+
+        # /api/reporting/run is hit twice per wizard run: once with an empty
+        # columns array for the grand-total stat card, once with the real
+        # breakdown. Only the breakdown response carries the numeric measure
+        # column the KPI band needs, so branch on that to keep both calls
+        # deterministic.
+        def handler(route):
+            body = route.request.post_data_json or {}
+            if body.get("columns"):
+                payload = {
+                    "columns": [
+                        {"field": "username", "header": "Username"},
+                        {"field": "kpi_user_count", "header": "KPI user count"},
+                    ],
+                    "rows": [["alice", 4], ["bob", 5], ["carol", 3]],
+                    "truncated": False,
+                    "rowCount": 3,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            else:
+                payload = {
+                    "columns": [{"field": "kpi_user_count", "header": "KPI user count"}],
+                    "rows": [[12]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+        page.route("**/api/reporting/run", handler)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("KPI user count").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        band = page.get_by_test_id("rs-kpi-band")
+        expect(band).to_be_visible()
+        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3
+        expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
+        expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
+        expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 STUB_AI_DEFINITION = {
     "schemaVersion": 1,
     "source": "docprocessing",

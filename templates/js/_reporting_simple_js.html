@@ -77,7 +77,10 @@
     copied: {{ _("Copied")|tojson }},
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
     measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
-    timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }}
+    timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }},
+    kpiTotal: {{ _("Total")|tojson }},
+    kpiBuckets: {{ _("Buckets")|tojson }},
+    kpiAvg: {{ _("Avg per bucket")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -268,6 +271,42 @@
     if (v == null || v === '') return false;
     var n = Number(v);
     return !isNaN(n) && isFinite(n);
+  }
+
+  // KPI stat band (L7 locked decision): total/buckets/avg computed
+  // client-side from the rows the pane already has — no second query. The
+  // first numeric column after the definition's dimension columns is
+  // treated as the measure (every row's value must be finite); hidden when
+  // there are no rows or no such column. Mirrored in _reporting_js.html's
+  // own computeKpiBand/renderKpiBand for the Advanced grid.
+  function computeKpiBand(dims, rows) {
+    if (!rows.length) return null;
+    var idx = -1;
+    for (var i = dims; i < rows[0].length; i++) {
+      if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
+    }
+    if (idx === -1) return null;
+    var total = 0;
+    rows.forEach(function (r) { total += Number(r[idx]); });
+    var buckets = rows.length;
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+  }
+
+  function kpiBlock(testid, caption, value) {
+    return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
+      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span></div>';
+  }
+
+  function renderKpiBand(dims, rows) {
+    var band = el('rsKpiBand');
+    var kpi = computeKpiBand(dims, rows);
+    if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
+    band.innerHTML =
+      kpiBlock('rs-kpi-total', I18N.kpiTotal, kpi.total) +
+      kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
+      kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg);
+    band.hidden = false;
   }
 
   function metricLabelFor(def) {
@@ -823,6 +862,7 @@
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = false;
     el('rsDrillHint').hidden = true;
+    el('rsKpiBand').hidden = true;
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
@@ -864,6 +904,7 @@
     el('rsShowSql').hidden = !state.current.sql;
     el('rsShowSql').textContent = I18N.showQuery;
     var columns = res.data.columns || [], rows = res.data.rows || [];
+    renderKpiBand(dims, rows);
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {
       var resolvedTxt = rdates.map(function (d) {

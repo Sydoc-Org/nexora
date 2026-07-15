@@ -1216,3 +1216,26 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   font-size: .75rem;
   color: var(--nx-text-meta);
 }
+
+/* KPI stat band (Task 5): total/buckets/avg computed client-side from the
+   current result's rows (see computeKpiBand in each pane's JS partial) — no
+   vs-prior delta (would need a second query, deferred). Hidden for zero-row
+   results and results with no numeric column after the dimensions. Flat,
+   hairline-free — the row rules belong to the table below it, not this band. */
+.reporting-ledger-kpis {
+  display: flex;
+  gap: 2rem;
+  padding: .25rem 0 1rem;
+}
+.reporting-ledger-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.reporting-ledger-kpi-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--rl-ink);
+}

@@ -413,6 +413,9 @@
   var I18N_HIDE_QUERY = {{ _("Hide query")|tojson }};
   var I18N_COPIED = {{ _("Copied")|tojson }};
   var I18N_TRUNCATED = {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }};
+  var I18N_KPI_TOTAL = {{ _("Total")|tojson }};
+  var I18N_KPI_BUCKETS = {{ _("Buckets")|tojson }};
+  var I18N_KPI_AVG = {{ _("Avg per bucket")|tojson }};
 
   // ----- Drill-through (Advanced: chart clicks + grid rows) -----
   // Mirrors _reporting_simple_js.html's metricAggFor/clickedFor/openDrill/
@@ -497,8 +500,65 @@
     return !isNaN(n) && isFinite(n);
   }
 
+  // KPI stat band (L7 locked decision): total/buckets/avg computed
+  // client-side from the rows the pane already has — no second query. The
+  // first column after the definition's group-by dimensions (def.columns)
+  // whose values are ALL finite numbers is treated as the measure; hidden
+  // when there are no rows or no such column. Mirrors
+  // _reporting_simple_js.html's own computeKpiBand/renderKpiBand.
+  function computeKpiBand(def, rows) {
+    if (!rows.length) return null;
+    var dims = ((def && def.columns) || []).length;
+    var idx = -1;
+    for (var i = dims; i < rows[0].length; i++) {
+      if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
+    }
+    if (idx === -1) return null;
+    var total = 0;
+    rows.forEach(function (r) { total += Number(r[idx]); });
+    var buckets = rows.length;
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+  }
+
+  // Advanced has no named number-formatting helper elsewhere (grid cells
+  // render via plain String(v)); this mirrors Simple's fmtNumber
+  // (Number(v) + toLocaleString(APP_LANG)) for the KPI band's own figures.
+  var APP_LANG = document.documentElement.lang || undefined;
+  function fmtKpiNumber(v) {
+    var n = Number(v);
+    return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
+  }
+
+  function kpiBlock(testid, caption, value) {
+    var block = document.createElement('div');
+    block.className = 'reporting-ledger-kpi';
+    block.setAttribute('data-testid', testid);
+    var cap = document.createElement('span');
+    cap.className = 'reporting-ledger-caption';
+    cap.textContent = caption;
+    var val = document.createElement('span');
+    val.className = 'reporting-ledger-kpi-value';
+    val.textContent = fmtKpiNumber(value);
+    block.appendChild(cap);
+    block.appendChild(val);
+    return block;
+  }
+
+  function renderKpiBand(def, rows) {
+    var band = document.getElementById('rpKpiBand');
+    if (!band) return;
+    var kpi = computeKpiBand(def, rows);
+    band.innerHTML = '';
+    if (!kpi) { band.hidden = true; return; }
+    band.appendChild(kpiBlock('reporting-kpi-total', I18N_KPI_TOTAL, kpi.total));
+    band.appendChild(kpiBlock('reporting-kpi-buckets', I18N_KPI_BUCKETS, kpi.buckets));
+    band.appendChild(kpiBlock('reporting-kpi-avg', I18N_KPI_AVG, kpi.avg));
+    band.hidden = false;
+  }
+
   function renderResults(data) {
     state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    renderKpiBand(state.lastDef, data.rows || []);
     // Stash the echoed SQL for the Show query panel. Only /run echoes sql;
     // SQL-sandbox runs (/api/reporting/sql/run) never set a sql key — button stays hidden.
     var sqlBtn = document.getElementById('rpShowSql');
