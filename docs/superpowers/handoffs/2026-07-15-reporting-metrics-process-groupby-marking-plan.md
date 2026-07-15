@@ -1,3 +1,6 @@
+> **Superseded same-day:** execution is now complete — see
+> `docs/superpowers/handoffs/2026-07-15-reporting-metrics-process-groupby-marking-execution-complete.md`.
+
 # Handoff — reporting metrics + process-coverage marking: PLAN written, ready to execute
 
 **Date:** 2026-07-15 · **Branch:** `plan/reporting-metrics-process-groupby-marking` (worktree
